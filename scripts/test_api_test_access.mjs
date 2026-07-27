@@ -775,8 +775,8 @@ assert.match(
 );
 assert.match(
   frontendSource,
-  /const editableDetail = expertScope \? canEditContacts\(\) : canEditCareObject\(contact\)/u,
-  "Kontakte dürfen nur im eigenen Testscope bearbeitbar erscheinen."
+  /const editableDetail = expertScope\s*\?\s*canEditContacts\(\)\s*:\s*canEditCareObject\(contact\) && contact\.profileAccess !== "ehc_restricted"/u,
+  "Kontakte dürfen nur im eigenen Testscope und im EHC-Berechtigungsumfang bearbeitbar erscheinen."
 );
 assert.doesNotMatch(enrollmentSource, /console\.(?:log|warn|error)/u, "Enrollment darf keine Identitaetsdaten protokollieren.");
 assert.doesNotMatch(

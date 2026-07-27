@@ -73,8 +73,8 @@ assert.doesNotMatch(
 );
 assert.match(
   api,
-  /changedFields\.filter\(\(field\)\s*=>\s*!field\.startsWith\("mitmachen_consent_"\)\)/,
-  "Das API darf die bereits transaktional protokollierten Einwilligungsfelder nicht doppelt loggen."
+  /changedFields\.filter\(\(field\)\s*=>\s*!CONTACT_PURPOSE_AUDIT_FIELDS\.has\(field\)\)/,
+  "Das API darf die bereits transaktional protokollierten Einwilligungs- und Zweckfelder nicht doppelt loggen."
 );
 assert.match(
   dataService,

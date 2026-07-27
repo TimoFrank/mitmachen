@@ -41,7 +41,9 @@ erDiagram
   profiles ||--o{ network_registrations : "processed_by"
   profiles ||--o{ contacts : "created_by"
   profiles ||--o{ contacts : "updated_by"
+  profiles ||--o{ contacts : "relationship_basis_recorded_by"
   profiles ||--o{ contacts : "mitmachen_consent_recorded_by"
+  profiles ||--o{ contacts : "ehc_consent_recorded_by"
   profiles ||--o{ formats : "owner_id"
   formats ||--o{ format_participants : "format_id"
   contacts ||--o{ format_participants : "contact_id"
@@ -167,12 +169,22 @@ Wichtigste Felder:
 | `postal_code`, `city`, `federal_state` | Standortdaten. |
 | `latitude`, `longitude` | Koordinaten für Kartenansicht. |
 | `email`, `phone`, `linkedin` | Kontaktdaten. |
+| `relationship_basis` | Dokumentierte Grundlage der Profilführung: `review_required`, `public_task`, `self_submitted`, `active_collaboration`, `verbal_contact` oder `public_professional_source`. Sie ist keine pauschale Kontaktfreigabe. |
+| `relationship_basis_effective_at` | Zeitpunkt, ab dem die dokumentierte Profilführungsgrundlage gilt. |
+| `relationship_basis_recorded_by` | Profil, das die Profilführungsgrundlage erfasst hat. |
+| `relationship_basis_note` | Nachweis- oder Klärungsvermerk; bei `verbal_contact` Pflicht. |
 | `mitmachen_consent_status` | Status für den einheitlichen Zweck "#Mitmachen – Kontaktaufnahme für Beteiligungsformate": `granted`, `not_requested`, `declined`, `withdrawn` oder `clarification_needed`. |
 | `mitmachen_consent_effective_at` | Zeitpunkt der Erklärung, Ablehnung oder des Widerrufs. |
 | `mitmachen_consent_source` | Dokumentationsquelle: `online_form`, `email`, `written`, `verbal_confirmed` oder `manual_transfer`. |
 | `mitmachen_consent_text_version` | Version des zugrunde liegenden Einwilligungstextes. |
 | `mitmachen_consent_recorded_by` | Profil, das den Status nachvollziehbar erfasst hat. |
 | `mitmachen_consent_note` | Nachweis- oder Klärungsvermerk; bei ausdrücklich mündlicher Einwilligung Pflicht. |
+| `ehc_consent_status` | Gesonderter Status nur für den Zweck E-Health Community; gleiche Statuswerte wie bei #Mitmachen. Eine EHC-Freigabe gilt nicht für #Mitmachen oder andere Kontaktzwecke. |
+| `ehc_consent_effective_at` | Zeitpunkt der EHC-Erklärung, Ablehnung oder des Widerrufs. |
+| `ehc_consent_source` | EHC-Nachweisquelle; zusätzlich zu den allgemeinen Quellen ist `survalyzer_ehc` zulässig. |
+| `ehc_consent_text_version` | Version des zugrunde liegenden EHC-Einwilligungstextes. |
+| `ehc_consent_recorded_by` | Profil, das den EHC-Status erfasst hat. |
+| `ehc_consent_note` | EHC-Nachweis- oder Klärungsvermerk. |
 | `topics` | Themen als Textarray. |
 | `notes` | Notizen. |
 | `source` | Quellen/Importhinweise als Text. |
@@ -190,7 +202,7 @@ UI-Nutzung:
 
 - Kontaktliste, Suche und Filter.
 - Detailprofil und Bearbeitungsformular.
-- Eigener Reiter `Einwilligung` für den #Mitmachen-Status; E-Health-Community-Mitgliedschaft oder Teilnahmehistorie erzeugen keine automatische Freigabe.
+- Eigener Reiter `Einwilligungen` mit getrennten Statusachsen für Profilführung, E-Health Community und #Mitmachen; keine Achse erzeugt automatisch eine Freigabe für eine andere.
 - Rolle in Schnellerfassung, Import, Profil und Datenqualität.
 - Kontaktbild und Abschnitt `Bild & Quelle`; ohne Bild zeigt die UI Initialen.
 - Klickbare Organisation im Kontaktprofil, sofern `organization_id` oder passender Freitext vorhanden ist.
@@ -209,7 +221,9 @@ Kritische Felder:
 - `latitude`/`longitude`: Karte.
 - `priority`, `sector`, `specialty`, `federal_state`: Filter und Auswertung.
 - `role`: fachliche Einordnung des Kontakts; kein Berechtigungs- oder Einwilligungsstatus.
+- `relationship_basis` und seine Nachweisfelder: dokumentieren, warum das Profil geführt wird, ohne daraus eine allgemeine Kontaktfreigabe abzuleiten.
 - `mitmachen_consent_status` und seine Nachweisfelder: steuern, ob eine allgemeine #Mitmachen-Kontaktaufnahme dokumentiert freigegeben ist.
+- `ehc_consent_status` und seine Nachweisfelder: gelten ausschließlich für den EHC-Zweck.
 - `image_url` und Bildquellenfelder: rein manuelle Dokumentation, keine automatische Bildübernahme.
 
 Automatisch gesetzt:
@@ -218,7 +232,10 @@ Automatisch gesetzt:
 - `updated_at` per Trigger `contacts_touch_updated_at`.
 - `created_by` und `updated_by` werden vom Data-Service beim Erstellen gesetzt.
 - `updated_by` wird beim Speichern gesetzt.
-- Neue Kontakte starten mit `not_requested`. Die Einführungsmigration setzt den unbewerteten Altbestand einmalig auf `clarification_needed`.
+- Neue Kontakte starten bei der Profilführungsgrundlage mit `review_required` und bei beiden Einwilligungsachsen mit `not_requested`.
+- Die Einführung der EHC-Achse klassifiziert bestehende Kontakte nicht automatisch als EHC-Kontakte. Eine fachlich und datenschutzrechtlich freigegebene Zuordnung erfolgt in einem separaten, kontrollierten Schritt.
+- Die frühere #Mitmachen-Einführungsmigration setzte den damals unbewerteten Altbestand einmalig auf `clarification_needed`.
+- Bei fachlichen Änderungen setzt die API `relationship_basis_recorded_by`, `ehc_consent_recorded_by` beziehungsweise `mitmachen_consent_recorded_by` serverseitig auf das angemeldete Profil.
 - Optionale #Mitmachen-Einwilligungen aus dem Versorgungs-Netzwerk werden bei Übernahme strukturiert am Kontakt gespeichert.
 
 Dürfen Nutzer bearbeiten:
@@ -226,6 +243,14 @@ Dürfen Nutzer bearbeiten:
 - Editor/Admin: aktive Kontakte.
 - Admin: Archivieren und Wiederherstellen.
 - Viewer: keine Bearbeitung.
+- EHC-only-Kontakte dürfen außer von Admins und ihren Ownern nicht bearbeitet werden.
+
+Zugriffsprojektion für EHC-only:
+
+- EHC-only bedeutet `ehc_consent_status = granted` und gleichzeitig `mitmachen_consent_status <> granted`.
+- Admins und eingetragene Owner erhalten das vollständige DTO mit `profileAccess = ehc_authorized`.
+- Alle anderen Rollen erhalten in Liste, Suche und Detailabruf nur einen nicht identifizierenden Stub mit `profileAccess = ehc_restricted` und `contactChannelAccess = restricted`. Name, Organisation, Standort, Kontaktwege, Notizen, Quellen, Bilder sowie Zeitpunkte und Nachweisfelder werden serverseitig entfernt; sichtbar bleiben nur die für den Schutzstatus nötigen Statusachsen.
+- Die Einschränkung ist eine serverseitige Datenprojektion und darf nicht allein durch ausgeblendete UI-Elemente umgesetzt werden.
 
 Fachliche Abgrenzung:
 
@@ -613,7 +638,7 @@ Wichtigste Felder:
 | --- | --- |
 | `id` | Fortlaufende `bigint`-Identity und Primärschlüssel. |
 | `event_key` | Stabiler, punktgetrennter Ereignisschlüssel, zum Beispiel `contact.created`. Nicht eindeutig, weil derselbe Typ beliebig oft auftreten darf. |
-| `category` | Fachbereich: `master_data`, `ownership`, `consent`, `hospitation`, `format`, `note_document` oder `unknown`. |
+| `category` | Fachbereich: `master_data`, `ownership`, `consent`, `hospitation`, `format`, `note_document` oder `unknown`. Die UI bezeichnet `consent` als „Einwilligung & Nutzung“, weil dort auch die Profilführungsgrundlage dokumentiert wird. |
 | `action` | Maschinenlesbare Aktion innerhalb des Ereignisses, zum Beispiel `created`, `updated` oder `archived`. |
 | `entity_type`, `entity_id` | Primär betroffenes Objekt. IDs bleiben als Text gespeichert, weil die Fachobjekte unterschiedliche Schlüsseltypen verwenden. |
 | `contact_id` | Optionaler direkter Kontaktbezug für den Kontaktverlauf. Bei `entity_type = contact` ist er verpflichtend und muss `entity_id` entsprechen. Jeder Kontaktverweis in `references` muss exakt dieselbe ID tragen. |
@@ -645,6 +670,7 @@ Indizes und Idempotenz:
 RLS und Schreibmodell:
 
 - Admins dürfen alle Ereignisse lesen. Viewer und Editoren sehen nur Ereignisse ohne Kontaktbezug oder Ereignisse aktiver Kontakte; Aktivitäten archivierter Kontakte bleiben verborgen.
+- Für EHC-only-Kontakte gilt dieselbe nicht identifizierende Zugriffsprojektion auch im globalen Verlauf und im Kontaktverlauf. Nicht autorisierte Nutzer dürfen insbesondere weder Kontaktstammdaten noch Werte aus Profilführungs- oder Einwilligungsnachweisen über Aktivitätsfelder erhalten.
 - Authentifizierte Browser-Clients besitzen ausschließlich `SELECT`: keine Sequenzrechte, keine Insert-Policy und keine Rechte für Update oder Delete.
 - Ausschließlich der privilegierte serverseitige Writer besitzt `INSERT` und Sequenzrechte. Auch für ihn bleiben Update und Delete gesperrt, damit das Ledger append-only ist; der Schlüssel darf nie im Frontend verwendet werden.
 - Fachliche Mutationen schreiben Domainänderung, Audit-Zeilen, kanonisches Ereignis und die Verknüpfung der Audit-Zeilen in einer Transaktion. `actor_id`, Objekt- und Kontaktbezug stammen aus dem validierten Servervorgang, nicht aus frei formulierbaren Browserdaten.

@@ -6,6 +6,7 @@ await import("../frontend/data/activity-model.js");
 const model = globalThis.ActivityModel;
 assert.ok(model, "ActivityModel wurde beim Import nicht auf globalThis registriert.");
 assert.deepEqual(model.CATEGORY_KEYS, ["master_data", "ownership", "consent", "hospitation", "format", "note_document", "unknown"]);
+assert.equal(model.categories.consent.label, "Einwilligung & Nutzung");
 assert.deepEqual(model.ORIGIN_KEYS, ["manual", "data_import", "public_registration", "system", "legacy"]);
 [
   "contact.created",
@@ -48,6 +49,7 @@ const producerContracts = [
   ["contact.consent.updated", "consent", "Einwilligung aktualisiert"],
   ["contact.consent.declined", "consent", "Einwilligung abgelehnt"],
   ["contact.consent.withdrawn", "consent", "Einwilligung widerrufen"],
+  ["contact.relationship.updated", "consent", "Nutzungsgrundlage aktualisiert"],
   ["organization.created", "master_data", "Organisation angelegt"],
   ["organization.updated", "master_data", "Organisation aktualisiert"],
   ["organization.archived", "master_data", "Organisation archiviert"],
@@ -151,6 +153,36 @@ assert.equal(consent.eventKey, "contact.consent.withdrawn");
 assert.equal(consent.categoryKey, "consent");
 assert.equal(consent.title, "Einwilligung widerrufen");
 assert.equal(consent.fieldName, "mitmachen_consent_status");
+assert.equal(consent.details.fieldLabel, "#Mitmachen-Einwilligungsstatus");
+
+const ehcGranted = model.normalizeActivity({ ...base, id: 71, action: "update", fieldName: "ehcConsentStatus", oldValue: "not_requested", newValue: "granted" });
+const ehcDeclined = model.normalizeActivity({ ...base, id: 72, action: "update", fieldName: "ehc_consent_status", oldValue: "clarification_needed", newValue: "declined" });
+const ehcWithdrawn = model.normalizeActivity({ ...base, id: 73, action: "update", fieldName: "ehcConsentStatus", oldValue: "granted", newValue: "withdrawn" });
+const ehcEvidence = model.normalizeActivity({ ...base, id: 74, action: "update", fieldName: "ehcConsentSource", oldValue: "", newValue: "survalyzer_ehc" });
+assert.equal(ehcGranted.eventKey, "contact.consent.granted");
+assert.equal(ehcDeclined.eventKey, "contact.consent.declined");
+assert.equal(ehcWithdrawn.eventKey, "contact.consent.withdrawn");
+assert.equal(ehcGranted.categoryKey, "consent");
+assert.equal(ehcGranted.fieldFamily, "contact_consent");
+assert.equal(ehcGranted.details.fieldLabel, "EHC-Einwilligungsstatus");
+assert.equal(ehcEvidence.eventKey, "contact.consent.updated");
+assert.equal(ehcEvidence.details.fieldLabel, "EHC-Quelle");
+
+const relationship = model.normalizeActivity({
+  ...base,
+  id: 75,
+  action: "update",
+  fieldName: "relationshipBasis",
+  oldValue: "review_required",
+  newValue: "verbal_contact"
+});
+assert.equal(relationship.eventKey, "contact.relationship.updated");
+assert.equal(relationship.categoryKey, "consent");
+assert.equal(relationship.title, "Nutzungsgrundlage aktualisiert");
+assert.equal(relationship.fieldFamily, "contact_relationship_basis");
+assert.equal(relationship.details.fieldLabel, "Grundlage der Profilführung");
+assert.equal(model.fieldFamily("relationshipBasisNote"), "contact_relationship_basis");
+assert.equal(model.fieldFamily("ehcConsentTextVersion"), "contact_consent");
 
 const imageAdded = model.normalizeActivity({ ...base, id: 8, action: "update", field_name: "image_url", old_value: "", new_value: "https://example.test/ada.jpg" });
 const imageChanged = model.normalizeActivity({ ...base, id: 9, action: "update", fieldName: "imageUrl", oldValue: "old.jpg", newValue: "new.jpg" });
@@ -177,6 +209,17 @@ assert.equal(grouped[0].eventCount, 2);
 assert.equal(grouped[0].fieldFamily, "contact_channels");
 assert.equal(grouped[1].fieldFamily, "contact_classification");
 assert.equal(grouped[2].fieldFamily, "contact_ownership");
+
+const purposeGroups = model.groupActivities([
+  { ...base, id: 151, action: "update", field_name: "ehc_consent_source", old_value: "", new_value: "survalyzer_ehc", changed_at: "2026-07-16T10:01:00.000Z" },
+  { ...base, id: 152, action: "update", field_name: "ehc_consent_text_version", old_value: "", new_value: "ehc-v1", changed_at: "2026-07-16T10:00:59.000Z" },
+  { ...base, id: 153, action: "update", field_name: "relationship_basis_note", old_value: "", new_value: "Fachkongress", changed_at: "2026-07-16T10:00:58.000Z" }
+]);
+assert.equal(purposeGroups.length, 2, "EHC-Nachweise dürfen gruppiert werden, aber nicht mit der Profilführungsgrundlage verschmelzen.");
+assert.equal(purposeGroups[0].eventCount, 2);
+assert.equal(purposeGroups[0].fieldFamily, "contact_consent");
+assert.equal(purposeGroups[1].eventKey, "contact.relationship.updated");
+assert.equal(purposeGroups[1].fieldFamily, "contact_relationship_basis");
 
 const outsideWindow = model.groupActivities([
   { ...base, id: 16, action: "update", field_name: "email", old_value: "a", new_value: "b", changed_at: "2026-07-16T10:00:00.000Z" },
@@ -336,4 +379,4 @@ assert.throws(
   "Producer dürfen keine Ereignisse ohne vollständigen Objektbezug speichern."
 );
 
-console.log("Activity Model Test OK: Taxonomie, Legacy-Mapping, Gruppierung und ViewModel sind stabil.");
+console.log("Activity Model Test OK: Taxonomie, Zweckachsen, Legacy-Mapping, Gruppierung und ViewModel sind stabil.");

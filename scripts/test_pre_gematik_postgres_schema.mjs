@@ -34,7 +34,8 @@ const expectedMigrationFiles = Object.freeze([
   "202607200002_preserve_explicit_updated_at.sql",
   "202607200003_restrict_stakeholder_logo_urls.sql",
   "202607240001_add_test_access_enrollment.sql",
-  "202607250001_add_test_access_allowlist.sql"
+  "202607250001_add_test_access_allowlist.sql",
+  "202607270002_add_contact_relationship_basis_and_ehc_consent.sql"
 ]);
 const migrationFiles = readdirSync(migrationsUrl)
   .filter((fileName) => /^\d+_[a-z0-9_]+\.sql$/u.test(fileName))
@@ -57,9 +58,9 @@ function replaceSchemaFragmentExactlyOnce(source, pattern, replacement, descript
 }
 
 // Reconstruct the exact capabilities that existed immediately before the
-// five versioned migrations. Keeping this derived from today's full schema
+// six versioned migrations. Keeping this derived from today's full schema
 // makes the upgrade smoke exercise all current tables while deliberately
-// removing only the five capabilities supplied by those migrations.
+// removing only the six capabilities supplied by those migrations.
 let legacyUpgradeSchemaSql = replaceSchemaFragmentExactlyOnce(
   schemaSql,
   /  if new\.updated_at is not distinct from old\.updated_at then\n    new\.updated_at := now\(\);\n  end if;/u,
@@ -96,12 +97,52 @@ legacyUpgradeSchemaSql = replaceSchemaFragmentExactlyOnce(
   "",
   "Logo-Constraint vor Migration 003"
 );
+legacyUpgradeSchemaSql = replaceSchemaFragmentExactlyOnce(
+  legacyUpgradeSchemaSql,
+  /\n  relationship_basis text not null default 'review_required'[\s\S]*?\n  relationship_basis_note text,/u,
+  "",
+  "Beziehungsgrundlagen-Spalten vor Migration 006"
+);
+legacyUpgradeSchemaSql = replaceSchemaFragmentExactlyOnce(
+  legacyUpgradeSchemaSql,
+  /\n  ehc_consent_status text not null default 'not_requested'[\s\S]*?\n  ehc_consent_note text,/u,
+  "",
+  "EHC-Einwilligungsspalten vor Migration 006"
+);
+legacyUpgradeSchemaSql = replaceSchemaFragmentExactlyOnce(
+  legacyUpgradeSchemaSql,
+  /,\n  constraint contacts_relationship_basis_required_fields_check check \([\s\S]*?\n  \)(?=,\n  constraint contacts_image_dimensions_check)/u,
+  "",
+  "Zweck- und EHC-Constraints vor Migration 006"
+);
+legacyUpgradeSchemaSql = replaceSchemaFragmentExactlyOnce(
+  legacyUpgradeSchemaSql,
+  /\ncreate index if not exists contacts_ehc_only_idx[\s\S]*?\n  where ehc_consent_status = 'granted' and mitmachen_consent_status <> 'granted';/u,
+  "",
+  "EHC-Only-Index vor Migration 006"
+);
+legacyUpgradeSchemaSql = replaceSchemaFragmentExactlyOnce(
+  legacyUpgradeSchemaSql,
+  /\ncreate or replace function public\.pre_gematik_prepare_contact_purpose_write\(\)[\s\S]*?\nrevoke all on function public\.pre_gematik_log_contact_purpose_change\(\) from public;\n/u,
+  "\n",
+  "Kontaktzweck-Funktionen vor Migration 006"
+);
+legacyUpgradeSchemaSql = replaceSchemaFragmentExactlyOnce(
+  legacyUpgradeSchemaSql,
+  /\ndrop trigger if exists contacts_pre_gematik_prepare_contact_purpose_insert[\s\S]*?execute function public\.pre_gematik_log_contact_purpose_change\(\);\n/u,
+  "\n",
+  "Kontaktzweck-Trigger vor Migration 006"
+);
 assert.doesNotMatch(legacyUpgradeSchemaSql, /public\.identity_bindings|identity_bindings_/u);
 assert.doesNotMatch(
   legacyUpgradeSchemaSql,
   /identity_enrollment_requests|test_access_objects|test_access_allowlist|pre_gematik_consume_test_access_allowlist/u
 );
 assert.doesNotMatch(legacyUpgradeSchemaSql, /stakeholder_organizations_logo_url_private_check/u);
+assert.doesNotMatch(
+  legacyUpgradeSchemaSql,
+  /relationship_basis|ehc_consent_|pre_gematik_(?:prepare|log)_contact_purpose/u
+);
 assert.match(
   legacyUpgradeSchemaSql,
   /begin\n  new\.updated_at := now\(\);\n  return new;/u,
@@ -442,6 +483,84 @@ async function databaseSmoke(pool) {
       insert into contact_owners (contact_id, profile_id, assigned_by)
       values ('contact-contract', 'contract-editor', 'pre-gematik-admin')
     `);
+    const purposeUpdate = await client.query(`
+      update contacts
+         set relationship_basis = 'verbal_contact',
+             relationship_basis_effective_at = now() - interval '1 day',
+             relationship_basis_recorded_by = 'contract-editor',
+             relationship_basis_note = 'Synthetisches persönliches Fachgespräch.',
+             ehc_consent_status = 'granted',
+             ehc_consent_effective_at = now() - interval '1 day',
+             ehc_consent_source = 'manual_transfer',
+             ehc_consent_text_version = 'ehc-contract-v1',
+             ehc_consent_recorded_by = 'contract-editor',
+             ehc_consent_note = 'Synthetischer Übertragungsnachweis.',
+             updated_by = 'pre-gematik-admin'
+       where id = 'contact-contract'
+       returning relationship_basis_recorded_by, ehc_consent_recorded_by
+    `);
+    assert.deepEqual(purposeUpdate.rows[0], {
+      relationship_basis_recorded_by: "pre-gematik-admin",
+      ehc_consent_recorded_by: "pre-gematik-admin"
+    }, "Die Datenbank muss Erfassende aus updated_by statt aus Clientwerten übernehmen.");
+
+    await client.query("savepoint invalid_relationship_future");
+    await assert.rejects(
+      client.query(`
+        update contacts
+           set relationship_basis_effective_at = now() + interval '1 day',
+               updated_by = 'pre-gematik-admin'
+         where id = 'contact-contract'
+      `),
+      (error) => error?.code === "23514",
+      "Zukünftige Beziehungsgrundlagen-Zeitpunkte müssen abgewiesen werden."
+    );
+    await client.query("rollback to savepoint invalid_relationship_future");
+
+    await client.query("savepoint invalid_ehc_future");
+    await assert.rejects(
+      client.query(`
+        update contacts
+           set ehc_consent_effective_at = now() + interval '1 day',
+               updated_by = 'pre-gematik-admin'
+         where id = 'contact-contract'
+      `),
+      (error) => error?.code === "23514",
+      "Zukünftige EHC-Entscheidungszeitpunkte müssen abgewiesen werden."
+    );
+    await client.query("rollback to savepoint invalid_ehc_future");
+
+    await client.query("savepoint invalid_verbal_relationship_note");
+    await assert.rejects(
+      client.query(`
+        update contacts
+           set relationship_basis_note = null,
+               updated_by = 'pre-gematik-admin'
+         where id = 'contact-contract'
+      `),
+      (error) => error?.code === "23514",
+      "Mündliche Kontakte müssen einen Nachweisvermerk behalten."
+    );
+    await client.query("rollback to savepoint invalid_verbal_relationship_note");
+
+    const purposeAudit = await client.query(`
+      select field_name
+        from changes
+       where contact_id = 'contact-contract'
+         and field_name in (
+           'relationship_basis',
+           'relationship_basis_recorded_by',
+           'ehc_consent_status',
+           'ehc_consent_recorded_by'
+         )
+       order by field_name
+    `);
+    assert.deepEqual(purposeAudit.rows.map((row) => row.field_name), [
+      "ehc_consent_recorded_by",
+      "ehc_consent_status",
+      "relationship_basis",
+      "relationship_basis_recorded_by"
+    ], "Zweck- und EHC-Änderungen müssen transaktional im Änderungen-Ledger erscheinen.");
     const event = await client.query(`
       insert into activity_events (
         event_key, category, action, entity_type, entity_id, contact_id, actor_id, origin_type, "references", changes, metadata
@@ -1409,9 +1528,9 @@ async function assertVersionedMigrationUpgrade(connectionString, containerName) 
     const dataAfterSecondPass = await migrationUpgradeDataSnapshot(upgradePool);
     const secondSemantics = await migrationUpgradeSemanticSnapshot(upgradePool);
     assert.deepEqual(dataAfterSecondPass, dataBeforeSecondPass,
-      "Der zweite Lauf aller fünf Migrationen darf einschliesslich xmin keine Daten erneut veraendern.");
+      "Der zweite Lauf aller sechs Migrationen darf einschliesslich xmin keine Daten erneut veraendern.");
     assert.deepEqual(secondSemantics, firstSemantics,
-      "Der zweite Lauf aller fünf Migrationen muss denselben logischen Tabellen-, Constraint-, Trigger- und Rechtezustand ergeben.");
+      "Der zweite Lauf aller sechs Migrationen muss denselben logischen Tabellen-, Constraint-, Trigger- und Rechtezustand ergeben.");
 
     const secondExplicitTimestamp = new Date("2003-04-05T06:07:08.901Z");
     const secondExplicit = await upgradePool.query(`
@@ -1878,7 +1997,7 @@ try {
     await databaseSmoke(pool);
     console.log("Externe Test-DB verwendet: runtime-role.sql und grants.sql wurden statisch, aber nicht mit temporären Rollen ausgeführt.");
   }
-  console.log("PostgreSQL 16 contract OK: Vollschema und fünf Upgrade-Migrationen zweifach/idempotent; Legacy-Logo-Bereinigung, Identity-/Allowlist-Grenzen, getrennte NOLOGIN-Identity-Administration, explicit updated_at, Laufzeitrolle und relationaler Smoke-Test erfolgreich.");
+  console.log("PostgreSQL 16 contract OK: Vollschema und sechs Upgrade-Migrationen zweifach/idempotent; Legacy-Logo-Bereinigung, Identity-/Allowlist-Grenzen, getrennte NOLOGIN-Identity-Administration, explicit updated_at, Zweckachsen, Laufzeitrolle und relationaler Smoke-Test erfolgreich.");
 } finally {
   if (pool) await pool.end().catch(() => {});
   if (containerName) {

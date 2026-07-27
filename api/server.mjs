@@ -58,12 +58,22 @@ const CONTACT_FIELDS = [
   "email",
   "phone",
   "linkedin",
+  "relationship_basis",
+  "relationship_basis_effective_at",
+  "relationship_basis_recorded_by",
+  "relationship_basis_note",
   "mitmachen_consent_status",
   "mitmachen_consent_effective_at",
   "mitmachen_consent_source",
   "mitmachen_consent_text_version",
   "mitmachen_consent_recorded_by",
   "mitmachen_consent_note",
+  "ehc_consent_status",
+  "ehc_consent_effective_at",
+  "ehc_consent_source",
+  "ehc_consent_text_version",
+  "ehc_consent_recorded_by",
+  "ehc_consent_note",
   "topics",
   "notes",
   "source",
@@ -580,6 +590,14 @@ const CONTACT_INPUT_FIELDS = [
   "email",
   "phone",
   "linkedin",
+  "relationshipBasis",
+  "relationship_basis",
+  "relationshipBasisEffectiveAt",
+  "relationship_basis_effective_at",
+  "relationshipBasisRecordedBy",
+  "relationship_basis_recorded_by",
+  "relationshipBasisNote",
+  "relationship_basis_note",
   "mitmachenConsentStatus",
   "mitmachen_consent_status",
   "mitmachenConsentEffectiveAt",
@@ -592,6 +610,18 @@ const CONTACT_INPUT_FIELDS = [
   "mitmachen_consent_recorded_by",
   "mitmachenConsentNote",
   "mitmachen_consent_note",
+  "ehcConsentStatus",
+  "ehc_consent_status",
+  "ehcConsentEffectiveAt",
+  "ehc_consent_effective_at",
+  "ehcConsentSource",
+  "ehc_consent_source",
+  "ehcConsentTextVersion",
+  "ehc_consent_text_version",
+  "ehcConsentRecordedBy",
+  "ehc_consent_recorded_by",
+  "ehcConsentNote",
+  "ehc_consent_note",
   "themes",
   "topics",
   "note",
@@ -1163,6 +1193,99 @@ function contactOwnersChanged(oldOwnerIds = [], nextOwnerIds = []) {
   return stringifyValue(normalizeOwnerIds(oldOwnerIds)) !== stringifyValue(normalizeOwnerIds(nextOwnerIds));
 }
 
+function isEhcOnlyContact(contact = {}) {
+  const ehcStatus = contact.ehcConsentStatus || contact.ehc_consent_status || "not_requested";
+  const mitmachenStatus = contact.mitmachenConsentStatus || contact.mitmachen_consent_status || "not_requested";
+  return ehcStatus === "granted" && mitmachenStatus !== "granted";
+}
+
+function requestHasEhcContactAccess(request, contact = {}, ownerIds = []) {
+  if (!isEhcOnlyContact(contact)) return true;
+  if (roleRank(request.currentProfile?.role) >= roleRank("admin")) return true;
+  const userId = userIdFromToken(request);
+  return Boolean(userId && uniqueIds(ownerIds).includes(userId));
+}
+
+function projectContactForRequest(request, contact = {}, rawContact = {}, ownerIds = []) {
+  if (!isEhcOnlyContact(rawContact)) {
+    return {
+      ...contact,
+      profileAccess: "standard",
+      contactChannelAccess: "owner"
+    };
+  }
+  if (requestHasEhcContactAccess(request, rawContact, ownerIds)) {
+    return {
+      ...contact,
+      profileAccess: "ehc_authorized",
+      contactChannelAccess: "owner"
+    };
+  }
+  return {
+    ...contact,
+    name: "Geschützter EHC-Kontakt",
+    organizationId: "",
+    organization: "",
+    category: "",
+    specialty: "",
+    contactRole: "",
+    priority: "",
+    owner: "",
+    ownerId: "",
+    ownerIds: [],
+    owners: [],
+    postalCode: "",
+    city: "",
+    state: "",
+    latitude: null,
+    longitude: null,
+    lat: null,
+    lon: null,
+    email: "",
+    phone: "",
+    linkedin: "",
+    relationshipBasisEffectiveAt: "",
+    relationshipBasisRecordedBy: "",
+    relationshipBasisNote: "",
+    mitmachenConsentEffectiveAt: "",
+    mitmachenConsentSource: "",
+    mitmachenConsentTextVersion: "",
+    mitmachenConsentRecordedBy: "",
+    mitmachenConsentNote: "",
+    ehcConsentEffectiveAt: "",
+    ehcConsentSource: "",
+    ehcConsentTextVersion: "",
+    ehcConsentRecordedBy: "",
+    ehcConsentNote: "",
+    themes: [],
+    note: "",
+    notes: "",
+    nextStep: "",
+    sources: [],
+    image: "",
+    imageSourceUrl: "",
+    imageSourceLabel: "",
+    imageRightsNote: "",
+    imageUpdatedAt: "",
+    imageUpdatedBy: "",
+    imageStoragePath: "",
+    imageKind: "",
+    imageMimeType: "",
+    imageFileSize: 0,
+    imageWidth: 0,
+    imageHeight: 0,
+    createdAt: "",
+    updatedAt: "",
+    createdBy: "",
+    updatedBy: "",
+    location: "",
+    topic: "",
+    description: "",
+    profileAccess: "ehc_restricted",
+    contactChannelAccess: "restricted"
+  };
+}
+
 function uniqueIds(values = []) {
   return [...new Set(values.map((value) => String(value || "").trim()).filter(Boolean))];
 }
@@ -1280,12 +1403,22 @@ function contactToDto(row, index = 0, ownerIds = null) {
     email: row.email || "",
     phone: row.phone || "",
     linkedin: row.linkedin || "",
+    relationshipBasis: row.relationship_basis || "review_required",
+    relationshipBasisEffectiveAt: row.relationship_basis_effective_at || "",
+    relationshipBasisRecordedBy: row.relationship_basis_recorded_by || "",
+    relationshipBasisNote: row.relationship_basis_note || "",
     mitmachenConsentStatus: row.mitmachen_consent_status || "not_requested",
     mitmachenConsentEffectiveAt: row.mitmachen_consent_effective_at || "",
     mitmachenConsentSource: row.mitmachen_consent_source || "",
     mitmachenConsentTextVersion: row.mitmachen_consent_text_version || "",
     mitmachenConsentRecordedBy: row.mitmachen_consent_recorded_by || "",
     mitmachenConsentNote: row.mitmachen_consent_note || "",
+    ehcConsentStatus: row.ehc_consent_status || "not_requested",
+    ehcConsentEffectiveAt: row.ehc_consent_effective_at || "",
+    ehcConsentSource: row.ehc_consent_source || "",
+    ehcConsentTextVersion: row.ehc_consent_text_version || "",
+    ehcConsentRecordedBy: row.ehc_consent_recorded_by || "",
+    ehcConsentNote: row.ehc_consent_note || "",
     themes: topics,
     note: row.notes || "",
     sources: splitList(row.source),
@@ -2312,6 +2445,76 @@ function organizationPrimarySystemToDb(system = {}, { includeOrganization = true
 
 const MITMACHEN_CONSENT_STATUSES = new Set(["granted", "not_requested", "declined", "withdrawn", "clarification_needed"]);
 const MITMACHEN_CONSENT_SOURCES = new Set(["online_form", "email", "written", "verbal_confirmed", "manual_transfer"]);
+const EHC_CONSENT_STATUSES = new Set(MITMACHEN_CONSENT_STATUSES);
+const EHC_CONSENT_SOURCES = new Set(["online_form", "email", "written", "verbal_confirmed", "manual_transfer", "survalyzer_ehc"]);
+const RELATIONSHIP_BASES = new Set([
+  "review_required",
+  "public_task",
+  "self_submitted",
+  "active_collaboration",
+  "verbal_contact",
+  "public_professional_source"
+]);
+const CONTACT_PURPOSE_AUDIT_FIELDS = new Set([
+  "relationship_basis",
+  "relationship_basis_effective_at",
+  "relationship_basis_recorded_by",
+  "relationship_basis_note",
+  "mitmachen_consent_status",
+  "mitmachen_consent_effective_at",
+  "mitmachen_consent_source",
+  "mitmachen_consent_text_version",
+  "mitmachen_consent_recorded_by",
+  "mitmachen_consent_note",
+  "ehc_consent_status",
+  "ehc_consent_effective_at",
+  "ehc_consent_source",
+  "ehc_consent_text_version",
+  "ehc_consent_recorded_by",
+  "ehc_consent_note"
+]);
+const RELATIONSHIP_BASIS_INPUT_FIELDS = new Set([
+  "relationshipBasis",
+  "relationship_basis",
+  "relationshipBasisEffectiveAt",
+  "relationship_basis_effective_at",
+  "relationshipBasisRecordedBy",
+  "relationship_basis_recorded_by",
+  "relationshipBasisNote",
+  "relationship_basis_note"
+]);
+const MITMACHEN_CONSENT_INPUT_FIELDS = new Set([
+  "mitmachenConsentStatus",
+  "mitmachen_consent_status",
+  "mitmachenConsentEffectiveAt",
+  "mitmachen_consent_effective_at",
+  "mitmachenConsentSource",
+  "mitmachen_consent_source",
+  "mitmachenConsentTextVersion",
+  "mitmachen_consent_text_version",
+  "mitmachenConsentRecordedBy",
+  "mitmachen_consent_recorded_by",
+  "mitmachenConsentNote",
+  "mitmachen_consent_note"
+]);
+const EHC_CONSENT_INPUT_FIELDS = new Set([
+  "ehcConsentStatus",
+  "ehc_consent_status",
+  "ehcConsentEffectiveAt",
+  "ehc_consent_effective_at",
+  "ehcConsentSource",
+  "ehc_consent_source",
+  "ehcConsentTextVersion",
+  "ehc_consent_text_version",
+  "ehcConsentRecordedBy",
+  "ehc_consent_recorded_by",
+  "ehcConsentNote",
+  "ehc_consent_note"
+]);
+
+function inputTouchesFields(input = {}, fields = new Set()) {
+  return Object.keys(input).some((field) => fields.has(field));
+}
 
 function normalizeMitmachenConsentStatus(value) {
   const normalized = String(value || "not_requested").trim();
@@ -2325,14 +2528,61 @@ function normalizeMitmachenConsentSource(value) {
   return normalized || null;
 }
 
+function normalizeEhcConsentStatus(value) {
+  const normalized = String(value || "not_requested").trim();
+  if (!EHC_CONSENT_STATUSES.has(normalized)) throw validationError("Unbekannter EHC-Einwilligungsstatus.");
+  return normalized;
+}
+
+function normalizeEhcConsentSource(value) {
+  const normalized = String(value || "").trim();
+  if (normalized && !EHC_CONSENT_SOURCES.has(normalized)) throw validationError("Unbekannte Quelle der EHC-Einwilligung.");
+  return normalized || null;
+}
+
+function normalizeRelationshipBasis(value) {
+  const normalized = String(value || "review_required").trim();
+  if (!RELATIONSHIP_BASES.has(normalized)) throw validationError("Unbekannte Beziehungsgrundlage.");
+  return normalized;
+}
+
+function validEffectiveTime(value) {
+  const timestamp = new Date(value || "").getTime();
+  return {
+    timestamp,
+    valid: Boolean(value) && Number.isFinite(timestamp)
+  };
+}
+
+function validateRelationshipBasis(values = {}) {
+  const basis = normalizeRelationshipBasis(values.relationship_basis);
+  const effectiveAt = values.relationship_basis_effective_at || null;
+  const recordedBy = values.relationship_basis_recorded_by || null;
+  const note = String(values.relationship_basis_note || "").trim();
+  const effective = validEffectiveTime(effectiveAt);
+  if (effectiveAt && !effective.valid) {
+    throw validationError("Für die Beziehungsgrundlage ist ein gültiger Wirksamkeitszeitpunkt erforderlich.");
+  }
+  if (basis !== "review_required" && (!effective.valid || !recordedBy)) {
+    throw validationError("Eine bestätigte Beziehungsgrundlage benötigt Zeitpunkt und erfassende Person.");
+  }
+  if (basis !== "review_required" && effective.timestamp > Date.now()) {
+    throw validationError("Der Wirksamkeitszeitpunkt der Beziehungsgrundlage darf nicht in der Zukunft liegen.");
+  }
+  if (basis === "verbal_contact" && !note) {
+    throw validationError("Ein mündlicher Kontakt benötigt einen Nachweisvermerk.");
+  }
+}
+
 function validateMitmachenConsent(values = {}) {
   const status = normalizeMitmachenConsentStatus(values.mitmachen_consent_status);
   const source = normalizeMitmachenConsentSource(values.mitmachen_consent_source);
   const effectiveAt = values.mitmachen_consent_effective_at || null;
   const recordedBy = values.mitmachen_consent_recorded_by || null;
   const note = String(values.mitmachen_consent_note || "").trim();
-  const effectiveTime = new Date(effectiveAt || "").getTime();
-  const hasValidEffectiveTime = Boolean(effectiveAt) && Number.isFinite(effectiveTime);
+  const effective = validEffectiveTime(effectiveAt);
+  const effectiveTime = effective.timestamp;
+  const hasValidEffectiveTime = effective.valid;
   if (status === "granted" && (!effectiveAt || !source || !recordedBy)) {
     throw validationError("Für eine erteilte #Mitmachen-Einwilligung sind Zeitpunkt, Quelle und erfassende Person erforderlich.");
   }
@@ -2345,8 +2595,35 @@ function validateMitmachenConsent(values = {}) {
   if (["declined", "withdrawn"].includes(status) && !hasValidEffectiveTime) {
     throw validationError("Für Ablehnung oder Widerruf ist ein gültiger Zeitpunkt erforderlich.");
   }
+  if (effectiveAt && !hasValidEffectiveTime) {
+    throw validationError("Für die #Mitmachen-Einwilligung ist ein gültiger Wirksamkeitszeitpunkt erforderlich.");
+  }
   if (["verbal_confirmed", "manual_transfer"].includes(source) && !note) {
     throw validationError("Eine mündlich bestätigte oder manuell übertragene Einwilligung benötigt einen Nachweisvermerk.");
+  }
+}
+
+function validateEhcConsent(values = {}) {
+  const status = normalizeEhcConsentStatus(values.ehc_consent_status);
+  const source = normalizeEhcConsentSource(values.ehc_consent_source);
+  const effectiveAt = values.ehc_consent_effective_at || null;
+  const recordedBy = values.ehc_consent_recorded_by || null;
+  const note = String(values.ehc_consent_note || "").trim();
+  const effective = validEffectiveTime(effectiveAt);
+  if (status === "granted" && (!effective.valid || !source || !recordedBy)) {
+    throw validationError("Für eine erteilte EHC-Einwilligung sind ein gültiger Zeitpunkt, Quelle und erfassende Person erforderlich.");
+  }
+  if (["granted", "declined", "withdrawn"].includes(status) && effective.valid && effective.timestamp > Date.now()) {
+    throw validationError("Der Wirksamkeitszeitpunkt einer EHC-Einwilligung darf nicht in der Zukunft liegen.");
+  }
+  if (["declined", "withdrawn"].includes(status) && !effective.valid) {
+    throw validationError("Für Ablehnung oder Widerruf der EHC-Einwilligung ist ein gültiger Zeitpunkt erforderlich.");
+  }
+  if (effectiveAt && !effective.valid) {
+    throw validationError("Für die EHC-Einwilligung ist ein gültiger Wirksamkeitszeitpunkt erforderlich.");
+  }
+  if (["verbal_confirmed", "manual_transfer"].includes(source) && !note) {
+    throw validationError("Eine mündlich bestätigte oder manuell übertragene EHC-Einwilligung benötigt einen Nachweisvermerk.");
   }
 }
 
@@ -2369,6 +2646,18 @@ function contactPatchToDb(patch = {}) {
   if ("email" in patch) db.email = String(patch.email || "").trim() || null;
   if ("phone" in patch) db.phone = String(patch.phone || "").trim() || null;
   if ("linkedin" in patch) db.linkedin = String(patch.linkedin || "").trim() || null;
+  if ("relationshipBasis" in patch || "relationship_basis" in patch) {
+    db.relationship_basis = normalizeRelationshipBasis(patch.relationshipBasis || patch.relationship_basis);
+  }
+  if ("relationshipBasisEffectiveAt" in patch || "relationship_basis_effective_at" in patch) {
+    db.relationship_basis_effective_at = patch.relationshipBasisEffectiveAt || patch.relationship_basis_effective_at || null;
+  }
+  if ("relationshipBasisRecordedBy" in patch || "relationship_basis_recorded_by" in patch) {
+    db.relationship_basis_recorded_by = patch.relationshipBasisRecordedBy || patch.relationship_basis_recorded_by || null;
+  }
+  if ("relationshipBasisNote" in patch || "relationship_basis_note" in patch) {
+    db.relationship_basis_note = String(patch.relationshipBasisNote || patch.relationship_basis_note || "").trim() || null;
+  }
   if ("mitmachenConsentStatus" in patch || "mitmachen_consent_status" in patch) {
     db.mitmachen_consent_status = normalizeMitmachenConsentStatus(patch.mitmachenConsentStatus || patch.mitmachen_consent_status);
   }
@@ -2386,6 +2675,24 @@ function contactPatchToDb(patch = {}) {
   }
   if ("mitmachenConsentNote" in patch || "mitmachen_consent_note" in patch) {
     db.mitmachen_consent_note = String(patch.mitmachenConsentNote || patch.mitmachen_consent_note || "").trim() || null;
+  }
+  if ("ehcConsentStatus" in patch || "ehc_consent_status" in patch) {
+    db.ehc_consent_status = normalizeEhcConsentStatus(patch.ehcConsentStatus || patch.ehc_consent_status);
+  }
+  if ("ehcConsentEffectiveAt" in patch || "ehc_consent_effective_at" in patch) {
+    db.ehc_consent_effective_at = patch.ehcConsentEffectiveAt || patch.ehc_consent_effective_at || null;
+  }
+  if ("ehcConsentSource" in patch || "ehc_consent_source" in patch) {
+    db.ehc_consent_source = normalizeEhcConsentSource(patch.ehcConsentSource || patch.ehc_consent_source);
+  }
+  if ("ehcConsentTextVersion" in patch || "ehc_consent_text_version" in patch) {
+    db.ehc_consent_text_version = String(patch.ehcConsentTextVersion || patch.ehc_consent_text_version || "").trim() || null;
+  }
+  if ("ehcConsentRecordedBy" in patch || "ehc_consent_recorded_by" in patch) {
+    db.ehc_consent_recorded_by = patch.ehcConsentRecordedBy || patch.ehc_consent_recorded_by || null;
+  }
+  if ("ehcConsentNote" in patch || "ehc_consent_note" in patch) {
+    db.ehc_consent_note = String(patch.ehcConsentNote || patch.ehc_consent_note || "").trim() || null;
   }
   if ("themes" in patch || "topics" in patch) db.topics = splitList(patch.themes || patch.topics);
   if ("note" in patch || "notes" in patch) db.notes = String(patch.note || patch.notes || "").trim() || null;
@@ -2420,7 +2727,9 @@ function contactCreateToDb(contact = {}) {
   db.name = String(contact.name || "").trim();
   db.status = contact.status || "active";
   db.priority = normalizePriority(contact.priority);
+  db.relationship_basis = normalizeRelationshipBasis(db.relationship_basis);
   db.mitmachen_consent_status = normalizeMitmachenConsentStatus(db.mitmachen_consent_status);
+  db.ehc_consent_status = normalizeEhcConsentStatus(db.ehc_consent_status);
   if (!db.name) {
     const error = new Error("Kontaktname fehlt.");
     error.status = 400;
@@ -3124,15 +3433,32 @@ function assertEntityVisible(request, row, notFoundMessage) {
 }
 
 async function visibleParentIds(request, table, ids = []) {
-  const uniqueIds = [...new Set(ids.map((id) => String(id || "").trim()).filter(Boolean))];
-  if (roleRank(request.currentProfile?.role) >= roleRank("admin")) return new Set(uniqueIds);
+  const uniqueParentIds = [...new Set(ids.map((id) => String(id || "").trim()).filter(Boolean))];
+  if (roleRank(request.currentProfile?.role) >= roleRank("admin")) return new Set(uniqueParentIds);
   const visible = new Set();
-  for (let offset = 0; offset < uniqueIds.length; offset += 500) {
-    const chunk = uniqueIds.slice(offset, offset + 500);
-    const rows = await cloudSqlRest(table, request, new URLSearchParams({
-      select: "id,status",
+  for (let offset = 0; offset < uniqueParentIds.length; offset += 500) {
+    const chunk = uniqueParentIds.slice(offset, offset + 500);
+    let rows = await cloudSqlRest(table, request, new URLSearchParams({
+      select: table === "contacts"
+        ? "id,owner_id,status,mitmachen_consent_status,ehc_consent_status"
+        : table === "hospitations"
+          ? "id,status,contact_id"
+          : "id,status",
       id: `in.(${chunk.join(",")})`
     }));
+    if (table === "contacts") {
+      const ownerRows = await loadContactOwnerRows(request, (rows || []).map((row) => row.id));
+      const ownersByContact = contactOwnerMap(ownerRows);
+      rows = (rows || []).filter((contact) => requestHasEhcContactAccess(
+        request,
+        contact,
+        supportsContactOwners
+          ? ownersByContact.get(contact.id) || uniqueIds([contact.owner_id])
+          : uniqueIds([contact.owner_id])
+      ));
+    } else if (table === "hospitations") {
+      rows = await filterRowsByEhcLinkedContact(request, rows || []);
+    }
     for (const row of rows || []) if (!isArchivedStatus(row.status)) visible.add(row.id);
   }
   return visible;
@@ -3731,6 +4057,13 @@ function duplicateIdVisibleToRequest(request, status) {
     || roleRank(request?.currentProfile?.role) >= roleRank("admin");
 }
 
+function duplicateContactVisibleToRequest(request, candidate = {}) {
+  const ownerIds = Array.isArray(candidate.owner_ids) && candidate.owner_ids.length
+    ? candidate.owner_ids
+    : [candidate.owner_id];
+  return requestHasEhcContactAccess(request || {}, candidate, ownerIds);
+}
+
 function patchTouchesDuplicateIdentity(payload, fields) {
   return Object.keys(payload || {}).some((field) => fields.has(field));
 }
@@ -3766,7 +4099,13 @@ async function assertNoContactDuplicate(transaction, contact = {}, excludeId = "
   const result = await databaseQuery(
     transaction,
     `select c.id, c.name, c.organization_id, c.organization, c.postal_code, c.city,
-            c.email, c.phone, c.linkedin, c.status,
+            c.email, c.phone, c.linkedin, c.owner_id, c.status,
+            c.mitmachen_consent_status, c.ehc_consent_status,
+            coalesce((
+              select array_agg(contact_owner.profile_id order by contact_owner.assigned_at)
+                from contact_owners contact_owner
+               where contact_owner.contact_id = c.id
+            ), '{}'::text[]) as owner_ids,
             o.name as resolved_organization_name,
             o.city as resolved_organization_city,
             o.postal_code as resolved_organization_postal_code
@@ -3776,7 +4115,8 @@ async function assertNoContactDuplicate(transaction, contact = {}, excludeId = "
       order by c.id asc`,
     [String(excludeId || "")]
   );
-  const duplicate = result.rows.find((candidate) => contactsAreDefiniteDuplicates(incoming, candidate));
+  const visibleCandidates = result.rows.filter((candidate) => duplicateContactVisibleToRequest(request, candidate));
+  const duplicate = visibleCandidates.find((candidate) => contactsAreDefiniteDuplicates(incoming, candidate));
   if (duplicate) {
     throw duplicateConflict(
       "CONTACT_DUPLICATE",
@@ -3784,7 +4124,7 @@ async function assertNoContactDuplicate(transaction, contact = {}, excludeId = "
       "Ein Kontakt mit derselben fachlichen Identität ist bereits vorhanden."
     );
   }
-  const potentialDuplicate = result.rows.find((candidate) => contactsArePotentialDuplicates(incoming, candidate));
+  const potentialDuplicate = visibleCandidates.find((candidate) => contactsArePotentialDuplicates(incoming, candidate));
   if (potentialDuplicate) {
     throw duplicateConflict(
       "CONTACT_POTENTIAL_DUPLICATE",
@@ -3933,12 +4273,51 @@ async function selectRows(table, searchParams, transaction = null) {
 }
 
 async function attachContactsToChanges(rows = [], transaction = null) {
-  const ids = uniqueIds(rows.map((row) => row.contact_id));
+  const unresolvedHospitationIds = uniqueIds(rows
+    .filter((row) => !row.contact_id && row.entity_type === "hospitation")
+    .map((row) => row.entity_id));
+  const unresolvedSlotIds = uniqueIds(rows
+    .filter((row) => !row.contact_id && row.entity_type === "hospitation_slot")
+    .map((row) => row.entity_id));
+  const linkedContactByEntity = new Map();
+  for (const [table, entityType, entityIds] of [
+    ["hospitations", "hospitation", unresolvedHospitationIds],
+    ["hospitation_slots", "hospitation_slot", unresolvedSlotIds]
+  ]) {
+    if (!entityIds.length) continue;
+    const linkedRows = await databaseQuery(
+      transaction,
+      `select id::text as id, contact_id from ${table} where id::text = any($1::text[])`,
+      [entityIds]
+    );
+    linkedRows.rows.forEach((row) => {
+      if (row.contact_id) linkedContactByEntity.set(`${entityType}:${row.id}`, row.contact_id);
+    });
+  }
+  rows.forEach((row) => {
+    row._visibility_contact_id = row.contact_id
+      || linkedContactByEntity.get(`${row.entity_type || ""}:${row.entity_id || ""}`)
+      || "";
+  });
+  const ids = uniqueIds(rows.map((row) => row._visibility_contact_id));
   if (!ids.length) return;
-  const result = await databaseQuery(transaction, "select id, name, organization, sector, specialty, city, federal_state, image_url, status from contacts where id = any($1)", [ids]);
+  const result = await databaseQuery(
+    transaction,
+    `select contact.id, contact.name, contact.organization, contact.sector, contact.specialty,
+            contact.city, contact.federal_state, contact.image_url, contact.owner_id, contact.status,
+            contact.mitmachen_consent_status, contact.ehc_consent_status,
+            coalesce((
+              select array_agg(contact_owner.profile_id order by contact_owner.assigned_at)
+                from contact_owners contact_owner
+               where contact_owner.contact_id = contact.id
+            ), '{}'::text[]) as owner_ids
+       from contacts contact
+      where contact.id = any($1)`,
+    [ids]
+  );
   const byId = new Map(result.rows.map((row) => [row.id, row]));
   rows.forEach((row) => {
-    row.contacts = byId.get(row.contact_id) || null;
+    row.contacts = byId.get(row._visibility_contact_id) || null;
   });
 }
 
@@ -4134,12 +4513,77 @@ async function loadContactOwnerRows(request, contactIds = [], transaction = null
   }
 }
 
+async function storedContactOwnerIds(request, contact = {}, transaction = null) {
+  const contactId = String(contact.id || "").trim();
+  if (!contactId) return uniqueIds([contact.owner_id]);
+  const rows = await loadContactOwnerRows(request, [contactId], transaction);
+  return supportsContactOwners
+    ? contactOwnerMap(rows).get(contactId) || uniqueIds([contact.owner_id])
+    : uniqueIds([contact.owner_id]);
+}
+
+async function assertEhcContactAccess(request, contact = {}, { mutation = false, transaction = null } = {}) {
+  if (!isEhcOnlyContact(contact)) return;
+  const ownerIds = await storedContactOwnerIds(request, contact, transaction);
+  if (requestHasEhcContactAccess(request, contact, ownerIds)) return;
+  const error = new Error(mutation
+    ? "Nur Owner oder Admins dürfen einen ausschließlich für EHC freigegebenen Kontakt ändern."
+    : "Kontakt wurde nicht gefunden.");
+  error.status = mutation ? 403 : 404;
+  throw error;
+}
+
+async function linkedContactVisibleToRequest(request, contactId = "", transaction = null) {
+  const id = String(contactId || "").trim();
+  if (!id) return null;
+  const rows = await cloudSqlRest("contacts", request, new URLSearchParams({
+    select: CONTACT_FIELDS.join(","),
+    id: `eq.${id}`,
+    limit: "1"
+  }), transaction ? { transaction } : {});
+  const contact = rows?.[0];
+  if (!contact || (isArchivedStatus(contact.status) && request.currentProfile?.role !== "admin")) {
+    throw Object.assign(new Error("Kontakt wurde nicht gefunden."), { status: 404 });
+  }
+  await assertEhcContactAccess(request, contact, { transaction });
+  return contact;
+}
+
+async function filterRowsByEhcLinkedContact(request, rows = []) {
+  const contactIds = uniqueIds(rows.map((row) => row.contact_id));
+  if (!contactIds.length) return rows;
+  const contacts = await cloudSqlRest("contacts", request, new URLSearchParams({
+    select: "id,owner_id,status,mitmachen_consent_status,ehc_consent_status",
+    id: `in.(${contactIds.join(",")})`
+  })) || [];
+  const ownerRows = await loadContactOwnerRows(request, contactIds);
+  const ownersByContact = contactOwnerMap(ownerRows);
+  const contactsById = new Map(contacts.map((contact) => [contact.id, contact]));
+  return rows.filter((row) => {
+    if (!row.contact_id) return true;
+    const contact = contactsById.get(row.contact_id);
+    if (!contact) return true;
+    const ownerIds = supportsContactOwners
+      ? ownersByContact.get(contact.id) || uniqueIds([contact.owner_id])
+      : uniqueIds([contact.owner_id]);
+    return requestHasEhcContactAccess(request, contact, ownerIds);
+  });
+}
+
 async function decorateRowsWithStoredOwners(request, rows = []) {
   if (!rows.length) return [];
   const ownerRows = await loadContactOwnerRows(request, rows.map((row) => row.id));
-  if (!supportsContactOwners) return rows.map((row, index) => contactToDto(row, index));
+  if (!supportsContactOwners) {
+    return rows.map((row, index) => {
+      const ownerIds = uniqueIds([row.owner_id]);
+      return projectContactForRequest(request, contactToDto(row, index, ownerIds), row, ownerIds);
+    });
+  }
   const ownersByContact = contactOwnerMap(ownerRows);
-  return rows.map((row, index) => contactToDto(row, index, ownersByContact.get(row.id) || normalizeOwnerIds(row.owner_id)));
+  return rows.map((row, index) => {
+    const ownerIds = ownersByContact.get(row.id) || uniqueIds([row.owner_id]);
+    return projectContactForRequest(request, contactToDto(row, index, ownerIds), row, ownerIds);
+  });
 }
 
 async function createNotificationEvent(request, input = {}) {
@@ -4964,13 +5408,21 @@ async function readContactImage(request, response, contactId) {
   await authorizeRequest(request, new URL(`/api/contact-images/${encodeURIComponent(contactId)}`, "http://local"));
   if (!CONTACT_IMAGE_BUCKET) return jsonResponse(response, 404, { error: "Kontaktbild-Bucket ist nicht konfiguriert." });
   const rows = await cloudSqlRest("contacts", request, new URLSearchParams({
-    select: "id,image_storage_path,status",
+    select: "id,owner_id,image_storage_path,status,mitmachen_consent_status,ehc_consent_status",
     id: `eq.${contactId}`,
     limit: "1"
   }));
   const contact = rows?.[0];
-  if (!contact?.image_storage_path) return jsonResponse(response, 404, { error: "Kontaktbild wurde nicht gefunden." });
-  if (isArchivedStatus(contact.status) && request.currentProfile?.role !== "admin") return jsonResponse(response, 404, { error: "Kontaktbild wurde nicht gefunden." });
+  if (!contact || (isArchivedStatus(contact.status) && request.currentProfile?.role !== "admin")) {
+    return jsonResponse(response, 404, { error: "Kontaktbild wurde nicht gefunden." });
+  }
+  try {
+    await assertEhcContactAccess(request, contact);
+  } catch (error) {
+    if (error?.status === 404) return jsonResponse(response, 404, { error: "Kontaktbild wurde nicht gefunden." });
+    throw error;
+  }
+  if (!contact.image_storage_path) return jsonResponse(response, 404, { error: "Kontaktbild wurde nicht gefunden." });
   const object = await readStorageObject(CONTACT_IMAGE_BUCKET, contact.image_storage_path);
   if (!object) return jsonResponse(response, 404, { error: "Kontaktbild wurde nicht gefunden." });
   const metadata = profileAvatarMetadata(object.buffer);
@@ -5127,6 +5579,7 @@ async function contactImageRow(request, contactId) {
     error.status = 404;
     throw error;
   }
+  await assertEhcContactAccess(request, rows[0], { mutation: true });
   return rows[0];
 }
 
@@ -5249,6 +5702,7 @@ async function visibleContactRow(request, contactId) {
     error.status = 404;
     throw error;
   }
+  await assertEhcContactAccess(request, contact);
   return contact;
 }
 
@@ -5289,7 +5743,12 @@ async function contactNoteRow(request, noteId) {
   }));
   const note = rows?.[0];
   if (!note) throw Object.assign(new Error("Notiz wurde nicht gefunden."), { status: 404 });
-  await visibleContactRow(request, note.contact_id);
+  try {
+    await visibleContactRow(request, note.contact_id);
+  } catch (error) {
+    if (error?.status === 404) throw Object.assign(new Error("Notiz wurde nicht gefunden."), { status: 404 });
+    throw error;
+  }
   return note;
 }
 
@@ -5388,7 +5847,12 @@ async function contactNoteAttachmentRow(request, attachmentId) {
   })) || [];
   const attachment = rows[0];
   if (!attachment) throw Object.assign(new Error("Anhang wurde nicht gefunden."), { status: 404 });
-  await visibleContactRow(request, attachment.contact_id);
+  try {
+    await visibleContactRow(request, attachment.contact_id);
+  } catch (error) {
+    if (error?.status === 404) throw Object.assign(new Error("Anhang wurde nicht gefunden."), { status: 404 });
+    throw error;
+  }
   return attachment;
 }
 
@@ -5483,6 +5947,8 @@ async function searchContactContent(request, url) {
   if (query.length < 2) return { items: [] };
   const limit = Math.max(1, Math.min(Number(url.searchParams.get("limit")) || 40, 100));
   const includeArchived = request.currentProfile?.role === "admin";
+  const canReadAllEhcContacts = roleRank(request.currentProfile?.role) >= roleRank("admin");
+  const userId = userIdFromToken(request);
   const result = await getPool().query(
     `with search_query as (select websearch_to_tsquery('german', $1) as query), ranked as (
        select c.id as contact_id, null::uuid as note_id, null::uuid as attachment_id,
@@ -5491,6 +5957,21 @@ async function searchContactContent(request, url) {
          c.updated_at as occurred_at, (1.4 * ts_rank_cd(c.contact_search_vector, q.query))::real as rank
        from contacts c cross join search_query q
        where c.contact_search_vector @@ q.query and ($2::boolean or c.status <> 'archived')
+         and (
+           c.ehc_consent_status <> 'granted'
+           or c.mitmachen_consent_status = 'granted'
+           or $3::boolean
+           or (
+             $4::text <> ''
+             and (
+               c.owner_id = $4
+               or exists (
+                 select 1 from contact_owners contact_owner
+                  where contact_owner.contact_id = c.id and contact_owner.profile_id = $4
+               )
+             )
+           )
+         )
        union all
        select n.contact_id, n.id, null::uuid, n.content_type,
          coalesce(nullif(n.email_subject, ''), case when n.content_type = 'email_text' then 'E-Mail-Text' else 'Notiz' end),
@@ -5498,14 +5979,44 @@ async function searchContactContent(request, url) {
          coalesce(n.email_occurred_at, n.created_at), ts_rank_cd(n.search_vector, q.query)::real
        from contact_notes n join contacts c on c.id = n.contact_id cross join search_query q
        where n.search_vector @@ q.query and ($2::boolean or c.status <> 'archived')
+         and (
+           c.ehc_consent_status <> 'granted'
+           or c.mitmachen_consent_status = 'granted'
+           or $3::boolean
+           or (
+             $4::text <> ''
+             and (
+               c.owner_id = $4
+               or exists (
+                 select 1 from contact_owners contact_owner
+                  where contact_owner.contact_id = c.id and contact_owner.profile_id = $4
+               )
+             )
+           )
+         )
        union all
        select a.contact_id, a.note_id, a.id, 'attachment', a.file_name,
          regexp_replace(ts_headline('german', concat_ws(' ', a.description, a.extracted_text), q.query, 'MaxWords=24, MinWords=8, ShortWord=2'), '</?b>', '', 'gi'),
          a.uploaded_at, (0.85 * ts_rank_cd(a.search_vector, q.query))::real
        from contact_note_attachments a join contacts c on c.id = a.contact_id cross join search_query q
        where a.search_vector @@ q.query and ($2::boolean or c.status <> 'archived')
-     ) select * from ranked order by rank desc, occurred_at desc limit $3`,
-    [query, includeArchived, limit]
+         and (
+           c.ehc_consent_status <> 'granted'
+           or c.mitmachen_consent_status = 'granted'
+           or $3::boolean
+           or (
+             $4::text <> ''
+             and (
+               c.owner_id = $4
+               or exists (
+                 select 1 from contact_owners contact_owner
+                  where contact_owner.contact_id = c.id and contact_owner.profile_id = $4
+               )
+             )
+           )
+         )
+     ) select * from ranked order by rank desc, occurred_at desc limit $5`,
+    [query, includeArchived, canReadAllEhcContacts, userId, limit]
   );
   return { items: result.rows.map(contentSearchResultToDto) };
 }
@@ -5526,13 +6037,14 @@ async function listContacts(request, url) {
 async function organizationContactCounts(request, ids = []) {
   if (!ids.length) return new Map();
   const params = new URLSearchParams({
-    select: "organization_id",
+    select: CONTACT_FIELDS.join(","),
     organization_id: `in.(${ids.join(",")})`,
     status: "neq.archived"
   });
   const rows = await cloudSqlRest("contacts", request, params);
-  return (rows || []).reduce((counts, row) => {
-    if (row.organization_id) counts.set(row.organization_id, (counts.get(row.organization_id) || 0) + 1);
+  const contacts = await decorateRowsWithStoredOwners(request, rows || []);
+  return contacts.reduce((counts, contact) => {
+    if (contact.organizationId) counts.set(contact.organizationId, (counts.get(contact.organizationId) || 0) + 1);
     return counts;
   }, new Map());
 }
@@ -6111,7 +6623,8 @@ async function formatParticipantsByFormat(request, ids = []) {
     format_id: `in.(${ids.join(",")})`,
     order: "updated_at.desc.nullslast"
   }));
-  return (rows || []).reduce((groups, row) => {
+  const visibleRows = await filterRowsByVisibleParent(request, rows || [], "contacts", "contact_id");
+  return visibleRows.reduce((groups, row) => {
     const list = groups.get(row.format_id) || [];
     list.push(row);
     groups.set(row.format_id, list);
@@ -6298,6 +6811,7 @@ async function addFormatParticipant(request, formatId) {
     error.status = 400;
     throw error;
   }
+  await linkedContactVisibleToRequest(request, contactId);
   const payload = formatParticipantToDb(body, formatId, contactId);
   payload.created_by = userId;
   payload.updated_by = userId;
@@ -6326,17 +6840,19 @@ async function importFormatParticipants(request, formatId) {
     throw error;
   }
   const now = new Date().toISOString();
-  const payload = items.map((item) => {
+  const payload = [];
+  for (const item of items) {
     const contactId = item?.contactId || item?.contact_id;
     if (!contactId) {
       const error = new Error("Kontakt-ID für einen importierten Format-Teilnehmer fehlt.");
       error.status = 400;
       throw error;
     }
+    await linkedContactVisibleToRequest(request, contactId);
     const row = formatParticipantToDb(item, formatId, contactId);
     delete row.id;
-    return { ...row, updated_by: userId, updated_at: now };
-  });
+    payload.push({ ...row, updated_by: userId, updated_at: now });
+  }
   return mutateFormatParticipants(request, formatId, userId, "import", async (transaction) => {
     await cloudSqlRest("format_participants", request, new URLSearchParams({ on_conflict: "format_id,contact_id" }), {
       method: "POST",
@@ -6348,6 +6864,7 @@ async function importFormatParticipants(request, formatId) {
 }
 
 async function patchFormatParticipant(request, formatId, contactId) {
+  await linkedContactVisibleToRequest(request, contactId);
   const userId = userIdFromToken(request);
   if (!userId) {
     const error = new Error("User-ID konnte nicht aus dem Token gelesen werden.");
@@ -6377,6 +6894,7 @@ async function patchFormatParticipant(request, formatId, contactId) {
 }
 
 async function removeFormatParticipant(request, formatId, contactId) {
+  await linkedContactVisibleToRequest(request, contactId);
   const userId = userIdFromToken(request);
   if (!userId) throw Object.assign(new Error("User-ID konnte nicht aus dem Token gelesen werden."), { status: 401 });
   return mutateFormatParticipants(request, formatId, userId, "remove", async (transaction) => {
@@ -6405,7 +6923,8 @@ async function listHospitationSlots(request, url) {
     order: "starts_at.asc.nullslast,updated_at.desc.nullslast"
   }));
   const includeArchived = url.searchParams.get("includeArchived") === "true";
-  const items = (rows || [])
+  const visibleRows = await filterRowsByEhcLinkedContact(request, rows || []);
+  const items = visibleRows
     .map(hospitationSlotToDto)
     .filter((slot) => includeArchived || slot.status !== "Archiviert");
   return { items };
@@ -6419,6 +6938,14 @@ async function getHospitationSlot(request, id) {
     limit: "1"
   }));
   assertEntityVisible(request, rows?.[0], "Hospitations-Termin wurde nicht gefunden.");
+  if (rows[0].contact_id) {
+    try {
+      await linkedContactVisibleToRequest(request, rows[0].contact_id);
+    } catch (error) {
+      if (error?.status === 404) throw Object.assign(new Error("Hospitations-Termin wurde nicht gefunden."), { status: 404 });
+      throw error;
+    }
+  }
   return hospitationSlotToDto(rows[0]);
 }
 
@@ -6436,6 +6963,10 @@ async function createHospitationSlot(request) {
     const error = new Error("Startzeit des Hospitations-Termins fehlt.");
     error.status = 400;
     throw error;
+  }
+  if (payload.contact_id) {
+    const contact = await linkedContactVisibleToRequest(request, payload.contact_id);
+    payload.contact_name = contact.name;
   }
   payload.created_by = userId;
   payload.updated_by = userId;
@@ -6458,11 +6989,16 @@ async function patchHospitationSlot(request, id) {
     error.status = 401;
     throw error;
   }
+  await getHospitationSlot(request, id);
   const payload = {
     ...hospitationSlotPatchToDb(rawPatch),
     updated_by: userId,
     updated_at: new Date().toISOString()
   };
+  if (payload.contact_id) {
+    const contact = await linkedContactVisibleToRequest(request, payload.contact_id);
+    payload.contact_name = contact.name;
+  }
   const rows = await cloudSqlRest("hospitation_slots", request, new URLSearchParams({
     id: `eq.${id}`,
     select: HOSPITATION_SLOT_FIELDS.join(",")
@@ -6480,6 +7016,7 @@ async function patchHospitationSlot(request, id) {
 }
 
 async function deleteHospitationSlot(request, id) {
+  await getHospitationSlot(request, id);
   await cloudSqlRest("hospitation_slots", request, new URLSearchParams({ id: `eq.${id}` }), {
     method: "DELETE",
     headers: { prefer: "return=minimal" }
@@ -6557,7 +7094,8 @@ async function listHospitations(request, url) {
     order: "starts_at.desc.nullslast,updated_at.desc.nullslast"
   }));
   const includeArchived = url.searchParams.get("includeArchived") === "true";
-  const items = (rows || [])
+  const visibleRows = await filterRowsByEhcLinkedContact(request, rows || []);
+  const items = visibleRows
     .map(hospitationToDto)
     .filter((hospitation) => includeArchived || hospitation.status !== "Archiviert");
   return { items };
@@ -6853,6 +7391,14 @@ async function getHospitation(request, id) {
     limit: "1"
   }));
   assertEntityVisible(request, rows?.[0], "Hospitation wurde nicht gefunden.");
+  if (rows[0].contact_id) {
+    try {
+      await linkedContactVisibleToRequest(request, rows[0].contact_id);
+    } catch (error) {
+      if (error?.status === 404) throw Object.assign(new Error("Hospitation wurde nicht gefunden."), { status: 404 });
+      throw error;
+    }
+  }
   return hospitationToDto(rows[0]);
 }
 
@@ -6870,6 +7416,10 @@ async function createHospitation(request) {
     const error = new Error("Hospitation benötigt Kontakt, Organisation oder Termin-Slot.");
     error.status = 400;
     throw error;
+  }
+  if (payload.contact_id) {
+    const contact = await linkedContactVisibleToRequest(request, payload.contact_id);
+    payload.contact_name = contact.name;
   }
   payload.created_by = userId;
   payload.updated_by = userId;
@@ -6890,7 +7440,8 @@ async function createHospitation(request) {
       eventKey: "hospitation.created",
       entityType: "hospitation",
       entityId: rows[0].id,
-      objectLabel: rows[0].title || rows[0].contact_name || rows[0].organization_name || "Hospitation"
+      objectLabel: rows[0].title || rows[0].contact_name || rows[0].organization_name || "Hospitation",
+      contactId: rows[0].contact_id || ""
     });
     return rows[0];
   });
@@ -6915,6 +7466,10 @@ async function patchHospitation(request, id) {
     throw Object.assign(new Error("Archivieren und Wiederherstellen ist nur fuer Admins erlaubt."), { status: 403 });
   }
   const payload = await hydrateHospitationFromSlot(request, hospitationPatchToDb(rawPatch));
+  if (payload.contact_id) {
+    const contact = await linkedContactVisibleToRequest(request, payload.contact_id);
+    payload.contact_name = contact.name;
+  }
   if (normalizeHospitationStatus(rawPatch.status) === "Dokumentiert") {
     if (!("documentedAt" in rawPatch) && !("documented_at" in rawPatch)) payload.documented_at = new Date().toISOString();
     if (!("documentedBy" in rawPatch) && !("documented_by" in rawPatch)) payload.documented_by = userId;
@@ -6952,7 +7507,8 @@ async function patchHospitation(request, id) {
       eventKey: hospitationActivityEventKey(rows[0].status),
       entityType: "hospitation",
       entityId: rows[0].id,
-      objectLabel: rows[0].title || rows[0].contact_name || rows[0].organization_name || "Hospitation"
+      objectLabel: rows[0].title || rows[0].contact_name || rows[0].organization_name || "Hospitation",
+      contactId: rows[0].contact_id || ""
     });
     return rows[0];
   });
@@ -6961,10 +7517,11 @@ async function patchHospitation(request, id) {
 }
 
 async function deleteHospitation(request, id) {
+  await getHospitation(request, id);
   await withDomainTransaction(async (transaction) => {
     const existing = await cloudSqlRest("hospitations", request, new URLSearchParams({
       id: `eq.${id}`,
-      select: "id,title,contact_name,organization_name,slot_id",
+      select: "id,title,contact_id,contact_name,organization_name,slot_id",
       limit: "1"
     }), { transaction });
     if (!existing?.[0]) throw Object.assign(new Error("Hospitation wurde nicht gefunden."), { status: 404 });
@@ -6979,6 +7536,7 @@ async function deleteHospitation(request, id) {
       entityType: "hospitation",
       entityId: id,
       objectLabel: existing[0].title || existing[0].contact_name || existing[0].organization_name || "Hospitation",
+      contactId: existing[0].contact_id || "",
       details: { action: "delete" }
     });
   });
@@ -7257,11 +7815,15 @@ async function createContact(request) {
   const ownerIds = ownerIdsFromContact(contact);
   assertTestOnlyContactOwners(request, ownerIds);
   const dbContact = contactCreateToDb(contact);
-  const hasConsentInput = Object.keys(contact).some((field) => field.startsWith("mitmachenConsent") || field.startsWith("mitmachen_consent_"));
-  if (hasConsentInput && dbContact.mitmachen_consent_status !== "not_requested") {
-    dbContact.mitmachen_consent_recorded_by = userId;
-  }
+  const hasRelationshipInput = inputTouchesFields(contact, RELATIONSHIP_BASIS_INPUT_FIELDS);
+  const hasMitmachenConsentInput = inputTouchesFields(contact, MITMACHEN_CONSENT_INPUT_FIELDS);
+  const hasEhcConsentInput = inputTouchesFields(contact, EHC_CONSENT_INPUT_FIELDS);
+  if (hasRelationshipInput) dbContact.relationship_basis_recorded_by = userId;
+  if (hasMitmachenConsentInput) dbContact.mitmachen_consent_recorded_by = userId;
+  if (hasEhcConsentInput) dbContact.ehc_consent_recorded_by = userId;
+  validateRelationshipBasis(dbContact);
   validateMitmachenConsent(dbContact);
+  validateEhcConsent(dbContact);
   dbContact.created_by = userId;
   dbContact.updated_by = userId;
 
@@ -7308,7 +7870,13 @@ async function createContact(request) {
     });
     return { ...row, _test_scope_ref: testOnlyScopeRef(request) };
   });
-  const dto = contactToDto(created, 0, supportsContactOwners ? ownerIds : normalizeOwnerIds(created.owner_id));
+  const effectiveOwnerIds = supportsContactOwners ? ownerIds : uniqueIds([created.owner_id]);
+  const dto = projectContactForRequest(
+    request,
+    contactToDto(created, 0, effectiveOwnerIds),
+    created,
+    effectiveOwnerIds
+  );
   if (!testOnlyScopeRef(request)) await notifyContactCreated(request, dto, userId, options);
   return dto;
 }
@@ -7440,15 +8008,20 @@ function legacyChangeVisibleAtSnapshot(row = {}, activityEventsMaxId = "0") {
 
 function activityRowVisibleToRequest(row = {}, request) {
   if (roleRank(request.currentProfile?.role) >= roleRank("admin")) return true;
-  const contactId = row.contact_id || row.contactId || "";
+  const contactId = row.contact_id || row.contactId || row._visibility_contact_id || "";
   if (!contactId) return true;
   const contact = row.contacts || row.contact || null;
-  return Boolean(contact && contact.status !== "archived");
+  if (!contact || contact.status === "archived") return false;
+  return requestHasEhcContactAccess(
+    request,
+    contact,
+    Array.isArray(contact.owner_ids) && contact.owner_ids.length ? contact.owner_ids : [contact.owner_id]
+  );
 }
 
 async function assertContactHistoryVisible(request, contactId) {
   const rows = await cloudSqlRest("contacts", request, new URLSearchParams({
-    select: "id,status",
+    select: "id,owner_id,status,mitmachen_consent_status,ehc_consent_status",
     id: `eq.${contactId}`,
     limit: "1"
   }));
@@ -7458,6 +8031,7 @@ async function assertContactHistoryVisible(request, contactId) {
     error.status = 404;
     throw error;
   }
+  await assertEhcContactAccess(request, contact);
 }
 
 function normalizedActivityFilterSignature(filters = {}) {
@@ -8067,8 +8641,12 @@ async function patchContact(request, id) {
   const nextOwnerIds = hasOwnerPatch ? ownerIdsFromContact(patch) : [];
   assertTestOnlyContactOwners(request, nextOwnerIds);
   const dbPatch = contactPatchToDb(patch);
-  const hasConsentPatch = Object.keys(patch).some((field) => field.startsWith("mitmachenConsent") || field.startsWith("mitmachen_consent_"));
-  if (hasConsentPatch) dbPatch.mitmachen_consent_recorded_by = userId;
+  const hasRelationshipPatch = inputTouchesFields(patch, RELATIONSHIP_BASIS_INPUT_FIELDS);
+  const hasMitmachenConsentPatch = inputTouchesFields(patch, MITMACHEN_CONSENT_INPUT_FIELDS);
+  const hasEhcConsentPatch = inputTouchesFields(patch, EHC_CONSENT_INPUT_FIELDS);
+  if (hasRelationshipPatch) dbPatch.relationship_basis_recorded_by = userId;
+  if (hasMitmachenConsentPatch) dbPatch.mitmachen_consent_recorded_by = userId;
+  if (hasEhcConsentPatch) dbPatch.ehc_consent_recorded_by = userId;
   if (!Object.keys(dbPatch).length) {
     const error = new Error("Keine unterstützten Kontaktfelder im Request.");
     error.status = 400;
@@ -8086,37 +8664,57 @@ async function patchContact(request, id) {
     throw error;
   }
   const oldRow = oldRows[0];
+  const oldOwnerRows = await loadContactOwnerRows(request, [id]);
+  const oldOwnerIds = supportsContactOwners
+    ? contactOwnerMap(oldOwnerRows).get(id) || uniqueIds([oldRow.owner_id])
+    : uniqueIds([oldRow.owner_id]);
+  if (!requestHasEhcContactAccess(request, oldRow, oldOwnerIds)) {
+    throw Object.assign(
+      new Error("Nur Owner oder Admins dürfen einen ausschließlich für EHC freigegebenen Kontakt ändern."),
+      { status: 403 }
+    );
+  }
   if (Object.prototype.hasOwnProperty.call(dbPatch, "status") && dbPatch.status !== oldRow.status &&
       (dbPatch.status === "archived" || oldRow.status === "archived") && request.currentProfile?.role !== "admin") {
     throw Object.assign(new Error("Archivieren und Wiederherstellen ist nur fuer Admins erlaubt."), { status: 403 });
   }
-  if (hasConsentPatch) validateMitmachenConsent({ ...oldRow, ...dbPatch });
-  const oldOwnerRows = await loadContactOwnerRows(request, [id]);
-  const oldOwnerIds = supportsContactOwners
-    ? contactOwnerMap(oldOwnerRows).get(id) || normalizeOwnerIds(oldRow.owner_id)
-    : normalizeOwnerIds(oldRow.owner_id);
+  validateRelationshipBasis({ ...oldRow, ...dbPatch });
+  validateMitmachenConsent({ ...oldRow, ...dbPatch });
+  validateEhcConsent({ ...oldRow, ...dbPatch });
 
   dbPatch.updated_by = userId;
   dbPatch.updated_at = new Date().toISOString();
   const duplicateIdentityChanged = patchTouchesDuplicateIdentity(dbPatch, CONTACT_DUPLICATE_IDENTITY_FIELDS);
   let changedFields = Object.keys(dbPatch).filter((field) => stringifyValue(oldRow[field]) !== stringifyValue(dbPatch[field]));
   if (hasOwnerPatch && supportsContactOwners) changedFields = changedFields.filter((field) => field !== "owner_id");
+  let effectiveOldOwnerIds = oldOwnerIds;
 
   const updated = await withDomainTransaction(async (transaction) => {
     await assertTestObjectScope(transaction, request, "contacts", id);
+    const currentResult = await databaseQuery(
+      transaction,
+      "select * from contacts where id = $1 limit 1 for update",
+      [id]
+    );
+    const currentRow = currentResult.rows?.[0];
+    if (!currentRow) throw Object.assign(new Error("Kontakt wurde nicht gefunden."), { status: 404 });
+    effectiveOldOwnerIds = await storedContactOwnerIds(request, currentRow, transaction);
+    if (!requestHasEhcContactAccess(request, currentRow, effectiveOldOwnerIds)) {
+      throw Object.assign(
+        new Error("Nur Owner oder Admins dürfen einen ausschließlich für EHC freigegebenen Kontakt ändern."),
+        { status: 403 }
+      );
+    }
+    validateRelationshipBasis({ ...currentRow, ...dbPatch });
+    validateMitmachenConsent({ ...currentRow, ...dbPatch });
+    validateEhcConsent({ ...currentRow, ...dbPatch });
     const effectiveOrganizationId = Object.prototype.hasOwnProperty.call(dbPatch, "organization_id")
       ? dbPatch.organization_id
-      : oldRow.organization_id;
+      : currentRow.organization_id;
     await assertTestContactParentScope(transaction, request, effectiveOrganizationId);
     if (duplicateIdentityChanged) {
       await acquireDuplicateGuardLocks(transaction, CONTACT_DUPLICATE_LOCK_KEY);
-      const currentRows = await cloudSqlRest("contacts", request, new URLSearchParams({
-        select: CONTACT_FIELDS.join(","),
-        id: `eq.${id}`,
-        limit: "1"
-      }), { transaction });
-      if (!currentRows?.[0]) throw Object.assign(new Error("Kontakt wurde nicht gefunden."), { status: 404 });
-      await assertNoContactDuplicate(transaction, { ...currentRows[0], ...dbPatch }, id, request);
+      await assertNoContactDuplicate(transaction, { ...currentRow, ...dbPatch }, id, request);
     }
     const updateParams = new URLSearchParams({ id: `eq.${id}`, select: CONTACT_FIELDS.join(",") });
     if (oldRow.updated_at) updateParams.set("updated_at", `eq.${new Date(oldRow.updated_at).toISOString()}`);
@@ -8132,7 +8730,7 @@ async function patchContact(request, id) {
     }
     if (changedFields.length) {
       const action = dbPatch.status === "archived" ? "archive" : "update";
-      const applicationLoggedFields = changedFields.filter((field) => !field.startsWith("mitmachen_consent_"));
+      const applicationLoggedFields = changedFields.filter((field) => !CONTACT_PURPOSE_AUDIT_FIELDS.has(field));
       if (applicationLoggedFields.length) await cloudSqlRest("changes", request, new URLSearchParams(), {
         method: "POST",
         headers: { prefer: "return=minimal" },
@@ -8148,7 +8746,7 @@ async function patchContact(request, id) {
       });
     }
     if (hasOwnerPatch) {
-      await replaceStoredContactOwners(request, id, oldOwnerIds, nextOwnerIds, userId, {
+      await replaceStoredContactOwners(request, id, effectiveOldOwnerIds, nextOwnerIds, userId, {
         log: supportsContactOwners,
         transaction
       });
@@ -8167,13 +8765,19 @@ async function patchContact(request, id) {
   if (oldRow.image_storage_path && Object.prototype.hasOwnProperty.call(dbPatch, "image_storage_path") && !dbPatch.image_storage_path) {
     await deleteStorageObject(CONTACT_IMAGE_BUCKET, oldRow.image_storage_path);
   }
-  const dto = contactToDto(updated, 0, hasOwnerPatch ? nextOwnerIds : oldOwnerIds);
+  const responseOwnerIds = hasOwnerPatch ? nextOwnerIds : effectiveOldOwnerIds;
+  const dto = projectContactForRequest(
+    request,
+    contactToDto(updated, 0, responseOwnerIds),
+    updated,
+    responseOwnerIds
+  );
   if (!testOnlyScopeRef(request)) {
     await notifyContactUpdated(request, dto, userId, {
       action: dbPatch.status === "archived" ? "archive" : "update",
       changedFields,
       hasOwnerPatch,
-      oldOwnerIds,
+      oldOwnerIds: effectiveOldOwnerIds,
       nextOwnerIds
     });
   }

@@ -101,9 +101,84 @@
     return Boolean(state.currentProfileId) && contactOwnerIds(contact).includes(state.currentProfileId);
   }
 
+  function isEhcOnlyContact(contact = {}) {
+    return String(contact.ehcConsentStatus || contact.ehc_consent_status || "") === "granted"
+      && String(contact.mitmachenConsentStatus || contact.mitmachen_consent_status || "not_requested") !== "granted";
+  }
+
+  function restrictedEhcContact(contact = {}) {
+    return isEhcOnlyContact(contact) && !currentProfileOwnsContact(contact);
+  }
+
+  function projectRestrictedEhcContact(contact = {}) {
+    return {
+      id: contact.id || "",
+      name: "Geschützter EHC-Kontakt",
+      displayName: "Geschützter EHC-Kontakt",
+      organizationId: "",
+      organization: "",
+      category: "",
+      specialty: "",
+      contactRole: "",
+      priority: "",
+      ownerId: "",
+      ownerIds: [],
+      owner: "",
+      postalCode: "",
+      city: "",
+      state: "",
+      lat: null,
+      lon: null,
+      email: "",
+      phone: "",
+      linkedin: "",
+      relationshipBasis: contact.relationshipBasis || contact.relationship_basis || "review_required",
+      relationshipBasisEffectiveAt: "",
+      relationshipBasisRecordedBy: "",
+      relationshipBasisNote: "",
+      mitmachenConsentStatus: contact.mitmachenConsentStatus || contact.mitmachen_consent_status || "not_requested",
+      mitmachenConsentEffectiveAt: "",
+      mitmachenConsentSource: "",
+      mitmachenConsentTextVersion: "",
+      mitmachenConsentRecordedBy: "",
+      mitmachenConsentNote: "",
+      ehcConsentStatus: contact.ehcConsentStatus || contact.ehc_consent_status || "granted",
+      ehcConsentEffectiveAt: "",
+      ehcConsentSource: "",
+      ehcConsentTextVersion: "",
+      ehcConsentRecordedBy: "",
+      ehcConsentNote: "",
+      themes: [],
+      note: "",
+      notes: "",
+      nextStep: "",
+      sources: [],
+      image: "",
+      imageStoragePath: "",
+      imageKind: "",
+      imageMimeType: "",
+      imageSourceLabel: "",
+      imageRightsNote: "",
+      status: contact.status || "active",
+      createdAt: "",
+      updatedAt: "",
+      profileAccess: "ehc_restricted",
+      contactChannelAccess: "restricted"
+    };
+  }
+
   function projectContactForCurrentProfile(contact) {
-    if (!contact || !OWNER_ONLY_CONTACT_CHANNELS) return contact;
+    if (!contact) return contact;
     const hasAccess = currentProfileOwnsContact(contact);
+    if (isEhcOnlyContact(contact)) {
+      if (!hasAccess) return projectRestrictedEhcContact(contact);
+      return {
+        ...contact,
+        profileAccess: "ehc_authorized",
+        ...(OWNER_ONLY_CONTACT_CHANNELS ? { contactChannelAccess: "owner" } : {})
+      };
+    }
+    if (!OWNER_ONLY_CONTACT_CHANNELS) return contact;
     return {
       ...contact,
       email: hasAccess ? (contact.email || "") : "",
@@ -138,10 +213,12 @@
   }
 
   function projectActivityForCurrentProfile(activity) {
-    if (!activity || !OWNER_ONLY_CONTACT_CHANNELS) return activity;
+    if (!activity) return activity;
     const contactId = activityContactId(activity);
     if (!contactId) return activity;
     const contact = state.contacts.find((item) => item.id === contactId);
+    if (contact && restrictedEhcContact(contact)) return null;
+    if (!OWNER_ONLY_CONTACT_CHANNELS) return activity;
     if (contact && currentProfileOwnsContact(contact)) return activity;
     return {
       ...activity,
@@ -150,21 +227,38 @@
   }
 
   function projectChangeRowsForCurrentProfile(rows = []) {
-    if (!OWNER_ONLY_CONTACT_CHANNELS) return rows;
     return rows.filter((change) => {
-      if (!isSensitiveContactField(change.fieldName || change.field_name)) return true;
       const contactId = String(change.contactId || change.contact_id || "");
       const contact = state.contacts.find((item) => item.id === contactId);
+      if (contact && restrictedEhcContact(contact)) return false;
+      if (!OWNER_ONLY_CONTACT_CHANNELS) return true;
+      if (!isSensitiveContactField(change.fieldName || change.field_name)) return true;
       return Boolean(contact && currentProfileOwnsContact(contact));
     });
   }
 
   function projectStateForCurrentProfile() {
     const projected = clone(state);
-    if (!OWNER_ONLY_CONTACT_CHANNELS) return projected;
     projected.contacts = state.contacts.map(projectContactForCurrentProfile);
-    projected.activityEvents = state.activityEvents.map(projectActivityForCurrentProfile);
+    projected.activityEvents = state.activityEvents.map(projectActivityForCurrentProfile).filter(Boolean);
     if (Array.isArray(state.changes)) projected.changes = projectChangeRowsForCurrentProfile(state.changes);
+    const restrictedContactIds = new Set(state.contacts.filter(restrictedEhcContact).map((contact) => contact.id));
+    const hasRestrictedContact = (row = {}) => restrictedContactIds.has(String(row.contactId || row.contact_id || ""));
+    projected.contactNotes = state.contactNotes.filter((note) => !hasRestrictedContact(note));
+    projected.contactNoteAttachments = state.contactNoteAttachments.filter((attachment) => !hasRestrictedContact(attachment));
+    projected.hospitations = state.hospitations.filter((hospitation) => !hasRestrictedContact(hospitation));
+    projected.formats = state.formats.map((format) => ({
+      ...format,
+      participants: (format.participants || []).filter((participant) => !hasRestrictedContact(participant))
+    }));
+    projected.expertEntityLinks = state.expertEntityLinks.filter((link) => !hasRestrictedContact(link));
+    projected.notifications = state.notifications.filter((notification) => {
+      const contactId = notification.contactId
+        || notification.contact_id
+        || (["contact", "person"].includes(notification.objectType) ? notification.objectId : "")
+        || (["contact", "person"].includes(notification.entityType) ? notification.entityId : "");
+      return !restrictedContactIds.has(String(contactId || ""));
+    });
     return clone(projected);
   }
 
@@ -185,6 +279,28 @@
 
   function normalizedEntityName(value = "") {
     return String(value || "").trim().replace(/\s+/g, " ").toLocaleLowerCase("de-DE");
+  }
+
+  function withDemoContactConsentDefaults(contact = {}) {
+    return {
+      relationshipBasis: "review_required",
+      relationshipBasisEffectiveAt: "",
+      relationshipBasisRecordedBy: "",
+      relationshipBasisNote: "",
+      mitmachenConsentStatus: "not_requested",
+      mitmachenConsentEffectiveAt: "",
+      mitmachenConsentSource: "",
+      mitmachenConsentTextVersion: "",
+      mitmachenConsentRecordedBy: "",
+      mitmachenConsentNote: "",
+      ehcConsentStatus: "not_requested",
+      ehcConsentEffectiveAt: "",
+      ehcConsentSource: "",
+      ehcConsentTextVersion: "",
+      ehcConsentRecordedBy: "",
+      ehcConsentNote: "",
+      ...contact
+    };
   }
 
   function demoReferenceError(message, status = 400) {
@@ -273,7 +389,7 @@
       }
       contact = matchingContacts[0] || null;
       if (!contact) {
-        contact = {
+        contact = withDemoContactConsentDefaults({
           id: nextId("demo-contact"),
           name: contactReference.name,
           displayName: contactReference.name,
@@ -287,7 +403,7 @@
           status: "active",
           createdAt: new Date().toISOString(),
           updatedAt: new Date().toISOString()
-        };
+        });
         state.contacts.unshift(contact);
       }
     }
@@ -419,7 +535,7 @@
     const query = (url.searchParams.get("q") || "").toLocaleLowerCase("de");
     const from = url.searchParams.get("from") || "";
     const to = url.searchParams.get("to") || "";
-    return state.activityEvents.map(projectActivityForCurrentProfile).filter((item) => {
+    return state.activityEvents.map(projectActivityForCurrentProfile).filter(Boolean).filter((item) => {
       const occurredAt = item.occurredAt || item.occurred_at || "";
       if (eventKey && item.eventKey !== eventKey) return false;
       if (category && item.categoryKey !== category) return false;
@@ -436,6 +552,10 @@
     const needle = String(query || "").trim().toLocaleLowerCase("de");
     if (!needle) return [];
     const notes = state.contactNotes
+      .filter((note) => {
+        const contact = state.contacts.find((item) => item.id === (note.contactId || note.contact_id));
+        return !contact || !restrictedEhcContact(contact);
+      })
       .filter((note) => [note.body, note.text, note.emailSubject].join(" ").toLocaleLowerCase("de").includes(needle))
       .map((note) => ({
         contactId: note.contactId || note.contact_id,
@@ -447,6 +567,10 @@
         rank: 1
       }));
     const attachments = state.contactNoteAttachments
+      .filter((attachment) => {
+        const contact = state.contacts.find((item) => item.id === (attachment.contactId || attachment.contact_id));
+        return !contact || !restrictedEhcContact(contact);
+      })
       .filter((attachment) => [attachment.fileName, attachment.file_name, attachment.description, attachment.extractedText, attachment.extracted_text].join(" ").toLocaleLowerCase("de").includes(needle))
       .map((attachment) => ({
         contactId: attachment.contactId || attachment.contact_id,
@@ -647,6 +771,9 @@
       const contactId = decodeURIComponent(contactImageWriteMatch[1]);
       const index = state.contacts.findIndex((item) => item.id === contactId);
       if (index < 0) return error("Synthetischer Kontakt wurde nicht gefunden.", 404);
+      if (restrictedEhcContact(state.contacts[index])) {
+        return error("EHC-only-Profile dürfen nur von ihren Contact Ownern geändert werden.", 403);
+      }
       const contentType = DEMO_IMAGE_TYPES.has(String(body.contentType || "").toLowerCase())
         ? String(body.contentType).toLowerCase()
         : "image/png";
@@ -702,6 +829,21 @@
       const collection = collectionForPath(path);
       if (collection) {
         let rows = activeRows(collection, includeArchived);
+        if (["/api/contact-notes", "/api/contact-note-attachments", "/api/hospitations"].includes(path)) {
+          rows = rows.filter((row) => {
+            const contact = state.contacts.find((item) => item.id === (row.contactId || row.contact_id));
+            return !contact || !restrictedEhcContact(contact);
+          });
+        }
+        if (path === "/api/formats") {
+          rows = rows.map((format) => ({
+            ...format,
+            participants: (format.participants || []).filter((participant) => {
+              const contact = state.contacts.find((item) => item.id === (participant.contactId || participant.contact_id));
+              return !contact || !restrictedEhcContact(contact);
+            })
+          }));
+        }
         const status = url.searchParams.get("status") || "";
         const stakeholderTypeId = url.searchParams.get("stakeholderTypeId") || "";
         const hospitationId = url.searchParams.get("hospitationId") || "";
@@ -725,6 +867,10 @@
     }
 
     if (method === "POST" && path === "/api/contact-notes") {
+      const noteContact = state.contacts.find((item) => item.id === (body.contactId || body.contact_id));
+      if (noteContact && restrictedEhcContact(noteContact)) {
+        return error("Notizen zu EHC-only-Profilen dürfen nur von ihren Contact Ownern erfasst werden.", 403);
+      }
       const created = {
         ...body,
         id: body.id || nextId("demo-note"),
@@ -744,6 +890,12 @@
       const id = decodeURIComponent(noteMatch[1]);
       const index = state.contactNotes.findIndex((note) => note.id === id);
       if (index < 0) return error("Synthetische Notiz wurde nicht gefunden.", 404);
+      const noteContact = state.contacts.find((item) =>
+        item.id === (state.contactNotes[index].contactId || state.contactNotes[index].contact_id)
+      );
+      if (noteContact && restrictedEhcContact(noteContact)) {
+        return error("Notizen zu EHC-only-Profilen dürfen nur von ihren Contact Ownern geändert werden.", 403);
+      }
       if (method === "DELETE") {
         state.contactNoteAttachments = state.contactNoteAttachments.filter((attachment) =>
           (attachment.noteId || attachment.note_id) !== id
@@ -756,6 +908,10 @@
     }
 
     if (method === "POST" && path === "/api/contact-note-attachments") {
+      const attachmentContact = state.contacts.find((item) => item.id === (body.contactId || body.contact_id));
+      if (attachmentContact && restrictedEhcContact(attachmentContact)) {
+        return error("Anhänge zu EHC-only-Profilen dürfen nur von ihren Contact Ownern erfasst werden.", 403);
+      }
       const created = {
         ...body,
         id: body.id || nextId("demo-attachment"),
@@ -777,6 +933,12 @@
     if (method === "GET" && attachmentContentMatch) {
       const attachment = state.contactNoteAttachments.find((item) => item.id === decodeURIComponent(attachmentContentMatch[1]));
       if (!attachment) return error("Synthetischer Anhang wurde nicht gefunden.", 404);
+      const attachmentContact = state.contacts.find((item) =>
+        item.id === (attachment.contactId || attachment.contact_id)
+      );
+      if (attachmentContact && restrictedEhcContact(attachmentContact)) {
+        return error("Anhänge zu EHC-only-Profilen sind nur für ihre Contact Owner sichtbar.", 403);
+      }
       const content = attachment._demoData
         ? byteArrayFromBase64(attachment._demoData)
         : new TextEncoder().encode(attachment.extractedText || attachment.extracted_text || attachment.description || "Synthetischer Demo-Anhang");
@@ -792,6 +954,13 @@
     const attachmentMatch = path.match(/^\/api\/contact-note-attachments\/([^/]+)$/);
     if (method === "DELETE" && attachmentMatch) {
       const id = decodeURIComponent(attachmentMatch[1]);
+      const attachment = state.contactNoteAttachments.find((item) => item.id === id);
+      const attachmentContact = state.contacts.find((item) =>
+        item.id === (attachment?.contactId || attachment?.contact_id)
+      );
+      if (attachmentContact && restrictedEhcContact(attachmentContact)) {
+        return error("Anhänge zu EHC-only-Profilen dürfen nur von ihren Contact Ownern gelöscht werden.", 403);
+      }
       state.contactNoteAttachments = state.contactNoteAttachments.filter((item) => item.id !== id);
       return json({ ok: true });
     }
@@ -894,13 +1063,23 @@
       const safePayload = sanitizeDemoMediaFields(property, payload);
       if (
         property === "contacts"
+        && isEhcOnlyContact(safePayload)
+        && !contactOwnerIds(safePayload).includes(state.currentProfileId)
+      ) {
+        return error("EHC-only-Profile dürfen nur für den aktuellen Contact Owner angelegt werden.", 403);
+      }
+      if (
+        property === "contacts"
         && OWNER_ONLY_CONTACT_CHANNELS
         && bodySetsSensitiveContactFields(safePayload)
         && !contactOwnerIds(safePayload).includes(state.currentProfileId)
       ) {
         return error("E-Mail und Telefon dürfen in der Demo nur von Contact Ownern gesetzt werden.", 403);
       }
-      const created = { ...safePayload, id: safePayload.id || nextId(prefix), createdAt: safePayload.createdAt || new Date().toISOString(), updatedAt: new Date().toISOString() };
+      const createdPayload = property === "contacts"
+        ? withDemoContactConsentDefaults(safePayload)
+        : safePayload;
+      const created = { ...createdPayload, id: createdPayload.id || nextId(prefix), createdAt: createdPayload.createdAt || new Date().toISOString(), updatedAt: new Date().toISOString() };
       state[property].unshift(created);
       if (property === "organizationPrimarySystems") updateOrganizationPrimarySystems();
       const eventRoot = property === "hospitations" ? "hospitation" : property === "formats" ? "format" : property === "contacts" ? "contact" : "record";
@@ -915,6 +1094,9 @@
       const id = decodeURIComponent(updateMatch[2]);
       const index = target.findIndex((item) => item.id === id);
       if (index < 0) return error("Synthetischer Datensatz wurde nicht gefunden.", 404);
+      if (property === "contacts" && restrictedEhcContact(target[index])) {
+        return error("EHC-only-Profile dürfen nur von ihren Contact Ownern geändert werden.", 403);
+      }
       if (method === "DELETE") {
         if (property === "hospitations") {
           state.hospitationObservations = state.hospitationObservations.filter((item) => (item.hospitationId || item.hospitation_id) !== id);

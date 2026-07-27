@@ -98,11 +98,15 @@ to :"runtime_role";
 revoke all on function public.pre_gematik_touch_updated_at() from public;
 revoke all on function public.pre_gematik_text_array_join(text[]) from public;
 revoke all on function public.pre_gematik_activity_contact_references_match(jsonb, text) from public;
+revoke all on function public.pre_gematik_prepare_contact_purpose_write() from public;
+revoke all on function public.pre_gematik_log_contact_purpose_change() from public;
 revoke all on function public.pre_gematik_log_hospitation_observation_change() from public;
 
 grant execute on function public.pre_gematik_touch_updated_at() to :"runtime_role";
 grant execute on function public.pre_gematik_text_array_join(text[]) to :"runtime_role";
 grant execute on function public.pre_gematik_activity_contact_references_match(jsonb, text) to :"runtime_role";
+grant execute on function public.pre_gematik_prepare_contact_purpose_write() to :"runtime_role";
+grant execute on function public.pre_gematik_log_contact_purpose_change() to :"runtime_role";
 grant execute on function public.pre_gematik_log_hospitation_observation_change() to :"runtime_role";
 
 commit;
