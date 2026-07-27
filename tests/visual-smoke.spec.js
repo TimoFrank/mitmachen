@@ -3527,34 +3527,22 @@ test("Kontaktprofil: Detailpanel oeffnet im Lesemodus", async ({ page }, testInf
 
 test("Kontaktprofil: naechste Hospitation zeigt Datum und Owner kompakt", async ({ page }, testInfo) => {
   test.skip(testInfo.project.name.includes("mobile"), "Desktop-Kontaktprofil pruefen");
-  await gotoAuthenticated(page, "/frontend/app/versorgungs-kompass.html#contacts");
+  await gotoAuthenticated(page, "/frontend/app/versorgungs-kompass.html#contacts", {
+    role: "admin",
+    backendFixtureScript: hospitationProfileBackendFixtureScript()
+  });
   await page.setViewportSize({ width: 1440, height: 760 });
 
-  const firstContact = page.locator("#contact-list .row").first();
-  await expect(firstContact).toBeVisible();
-  await firstContact.click();
+  await page.locator('#contact-list [data-id="hospitation-profile-contact"]').click();
   await page.locator("#detail-drawer [data-participation-summary-item='hospitations']").click();
   const section = page.locator("#detail-drawer [data-hospitation-profile-section]");
-  await expect(section).toContainText("Keine Hospitation geplant");
-  await section.locator("[data-hospitation-profile-action='request']").click();
-
-  const editor = page.locator("#hospitation-editor-drawer");
-  await expect(editor).toHaveAttribute("data-hospitation-editor-mode", "request");
-  await editor.locator("#hospitation-editor-next").click();
-  await editor.locator("#hospitation-start").fill("2099-08-15T10:30");
-  await editor.locator("#hospitation-editor-save").click();
-  await expect(editor).not.toHaveClass(/is-open/);
-  await page.locator("#detail-drawer #detail-close").click();
-  await expect(page.locator("#detail-drawer")).not.toHaveClass(/is-open/);
-  await firstContact.click();
-  await expect(page.locator("#detail-drawer")).toHaveClass(/is-open/);
-  await page.locator("#detail-drawer [data-participation-summary-item='hospitations']").click();
 
   await expect(section.locator(".hospitation-profile-record--next")).toHaveClass(/has-entry/);
   await expect(section.locator(".hospitation-profile-record--next")).toContainText("Nächste Hospitation");
   await expect(section.locator(".hospitation-profile-next__date")).toHaveText("15.08.2099");
   await expect(section.locator(".hospitation-profile-next__date")).not.toContainText(":");
-  await expect(section.locator(".hospitation-profile-record--next .owner-avatar-stack__item")).toHaveCount(1);
+  await expect(section.locator(".hospitation-profile-record--next .hospitation-profile-record__copy > .hospitation-profile-next__date")).toBeVisible();
+  await expect(section.locator(".hospitation-profile-record--next .hospitation-profile-record__actions .owner-badge__avatar")).toHaveCount(1);
   await expect(section.locator(".hospitation-profile-record--next [data-hospitation-profile-action='open']")).toHaveText("Öffnen");
   await expect(section.locator("[data-hospitation-profile-action='request']")).toHaveText("Neue Hospitation planen");
   await expect(section.locator("[data-hospitation-profile-action='list']")).toHaveCount(0);
@@ -3593,6 +3581,8 @@ test("Kontaktprofil: bisherige Hospitationen sind statuskorrekt, sortiert und mo
   await expect(primaryHistory.first()).not.toContainText("Praxisablauf verstehen");
   await expect(primaryHistory.first()).not.toContainText("Dokumentation: Dokumentiert");
   await expect(primaryHistory.locator(".profile-date-badge--hospitation")).toHaveCount(2);
+  await expect(primaryHistory.first().locator(".hospitation-profile-record__copy > .hospitation-profile-history__date")).toBeVisible();
+  await expect(primaryHistory.first().locator(".hospitation-profile-record__actions .owner-badge__avatar")).toHaveCount(1);
   await expect(primaryHistory.getByRole("button", { name: "Öffnen", exact: true })).toHaveCount(2);
   await expect(history.locator('[data-hospitation-profile-history-id="history-cancelled"]')).toHaveCount(0);
   await expect(history.locator('[data-hospitation-profile-history-id="history-past-scheduled"]')).toHaveCount(0);
@@ -3605,8 +3595,8 @@ test("Kontaktprofil: bisherige Hospitationen sind statuskorrekt, sortiert und mo
   await expect(more.locator('[data-hospitation-profile-history-id="history-archived"]')).toHaveAttribute("data-hospitation-profile-phase", "archived");
   await expect(more.locator('[data-hospitation-profile-history-id="history-archived"]')).toBeVisible();
   await expect(more.locator('[data-hospitation-profile-history-id="history-older-documented"]')).toBeVisible();
-  const dateBadgeRightEdges = await section.locator(".hospitation-profile-record:visible .profile-date-badge--hospitation").evaluateAll((badges) => badges.slice(0, 3).map((badge) => Math.round(badge.getBoundingClientRect().right)));
-  expect(Math.max(...dateBadgeRightEdges) - Math.min(...dateBadgeRightEdges)).toBeLessThanOrEqual(2);
+  const dateBadgeLeftEdges = await section.locator(".hospitation-profile-record:visible .profile-date-badge--hospitation").evaluateAll((badges) => badges.slice(0, 3).map((badge) => Math.round(badge.getBoundingClientRect().left)));
+  expect(Math.max(...dateBadgeLeftEdges) - Math.min(...dateBadgeLeftEdges)).toBeLessThanOrEqual(2);
 
   await expectNoHorizontalOverflow(page, isMobile ? "#person-profile-body" : "#detail-drawer");
   await attachScreenshot(page, testInfo, "kontaktprofil-bisherige-hospitationen", { fullPage: false });

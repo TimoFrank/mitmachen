@@ -11378,49 +11378,49 @@
 
       .hospitation-profile-record__copy {
         min-width: 0;
-        display: grid;
-        gap: 7px;
+        display: flex;
+        align-items: center;
+        gap: 10px;
       }
 
       .hospitation-profile-record__copy > strong {
+        min-width: 0;
         color: var(--text-primary);
         font-size: 0.82rem;
         font-weight: 900;
         line-height: 1.3;
-      }
-
-      .hospitation-profile-record__owner {
-        min-width: 0;
-        display: inline-flex;
-        align-items: center;
-        gap: 7px;
-        color: var(--text-secondary);
-        font-size: 0.7rem;
-        font-weight: 800;
-      }
-
-      .hospitation-profile-record__owner > span:last-child {
-        min-width: 0;
         overflow: hidden;
         text-overflow: ellipsis;
         white-space: nowrap;
       }
 
-      .hospitation-profile-record__owner .owner-avatar-stack {
+      .hospitation-profile-record__copy .profile-date-badge,
+      .format-profile__copy .profile-date-badge {
         flex: 0 0 auto;
-        height: 24px;
       }
 
-      .hospitation-profile-record__owner .owner-avatar-stack__item,
-      .hospitation-profile-record__owner .owner-avatar-stack__more {
-        width: 22px;
-        height: 22px;
-        font-size: 0.57rem;
+      .hospitation-profile-record__owner {
+        min-width: 0;
+        max-width: 180px;
+        display: flex;
+        align-items: center;
+        justify-content: flex-end;
+      }
+
+      .hospitation-profile-record__owner .owner-badge-group {
+        min-width: 0;
+        flex-wrap: nowrap;
+        justify-content: flex-end;
+      }
+
+      .hospitation-profile-record__owner .owner-badge {
+        max-width: 160px;
+        min-height: 26px;
       }
 
       .hospitation-profile-record__actions {
-        display: grid;
-        grid-template-columns: auto auto;
+        min-width: 0;
+        display: flex;
         align-items: center;
         justify-content: end;
         gap: 9px;
@@ -11450,19 +11450,33 @@
       }
 
       .format-profile__copy {
-        gap: 8px;
+        min-width: 0;
+        display: flex;
+        align-items: center;
+        gap: 10px;
       }
 
       .format-profile__copy strong {
+        min-width: 0;
+        flex: 1 1 auto;
         font-size: 0.82rem;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
       }
 
       .format-profile__badges {
         display: flex;
         min-width: 0;
         align-items: center;
+        justify-content: flex-end;
         gap: 6px;
         flex-wrap: wrap;
+      }
+
+      .format-profile__badges .owner-badge {
+        max-width: 150px;
+        min-height: 26px;
       }
 
       .format-profile__type-badge {
@@ -11481,8 +11495,8 @@
       }
 
       .format-profile__trailing {
-        display: grid;
-        grid-template-columns: auto auto;
+        min-width: 0;
+        display: flex;
         align-items: center;
         justify-content: end;
         gap: 9px;
@@ -11533,12 +11547,11 @@
         }
 
         .hospitation-profile-record__actions {
-          display: grid;
-          grid-template-columns: auto auto;
+          display: flex;
           justify-content: end;
+          flex-wrap: wrap;
         }
 
-        .hospitation-profile-record__actions .profile-date-badge,
         .hospitation-profile-record__actions .action-button {
           width: auto;
           justify-content: center;
@@ -11565,14 +11578,25 @@
         }
 
         .format-profile__trailing {
-          grid-template-columns: auto auto;
+          display: flex;
           justify-content: end;
+          flex-wrap: wrap;
         }
 
-        .format-profile__trailing .profile-date-badge,
         .format-profile__trailing .action-button {
           width: auto;
           justify-content: center;
+        }
+
+        .hospitation-profile-record__copy,
+        .format-profile__copy {
+          flex-wrap: wrap;
+        }
+
+        .hospitation-profile-record__copy > strong,
+        .format-profile__copy > strong {
+          white-space: normal;
+          overflow-wrap: anywhere;
         }
 
         .format-profile__status-form,

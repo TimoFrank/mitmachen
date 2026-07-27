@@ -24674,17 +24674,13 @@
 
       function renderHospitationProfileHistoryItem(item = {}, now = Date.now()) {
         const phase = hospitationProfilePhase(item, now);
-        const ownerLabel = hospitationOwnerIds(item).map(hospitationOwnerLabel).filter(Boolean).join(", ") || "Nicht zugewiesen";
         return `
           <article class="hospitation-profile-record ${phase === "archived" ? "hospitation-profile-record--archived" : ""}" aria-label="Hospitation am ${escapeHtml(hospitationDateOnlyLabel(item))}" data-hospitation-profile-history-id="${escapeHtml(item.id || "")}" data-hospitation-profile-phase="${escapeHtml(phase)}">
             <div class="hospitation-profile-record__copy">
-              <span class="hospitation-profile-record__owner">
-                ${hospitationOwnerAvatarStackMarkup(item)}
-                <span>${escapeHtml(ownerLabel)}</span>
-              </span>
+              <time class="profile-date-badge profile-date-badge--hospitation hospitation-profile-history__date" datetime="${escapeHtml(hospitationDateSourceValue(item))}">${escapeHtml(hospitationDateOnlyLabel(item))}</time>
             </div>
             <div class="hospitation-profile-record__actions">
-              <time class="profile-date-badge profile-date-badge--hospitation hospitation-profile-history__date" datetime="${escapeHtml(item.startsAt || item.starts_at || "")}">${escapeHtml(hospitationDateOnlyLabel(item))}</time>
+              <span class="hospitation-profile-record__owner">${hospitationOwnersMarkup(item)}</span>
               ${canEditContacts() ? `<button class="action-button action-button--compact" type="button" data-hospitation-profile-action="open" data-hospitation-id="${escapeHtml(item.id || "")}">Öffnen</button>` : ""}
             </div>
           </article>
@@ -24740,9 +24736,6 @@
         const now = Date.now();
         const { ongoing, nextItem } = hospitationProfileNext(items, now);
         const contextAttrs = `data-context-kind="${escapeHtml(context.kind || "")}" data-context-id="${escapeHtml(context.id || "")}"`;
-        const nextOwnerLabel = nextItem
-          ? hospitationOwnerIds(nextItem).map(hospitationOwnerLabel).filter(Boolean).join(", ") || "Nicht zugewiesen"
-          : "";
         const nextStateLabel = hospitationDataState === "loading"
           ? "Wird geladen"
           : hospitationDataState === "error"
@@ -24760,17 +24753,12 @@
             </div>
             <div class="hospitation-profile-record hospitation-profile-record--next ${nextItem ? "has-entry" : ""}">
               <div class="hospitation-profile-record__copy">
+                ${nextItem ? `<time class="profile-date-badge profile-date-badge--hospitation hospitation-profile-next__date" datetime="${escapeHtml(hospitationDateSourceValue(nextItem))}">${escapeHtml(hospitationDateOnlyLabel(nextItem))}</time>` : ""}
                 <strong>${escapeHtml(nextStateLabel)}</strong>
-                ${nextItem ? `
-                  <span class="hospitation-profile-record__owner">
-                    ${hospitationOwnerAvatarStackMarkup(nextItem)}
-                    <span>${escapeHtml(nextOwnerLabel)}</span>
-                  </span>
-                ` : ""}
               </div>
               ${nextItem ? `
                 <div class="hospitation-profile-record__actions">
-                  <time class="profile-date-badge profile-date-badge--hospitation hospitation-profile-next__date" datetime="${escapeHtml(nextItem.startsAt || nextItem.starts_at || "")}">${escapeHtml(hospitationDateOnlyLabel(nextItem))}</time>
+                  <span class="hospitation-profile-record__owner">${hospitationOwnersMarkup(nextItem)}</span>
                   ${canEditContacts() ? `<button class="action-button action-button--compact" type="button" data-hospitation-profile-action="open" data-hospitation-id="${escapeHtml(nextItem.id)}">Öffnen</button>` : ""}
                 </div>
               ` : ""}
@@ -24836,19 +24824,29 @@
         return time !== null && time < now;
       }
 
+      function formatProfileOwnerBadgeMarkup(format = {}) {
+        const ownerId = format.ownerId || format.owner_id || "";
+        const profile = ownerProfileForValue(ownerId);
+        if (profile) return ownerBadgeSingleMarkup(profile.id);
+        const ownerLabel = ownerBadgeLabel(format.owner || "");
+        if (ownerLabel && ownerLabel !== ownerId) return ownerBadgeSingleMarkup(ownerLabel);
+        return "";
+      }
+
       function renderFormatProfileItem({ format, participant } = {}, phase = "upcoming") {
         const dateLabel = formatDateRange(format);
         return `
           <article class="format-profile__item ${phase === "past" ? "format-profile__item--past" : ""}" data-format-profile-item="${escapeHtml(format.id)}" data-format-profile-phase="${escapeHtml(phase)}">
             <div class="format-profile__copy">
+              <time class="profile-date-badge profile-date-badge--format" datetime="${escapeHtml(format.startsAt || format.starts_at || "")}">${escapeHtml(dateLabel)}</time>
               <strong>${escapeHtml(format.title || "Unbenanntes Format")}</strong>
+            </div>
+            <div class="format-profile__trailing">
               <span class="format-profile__badges">
+                ${formatProfileOwnerBadgeMarkup(format)}
                 <span class="format-profile__type-badge">${escapeHtml(format.formatType || "Format")}</span>
                 ${formatParticipationStatusBadgeMarkup(participant.invitationStatus)}
               </span>
-            </div>
-            <div class="format-profile__trailing">
-              <time class="profile-date-badge profile-date-badge--format" datetime="${escapeHtml(format.startsAt || format.starts_at || "")}">${escapeHtml(dateLabel)}</time>
               <button class="action-button action-button--compact" type="button" data-format-profile-action="open" data-format-id="${escapeHtml(format.id)}">Öffnen</button>
             </div>
           </article>

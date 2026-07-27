@@ -153,9 +153,10 @@ test("Issue 28: Kontaktprofil zeigt Beteiligungsstatus kompakt; Pflege erfolgt i
   await expect(formatSection.locator("[data-format-profile-link-form]")).toHaveCount(0);
   await expect(formatSection.locator("[data-format-profile-action='list']")).toHaveCount(0);
   const futureItem = formatSection.locator("[data-format-profile-item='format-future']");
-  await expect(futureItem.locator(".format-profile__type-badge")).toHaveText("Workshop");
-  await expect(futureItem.locator(".format-participation-status")).toHaveText("Eingeladen");
-  await expect(futureItem.locator(".profile-date-badge--format")).toHaveText("18.09.2099");
+  await expect(futureItem.locator(".format-profile__copy > .profile-date-badge--format")).toHaveText("18.09.2099");
+  await expect(futureItem.locator(".format-profile__trailing .owner-badge__label")).toHaveText("Erika Editor");
+  await expect(futureItem.locator(".format-profile__trailing .format-profile__type-badge")).toHaveText("Workshop");
+  await expect(futureItem.locator(".format-profile__trailing .format-participation-status")).toHaveText("Eingeladen");
   await page.locator("#global-status").evaluate((status) => { status.hidden = true; });
   await page.screenshot({ path: testInfo.outputPath("kontaktprofil-beteiligung-formate.png"), fullPage: false });
   await formatSection.getByRole("button", { name: "Zu Format hinzufügen" }).click();
@@ -168,8 +169,10 @@ test("Issue 28: Kontaktprofil zeigt Beteiligungsstatus kompakt; Pflege erfolgt i
   const pastItem = pastGroup.locator("[data-format-profile-item='format-past']");
   await expect(pastGroup).toHaveAttribute("open", "");
   await expect(pastItem).toBeVisible();
-  await expect(pastItem.locator(".format-profile__type-badge")).toHaveText("Fachgespräch");
-  await expect(pastItem.locator(".format-participation-status")).toHaveText("Teilgenommen");
+  await expect(pastItem.locator(".format-profile__copy > .profile-date-badge--format")).toHaveText("12.03.2020");
+  await expect(pastItem.locator(".format-profile__trailing .owner-badge__label")).toHaveText("Erika Editor");
+  await expect(pastItem.locator(".format-profile__trailing .format-profile__type-badge")).toHaveText("Fachgespräch");
+  await expect(pastItem.locator(".format-profile__trailing .format-participation-status")).toHaveText("Teilgenommen");
 
   await profile.locator("[data-format-profile-item='format-future'] [data-format-profile-action='open']").click();
   await expect(page.locator(".app-shell")).toHaveAttribute("data-active-view", "formats");
