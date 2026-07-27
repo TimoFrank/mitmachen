@@ -782,11 +782,10 @@
         { id: "inhalt", label: "Inhalt" }
       ];
       const hospitationEditorSteps = [
-        { id: "quick", label: "Schnellerfassung" },
+        { id: "quick", label: "Grundlagen" },
         { id: "appointment", label: "Termin" },
-        { id: "contact", label: "Kontakt" },
-        { id: "topics", label: "Themen & Notiz" },
-        { id: "followup", label: "Follow-up" }
+        { id: "topics", label: "Themen" },
+        { id: "notes", label: "Notiz" }
       ];
       const participantPlannerSteps = [
         { id: "filters", label: "Eingrenzen" },
@@ -12797,7 +12796,8 @@
           syncQuestionnaireCompassSelectors();
           return;
         }
-        if (questionnaireDateInput && hospitation.startsAt) questionnaireDateInput.value = dateInputValue(hospitation.startsAt);
+        const hospitationDate = hospitationDateSourceValue(hospitation);
+        if (questionnaireDateInput && hospitationDate) questionnaireDateInput.value = dateInputValue(hospitationDate);
         const sector = questionnaireNormalizeSector(hospitation.sector);
         if (questionnaireSectorSelect && sector) setSelectValue(questionnaireSectorSelect, sector, sector);
         const organization = questionnaireOrganizationById(hospitation.organizationId);
@@ -14761,7 +14761,20 @@
         return String(value || "").slice(0, 10);
       }
 
+      function hospitationDateSourceValue(item = {}) {
+        return item.scheduledOn || item.scheduled_on || item.startsAt || item.starts_at || "";
+      }
+
+      function hospitationDateTimestamp(item = {}, fallbackValue = 0) {
+        const value = hospitationDateSourceValue(item);
+        if (!value) return fallbackValue;
+        const date = parseDateValue(value);
+        return Number.isNaN(date.getTime()) ? fallbackValue : date.getTime();
+      }
+
       function hospitationDateRangeLabel(item = {}) {
+        const scheduledOn = item.scheduledOn || item.scheduled_on || "";
+        if (scheduledOn) return formatDateLabel(scheduledOn) || "Termin offen";
         const start = item.startsAt || item.starts_at || "";
         const end = item.endsAt || item.ends_at || "";
         if (!start) return "Termin offen";
@@ -14822,14 +14835,14 @@
       }
 
       function hospitationDateOnlyLabel(item = {}) {
-        const value = item.startsAt || item.starts_at || "";
+        const value = hospitationDateSourceValue(item);
         return value ? formatDateLabel(value) || "Termin offen" : "Termin offen";
       }
 
       function hospitationDateCompactLabel(item = {}) {
-        const value = item.startsAt || item.starts_at || "";
+        const value = hospitationDateSourceValue(item);
         if (!value) return "Termin offen";
-        const date = new Date(value);
+        const date = parseDateValue(value);
         if (Number.isNaN(date.getTime())) {
           const label = formatDateLabel(value) || String(value);
           return label.replace(/(\d{2}\.\d{2}\.)\d{2}(\d{2})$/, "$1$2");
@@ -14838,9 +14851,9 @@
       }
 
       function hospitationDateFilterValue(item = {}) {
-        const value = item.startsAt || item.starts_at || "";
+        const value = hospitationDateSourceValue(item);
         if (!value) return "";
-        const date = new Date(value);
+        const date = parseDateValue(value);
         if (Number.isNaN(date.getTime())) return String(value).slice(0, 10);
         return hospitationDateKey(date);
       }
@@ -15015,14 +15028,14 @@
         return matchesStatus && matchesDate && matchesSector && matchesOwner && matchesDocumentation;
       }
 
-      function activeHospitationRecords({ includeSlots = true } = {}) {
+      function activeHospitationRecords({ includeSlots = false } = {}) {
         return [
           ...hospitations.filter((hospitation) => !isHospitationArchived(hospitation)),
           ...(includeSlots ? hospitationSlots.filter((slot) => !isHospitationArchived(slot)) : [])
         ];
       }
 
-      function archivedHospitationRecords({ includeSlots = true } = {}) {
+      function archivedHospitationRecords({ includeSlots = false } = {}) {
         return [
           ...hospitations.filter(isHospitationArchived),
           ...(includeSlots ? hospitationSlots.filter(isHospitationArchived) : [])
@@ -15059,8 +15072,7 @@
           return hasUnowned ? [{ value: "__none__", label: "Kein Owner" }, ...ownerValues] : ownerValues;
         }
         if (filterKey === "documentation") {
-          const hasSlots = activeHospitationTab === "appointments" && hospitationSlots.some((slot) => !isHospitationArchived(slot));
-          const values = ["Offen", "Entwurf", "Dokumentiert", ...(hasSlots ? ["Terminangebot"] : [])];
+          const values = ["Offen", "Entwurf", "Dokumentiert"];
           return values.map((value) => ({ value, label: value }));
         }
         return [];
@@ -15148,8 +15160,10 @@
 
       function sortedHospitations(items = hospitations) {
         return [...items].sort((left, right) => {
-          const leftTime = new Date(left.startsAt || left.updatedAt || left.createdAt || 0).getTime();
-          const rightTime = new Date(right.startsAt || right.updatedAt || right.createdAt || 0).getTime();
+          const leftFallback = parseDateValue(left.updatedAt || left.createdAt || 0).getTime();
+          const rightFallback = parseDateValue(right.updatedAt || right.createdAt || 0).getTime();
+          const leftTime = hospitationDateTimestamp(left, Number.isNaN(leftFallback) ? 0 : leftFallback);
+          const rightTime = hospitationDateTimestamp(right, Number.isNaN(rightFallback) ? 0 : rightFallback);
           return rightTime - leftTime || String(right.id || "").localeCompare(String(left.id || ""));
         });
       }
@@ -15238,7 +15252,7 @@
       const hospitationAppointmentExportImageCache = new Map();
 
       function hospitationExportDateValue(item = {}) {
-        const date = new Date(item.startsAt || item.starts_at || "");
+        const date = parseDateValue(hospitationDateSourceValue(item));
         return Number.isNaN(date.getTime()) ? Number.MAX_SAFE_INTEGER : date.getTime();
       }
 
@@ -15279,6 +15293,7 @@
           kind,
           id: item.id || "",
           title: item.title || "",
+          scheduledOn: item.scheduledOn || item.scheduled_on || "",
           startsAt: item.startsAt || item.starts_at || "",
           endsAt: item.endsAt || item.ends_at || "",
           context: hospitationContextLabel(item),
@@ -15307,7 +15322,6 @@
       function hospitationExportSnapshot() {
         const generatedAt = new Date().toISOString();
         const records = hospitations;
-        const slots = hospitationSlots;
         const sources = {
           roadmapAssessments: hospitationRoadmapAssessments,
           unmetNeeds: hospitationUnmetNeeds
@@ -15315,11 +15329,7 @@
         const exportedHospitations = records
           .map((item) => hospitationExportItem(item, "hospitation", sources))
           .sort((left, right) => hospitationExportDateValue(left) - hospitationExportDateValue(right) || left.context.localeCompare(right.context, "de"));
-        const exportedSlots = slots
-          .map((item) => hospitationExportItem(item, "slot", sources))
-          .sort((left, right) => hospitationExportDateValue(left) - hospitationExportDateValue(right) || left.context.localeCompare(right.context, "de"));
-        const appointments = [...exportedHospitations, ...exportedSlots]
-          .sort((left, right) => hospitationExportDateValue(left) - hospitationExportDateValue(right) || left.context.localeCompare(right.context, "de"));
+        const appointments = [...exportedHospitations];
         const sourceUpdatedAt = appointments
           .map((item) => item.updatedAt)
           .filter(Boolean)
@@ -15632,6 +15642,228 @@
         return `<option value="">Keine Organisation</option>${options.join("")}`;
       }
 
+      function hospitationEntitySearchValue(value = "") {
+        return String(value || "").trim().toLocaleLowerCase("de-DE");
+      }
+
+      function hospitationExactOrganizationMatches(name = "") {
+        const normalizedName = normalizeOrganizationName(name);
+        if (!normalizedName) return [];
+        return organizations.filter((organization) =>
+          organization.status !== "archived"
+          && normalizeOrganizationName(organization.name) === normalizedName
+        );
+      }
+
+      function hospitationExactContactMatches(name = "", organizationId = "", organizationName = "") {
+        const normalizedName = hospitationEntitySearchValue(name);
+        if (!normalizedName) return [];
+        const normalizedOrganizationName = normalizeOrganizationName(organizationName);
+        return contacts.filter((contact) => {
+          if (contact.status === "archived") return false;
+          if (hospitationEntitySearchValue(contact.displayName || contact.name) !== normalizedName) return false;
+          if (organizationId) {
+            if (String(contact.organizationId || "") === String(organizationId)) return true;
+            return !contact.organizationId
+              && normalizedOrganizationName
+              && normalizeOrganizationName(contact.organization) === normalizedOrganizationName;
+          }
+          if (normalizedOrganizationName) {
+            return normalizeOrganizationName(contact.organization) === normalizedOrganizationName;
+          }
+          return true;
+        });
+      }
+
+      function resolveHospitationEntityComboboxSelections(root = document) {
+        const organizationCombobox = root.querySelector('[data-hospitation-entity-combobox="organization"]');
+        const organizationInput = organizationCombobox?.querySelector("[data-hospitation-entity-input]");
+        const organizationIdInput = organizationCombobox?.querySelector("[data-hospitation-entity-id]");
+        const contactCombobox = root.querySelector('[data-hospitation-entity-combobox="contact"]');
+        const contactInput = contactCombobox?.querySelector("[data-hospitation-entity-input]");
+        const contactIdInput = contactCombobox?.querySelector("[data-hospitation-entity-id]");
+
+        organizationInput?.setCustomValidity("");
+        const organizationName = String(organizationInput?.value || "").trim();
+        let exactOrganizations = [];
+        if (organizationInput && organizationIdInput && !organizationIdInput.value && organizationName) {
+          exactOrganizations = hospitationExactOrganizationMatches(organizationName);
+          if (exactOrganizations.length === 1) {
+            organizationIdInput.value = exactOrganizations[0].id || "";
+            organizationInput.value = exactOrganizations[0].name || organizationName;
+          }
+        }
+
+        const contactName = String(contactInput?.value || "").trim();
+        if (contactInput && contactIdInput && !contactIdInput.value && contactName) {
+          const exactContacts = hospitationExactContactMatches(
+            contactName,
+            organizationIdInput?.value || "",
+            organizationInput?.value || ""
+          );
+          if (exactContacts.length === 1) {
+            const contact = exactContacts[0];
+            contactIdInput.value = contact.id || "";
+            contactInput.value = contact.displayName || contact.name || contactName;
+            if (organizationInput && organizationIdInput) {
+              organizationInput.value = contact.organization || organizationInput.value || "";
+              organizationIdInput.value = contact.organizationId || organizationIdInput.value || "";
+            }
+          } else if (exactContacts.length > 1) {
+            contactInput.setCustomValidity("Mehrere Kontakte haben diesen Namen. Bitte wähle den passenden Kontakt aus der Liste.");
+            return { valid: false, reason: "ambiguous-contact" };
+          }
+        }
+        contactInput?.setCustomValidity("");
+        if (organizationInput && organizationIdInput && organizationName && !organizationIdInput.value && exactOrganizations.length > 1) {
+          organizationInput.setCustomValidity("Mehrere Organisationen haben diesen Namen. Bitte wähle die passende Organisation aus der Liste.");
+          return { valid: false, reason: "ambiguous-organization" };
+        }
+        return { valid: Boolean(contactIdInput?.value || contactName), reason: contactName ? "" : "missing-contact" };
+      }
+
+      function hospitationContactComboboxOptions(query = "", selectedId = "") {
+        const normalizedQuery = hospitationEntitySearchValue(query);
+        const selectedOrganizationId = String(
+          document.querySelector('[data-hospitation-entity-combobox="organization"] [data-hospitation-entity-id]')?.value || ""
+        ).trim();
+        const selectedOrganizationName = String(
+          document.querySelector('[data-hospitation-entity-combobox="organization"] [data-hospitation-entity-input]')?.value || ""
+        ).trim();
+        const matches = contacts
+          .filter((contact) => contact.status !== "archived" || contact.id === selectedId)
+          .filter((contact) => {
+            if (!normalizedQuery) return true;
+            return [
+              contact.displayName,
+              contact.name,
+              contact.organization,
+              contact.specialty
+            ].some((value) => hospitationEntitySearchValue(value).includes(normalizedQuery));
+          })
+          .sort((left, right) => String(left.displayName || left.name).localeCompare(String(right.displayName || right.name), "de"))
+          .slice(0, 12);
+        const exactMatch = contacts.some((contact) => {
+          const sameName = hospitationEntitySearchValue(contact.displayName || contact.name) === normalizedQuery;
+          if (!sameName) return false;
+          if (selectedOrganizationId) return String(contact.organizationId || "") === selectedOrganizationId;
+          if (selectedOrganizationName) {
+            return normalizeOrganizationName(contact.organization) === normalizeOrganizationName(selectedOrganizationName);
+          }
+          return true;
+        });
+        const options = matches.map((contact, index) => `
+          <button
+            id="hospitation-contact-combobox-option-${index}"
+            class="custom-select-option hospitation-entity-option ${contact.id === selectedId ? "is-selected" : ""}"
+            type="button"
+            role="option"
+            aria-selected="${contact.id === selectedId ? "true" : "false"}"
+            data-hospitation-entity-option="${escapeHtml(contact.id)}"
+            data-hospitation-entity-label="${escapeHtml(contact.displayName || contact.name)}"
+            data-hospitation-entity-organization-id="${escapeHtml(contact.organizationId || "")}"
+            data-hospitation-entity-organization-name="${escapeHtml(contact.organization || "")}"
+          >
+            <span class="hospitation-entity-option__visual">${contactAvatarMarkup(contact, "sm")}</span>
+            <span class="hospitation-entity-option__copy">
+              <strong>${escapeHtml(contact.displayName || contact.name)}</strong>
+              <small>${escapeHtml(contact.organization || "Keine Organisation hinterlegt")}</small>
+            </span>
+          </button>
+        `);
+        if (query.trim() && !exactMatch) {
+          options.push(`
+            <button id="hospitation-contact-combobox-option-create" class="custom-select-option custom-select-option--create hospitation-entity-option" type="button" role="option" aria-selected="false" data-hospitation-entity-create="${escapeHtml(query.trim())}">
+              <span class="hospitation-entity-option__create-icon" aria-hidden="true">+</span>
+              <span class="hospitation-entity-option__copy">
+                <strong>„${escapeHtml(query.trim())}“ neu anlegen</strong>
+                <small>Der Kontakt wird zusammen mit dem Termin gespeichert.</small>
+              </span>
+            </button>
+          `);
+        }
+        return options.length
+          ? options.join("")
+          : `<div class="hospitation-entity-combobox__empty">Namen eingeben, um einen neuen Kontakt anzulegen.</div>`;
+      }
+
+      function hospitationOrganizationComboboxOptions(query = "", selectedId = "") {
+        const normalizedQuery = hospitationEntitySearchValue(query);
+        const matches = organizations
+          .filter((organization) => organization.status !== "archived" || organization.id === selectedId)
+          .filter((organization) => !normalizedQuery || [
+            organization.name,
+            organization.city,
+            organization.sector
+          ].some((value) => hospitationEntitySearchValue(value).includes(normalizedQuery)))
+          .sort((left, right) => String(left.name).localeCompare(String(right.name), "de"))
+          .slice(0, 12);
+        const exactMatch = organizations.some((organization) =>
+          normalizeOrganizationName(organization.name) === normalizeOrganizationName(query)
+        );
+        const options = matches.map((organization, index) => `
+          <button
+            id="hospitation-organization-combobox-option-${index}"
+            class="custom-select-option hospitation-entity-option ${organization.id === selectedId ? "is-selected" : ""}"
+            type="button"
+            role="option"
+            aria-selected="${organization.id === selectedId ? "true" : "false"}"
+            data-hospitation-entity-option="${escapeHtml(organization.id)}"
+            data-hospitation-entity-label="${escapeHtml(organization.name)}"
+          >
+            <span class="hospitation-entity-option__visual">${organizationLogoMarkup(organization, "sm")}</span>
+            <span class="hospitation-entity-option__copy">
+              <strong>${escapeHtml(organization.name)}</strong>
+              <small>${escapeHtml([organization.city, organization.sector].filter(Boolean).join(" · ") || "Keine weiteren Angaben")}</small>
+            </span>
+          </button>
+        `);
+        if (query.trim() && !exactMatch) {
+          options.push(`
+            <button id="hospitation-organization-combobox-option-create" class="custom-select-option custom-select-option--create hospitation-entity-option" type="button" role="option" aria-selected="false" data-hospitation-entity-create="${escapeHtml(query.trim())}">
+              <span class="hospitation-entity-option__create-icon" aria-hidden="true">+</span>
+              <span class="hospitation-entity-option__copy">
+                <strong>„${escapeHtml(query.trim())}“ neu anlegen</strong>
+                <small>Die Organisation wird zusammen mit dem Termin gespeichert.</small>
+              </span>
+            </button>
+          `);
+        }
+        return options.length
+          ? options.join("")
+          : `<div class="hospitation-entity-combobox__empty">Namen eingeben, um eine neue Organisation anzulegen.</div>`;
+      }
+
+      function renderHospitationEntityCombobox(options = {}) {
+        const kind = options.kind === "organization" ? "organization" : "contact";
+        const label = kind === "organization" ? "Organisation" : "Kontakt";
+        const panelId = `hospitation-${kind}-combobox-panel`;
+        return `
+          <div class="editor-combobox hospitation-entity-combobox" data-hospitation-entity-combobox="${kind}">
+            <input type="hidden" name="${kind}Id" value="${escapeHtml(options.selectedId || "")}" data-hospitation-entity-id />
+            <input
+              class="editor-input"
+              id="hospitation-${kind}"
+              name="${kind}Name"
+              type="text"
+              value="${escapeHtml(options.value || "")}"
+              placeholder="${escapeHtml(`${label} suchen oder neu eingeben…`)}"
+              autocomplete="off"
+              role="combobox"
+              aria-autocomplete="list"
+              aria-controls="${panelId}"
+              aria-expanded="false"
+              ${kind === "contact" ? "required" : ""}
+              data-hospitation-entity-input
+            />
+            <button class="editor-combobox__toggle" type="button" aria-label="${label} auswählen" aria-expanded="false" aria-controls="${panelId}" data-hospitation-entity-toggle>
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m7 10 5 5 5-5"></path></svg>
+            </button>
+            <div class="editor-combobox__panel" id="${panelId}" role="listbox" data-hospitation-entity-panel hidden></div>
+          </div>
+        `;
+      }
+
       function hospitationInlineAttrs(item = {}, field = "") {
         return `data-hospitation-id="${escapeHtml(item.id || "")}" data-hospitation-inline-field="${escapeHtml(field)}"`;
       }
@@ -15672,8 +15904,7 @@
       }
 
       function hospitationStartLabel(item = {}) {
-        const value = item.startsAt || item.starts_at || "";
-        return value ? formatDateTimeLabel(value) || "Termin offen" : "Termin offen";
+        return hospitationDateOnlyLabel(item);
       }
 
       function hospitationDisplayBadge(content = "", options = {}) {
@@ -16304,7 +16535,7 @@
                 <div class="detail-theme-label">${escapeHtml(options.suggestionLabel || "Vorschläge")}</div>
                 <div class="detail-theme-presets" aria-label="${escapeHtml(options.suggestionLabel || "Vorschläge")}">
                   ${suggestions.map((tag) => `
-                    <button class="theme-tag theme-tag--preset ${active.has(tag) ? "is-active" : ""}" type="button" data-documentation-theme-toggle="${escapeHtml(tag)}">
+                    <button class="theme-tag theme-tag--preset ${active.has(tag) ? "is-active" : ""}" type="button" aria-pressed="${active.has(tag) ? "true" : "false"}" data-documentation-theme-toggle="${escapeHtml(tag)}">
                       ${escapeHtml(tag)}
                     </button>
                   `).join("")}
@@ -16841,7 +17072,7 @@
           hospitationOrganizationLabel(hospitation),
           hospitationSectorLabel(hospitation)
         ].some((value) => meaningfulOrEmpty(value) && value !== "Nicht hinterlegt");
-        const hasSituation = Boolean(hospitation.startsAt || meaningfulOrEmpty(hospitation.goal) || meaningfulOrEmpty(hospitation.location));
+        const hasSituation = Boolean(hospitationDateSourceValue(hospitation) || meaningfulOrEmpty(hospitation.goal) || meaningfulOrEmpty(hospitation.location));
         return hasContactOrOrganization && hasSituation;
       }
 
@@ -17373,16 +17604,14 @@
       }
 
       function hospitationEntryDate(entry = {}) {
-        const value = entry.item?.startsAt || entry.item?.starts_at || "";
+        const value = hospitationDateSourceValue(entry.item || {});
         if (!value) return null;
-        const date = new Date(value);
+        const date = parseDateValue(value);
         return Number.isNaN(date.getTime()) ? null : date;
       }
 
       function hospitationEntryTimeLabel(entry = {}) {
-        const date = hospitationEntryDate(entry);
-        if (!date) return "Termin offen";
-        return date.toLocaleTimeString("de-DE", { hour: "2-digit", minute: "2-digit" });
+        return hospitationEntryDate(entry) ? "Ganztägig" : "Termin offen";
       }
 
       function hospitationEntryTitle(entry = {}) {
@@ -17421,27 +17650,11 @@
       }
 
       function hospitationScheduleEntries(options = {}) {
-        const query = hospitationSearchQuery();
         const archived = options.archived ?? hospitationArchiveView;
-        const slotEntries = filteredHospitationSlots({ archivedOnly: archived })
-          .map((slot) => ({ kind: "slot", item: slot }));
         const hospitationEntries = filteredHospitationsFromSource(hospitations, { archivedOnly: archived })
           .map((hospitation) => ({ kind: "hospitation", item: hospitation }));
-        return [...hospitationEntries, ...slotEntries]
+        return hospitationEntries
           .filter((entry) => entry.item?.id)
-          .filter((entry) => {
-            if (!query || entry.kind !== "slot") return true;
-            return [
-              hospitationEntryTitle(entry),
-              hospitationEntrySubtitle(entry),
-              entry.item.status,
-              hospitationDateOnlyLabel(entry.item),
-              entry.item.location,
-              entry.item.city,
-              entry.item.notes,
-              hospitationOwnerLabel(hospitationOwnerValue(entry.item))
-            ].join(" ").toLowerCase().includes(query);
-          })
           .sort((left, right) => {
             const leftDate = hospitationEntryDate(left);
             const rightDate = hospitationEntryDate(right);
@@ -17472,10 +17685,7 @@
       function openHospitationEntry(key = "", options = {}) {
         const entry = hospitationEntryFromKey(key);
         if (!entry) return;
-        if (entry.kind === "slot") {
-          openHospitationEditor("slot", entry.item);
-          return;
-        }
+        if (entry.kind === "slot") return;
         const record = hospitationDocumentationRecordById(entry.item?.id) || entry.item;
         openHospitationEditor("documentation", record, {
           initialTab: options.initialTab || "overview"
@@ -17600,7 +17810,7 @@
           authorId: item.requesterProfileId || item.createdBy || "",
           authorName: item.requester || "Anfrage",
           authorRole: "",
-          createdAt: item.createdAt || item.updatedAt || item.startsAt || "",
+          createdAt: item.createdAt || item.updatedAt || hospitationDateSourceValue(item),
           editedAt: "",
           readonly: true
         }];
@@ -17699,6 +17909,57 @@
             ` : `<div class="detail-permission-note">${escapeHtml(viewerCreateDisabledMessage("das Schreiben von Notizen"))}</div>`}
           </div>
         `;
+      }
+
+      function renderHospitationEditorNoteDraft(item = {}) {
+        const messages = parseHospitationRequestThread(item.requestNote, item);
+        return `
+          <div class="format-notes-thread hospitation-request-thread hospitation-editor-note-draft">
+            <div class="format-chat-list" aria-live="polite">
+              ${messages.length ? messages.map((message) => `
+                <article class="format-chat-message">
+                  <span class="format-chat-avatar" aria-hidden="true">${renderFormatChatAvatar(message)}</span>
+                  <div class="format-chat-content">
+                    <div class="format-chat-meta">
+                      <strong>${escapeHtml(message.authorName)}</strong>
+                      ${message.authorRole ? `<span>${escapeHtml(roleLabel(message.authorRole))}</span>` : ""}
+                      <time datetime="${escapeHtml(message.createdAt)}">${escapeHtml(formatDateTimeLabel(message.createdAt) || "Zeitpunkt offen")}</time>
+                    </div>
+                    <p class="format-chat-text">${escapeHtml(message.text)}</p>
+                  </div>
+                </article>
+              `).join("") : `<div class="empty">Noch keine Notiz im Verlauf.</div>`}
+            </div>
+            <div class="format-chat-composer">
+              <textarea id="hospitation-request-message" name="requestNoteDraft" placeholder="Neue Notiz schreiben…" aria-label="Neue Hospitationsnotiz"></textarea>
+              <div class="format-chat-composer-footer">
+                <span class="format-chat-composer-author">
+                  <span class="format-chat-avatar" aria-hidden="true">${renderCurrentFormatAuthorAvatar()}</span>
+                  <span class="format-chat-meta">Schreibt als <strong>${escapeHtml(formatNotesAuthorLabel())}</strong></span>
+                </span>
+                <span class="hospitation-editor-note-draft__save-hint">Wird mit dem Termin gespeichert</span>
+              </div>
+            </div>
+          </div>
+        `;
+      }
+
+      function hospitationEditorRequestNotePayload(data, item = {}) {
+        const draft = String(data.get("requestNoteDraft") || "").trim();
+        if (!draft) return String(item.requestNote || item.request_note || "").trim();
+        return serializeHospitationRequestThread([
+          ...parseHospitationRequestThread(item.requestNote || item.request_note, item),
+          {
+            id: `hospitation-request-${window.crypto?.randomUUID?.() || `${Date.now()}-${Math.random().toString(16).slice(2)}`}`,
+            text: draft,
+            authorId: currentProfile?.id || "",
+            authorName: formatNotesAuthorLabel(),
+            authorRole: currentProfile?.role || "",
+            createdAt: new Date().toISOString(),
+            editedAt: "",
+            readonly: false
+          }
+        ]);
       }
 
       function hospitationDetailActionsMarkup(entry = {}, options = {}) {
@@ -17834,7 +18095,7 @@
 
       function renderHospitationScheduleList(entries = []) {
         if (!entries.length) {
-          return `<div class="history-empty">${hospitationArchiveView ? "Noch keine archivierten Termine für diese Auswahl." : "Noch keine Hospitationen oder Terminangebote für diese Auswahl."}</div>`;
+          return `<div class="history-empty">${hospitationArchiveView ? "Noch keine archivierten Termine für diese Auswahl." : "Noch keine Hospitationen für diese Auswahl."}</div>`;
         }
         const pageKeys = entries.map(hospitationEntryKey);
         const selectedOnPage = pageKeys.filter((key) => selectedHospitationEntryKeys.has(key)).length;
@@ -18010,9 +18271,7 @@
           { tone: "requested", label: "Angefragt" },
           { tone: "scheduled", label: "Terminiert" },
           { tone: "done", label: "Durchgeführt" },
-          { tone: "documented", label: "Dokumentiert" },
-          { tone: "free", label: "Frei" },
-          { tone: "reserved", label: "Belegt" }
+          { tone: "documented", label: "Dokumentiert" }
         ];
         const weekdays = ["Mo", "Di", "Mi", "Do", "Fr"];
         const modeButtons = [
@@ -19793,7 +20052,7 @@
         }));
         const cards = [...quoteCards, ...observationCards]
           .filter((card) => meaningfulOrEmpty(card.text))
-          .sort((left, right) => new Date(right.item?.startsAt || 0).getTime() - new Date(left.item?.startsAt || 0).getTime())
+          .sort((left, right) => hospitationDateTimestamp(right.item) - hospitationDateTimestamp(left.item))
           .slice(0, limit);
         if (!cards.length) return `<div class="hospitation-dashboard-empty">Noch keine Zitate oder Beobachtungskarten erfasst.</div>`;
         return `
@@ -19837,7 +20096,7 @@
 
       function renderHospitationDashboardObservationCards(active = [], limit = 3) {
         const cards = hospitationDashboardDocumentedObservations(active)
-          .sort((left, right) => new Date(right.hospitation?.startsAt || 0).getTime() - new Date(left.hospitation?.startsAt || 0).getTime())
+          .sort((left, right) => hospitationDateTimestamp(right.hospitation) - hospitationDateTimestamp(left.hospitation))
           .slice(0, limit);
         if (!cards.length) return `<div class="hospitation-dashboard-empty">Noch keine Beobachtungskarten erfasst.</div>`;
         return `
@@ -19925,7 +20184,7 @@
 
       function renderHospitationDashboardQuoteCards(active = [], limit = 5) {
         const quotes = hospitationDashboardContactQuoteRows(active)
-          .sort((left, right) => new Date(right.hospitation?.startsAt || 0).getTime() - new Date(left.hospitation?.startsAt || 0).getTime())
+          .sort((left, right) => hospitationDateTimestamp(right.hospitation) - hospitationDateTimestamp(left.hospitation))
           .slice(0, limit);
         if (!quotes.length) return `<div class="hospitation-dashboard-empty">Noch keine wörtlichen Zitate erfasst.</div>`;
         return `
@@ -19978,7 +20237,7 @@
       function renderHospitationDashboardObservationDetailRow(observation = {}) {
         const item = observation.hospitation || {};
         const text = meaningfulOrEmpty(observation.observed || observation.title) || "Beobachtung ohne Freitext";
-        const date = meaningfulOrEmpty(item.startsAt || item.starts_at) ? hospitationDateOnlyLabel(item) : "";
+        const date = hospitationDateSourceValue(item) ? hospitationDateOnlyLabel(item) : "";
         return `
           <article class="hospitation-dashboard-detail-row hospitation-dashboard-detail-row--observation" data-hospitation-dashboard-detail-row>
             <div class="hospitation-dashboard-detail-body">
@@ -20004,7 +20263,7 @@
         const speaker = hospitationDashboardQuoteSpeaker(quote);
         const role = meaningfulOrEmpty(quote.personRole);
         const context = meaningfulOrEmpty(quote.context);
-        const date = meaningfulOrEmpty(item.startsAt || item.starts_at) ? hospitationDateOnlyLabel(item) : "";
+        const date = hospitationDateSourceValue(item) ? hospitationDateOnlyLabel(item) : "";
         return `
           <article class="hospitation-dashboard-detail-row hospitation-dashboard-detail-row--quote" data-hospitation-dashboard-detail-row>
             ${renderHospitationDashboardQuoteAvatar(quote)}
@@ -20133,7 +20392,7 @@
             summary: (rows) => `${rows.length} dokumentierte Beobachtungen aus den aktuell angezeigten Hospitationen`,
             empty: "Noch keine Beobachtungskarten erfasst.",
             rows: () => hospitationDashboardDocumentedObservations(active)
-              .sort((left, right) => new Date(right.hospitation?.startsAt || 0).getTime() - new Date(left.hospitation?.startsAt || 0).getTime()),
+              .sort((left, right) => hospitationDateTimestamp(right.hospitation) - hospitationDateTimestamp(left.hospitation)),
             render: renderHospitationDashboardObservationDetailRow
           },
           quotes: {
@@ -20142,7 +20401,7 @@
             empty: "Noch keine wörtlichen Zitate erfasst.",
             rows: () => hospitationDashboardAllQuotes(active)
               .filter((quote) => meaningfulOrEmpty(quote.quote))
-              .sort((left, right) => new Date(right.hospitation?.startsAt || 0).getTime() - new Date(left.hospitation?.startsAt || 0).getTime()),
+              .sort((left, right) => hospitationDateTimestamp(right.hospitation) - hospitationDateTimestamp(left.hospitation)),
             render: renderHospitationDashboardQuoteDetailRow
           }
         };
@@ -21792,9 +22051,9 @@
           });
         const chronologyTimestamp = (row = {}) => {
           const parent = row.hospitation || {};
-          const candidates = [parent.startsAt, parent.date, parent.documentedAt, row.createdAt];
+          const candidates = [hospitationDateSourceValue(parent), parent.date, parent.documentedAt, row.createdAt];
           for (const candidate of candidates) {
-            const timestamp = new Date(candidate || 0).getTime();
+            const timestamp = parseDateValue(candidate || 0).getTime();
             if (Number.isFinite(timestamp) && timestamp > 0) return timestamp;
           }
           return 0;
@@ -21929,14 +22188,14 @@
               if (hospitationObservationSortKey === "number") return Number(row._chronologicalNumber) || 0;
               if (hospitationObservationSortKey === "title") return row.title || row.problemType || "";
               if (hospitationObservationSortKey === "evidenceType") return observationEvidenceLabel(row.evidenceType);
-              if (hospitationObservationSortKey === "date") return new Date(parent.startsAt || parent.documentedAt || 0).getTime();
+              if (hospitationObservationSortKey === "date") return hospitationDateTimestamp(parent, parseDateValue(parent.documentedAt || 0).getTime());
               if (hospitationObservationSortKey === "contact") return hospitationDocumentationContactLabel(parent);
               if (hospitationObservationSortKey === "organization") return hospitationOrganizationLabel(parent);
               if (hospitationObservationSortKey === "sector") return hospitationSectorLabel(parent);
               if (hospitationObservationSortKey === "processPhase") return row.processPhase || "";
               if (hospitationObservationSortKey === "problemType") return row.problemType || "";
               if (hospitationObservationSortKey === "owner") return hospitationOwnerIds(parent).map(ownerDisplayLabel).join(" ");
-              return new Date(row.updatedAt || parent.startsAt || 0).getTime();
+              return parseDateValue(row.updatedAt || hospitationDateSourceValue(parent) || 0).getTime();
             };
             const leftValue = sortValue(left);
             const rightValue = sortValue(right);
@@ -22188,7 +22447,10 @@
       function observationParentOptionMarkup(selectedId = "") {
         return hospitations
           .filter((item) => item.status !== "Archiviert")
-          .sort((left, right) => new Date(right.startsAt || right.updatedAt || 0).getTime() - new Date(left.startsAt || left.updatedAt || 0).getTime())
+          .sort((left, right) =>
+            hospitationDateTimestamp(right, parseDateValue(right.updatedAt || 0).getTime())
+            - hospitationDateTimestamp(left, parseDateValue(left.updatedAt || 0).getTime())
+          )
           .map((item) => {
             const organizationLabel = hospitationOrganizationLabel(item);
             const label = [
@@ -23134,7 +23396,6 @@
         }
 
         const hospitation = record || context;
-        const selectedSlotId = hospitation.slotId || context.slotId || "";
         const defaultStatus = isDocumentation ? "Dokumentiert" : hospitationEditorStatusValue(hospitation.status || "Angefragt");
         if (isDocumentation) {
           const documentation = hospitationDocumentationPayload(hospitation);
@@ -23202,30 +23463,42 @@
             </form>
           `;
         }
+        const selectedContactId = hospitation.contactId || context.contactId || "";
+        const selectedContact = contacts.find((contact) => contact.id === selectedContactId) || null;
+        const selectedOrganizationId = hospitation.organizationId || context.organizationId || selectedContact?.organizationId || "";
+        const selectedOrganization = organizations.find((organization) => organization.id === selectedOrganizationId)
+          || organizations.find((organization) =>
+            normalizeOrganizationName(organization.name) === normalizeOrganizationName(selectedContact?.organization)
+          )
+          || null;
+        const contactValue = selectedContact?.displayName || selectedContact?.name || hospitationFreeTextContactName(hospitation) || "";
+        const organizationValue = selectedOrganization?.name || selectedContact?.organization || hospitationFreeTextOrganizationName(hospitation) || "";
         return `
           <form class="format-editor hospitation-editor-wizard" id="hospitation-editor-form">
             <div class="import-steps contact-editor-steps" id="hospitation-editor-steps" aria-label="Terminanlage-Schritte"></div>
 
             <section class="editor-section editor-section--primary contact-editor-step" data-hospitation-editor-step="quick" aria-labelledby="hospitation-section-quick">
               <div class="editor-section-head">
-                <h4 class="editor-section-title" id="hospitation-section-quick">Schnellerfassung</h4>
+                <h4 class="editor-section-title" id="hospitation-section-quick">Grundlagen</h4>
               </div>
               <div class="format-editor-grid">
-                <div class="format-editor-field">
+                <div class="format-editor-field format-editor-field--wide">
                   <label for="hospitation-contact">Kontakt</label>
-                  <div class="editor-select-shell" data-custom-select data-select-type="hospitation-contact">
-                    <select class="editor-select" id="hospitation-contact" name="contactId">${hospitationContactOptionMarkup(hospitation.contactId || context.contactId || "")}</select>
-                  </div>
+                  ${renderHospitationEntityCombobox({
+                    kind: "contact",
+                    selectedId: selectedContactId,
+                    value: contactValue
+                  })}
+                  <small class="hospitation-editor-field-hint">Bestehenden Kontakt auswählen oder einen neuen Namen eingeben. Neue Kontakte werden beim Speichern automatisch angelegt.</small>
                 </div>
-                <div class="format-editor-field">
-                  <label for="hospitation-contact-name">Kontakt Freitext</label>
-                  <input id="hospitation-contact-name" name="contactName" value="${escapeHtml(hospitationFreeTextContactName(hospitation) || "")}" placeholder="Name, falls noch kein Kontaktprofil existiert" />
-                </div>
-                <div class="format-editor-field">
+                <div class="format-editor-field format-editor-field--wide">
                   <label for="hospitation-organization">Organisation</label>
-                  <div class="editor-select-shell" data-custom-select data-select-type="hospitation-organization">
-                    <select class="editor-select" id="hospitation-organization" name="organizationId">${hospitationOrganizationOptionMarkup(hospitation.organizationId || context.organizationId || "")}</select>
-                  </div>
+                  ${renderHospitationEntityCombobox({
+                    kind: "organization",
+                    selectedId: selectedOrganizationId,
+                    value: organizationValue
+                  })}
+                  <small class="hospitation-editor-field-hint">Auch hier kannst du eine vorhandene Organisation wählen oder direkt eine neue eingeben.</small>
                 </div>
                 <div class="format-editor-field">
                   <label for="hospitation-status">Status</label>
@@ -23245,94 +23518,39 @@
             <section class="editor-section contact-editor-step" data-hospitation-editor-step="appointment" aria-labelledby="hospitation-section-appointment" hidden>
               <div class="editor-section-head">
                 <h4 class="editor-section-title" id="hospitation-section-appointment">Termin</h4>
-                <span class="contact-editor-step__meta">Optional</span>
               </div>
               <div class="format-editor-grid">
-                <div class="format-editor-field format-editor-field--wide">
-                  <label for="hospitation-slot">Termin-Slot</label>
-                  <div class="editor-select-shell" data-custom-select data-select-type="hospitation-slot">
-                    <select class="editor-select" id="hospitation-slot" name="slotId">${hospitationSlotOptionMarkup(selectedSlotId)}</select>
-                  </div>
+                <div class="format-editor-field">
+                  <label for="hospitation-date">Tag</label>
+                  <input id="hospitation-date" name="scheduledOn" type="date" required value="${escapeHtml(dateInputValue(hospitation.scheduledOn || hospitation.scheduled_on || hospitation.startsAt))}" />
                 </div>
                 <div class="format-editor-field">
-                  <label for="hospitation-start">Beginn</label>
-                  <input id="hospitation-start" name="startsAt" type="datetime-local" value="${escapeHtml(dateTimeInputValue(hospitation.startsAt))}" />
-                </div>
-                <div class="format-editor-field">
-                  <label for="hospitation-end">Ende</label>
-                  <input id="hospitation-end" name="endsAt" type="datetime-local" value="${escapeHtml(dateTimeInputValue(hospitation.endsAt))}" />
-                </div>
-                <div class="format-editor-field format-editor-field--wide">
                   <label for="hospitation-location">Ort</label>
                   <input id="hospitation-location" name="location" value="${escapeHtml(hospitation.location || "")}" placeholder="Einrichtung, Raum oder online" />
                 </div>
               </div>
             </section>
 
-            <section class="editor-section contact-editor-step" data-hospitation-editor-step="contact" aria-labelledby="hospitation-section-contact" hidden>
-              <div class="editor-section-head">
-                <h4 class="editor-section-title" id="hospitation-section-contact">Kontakt</h4>
-                <span class="contact-editor-step__meta">Optional</span>
-              </div>
-              <div class="format-editor-grid">
-                <div class="format-editor-field">
-                  <label for="hospitation-follow-up-owner">Follow-up-Owner</label>
-                  <div class="editor-select-shell" data-custom-select data-select-type="hospitation-follow-up-owner">
-                    <select class="editor-select" id="hospitation-follow-up-owner" name="followUpOwnerId">${buildOwnerSelectOptions(hospitation.followUpOwnerId || "")}</select>
-                  </div>
-                </div>
-                <div class="format-editor-field">
-                  <label for="hospitation-follow-up-due">Follow-up-Fälligkeit</label>
-                  <input id="hospitation-follow-up-due" name="followUpDueAt" type="date" value="${escapeHtml(dateInputValue(hospitation.followUpDueAt))}" />
-                </div>
-              </div>
-            </section>
-
             <section class="editor-section contact-editor-step" data-hospitation-editor-step="topics" aria-labelledby="hospitation-section-topics" hidden>
               <div class="editor-section-head">
-                <h4 class="editor-section-title" id="hospitation-section-topics">Themen und Notiz</h4>
+                <h4 class="editor-section-title" id="hospitation-section-topics">Themen</h4>
                 <span class="contact-editor-step__meta">Optional</span>
               </div>
-              <div class="format-editor-grid">
-                <div class="format-editor-field format-editor-field--wide">
-                  <label for="hospitation-goal">Ziel / Themen</label>
-                  <textarea id="hospitation-goal" name="goal" placeholder="Warum findet die Hospitation statt?">${escapeHtml(hospitation.goal || "")}</textarea>
-                </div>
-                <div class="format-editor-field format-editor-field--wide">
-                  <label for="hospitation-topics">Themenliste</label>
-                  <input id="hospitation-topics" name="topics" value="${escapeHtml(hospitationThemeTags(hospitation).join(", "))}" placeholder="z. B. Pflegekoordination, Entlassmanagement" />
-                </div>
-                <div class="format-editor-field format-editor-field--wide">
-                  <label for="hospitation-request-note">${isHospitationRequestThread(hospitation.requestNote) ? "Planungsverlauf" : "Planungsnotiz"}</label>
-                  ${isHospitationRequestThread(hospitation.requestNote) ? `
-                    <input type="hidden" name="requestNote" value="${escapeHtml(hospitation.requestNote || "")}" />
-                    <textarea id="hospitation-request-note" readonly>${escapeHtml(hospitationRequestEditorValue(hospitation))}</textarea>
-                  ` : `
-                    <textarea id="hospitation-request-note" name="requestNote" placeholder="Interner Kontext zum Termin">${escapeHtml(hospitation.requestNote || "")}</textarea>
-                  `}
-                </div>
+              <div class="hospitation-documentation-tab-stack">
+                <section class="detail-info-card">
+                  <div class="format-editor-field format-editor-field--wide">
+                    ${renderHospitationDocumentationTopicInputs(hospitation)}
+                  </div>
+                </section>
               </div>
             </section>
 
-            <section class="editor-section contact-editor-step" data-hospitation-editor-step="followup" aria-labelledby="hospitation-section-followup" hidden>
+            <section class="editor-section contact-editor-step" data-hospitation-editor-step="notes" aria-labelledby="hospitation-section-notes" hidden>
               <div class="editor-section-head">
-                <h4 class="editor-section-title" id="hospitation-section-followup">Follow-up</h4>
+                <h4 class="editor-section-title" id="hospitation-section-notes">Notiz</h4>
                 <span class="contact-editor-step__meta">Optional</span>
               </div>
-              <div class="format-editor-grid">
-                <div class="format-editor-field format-editor-field--wide">
-                  <label for="hospitation-documentation-summary">Ergebnisnotiz</label>
-                  <textarea id="hospitation-documentation-summary" name="documentationSummary" placeholder="Was wurde beobachtet oder besprochen?">${escapeHtml(hospitation.documentationSummary || "")}</textarea>
-                </div>
-                <div class="format-editor-field format-editor-field--wide">
-                  <label for="hospitation-documentation-outcome">Auswertung / Ergebnis</label>
-                  <textarea id="hospitation-documentation-outcome" name="documentationOutcome" placeholder="Ergebnis, offene Punkte oder Einschätzung">${escapeHtml(hospitation.documentationOutcome || "")}</textarea>
-                </div>
-                <div class="format-editor-field format-editor-field--wide">
-                  <label for="hospitation-follow-up-note">Nächster Schritt</label>
-                  <textarea id="hospitation-follow-up-note" name="followUpNote" placeholder="Nächster Schritt">${escapeHtml(hospitation.followUpNote || "")}</textarea>
-                </div>
-              </div>
+              ${renderHospitationEditorNoteDraft(hospitation)}
             </section>
 
             <div class="editor-footer">
@@ -23384,30 +23602,50 @@
           };
         }
         const contactId = String(data.get("contactId") || "").trim();
+        const contactName = String(data.get("contactName") || "").trim();
+        const organizationId = String(data.get("organizationId") || "").trim();
+        const organizationName = String(data.get("organizationName") || "").trim();
+        const current = editingHospitationId
+          ? hospitations.find((item) => item.id === editingHospitationId) || {}
+          : {};
         return {
-          slotId: String(data.get("slotId") || "").trim(),
-          contactId,
-          contactName: contactId ? "" : String(data.get("contactName") || "").trim(),
-          organizationId: String(data.get("organizationId") || "").trim(),
+          contact: contactId
+            ? { mode: "existing", id: contactId }
+            : { mode: "create", name: contactName },
+          organization: organizationId
+            ? { mode: "existing", id: organizationId }
+            : organizationName
+              ? { mode: "create", name: organizationName }
+              : null,
           status: String(data.get("status") || "Angefragt").trim(),
-          startsAt: dateTimeInputToIso(data.get("startsAt")),
-          endsAt: dateTimeInputToIso(data.get("endsAt")),
+          scheduledOn: String(data.get("scheduledOn") || "").trim(),
           location: String(data.get("location") || "").trim(),
           ownerId: String(data.get("ownerId") || "").trim(),
-          goal: String(data.get("goal") || "").trim(),
-          topics: String(data.get("topics") || "").trim(),
-          requestNote: String(data.get("requestNote") || "").trim(),
-          documentationSummary: String(data.get("documentationSummary") || "").trim(),
-          documentationOutcome: String(data.get("documentationOutcome") || "").trim(),
-          followUpNote: String(data.get("followUpNote") || "").trim(),
-          followUpOwnerId: String(data.get("followUpOwnerId") || "").trim(),
-          followUpDueAt: String(data.get("followUpDueAt") || "").trim()
+          topics: hospitationDocumentationTopicsFromForm(data),
+          requestNote: hospitationEditorRequestNotePayload(data, current)
         };
       }
 
       function replaceHospitation(updated) {
         if (!updated) return;
         hospitations = [updated, ...hospitations.filter((item) => item.id !== updated.id)];
+      }
+
+      function applyResolvedHospitationEntities(saved = {}) {
+        if (saved.resolvedOrganization?.id) {
+          organizations = mergeOrganizations(
+            [saved.resolvedOrganization, ...organizations],
+            deriveOrganizationsFromContacts(contacts)
+          );
+        }
+        if (saved.resolvedContact?.id) {
+          const resolvedContact = sanitizeContact(saved.resolvedContact, contacts.length);
+          contacts = [resolvedContact, ...contacts.filter((contact) => contact.id !== resolvedContact.id)];
+        }
+        const hospitation = { ...saved };
+        delete hospitation.resolvedContact;
+        delete hospitation.resolvedOrganization;
+        return hospitation;
       }
 
       function replaceHospitationSlot(updated) {
@@ -23454,7 +23692,9 @@
               valuesNode.innerHTML = normalized.map((tag) => `<input class="hospitation-documentation-theme-hidden" type="hidden" name="${escapeHtml(fieldName)}" data-documentation-theme-value value="${escapeHtml(tag)}" />`).join("");
             }
             editor.querySelectorAll("[data-documentation-theme-toggle]").forEach((button) => {
-              button.classList.toggle("is-active", normalized.includes(button.dataset.documentationThemeToggle));
+              const isActive = normalized.includes(button.dataset.documentationThemeToggle);
+              button.classList.toggle("is-active", isActive);
+              button.setAttribute("aria-pressed", String(isActive));
             });
             if (fieldName === "documentationTopic") {
               const contextTopics = form.querySelector("[data-documentation-context-topics]");
@@ -24003,11 +24243,148 @@
         return !["slot", "documentation"].includes(hospitationEditorMode);
       }
 
+      function setHospitationEntityComboboxOpen(combobox, open) {
+        if (!combobox) return;
+        const panel = combobox.querySelector("[data-hospitation-entity-panel]");
+        const input = combobox.querySelector("[data-hospitation-entity-input]");
+        const toggle = combobox.querySelector("[data-hospitation-entity-toggle]");
+        combobox.classList.toggle("is-open", Boolean(open));
+        if (panel) panel.hidden = !open;
+        input?.setAttribute("aria-expanded", String(Boolean(open)));
+        toggle?.setAttribute("aria-expanded", String(Boolean(open)));
+        if (!open) {
+          input?.removeAttribute("aria-activedescendant");
+          panel?.querySelectorAll('[role="option"].is-keyboard-active').forEach((option) => option.classList.remove("is-keyboard-active"));
+        }
+      }
+
+      function closeHospitationEntityComboboxes(except = null) {
+        document.querySelectorAll("[data-hospitation-entity-combobox].is-open").forEach((combobox) => {
+          if (combobox !== except) setHospitationEntityComboboxOpen(combobox, false);
+        });
+      }
+
+      function renderHospitationEntityComboboxPanel(combobox) {
+        if (!combobox) return;
+        const kind = combobox.dataset.hospitationEntityCombobox || "contact";
+        const input = combobox.querySelector("[data-hospitation-entity-input]");
+        const idInput = combobox.querySelector("[data-hospitation-entity-id]");
+        const panel = combobox.querySelector("[data-hospitation-entity-panel]");
+        if (!panel) return;
+        panel.innerHTML = kind === "organization"
+          ? hospitationOrganizationComboboxOptions(input?.value || "", idInput?.value || "")
+          : hospitationContactComboboxOptions(input?.value || "", idInput?.value || "");
+      }
+
+      function moveHospitationEntityComboboxActiveOption(combobox, direction = 1) {
+        const input = combobox?.querySelector("[data-hospitation-entity-input]");
+        const options = [...combobox?.querySelectorAll('[data-hospitation-entity-panel] [role="option"]') || []];
+        if (!options.length) return null;
+        const currentIndex = options.findIndex((option) => option.classList.contains("is-keyboard-active"));
+        const nextIndex = currentIndex < 0
+          ? direction < 0 ? options.length - 1 : 0
+          : (currentIndex + direction + options.length) % options.length;
+        options.forEach((option, index) => option.classList.toggle("is-keyboard-active", index === nextIndex));
+        input?.setAttribute("aria-activedescendant", options[nextIndex].id);
+        options[nextIndex].scrollIntoView({ block: "nearest" });
+        return options[nextIndex];
+      }
+
+      function bindHospitationEntityComboboxes(root = document) {
+        const organizationCombobox = root.querySelector('[data-hospitation-entity-combobox="organization"]');
+        const organizationInput = organizationCombobox?.querySelector("[data-hospitation-entity-input]");
+        const organizationIdInput = organizationCombobox?.querySelector("[data-hospitation-entity-id]");
+        const contactCombobox = root.querySelector('[data-hospitation-entity-combobox="contact"]');
+        const contactInput = contactCombobox?.querySelector("[data-hospitation-entity-input]");
+        const contactIdInput = contactCombobox?.querySelector("[data-hospitation-entity-id]");
+        root.querySelectorAll("[data-hospitation-entity-combobox]").forEach((combobox) => {
+          const kind = combobox.dataset.hospitationEntityCombobox || "contact";
+          const input = combobox.querySelector("[data-hospitation-entity-input]");
+          const idInput = combobox.querySelector("[data-hospitation-entity-id]");
+          const toggle = combobox.querySelector("[data-hospitation-entity-toggle]");
+          const panel = combobox.querySelector("[data-hospitation-entity-panel]");
+          const open = () => {
+            closeHospitationEntityComboboxes(combobox);
+            renderHospitationEntityComboboxPanel(combobox);
+            setHospitationEntityComboboxOpen(combobox, true);
+          };
+          input?.addEventListener("focus", open);
+          input?.addEventListener("input", () => {
+            input.setCustomValidity("");
+            if (idInput) idInput.value = "";
+            if (kind === "organization") {
+              const selectedContact = contacts.find((contact) => contact.id === contactIdInput?.value);
+              const sameOrganization = selectedContact && (
+                (organizationIdInput?.value && String(selectedContact.organizationId || "") === organizationIdInput.value)
+                || normalizeOrganizationName(selectedContact.organization) === normalizeOrganizationName(input.value)
+              );
+              if (contactIdInput?.value && !sameOrganization) {
+                contactIdInput.value = "";
+                if (contactInput) contactInput.value = "";
+              }
+            }
+            open();
+          });
+          input?.addEventListener("blur", () => {
+            window.setTimeout(() => {
+              resolveHospitationEntityComboboxSelections(root);
+              renderHospitationEntityComboboxPanel(combobox);
+            }, 0);
+          });
+          toggle?.addEventListener("click", (event) => {
+            event.preventDefault();
+            const nextOpen = !combobox.classList.contains("is-open");
+            if (nextOpen) open();
+            else setHospitationEntityComboboxOpen(combobox, false);
+            input?.focus({ preventScroll: true });
+          });
+          panel?.addEventListener("click", (event) => {
+            const option = event.target.closest("[data-hospitation-entity-option]");
+            const create = event.target.closest("[data-hospitation-entity-create]");
+            if (!option && !create) return;
+            input?.setCustomValidity("");
+            if (create) {
+              if (input) input.value = create.dataset.hospitationEntityCreate || "";
+              if (idInput) idInput.value = "";
+            } else {
+              if (input) input.value = option.dataset.hospitationEntityLabel || "";
+              if (idInput) idInput.value = option.dataset.hospitationEntityOption || "";
+              if (kind === "contact" && organizationCombobox) {
+                if (organizationInput) organizationInput.value = option.dataset.hospitationEntityOrganizationName || "";
+                if (organizationIdInput) organizationIdInput.value = option.dataset.hospitationEntityOrganizationId || "";
+              }
+            }
+            setHospitationEntityComboboxOpen(combobox, false);
+            input?.focus({ preventScroll: true });
+          });
+          input?.addEventListener("keydown", (event) => {
+            if (["ArrowDown", "ArrowUp"].includes(event.key)) {
+              event.preventDefault();
+              if (!combobox.classList.contains("is-open")) open();
+              moveHospitationEntityComboboxActiveOption(combobox, event.key === "ArrowDown" ? 1 : -1);
+              return;
+            }
+            if (event.key === "Enter" && combobox.classList.contains("is-open")) {
+              const activeOption = panel?.querySelector('[role="option"].is-keyboard-active');
+              if (!activeOption) return;
+              event.preventDefault();
+              activeOption.click();
+              return;
+            }
+            if (event.key === "Escape" && combobox.classList.contains("is-open")) {
+              event.preventDefault();
+              event.stopPropagation();
+              setHospitationEntityComboboxOpen(combobox, false);
+            }
+          });
+        });
+      }
+
       function hospitationEditorStepMarkup() {
         const activeIndex = Math.max(0, hospitationEditorSteps.findIndex((step) => step.id === hospitationEditorCurrentStep));
         return hospitationEditorSteps
           .map((step, index) => `
-            <div class="import-step ${index <= activeIndex ? "is-active" : ""}">
+            <div class="import-step ${index <= activeIndex ? "is-active" : ""}" ${index === activeIndex ? 'aria-current="step"' : ""}>
               <span>${index + 1}</span>
               <strong>${step.label}</strong>
             </div>
@@ -24015,7 +24392,7 @@
           .join("");
       }
 
-      function renderHospitationEditorStep() {
+      function renderHospitationEditorStep(options = {}) {
         if (!hospitationEditorUsesWizard()) return;
         const form = document.getElementById("hospitation-editor-form");
         const stepsNode = document.getElementById("hospitation-editor-steps");
@@ -24025,19 +24402,29 @@
         if (!form || !stepsNode) return;
         const activeIndex = Math.max(0, hospitationEditorSteps.findIndex((step) => step.id === hospitationEditorCurrentStep));
         stepsNode.innerHTML = hospitationEditorStepMarkup();
+        let activeSection = null;
         form.querySelectorAll("[data-hospitation-editor-step]").forEach((section) => {
-          section.hidden = section.dataset.hospitationEditorStep !== hospitationEditorCurrentStep;
+          const active = section.dataset.hospitationEditorStep === hospitationEditorCurrentStep;
+          section.hidden = !active;
+          if (active) activeSection = section;
         });
         if (back) back.hidden = activeIndex === 0;
         if (next) next.hidden = activeIndex === hospitationEditorSteps.length - 1;
-        if (save) save.hidden = false;
+        if (save) save.hidden = activeIndex !== hospitationEditorSteps.length - 1;
         refreshCustomSelects(form);
+        if (options.focusHeading && activeSection) {
+          const heading = activeSection.querySelector(".editor-section-title");
+          if (heading) {
+            heading.tabIndex = -1;
+            window.requestAnimationFrame(() => heading.focus({ preventScroll: true }));
+          }
+        }
       }
 
       function setHospitationEditorStep(step) {
         if (!hospitationEditorSteps.some((item) => item.id === step)) return;
         hospitationEditorCurrentStep = step;
-        renderHospitationEditorStep();
+        renderHospitationEditorStep({ focusHeading: true });
       }
 
       function moveHospitationEditorStep(direction) {
@@ -24046,10 +24433,39 @@
         setHospitationEditorStep(hospitationEditorSteps[nextIndex].id);
       }
 
+      function validateHospitationEditorStep(form, step = hospitationEditorCurrentStep, options = {}) {
+        if (!form || !hospitationEditorUsesWizard()) return true;
+        if (step === "quick") {
+          const resolution = resolveHospitationEntityComboboxSelections(form);
+          const contactInput = form.querySelector("#hospitation-contact");
+          const organizationInput = form.querySelector("#hospitation-organization");
+          if (!String(contactInput?.value || "").trim()) {
+            contactInput?.setCustomValidity("Bitte wähle einen Kontakt aus oder gib einen neuen Kontaktnamen ein.");
+          }
+          const valid = resolution.valid
+            && Boolean(contactInput?.checkValidity())
+            && Boolean(organizationInput?.checkValidity());
+          if (!valid && options.report !== false) {
+            if (!contactInput?.checkValidity()) contactInput?.reportValidity();
+            else organizationInput?.reportValidity();
+          }
+          return valid;
+        }
+        if (step === "appointment") {
+          const dateInput = form.querySelector("#hospitation-date");
+          dateInput?.setCustomValidity(dateInput.value ? "" : "Bitte wähle den Tag des Hospitationstermins aus.");
+          const valid = Boolean(dateInput?.checkValidity());
+          if (!valid && options.report !== false) dateInput?.reportValidity();
+          return valid;
+        }
+        return true;
+      }
+
       function bindHospitationEditor() {
         const form = document.getElementById("hospitation-editor-form");
         refreshCustomSelects(form || document);
         renderHospitationEditorStep();
+        bindHospitationEntityComboboxes(form || document);
         bindHospitationScoreSliders(form || document);
         bindHospitationDocumentationThemes(form || document);
         bindHospitationDocumentationScoreRows(form || document);
@@ -24068,23 +24484,57 @@
         }
         document.getElementById("hospitation-editor-cancel")?.addEventListener("click", closeHospitationEditor);
         document.getElementById("hospitation-editor-back")?.addEventListener("click", () => moveHospitationEditorStep(-1));
-        document.getElementById("hospitation-editor-next")?.addEventListener("click", () => moveHospitationEditorStep(1));
+        document.getElementById("hospitation-editor-next")?.addEventListener("click", () => {
+          if (!validateHospitationEditorStep(form, hospitationEditorCurrentStep)) return;
+          moveHospitationEditorStep(1);
+        });
         form?.addEventListener("submit", async (event) => {
           event.preventDefault();
           if (!canEditContacts()) {
             showPermissionDenied(viewerCreateDisabledMessage("das Pflegen von Hospitationen"));
             return;
           }
+          if (hospitationEditorUsesWizard()) {
+            const activeIndex = hospitationEditorSteps.findIndex((step) => step.id === hospitationEditorCurrentStep);
+            if (!validateHospitationEditorStep(form, hospitationEditorCurrentStep)) return;
+            if (activeIndex < hospitationEditorSteps.length - 1) {
+              moveHospitationEditorStep(1);
+              return;
+            }
+            if (!validateHospitationEditorStep(form, "quick", { report: false })) {
+              setHospitationEditorStep("quick");
+              window.setTimeout(() => validateHospitationEditorStep(form, "quick"), 0);
+              return;
+            }
+            if (!validateHospitationEditorStep(form, "appointment", { report: false })) {
+              setHospitationEditorStep("appointment");
+              window.setTimeout(() => validateHospitationEditorStep(form, "appointment"), 0);
+              return;
+            }
+          }
           const payload = hospitationEditorPayload(form);
           if (hospitationEditorMode === "slot" && !payload.startsAt) {
             window.alert("Bitte trage einen Beginn für den Hospitationstermin ein.");
             return;
           }
-          if (hospitationEditorMode !== "slot" && hospitationEditorMode !== "documentation" && !payload.slotId && !payload.contactId && !payload.contactName && !payload.organizationId) {
-            window.alert("Bitte wähle Kontakt, Organisation oder Termin-Slot aus oder trage einen Kontakt als Freitext ein.");
+          if (hospitationEditorMode !== "slot" && hospitationEditorMode !== "documentation" && !String(payload.contact?.id || payload.contact?.name || "").trim()) {
+            setHospitationEditorStep("quick");
+            window.alert("Bitte wähle einen Kontakt aus oder gib einen neuen Kontaktnamen ein.");
+            document.getElementById("hospitation-contact")?.focus({ preventScroll: true });
             return;
           }
+          if (hospitationEditorMode !== "slot" && hospitationEditorMode !== "documentation" && !payload.scheduledOn) {
+            setHospitationEditorStep("appointment");
+            window.alert("Bitte wähle den Tag des Hospitationstermins aus.");
+            document.getElementById("hospitation-date")?.focus({ preventScroll: true });
+            return;
+          }
+          const saveButton = document.getElementById("hospitation-editor-save");
           try {
+            if (saveButton) {
+              saveButton.disabled = true;
+              saveButton.textContent = "Wird gespeichert…";
+            }
             if (hospitationEditorMode === "slot") {
               const saved = editingHospitationSlotId
                 ? await window.dataService.updateHospitationSlot(editingHospitationSlotId, payload)
@@ -24097,7 +24547,7 @@
               const saved = editingHospitationId
                 ? await window.dataService.updateHospitation(editingHospitationId, payload)
                 : await window.dataService.createHospitation(payload);
-              replaceHospitation(saved);
+              replaceHospitation(applyResolvedHospitationEntities(saved));
               setStorageStatus("Hospitation gespeichert");
             }
             closeHospitationEditor({ rerender: false });
@@ -24105,7 +24555,12 @@
             updateView();
           } catch (error) {
             console.error("Hospitation konnte nicht gespeichert werden.", error);
-            window.alert("Die Hospitation konnte nicht gespeichert werden. Bitte prüfe Anmeldung, Rolle und Verbindung.");
+            window.alert(error?.message || "Die Hospitation konnte nicht gespeichert werden. Bitte prüfe Anmeldung, Rolle und Verbindung.");
+          } finally {
+            if (saveButton?.isConnected) {
+              saveButton.disabled = false;
+              saveButton.textContent = "Termin speichern";
+            }
           }
         });
       }
@@ -24125,7 +24580,7 @@
         hospitationDocumentationOwnerPickerOpen = false;
         window.clearTimeout(hospitationDocumentationAutosaveTimer);
         const titles = {
-          request: ["Neuen Termin anlegen", "Nur Kontakt, Organisation oder Freitext ist Pflicht. Details kannst du später ergänzen."],
+          request: ["Neuen Termin anlegen", "Kontakt und Tag erfassen; neue Kontakte und Organisationen werden beim Speichern automatisch angelegt."],
           edit: ["Termin bearbeiten", "Basisdaten zuerst, Details können laufend ergänzt werden."],
           documentation: ["Hospitation dokumentieren", "Kontext, Beobachtungen, Reflexion und nächste Nutzung in einem klaren Pfad erfassen."],
           slot: [record?.id ? "Terminangebot bearbeiten" : "Termin-Slot anlegen", "Internen verfügbaren Termin pflegen."]
@@ -24159,14 +24614,13 @@
           const focusId = mode === "slot"
             ? "hospitation-slot-start"
             : "hospitation-contact";
-          const focusTarget = document.getElementById(focusId);
-          const customSelect = customSelectInstances.get(focusTarget);
-          (customSelect?.trigger || focusTarget)?.focus({ preventScroll: true });
+          document.getElementById(focusId)?.focus({ preventScroll: true });
         }, 0);
       }
 
       function closeHospitationEditor({ rerender = true } = {}) {
         closeAllCustomSelects();
+        closeHospitationEntityComboboxes();
         hospitationEditorDrawer?.classList.remove("is-open");
         hospitationEditorDrawer?.classList.remove("is-documentation-mode");
         if (hospitationEditorDrawer) delete hospitationEditorDrawer.dataset.hospitationEditorMode;
@@ -24184,10 +24638,17 @@
       }
 
       function hospitationProfileTime(item = {}, field = "startsAt") {
+        const scheduledOn = item.scheduledOn || item.scheduled_on || "";
+        if (scheduledOn) {
+          const scheduledDate = parseDateValue(scheduledOn);
+          if (Number.isNaN(scheduledDate.getTime())) return null;
+          if (field === "endsAt") scheduledDate.setHours(23, 59, 59, 999);
+          return scheduledDate.getTime();
+        }
         const value = field === "endsAt"
           ? item.endsAt || item.ends_at || ""
           : item.startsAt || item.starts_at || "";
-        const time = new Date(value).getTime();
+        const time = parseDateValue(value).getTime();
         return Number.isFinite(time) ? time : null;
       }
 
@@ -24245,7 +24706,7 @@
         return `
           <article class="hospitation-profile-history__item ${phase === "archived" ? "hospitation-profile-history__item--archived" : ""}" data-hospitation-profile-history-id="${escapeHtml(item.id || "")}" data-hospitation-profile-phase="${escapeHtml(phase)}">
             <div class="hospitation-profile-history__top">
-              <time class="hospitation-profile-history__date" datetime="${escapeHtml(item.startsAt || item.starts_at || "")}">${escapeHtml(hospitationDateOnlyLabel(item))}</time>
+              <time class="hospitation-profile-history__date" datetime="${escapeHtml(hospitationDateSourceValue(item))}">${escapeHtml(hospitationDateOnlyLabel(item))}</time>
               ${hospitationStatusBadgeMarkup(hospitationProfileStatusLabel(item, now))}
             </div>
             <div class="hospitation-profile-history__context">
@@ -29912,9 +30373,18 @@
         return "";
       }
 
+      function parseDateValue(value) {
+        const dateOnlyMatch = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(value || "").trim());
+        if (dateOnlyMatch) {
+          const [, year, month, day] = dateOnlyMatch;
+          return new Date(Number(year), Number(month) - 1, Number(day));
+        }
+        return new Date(value);
+      }
+
       function formatDateLabel(value) {
         if (!value) return "";
-        const parsed = new Date(value);
+        const parsed = parseDateValue(value);
         if (Number.isNaN(parsed.getTime())) return String(value);
         return new Intl.DateTimeFormat("de-DE", {
           day: "2-digit",
@@ -33433,7 +33903,7 @@
 
       function managedDialogHasOpenTransientControl(dialog) {
         return Boolean(dialog.querySelector(
-          "[data-custom-select].is-open, [data-organization-combobox].is-open"
+          "[data-custom-select].is-open, [data-organization-combobox].is-open, [data-hospitation-entity-combobox].is-open"
         ));
       }
 
@@ -37129,6 +37599,10 @@
             setOrganizationComboboxOpen(false);
             return;
           }
+          if (document.querySelector("[data-hospitation-entity-combobox].is-open")) {
+            closeHospitationEntityComboboxes();
+            return;
+          }
           if (notificationPopover && !notificationPopover.hidden) {
             closeNotificationPopover();
             return;
@@ -37168,6 +37642,7 @@
         ) || Boolean(clickTarget?.closest("[data-custom-select]"));
         if (!clickedInsideCustomSelect) closeAllCustomSelects();
         if (!clickTarget?.closest("[data-organization-combobox]")) setOrganizationComboboxOpen(false);
+        if (!clickTarget?.closest("[data-hospitation-entity-combobox]")) closeHospitationEntityComboboxes();
       });
 
       window.addEventListener("resize", () => {

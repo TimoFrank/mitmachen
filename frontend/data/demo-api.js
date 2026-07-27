@@ -183,6 +183,129 @@
     return `${prefix}-local-${String(idCounter).padStart(3, "0")}`;
   }
 
+  function normalizedEntityName(value = "") {
+    return String(value || "").trim().replace(/\s+/g, " ").toLocaleLowerCase("de-DE");
+  }
+
+  function demoReferenceError(message, status = 400) {
+    return Object.assign(new Error(message), { status });
+  }
+
+  function normalizeDemoHospitationDay(value) {
+    const raw = String(value || "").trim();
+    const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(raw);
+    if (!match) throw demoReferenceError("Der Hospitationstag muss im Format YYYY-MM-DD angegeben werden.");
+    const [, year, month, day] = match.map(Number);
+    const parsed = new Date(Date.UTC(year, month - 1, day));
+    if (
+      parsed.getUTCFullYear() !== year
+      || parsed.getUTCMonth() !== month - 1
+      || parsed.getUTCDate() !== day
+    ) {
+      throw demoReferenceError("Der Hospitationstag ist ungültig.");
+    }
+    return raw;
+  }
+
+  function normalizeDemoEntityReference(reference, label) {
+    if (reference === null || typeof reference === "undefined") return null;
+    if (!reference || typeof reference !== "object" || Array.isArray(reference)) {
+      throw demoReferenceError(`${label} ist ungültig.`);
+    }
+    const mode = String(reference.mode || "").trim();
+    if (mode === "existing") {
+      const id = String(reference.id || "").trim();
+      if (!id) throw demoReferenceError(`${label} benötigt eine ID.`);
+      return { mode, id, name: "" };
+    }
+    if (mode === "create") {
+      const name = String(reference.name || "").trim().replace(/\s+/g, " ");
+      if (!name) throw demoReferenceError(`${label} benötigt einen Namen.`);
+      return { mode, id: "", name };
+    }
+    throw demoReferenceError(`${label} benötigt den Modus "existing" oder "create".`);
+  }
+
+  function resolveDemoHospitationEntities(payload = {}, current = {}) {
+    const organizationReference = normalizeDemoEntityReference(payload.organization, "Organisation");
+    const contactReference = normalizeDemoEntityReference(payload.contact, "Kontakt");
+    let organization = null;
+    if (organizationReference?.mode === "existing") {
+      organization = state.organizations.find((item) => item.id === organizationReference.id) || null;
+      if (!organization) throw demoReferenceError("Organisation wurde nicht gefunden.", 404);
+    } else if (organizationReference?.mode === "create") {
+      organization = state.organizations.find((item) =>
+        !["archived", "Archiviert"].includes(item.status)
+        && normalizedEntityName(item.name) === normalizedEntityName(organizationReference.name)
+      ) || null;
+      if (!organization) {
+        organization = {
+          id: nextId("demo-organization"),
+          name: organizationReference.name,
+          normalizedName: normalizedEntityName(organizationReference.name),
+          sector: payload.sector || "",
+          source: "Hospitationstermin",
+          status: "active",
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString()
+        };
+        state.organizations.unshift(organization);
+      }
+    }
+    let contact = contactReference
+      ? null
+      : state.contacts.find((item) => item.id === (current.contactId || current.contact_id)) || null;
+    if (contactReference?.mode === "existing") {
+      contact = state.contacts.find((item) => item.id === contactReference.id) || null;
+      if (!contact) throw demoReferenceError("Kontakt wurde nicht gefunden.", 404);
+    } else if (contactReference?.mode === "create") {
+      const sameNameContacts = state.contacts.filter((item) =>
+        !["archived", "Archiviert"].includes(item.status)
+        && normalizedEntityName(item.displayName || item.name) === normalizedEntityName(contactReference.name)
+      );
+      const matchingContacts = organization?.id
+        ? sameNameContacts.filter((item) => String(item.organizationId || item.organization_id || "") === organization.id)
+        : organization?.name
+          ? sameNameContacts.filter((item) => normalizedEntityName(item.organization) === normalizedEntityName(organization.name))
+          : sameNameContacts;
+      if (matchingContacts.length > 1) {
+        throw demoReferenceError("Mehrere bestehende Kontakte haben diesen Namen. Bitte wähle den passenden Kontakt aus.");
+      }
+      contact = matchingContacts[0] || null;
+      if (!contact) {
+        contact = {
+          id: nextId("demo-contact"),
+          name: contactReference.name,
+          displayName: contactReference.name,
+          organizationId: organization?.id || "",
+          organization: organization?.name || "",
+          category: payload.sector || "",
+          priority: "Mittel",
+          ownerId: payload.ownerId || state.currentProfileId,
+          ownerIds: [payload.ownerId || state.currentProfileId].filter(Boolean),
+          sources: ["Hospitationstermin"],
+          status: "active",
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString()
+        };
+        state.contacts.unshift(contact);
+      }
+    }
+    const contactOrganizationId = String(contact?.organizationId || contact?.organization_id || "").trim();
+    if (organization?.id && contactOrganizationId && contactOrganizationId !== organization.id) {
+      throw demoReferenceError("Der ausgewählte Kontakt gehört zu einer anderen Organisation.");
+    }
+    if (!organization && contactOrganizationId) {
+      organization = state.organizations.find((item) => item.id === contactOrganizationId) || null;
+    }
+    if (!organization && contact?.organization) {
+      organization = state.organizations.find((item) =>
+        normalizedEntityName(item.name) === normalizedEntityName(contact.organization)
+      ) || null;
+    }
+    return { contact, organization };
+  }
+
   function json(payload, status = 200, headers = {}) {
     return new Response(JSON.stringify(clone(payload)), {
       status,
@@ -671,6 +794,86 @@
       const id = decodeURIComponent(attachmentMatch[1]);
       state.contactNoteAttachments = state.contactNoteAttachments.filter((item) => item.id !== id);
       return json({ ok: true });
+    }
+
+    const nestedHospitationMatch = path.match(/^\/api\/hospitations(?:\/([^/]+))?$/);
+    if (
+      nestedHospitationMatch
+      && (
+        (method === "POST" && (Object.hasOwn(body, "contact") || Object.hasOwn(body, "organization")))
+        || (method === "PATCH" && (Object.hasOwn(body, "contact") || Object.hasOwn(body, "organization")))
+      )
+    ) {
+      const previousOrganizations = state.organizations;
+      const previousContacts = state.contacts;
+      const previousHospitations = state.hospitations;
+      state.organizations = [...state.organizations];
+      state.contacts = [...state.contacts];
+      state.hospitations = [...state.hospitations];
+      try {
+        let current = {};
+        let index = -1;
+        if (method === "POST") {
+          if (!body.contact) throw demoReferenceError("Für einen neuen Hospitationstermin ist ein Kontakt erforderlich.");
+          body.scheduledOn = normalizeDemoHospitationDay(body.scheduledOn || body.scheduled_on);
+        } else {
+          const id = decodeURIComponent(nestedHospitationMatch[1] || "");
+          index = state.hospitations.findIndex((item) => item.id === id);
+          if (index < 0) throw demoReferenceError("Synthetischer Datensatz wurde nicht gefunden.", 404);
+          current = state.hospitations[index];
+          if (Object.hasOwn(body, "scheduledOn") || Object.hasOwn(body, "scheduled_on")) {
+            body.scheduledOn = normalizeDemoHospitationDay(body.scheduledOn || body.scheduled_on);
+          }
+        }
+        const resolution = resolveDemoHospitationEntities(body, current);
+        const now = new Date().toISOString();
+        const normalizedBody = { ...body };
+        delete normalizedBody.contact;
+        delete normalizedBody.organization;
+        delete normalizedBody.scheduled_on;
+        if (body.contact) {
+          normalizedBody.contactId = resolution.contact?.id || "";
+          normalizedBody.contactName = resolution.contact?.name || resolution.contact?.displayName || "";
+        }
+        if (body.organization || body.contact) {
+          normalizedBody.organizationId = resolution.organization?.id || resolution.contact?.organizationId || "";
+          normalizedBody.organizationName = resolution.organization?.name || resolution.contact?.organization || "";
+        }
+        if (method === "POST") {
+          const created = {
+            ...normalizedBody,
+            id: normalizedBody.id || nextId("demo-hospitation"),
+            createdAt: normalizedBody.createdAt || now,
+            updatedAt: now
+          };
+          state.hospitations.unshift(created);
+          addDemoActivity({
+            eventKey: "hospitation.created",
+            categoryKey: "hospitation",
+            actionKey: "create",
+            objectType: "hospitation",
+            objectId: created.id,
+            contactId: created.contactId,
+            title: "Synthetischen Hospitationstermin angelegt"
+          });
+          return json({
+            ...created,
+            resolvedContact: body.contact ? projectContactForCurrentProfile(resolution.contact) : null,
+            resolvedOrganization: resolution.organization
+          }, 201);
+        }
+        state.hospitations[index] = { ...state.hospitations[index], ...normalizedBody, updatedAt: now };
+        return json({
+          ...state.hospitations[index],
+          resolvedContact: body.contact ? projectContactForCurrentProfile(resolution.contact) : null,
+          resolvedOrganization: resolution.organization
+        });
+      } catch (caughtError) {
+        state.organizations = previousOrganizations;
+        state.contacts = previousContacts;
+        state.hospitations = previousHospitations;
+        return error(caughtError?.message || "Hospitation konnte nicht gespeichert werden.", caughtError?.status || 400);
+      }
     }
 
     const createResource = {

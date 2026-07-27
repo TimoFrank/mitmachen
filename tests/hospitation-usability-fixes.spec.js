@@ -104,18 +104,129 @@ test.describe("Hospitations-Usability-Fixes", () => {
     await expect.poll(() => matrix.evaluate((node) => node.scrollLeft)).toBeGreaterThan(0);
   });
 
-  test("Termineditor richtet alle fünf Schritte in einer Zeile aus", async ({ page }) => {
+  test("Termineditor richtet alle vier Schritte in einer Zeile aus", async ({ page }, testInfo) => {
     await openDemo(page, "#hospitations");
     await page.getByRole("button", { name: "+ Neuer Termin" }).click();
     const stepper = page.locator("#hospitation-editor-steps");
     await expect(stepper).toBeVisible();
-    await expect(page.locator('[data-select-type="hospitation-contact"] .custom-select-trigger')).toBeFocused();
+    await expect(stepper.locator(".import-step")).toHaveCount(4);
+    await expect(stepper.locator(".import-step").nth(0)).toContainText("Grundlagen");
+    await expect(stepper.locator(".import-step").nth(3)).toContainText("Notiz");
     const geometry = await stepper.evaluate((node) => ({
       columns: getComputedStyle(node).gridTemplateColumns.split(" ").filter(Boolean).length,
       tops: [...node.children].map((child) => Math.round(child.getBoundingClientRect().top))
     }));
-    expect(geometry.columns).toBe(5);
+    if (!testInfo.project.name.includes("mobile")) expect(geometry.columns).toBe(4);
     expect(new Set(geometry.tops).size).toBe(1);
+  });
+
+  test("neuer Termin legt Kontakt und Organisation an und speichert nur Drawer-Felder", async ({ page }) => {
+    await openDemo(page, "#hospitations");
+    await page.getByRole("button", { name: "+ Neuer Termin" }).click();
+    const drawer = page.locator("#hospitation-editor-drawer");
+
+    await expect(drawer.locator("#hospitation-contact-name")).toHaveCount(0);
+    await expect(drawer.getByRole("button", { name: "Termin speichern" })).toBeHidden();
+    await drawer.locator("#hospitation-contact").fill("Ada Pflege");
+    await expect(drawer.locator('[data-hospitation-entity-create="Ada Pflege"]')).toBeVisible();
+    await drawer.locator("#hospitation-organization").fill("Pflegezentrum Morgenrot");
+    await expect(drawer.locator('[data-hospitation-entity-create="Pflegezentrum Morgenrot"]')).toBeVisible();
+
+    await drawer.locator("#hospitation-editor-next").click();
+    await drawer.locator("#hospitation-date").fill("2098-04-23");
+    await drawer.locator("#hospitation-location").fill("Station 3");
+    await drawer.locator("#hospitation-editor-next").click();
+    await drawer.locator("[data-documentation-theme-toggle]").first().click();
+    await drawer.locator("#hospitation-editor-next").click();
+    await expect(drawer.getByRole("button", { name: "Termin speichern" })).toBeVisible();
+    await drawer.locator("#hospitation-request-message").fill("Bitte den Übergabeprozess besonders beachten.");
+    await drawer.getByRole("button", { name: "Termin speichern" }).click();
+    await expect(drawer).not.toHaveClass(/is-open/);
+
+    const snapshot = await page.evaluate(() => window.VersorgungsCompassDemoApi.snapshot());
+    const contact = snapshot.contacts.find((item) => (item.displayName || item.name) === "Ada Pflege");
+    const organization = snapshot.organizations.find((item) => item.name === "Pflegezentrum Morgenrot");
+    const hospitation = snapshot.hospitations.find((item) => item.contactId === contact?.id && item.scheduledOn === "2098-04-23");
+    expect(contact).toBeTruthy();
+    expect(organization).toBeTruthy();
+    expect(contact.organizationId).toBe(organization.id);
+    expect(hospitation?.organizationId).toBe(organization.id);
+    expect(hospitation?.startsAt).toBeUndefined();
+    expect(hospitation?.endsAt).toBeUndefined();
+    expect(hospitation?.followUpOwnerId).toBeUndefined();
+    expect(hospitation?.followUpDueAt).toBeUndefined();
+    expect(Array.isArray(hospitation?.topics)).toBe(true);
+    expect(JSON.parse(hospitation.requestNote)).toMatchObject({
+      kind: "hospitation-request-thread-v1",
+      messages: [{ text: "Bitte den Übergabeprozess besonders beachten." }]
+    });
+
+    const row = page.locator(".hospitation-row", { hasText: "Ada Pflege" });
+    await expect(row).toBeVisible();
+    await expect(row.locator(".hospitation-contact-match-indicator")).toHaveCount(0);
+  });
+
+  test("exakt eingetippter bestehender Kontakt wird ohne Optionsklick wiederverwendet", async ({ page }) => {
+    await openDemo(page, "#hospitations");
+    const candidate = await page.evaluate(() => {
+      const snapshot = window.VersorgungsCompassDemoApi.snapshot();
+      const activeContacts = snapshot.contacts.filter((item) => !["archived", "Archiviert"].includes(item.status));
+      const contact = activeContacts.find((item) => {
+        const name = String(item.displayName || item.name || "").trim().toLocaleLowerCase("de-DE");
+        return name
+          && item.organizationId
+          && activeContacts.filter((other) =>
+            String(other.displayName || other.name || "").trim().toLocaleLowerCase("de-DE") === name
+          ).length === 1;
+      });
+      const organization = snapshot.organizations.find((item) => item.id === contact?.organizationId);
+      return contact && organization
+        ? { id: contact.id, name: contact.displayName || contact.name, organizationId: organization.id, organizationName: organization.name }
+        : null;
+    });
+    expect(candidate).toBeTruthy();
+    const contactsBefore = await page.evaluate(
+      ({ name }) => window.VersorgungsCompassDemoApi.snapshot().contacts.filter((item) => (item.displayName || item.name) === name).length,
+      candidate
+    );
+
+    await page.getByRole("button", { name: "+ Neuer Termin" }).click();
+    const drawer = page.locator("#hospitation-editor-drawer");
+    await drawer.locator("#hospitation-contact").fill(candidate.name);
+    await drawer.locator("#hospitation-editor-next").click();
+    await expect(drawer.locator('input[name="contactId"]')).toHaveValue(candidate.id);
+    await expect(drawer.locator("#hospitation-organization")).toHaveValue(candidate.organizationName);
+    await expect(drawer.locator('input[name="organizationId"]')).toHaveValue(candidate.organizationId);
+
+    await drawer.locator("#hospitation-date").fill("2098-04-24");
+    await drawer.locator("#hospitation-editor-next").click();
+    await drawer.locator("#hospitation-editor-next").click();
+    await drawer.getByRole("button", { name: "Termin speichern" }).click();
+    await expect(drawer).not.toHaveClass(/is-open/);
+
+    const result = await page.evaluate(({ id, name }) => {
+      const snapshot = window.VersorgungsCompassDemoApi.snapshot();
+      return {
+        matchingContacts: snapshot.contacts.filter((item) => (item.displayName || item.name) === name).length,
+        createdHospitation: snapshot.hospitations.find((item) => item.contactId === id && item.scheduledOn === "2098-04-24")
+      };
+    }, candidate);
+    expect(result.matchingContacts).toBe(contactsBefore);
+    expect(result.createdHospitation?.organizationId).toBe(candidate.organizationId);
+  });
+
+  test("Terminliste enthält nur echte Hospitationen und öffnet immer den Dokumentationsdrawer", async ({ page }) => {
+    await openDemo(page, "#hospitations");
+    const entryKeys = await page.locator("[data-open-hospitation-entry]").evaluateAll((nodes) =>
+      nodes.map((node) => node.getAttribute("data-open-hospitation-entry")).filter(Boolean)
+    );
+    expect(entryKeys.length).toBeGreaterThan(0);
+    expect(entryKeys.every((key) => key.startsWith("hospitation:"))).toBe(true);
+    await page.locator("[data-open-hospitation-entry]").first().click();
+    const drawer = page.locator("#hospitation-editor-drawer");
+    await expect(drawer).toHaveClass(/is-documentation-mode/);
+    await expect(drawer.locator("#hospitation-editor-title")).not.toHaveText("Terminangebot bearbeiten");
+    await expect(drawer.getByRole("tab", { name: "Kontext" })).toBeVisible();
   });
 
   test("Dashboard und Framework zählen dieselben dokumentierten Beobachtungen", async ({ page }) => {

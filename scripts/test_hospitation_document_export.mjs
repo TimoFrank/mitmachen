@@ -200,13 +200,19 @@ const observationPdf = exporter.createObservationPdf({
   appointments: fixture.hospitations,
   hospitations: fixture.hospitations
 });
+const dateOnlyAppointment = {
+  ...fixture.hospitations[0],
+  scheduledOn: "2026-07-18",
+  startsAt: "",
+  endsAt: ""
+};
 const appointmentSnapshot = {
   ...fixture,
   documentKind: "appointment",
   documentLabel: "Hospitations-Termin | Einzelansicht",
   title: "Hospitation | Dr. Ada Beispiel",
-  appointments: [fixture.hospitations[0]],
-  hospitations: [fixture.hospitations[0]]
+  appointments: [dateOnlyAppointment],
+  hospitations: [dateOnlyAppointment]
 };
 const appointmentDocx = exporter.createAppointmentDocx(appointmentSnapshot);
 const appointmentPdf = exporter.createAppointmentPdf(appointmentSnapshot);
@@ -251,6 +257,7 @@ assert.match(observationPdfText, /^%PDF-1\.4/);
 assert.equal(appointmentDocx.snapshot.documentKind, "appointment");
 assert.equal(appointmentDocx.snapshot.summary.appointments, 1);
 assert.equal(appointmentDocx.snapshot.summary.observations, 2);
+assert.equal(appointmentDocx.snapshot.hospitations[0].scheduledOn, "2026-07-18");
 assert.match(appointmentDocx.filename, /^mitmachen-hospitations-termin-2026-07-18-dr-ada-beispiel\.docx$/);
 assert.match(appointmentPdf.filename, /^mitmachen-hospitations-termin-2026-07-18-dr-ada-beispiel\.pdf$/);
 assert.ok(appointmentDocxBytes.length > fixturePhotoBytes.length, "Einzeltermin-DOCX enthält das Foto nicht plausibel");
@@ -261,7 +268,9 @@ assert.match(appointmentDocxText, /Codierung/);
 assert.match(appointmentDocxText, /F2EEFF/);
 assert.match(appointmentDocxText, /EAF2FF/);
 assert.match(appointmentDocxText, /Vorbefund fehlt bei der Aufnahme/);
+assert.doesNotMatch(appointmentDocxText, /18\.07\.2026,\s*02:00/, "Ein reiner Hospitationstag darf im Export keine abgeleitete Uhrzeit erhalten");
 assert.doesNotMatch(appointmentDocxText, /Pflegezentrum Beispiel/);
+assert.doesNotMatch(appointmentDocxText, /Terminangebot/);
 assert.match(appointmentPdfText, /^%PDF-1\.4/);
 assert.match(appointmentPdfText, /\/Subtype \/Image/);
 assert.match(appointmentPdfText, /\/Im1 Do/);

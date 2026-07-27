@@ -32253,7 +32253,95 @@
       }
 
       #hospitation-editor-drawer:not(.is-documentation-mode) .hospitation-editor-wizard .contact-editor-steps {
-        grid-template-columns: repeat(5, minmax(0, 1fr));
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+      }
+
+      .hospitation-editor-field-hint {
+        color: var(--text-muted);
+        font-size: 0.72rem;
+        line-height: 1.45;
+      }
+
+      .hospitation-entity-combobox .editor-input {
+        width: 100%;
+      }
+
+      .hospitation-entity-combobox .editor-combobox__panel {
+        z-index: 60;
+      }
+
+      .hospitation-entity-option {
+        width: 100%;
+        min-height: 52px;
+        display: flex;
+        align-items: center;
+        justify-content: flex-start;
+        gap: 10px;
+        text-align: left;
+      }
+
+      .hospitation-entity-option__visual {
+        width: 32px;
+        height: 32px;
+        flex: 0 0 32px;
+        display: grid;
+        place-items: center;
+      }
+
+      .hospitation-entity-option__visual .avatar,
+      .hospitation-entity-option__visual .organization-logo {
+        width: 32px;
+        height: 32px;
+      }
+
+      .hospitation-entity-option__copy {
+        min-width: 0;
+        flex: 1 1 auto;
+        display: grid;
+        gap: 2px;
+      }
+
+      .hospitation-entity-option__copy strong,
+      .hospitation-entity-option__copy small {
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+      .hospitation-entity-option__copy small,
+      .hospitation-entity-combobox__empty {
+        color: var(--text-muted);
+        font-size: 0.72rem;
+        font-weight: 600;
+      }
+
+      .hospitation-entity-option.is-keyboard-active {
+        background: rgba(74, 121, 237, 0.1);
+        color: var(--text-strong);
+      }
+
+      .hospitation-entity-option__create-icon {
+        width: 32px;
+        height: 32px;
+        flex: 0 0 32px;
+        border-radius: 10px;
+        display: grid;
+        place-items: center;
+        background: rgba(74, 121, 237, 0.12);
+        font-size: 1.25rem;
+        line-height: 1;
+      }
+
+      .hospitation-entity-combobox__empty {
+        padding: 12px;
+        line-height: 1.45;
+      }
+
+      .hospitation-editor-note-draft__save-hint {
+        color: var(--text-muted);
+        font-size: 0.72rem;
+        font-weight: 700;
+        text-align: right;
       }
 
       .format-editor-grid {
