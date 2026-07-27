@@ -606,6 +606,18 @@
                 </div>
                 <div class="table-command-spacer" aria-hidden="true"></div>
                 <div class="table-command-actions" id="contact-command-actions">
+                  <div class="contact-list-switcher" id="contact-list-switcher" role="group" aria-label="Kontaktliste auswählen">
+                    <button class="contact-list-switcher__button is-active" type="button" data-contact-list-mode="all" aria-pressed="true">
+                      Alle
+                    </button>
+                    <button class="contact-list-switcher__button" type="button" data-contact-list-mode="favorites" aria-pressed="false">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                        <path d="m12 3 2.8 5.7 6.2.9-4.5 4.4 1.1 6.2-5.6-2.9-5.6 2.9 1.1-6.2L3 9.6l6.2-.9L12 3Z"></path>
+                      </svg>
+                      <span>Favoriten</span>
+                      <span class="contact-list-switcher__count" id="favorite-contact-count">0</span>
+                    </button>
+                  </div>
                   <button class="action-button action-button--primary" type="button" id="new-contact-button"><span class="action-button__icon">+</span>Neuer Kontakt</button>
                 </div>
                 <div class="view-select-shell">
@@ -653,7 +665,7 @@
                 </div>
               </div>
               <div class="table-wrap">
-                <section class="table contacts-table" aria-labelledby="kontaktliste-title">
+                <section class="table contacts-table" role="table" aria-label="Kontaktliste">
                   <div class="thead" id="contacts-table-head"></div>
                   <div id="contact-list"></div>
                 </section>

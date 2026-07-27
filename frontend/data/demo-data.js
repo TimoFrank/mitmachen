@@ -1973,6 +1973,7 @@
       fontScale: 1,
       pageSize: 20,
       preferences: {
+        favoriteContactIds: ["demo-contact-01", "demo-contact-04", "demo-contact-09"],
         onboarding: {
           version: 1,
           profileCompletedAt: now,
