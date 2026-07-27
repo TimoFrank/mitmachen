@@ -1181,6 +1181,9 @@
       const contactCommandActions = document.getElementById("contact-command-actions");
       const contactSecondaryActions = document.getElementById("contact-secondary-actions");
       const contactCommandRow = document.querySelector("#view-contacts .table-command-row");
+      const contactListSwitcher = document.getElementById("contact-list-switcher");
+      const contactListModeButtons = [...document.querySelectorAll("[data-contact-list-mode]")];
+      const favoriteContactCount = document.getElementById("favorite-contact-count");
       const organizationColumnActions = document.getElementById("organization-column-actions");
       const organizationCommandActions = document.getElementById("organization-command-actions");
       const expertModeActions = document.getElementById("expert-mode-actions");
@@ -1511,6 +1514,7 @@
       let participantPlannerSelectedIds = new Set();
       let pendingFilterDraft = null;
       let activeSavedViewName = "";
+      let favoriteContactsOnly = false;
       let currentPage = 1;
       let pageSize = 20;
       let activities = [];
@@ -1575,6 +1579,8 @@
       const contactHistoryOwnerFilters = new Map();
       let savedViews = [];
       let userSettings = null;
+      let favoriteContactIds = new Set();
+      const favoriteContactSavePending = new Set();
       let onboardingActive = false;
       let onboardingStep = "profile";
       let pendingPostOnboardingView = "home";
@@ -10724,7 +10730,8 @@
           updatedRanges: selectedUpdatedRanges,
           sources: selectedSources,
           organizationCities: selectedOrganizationCities,
-          organizationContactRanges: selectedOrganizationContactRanges
+          organizationContactRanges: selectedOrganizationContactRanges,
+          favoriteContactsOnly
         };
       }
 
@@ -10751,6 +10758,7 @@
           0
         );
         if (view.searchQuery) chips.push(`Suche: ${view.searchQuery}`);
+        if (filters.favoriteContactsOnly) chips.push("Favoriten");
         if (filterCount) chips.push(`${filterCount} Filter`);
         chips.push(`${view.pageSize || 20} pro Seite`);
         return chips.join(" · ");
@@ -10785,6 +10793,159 @@
         renderSavedViews();
       }
 
+      function normalizedFavoriteContactIds(value) {
+        if (!Array.isArray(value)) return [];
+        return [...new Set(value.map((id) => String(id || "").trim()).filter(Boolean))].slice(0, 2000);
+      }
+
+      function syncFavoriteContactsFromSettings(settings = userSettings) {
+        favoriteContactIds = new Set(normalizedFavoriteContactIds(settings?.preferences?.favoriteContactIds));
+      }
+
+      function isFavoriteContact(contactOrId) {
+        const id = typeof contactOrId === "object" ? contactOrId?.id : contactOrId;
+        return Boolean(id) && favoriteContactIds.has(String(id));
+      }
+
+      function activeFavoriteContactCount() {
+        return contacts.filter((contact) => contact.status !== "archived" && isFavoriteContact(contact)).length;
+      }
+
+      function favoriteContactButtonMarkup(contact, { variant = "table" } = {}) {
+        const active = isFavoriteContact(contact);
+        const pending = favoriteContactSavePending.size > 0;
+        const name = contact.displayName || contact.name || "Kontakt";
+        const actionLabel = active ? "Aus Favoriten entfernen" : "Zu Favoriten hinzufügen";
+        return `
+          <button
+            class="favorite-star favorite-star--${escapeHtml(variant)} ${active ? "is-active" : ""} ${pending ? "is-pending" : ""}"
+            type="button"
+            data-favorite-contact="${escapeHtml(contact.id)}"
+            aria-pressed="${active ? "true" : "false"}"
+            aria-label="${escapeHtml(`${name}: ${actionLabel}`)}"
+            title="${escapeHtml(actionLabel)}"
+            ${pending ? "disabled" : ""}
+          >
+            <svg viewBox="0 0 24 24" fill="${active ? "currentColor" : "none"}" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="m12 3 2.8 5.7 6.2.9-4.5 4.4 1.1 6.2-5.6-2.9-5.6 2.9 1.1-6.2L3 9.6l6.2-.9L12 3Z"></path>
+            </svg>
+          </button>
+        `;
+      }
+
+      function syncFavoriteContactButtons(root = document) {
+        root.querySelectorAll("[data-favorite-contact]").forEach((button) => {
+          const id = button.dataset.favoriteContact || "";
+          const contact = contacts.find((item) => item.id === id);
+          const active = isFavoriteContact(id);
+          const pending = favoriteContactSavePending.size > 0;
+          const name = contact?.displayName || contact?.name || "Kontakt";
+          const actionLabel = active ? "Aus Favoriten entfernen" : "Zu Favoriten hinzufügen";
+          button.classList.toggle("is-active", active);
+          button.classList.toggle("is-pending", pending);
+          button.disabled = pending;
+          button.setAttribute("aria-pressed", String(active));
+          button.setAttribute("aria-label", `${name}: ${actionLabel}`);
+          button.title = actionLabel;
+          button.querySelector("svg")?.setAttribute("fill", active ? "currentColor" : "none");
+        });
+      }
+
+      function userSettingsWritePayload(settings = {}) {
+        return {
+          defaultViewId: settings.defaultViewId || "",
+          defaultViewType: settings.defaultViewType || "contacts",
+          tableDensity: settings.tableDensity || "comfortable",
+          theme: settings.theme || "system",
+          fontScale: Number(settings.fontScale || 1),
+          pageSize: Number(settings.pageSize || pageSize || 20),
+          preferences: settings.preferences && typeof settings.preferences === "object" ? settings.preferences : {}
+        };
+      }
+
+      async function toggleFavoriteContact(id) {
+        const normalizedId = String(id || "").trim();
+        if (!normalizedId || favoriteContactSavePending.size > 0) return false;
+        const contact = contacts.find((item) => item.id === normalizedId);
+        if (!contact) return false;
+
+        const previousIds = new Set(favoriteContactIds);
+        const wasFavorite = favoriteContactIds.has(normalizedId);
+        if (wasFavorite) favoriteContactIds.delete(normalizedId);
+        else favoriteContactIds.add(normalizedId);
+        favoriteContactSavePending.add(normalizedId);
+        updateView();
+        syncFavoriteContactButtons();
+
+        try {
+          if (!window.dataService?.upsertUserSettings) {
+            throw new Error("Geschützte API für persönliche Einstellungen fehlt.");
+          }
+          const preferences = {
+            ...(userSettings?.preferences || {}),
+            favoriteContactIds: [...favoriteContactIds]
+          };
+          const fallbackSettings = {
+            ...(userSettings || {}),
+            preferences
+          };
+          const saved = await window.dataService.upsertUserSettings(userSettingsWritePayload(fallbackSettings));
+          userSettings = {
+            ...fallbackSettings,
+            ...(saved || {}),
+            preferences: {
+              ...preferences,
+              ...(saved?.preferences || {})
+            }
+          };
+          syncFavoriteContactsFromSettings();
+          setStorageStatus(wasFavorite ? `${contact.displayName || contact.name} aus Favoriten entfernt` : `${contact.displayName || contact.name} zu Favoriten hinzugefügt`);
+          return true;
+        } catch (error) {
+          console.error("Favorit konnte nicht gespeichert werden.", error);
+          favoriteContactIds = previousIds;
+          setStorageStatus("Fehler: Favorit konnte nicht gespeichert werden.");
+          return false;
+        } finally {
+          favoriteContactSavePending.delete(normalizedId);
+          updateView();
+          syncFavoriteContactButtons();
+        }
+      }
+
+      function bindFavoriteContactButtons(root = document) {
+        root.querySelectorAll("[data-favorite-contact]").forEach((button) => {
+          button.addEventListener("click", (event) => {
+            event.preventDefault();
+            event.stopPropagation();
+            toggleFavoriteContact(button.dataset.favoriteContact);
+          });
+        });
+      }
+
+      function renderContactListModeSwitcher() {
+        const count = activeFavoriteContactCount();
+        if (favoriteContactCount) favoriteContactCount.textContent = String(count);
+        contactListModeButtons.forEach((button) => {
+          const active = (button.dataset.contactListMode === "favorites") === favoriteContactsOnly;
+          button.classList.toggle("is-active", active);
+          button.setAttribute("aria-pressed", String(active));
+        });
+        contactsTable?.setAttribute("aria-label", favoriteContactsOnly ? "Favorisierte Kontakte" : "Kontaktliste");
+      }
+
+      function setContactListMode(mode = "all") {
+        const nextFavoritesOnly = mode === "favorites";
+        if (favoriteContactsOnly === nextFavoritesOnly && !showingArchive && !activeCareDuplicateView) return;
+        favoriteContactsOnly = nextFavoritesOnly;
+        showingArchive = false;
+        activeCareDuplicateView = "";
+        activeSavedViewName = "";
+        currentPage = 1;
+        closeMenus();
+        updateView();
+      }
+
       async function loadUserSettings() {
         try {
           userSettings = window.dataService?.getUserSettings ? await window.dataService.getUserSettings() : null;
@@ -10793,6 +10954,7 @@
           userSettings = null;
         }
 
+        syncFavoriteContactsFromSettings();
         if (userSettings?.pageSize) {
           pageSize = Number(userSettings.pageSize) || pageSize;
           syncPageSizeSelects();
@@ -10840,6 +11002,20 @@
       function renderViewSelectStandardLabels() {
         const allButton = viewSelectMenu?.querySelector('[data-standard-view="all"]');
         if (allButton) allButton.textContent = viewSelectAllLabel();
+        const unownedButton = viewSelectMenu?.querySelector('[data-standard-view="unowned"]');
+        const allActive = !favoriteContactsOnly
+          && !showingArchive
+          && !activeSavedViewName
+          && !searchInput.value.trim()
+          && filterSelectionCount() === 0;
+        const unownedActive = !favoriteContactsOnly
+          && !showingArchive
+          && selectedOwners.length === 1
+          && selectedOwners[0] === "__none__";
+        allButton?.classList.toggle("is-active", allActive);
+        unownedButton?.classList.toggle("is-active", unownedActive);
+        allButton?.setAttribute("aria-current", allActive ? "true" : "false");
+        unownedButton?.setAttribute("aria-current", unownedActive ? "true" : "false");
       }
 
       function updateViewSelectLabel(label = "") {
@@ -10904,6 +11080,7 @@
       function applyStandardView(key) {
         activeSavedViewName = "";
         clearAllFilters({ clearSearch: true });
+        favoriteContactsOnly = false;
         showingArchive = false;
         if (key === "mine" && currentProfile?.id) selectedOwners = [currentProfile.id];
         if (key === "unowned") selectedOwners = ["__none__"];
@@ -10919,6 +11096,7 @@
         if (!owner) return;
         activeSavedViewName = "";
         clearAllFilters({ clearSearch: true });
+        favoriteContactsOnly = false;
         showingArchive = false;
         selectedOwners = [owner];
         currentPage = 1;
@@ -10948,6 +11126,7 @@
         selectedSources = Array.isArray(filters.sources) ? filters.sources : [];
         selectedOrganizationCities = Array.isArray(filters.organizationCities) ? filters.organizationCities : [];
         selectedOrganizationContactRanges = Array.isArray(filters.organizationContactRanges) ? filters.organizationContactRanges : [];
+        favoriteContactsOnly = (view.viewType || "contacts") === "contacts" && Boolean(filters.favoriteContactsOnly);
         contactSort = view.sortKey === "consent_availability"
           ? { key: "consent", direction: view.sortDirection === "asc" ? "asc" : "desc" }
           : { key: "", direction: "" };
@@ -10986,7 +11165,7 @@
         userSettings = { ...(userSettings || {}), ...patch };
         try {
           if (!window.dataService?.upsertUserSettings) throw new Error("Geschützte API für Benutzereinstellungen fehlt.");
-          userSettings = await window.dataService.upsertUserSettings(userSettings);
+          userSettings = await window.dataService.upsertUserSettings(userSettingsWritePayload(userSettings));
         } catch (error) {
           console.warn("Benutzereinstellungen konnten nicht über die geschützte API gespeichert werden.", error);
         }
@@ -11186,8 +11365,11 @@
         const baseContacts = showingArchive
           ? contacts.filter((contact) => contact.status === "archived")
           : contacts.filter((contact) => contact.status !== "archived");
+        const visibleContacts = favoriteContactsOnly
+          ? baseContacts.filter((contact) => isFavoriteContact(contact))
+          : baseContacts;
 
-        const filtered = baseContacts.filter((contact) => {
+        const filtered = visibleContacts.filter((contact) => {
           const matchesSearch =
             !search ||
             [
@@ -13469,7 +13651,7 @@
       }
 
       function hasActiveSearchOrFilters() {
-        return Boolean(searchInput.value.trim()) || filterSelectionCount() > 0;
+        return Boolean(searchInput.value.trim()) || filterSelectionCount() > 0 || favoriteContactsOnly;
       }
 
       function hasActiveFilters() {
@@ -26811,6 +26993,7 @@
                 <div class="contact-name__line">
                   <button class="contact-name-button" type="button" data-open-detail="${contact.id}">${escapeHtml(contact.name) || "&mdash;"}</button>
                   ${testMarkerMarkup(contact)}
+                  ${favoriteContactButtonMarkup(contact)}
                 </div>
               </div>
             </div>
@@ -27309,9 +27492,24 @@
 
         if (!items.length) {
           contactsTableHead.innerHTML = "";
-          list.innerHTML = `<div class="empty">Keine Kontakte im aktuellen Filter. Passe Suche oder Filter an.</div>`;
+          const noFavoritesYet = favoriteContactsOnly && activeFavoriteContactCount() === 0;
+          list.innerHTML = favoriteContactsOnly
+            ? `
+              <div class="empty favorite-empty-state">
+                <span class="favorite-empty-state__icon" aria-hidden="true">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="m12 3 2.8 5.7 6.2.9-4.5 4.4 1.1 6.2-5.6-2.9-5.6 2.9 1.1-6.2L3 9.6l6.2-.9L12 3Z"></path>
+                  </svg>
+                </span>
+                <strong>${noFavoritesYet ? "Noch keine Favoriten" : "Keine Favoriten in dieser Auswahl"}</strong>
+                <span>${noFavoritesYet ? "Markiere wichtige Kontakte über den Stern. Sie erscheinen dann automatisch in dieser persönlichen Liste." : "Passe Suche oder Filter an – oder wechsle zurück zu allen Kontakten."}</span>
+                <button class="action-button" type="button" data-show-all-contacts>Alle Kontakte anzeigen</button>
+              </div>
+            `
+            : `<div class="empty">Keine Kontakte im aktuellen Filter. Passe Suche oder Filter an.</div>`;
           paginationMeta.textContent = "0–0 von 0 Kontakten";
           pagination.innerHTML = "";
+          list.querySelector("[data-show-all-contacts]")?.addEventListener("click", () => setContactListMode("all"));
           return;
         }
 
@@ -27330,7 +27528,10 @@
                     <div class="mobile-contact-organization">${escapeHtml(contact.organization || "Nicht dokumentiert")}</div>
                     <div class="mobile-contact-consent">${consentAvailabilityBadgeMarkup(contact, { compact: true })}</div>
                   </div>
-                  <span class="mobile-contact-chevron" aria-hidden="true">›</span>
+                  <div class="mobile-contact-actions">
+                    ${favoriteContactButtonMarkup(contact, { variant: "mobile" })}
+                    <span class="mobile-contact-chevron" aria-hidden="true">›</span>
+                  </div>
                 </div>
               </article>
             `
@@ -27352,6 +27553,7 @@
             .join("");
         }
 
+        bindFavoriteContactButtons(list);
         pagination.innerHTML = [
           `<button class="pagination-button" type="button" data-page-nav="prev" ${currentPage === 1 ? "disabled" : ""} aria-label="Vorherige Seite">‹</button>`,
           ...Array.from({ length: totalPages }, (_, index) => {
@@ -33799,6 +34001,7 @@
           <div class="detail-toolbar">
             ${isProfilePage ? personProfileBackButtonMarkup() : `<div class="detail-counter">${currentIndex + 1} von ${currentItems.length} Kontakten</div>`}
             <div class="detail-toolbar-actions">
+              ${expertScope ? "" : favoriteContactButtonMarkup(contact, { variant: "detail" })}
               ${isPreview ? `<button class="action-button action-button--primary" type="button" id="detail-open-profile">Profil öffnen</button>` : ""}
               ${
                 editingDetail
@@ -34000,6 +34203,7 @@
           detailDrawer.setAttribute("aria-hidden", "false");
           syncBodyScrollLock();
         }
+        if (!expertScope) bindFavoriteContactButtons(targetPanel);
         refreshCustomSelects(targetPanel);
         if (!expertScope) loadContactHistory(contact.id);
 
@@ -34685,6 +34889,8 @@
             : isExpertsView
               ? isExpertMatchingMode ? filteredExpertMatchCandidates(expertDuplicateLinkType) : isExpertOrganizationsMode ? filteredExpertOrganizations() : filteredExpertContacts()
               : isContactsDuplicatesMode ? filteredExpertMatchCandidates("contact") : filteredContacts();
+        if (contactListSwitcher) contactListSwitcher.hidden = !isContactsView || isContactsDuplicatesMode;
+        renderContactListModeSwitcher();
         resultsCount.textContent = isInitialDataLoading && isContactsView ? "Kontakte werden geladen" : hitCountLabel(items);
         resultsCount.hidden = isHomeView || isProfileRecordView || isFrameworkView || isQuestionnaireView || (isInitialDataLoading && isContactsView ? false : isFormatsView || isAnyDuplicateMode ? false : !hasActiveSearchOrFilters());
         archiveViewButton.textContent = archiveViewButtonLabel();
@@ -35563,6 +35769,9 @@
       document.querySelectorAll("[data-standard-view]").forEach((button) => {
         button.addEventListener("click", () => applyStandardView(button.dataset.standardView));
       });
+      contactListModeButtons.forEach((button) => {
+        button.addEventListener("click", () => setContactListMode(button.dataset.contactListMode || "all"));
+      });
       sidebarProfileButton?.addEventListener("click", () => {
         closeMobileSidebar();
         openProfileTab("profile");
@@ -35931,6 +36140,7 @@
           showPermissionDenied("Nur Admins dürfen das Archiv öffnen.");
           return;
         }
+        favoriteContactsOnly = false;
         showingArchive = !showingArchive;
         activeCareDuplicateView = "";
         activeId = null;

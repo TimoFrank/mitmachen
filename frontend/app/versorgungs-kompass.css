@@ -5500,6 +5500,13 @@
         margin-top: 8px;
       }
 
+      .mobile-contact-actions {
+        display: grid;
+        flex: 0 0 auto;
+        justify-items: center;
+        gap: 4px;
+      }
+
       .mobile-contact-chevron {
         color: #667399;
         font-size: 1.7rem;
@@ -7039,6 +7046,8 @@
         width: 28px;
         height: 28px;
         margin-left: auto;
+        padding: 0;
+        flex: 0 0 auto;
         border: 0;
         border-radius: 999px;
         display: inline-grid;
@@ -7060,9 +7069,83 @@
         background: #fff6c7;
       }
 
+      .favorite-star:focus-visible {
+        outline: 3px solid rgba(21, 95, 228, 0.24);
+        outline-offset: 2px;
+      }
+
+      .favorite-star:disabled,
+      .favorite-star.is-pending {
+        cursor: wait;
+        opacity: 0.58;
+        transform: none;
+      }
+
+      .favorite-star--mobile {
+        width: 42px;
+        height: 42px;
+        margin-left: 0;
+        border: 1px solid #e0e6f6;
+        background: #ffffff;
+      }
+
+      .favorite-star--mobile.is-active {
+        border-color: #ead889;
+      }
+
+      .favorite-star--detail {
+        width: 36px;
+        height: 36px;
+        margin-left: 0;
+        border: 1px solid #dce4f6;
+        background: #ffffff;
+      }
+
       .favorite-star svg {
         width: 16px;
         height: 16px;
+      }
+
+      .favorite-star--mobile svg,
+      .favorite-star--detail svg {
+        width: 18px;
+        height: 18px;
+      }
+
+      .favorite-empty-state {
+        display: grid;
+        justify-items: center;
+        gap: 9px;
+        min-height: 250px;
+        padding: 38px 24px;
+        text-align: center;
+      }
+
+      .favorite-empty-state strong {
+        color: #243271;
+        font-size: 1rem;
+      }
+
+      .favorite-empty-state > span:not(.favorite-empty-state__icon) {
+        max-width: 48ch;
+        color: #6a759b;
+        line-height: 1.45;
+      }
+
+      .favorite-empty-state__icon {
+        width: 54px;
+        height: 54px;
+        display: grid;
+        place-items: center;
+        border: 1px solid #ead889;
+        border-radius: 999px;
+        background: #fff9dd;
+        color: #bd9200;
+      }
+
+      .favorite-empty-state__icon svg {
+        width: 25px;
+        height: 25px;
       }
 
       .badge {
@@ -17325,6 +17408,95 @@
 
       .table-command-actions .action-button[hidden] {
         display: none !important;
+      }
+
+      .contact-list-switcher {
+        display: inline-flex;
+        align-items: center;
+        gap: 3px;
+        min-height: 38px;
+        padding: 3px;
+        border: 1px solid var(--border);
+        border-radius: var(--radius-sm);
+        background: #f4f7fd;
+      }
+
+      .contact-list-switcher[hidden] {
+        display: none !important;
+      }
+
+      .contact-list-switcher__button {
+        min-height: 30px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 7px;
+        padding: 0 11px;
+        border: 0;
+        border-radius: 7px;
+        background: transparent;
+        color: #667399;
+        font: inherit;
+        font-size: var(--font-size-xs);
+        font-weight: 850;
+        white-space: nowrap;
+        cursor: pointer;
+      }
+
+      .contact-list-switcher__button:hover {
+        color: var(--primary);
+        background: rgba(255, 255, 255, 0.72);
+      }
+
+      .contact-list-switcher__button.is-active {
+        color: #234eac;
+        background: #ffffff;
+        box-shadow: 0 1px 4px rgba(26, 37, 89, 0.12);
+      }
+
+      .contact-list-switcher__button svg {
+        width: 15px;
+        height: 15px;
+        color: #c09400;
+      }
+
+      .contact-list-switcher__count {
+        min-width: 20px;
+        min-height: 20px;
+        display: inline-grid;
+        place-items: center;
+        padding: 0 5px;
+        border-radius: 999px;
+        background: #e7ecf7;
+        color: #68728f;
+        font-size: 0.68rem;
+        font-variant-numeric: tabular-nums;
+      }
+
+      .contact-list-switcher__button.is-active .contact-list-switcher__count {
+        background: #fff4bd;
+        color: #8a6900;
+      }
+
+      .contact-list-switcher__button:focus-visible {
+        outline: 3px solid rgba(21, 95, 228, 0.22);
+        outline-offset: 1px;
+      }
+
+      @media (max-width: 760px) {
+        #contact-command-actions .contact-list-switcher {
+          width: 100%;
+        }
+
+        #contact-command-actions .contact-list-switcher__button {
+          flex: 1 1 50%;
+          min-height: 36px;
+        }
+
+        .favorite-empty-state {
+          min-height: 230px;
+          padding: 30px 18px;
+        }
       }
 
       .table-command-row .summary--compact {
