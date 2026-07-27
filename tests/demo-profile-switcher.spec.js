@@ -45,7 +45,11 @@ test.describe("Pages-Profilwechsel", () => {
 
     const optionLabels = await select.locator("option").allTextContents();
     expect(optionLabels.length).toBeGreaterThan(1);
-    expect(optionLabels.every((label) => !label.includes(" · "))).toBe(true);
+    expect(optionLabels).toEqual(expect.arrayContaining([
+      expect.stringMatching(/ · Admin$/),
+      expect.stringMatching(/ · Editor$/),
+      expect.stringMatching(/ · Viewer$/)
+    ]));
 
     const selectStyle = await select.evaluate((element) => {
       const style = window.getComputedStyle(element);
@@ -88,6 +92,8 @@ test.describe("Pages-Profilwechsel", () => {
     const switcher = page.locator("#demo-profile-switcher");
     const avatar = page.locator("#sidebar-user-badge");
     await expect(trigger).toBeVisible();
+    await expect(trigger).toHaveAccessibleName(/Demo-Profil wechseln, aktuell .+, Rolle Admin/);
+    await expect(trigger).toHaveAttribute("title", / · Admin$/);
     await expect(trigger).toHaveAttribute("aria-controls", "demo-profile-switcher");
     await expect(trigger).toHaveAttribute("aria-expanded", "false");
     await expect(trigger.locator(".sidebar-profile-switcher-indicator svg")).toBeVisible();

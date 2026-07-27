@@ -89,6 +89,12 @@ jobs:
       - name: Run repository checks
         run: npm run check
 
+      - name: Install Chromium
+        run: npx playwright install --with-deps chromium
+
+      - name: Run desktop delivery regressions
+        run: npm run test:delivery-ui:desktop
+
       - name: Set up Helm
         uses: azure/setup-helm@1a275c3b69536ee54be43f2070a358922e12c8d4 # v4
         with:

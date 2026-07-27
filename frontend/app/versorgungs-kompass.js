@@ -8,15 +8,15 @@
       let xlsxLoadPromise = null;
 
       function contactChannelsRestricted(contact = {}) {
-        return OWNER_ONLY_CONTACT_CHANNELS && contact.contactChannelAccess === "restricted";
+        return OWNER_ONLY_CONTACT_CHANNELS && contact?.contactChannelAccess === "restricted";
       }
 
       function accessibleContactEmail(contact = {}) {
-        return contactChannelsRestricted(contact) ? "" : String(contact.email || "").trim();
+        return contactChannelsRestricted(contact) ? "" : String(contact?.email || "").trim();
       }
 
       function accessibleContactPhone(contact = {}) {
-        return contactChannelsRestricted(contact) ? "" : String(contact.phone || "").trim();
+        return contactChannelsRestricted(contact) ? "" : String(contact?.phone || "").trim();
       }
 
       function contactChannelRestrictedMarkup() {
@@ -1090,6 +1090,10 @@
       const MAP_MESSAGE_VERSION = 1;
       const MAP_MESSAGE_CHANNELS = new Set(["contacts", "stakeholders"]);
       const appShell = document.querySelector(".app-shell");
+      const skipLink = document.querySelector(".skip-link");
+      const mainContent = document.getElementById("main-content");
+      const routeAnnouncer = document.getElementById("route-announcer");
+      const globalStatus = document.getElementById("global-status");
       const initialLoadingSkeleton = document.getElementById("app-initial-skeleton");
       const standaloneModule = new URLSearchParams(window.location.search).get("standalone") || "";
       const isHospitationDocumentationStandalone =
@@ -1565,6 +1569,7 @@
       let currentProfile = null;
       let profileDirty = false;
       let profileFormBaseline = "";
+      let blockedRouteUpdate = false;
       const contactHistoryCache = new Map();
       const contactHistoryFilters = new Map();
       const contactHistoryOwnerFilters = new Map();
@@ -1581,6 +1586,7 @@
       const selectedHospitationEntryKeys = new Set();
       const selectedExpertContactIds = new Set();
       const customSelectInstances = new WeakMap();
+      let customSelectIdCounter = 0;
       let loadedContactsFromStorage = false;
       let visibleContactColumns = loadVisibleContactColumns();
       let visibleOrganizationColumns = loadVisibleOrganizationColumns();
@@ -1737,9 +1743,21 @@
         window.localStorage.setItem(visibleStakeholderPeopleColumnsStorageKey, JSON.stringify(visibleStakeholderPeopleColumns));
       }
 
+      let globalStatusTimer = null;
+
       function setStorageStatus(message) {
         if (!message) return;
         console.info(`[Versorgungs-Kompass] ${message}`);
+        if (!globalStatus) return;
+        const isError = /fehl|nicht verfügbar|keine geschützten|error|warnung/i.test(message);
+        window.clearTimeout(globalStatusTimer);
+        globalStatus.textContent = message;
+        globalStatus.hidden = false;
+        globalStatus.classList.toggle("is-error", isError);
+        globalStatusTimer = window.setTimeout(() => {
+          globalStatus.hidden = true;
+          globalStatus.classList.remove("is-error");
+        }, isError ? 12000 : 5000);
       }
 
       function currentRole() {
@@ -6884,6 +6902,42 @@
         });
       }
 
+      function rovingTabCandidates(buttons = []) {
+        return [...buttons].filter((button) =>
+          button instanceof HTMLElement &&
+          !button.disabled &&
+          !button.hidden &&
+          !button.closest("[hidden]")
+        );
+      }
+
+      function handleRovingTabKeydown(event, buttons = []) {
+        if (event.defaultPrevented || event.altKey || event.ctrlKey || event.metaKey) return false;
+        const candidates = rovingTabCandidates(buttons);
+        const current = event.target instanceof Element ? event.target.closest('[role="tab"]') : null;
+        const currentIndex = candidates.indexOf(current);
+        if (currentIndex < 0) return false;
+
+        let nextIndex = currentIndex;
+        if (event.key === "Home") nextIndex = 0;
+        else if (event.key === "End") nextIndex = candidates.length - 1;
+        else if (event.key === "ArrowRight" || event.key === "ArrowDown") nextIndex = (currentIndex + 1) % candidates.length;
+        else if (event.key === "ArrowLeft" || event.key === "ArrowUp") nextIndex = (currentIndex - 1 + candidates.length) % candidates.length;
+        else return false;
+
+        event.preventDefault();
+        const nextButton = candidates[nextIndex];
+        nextButton.focus();
+        nextButton.click();
+        return true;
+      }
+
+      function bindRovingTablist(buttons = []) {
+        buttons.forEach((button) => {
+          button.addEventListener("keydown", (event) => handleRovingTabKeydown(event, buttons));
+        });
+      }
+
       function renderAnalyticsModeTabs() {
         const active = isAnalyticsView(activeView) && canAdministerData();
         if (analyticsModeActions) analyticsModeActions.hidden = !active;
@@ -8544,17 +8598,22 @@
         trigger.setAttribute(
           "aria-label",
           selectedProfile?.label
-            ? `Demo-Profil wechseln, aktuell ${selectedProfile.label}`
+            ? `Demo-Profil wechseln, aktuell ${selectedProfile.label}, Rolle ${roleLabel(selectedProfile.role)}`
             : "Demo-Profil wechseln"
         );
-        trigger.setAttribute("title", "Demo-Profil wechseln");
+        trigger.setAttribute(
+          "title",
+          selectedProfile?.label
+            ? `Demo-Profil wechseln · ${selectedProfile.label} · ${roleLabel(selectedProfile.role)}`
+            : "Demo-Profil wechseln"
+        );
         if (trigger.hidden) closeDemoProfileSwitcher();
         switcher.innerHTML = `
           <h3 class="demo-profile-switcher-title" id="demo-profile-switcher-title">Ansicht wechseln</h3>
           <div class="demo-profile-select-shell">
             <label class="visually-hidden" for="demo-profile-select">Demo-Profil</label>
             <select id="demo-profile-select">
-              ${profiles.map((profile) => `<option value="${escapeHtml(profile.id)}" ${profile.id === selectedProfileId ? "selected" : ""}>${escapeHtml(profile.label)}</option>`).join("")}
+              ${profiles.map((profile) => `<option value="${escapeHtml(profile.id)}" ${profile.id === selectedProfileId ? "selected" : ""}>${escapeHtml(`${profile.label} · ${roleLabel(profile.role)}`)}</option>`).join("")}
             </select>
           </div>
         `;
@@ -12499,16 +12558,39 @@
 
       function applyQuestionnaireContainerSelection() {
         const hospitation = selectedQuestionnaireContainer();
-        if (!hospitation) return;
+        if (!hospitation) {
+          const creatingNewHospitation = String(questionnaireContainerSelect?.value || "") === "__new__";
+          if (!creatingNewHospitation) return;
+          if (questionnaireDateInput) questionnaireDateInput.value = "";
+          setSelectValue(questionnaireSectorSelect, "");
+          setSelectValue(questionnaireOrganizationSelect, "");
+          setSelectValue(questionnaireContactSelect, "");
+          const contextNotes = questionnaireForm?.elements.questionnaireContextNotes;
+          if (contextNotes) contextNotes.value = "";
+          syncQuestionnaireCompassSelectors();
+          return;
+        }
         if (questionnaireDateInput && hospitation.startsAt) questionnaireDateInput.value = dateInputValue(hospitation.startsAt);
         const sector = questionnaireNormalizeSector(hospitation.sector);
-        if (questionnaireSectorSelect && sector) questionnaireSectorSelect.value = sector;
+        if (questionnaireSectorSelect && sector) setSelectValue(questionnaireSectorSelect, sector, sector);
+        const organization = questionnaireOrganizationById(hospitation.organizationId);
+        const contact = questionnaireContactById(hospitation.contactId);
         if (questionnaireOrganizationSelect && hospitation.organizationId) {
-          const organization = questionnaireOrganizationById(hospitation.organizationId);
-          if (organization) questionnaireOrganizationSelect.value = questionnaireOrganizationKey(organization);
+          if (organization) {
+            setSelectValue(
+              questionnaireOrganizationSelect,
+              questionnaireOrganizationKey(organization),
+              questionnaireOrganizationOptionLabel(organization)
+            );
+          }
         }
-        if (questionnaireContactSelect && hospitation.contactId) questionnaireContactSelect.value = hospitation.contactId;
         syncQuestionnaireCompassSelectors();
+        if (questionnaireContactSelect && contact) {
+          setSelectValue(questionnaireContactSelect, contact.id, questionnaireContactOptionLabel(contact));
+          refreshCustomSelects(questionnaireForm);
+        }
+        const contextNotes = questionnaireForm?.elements.questionnaireContextNotes;
+        if (contextNotes) contextNotes.value = hospitation.goal || "";
       }
 
       function questionnaireOrganizationMatchesSector(organization = {}, sector = selectedQuestionnaireSector()) {
@@ -13019,6 +13101,7 @@
           showPermissionDenied(viewerCreateDisabledMessage("das Speichern von Hospitationsdokumentationen"));
           return;
         }
+        if (!validateQuestionnaireRequiredSteps()) return;
         const existing = selectedQuestionnaireContainer();
         if (!existing && !selectedQuestionnaireContact() && !selectedQuestionnaireOrganization()) {
           window.alert("Bitte wähle für einen neuen Termin mindestens Kontaktperson oder Organisation aus.");
@@ -13164,6 +13247,132 @@
           .trim() || "Fragebogen";
       }
 
+      function clearQuestionnaireControlValidation(control) {
+        if (!(control instanceof HTMLElement)) return;
+        control.removeAttribute("aria-invalid");
+        control.closest(".questionnaire-field")?.classList.remove("is-invalid");
+        control.closest("[data-custom-select]")?.classList.remove("is-invalid");
+        if (typeof control.setCustomValidity === "function") control.setCustomValidity("");
+      }
+
+      function clearQuestionnaireStepValidation(step) {
+        if (!step) return;
+        step.querySelector("[data-questionnaire-step-validation]")?.remove();
+        step.querySelectorAll('[aria-invalid="true"]').forEach(clearQuestionnaireControlValidation);
+      }
+
+      function markQuestionnaireControlInvalid(control) {
+        if (!(control instanceof HTMLElement)) return;
+        control.setAttribute("aria-invalid", "true");
+        control.closest(".questionnaire-field")?.classList.add("is-invalid");
+        control.closest("[data-custom-select]")?.classList.add("is-invalid");
+      }
+
+      function focusQuestionnaireControl(control) {
+        if (!(control instanceof HTMLElement)) return;
+        const customTrigger = control.closest("[data-custom-select]")?.querySelector(".custom-select-trigger");
+        const focusTarget = customTrigger instanceof HTMLElement ? customTrigger : control;
+        focusTarget.focus({ preventScroll: true });
+        focusTarget.scrollIntoView({ block: "center", behavior: "smooth" });
+      }
+
+      function questionnaireStepValidationErrors(index = 0) {
+        const errors = [];
+        const addError = (message, controls = []) => {
+          const normalizedControls = controls.filter((control) => control instanceof HTMLElement);
+          errors.push({ message, controls: normalizedControls });
+        };
+        if (index === 0) {
+          if (!String(questionnaireDateInput?.value || "").trim()) {
+            addError("Trage das Datum der Hospitation ein.", [questionnaireDateInput]);
+          }
+          if (!selectedQuestionnaireContainer() && !selectedQuestionnaireContact() && !selectedQuestionnaireOrganization()) {
+            addError(
+              "Wähle einen bestehenden Termin oder mindestens eine Kontaktperson beziehungsweise Organisation.",
+              [questionnaireContainerSelect, questionnaireContactSelect, questionnaireOrganizationSelect]
+            );
+          }
+        }
+        if (index === 1) {
+          const cards = [...(questionnaireObservationsList?.querySelectorAll("[data-questionnaire-observation-card]") || [])];
+          cards.forEach((card, cardIndex) => {
+            const title = card.querySelector('input[name*="[title]"]');
+            const observation = card.querySelector('textarea[name*="[observation]"]');
+            const missing = [title, observation].filter((control) => !String(control?.value || "").trim());
+            if (missing.length) {
+              addError(
+                `Ergänze für Beobachtung ${cardIndex + 1} Kurztitel und die konkret beobachtete Situation.`,
+                missing
+              );
+            }
+          });
+        }
+        if (index === 2) {
+          const cards = [...(questionnaireObservationCodingList?.querySelectorAll("[data-questionnaire-observation-coding-card]") || [])];
+          cards.forEach((card, cardIndex) => {
+            const missing = [...card.querySelectorAll("select[required]")].filter((control) => !String(control.value || "").trim());
+            if (missing.length) {
+              addError(
+                `Vervollständige für Beobachtung ${cardIndex + 1} Relevanz, Prozessphase, Problemtyp, Auswirkung und Beobachtungsart.`,
+                missing
+              );
+            }
+          });
+        }
+        return errors;
+      }
+
+      function showQuestionnaireStepValidation(step, errors = []) {
+        if (!step || !errors.length) return;
+        const body = step.querySelector(".questionnaire-section__body");
+        if (!body) return;
+        const status = document.createElement("div");
+        status.className = "questionnaire-step-validation";
+        status.dataset.questionnaireStepValidation = "true";
+        status.setAttribute("role", "alert");
+        const title = document.createElement("strong");
+        title.textContent = "Bitte ergänze noch folgende Angaben:";
+        const list = document.createElement("ul");
+        errors.forEach((error) => {
+          const item = document.createElement("li");
+          item.textContent = error.message;
+          list.append(item);
+          error.controls.forEach(markQuestionnaireControlInvalid);
+        });
+        status.append(title, list);
+        body.querySelector(".questionnaire-step-actions")?.before(status);
+      }
+
+      function validateQuestionnaireStep(index = 0, options = {}) {
+        const steps = questionnaireStepItems();
+        const step = steps[index];
+        if (!step) return true;
+        clearQuestionnaireStepValidation(step);
+        const errors = questionnaireStepValidationErrors(index);
+        if (!errors.length) return true;
+        showQuestionnaireStepValidation(step, errors);
+        if (options.open !== false) openQuestionnaireStep(index);
+        if (options.focus !== false) requestAnimationFrame(() => focusQuestionnaireControl(errors[0]?.controls[0]));
+        return false;
+      }
+
+      function refreshVisibleQuestionnaireStepValidation(control) {
+        const step = control?.closest?.("[data-questionnaire-step]");
+        if (!step?.querySelector("[data-questionnaire-step-validation]")) return;
+        const index = questionnaireStepItems().indexOf(step);
+        if (index < 0) return;
+        clearQuestionnaireStepValidation(step);
+        const errors = questionnaireStepValidationErrors(index);
+        if (errors.length) showQuestionnaireStepValidation(step, errors);
+      }
+
+      function validateQuestionnaireRequiredSteps() {
+        for (const index of [0, 1, 2]) {
+          if (!validateQuestionnaireStep(index)) return false;
+        }
+        return true;
+      }
+
       function updateQuestionnaireStepNavigation(activeIndex = -1) {
         const steps = questionnaireStepItems();
         const index = activeIndex >= 0 ? activeIndex : Math.max(0, steps.findIndex((item) => item.open));
@@ -13197,9 +13406,11 @@
         const steps = questionnaireStepItems();
         const currentIndex = Math.max(0, steps.findIndex((item) => item.open));
         if (direction > 0 && currentIndex >= steps.length - 1) {
+          if (!validateQuestionnaireRequiredSteps()) return;
           questionnaireForm?.requestSubmit();
           return;
         }
+        if (direction > 0 && currentIndex <= 2 && !validateQuestionnaireStep(currentIndex)) return;
         const nextIndex = Math.min(steps.length - 1, Math.max(0, currentIndex + direction));
         if (nextIndex === currentIndex) return;
         openQuestionnaireStep(nextIndex);
@@ -17961,6 +18172,12 @@
         return items.flatMap(hospitationDashboardObservationRows);
       }
 
+      function hospitationDashboardDocumentedObservations(items = []) {
+        return hospitationDashboardAllObservations(items)
+          .filter((observation) => !observation.synthetic)
+          .filter((observation) => meaningfulOrEmpty(observation.observed || observation.title || observation.situationContext));
+      }
+
       function hospitationDashboardAllQuotes(items = []) {
         return items.flatMap(hospitationDashboardQuoteRows);
       }
@@ -19392,8 +19609,7 @@
       }
 
       function renderHospitationDashboardObservationCards(active = [], limit = 3) {
-        const cards = hospitationDashboardAllObservations(active)
-          .filter((card) => meaningfulOrEmpty(card.observed || card.title))
+        const cards = hospitationDashboardDocumentedObservations(active)
           .sort((left, right) => new Date(right.hospitation?.startsAt || 0).getTime() - new Date(left.hospitation?.startsAt || 0).getTime())
           .slice(0, limit);
         if (!cards.length) return `<div class="hospitation-dashboard-empty">Noch keine Beobachtungskarten erfasst.</div>`;
@@ -19689,8 +19905,7 @@
             title: "Alle Beobachtungen",
             summary: (rows) => `${rows.length} dokumentierte Beobachtungen aus den aktuell angezeigten Hospitationen`,
             empty: "Noch keine Beobachtungskarten erfasst.",
-            rows: () => hospitationDashboardAllObservations(active)
-              .filter((observation) => meaningfulOrEmpty(observation.observed || observation.title))
+            rows: () => hospitationDashboardDocumentedObservations(active)
               .sort((left, right) => new Date(right.hospitation?.startsAt || 0).getTime() - new Date(left.hospitation?.startsAt || 0).getTime()),
             render: renderHospitationDashboardObservationDetailRow
           },
@@ -19919,7 +20134,7 @@
       }
 
       function renderHospitationDashboardKpiStrip(active = [], documented = []) {
-        const observations = hospitationDashboardAllObservations(active);
+        const observations = hospitationDashboardDocumentedObservations(active);
         const quotes = hospitationDashboardAllQuotes(active);
         return `
           <div class="hospitation-dashboard-kpi-row" aria-label="Dashboard-Kennzahlen">
@@ -20198,8 +20413,7 @@
       }
 
       function renderHospitationDashboardEpicFunnel(active = [], dataSet = {}) {
-        const observations = hospitationDashboardAllObservations(active)
-          .filter((observation) => meaningfulOrEmpty(observation.observed || observation.title));
+        const observations = hospitationDashboardDocumentedObservations(active);
         const signalCount = hospitationDashboardDerivedSignals(active, dataSet, Number.MAX_SAFE_INTEGER).length;
         const patternCount = hospitationDashboardDerivedPatterns(active, dataSet, Number.MAX_SAFE_INTEGER).length;
         const evidenceCount = hospitationDashboardNextSteps(active, dataSet, Number.MAX_SAFE_INTEGER).length;
@@ -20286,8 +20500,7 @@
       }
 
       function renderHospitationDashboardEvidenceCard(active = []) {
-        const observations = hospitationDashboardAllObservations(active)
-          .filter((card) => meaningfulOrEmpty(card.observed || card.title));
+        const observations = hospitationDashboardDocumentedObservations(active);
         const visible = Math.min(4, observations.length);
         return `
           <details class="dashboard-card hospitation-dashboard-card hospitation-dashboard-observations-card hospitation-dashboard-accordion-card hospitation-dashboard-evidence-linked-card hospitation-dashboard-evidence-linked-card--observations ${hospitationDashboardWidgetClass("observations")}" data-hospitation-dashboard-accordion="observations" data-hospitation-dashboard-card="observations" ${hospitationDashboardWidgetAttributes("observations")} open>
@@ -21629,7 +21842,14 @@
           maximum = Math.max(maximum, current.hospitations.size);
         });
         return `
-          <div class="observation-matrix-wrap">
+          <div class="observation-matrix-toolbar" id="observation-matrix-scroll-help">
+            <span>Weitere Prozessphasen sind horizontal erreichbar.</span>
+            <div class="observation-matrix-toolbar__actions" role="group" aria-label="Fallvergleichsmatrix horizontal verschieben">
+              <button class="action-button action-button--compact" type="button" data-observation-matrix-scroll="-1" aria-label="Fallvergleichsmatrix nach links verschieben">←</button>
+              <button class="action-button action-button--compact" type="button" data-observation-matrix-scroll="1" aria-label="Fallvergleichsmatrix nach rechts verschieben">→</button>
+            </div>
+          </div>
+          <div class="observation-matrix-wrap" tabindex="0" role="region" aria-label="Fallvergleichsmatrix" aria-describedby="observation-matrix-scroll-help">
             <table class="observation-matrix" aria-label="Fallvergleich aller codierten Beobachtungen der aktuellen Auswahl">
               <thead><tr><th scope="col">Problemtyp</th>${phases.map((phase) => `<th scope="col">${escapeHtml(phase)}</th>`).join("")}</tr></thead>
               <tbody>
@@ -22109,6 +22329,12 @@
           hospitationObservationFilters.problemType = button.dataset.observationMatrixProblem || "";
           hospitationObservationFilters.processPhase = button.dataset.observationMatrixPhase || "";
           renderHospitationObservationsWorkbench();
+        }));
+        root.querySelectorAll("[data-observation-matrix-scroll]").forEach((button) => button.addEventListener("click", () => {
+          const matrix = root.querySelector(".observation-matrix-wrap");
+          if (!matrix) return;
+          const direction = Number(button.dataset.observationMatrixScroll) < 0 ? -1 : 1;
+          matrix.scrollBy({ left: direction * Math.max(320, matrix.clientWidth * 0.72), behavior: "smooth" });
         }));
         root.querySelectorAll("[data-observation-open]").forEach((button) => button.addEventListener("click", async () => {
           await openHospitationObservationDrawerById(button.dataset.observationOpen || "");
@@ -23706,7 +23932,9 @@
           const focusId = mode === "slot"
             ? "hospitation-slot-start"
             : "hospitation-contact";
-          document.getElementById(focusId)?.focus({ preventScroll: true });
+          const focusTarget = document.getElementById(focusId);
+          const customSelect = customSelectInstances.get(focusTarget);
+          (customSelect?.trigger || focusTarget)?.focus({ preventScroll: true });
         }, 0);
       }
 
@@ -27782,6 +28010,7 @@
         button.title = optionText;
         button.setAttribute("role", "option");
         button.setAttribute("aria-selected", String(isSelected));
+        button.tabIndex = -1;
 
         const label = document.createElement("span");
         label.className = "custom-select-option__label";
@@ -27866,6 +28095,7 @@
           input.addEventListener(eventName, (event) => event.stopPropagation());
         });
         const updateSearch = () => {
+          if (instance.searchValue === input.value) return;
           instance.searchValue = input.value;
           applyCustomSelectSearch(instance);
         };
@@ -27874,19 +28104,60 @@
           if (event.key === "Escape") {
             closeCustomSelect(select);
             instance.trigger.focus();
+            return;
           }
+          const options = [...instance.panel.querySelectorAll('[role="option"]:not([disabled])')];
+          if (event.key === "Enter" && options.length) {
+            event.preventDefault();
+            options[0].click();
+            return;
+          }
+          if (!["ArrowDown", "ArrowUp", "Home", "End"].includes(event.key) || !options.length) return;
+          event.preventDefault();
+          const selectedIndex = options.findIndex((option) => option.getAttribute("aria-selected") === "true");
+          const nextIndex = event.key === "ArrowUp" || event.key === "End"
+            ? options.length - 1
+            : event.key === "Home"
+              ? 0
+              : Math.max(0, selectedIndex);
+          options[nextIndex].focus({ preventScroll: true });
+          options[nextIndex].scrollIntoView({ block: "nearest" });
         });
         input.addEventListener("input", (event) => {
           event.stopPropagation();
           updateSearch();
         });
-        input.addEventListener("keyup", updateSearch);
+        input.addEventListener("keyup", (event) => {
+          if (["ArrowDown", "ArrowUp", "Home", "End", "Enter", "Escape"].includes(event.key)) return;
+          updateSearch();
+        });
         input.addEventListener("change", updateSearch);
         input.addEventListener("search", () => {
           updateSearch();
         });
         wrapper.append(input);
         return wrapper;
+      }
+
+      function customSelectAccessibleName(select) {
+        const directLabel = String(select.getAttribute("aria-label") || "").trim();
+        if (directLabel) return directLabel;
+        const labelledBy = String(select.getAttribute("aria-labelledby") || "")
+          .split(/\s+/)
+          .map((id) => document.getElementById(id)?.textContent?.trim() || "")
+          .filter(Boolean)
+          .join(" ");
+        if (labelledBy) return labelledBy;
+        const associatedLabel = select.labels?.[0];
+        if (associatedLabel) {
+          const labelClone = associatedLabel.cloneNode(true);
+          labelClone.querySelectorAll("select, input, textarea, button, [aria-hidden='true']").forEach((node) => node.remove());
+          const labelText = labelClone.textContent.replace(/\s+/g, " ").trim();
+          if (labelText) return labelText;
+        }
+        const fieldLabel = select.closest(".editor-field, .filter-block, .questionnaire-field")
+          ?.querySelector(".editor-field-label, .filter-label, label");
+        return fieldLabel?.textContent?.replace(/\s+/g, " ").trim() || "Auswahl";
       }
 
       function syncCustomSelect(select) {
@@ -27900,6 +28171,8 @@
           || select.options[0];
 
         renderCustomSelectLabel(instance.label, selectedOption, select);
+        const selectedText = (customSelectOptionText(selectedOption) || "Bitte wählen").trim();
+        instance.trigger.setAttribute("aria-label", `${instance.accessibleName}: ${selectedText}`);
         instance.trigger.classList.toggle("is-placeholder", !String(select.value || "").trim());
         instance.trigger.disabled = Boolean(select.disabled);
         instance.trigger.classList.toggle("readonly-control", Boolean(select.disabled));
@@ -27945,12 +28218,15 @@
         const variant = shell.dataset.selectVariant || (shell.classList.contains("detail-select-shell") ? "detail" : "default");
         const isDetail = variant === "detail";
         const isCompact = variant === "compact";
+        const accessibleName = customSelectAccessibleName(select);
+        const panelId = `custom-select-listbox-${++customSelectIdCounter}`;
 
         const trigger = document.createElement("button");
         trigger.type = "button";
         trigger.className = `custom-select-trigger${isDetail ? " custom-select-trigger--detail" : ""}${isCompact ? " custom-select-trigger--compact" : ""}`;
         trigger.setAttribute("aria-haspopup", "listbox");
         trigger.setAttribute("aria-expanded", "false");
+        trigger.setAttribute("aria-controls", panelId);
 
         const label = document.createElement("span");
         label.className = "custom-select-trigger__label";
@@ -27966,9 +28242,13 @@
         const panel = document.createElement("div");
         panel.className = `custom-select-panel${isDetail ? " custom-select-panel--detail" : ""}${isCompact ? " custom-select-panel--compact" : ""}`;
         panel.hidden = true;
+        panel.id = panelId;
         panel.setAttribute("role", "listbox");
+        panel.setAttribute("aria-label", accessibleName);
 
-        customSelectInstances.set(select, { select, shell, trigger, label, panel, searchValue: "" });
+        select.tabIndex = -1;
+        select.setAttribute("aria-hidden", "true");
+        customSelectInstances.set(select, { select, shell, trigger, label, panel, searchValue: "", accessibleName });
         shell.append(trigger, panel);
 
         const commitCustomSelectOption = (event) => {
@@ -28010,6 +28290,52 @@
           }
         });
 
+        const focusCustomSelectOption = (direction = 0) => {
+          const options = [...panel.querySelectorAll('[role="option"]:not([disabled])')];
+          if (!options.length) return;
+          const focusedIndex = options.indexOf(document.activeElement);
+          const selectedIndex = options.findIndex((option) => option.getAttribute("aria-selected") === "true");
+          const baseIndex = focusedIndex >= 0 ? focusedIndex : selectedIndex >= 0 ? selectedIndex : 0;
+          const nextIndex = direction === Number.POSITIVE_INFINITY
+            ? options.length - 1
+            : direction === Number.NEGATIVE_INFINITY
+              ? 0
+              : (baseIndex + direction + options.length) % options.length;
+          options[nextIndex].focus({ preventScroll: true });
+          options[nextIndex].scrollIntoView({ block: "nearest" });
+        };
+
+        trigger.addEventListener("keydown", (event) => {
+          if (event.key === "Escape" && shell.classList.contains("is-open")) {
+            event.preventDefault();
+            closeCustomSelect(select);
+            return;
+          }
+          if (!["ArrowDown", "ArrowUp", "Home", "End"].includes(event.key)) return;
+          event.preventDefault();
+          if (!shell.classList.contains("is-open")) trigger.click();
+          if (isSearchableCustomSelect(select)) return;
+          window.requestAnimationFrame(() => {
+            if (event.key === "Home") focusCustomSelectOption(Number.NEGATIVE_INFINITY);
+            else if (event.key === "End") focusCustomSelectOption(Number.POSITIVE_INFINITY);
+            else focusCustomSelectOption(event.key === "ArrowUp" ? -1 : 1);
+          });
+        });
+
+        panel.addEventListener("keydown", (event) => {
+          if (event.key === "Escape") {
+            event.preventDefault();
+            closeCustomSelect(select);
+            trigger.focus();
+            return;
+          }
+          if (!["ArrowDown", "ArrowUp", "Home", "End"].includes(event.key)) return;
+          event.preventDefault();
+          if (event.key === "Home") focusCustomSelectOption(Number.NEGATIVE_INFINITY);
+          else if (event.key === "End") focusCustomSelectOption(Number.POSITIVE_INFINITY);
+          else focusCustomSelectOption(event.key === "ArrowUp" ? -1 : 1);
+        });
+
         panel.addEventListener("mousedown", (event) => {
           if (event.button !== 0) return;
           if (!commitCustomSelectOption(event)) return;
@@ -28025,6 +28351,9 @@
 
         select.addEventListener("change", () => {
           syncCustomSelect(select);
+        });
+        select.addEventListener("invalid", () => {
+          trigger.focus({ preventScroll: true });
         });
 
         syncCustomSelect(select);
@@ -32003,6 +32332,16 @@
         if (topbarViewMeta) topbarViewMeta.textContent = greetingLabel;
         if (workspaceViewTitle) workspaceViewTitle.textContent = view.title;
         if (workspaceViewSubtitle) workspaceViewSubtitle.textContent = view.subtitle;
+        if (mainContent) mainContent.setAttribute("aria-label", view.title);
+        if (!isHospitationDocumentationStandalone) document.title = `${view.title} · Versorgungs-Kompass`;
+        const announcement = [view.title, view.subtitle].filter(Boolean).join(". ");
+        if (routeAnnouncer && routeAnnouncer.dataset.currentAnnouncement !== announcement) {
+          routeAnnouncer.dataset.currentAnnouncement = announcement;
+          routeAnnouncer.textContent = "";
+          window.requestAnimationFrame(() => {
+            if (routeAnnouncer.dataset.currentAnnouncement === announcement) routeAnnouncer.textContent = announcement;
+          });
+        }
       }
 
       function normalizeSettingsTab(tab = "registrations") {
@@ -32015,6 +32354,7 @@
           const active = button.dataset.settingsTab === activeSettingsTab;
           button.classList.toggle("is-active", active);
           button.setAttribute("aria-selected", String(active));
+          button.tabIndex = active ? 0 : -1;
         });
         settingsTabPanels.forEach((panel) => {
           const active = panel.dataset.settingsTabPanel === activeSettingsTab;
@@ -32055,6 +32395,7 @@
           const active = button.dataset.profileTab === activeProfileTab;
           button.classList.toggle("is-active", active);
           button.setAttribute("aria-selected", String(active));
+          button.tabIndex = active ? 0 : -1;
         });
         profileTabPanels.forEach((panel) => {
           const active = panel.dataset.profileTabPanel === activeProfileTab;
@@ -32067,6 +32408,7 @@
         if (activeProfileTab === "imports") setSettingsTab(activeSettingsTab);
         if (activeProfileTab === "changelog") renderAboutApp();
         if (activeProfileTab === "notifications") renderNotificationsView();
+        if (activeView === "profile") renderViewChrome();
       }
 
       function openProfileTab(tab = "profile") {
@@ -32166,6 +32508,34 @@
         else homeScroller.style.removeProperty("scroll-behavior");
       }
 
+      function resetWorkspaceNavigationPosition({ focus = true } = {}) {
+        const resetDocumentScroll = () => {
+          const scrollingElement = document.scrollingElement || document.documentElement;
+          const documentScrollBehavior = document.documentElement.style.scrollBehavior;
+          const bodyScrollBehavior = document.body.style.scrollBehavior;
+          document.documentElement.style.scrollBehavior = "auto";
+          document.body.style.scrollBehavior = "auto";
+          scrollingElement.scrollTop = 0;
+          scrollingElement.scrollLeft = 0;
+          document.documentElement.scrollLeft = 0;
+          document.body.scrollLeft = 0;
+          window.scrollTo({ top: 0, left: 0, behavior: "auto" });
+          if (documentScrollBehavior) document.documentElement.style.scrollBehavior = documentScrollBehavior;
+          else document.documentElement.style.removeProperty("scroll-behavior");
+          if (bodyScrollBehavior) document.body.style.scrollBehavior = bodyScrollBehavior;
+          else document.body.style.removeProperty("scroll-behavior");
+        };
+        resetDocumentScroll();
+        window.requestAnimationFrame(() => {
+          resetDocumentScroll();
+          const activePanel = document.querySelector('[data-view-panel].is-active');
+          activePanel?.querySelectorAll(".table-wrap").forEach((tableWrap) => {
+            tableWrap.scrollLeft = 0;
+          });
+          if (focus) mainContent?.focus({ preventScroll: true });
+        });
+      }
+
       function setSidebarCollapsed(collapsed, { persist = true } = {}) {
         if (collapsed) closeDemoProfileSwitcher();
         appShell?.classList.toggle("is-sidebar-collapsed", collapsed);
@@ -32228,6 +32598,10 @@
       }
 
       function updateRouteHash(view, { replace = false } = {}) {
+        if (blockedRouteUpdate) {
+          blockedRouteUpdate = false;
+          return;
+        }
         const routeToken = routeTokenForView(view);
         if (CLEAN_URLS_ENABLED && APP_ROUTES?.urlForRouteToken) {
           const nextUrl = APP_ROUTES.urlForRouteToken(routeToken, { search: window.location.search });
@@ -32272,6 +32646,14 @@
 
       function setActiveView(view) {
         if (onboardingActive && view !== "onboarding") view = "onboarding";
+        if (activeView === "profile" && view !== "profile" && profileDirty) {
+          if (!window.confirm("Ungespeicherte Profiländerungen verwerfen?")) {
+            blockedRouteUpdate = true;
+            setProfileStatus("Bitte speichere oder verwirf deine Profiländerungen, bevor du den Bereich wechselst.", true);
+            return false;
+          }
+          renderProfileForm();
+        }
         if (settingsTabItems.some((item) => item.id === view)) {
           if (canAdministerData()) {
             setSettingsTab(view);
@@ -32405,6 +32787,8 @@
         if (view === "map") {
           syncMapFrame(mapContacts());
         }
+        if (viewChanged) resetWorkspaceNavigationPosition();
+        return true;
       }
 
       function mapContacts() {
@@ -32493,6 +32877,253 @@
           profilePhotoModal?.classList.contains("is-open");
         document.body.style.overflow = overlayOpen ? "hidden" : "";
       }
+
+      const managedDialogState = new WeakMap();
+      const managedDialogInertState = new Map();
+      let lastFocusOutsideModal = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+      let lastActiveManagedDialog = null;
+
+      function managedModalDialogs() {
+        return [...document.querySelectorAll('[role="dialog"][aria-modal="true"]')];
+      }
+
+      function managedDialogContainer(dialog) {
+        return dialog.closest("aside[aria-hidden], [aria-hidden]") || dialog;
+      }
+
+      function isManagedDialogOpen(dialog) {
+        const container = managedDialogContainer(dialog);
+        return !dialog.hidden &&
+          !container.hidden &&
+          container.getAttribute("aria-hidden") !== "true" &&
+          getComputedStyle(container).display !== "none" &&
+          getComputedStyle(container).visibility !== "hidden";
+      }
+
+      function activeManagedDialog() {
+        return managedModalDialogs().filter(isManagedDialogOpen).at(-1) || null;
+      }
+
+      function managedDialogFocusables(dialog) {
+        return [...dialog.querySelectorAll(
+          'a[href], button:not([disabled]), input:not([disabled]):not([type="hidden"]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])'
+        )].filter((element) =>
+          element instanceof HTMLElement &&
+          !element.hidden &&
+          !element.closest("[hidden]") &&
+          element.getAttribute("aria-hidden") !== "true" &&
+          element.tabIndex >= 0 &&
+          getComputedStyle(element).visibility !== "hidden" &&
+          getComputedStyle(element).display !== "none"
+        );
+      }
+
+      function managedDialogFormSignature(dialog) {
+        const entries = [...dialog.querySelectorAll("form")].flatMap((form, formIndex) =>
+          [...new FormData(form).entries()].map(([key, value]) => [
+            formIndex,
+            key,
+            value instanceof File ? `${value.name}:${value.size}:${value.lastModified}` : String(value)
+          ])
+        );
+        return JSON.stringify(entries);
+      }
+
+      function managedDialogHasUnsavedChanges(dialog) {
+        // The hospitation editor persists changes continuously and exposes its
+        // own save status. Treating its transient form state as an unsaved
+        // draft would block a normal close even after autosave completed.
+        if (dialog.closest("#hospitation-editor-drawer")) return false;
+        const state = managedDialogState.get(dialog);
+        return Boolean(state?.open && state.formSignature !== undefined && state.formSignature !== managedDialogFormSignature(dialog));
+      }
+
+      function isManagedDialogDismissIntent(target, dialog) {
+        if (!(target instanceof Element)) return false;
+        const container = managedDialogContainer(dialog);
+        if (!container.contains(target)) return false;
+        if (!dialog.contains(target)) return true;
+        return Boolean(target.closest(
+          ".detail-close, [data-dialog-close], [data-modal-close], [id$='-close'], [id$='-cancel']"
+        ));
+      }
+
+      function confirmManagedDialogDiscard(dialog) {
+        if (!managedDialogHasUnsavedChanges(dialog)) return true;
+        const confirmed = window.confirm("Ungespeicherte Änderungen verwerfen?");
+        if (confirmed) {
+          const state = managedDialogState.get(dialog);
+          managedDialogState.set(dialog, { ...state, formSignature: managedDialogFormSignature(dialog) });
+        }
+        return confirmed;
+      }
+
+      function managedDialogHasOpenTransientControl(dialog) {
+        return Boolean(dialog.querySelector(
+          "[data-custom-select].is-open, [data-organization-combobox].is-open"
+        ));
+      }
+
+      function managedDialogReturnFocusToken(element) {
+        if (!(element instanceof HTMLElement)) return "";
+        if (element.id) return `#${CSS.escape(element.id)}`;
+        const stableAttributes = [...element.attributes]
+          .filter((attribute) => attribute.name.startsWith("data-") && attribute.value)
+          .slice(0, 2);
+        if (!stableAttributes.length) return "";
+        return `${element.localName}${stableAttributes
+          .map((attribute) => `[${CSS.escape(attribute.name)}="${CSS.escape(attribute.value)}"]`)
+          .join("")}`;
+      }
+
+      function clearManagedDialogInertState() {
+        managedDialogInertState.forEach((previouslyInert, element) => {
+          if (element.isConnected) element.inert = previouslyInert;
+        });
+        managedDialogInertState.clear();
+      }
+
+      function isManagedDialogBackdrop(element) {
+        return element.matches(
+          ".detail-overlay, .editor-overlay, .import-overlay, .format-participant-overlay, .product-tour__backdrop, [class*='backdrop']"
+        );
+      }
+
+      function syncManagedDialogInertState(dialog) {
+        clearManagedDialogInertState();
+        if (!dialog) return;
+        let activeBranch = dialog;
+        while (activeBranch?.parentElement) {
+          const parent = activeBranch.parentElement;
+          [...parent.children].forEach((sibling) => {
+            if (
+              !(sibling instanceof HTMLElement) ||
+              sibling === activeBranch ||
+              sibling.contains(dialog) ||
+              isManagedDialogBackdrop(sibling)
+            ) return;
+            managedDialogInertState.set(sibling, sibling.inert);
+            sibling.inert = true;
+          });
+          activeBranch = parent;
+          if (parent === document.body) break;
+        }
+      }
+
+      function restoreManagedDialogFocus(dialog) {
+        const previous = managedDialogState.get(dialog);
+        if (!previous?.open) return;
+        managedDialogState.set(dialog, { ...previous, open: false });
+        const activeElement = document.activeElement;
+        const returnFocus = previous.returnFocus?.isConnected
+          ? previous.returnFocus
+          : previous.returnFocusToken
+            ? document.querySelector(previous.returnFocusToken)
+            : null;
+        if (
+          returnFocus instanceof HTMLElement &&
+          (!activeElement || activeElement === document.body || dialog.contains(activeElement))
+        ) {
+          window.requestAnimationFrame(() => returnFocus.focus({ preventScroll: true }));
+        }
+      }
+
+      function syncManagedDialogFocus() {
+        const dialogs = managedModalDialogs();
+        dialogs.forEach((dialog) => {
+          const open = isManagedDialogOpen(dialog);
+          const previous = managedDialogState.get(dialog) || { open: false, returnFocus: null };
+          if (open && !previous.open) {
+            managedDialogState.set(dialog, {
+              open: true,
+              returnFocus: lastFocusOutsideModal,
+              returnFocusToken: managedDialogReturnFocusToken(lastFocusOutsideModal),
+              formSignature: managedDialogFormSignature(dialog)
+            });
+            window.requestAnimationFrame(() => {
+              if (!isManagedDialogOpen(dialog) || dialog.contains(document.activeElement)) return;
+              const firstFocusable = managedDialogFocusables(dialog)[0];
+              if (firstFocusable) firstFocusable.focus({ preventScroll: true });
+              else {
+                if (!dialog.hasAttribute("tabindex")) dialog.tabIndex = -1;
+                dialog.focus({ preventScroll: true });
+              }
+            });
+          } else if (!open && previous.open) {
+            restoreManagedDialogFocus(dialog);
+          }
+        });
+        const activeDialog = activeManagedDialog();
+        if (
+          lastActiveManagedDialog &&
+          lastActiveManagedDialog !== activeDialog &&
+          (!lastActiveManagedDialog.isConnected || !isManagedDialogOpen(lastActiveManagedDialog))
+        ) {
+          restoreManagedDialogFocus(lastActiveManagedDialog);
+        }
+        lastActiveManagedDialog = activeDialog;
+        syncManagedDialogInertState(activeDialog);
+      }
+
+      function initializeManagedDialogFocus() {
+        managedModalDialogs().forEach((dialog) => {
+          managedDialogState.set(dialog, { open: isManagedDialogOpen(dialog), returnFocus: null });
+        });
+        document.addEventListener("focusin", (event) => {
+          if (!activeManagedDialog() && event.target instanceof HTMLElement) lastFocusOutsideModal = event.target;
+        });
+        document.addEventListener("click", (event) => {
+          const dialog = activeManagedDialog();
+          if (!dialog || !isManagedDialogDismissIntent(event.target, dialog)) return;
+          if (confirmManagedDialogDiscard(dialog)) return;
+          event.preventDefault();
+          event.stopImmediatePropagation();
+        }, true);
+        document.addEventListener("keydown", (event) => {
+          if (event.defaultPrevented) return;
+          const dialog = activeManagedDialog();
+          if (!dialog) return;
+          if (event.key === "Escape" && managedDialogHasOpenTransientControl(dialog)) return;
+          if (event.key === "Escape" && !confirmManagedDialogDiscard(dialog)) {
+            event.preventDefault();
+            event.stopImmediatePropagation();
+            return;
+          }
+          if (event.key !== "Tab") return;
+          const focusables = managedDialogFocusables(dialog);
+          if (!focusables.length) {
+            event.preventDefault();
+            if (!dialog.hasAttribute("tabindex")) dialog.tabIndex = -1;
+            dialog.focus({ preventScroll: true });
+            return;
+          }
+          const first = focusables[0];
+          const last = focusables.at(-1);
+          if (!dialog.contains(document.activeElement)) {
+            event.preventDefault();
+            (event.shiftKey ? last : first).focus();
+          } else if (event.shiftKey && document.activeElement === first) {
+            event.preventDefault();
+            last.focus();
+          } else if (!event.shiftKey && document.activeElement === last) {
+            event.preventDefault();
+            first.focus();
+          }
+        }, true);
+        window.addEventListener("beforeunload", (event) => {
+          const dialog = activeManagedDialog();
+          if (!profileDirty && !(dialog && managedDialogHasUnsavedChanges(dialog))) return;
+          event.preventDefault();
+          event.returnValue = "";
+        });
+        new MutationObserver(syncManagedDialogFocus).observe(document.body, {
+          subtree: true,
+          attributes: true,
+          attributeFilter: ["aria-hidden", "hidden", "class"]
+        });
+        syncManagedDialogFocus();
+      }
+
 
       function openExpertDetail(id, items = filteredExpertContacts()) {
         openDetail(id, items, { scope: "expert" });
@@ -34275,7 +34906,10 @@
           return;
         }
         if (!contactContentSearchResults.length) {
-          contactContentSearchResultsNode.innerHTML = `<div class="contact-content-search-state">Keine Treffer in Kontakten, Notizen oder Anhängen.</div>`;
+          const contactMatchCount = filteredContacts().length;
+          contactContentSearchResultsNode.innerHTML = contactMatchCount
+            ? `<div class="contact-content-search-state">${contactMatchCount} Treffer in der Kontaktliste. Keine zusätzlichen Treffer in Notizen oder Anhängen.</div>`
+            : `<div class="contact-content-search-state">Keine Treffer in Kontakten, Notizen oder Anhängen.</div>`;
           return;
         }
         contactContentSearchResultsNode.innerHTML = contactContentSearchResults.map((result) => {
@@ -34592,6 +35226,7 @@
       stakeholderMapFrame?.addEventListener("load", () => {
         syncStakeholderMapFrame(stakeholderMapPeople());
       });
+      questionnaireForm?.setAttribute("novalidate", "");
       questionnaireContainerSelect?.addEventListener("change", applyQuestionnaireContainerSelection);
       questionnaireOrganizationSelect?.addEventListener("change", applyQuestionnaireOrganizationSelection);
       questionnaireContactSelect?.addEventListener("change", applyQuestionnaireContactSelection);
@@ -34688,6 +35323,10 @@
       questionnaireForm?.addEventListener("input", (event) => {
         const target = event.target instanceof Element ? event.target : null;
         if (target?.matches("[data-custom-select-search-input]")) return;
+        if (target instanceof HTMLElement) {
+          clearQuestionnaireControlValidation(target);
+          refreshVisibleQuestionnaireStepValidation(target);
+        }
         resetQuestionnaireSaveState();
         if (target === questionnaireReflectionMessageInput) {
           syncQuestionnaireReflectionValue();
@@ -34696,6 +35335,13 @@
         if (!target?.matches('input[name*="[title]"]')) return;
         if (!target.closest("[data-questionnaire-observation-card]")) return;
         updateQuestionnaireObservationCards();
+      });
+      questionnaireForm?.addEventListener("change", (event) => {
+        const target = event.target instanceof HTMLElement ? event.target : null;
+        if (target) {
+          clearQuestionnaireControlValidation(target);
+          refreshVisibleQuestionnaireStepValidation(target);
+        }
       });
       questionnaireForm?.addEventListener("reset", () => {
         requestAnimationFrame(() => {
@@ -34804,6 +35450,9 @@
           updateView();
         });
       });
+      bindRovingTablist(analyticsModeButtons);
+      bindRovingTablist(expertModeButtons);
+      bindRovingTablist(patientModeButtons);
       stakeholderTypeActions?.addEventListener("click", async (event) => {
         const button = event.target.closest("[data-stakeholder-type]");
         if (!button) return;
@@ -34819,6 +35468,9 @@
         closeDetail();
         await loadStakeholderData({ includeArchived: canAdministerData() });
         updateView();
+      });
+      stakeholderTypeActions?.addEventListener("keydown", (event) => {
+        handleRovingTabKeydown(event, stakeholderTypeActions.querySelectorAll('[role="tab"]'));
       });
       const initialSidebarRouteView = routeViewFromLocation() || "home";
       const transientInitialHomeSidebarCollapse = !isMobileLayout() && initialSidebarRouteView === "home";
@@ -34874,6 +35526,9 @@
           renderViewChrome();
         });
       });
+      bindRovingTablist(settingsTabButtons);
+      bindRovingTablist(profileTabButtons);
+      bindRovingTablist(notificationFilterButtons);
       sidebarAboutButton?.addEventListener("click", () => {
         closeMenus();
         closeMobileSidebar();
@@ -35937,6 +36592,7 @@
 
       document.addEventListener("keydown", (event) => {
         if (event.key === "Escape") {
+          if (event.defaultPrevented) return;
           if (productTourState.open) {
             closeProductTour({ skipped: true });
             return;
@@ -36121,7 +36777,12 @@
           return;
         }
         if (nextView === "hospitations" && activeHospitationTab !== "observations") closeHospitationObservationDrawer();
-        setActiveView(nextView);
+        if (!setActiveView(nextView)) {
+          blockedRouteUpdate = false;
+          updateRouteHash(activeView, { replace: true });
+          updateView();
+          return;
+        }
         if (canonicalizeLegacy && CLEAN_URLS_ENABLED) {
           updateRouteHash(nextView, { replace: true });
         }
@@ -36426,6 +37087,12 @@
       }
 
       renderAccountProfile(null);
+      skipLink?.addEventListener("click", (event) => {
+        event.preventDefault();
+        mainContent?.focus({ preventScroll: true });
+        mainContent?.scrollIntoView({ block: "start" });
+      });
+      initializeManagedDialogFocus();
       window.setTimeout(() => {
         if (!isInitialDataLoading) return;
         initialDataLoadingSlow = true;

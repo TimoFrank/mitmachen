@@ -87,6 +87,12 @@ jobs:
       - name: Run repository checks
         run: npm run check
 
+      - name: Install Chromium
+        run: npx playwright install --with-deps chromium
+
+      - name: Run desktop delivery regressions
+        run: npm run test:delivery-ui:desktop
+
       - name: Build Pages artifact
         shell: bash
         run: |

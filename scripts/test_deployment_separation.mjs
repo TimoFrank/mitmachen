@@ -363,15 +363,44 @@ try {
   assert.doesNotMatch(targetText, /https:\/\/[a-z0-9-]+\.supabase\.co/i, "Target darf keine direkte Supabase-Projekt-URL enthalten");
   assert.doesNotMatch(targetText, /@supabase\/supabase-js|supabase-js@/i, "Target darf kein Supabase Browser-SDK laden");
 
-  assert.equal(
-    fs.readFileSync(path.join(pagesDir, "versorgungs-kompass.css"), "utf8"),
-    fs.readFileSync(path.join(targetDir, "versorgungs-kompass.css"), "utf8"),
-    "Pages und Target muessen dieselben App-Styles verwenden"
+  for (const [relativePath, label] of [
+    ["versorgungs-kompass.css", "App-Styles"],
+    ["versorgungs-kompass.js", "App-Logik"],
+    ["versorgungs-kompass-map.css", "Karten-Styles"],
+    ["versorgungs-kompass-map.js", "Karten-Logik"]
+  ]) {
+    assert.equal(
+      fs.readFileSync(path.join(pagesDir, relativePath), "utf8"),
+      fs.readFileSync(path.join(targetDir, relativePath), "utf8"),
+      `Pages und Target muessen dieselben ${label} verwenden`
+    );
+  }
+  const pagesMapHtml = fs.readFileSync(path.join(pagesDir, "versorgungs-kompass-map.html"), "utf8");
+  const targetMapHtml = fs.readFileSync(path.join(targetDir, "versorgungs-kompass-map.html"), "utf8");
+  const targetMapAuthScripts = [
+    '<script src="./auth-config.js"></script>',
+    '<script src="./auth-guard.js"></script>'
+  ];
+  for (const authScript of targetMapAuthScripts) {
+    assert.equal(
+      targetMapHtml.split(authScript).length - 1,
+      1,
+      `Target-Karten-HTML muss ${authScript} genau einmal enthalten`
+    );
+    assert.doesNotMatch(
+      pagesMapHtml,
+      new RegExp(authScript.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")),
+      `Pages-Karten-HTML darf ${authScript} nicht enthalten`
+    );
+  }
+  const normalizedTargetMapHtml = targetMapHtml.replace(
+    /^[ \t]*<script src="\.\/auth-(?:config|guard)\.js"><\/script>[ \t]*\r?\n/gm,
+    ""
   );
   assert.equal(
-    fs.readFileSync(path.join(pagesDir, "versorgungs-kompass.js"), "utf8"),
-    fs.readFileSync(path.join(targetDir, "versorgungs-kompass.js"), "utf8"),
-    "Pages und Target muessen dieselbe App-Logik verwenden"
+    pagesMapHtml,
+    normalizedTargetMapHtml,
+    "Pages und Target muessen ausserhalb der expliziten Target-Auth-Skripte dieselbe Karten-HTML verwenden"
   );
 
   const pagesOnly = new Set(relativeFiles(pagesDir).filter((file) => file !== "build-manifest.json"));
