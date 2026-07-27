@@ -1564,8 +1564,6 @@
       let detailImageEditorOpen = false;
       let editorImagePreviewUrl = "";
       let detailActiveTab = "overview";
-      let detailParticipationSection = "hospitations";
-      let detailEditingFormatId = "";
       let detailFormatLinkOpen = false;
       let detailProfileReturnTo = "";
       let organizationDetailActiveTab = "overview";
@@ -24674,55 +24672,20 @@
         return startTime === null || startTime <= now;
       }
 
-      function hospitationProfileStatusLabel(item = {}, now = Date.now()) {
-        const phase = hospitationProfilePhase(item, now);
-        if (phase === "ongoing") return "Läuft";
-        if (phase === "completed") return "Durchgeführt";
-        if (phase === "documented") return "Dokumentiert";
-        if (phase === "cancelled") return "Abgesagt";
-        if (phase === "archived") return "Archiviert";
-        return hospitationDisplayStatus(item.status || "Angefragt");
-      }
-
-      function hospitationProfileDocumentationState(item = {}) {
-        if (normalizeClassPart(item.status || "") === "dokumentiert") return { tone: "done", label: "Dokumentiert" };
-        return hospitationDocumentationState(item);
-      }
-
-      function hospitationProfileContextCopy(item = {}) {
-        const organization = hospitationOrganizationLabel(item);
-        const detail = meaningfulOrEmpty(item.goal) || normalizeThemes(item.topics || item.themes || [])[0] || hospitationLocationLabel(item) || "Hospitation";
-        return {
-          title: organization && organization !== "Nicht hinterlegt" ? organization : detail,
-          meta: organization && organization !== "Nicht hinterlegt" && detail !== organization ? detail : "Hospitationskontext"
-        };
-      }
-
       function renderHospitationProfileHistoryItem(item = {}, now = Date.now()) {
         const phase = hospitationProfilePhase(item, now);
-        const documentation = hospitationProfileDocumentationState(item);
-        const context = hospitationProfileContextCopy(item);
-        const hasDocumentation = documentation.label !== "Offen";
+        const ownerLabel = hospitationOwnerIds(item).map(hospitationOwnerLabel).filter(Boolean).join(", ") || "Nicht zugewiesen";
         return `
-          <article class="hospitation-profile-history__item ${phase === "archived" ? "hospitation-profile-history__item--archived" : ""}" data-hospitation-profile-history-id="${escapeHtml(item.id || "")}" data-hospitation-profile-phase="${escapeHtml(phase)}">
-            <div class="hospitation-profile-history__top">
-              <time class="hospitation-profile-history__date" datetime="${escapeHtml(hospitationDateSourceValue(item))}">${escapeHtml(hospitationDateOnlyLabel(item))}</time>
-              ${hospitationStatusBadgeMarkup(hospitationProfileStatusLabel(item, now))}
+          <article class="hospitation-profile-record ${phase === "archived" ? "hospitation-profile-record--archived" : ""}" aria-label="Hospitation am ${escapeHtml(hospitationDateOnlyLabel(item))}" data-hospitation-profile-history-id="${escapeHtml(item.id || "")}" data-hospitation-profile-phase="${escapeHtml(phase)}">
+            <div class="hospitation-profile-record__copy">
+              <span class="hospitation-profile-record__owner">
+                ${hospitationOwnerAvatarStackMarkup(item)}
+                <span>${escapeHtml(ownerLabel)}</span>
+              </span>
             </div>
-            <div class="hospitation-profile-history__context">
-              <strong>${escapeHtml(context.title)}</strong>
-              <span>${escapeHtml(context.meta)}</span>
-            </div>
-            <div class="hospitation-profile-history__actions">
-              <button class="action-button action-button--compact" type="button" data-hospitation-profile-action="open" data-hospitation-id="${escapeHtml(item.id || "")}">Öffnen</button>
-              ${hasDocumentation ? `
-                <details class="profile-action-menu">
-                  <summary class="profile-action-menu__trigger" aria-label="Weitere Aktionen für die Hospitation">•••</summary>
-                  <div class="profile-action-menu__popover">
-                    <button class="action-button action-button--compact" type="button" data-hospitation-profile-action="document" data-hospitation-id="${escapeHtml(item.id || "")}">Dokumentation öffnen</button>
-                  </div>
-                </details>
-              ` : ""}
+            <div class="hospitation-profile-record__actions">
+              <time class="profile-date-badge profile-date-badge--hospitation hospitation-profile-history__date" datetime="${escapeHtml(item.startsAt || item.starts_at || "")}">${escapeHtml(hospitationDateOnlyLabel(item))}</time>
+              ${canEditContacts() ? `<button class="action-button action-button--compact" type="button" data-hospitation-profile-action="open" data-hospitation-id="${escapeHtml(item.id || "")}">Öffnen</button>` : ""}
             </div>
           </article>
         `;
@@ -24753,7 +24716,7 @@
           </div>
           ${remaining.length ? `
             <details class="hospitation-profile-history__more">
-              <summary>Alle ${historical.length} bisherigen anzeigen</summary>
+              <summary>Weitere ${remaining.length} ${remaining.length === 1 ? "Hospitation" : "Hospitationen"}</summary>
               <div class="hospitation-profile-history__list">
                 ${remaining.map((item) => renderHospitationProfileHistoryItem(item, now)).join("")}
               </div>
@@ -24777,46 +24740,47 @@
         const now = Date.now();
         const { ongoing, nextItem } = hospitationProfileNext(items, now);
         const contextAttrs = `data-context-kind="${escapeHtml(context.kind || "")}" data-context-id="${escapeHtml(context.id || "")}"`;
-        const primaryAction = nextItem
-          ? `<button class="action-button action-button--compact action-button--primary" type="button" data-hospitation-profile-action="open" data-hospitation-id="${escapeHtml(nextItem.id)}">Öffnen</button>`
-          : `<button class="action-button action-button--compact action-button--primary" type="button" data-hospitation-profile-action="request" ${contextAttrs}>+ Planen</button>`;
-        const actions = `
-          <div class="hospitation-card__actions">
-            ${canEditContacts() && hospitationDataState === "ready" ? primaryAction : ""}
-            <button class="action-button action-button--compact" type="button" data-hospitation-profile-action="list" ${contextAttrs}>Alle Hospitationen</button>
-          </div>
-        `;
+        const nextOwnerLabel = nextItem
+          ? hospitationOwnerIds(nextItem).map(hospitationOwnerLabel).filter(Boolean).join(", ") || "Nicht zugewiesen"
+          : "";
         const nextStateLabel = hospitationDataState === "loading"
           ? "Wird geladen"
           : hospitationDataState === "error"
             ? "Nicht verfügbar"
             : nextItem
-              ? ongoing ? "Läuft gerade" : "Geplant"
-              : "Nicht geplant";
+              ? ongoing ? "Aktuelle Hospitation" : "Nächste Hospitation"
+              : "Keine Hospitation geplant";
         return `
           <div class="section-block" data-hospitation-profile-section>
-            <h4 class="detail-section-title">Hospitationen</h4>
-            <div class="hospitation-profile-next ${nextItem ? "hospitation-profile-next--planned" : ""}">
-              <div class="hospitation-profile-next__copy">
-                <span>${ongoing ? "Aktuelle Hospitation" : "Nächste Hospitation"}</span>
+            <div class="profile-section-heading">
+              <div>
+                <h4 class="detail-section-title">Hospitationen</h4>
+              </div>
+              ${canEditContacts() && hospitationDataState === "ready" ? `<button class="action-button action-button--compact action-button--primary" type="button" data-hospitation-profile-action="request" ${contextAttrs}>Neue Hospitation planen</button>` : ""}
+            </div>
+            <div class="hospitation-profile-record hospitation-profile-record--next ${nextItem ? "has-entry" : ""}">
+              <div class="hospitation-profile-record__copy">
                 <strong>${escapeHtml(nextStateLabel)}</strong>
+                ${nextItem ? `
+                  <span class="hospitation-profile-record__owner">
+                    ${hospitationOwnerAvatarStackMarkup(nextItem)}
+                    <span>${escapeHtml(nextOwnerLabel)}</span>
+                  </span>
+                ` : ""}
               </div>
               ${nextItem ? `
-                <span class="hospitation-profile-next__date">${escapeHtml(hospitationDateOnlyLabel(nextItem))}</span>
-                <span class="hospitation-profile-next__owner">
-                  <span class="hospitation-profile-next__owner-label">Owner</span>
-                  ${hospitationOwnerAvatarStackMarkup(nextItem)}
-                </span>
+                <div class="hospitation-profile-record__actions">
+                  <time class="profile-date-badge profile-date-badge--hospitation hospitation-profile-next__date" datetime="${escapeHtml(nextItem.startsAt || nextItem.starts_at || "")}">${escapeHtml(hospitationDateOnlyLabel(nextItem))}</time>
+                  ${canEditContacts() ? `<button class="action-button action-button--compact" type="button" data-hospitation-profile-action="open" data-hospitation-id="${escapeHtml(nextItem.id)}">Öffnen</button>` : ""}
+                </div>
               ` : ""}
             </div>
             <div class="hospitation-profile-history" data-hospitation-profile-history>
               <div class="hospitation-profile-history__heading">
                 <strong>Bisherige Hospitationen</strong>
-                <span>Neueste zuerst</span>
               </div>
               ${renderHospitationProfileHistory(items, now)}
             </div>
-            ${actions}
           </div>
         `;
       }
@@ -24833,27 +24797,20 @@
                 ? { organizationId: contextId }
                 : {};
             const linkedHospitation = hospitations.find((item) => item.id === button.dataset.hospitationId);
-            if (action === "list") {
-              hospitationContextFilter = { kind: contextKind, id: contextId };
-              hospitationArchiveView = false;
-              hospitationScheduleView = "list";
-              selectedHospitationEntryKeys.clear();
-              setActiveView("hospitations");
-              activeHospitationTab = "appointments";
-              updateRouteHash(hospitationRouteForTab("appointments"));
-              updateView();
-            } else if (action === "retry") {
+            if (action === "retry") {
               hospitationDataState = "loading";
               updateView();
               await loadHospitationData({ includeArchived: canAdministerData() });
               updateView();
-            } else if (action === "document") {
-              openHospitationEditor("documentation", linkedHospitation, { initialTab: "hospitation" });
-            } else if (action === "open" && linkedHospitation) {
+            } else if (action === "open") {
+              if (!linkedHospitation) {
+                setStorageStatus("Fehler: Hospitation konnte nicht geöffnet werden.");
+                return;
+              }
               const hasDocumentation = linkedHospitation.status === "Dokumentiert" || meaningfulOrEmpty(linkedHospitation.documentationSummary);
               const mode = hasDocumentation || hospitationIsReadyForDocumentation(linkedHospitation.status) ? "documentation" : "request";
               openHospitationEditor(mode, linkedHospitation, { initialTab: "overview" });
-            } else {
+            } else if (action === "request") {
               openHospitationEditor("request", null, editorContext);
             }
           });
@@ -24879,44 +24836,27 @@
         return time !== null && time < now;
       }
 
-      function renderFormatProfileItem({ format, participant } = {}, phase = "upcoming", options = {}) {
-        const editable = Boolean(options.editable);
-        const editingStatus = editable && detailEditingFormatId === format.id;
+      function renderFormatProfileItem({ format, participant } = {}, phase = "upcoming") {
         const dateLabel = formatDateRange(format);
         return `
           <article class="format-profile__item ${phase === "past" ? "format-profile__item--past" : ""}" data-format-profile-item="${escapeHtml(format.id)}" data-format-profile-phase="${escapeHtml(phase)}">
             <div class="format-profile__copy">
               <strong>${escapeHtml(format.title || "Unbenanntes Format")}</strong>
-              <span>${escapeHtml(format.formatType || "Format")} · ${escapeHtml(dateLabel)}</span>
-            </div>
-            <div class="format-profile__controls">
-              <span class="format-profile__status-control">
+              <span class="format-profile__badges">
+                <span class="format-profile__type-badge">${escapeHtml(format.formatType || "Format")}</span>
                 ${formatParticipationStatusBadgeMarkup(participant.invitationStatus)}
-                ${editable && !editingStatus ? `<button class="detail-inline-action" type="button" data-format-profile-action="edit-status" data-format-id="${escapeHtml(format.id)}" data-contact-id="${escapeHtml(participant.contactId)}">Status ändern</button>` : ""}
               </span>
+            </div>
+            <div class="format-profile__trailing">
+              <time class="profile-date-badge profile-date-badge--format" datetime="${escapeHtml(format.startsAt || format.starts_at || "")}">${escapeHtml(dateLabel)}</time>
               <button class="action-button action-button--compact" type="button" data-format-profile-action="open" data-format-id="${escapeHtml(format.id)}">Öffnen</button>
             </div>
-            ${editingStatus ? `
-              <form class="format-profile__status-form" data-format-profile-status-form="${escapeHtml(format.id)}">
-                <label class="format-profile__link-field">
-                  <span>Beteiligungsstatus</span>
-                  <span class="editor-select-shell format-profile__select-shell" data-custom-select data-select-variant="detail" data-select-type="format-profile-status-${escapeHtml(format.id)}">
-                    <select class="editor-select format-profile__status-select" data-format-profile-status="${escapeHtml(format.id)}" data-contact-id="${escapeHtml(participant.contactId)}" aria-label="Beteiligungsstatus für ${escapeHtml(format.title || "Format")}">${formatParticipationStatusOptionMarkup(participant.invitationStatus)}</select>
-                  </span>
-                </label>
-                <div class="format-profile__form-actions">
-                  <button class="action-button action-button--compact action-button--primary" type="submit">Speichern</button>
-                  <button class="action-button action-button--compact" type="button" data-format-profile-action="cancel-status" data-format-id="${escapeHtml(format.id)}">Abbrechen</button>
-                </div>
-              </form>
-            ` : ""}
           </article>
         `;
       }
 
-      function renderFormatProfileGroup(title, entries = [], phase = "upcoming", options = {}) {
+      function renderFormatProfileGroup(title, entries = [], phase = "upcoming") {
         const emptyLabel = phase === "past" ? "Noch keine vergangenen Formate" : "Keine kommenden Formate geplant";
-        const containsEditedFormat = options.editable && entries.some(({ format }) => format.id === detailEditingFormatId);
         if (!entries.length) {
           return `
             <section class="format-profile__group" data-format-profile-group="${escapeHtml(phase)}">
@@ -24930,31 +24870,30 @@
         }
         if (phase === "past") {
           return `
-            <details class="format-profile__group format-profile__more" data-format-profile-group="${escapeHtml(phase)}" ${containsEditedFormat ? "open" : ""}>
+            <details class="format-profile__group format-profile__more" data-format-profile-group="${escapeHtml(phase)}">
               <summary>
                 <span>${escapeHtml(title)}</span>
                 <span>${entries.length} ${entries.length === 1 ? "Format" : "Formate"}</span>
               </summary>
               <div class="format-profile__list">
-                ${entries.map((entry) => renderFormatProfileItem(entry, phase, options)).join("")}
+                ${entries.map((entry) => renderFormatProfileItem(entry, phase)).join("")}
               </div>
             </details>
           `;
         }
         const visible = entries.slice(0, 3);
         const remaining = entries.slice(3);
-        const remainingContainsEditedFormat = options.editable && remaining.some(({ format }) => format.id === detailEditingFormatId);
         return `
           <section class="format-profile__group" data-format-profile-group="${escapeHtml(phase)}">
             <div class="format-profile__heading">
               <strong>${escapeHtml(title)}</strong>
               <span>${entries.length} ${entries.length === 1 ? "Format" : "Formate"}</span>
             </div>
-            <div class="format-profile__list">${visible.map((entry) => renderFormatProfileItem(entry, phase, options)).join("")}</div>
+            <div class="format-profile__list">${visible.map((entry) => renderFormatProfileItem(entry, phase)).join("")}</div>
             ${remaining.length ? `
-              <details class="format-profile__more" ${remainingContainsEditedFormat ? "open" : ""}>
+              <details class="format-profile__more">
                 <summary>Weitere ${remaining.length} anzeigen</summary>
-                <div class="format-profile__list">${remaining.map((entry) => renderFormatProfileItem(entry, phase, options)).join("")}</div>
+                <div class="format-profile__list">${remaining.map((entry) => renderFormatProfileItem(entry, phase)).join("")}</div>
               </details>
             ` : ""}
           </section>
@@ -24972,12 +24911,12 @@
             return leftTime - rightTime || left.title.localeCompare(right.title, "de");
           });
         if (!available.length) {
-          return `<div class="format-profile__state"><strong>Alle vorhandenen Formate sind bereits verknüpft.</strong></div>`;
+          return "";
         }
         if (!detailFormatLinkOpen) {
           return `
             <div class="format-profile__link-disclosure" data-format-profile-link-disclosure>
-              <button class="action-button action-button--compact" type="button" data-format-profile-action="link">+ Format verknüpfen</button>
+              <button class="action-button action-button--compact action-button--primary" type="button" data-format-profile-action="link">Zu Format hinzufügen</button>
             </div>
           `;
         }
@@ -24995,11 +24934,11 @@
             <label class="format-profile__link-field">
               <span>Beteiligungsstatus</span>
               <span class="editor-select-shell format-profile__select-shell" data-custom-select data-select-variant="detail" data-select-type="format-profile-link-status-${escapeHtml(contactId)}">
-                <select class="editor-select" name="invitationStatus" aria-label="Beteiligungsstatus beim Verknüpfen">${formatParticipationStatusOptionMarkup("Eingeladen", { includeCandidate: false })}</select>
+                <select class="editor-select" name="invitationStatus" aria-label="Beteiligungsstatus beim Hinzufügen">${formatParticipationStatusOptionMarkup("Eingeladen", { includeCandidate: false })}</select>
               </span>
             </label>
             <div class="format-profile__form-actions">
-              <button class="action-button action-button--compact action-button--primary" type="submit">Verknüpfen</button>
+              <button class="action-button action-button--compact action-button--primary" type="submit">Hinzufügen</button>
               <button class="action-button action-button--compact" type="button" data-format-profile-action="cancel-link">Abbrechen</button>
             </div>
           </form>
@@ -25008,12 +24947,11 @@
 
       function renderFormatProfileSection(contact = {}) {
         const editable = canEditCareObject(contact);
-        const actions = `<div class="hospitation-card__actions"><button class="action-button action-button--compact" type="button" data-format-profile-action="list" data-contact-id="${escapeHtml(contact.id || "")}">Alle Formate anzeigen</button></div>`;
         if (formatDataState === "loading") {
-          return `<div class="section-block" data-format-profile-section><h4 class="detail-section-title">Formate</h4><div class="format-profile__state" role="status"><strong>Formate werden geladen</strong><span>Einladungen und Teilnahmen erscheinen gleich.</span></div>${actions}</div>`;
+          return `<div class="section-block" data-format-profile-section><h4 class="detail-section-title">Formate</h4><div class="format-profile__state" role="status"><strong>Formate werden geladen</strong><span>Einladungen und Teilnahmen erscheinen gleich.</span></div></div>`;
         }
         if (formatDataState === "error") {
-          return `<div class="section-block" data-format-profile-section><h4 class="detail-section-title">Formate</h4><div class="format-profile__state format-profile__state--error" role="alert"><strong>Formate konnten nicht geladen werden</strong><span>${escapeHtml(formatLoadErrorMessage || "Bitte prüfe die Verbindung und versuche es erneut.")}</span><button class="action-button action-button--compact" type="button" data-format-profile-action="retry">Erneut laden</button></div>${actions}</div>`;
+          return `<div class="section-block" data-format-profile-section><h4 class="detail-section-title">Formate</h4><div class="format-profile__state format-profile__state--error" role="alert"><strong>Formate konnten nicht geladen werden</strong><span>${escapeHtml(formatLoadErrorMessage || "Bitte prüfe die Verbindung und versuche es erneut.")}</span><button class="action-button action-button--compact" type="button" data-format-profile-action="retry">Erneut laden</button></div></div>`;
         }
         const entries = formatsForContact(contact.id);
         const now = Date.now();
@@ -25025,13 +24963,16 @@
           .sort((left, right) => (formatProfileTime(right.format) || 0) - (formatProfileTime(left.format) || 0));
         return `
           <div class="section-block" data-format-profile-section>
-            <h4 class="detail-section-title">Formate</h4>
+            <div class="profile-section-heading">
+              <div>
+                <h4 class="detail-section-title">Formate</h4>
+              </div>
+            </div>
             <div class="format-profile">
-              ${renderFormatProfileGroup("Kommende Formate", upcoming, "upcoming", { editable })}
-              ${renderFormatProfileGroup("Vergangene Formate", past, "past", { editable })}
+              ${renderFormatProfileGroup("Kommende Formate", upcoming, "upcoming")}
+              ${renderFormatProfileGroup("Vergangene Formate", past, "past")}
               ${renderFormatProfileLinkForm(contact.id, { editable })}
             </div>
-            ${actions}
           </div>
         `;
       }
@@ -25047,57 +24988,20 @@
           try {
             const updated = await window.dataService.addFormatParticipant(formatId, contact.id, { invitationStatus });
             replaceFormat(updated);
-            setStorageStatus("Kontakt mit Format verknüpft");
+            setStorageStatus("Kontakt zum Format hinzugefügt");
             detailFormatLinkOpen = false;
             rerender();
           } catch (error) {
-            console.error("Format konnte nicht mit dem Kontakt verknüpft werden.", error);
-            window.alert("Das Format konnte nicht verknüpft werden. Bitte prüfe Berechtigung und Verbindung.");
+            console.error("Kontakt konnte nicht zum Format hinzugefügt werden.", error);
+            window.alert("Der Kontakt konnte nicht zum Format hinzugefügt werden. Bitte prüfe Berechtigung und Verbindung.");
           }
-        });
-        root.querySelectorAll("[data-format-profile-status-form]").forEach((form) => {
-          form.addEventListener("submit", async (event) => {
-            event.preventDefault();
-            if (!canEditCareObject(contact)) return;
-            const select = form.querySelector("[data-format-profile-status]");
-            if (!select) return;
-            form.querySelectorAll("button").forEach((button) => { button.disabled = true; });
-            try {
-              const updated = await window.dataService.updateFormatParticipant(select.dataset.formatProfileStatus, select.dataset.contactId, { invitationStatus: select.value });
-              replaceFormat(updated);
-              detailEditingFormatId = "";
-              setStorageStatus("Beteiligungsstatus aktualisiert");
-              rerender();
-              window.setTimeout(() => root.querySelector(`[data-format-profile-action="edit-status"][data-format-id="${CSS.escape(select.dataset.formatProfileStatus)}"]`)?.focus({ preventScroll: true }), 0);
-            } catch (error) {
-              console.error("Beteiligungsstatus konnte nicht gespeichert werden.", error);
-              window.alert("Der Beteiligungsstatus konnte nicht gespeichert werden.");
-              rerender();
-            }
-          });
         });
         root.querySelectorAll("[data-format-profile-action]").forEach((button) => {
           button.addEventListener("click", async () => {
             const action = button.dataset.formatProfileAction;
-            if (action === "edit-status") {
-              if (!canEditCareObject(contact)) return;
-              detailEditingFormatId = button.dataset.formatId || "";
-              detailParticipationSection = "formats";
-              rerender();
-              window.setTimeout(() => root.querySelector(`[data-format-profile-status="${CSS.escape(detailEditingFormatId)}"]`)?.closest("[data-custom-select]")?.querySelector(".custom-select-trigger")?.focus({ preventScroll: true }), 0);
-              return;
-            }
-            if (action === "cancel-status") {
-              const formatId = button.dataset.formatId || detailEditingFormatId;
-              detailEditingFormatId = "";
-              rerender();
-              window.setTimeout(() => root.querySelector(`[data-format-profile-action="edit-status"][data-format-id="${CSS.escape(formatId)}"]`)?.focus({ preventScroll: true }), 0);
-              return;
-            }
             if (action === "link") {
               if (!canEditCareObject(contact)) return;
               detailFormatLinkOpen = true;
-              detailParticipationSection = "formats";
               rerender();
               window.setTimeout(() => root.querySelector("[data-format-profile-link-form] [name='formatId']")?.closest("[data-custom-select]")?.querySelector(".custom-select-trigger")?.focus({ preventScroll: true }), 0);
               return;
@@ -25113,10 +25017,11 @@
               rerender();
               return;
             }
-            formatContactFilterId = action === "list" ? contact.id : "";
+            if (action !== "open") return;
+            formatContactFilterId = "";
             activeFormatId = button.dataset.formatId || filteredFormats()[0]?.id || null;
-            formatDetailExpanded = action === "open";
-            formatActiveTab = action === "open" ? "participants" : "overview";
+            formatDetailExpanded = true;
+            formatActiveTab = "participants";
             setActiveView("formats");
             updateRouteHash("formats");
             updateView();
@@ -25124,131 +25029,82 @@
         });
       }
 
-      function participationFormatCounts(contactId = "", now = Date.now()) {
-        return formatsForContact(contactId).reduce((counts, { format }) => {
-          counts[formatProfileIsPast(format, now) ? "past" : "upcoming"] += 1;
-          return counts;
-        }, { upcoming: 0, past: 0 });
-      }
-
       function participationSummaryCount(count, singular, plural) {
         return `${count} ${count === 1 ? singular : plural}`;
+      }
+
+      function participationSummaryIconMarkup(kind = "hospitations") {
+        if (kind === "formats") {
+          return `
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <rect x="4" y="4" width="6" height="6" rx="1.5"></rect>
+              <rect x="14" y="4" width="6" height="6" rx="1.5"></rect>
+              <rect x="4" y="14" width="6" height="6" rx="1.5"></rect>
+              <rect x="14" y="14" width="6" height="6" rx="1.5"></rect>
+            </svg>
+          `;
+        }
+        return `
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <rect x="4" y="6" width="16" height="14" rx="3"></rect>
+            <path d="M8 3v6M16 3v6M4 11h16"></path>
+            <path d="M8 15h3M13 15h3"></path>
+          </svg>
+        `;
       }
 
       function renderParticipationProfileSummary(contact = {}, hospitationItems = []) {
         const now = Date.now();
         const { ongoing, nextItem } = hospitationProfileNext(hospitationItems, now);
         const historicalCount = hospitationItems.filter((item) => hospitationProfileIsHistorical(item, now)).length;
-        const hospitationSummary = hospitationDataState === "loading"
-          ? "Wird geladen"
-          : hospitationDataState === "error"
-            ? "Nicht verfügbar"
-            : nextItem
-              ? `${ongoing ? "Läuft gerade" : `Nächster Termin ${hospitationDateOnlyLabel(nextItem)}`} · ${historicalCount} bisher`
-              : `Kein Termin geplant · ${historicalCount} bisher`;
-        const formatCounts = participationFormatCounts(contact.id, now);
-        const formatSummary = formatDataState === "loading"
-          ? "Wird geladen"
-          : formatDataState === "error"
-            ? "Nicht verfügbar"
-            : `${participationSummaryCount(formatCounts.upcoming, "kommendes", "kommende")} · ${participationSummaryCount(formatCounts.past, "vergangenes", "vergangene")}`;
+        const formatEntries = formatsForContact(contact.id);
+        const upcomingFormats = formatEntries
+          .filter(({ format }) => !formatProfileIsPast(format, now))
+          .sort((left, right) => (formatProfileTime(left.format) ?? Number.MAX_SAFE_INTEGER) - (formatProfileTime(right.format) ?? Number.MAX_SAFE_INTEGER));
+        const pastFormatCount = formatEntries.length - upcomingFormats.length;
+        const nextFormatEntry = upcomingFormats[0] || null;
         return `
           <div class="section-block participation-summary-block" data-participation-summary>
             <h4 class="detail-section-title">Beteiligung</h4>
-            <div class="detail-line-list participation-summary">
-              <button class="detail-line participation-summary__row" type="button" data-participation-summary-item="hospitations" data-participation-summary-target="hospitations">
-                <span class="detail-line__label">Hospitationen</span>
-                <span class="detail-line__value participation-summary__value">
-                  <span>${escapeHtml(hospitationSummary)}</span>
-                  <span class="participation-summary__chevron" aria-hidden="true">›</span>
+            <div class="participation-summary">
+              <button class="participation-summary-card participation-summary-card--hospitations" type="button" data-participation-summary-item="hospitations" data-participation-summary-target="hospitations">
+                <span class="participation-summary-card__header">
+                  <span class="participation-summary-card__icon">${participationSummaryIconMarkup("hospitations")}</span>
+                  <span class="participation-summary-card__title">Hospitationen</span>
+                  <span class="participation-summary-card__chevron" aria-hidden="true">›</span>
+                </span>
+                <span class="participation-summary-card__body">
+                  <strong>${hospitationDataState === "loading" ? "Termine werden geladen" : hospitationDataState === "error" ? "Termine nicht verfügbar" : nextItem ? ongoing ? "Aktuelle Hospitation" : "Nächste Hospitation" : "Noch keine Hospitation geplant"}</strong>
+                  <span class="participation-summary-card__badges">
+                    ${hospitationDataState === "ready" && nextItem ? `<time class="profile-date-badge profile-date-badge--hospitation" datetime="${escapeHtml(nextItem.startsAt || nextItem.starts_at || "")}">${escapeHtml(hospitationDateOnlyLabel(nextItem))}</time>` : ""}
+                    ${hospitationDataState === "ready" ? `<span class="participation-summary-card__count">${participationSummaryCount(historicalCount, "bisher", "bisher")}</span>` : ""}
+                    ${hospitationDataState === "error" ? `<span class="participation-summary-card__state participation-summary-card__state--error">Nicht verfügbar</span>` : ""}
+                  </span>
                 </span>
               </button>
-              <button class="detail-line participation-summary__row" type="button" data-participation-summary-item="formats" data-participation-summary-target="formats">
-                <span class="detail-line__label">Formate</span>
-                <span class="detail-line__value participation-summary__value">
-                  <span>${escapeHtml(formatSummary)}</span>
-                  <span class="participation-summary__chevron" aria-hidden="true">›</span>
+              <button class="participation-summary-card participation-summary-card--formats" type="button" data-participation-summary-item="formats" data-participation-summary-target="formats">
+                <span class="participation-summary-card__header">
+                  <span class="participation-summary-card__icon">${participationSummaryIconMarkup("formats")}</span>
+                  <span class="participation-summary-card__title">Formate</span>
+                  <span class="participation-summary-card__chevron" aria-hidden="true">›</span>
+                </span>
+                <span class="participation-summary-card__body">
+                  <strong>${formatDataState === "loading" ? "Formate werden geladen" : formatDataState === "error" ? "Formate nicht verfügbar" : nextFormatEntry ? escapeHtml(nextFormatEntry.format.title || "Nächstes Format") : "Noch kein kommendes Format"}</strong>
+                  <span class="participation-summary-card__badges">
+                    ${formatDataState === "ready" && nextFormatEntry ? `
+                      <span class="format-profile__type-badge">${escapeHtml(nextFormatEntry.format.formatType || "Format")}</span>
+                      ${formatParticipationStatusBadgeMarkup(nextFormatEntry.participant.invitationStatus)}
+                      <time class="profile-date-badge profile-date-badge--format" datetime="${escapeHtml(nextFormatEntry.format.startsAt || nextFormatEntry.format.starts_at || "")}">${escapeHtml(formatDateRange(nextFormatEntry.format))}</time>
+                    ` : ""}
+                    ${formatDataState === "ready" && upcomingFormats.length > 1 ? `<span class="participation-summary-card__count">${upcomingFormats.length - 1} weitere</span>` : ""}
+                    ${formatDataState === "ready" && pastFormatCount ? `<span class="participation-summary-card__count">${pastFormatCount} abgeschlossen</span>` : ""}
+                    ${formatDataState === "error" ? `<span class="participation-summary-card__state participation-summary-card__state--error">Nicht verfügbar</span>` : ""}
+                  </span>
                 </span>
               </button>
             </div>
           </div>
         `;
-      }
-
-      function renderParticipationProfilePanel(contact = {}, hospitationItems = [], options = {}) {
-        const activeSection = ["hospitations", "formats"].includes(detailParticipationSection)
-          ? detailParticipationSection
-          : "hospitations";
-        detailParticipationSection = activeSection;
-        const instanceId = normalizeClassPart(options.instanceId || "detail");
-        const hospitationCount = hospitationDataState === "ready"
-          ? hospitationItems.filter((item) => hospitationProfilePhase(item) !== "cancelled").length
-          : null;
-        const formatCount = formatDataState === "ready" ? formatsForContact(contact.id).length : null;
-        const tabButton = (section, label, count) => {
-          const active = activeSection === section;
-          const tabId = `participation-${instanceId}-tab-${section}`;
-          const panelId = `participation-${instanceId}-panel-${section}`;
-          return `
-            <button class="participation-profile__tab ${active ? "is-active" : ""}" type="button" role="tab" id="${tabId}" aria-controls="${panelId}" aria-selected="${active ? "true" : "false"}" tabindex="${active ? "0" : "-1"}" data-participation-section-tab="${section}">
-              <span>${escapeHtml(label)}</span>
-              ${Number.isFinite(count) ? `<span class="detail-tab__count" aria-hidden="true">${count}</span>` : ""}
-            </button>
-          `;
-        };
-        const panelAttrs = (section) => {
-          const active = activeSection === section;
-          return `class="participation-profile__panel" role="tabpanel" id="participation-${instanceId}-panel-${section}" aria-labelledby="participation-${instanceId}-tab-${section}" data-participation-section-panel="${section}" ${active ? "" : "hidden"}`;
-        };
-        return `
-          <div class="participation-profile">
-            <div class="participation-profile__switcher" role="tablist" aria-label="Beteiligungsbereiche">
-              ${tabButton("hospitations", "Hospitationen", hospitationCount)}
-              ${tabButton("formats", "Formate", formatCount)}
-            </div>
-            <div ${panelAttrs("hospitations")}>
-              ${renderHospitationProfileSection(hospitationItems, { kind: "contact", id: contact.id, scope: "care" })}
-            </div>
-            <div ${panelAttrs("formats")}>
-              ${renderFormatProfileSection(contact)}
-            </div>
-          </div>
-        `;
-      }
-
-      function bindParticipationProfileSections(root = document) {
-        const tablist = root.querySelector(".participation-profile__switcher");
-        const tabs = [...(tablist?.querySelectorAll('[role="tab"][data-participation-section-tab]') || [])];
-        const panels = [...root.querySelectorAll("[data-participation-section-panel]")];
-        if (!tablist || !tabs.length) return;
-        const activate = (tab, focus = false) => {
-          const section = tab.dataset.participationSectionTab || "hospitations";
-          detailParticipationSection = section;
-          tabs.forEach((item) => {
-            const active = item === tab;
-            item.classList.toggle("is-active", active);
-            item.setAttribute("aria-selected", active ? "true" : "false");
-            item.tabIndex = active ? 0 : -1;
-          });
-          panels.forEach((panel) => {
-            panel.hidden = panel.dataset.participationSectionPanel !== section;
-          });
-          tab.scrollIntoView({ block: "nearest", inline: "nearest" });
-          if (focus) tab.focus({ preventScroll: true });
-        };
-        tabs.forEach((tab) => tab.addEventListener("click", () => activate(tab)));
-        tablist.addEventListener("keydown", (event) => {
-          const currentIndex = tabs.indexOf(document.activeElement);
-          if (currentIndex < 0) return;
-          let nextIndex = currentIndex;
-          if (event.key === "ArrowRight") nextIndex = (currentIndex + 1) % tabs.length;
-          else if (event.key === "ArrowLeft") nextIndex = (currentIndex - 1 + tabs.length) % tabs.length;
-          else if (event.key === "Home") nextIndex = 0;
-          else if (event.key === "End") nextIndex = tabs.length - 1;
-          else return;
-          event.preventDefault();
-          activate(tabs[nextIndex], true);
-        });
       }
 
       function formatParticipantContacts(format) {
@@ -34668,8 +34524,6 @@
           detailActiveTab = isProfilePage && activePersonProfile.id === contact.id && activePersonProfile.tab
             ? activePersonProfile.tab
             : "overview";
-          detailParticipationSection = "hospitations";
-          detailEditingFormatId = "";
           detailFormatLinkOpen = false;
           detailOwnerPickerOpen = false;
           detailImageEditorOpen = false;
@@ -34702,14 +34556,25 @@
         const editableDetail = expertScope ? canEditContacts() : canEditCareObject(contact);
         const editingDetail = detailEditMode && editableDetail;
         const admin = !expertScope && canAdministerData();
+        const contactHospitationItems = expertScope ? [] : hospitationsForContact(contact.id);
+        const contactFormatEntries = expertScope ? [] : formatsForContact(contact.id);
+        const hospitationTabCount = hospitationDataState === "ready"
+          ? new Set([
+              hospitationProfileNext(contactHospitationItems).nextItem?.id,
+              ...contactHospitationItems.filter((item) => hospitationProfileIsHistorical(item)).map((item) => item.id)
+            ].filter(Boolean)).size
+          : 0;
+        const formatTabCount = formatDataState === "ready" ? contactFormatEntries.length : 0;
         const portraitMarkup = contactAvatarMarkup(contact, "lg");
         const ownerDisplay = ownerDisplayLabel(contact.owner || contact.ownerId);
         const normalizedStatus = String(contact.status || "").trim().toLowerCase();
+        const requestedActiveTab = detailActiveTab === "participation" ? "hospitations" : detailActiveTab || "overview";
         const activeTab = normalizeDetailTab(
-          detailActiveTab || "overview",
-          expertScope ? ["overview", "contact", "themes", "links", "notes", "activity"] : ["overview", "contact", "themes", "consent", "participation", "notes", "activity"]
+          requestedActiveTab,
+          expertScope ? ["overview", "contact", "themes", "links", "notes", "activity"] : ["overview", "contact", "themes", "consent", "hospitations", "formats", "notes", "activity"]
         );
         detailActiveTab = activeTab;
+        if (isProfilePage && activePersonProfile.tab === "participation") activePersonProfile.tab = activeTab;
         const editingOverview = editingDetail && activeTab === "overview";
         const editingContactways = editingDetail && activeTab === "contact";
         const statusLabel = normalizedStatus === "archived"
@@ -34789,7 +34654,8 @@
                 ${detailTabButton("themes", "Themen", activeTab, { ariaTab: true, count: themeTags.length, locked: editingDetail })}
                 ${expertScope ? detailTabButton("links", "Verbindungen", activeTab, { ariaTab: true, count: linkedCareContacts.length, locked: editingDetail }) : ""}
                 ${expertScope ? "" : detailTabButton("consent", "Einwilligung", activeTab, { ariaTab: true, status: consentStatus, statusLabel: mitmachenConsentStatusLabel(consentStatus), locked: editingDetail })}
-                ${expertScope ? "" : detailTabButton("participation", "Beteiligung", activeTab, { ariaTab: true, locked: editingDetail })}
+                ${expertScope ? "" : detailTabButton("hospitations", "Hospitation", activeTab, { ariaTab: true, count: hospitationTabCount, locked: editingDetail })}
+                ${expertScope ? "" : detailTabButton("formats", "Formate", activeTab, { ariaTab: true, count: formatTabCount, locked: editingDetail })}
                 ${detailTabButton("notes", "Notizen", activeTab, { ariaTab: true, count: noteCount, locked: editingDetail })}
                 ${detailTabButton("activity", "Aktivitäten", activeTab, { ariaTab: true, count: historyCount, locked: editingDetail })}
               </div>
@@ -34894,8 +34760,11 @@
                 expertScope
                   ? ""
                   : `
-                    <section ${panelAttrs("participation")} id="detail-participation">
-                      ${activeTab === "participation" ? renderParticipationProfilePanel(contact, hospitationsForContact(contact.id), { instanceId: `${detailMode}-${contact.id}` }) : ""}
+                    <section ${panelAttrs("hospitations")} id="detail-hospitations">
+                      ${activeTab === "hospitations" ? renderHospitationProfileSection(contactHospitationItems, { kind: "contact", id: contact.id, scope: "care" }) : ""}
+                    </section>
+                    <section ${panelAttrs("formats")} id="detail-formats">
+                      ${activeTab === "formats" ? renderFormatProfileSection(contact) : ""}
                     </section>
                   `
               }
@@ -34968,23 +34837,20 @@
         if (isProfilePage) bindPersonProfileBack(targetPanel);
         if (!expertScope) bindHospitationProfileActions(targetPanel, { kind: "contact", id: contact.id });
         if (!expertScope) bindFormatProfileActions(targetPanel, contact, rerenderDetail);
-        if (!expertScope) bindParticipationProfileSections(targetPanel);
         targetPanel.querySelectorAll("[data-participation-summary-target]").forEach((button) => {
           button.addEventListener("click", () => {
             const targetSection = button.dataset.participationSummaryTarget || "hospitations";
-            detailParticipationSection = targetSection;
-            detailEditingFormatId = "";
             detailFormatLinkOpen = false;
-            detailActiveTab = "participation";
+            detailActiveTab = targetSection;
             if (isProfilePage) {
-              activePersonProfile.tab = "participation";
+              activePersonProfile.tab = targetSection;
               activePersonProfile.noteId = "";
               activeContactNoteTargetId = "";
               updateRouteHash(personProfileRoute(activePersonProfile.kind, activePersonProfile.id));
             }
             rerenderDetail();
             window.setTimeout(() => {
-              targetPanel.querySelector(`[data-participation-section-tab="${targetSection}"]`)?.focus({ preventScroll: true });
+              targetPanel.querySelector(`[data-detail-tab="${targetSection}"]`)?.focus({ preventScroll: true });
             }, 0);
           });
         });
@@ -35204,6 +35070,7 @@
         targetPanel.querySelector("#detail-assign-organization")?.addEventListener("click", () => assignOrganizationToContact(contact));
         bindDetailTabNavigation(targetPanel, (tab) => {
           detailActiveTab = tab;
+          if (tab !== "formats") detailFormatLinkOpen = false;
           if (isProfilePage) {
             activePersonProfile.tab = tab;
             if (tab !== "notes") {
@@ -35225,8 +35092,6 @@
         detailOwnerPickerOpen = false;
         detailImageEditorOpen = false;
         detailActiveTab = "overview";
-        detailParticipationSection = "hospitations";
-        detailEditingFormatId = "";
         detailFormatLinkOpen = false;
         detailProfileReturnTo = "";
         organizationDetailActiveTab = "overview";
@@ -38015,12 +37880,14 @@
 
       async function loadDeferredInitialData({ includeArchived = false } = {}) {
         const deferredDataAffectsActiveView = (dataKind = "") => {
+          const careContactProfileActive = activeView === "personProfile" && activePersonProfile.kind === "contact";
+          const careContactDrawerActive = activeView === "contacts" && Boolean(activeId);
           if (dataKind === "organizations") {
             return ["organizations", "map"].includes(activeView)
               || (activeView === "organizationProfile" && activeOrganizationProfile.kind === "care");
           }
-          if (dataKind === "formats") return activeView === "formats";
-          if (dataKind === "hospitations") return ["hospitations", "framework", "questionnaire"].includes(activeView);
+          if (dataKind === "formats") return activeView === "formats" || careContactProfileActive || careContactDrawerActive;
+          if (dataKind === "hospitations") return ["hospitations", "framework", "questionnaire"].includes(activeView) || careContactProfileActive || careContactDrawerActive;
           if (dataKind === "experts") {
             return activeView === "experts"
               || (activeView === "personProfile" && activePersonProfile.kind === "expert")
