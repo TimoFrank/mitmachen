@@ -12249,18 +12249,109 @@
         `;
       }
 
+      function notificationPreviewContext(notification = {}) {
+        const payload = notification.payload && typeof notification.payload === "object" ? notification.payload : {};
+        const entityType = String(
+          notification.entityType
+          || notification.entity_type
+          || notification.objectType
+          || notification.object_type
+          || ""
+        ).trim().toLowerCase();
+        const entityId = String(
+          notification.entityId
+          || notification.entity_id
+          || notification.objectId
+          || notification.object_id
+          || ""
+        ).trim();
+        const notificationContext = String(notification.context || "").trim().toLowerCase();
+        const contextKey = ["contact", "person"].includes(entityType)
+          ? "contacts"
+          : entityType === "organization"
+            ? "organizations"
+            : entityType === "hospitation"
+              ? "hospitations"
+              : ["format", "format_participant"].includes(entityType)
+                ? "formats"
+                : entityType === "profile"
+                  ? "team"
+                  : entityType === "product"
+                    ? "product"
+                    : notificationContext;
+        const moduleTones = {
+          contacts: "care",
+          organizations: "care",
+          hospitations: "planning",
+          formats: "formats",
+          team: "team",
+          product: "product"
+        };
+        const descriptor = {
+          tone: moduleTones[contextKey] || "neutral",
+          iconTone: moduleTones[notificationContext] || moduleTones[contextKey] || "neutral"
+        };
+        const value = (candidate) => typeof candidate === "string" || typeof candidate === "number"
+          ? String(candidate).trim()
+          : "";
+        const payloadLabels = {
+          contacts: [payload.contactName, payload.contact_name],
+          organizations: [payload.organizationName, payload.organization_name],
+          hospitations: [payload.contactName, payload.contact_name, payload.organizationName, payload.organization_name],
+          formats: [payload.formatTitle, payload.format_title],
+          team: [payload.profileName, payload.profile_name, payload.displayName, payload.display_name],
+          product: [payload.version ? `Version ${payload.version}` : "", entityId ? `Version ${entityId}` : ""]
+        };
+        const directLabel = [
+          notification.entityLabel,
+          notification.entity_label,
+          notification.objectLabel,
+          notification.object_label,
+          payload.entityLabel,
+          payload.entity_label,
+          payload.objectLabel,
+          payload.object_label,
+          ...(payloadLabels[contextKey] || [])
+        ].map(value).find(Boolean) || "";
+        if (directLabel) return { ...descriptor, label: directLabel };
+
+        let localLabel = "";
+        if (contextKey === "contacts") {
+          const contact = contacts.find((item) => String(item.id || "") === entityId);
+          localLabel = value(contact?.displayName) || value(contact?.name);
+        } else if (contextKey === "organizations") {
+          const organization = organizations.find((item) => String(item.id || "") === entityId);
+          localLabel = value(organization?.name);
+        } else if (contextKey === "hospitations") {
+          const hospitation = hospitations.find((item) => String(item.id || "") === entityId);
+          localLabel = hospitation ? value(hospitationContextLabel(hospitation)) : "";
+        } else if (contextKey === "formats") {
+          const format = formats.find((item) => String(item.id || "") === entityId);
+          localLabel = value(format?.title) || value(format?.name);
+        } else if (contextKey === "team") {
+          localLabel = value(ownerProfileForValue(entityId)?.label);
+        }
+        return { ...descriptor, label: localLabel };
+      }
+
+      function notificationPreviewContextMarkup(context = {}) {
+        if (!context.label) return "";
+        return `<span class="notification-preview-item__context notification-preview-item__context--${context.tone}" title="${escapeHtml(context.label)}">${escapeHtml(context.label)}</span>`;
+      }
+
       function notificationPreviewItemMarkup(notification) {
-        const meta = [
-          notification.context === "product" ? "Produkt" : notification.actor?.displayName || "",
-          formatDateTimeLabel(notification.occurredAt || notification.createdAt)
-        ].filter(Boolean).join(" · ");
+        const dateLabel = formatDateLabel(notification.occurredAt || notification.createdAt);
+        const context = notificationPreviewContext(notification);
+        const contextMarkup = notificationPreviewContextMarkup(context);
         return `
           <button class="notification-preview-item ${notification.unread ? "is-unread" : ""}" type="button" data-open-notification="${escapeHtml(notification.id)}">
-            <span class="notification-item__icon" aria-hidden="true">${notificationIconMarkup(notification.context)}</span>
+            <span class="notification-item__icon notification-preview-item__icon--${context.iconTone}" aria-hidden="true">${notificationIconMarkup(notification.context)}</span>
             <span class="notification-preview-item__copy">
               <span class="notification-preview-item__title">${escapeHtml(notification.title || "Benachrichtigung")}</span>
-              ${notification.body ? `<span class="notification-preview-item__text">${escapeHtml(notification.body)}</span>` : ""}
-              <span class="notification-preview-item__meta">${escapeHtml(meta || "Zeitpunkt offen")}</span>
+              <span class="notification-preview-item__meta">
+                ${contextMarkup}
+                ${dateLabel ? `<span class="notification-preview-item__date">${escapeHtml(dateLabel)}</span>` : ""}
+              </span>
             </span>
           </button>
         `;
@@ -12337,8 +12428,8 @@
         const sidebarRect = sidebar.getBoundingClientRect();
         const trigger = sidebarNotificationsButton.getBoundingClientRect();
         const sidebarPadding = isMobileLayout() ? 8 : 14;
-        const popoverWidth = Math.max(180, Math.min(260, sidebarRect.width - sidebarPadding * 2));
-        notificationPopover.style.width = `${popoverWidth}px`;
+        notificationPopover.style.removeProperty("width");
+        const popoverWidth = notificationPopover.getBoundingClientRect().width || Math.min(440, window.innerWidth - 24);
         notificationPopover.style.maxHeight = `${Math.max(140, trigger.top - 24)}px`;
         const popoverHeight = notificationPopover.offsetHeight || 320;
         const gap = 12;

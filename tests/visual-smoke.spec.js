@@ -2768,6 +2768,7 @@ test("Benachrichtigungen: Glocke öffnet Vorschau und Profil-Reiter rendert Inbo
         title: "Kontakt aktualisiert",
         body: "Stammdaten wurden angepasst.",
         route: "#contacts",
+        payload: { contactName: "Dr. Leonie Albrecht" },
         occurredAt: "2026-06-12T08:30:00.000Z",
         createdAt: "2026-06-12T08:30:00.000Z",
         readAt: ""
@@ -2787,15 +2788,56 @@ test("Benachrichtigungen: Glocke öffnet Vorschau und Profil-Reiter rendert Inbo
   await expect(page.locator("#notification-popover-list .notification-popover__loading")).toHaveCount(0);
   await expect(page.locator("#notification-popover")).not.toContainText("Benachrichtigungen werden geladen");
   await expect(page.locator("#notification-popover-list .notification-preview-item")).toHaveCount(5);
+  await expect(page.locator("#notification-popover-list .notification-preview-item__text")).toHaveCount(0);
+  await expect(page.locator("#notification-popover")).not.toContainText("Stammdaten wurden angepasst.");
+  const contactPreview = page.locator('#notification-popover-list [data-open-notification="visual-notification-contact-update"]');
+  await expect(contactPreview.locator(".notification-preview-item__context")).toHaveText("Dr. Leonie Albrecht");
+  await expect(page.locator("#notification-popover-list .notification-preview-item__context-kind")).toHaveCount(0);
+  await expect(page.locator("#notification-popover-list .notification-preview-item__context-separator")).toHaveCount(0);
+  await expect(page.locator("#notification-popover-list .notification-preview-item__context")).toHaveCount(5);
+  const previewContextBackgrounds = await page.locator("#notification-popover-list .notification-preview-item__context").evaluateAll((nodes) =>
+    nodes.map((node) => getComputedStyle(node).backgroundColor)
+  );
+  expect(previewContextBackgrounds.every((color) => color !== "rgba(0, 0, 0, 0)")).toBe(true);
+  expect(new Set(previewContextBackgrounds).size).toBeGreaterThanOrEqual(2);
+  await expect(contactPreview.locator(".notification-preview-item__icon--care")).toHaveCount(1);
+  await expect(page.locator("#notification-popover-list .notification-preview-item__icon--product")).toHaveCount(4);
+  const previewIconColors = await page.locator("#notification-popover-list .notification-item__icon").evaluateAll((nodes) =>
+    nodes.map((node) => getComputedStyle(node).color)
+  );
+  expect(new Set(previewIconColors).size).toBeGreaterThanOrEqual(2);
+  const previewDates = await page.locator("#notification-popover-list .notification-preview-item__date").allTextContents();
+  expect(previewDates).toHaveLength(5);
+  previewDates.forEach((dateLabel) => expect(dateLabel).toMatch(/^\d{2}\.\d{2}\.\d{4}$/));
   const popoverLayout = await page.evaluate(() => {
     const popover = document.querySelector("#notification-popover")?.getBoundingClientRect();
+    const sidebar = document.querySelector(".app-sidebar")?.getBoundingClientRect();
     const accountRow = document.querySelector(".sidebar-account-row")?.getBoundingClientRect();
-    return popover && accountRow
-      ? { popoverBottom: popover.bottom, accountTop: accountRow.top }
+    const firstPreview = document.querySelector(".notification-preview-item")?.getBoundingClientRect();
+    const topmostPreviewNode = firstPreview
+      ? document.elementFromPoint(firstPreview.left + firstPreview.width / 2, firstPreview.top + Math.min(32, firstPreview.height / 2))
+      : null;
+    return popover && sidebar && accountRow
+      ? {
+          popoverBottom: popover.bottom,
+          popoverLeft: popover.left,
+          popoverRight: popover.right,
+          popoverWidth: popover.width,
+          sidebarRight: sidebar.right,
+          sidebarWidth: sidebar.width,
+          accountTop: accountRow.top,
+          viewportWidth: window.innerWidth,
+          firstPreviewIsTopmost: Boolean(topmostPreviewNode?.closest("#notification-popover"))
+        }
       : null;
   });
   expect(popoverLayout).not.toBeNull();
   expect(popoverLayout.popoverBottom).toBeLessThanOrEqual(popoverLayout.accountTop - 6);
+  expect(popoverLayout.popoverWidth).toBeGreaterThan(popoverLayout.sidebarWidth);
+  expect(popoverLayout.popoverRight).toBeGreaterThan(popoverLayout.sidebarRight);
+  expect(popoverLayout.popoverLeft).toBeGreaterThanOrEqual(11);
+  expect(popoverLayout.popoverRight).toBeLessThanOrEqual(popoverLayout.viewportWidth - 11);
+  expect(popoverLayout.firstPreviewIsTopmost).toBe(true);
 
   await page.locator("#notification-popover-all").click();
   await expect(page).toHaveURL(/#profile-notifications$/);
