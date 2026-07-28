@@ -6883,7 +6883,6 @@
                   <button class="organization-name-button" type="button" data-open-organization="${escapeHtml(organization.id)}">${escapeHtml(organization.name)}</button>
                   ${testMarkerMarkup(organization)}
                 </span>
-                ${organization.organizationType || organization.website ? `<div class="contact-subline">${escapeHtml(organization.organizationType || organization.website)}</div>` : ""}
               </div>
             </div>
           `;
@@ -7457,13 +7456,11 @@
 
       function patientOrganizationTableCellMarkup(organization, key) {
         if (key === "organization") {
-          const organizationType = meaningfulOrEmpty(organization.organizationType) || "Patientenorganisation";
           return `
             <div class="organization-cell">
               ${organizationLogoMarkup(organization, "sm")}
               <div class="contact-meta">
                 <button class="organization-name-button" type="button" data-open-patient-organization="${escapeHtml(organization.id)}">${escapeHtml(organization.name)}</button>
-                <div class="contact-subline patient-organization-type">${escapeHtml(organizationType)}</div>
               </div>
             </div>
           `;

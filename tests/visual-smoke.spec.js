@@ -2364,6 +2364,7 @@ test("Organisationen: Demo-Daten rendern im CRM-Profilmodus", async ({ page }, t
   await expect(page.locator('[data-view-panel="organizations"]')).toBeVisible();
   const firstOrganization = page.locator("#organization-list .row, #organization-list .mobile-contact-card").first();
   await expect(firstOrganization).toBeVisible();
+  await expect(firstOrganization.locator(".cell--organization .contact-subline")).toHaveCount(0);
   await expect(page.locator("#search")).toBeVisible();
   await expect(page.locator("#organization-matching-worklist-button")).toContainText("Dubletten");
   await firstOrganization.click();
@@ -3068,7 +3069,7 @@ test("Patienten: Organisationsliste nach Indikation rendert ohne Kontakte", asyn
   await expect(page.locator("#patient-organizations-table-head")).not.toContainText("Gruppe");
   await expect(page.locator("#patient-organizations-table-head")).toContainText("Kontakte");
   await expect(page.locator("#patient-organization-list .row").first()).toBeVisible();
-  await expect(page.locator("#patient-organization-list .row").first().locator(".cell--organization .patient-organization-type")).toContainText("Patientenorganisation");
+  await expect(page.locator("#patient-organization-list .row").first().locator(".cell--organization .contact-subline")).toHaveCount(0);
   if (!mobileProject) {
     await expect(page.locator("#patient-organization-list .row").first().locator(".cell--people")).toContainText("1 Kontakt");
   }

@@ -1940,18 +1940,6 @@
         overflow-wrap: normal;
       }
 
-      /* Patient organizations use a clear name/type hierarchy inside the first column. */
-      #patient-organization-list .organization-cell .contact-meta {
-        display: grid;
-        align-items: start;
-        gap: 2px;
-      }
-
-      #patient-organization-list .patient-organization-type {
-        max-width: 100%;
-        margin-top: 0;
-      }
-
       .app-shell[data-active-view="patients"][data-patient-mode="indications"] .table-command-row--patient-actions {
         display: none;
       }
