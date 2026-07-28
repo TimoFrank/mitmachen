@@ -6319,19 +6319,20 @@
         return organizationLogoMap().get(normalizedName) || null;
       }
 
-      function organizationLogoMarkup(organization, size = "sm", className = "") {
+      function organizationLogoMarkup(organization, size = "sm", className = "", { sectorRing = false } = {}) {
         const isStakeholderLogo = String(className || "").split(/\s+/).includes("organization-logo--stakeholder");
         const logo = organizationLogoCandidate(organization, { allowGenerated: !isStakeholderLogo }) || (!isStakeholderLogo ? organizationLogoForName(organization?.name) : null);
         const sizeClass = size === "lg" ? "organization-logo--lg" : "organization-logo--sm";
         const organizationClass = normalizeClassPart(organization?.id || "");
-        const classes = `organization-logo ${sizeClass} ${organizationClass ? `organization-logo--${organizationClass}` : ""} ${className}`.trim();
+        const classes = `organization-logo ${sizeClass} ${organizationClass ? `organization-logo--${organizationClass}` : ""} ${className} ${sectorRing ? "organization-logo--sector-ring" : ""}`.trim();
+        const sectorRingStyle = sectorRing ? ` style="--avatar-sector-color:${escapeHtml(sectorRegistry.colorFor(organization?.sector || ""))}"` : "";
         const initials = isStakeholderLogo ? stakeholderLogoFallbackLabel(organization) : organizationInitials(organization?.name);
-        const fallback = `<span class="${classes}" aria-hidden="true">${escapeHtml(initials)}</span>`;
+        const fallback = `<span class="${classes}"${sectorRingStyle} aria-hidden="true">${escapeHtml(initials)}</span>`;
         const logoUrl = safeImageUrl(logo?.url);
         const fallbackUrl = safeImageUrl(logo?.fallbackUrl);
         if (!logoUrl) return fallback;
         return `
-          <span class="${classes} organization-logo--image" aria-hidden="true">
+          <span class="${classes} organization-logo--image"${sectorRingStyle} aria-hidden="true">
             <span class="organization-logo__fallback">${escapeHtml(initials)}</span>
             <img src="${escapeHtml(logoUrl)}" data-fallback-src="${escapeHtml(fallbackUrl)}" data-logo-fallback="true" alt="" loading="lazy" />
           </span>
@@ -6877,7 +6878,7 @@
         if (key === "organization") {
           return `
             <div class="organization-cell">
-              ${organizationLogoMarkup(organization, "sm")}
+              ${organizationLogoMarkup(organization, "sm", "", { sectorRing: true })}
               <div class="contact-meta">
                 <span class="entity-name-with-marker">
                   <button class="organization-name-button" type="button" data-open-organization="${escapeHtml(organization.id)}">${escapeHtml(organization.name)}</button>
@@ -14718,15 +14719,17 @@
         `;
       }
 
-      function contactAvatarMarkup(contact, size = "md") {
+      function contactAvatarMarkup(contact, size = "md", { sectorRing = false } = {}) {
         const sizeClass = size === "lg" ? "avatar-lg" : size === "sm" ? "avatar-sm" : "avatar-md";
-        const fallback = `<span class="avatar avatar-fallback ${sizeClass} ${contact.avatarClass}">${escapeHtml(contact.initials)}</span>`;
+        const sectorRingClass = sectorRing ? "avatar--sector-ring" : "";
+        const sectorRingStyle = sectorRing ? ` style="--avatar-sector-color:${escapeHtml(sectorRegistry.colorFor(contact.category || contact.sector || ""))}"` : "";
+        const fallback = `<span class="avatar avatar-fallback ${sizeClass} ${contact.avatarClass} ${sectorRingClass}"${sectorRingStyle}>${escapeHtml(contact.initials)}</span>`;
         if (!hasMeaningfulValue(contact.image)) return fallback;
         const imageUrl = safeImageUrl(decodeAttributeValue(contact.image));
         if (!imageUrl) return fallback;
         const loading = size === "sm" ? "eager" : "lazy";
         return `
-          <span class="avatar contact-image contact-thumb ${sizeClass} ${contact.avatarClass}" aria-label="${escapeHtml(contact.displayName)}">
+          <span class="avatar contact-image contact-thumb ${sizeClass} ${contact.avatarClass} ${sectorRingClass}"${sectorRingStyle} aria-label="${escapeHtml(contact.displayName)}">
             <img src="${escapeHtml(imageUrl)}" alt="" loading="${loading}" decoding="async" referrerpolicy="no-referrer" data-image-fallback="${escapeHtml(contact.initials)}" />
           </span>
         `;
@@ -28254,11 +28257,11 @@
         return false;
       }
 
-      function tableCellMarkup(contact, key) {
+      function tableCellMarkup(contact, key, { sectorRing = false } = {}) {
         if (key === "name") {
           return `
             <div class="contact-cell">
-              ${contactAvatarMarkup(contact, "sm")}
+              ${contactAvatarMarkup(contact, "sm", { sectorRing })}
               <div class="contact-meta">
                 <div class="contact-name__line">
                   <button class="contact-name-button" type="button" data-open-detail="${contact.id}">${escapeHtml(contact.name) || "&mdash;"}</button>
@@ -28793,7 +28796,7 @@
               (contact) => `
               <article class="mobile-contact-card ${contact.id === activeId ? "is-active" : ""}" data-id="${contact.id}" tabindex="0">
                 <div class="mobile-contact-top">
-                  ${contactAvatarMarkup(contact, "sm")}
+                  ${contactAvatarMarkup(contact, "sm", { sectorRing: true })}
                   <div class="mobile-contact-copy">
                     <h3 class="mobile-contact-name">${escapeHtml(contact.name) || "&mdash;"} ${testMarkerMarkup(contact, { compact: true })}</h3>
                     ${ehcProfileBadgeMarkup(contact, { compact: true })}
@@ -28818,7 +28821,7 @@
                 <div class="cell--select">
                   <input class="table-checkbox" type="checkbox" data-row-select="${contact.id}" aria-label="${escapeHtml(contact.displayName)} auswählen" ${selectedContactIds.has(contact.id) ? "checked" : ""}>
                 </div>
-                ${columns.map((column) => `<div class="cell--${column.key}">${tableCellMarkup(contact, column.key)}</div>`).join("")}
+                ${columns.map((column) => `<div class="cell--${column.key}">${tableCellMarkup(contact, column.key, { sectorRing: true })}</div>`).join("")}
               </article>
             `
             )
