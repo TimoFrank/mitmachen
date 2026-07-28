@@ -4,7 +4,7 @@ Die Demo gibt einen schnellen Einblick in den Versorgungs-Kompass. Sie arbeitet 
 
 ## Online ansehen
 
-- [Demo mit fiktiven Daten öffnen](https://timofrank.github.io/mitmachen/demo/)
+- [Demo mit fiktiven Daten öffnen](https://timofrank.github.io/mitmachen/)
 
 Die Demo verwendet dieselbe vollständige App-Oberfläche wie die geschützte Anwendung: Kontaktpflege, Karte, Auswertung, Stakeholder, Expertenkreis, Hospitationen, Fragebogen, Dashboard, Formate und Teams sind mit synthetischen Beispielen erlebbar. Nur Datenquelle und Identität unterscheiden sich: Pages arbeitet anonym und lokal im Browser; die geschützte Anwendung nutzt Login und API. Ihre interne Ziel-URL wird nicht im öffentlichen Repository vorgegeben.
 

@@ -29,6 +29,7 @@ const syntaxFiles = [
   "scripts/check_target_readiness.mjs",
   "scripts/extract_inline_frontend_assets.mjs",
   "scripts/generate_frontend_sbom.mjs",
+  "scripts/generate_module_brand_assets.mjs",
   "scripts/generate_security_evidence.mjs",
   "scripts/generate_pre_gematik_synthetic_seed.mjs",
   "scripts/lib/cloud-sql-managed-proxy.mjs",
@@ -93,6 +94,7 @@ const syntaxFiles = [
 ];
 
 const auditCommands = [
+  ["node", ["scripts/generate_module_brand_assets.mjs", "--check"]],
   ["node", ["scripts/audit_public_assets.mjs"]],
   ["node", ["scripts/audit_api_gateway.mjs"]],
   ["node", ["scripts/audit_stakeholder_fields.mjs"]],

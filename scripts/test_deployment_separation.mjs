@@ -62,12 +62,6 @@ function assertMissing(directory, ...relativePaths) {
   }
 }
 
-function embeddedPublicEntryStyles(html) {
-  const match = /<style data-public-entry-styles>\n([\s\S]*?)\n\s*<\/style>/.exec(html);
-  assert.ok(match, "Public Entry muss seine gemeinsame Darstellungsschicht eingebettet enthalten");
-  return match[1];
-}
-
 try {
   build("--profile", "pages", "--output", pagesDir);
   execFileSync(process.execPath, [publicAudit, "--artifact-root", pagesDir], { cwd: root, stdio: "pipe" });
@@ -81,33 +75,52 @@ try {
   assert.equal(fs.existsSync(path.join(pagesDir, "data", "runtime-config.js")), true, "Pages muss eine explizite Demo-Runtime enthalten");
   assert.equal(fs.existsSync(path.join(pagesDir, "vendor", "leaflet", "leaflet.js")), true, "Pages muss die Kartenbibliothek enthalten");
   assert.equal(fs.existsSync(path.join(pagesDir, "vendor", "xlsx", "xlsx.bundle.js")), true, "Pages muss die Exportbibliothek der Voll-App enthalten");
-  const pagesLandingHtml = fs.readFileSync(path.join(pagesDir, "index.html"), "utf8");
-  assert.match(pagesLandingHtml, /data-public-entry="home"/);
-  assert.match(pagesLandingHtml, /id="home-welcome-title"/);
-  assert.match(pagesLandingHtml, /Willkommen im Versorgungs-Kompass/);
-  assert.equal((pagesLandingHtml.match(/data-public-entry-styles/g) || []).length, 1);
-  assert.equal((pagesLandingHtml.match(/href="\.\/demo\/"/g) || []).length, 1);
-  assert.match(pagesLandingHtml, /Demo öffnen/);
-  assert.match(pagesLandingHtml, /Öffentliche Demo mit fiktiven Beispieldaten/);
-  assert.doesNotMatch(pagesLandingHtml, /\/api\/|Google anmelden|zugriff-verweigert/i);
-  assert.doesNotMatch(pagesLandingHtml, /<meta\s+http-equiv="refresh"|href="\/(?:anmelden)?"/i);
-  assert.match(fs.readFileSync(path.join(pagesDir, "demo", "index.html"), "utf8"), /url=\.\.\/versorgungs-kompass\.html#home/);
-  const pagesEntryHtml = fs.readFileSync(path.join(pagesDir, "mitmachen", "index.html"), "utf8");
-  assert.doesNotMatch(
-    pagesEntryHtml,
-    /data-target-enrollment|Testzugang aktivieren|(?:login\/)?enrollment\.html/i,
-    "Pages darf keinen Einstieg zur geschuetzten Testzugang-Aktivierung enthalten"
-  );
+  const pagesRootHtml = fs.readFileSync(path.join(pagesDir, "index.html"), "utf8");
+  const pagesAliasHtml = fs.readFileSync(path.join(pagesDir, "versorgungs-kompass.html"), "utf8");
+  const pagesNoScriptCss = fs.readFileSync(path.join(pagesDir, "versorgungs-kompass-no-script.css"), "utf8");
+  assert.equal(pagesRootHtml, pagesAliasHtml, "Pages muss am Root direkt dieselbe App-Shell ausliefern");
+  assert.match(pagesRootHtml, /class="app-shell/);
+  assert.match(pagesRootHtml, /data-view-panel="home"/);
+  assert.match(pagesRootHtml, /<noscript>[\s\S]*href="\.\/versorgungs-kompass-no-script\.css"[^>]*data-no-script-home[^>]*>[\s\S]*<\/noscript>/i);
+  assert.match(pagesNoScriptCss, /\.view-panel\[data-view-panel="home"\]\s*\{[\s\S]*display:\s*block\s*!important/i);
+  assert.match(pagesNoScriptCss, /button\[data-home-scroll-cue\]\s*\{[\s\S]*display:\s*none/i);
+  assert.match(pagesRootHtml, /<meta\s+name="robots"\s+content="noindex,\s*nofollow"\s*\/?>/i);
+  assert.match(pagesRootHtml, /\.\/data\/demo-data\.js[\s\S]*\.\/data\/demo-api\.js[\s\S]*\.\/data\/data-service\.js/);
+  assert.doesNotMatch(pagesRootHtml, /data-public-entry="home"|data-public-entry-styles|Demo öffnen/);
+  assert.doesNotMatch(pagesRootHtml, /<meta\s+http-equiv="refresh"/i);
+  assert.match(fs.readFileSync(path.join(pagesDir, "demo", "index.html"), "utf8"), /url=\.\.\/#home/);
   assert.match(
     fs.readFileSync(path.join(pagesDir, "versorgungs-kompass.html"), "utf8"),
-    /href="\.\/public\/brand\/versorgungs-kompass\/icons\/app-icon-32\.png"/
+    /href="\.\/public\/brand\/mitmachen\/icons\/app-icon-32\.png"/
   );
   assert.match(
     fs.readFileSync(path.join(pagesDir, "manifest.webmanifest"), "utf8"),
-    /"src": "\.\/public\/brand\/versorgungs-kompass\/icons\/app-icon-192\.png"/
+    /"src": "\.\/public\/brand\/mitmachen\/icons\/app-icon-192\.png"/
+  );
+  const pagesManifest = JSON.parse(fs.readFileSync(path.join(pagesDir, "manifest.webmanifest"), "utf8"));
+  assert.equal(pagesManifest.name, "#Mitmachen");
+  for (const brand of ["Versorgungs-Kompass", "Stakeholder-Kompass", "Hospitations-Kompass", "Format-Kompass"]) {
+    assert.match(pagesManifest.description, new RegExp(brand));
+    assert.match(pagesRootHtml, new RegExp(`<strong>${brand}</strong>`));
+  }
+  for (const mark of [
+    "public/brand/versorgungs-kompass/mark.svg",
+    "public/brand/modules/stakeholder/mark.svg",
+    "public/brand/modules/hospitation/mark.svg",
+    "public/brand/modules/formate/mark.svg"
+  ]) {
+    assert.match(pagesRootHtml, new RegExp(mark.replaceAll("/", "\\/")));
+  }
+  assert.equal(pagesManifest.start_url, "./#home");
+  assert.equal(pagesManifest.scope, "./");
+  assert.equal(
+    pagesManifest.icons.every((icon) => icon.src.startsWith("./public/brand/mitmachen/icons/")),
+    true
   );
   assertMissing(
     pagesDir,
+    "mitmachen/index.html",
+    "mitmachen/mitmachen.css",
     "login.html",
     "enrollment.html",
     "enrollment.css",
@@ -138,6 +151,7 @@ try {
   assert.doesNotMatch(pagesText, /supabase(?:\.co|-js|AnonKey|Url)|service[_-]?role/i);
   assert.doesNotMatch(pagesText, /expertenkreis-data|stakeholder-data|versorgungs-kompass-data/i);
   assert.doesNotMatch(pagesText, /\bVK_DEMO_BACKEND\b/, "Pages darf keinen umschaltbaren Demo-Backendmodus enthalten");
+  assert.doesNotMatch(pagesText, new RegExp(["arbeits", "raum"].join(""), "i"), "Pages enthaelt nicht mehr freigegebenes Wording");
 
   const pagesConfig = fs.readFileSync(path.join(pagesDir, "data", "runtime-config.js"), "utf8");
   assert.match(pagesConfig, /dataMode:\s*"demo"/);
@@ -301,12 +315,6 @@ try {
   assert.match(targetPublicIndexHtml, /Willkommen im Versorgungs-Kompass/);
   assert.match(targetPublicIndexHtml, /id="zugriff-verweigert"/);
   assert.doesNotMatch(targetPublicIndexHtml, /Testzugang aktivieren|enrollment\.html|\b(?:IAP|OIDC|Runtime|API-Gateway)\b/i);
-  assert.equal(
-    embeddedPublicEntryStyles(pagesLandingHtml),
-    embeddedPublicEntryStyles(targetPublicIndexHtml),
-    "Pages und versorgungs-kompass.de muessen dieselbe Public-Entry-Darstellung verwenden"
-  );
-
   const targetIndexHtml = fs.readFileSync(path.join(targetDir, "index.html"), "utf8");
   assert.match(targetIndexHtml, /<aside class="module-sidebar"/);
   assert.match(targetIndexHtml, /<h1 id="welcome-title">Gemeinsam Versorgung gestalten\.<\/h1>/);
@@ -337,6 +345,7 @@ try {
   const targetText = textArtifact(targetDir);
   assert.doesNotMatch(targetText, /https:\/\/[a-z0-9-]+\.supabase\.co/i, "Target darf keine direkte Supabase-Projekt-URL enthalten");
   assert.doesNotMatch(targetText, /@supabase\/supabase-js|supabase-js@/i, "Target darf kein Supabase Browser-SDK laden");
+  assert.doesNotMatch(targetText, new RegExp(["arbeits", "raum"].join(""), "i"), "Target enthaelt nicht mehr freigegebenes Wording");
 
   for (const [relativePath, label] of [
     ["versorgungs-kompass.css", "App-Styles"],

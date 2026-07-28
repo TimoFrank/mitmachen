@@ -50,13 +50,12 @@ const requiredFiles = new Set([
   "demo/index.html",
   "versorgungs-kompass.html",
   "versorgungs-kompass.css",
+  "versorgungs-kompass-no-script.css",
   "versorgungs-kompass.js",
   "versorgungs-kompass-routes.js",
   "hospitation/index.html",
   "hospitation/hospitation.css",
   "hospitation/hospitation.js",
-  "mitmachen/index.html",
-  "mitmachen/mitmachen.css",
   "mitmachen/versorgungs-netzwerk.html",
   "mitmachen/versorgungs-netzwerk.css",
   "mitmachen/versorgungs-netzwerk.js",
@@ -102,12 +101,19 @@ const requiredFiles = new Set([
   "vendor/pdfjs/pdf.min.mjs",
   "vendor/pdfjs/pdf.worker.min.mjs",
   "vendor/xlsx/xlsx.bundle.js",
+  "public/brand/mitmachen/icons/app-icon-180.png",
+  "public/brand/mitmachen/icons/app-icon-192.png",
+  "public/brand/mitmachen/icons/app-icon-32.png",
+  "public/brand/mitmachen/icons/app-icon-512.png",
   "public/brand/mitmachen/lockup-horizontal.svg",
   "public/brand/mitmachen/mark-on-dark.svg",
-  "public/brand/versorgungs-kompass/icons/app-icon-180.png",
-  "public/brand/versorgungs-kompass/icons/app-icon-192.png",
-  "public/brand/versorgungs-kompass/icons/app-icon-32.png",
-  "public/brand/versorgungs-kompass/icons/app-icon-512.png",
+  "public/brand/mitmachen/mark.svg",
+  "public/brand/modules/formate/mark-on-dark.svg",
+  "public/brand/modules/formate/mark.svg",
+  "public/brand/modules/hospitation/mark-on-dark.svg",
+  "public/brand/modules/hospitation/mark.svg",
+  "public/brand/modules/stakeholder/mark-on-dark.svg",
+  "public/brand/modules/stakeholder/mark.svg",
   "public/brand/versorgungs-kompass/mark-on-dark.svg",
   "public/brand/versorgungs-kompass/mark.svg",
   "public/demo-profile-admin.svg",
@@ -142,7 +148,10 @@ for (const htmlFile of actualFiles.filter((file) => extname(file) === ".html")) 
     if (!cleanReference) continue;
     const resolvedReference = resolve(dirname(htmlPath), cleanReference);
     const expectedPath = cleanReference.endsWith("/") ? join(resolvedReference, "index.html") : resolvedReference;
-    assert(resolvedReference.startsWith(`${artifactRoot}${sep}`), `${artifactLabel}/${htmlFile} referenziert ausserhalb des Artefakts: ${reference}`);
+    assert(
+      resolvedReference === artifactRoot || resolvedReference.startsWith(`${artifactRoot}${sep}`),
+      `${artifactLabel}/${htmlFile} referenziert ausserhalb des Artefakts: ${reference}`
+    );
     assert(existsSync(expectedPath), `${artifactLabel}/${htmlFile} referenziert fehlendes Asset: ${reference}`);
   }
 }
@@ -153,6 +162,7 @@ for (const [pattern, reason] of [
   [/\bVK_DEMO_BACKEND\b/, "umschaltbaren Demo-Backendmodus"],
   [/expertenkreis-data|stakeholder-data|patienten-data|versorgungs-kompass-data/i, "statischer Real- oder Fallbackdatensatz"],
   [/auth-guard|auth-login|set-password/i, "Login- oder Authentisierungsoberflaeche"],
+  [new RegExp(["arbeits", "raum"].join(""), "i"), "nicht mehr freigegebenes Wording"],
   [/(?:local-hospitation|localHospitation|HOSPITATION_PRIVATE|document\.write\s*\()/i, "lokalen oder privaten Hospitations-Hook"]
 ]) {
   assert(!pattern.test(firstPartyText), `${artifactLabel} enthaelt ${reason}`);
@@ -182,49 +192,68 @@ if (existsSync(appHtmlPath)) {
   assert(!/(?:auth-config|auth-guard|auth-login)\.js/i.test(appHtml), `${artifactLabel}/versorgungs-kompass.html referenziert Authentisierungscode`);
   assert(!/Willkommen,\s*Timo/i.test(appHtml), `${artifactLabel}/versorgungs-kompass.html enthaelt eine personenbezogene Begruessung`);
   assert(!/data-target-session|id=["']profile-logout["']|IAP-Anmeldung|Angemeldete Sitzung/i.test(appHtml), `${artifactLabel}/versorgungs-kompass.html enthaelt eine irrefuehrende Target-Sitzung`);
+  for (const brand of ["Versorgungs-Kompass", "Stakeholder-Kompass", "Hospitations-Kompass", "Format-Kompass"]) {
+    assert(appHtml.includes(`<strong>${brand}</strong>`), `${artifactLabel}/versorgungs-kompass.html enthaelt die Marke ${brand} nicht auf der Startseite`);
+  }
+  for (const mark of [
+    "public/brand/versorgungs-kompass/mark.svg",
+    "public/brand/modules/stakeholder/mark.svg",
+    "public/brand/modules/hospitation/mark.svg",
+    "public/brand/modules/formate/mark.svg"
+  ]) {
+    assert(appHtml.includes(mark), `${artifactLabel}/versorgungs-kompass.html referenziert das Signet ${mark} nicht`);
+  }
   for (const label of ["Versorgung", "Auswertung", "Aktivitäten", "Stakeholder", "Expertenkreis", "Hospitationen", "Beobachtungen", "Fragebogen", "Dashboard", "Formate", "Teams"]) {
     assert(appHtml.includes(label), `${artifactLabel}/versorgungs-kompass.html enthaelt den Voll-App-Bereich ${label} nicht`);
   }
 }
 
-const pagesLandingPath = join(artifactRoot, "index.html");
-if (existsSync(pagesLandingPath)) {
-  const pagesLandingHtml = readFileSync(pagesLandingPath, "utf8");
+const pagesRootPath = join(artifactRoot, "index.html");
+if (existsSync(pagesRootPath) && existsSync(appHtmlPath)) {
+  const pagesRootHtml = readFileSync(pagesRootPath, "utf8");
+  const appHtml = readFileSync(appHtmlPath, "utf8");
+  const noScriptCss = readFileSync(join(artifactRoot, "versorgungs-kompass-no-script.css"), "utf8");
+  assert(pagesRootHtml === appHtml, `${artifactLabel}/index.html muss direkt dieselbe App-Shell wie versorgungs-kompass.html ausliefern`);
+  assert(/class=["'][^"']*\bapp-shell\b/.test(pagesRootHtml), `${artifactLabel}/index.html enthaelt nicht die App-Shell`);
+  assert(/data-view-panel=["']home["']/.test(pagesRootHtml), `${artifactLabel}/index.html enthaelt nicht die Startseite`);
   assert(
-    /data-public-entry="home"/.test(pagesLandingHtml),
-    `${artifactLabel}/index.html verwendet nicht den gemeinsamen Public Entry`
+    /<noscript>[\s\S]*href=["']\.\/versorgungs-kompass-no-script\.css["'][^>]*data-no-script-home[^>]*>[\s\S]*<\/noscript>/i.test(pagesRootHtml)
+      && /\.view-panel\[data-view-panel=["']home["']\]\s*\{[\s\S]*display:\s*block\s*!important/i.test(noScriptCss)
+      && /button\[data-home-scroll-cue\]\s*\{[\s\S]*display:\s*none/i.test(noScriptCss),
+    `${artifactLabel}/index.html muss die Startseite auch ohne JavaScript sichtbar halten`
   );
   assert(
-    /id=["']home-welcome-title["']/.test(pagesLandingHtml)
-      && /Willkommen im Versorgungs-Kompass/.test(pagesLandingHtml)
-      && /Wähle den Bereich, in dem du arbeiten möchtest\./.test(pagesLandingHtml),
-    `${artifactLabel}/index.html zeigt nicht die erwartete gemeinsame Startseite`
+    /<meta\s+name=["']robots["']\s+content=["']noindex,\s*nofollow["']\s*\/?>/i.test(pagesRootHtml),
+    `${artifactLabel}/index.html muss die oeffentliche Demo von der Indexierung ausschliessen`
   );
-  assert(
-    (pagesLandingHtml.match(/data-public-entry-styles/g) || []).length === 1,
-    `${artifactLabel}/index.html muss die gemeinsame Darstellungsschicht genau einmal einbetten`
-  );
-  assert(
-    (pagesLandingHtml.match(/href=["']\.\/demo\/["']/g) || []).length === 1,
-    `${artifactLabel}/index.html muss genau einmal relativ in die Demo fuehren`
-  );
-  assert(
-    /Demo öffnen/.test(pagesLandingHtml) && /Öffentliche Demo mit fiktiven Beispieldaten/.test(pagesLandingHtml),
-    `${artifactLabel}/index.html kennzeichnet den anonymen Demo-Einstieg nicht eindeutig`
-  );
-  assert(
-    !/<meta\s+http-equiv=["']refresh["']|href=["']\/(?:anmelden)?["']|href=["']\.\/public-entry\.css["']/i.test(pagesLandingHtml),
-    `${artifactLabel}/index.html darf weder weiterleiten noch absolute Zugangs- oder externe Stylepfade verwenden`
-  );
-  assert(
-    !/<script\b|<iframe\b|<form\b|<input\b|\ssrc\s*=|\/api\/|Google anmelden|data-google-sso-button|zugriff-verweigert/i.test(pagesLandingHtml),
-    `${artifactLabel}/index.html muss als passive, eigenstaendige Startseite funktionieren`
-  );
+  assert(!/data-public-entry=["']home["']|data-public-entry-styles|Demo öffnen/.test(pagesRootHtml), `${artifactLabel}/index.html enthaelt noch den entfernten Pages-Einstieg`);
+  assert(!/<meta\s+http-equiv=["']refresh["']/i.test(pagesRootHtml), `${artifactLabel}/index.html darf nicht weiterleiten`);
 }
 assert(
   !actualFiles.includes("public-entry.css"),
   `${artifactLabel}/public-entry.css darf nicht als zusaetzliche oeffentliche Ressource ausgeliefert werden`
 );
+assert(!actualFiles.includes("mitmachen/index.html"), `${artifactLabel}/mitmachen/index.html darf nicht oeffentlich ausgeliefert werden`);
+assert(!actualFiles.includes("mitmachen/mitmachen.css"), `${artifactLabel}/mitmachen/mitmachen.css darf nicht oeffentlich ausgeliefert werden`);
+
+const manifestPath = join(artifactRoot, "manifest.webmanifest");
+if (existsSync(manifestPath)) {
+  try {
+    const manifest = JSON.parse(readFileSync(manifestPath, "utf8"));
+    assert(manifest.name === "#Mitmachen", `${artifactLabel}/manifest.webmanifest verwendet nicht #Mitmachen als Namen`);
+    for (const brand of ["Versorgungs-Kompass", "Stakeholder-Kompass", "Hospitations-Kompass", "Format-Kompass"]) {
+      assert(manifest.description?.includes(brand), `${artifactLabel}/manifest.webmanifest nennt ${brand} nicht`);
+    }
+    assert(manifest.start_url === "./#home", `${artifactLabel}/manifest.webmanifest startet nicht direkt auf der Startseite`);
+    assert(manifest.scope === "./", `${artifactLabel}/manifest.webmanifest verwendet nicht den Pages-Scope`);
+    assert(
+      manifest.icons?.every((icon) => icon.src?.startsWith("./public/brand/mitmachen/icons/")),
+      `${artifactLabel}/manifest.webmanifest verwendet nicht durchgehend die #Mitmachen-App-Icons`
+    );
+  } catch (error) {
+    assert(false, `${artifactLabel}/manifest.webmanifest ist ungueltig (${error.message})`);
+  }
+}
 
 assert(!/Willkommen,\s*Timo/i.test(firstPartyText), `${artifactLabel} enthaelt eine personenbezogene Begruessung`);
 const publicAppSourcePath = join(artifactRoot, "versorgungs-kompass.js");

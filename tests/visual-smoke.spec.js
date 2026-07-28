@@ -787,10 +787,10 @@ test("Kontakte: Liste und Filtertoolbar rendern", async ({ page }, testInfo) => 
   await expect(page.locator("#search")).toBeVisible();
   await expect(page.locator('[data-sidebar-section-toggle="care"]').filter({ hasText: "Versorgung" })).toHaveCount(1);
   await expect(page.locator('[data-sidebar-section-toggle="stakeholders"]').filter({ hasText: "Stakeholder" })).toHaveCount(1);
-  await expect(page.locator('[data-sidebar-section-toggle="formats"]').filter({ hasText: "Formate" })).toHaveCount(1);
+  await expect(page.locator('[data-sidebar-section-toggle="formats"]').filter({ hasText: "Format" })).toHaveCount(1);
   await expect(page.locator('[data-sidebar-section-toggle="hospitations"]')).toHaveCount(0);
   await expect(page.locator('[data-sidebar-section-toggle="planning"]').filter({ hasText: "Hospitation" })).toHaveCount(1);
-  await expect(page.locator('[data-sidebar-section="planning"]')).toHaveAttribute("aria-label", "Hospitation");
+  await expect(page.locator('[data-sidebar-section="planning"]')).toHaveAttribute("aria-label", "Hospitations-Kompass");
   await expect(page.locator('[data-sidebar-section-toggle="admin"]')).toHaveCount(0);
   const careTabOrder = await page.locator("#sidebar-section-care-content [data-view-tab]").evaluateAll((nodes) => nodes.map((node) => node.querySelector("span:not(.notification-count-indicator)")?.textContent.trim()));
   expect(careTabOrder).toEqual(["Karte", "Kontakte", "Organisationen", "Auswertung", "Aktivitäten"]);
@@ -2189,7 +2189,7 @@ test("Sidebar: Mobiles Profilavatar entspricht der Größe der Kontoaktionen", a
   await expect(page.locator('[data-sidebar-section="care"]')).toHaveClass(/is-expanded/);
   await expect(page.locator('[data-sidebar-section="stakeholders"]')).toHaveClass(/is-collapsed/);
   await expect(page.locator('[data-sidebar-section="planning"]')).toHaveClass(/is-collapsed/);
-  await expect(page.locator('[data-sidebar-section="planning"]')).toHaveAttribute("aria-label", "Hospitation");
+  await expect(page.locator('[data-sidebar-section="planning"]')).toHaveAttribute("aria-label", "Hospitations-Kompass");
   await expect(page.locator('[data-sidebar-section-toggle="planning"]')).toContainText("Hospitation");
   await expect(page.locator('[data-sidebar-section="formats"]')).toHaveClass(/is-collapsed/);
   await expect(page.locator('[data-sidebar-section="admin"]')).toHaveCount(0);
@@ -5625,7 +5625,7 @@ for (const role of ["admin", "editor", "viewer"]) {
     await gotoAuthenticated(page, "/frontend/app/versorgungs-kompass.html", { role });
     const expectedAllowedPermissions = role === "admin" ? 9 : role === "editor" ? 5 : 2;
 
-    await expect(page.locator('[data-sidebar-section="planning"]')).toHaveAttribute("aria-label", "Hospitation");
+    await expect(page.locator('[data-sidebar-section="planning"]')).toHaveAttribute("aria-label", "Hospitations-Kompass");
     await expect(page.locator('[data-sidebar-section-toggle="planning"]')).toContainText("Hospitation");
     await openMobileSidebarIfNeeded(page);
     await expect(page.locator("#sidebar-tour-button")).toBeVisible();

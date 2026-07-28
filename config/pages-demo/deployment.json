@@ -8,7 +8,6 @@
     "frontend/app",
     "frontend/map",
     "frontend/pages/mitmachen",
-    "frontend/public-entry",
     "frontend/data/demo-data.js",
     "frontend/data/demo-api.js",
     "frontend/data/data-service.js",

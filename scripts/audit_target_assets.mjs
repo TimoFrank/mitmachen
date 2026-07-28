@@ -42,6 +42,7 @@ for (const required of [
   "mitmachen/index.html",
   "versorgungs-kompass.html",
   "versorgungs-kompass.css",
+  "versorgungs-kompass-no-script.css",
   "versorgungs-kompass.js",
   "versorgungs-kompass-routes.js",
   "versorgungs-kompass-map.html",
@@ -51,7 +52,18 @@ for (const required of [
   "data/runtime-config.js",
   "hospitation/import.html",
   "hospitation/import.css",
-  "hospitation/import.js"
+  "hospitation/import.js",
+  "public/brand/mitmachen/lockup-horizontal.svg",
+  "public/brand/mitmachen/mark-on-dark.svg",
+  "public/brand/mitmachen/mark.svg",
+  "public/brand/modules/formate/mark-on-dark.svg",
+  "public/brand/modules/formate/mark.svg",
+  "public/brand/modules/hospitation/mark-on-dark.svg",
+  "public/brand/modules/hospitation/mark.svg",
+  "public/brand/modules/stakeholder/mark-on-dark.svg",
+  "public/brand/modules/stakeholder/mark.svg",
+  "public/brand/versorgungs-kompass/mark-on-dark.svg",
+  "public/brand/versorgungs-kompass/mark.svg"
 ]) {
   assert(actualFiles.includes(required), `${artifactLabel}/${required} fehlt im geschuetzten Target-Artefakt`);
 }
@@ -123,7 +135,10 @@ if (existsSync(dataServicePath)) {
 const targetHtmlPath = join(artifactRoot, "versorgungs-kompass.html");
 if (existsSync(targetHtmlPath)) {
   const html = readFileSync(targetHtmlPath, "utf8");
+  const noScriptCss = readFileSync(join(artifactRoot, "versorgungs-kompass-no-script.css"), "utf8");
   assert(!/data\/(?:demo-data|versorgungs-kompass-data|expertenkreis-data|stakeholder-data|patienten-data)\.js/i.test(html), `${artifactLabel}/versorgungs-kompass.html referenziert statische Demo- oder Realbestandsdaten`);
+  assert(/<noscript>[\s\S]*href=["']\/versorgungs-kompass-no-script\.css["'][^>]*data-no-script-home[^>]*>[\s\S]*<\/noscript>/i.test(html), `${artifactLabel}/versorgungs-kompass.html bindet den statischen Startseiten-Fallback nicht ein`);
+  assert(/\.view-panel\[data-view-panel=["']home["']\]\s*\{[\s\S]*display:\s*block\s*!important/i.test(noScriptCss), `${artifactLabel}/versorgungs-kompass-no-script.css haelt die Startseite nicht sichtbar`);
   assert(!/data-hospitation-(?:data-mode|documentation-data-mode|dashboard-preview-mode)=["']demo["']/i.test(html), `${artifactLabel}/versorgungs-kompass.html enthaelt einen Demo-/Echt-Umschalter`);
   assert(!/id=["']registrations-reset-demo["']/i.test(html), `${artifactLabel}/versorgungs-kompass.html enthaelt eine Demo-Reset-Funktion`);
   assert(/data-target-session/.test(html) && /id=["']profile-logout["']/.test(html), `${artifactLabel}/versorgungs-kompass.html enthaelt die Target-Sitzungssteuerung nicht`);

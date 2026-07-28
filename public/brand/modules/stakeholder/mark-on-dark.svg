@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 64 64" role="img" aria-labelledby="stakeholder-mark-on-dark-title stakeholder-mark-on-dark-description">
+  <title id="stakeholder-mark-on-dark-title">Stakeholder-Kompass Bildmarke für dunkle Flächen</title>
+  <desc id="stakeholder-mark-on-dark-description">Stakeholder-Kompass wird durch drei abgerundete Rauten als verbundenes Dreieck in Akzentfarbe, Markenhell und Weiß dargestellt; die Verbindung erscheint in Markenhell.</desc>
+  <path d="M32 15 L16 43 L48 43 Z" fill="none" stroke="#E8F7F4" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
+  <rect x="23" y="6" width="18" height="18" rx="6" transform="rotate(45 32 15)" fill="#43B391"/>
+  <rect x="7" y="34" width="18" height="18" rx="6" transform="rotate(45 16 43)" fill="#E8F7F4"/>
+  <rect x="39" y="34" width="18" height="18" rx="6" transform="rotate(45 48 43)" fill="#FFFFFF"/>
+</svg>

@@ -26,7 +26,7 @@ LEGACY_MIGRATION_BUCKET="versorgungs-kompass-migrations-765190393967"
 
 PROTECTED_SQL_INSTANCE="vk-pre-gematik-postgres"
 PROTECTED_GKE_CLUSTER="versorgungs-kompass-pre-gematik"
-PAGES_DEMO_URL="https://timofrank.github.io/mitmachen/demo/"
+PAGES_DEMO_URL="https://timofrank.github.io/mitmachen/"
 
 CLOUD_RUN_SERVICES=(
   "versorgungs-kompass-api"

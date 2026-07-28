@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512" role="img" aria-labelledby="title description">
+  <title id="title">#Mitmachen App-Icon</title>
+  <desc id="description">Die gezeichnete Hashtag-Bildmarke in Dunkelblau und Grün auf einer hellen, abgerundeten Fläche.</desc>
+  <rect width="512" height="512" fill="#F4F7FB"/>
+  <rect x="8" y="8" width="496" height="496" rx="112" fill="none" stroke="#D7E2F2" stroke-width="16"/>
+  <g transform="translate(42 42) scale(6.7)">
+    <path d="M24 11 19 53M44 11l-5 42" fill="none" stroke="#010E52" stroke-width="7" stroke-linecap="round"/>
+    <path d="M12 25h41M10 41h41" fill="none" stroke="#00D95A" stroke-width="7" stroke-linecap="round"/>
+  </g>
+</svg>

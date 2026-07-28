@@ -1,0 +1,39 @@
+.app-shell.is-initializing {
+  height: 100dvh;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.app-shell.is-initializing .app-main,
+.app-shell.is-initializing .wrap,
+.app-shell.is-initializing .crm-shell,
+.app-shell.is-initializing .view-shell {
+  height: 100%;
+  min-height: 0;
+}
+
+.app-shell.is-initializing .app-main {
+  grid-template-rows: minmax(0, 1fr) auto;
+}
+
+.app-shell.is-initializing .app-main,
+.app-shell.is-initializing .crm-shell {
+  overflow: hidden;
+}
+
+.app-shell.is-initializing .wrap {
+  height: auto;
+  padding: 0;
+}
+
+.app-shell.is-initializing .view-panel[data-view-panel="home"] {
+  display: block !important;
+}
+
+.app-shell.is-initializing button[data-home-scroll-cue] {
+  display: none;
+}
+
+.app-shell.is-initializing .app-initial-skeleton {
+  display: none !important;
+}

@@ -3,9 +3,13 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Versorgungs-Kompass</title>
-    <meta name="theme-color" content="#155fe4" />
-    <meta name="apple-mobile-web-app-title" content="Kompass" />
+    <title>#Mitmachen</title>
+    <meta
+      name="description"
+      content="#Mitmachen verbindet Versorgungs-Kompass, Stakeholder-Kompass, Hospitations-Kompass und Format-Kompass."
+    />
+    <meta name="theme-color" content="#010e52" />
+    <meta name="apple-mobile-web-app-title" content="#Mitmachen" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="default" />
     <link rel="manifest" href="../../public/manifest.webmanifest" />
@@ -15,8 +19,11 @@
     <script src="./versorgungs-kompass-routes.js"></script>
     <script src="../login/auth-config.js"></script>
     <script src="../login/auth-guard.js"></script>
-    <link rel="icon" type="image/svg+xml" href="../../public/brand/versorgungs-kompass/mark.svg" />
+    <link rel="icon" type="image/svg+xml" href="../../public/brand/mitmachen/mark.svg" />
     <link rel="stylesheet" href="./versorgungs-kompass.css" />
+    <noscript>
+      <link rel="stylesheet" href="./versorgungs-kompass-no-script.css" data-no-script-home />
+    </noscript>
   </head>
   <body>
     <a class="skip-link" href="#main-content">Zum Hauptinhalt springen</a>
@@ -45,15 +52,12 @@
               <span>Startseite</span>
             </button>
           </div>
-          <div class="sidebar-section is-collapsed" aria-label="Versorgung" data-sidebar-section="care" data-sidebar-group="care" data-sidebar-collapsible>
+          <div class="sidebar-section is-collapsed" aria-label="Versorgungs-Kompass" data-sidebar-section="care" data-sidebar-group="care" data-sidebar-collapsible>
             <button class="sidebar-section-toggle" type="button" id="sidebar-section-care-toggle" data-sidebar-section-toggle="care" aria-expanded="false" aria-controls="sidebar-section-care-content">
               <span class="sidebar-module-icon" aria-hidden="true">
-                <svg viewBox="0 0 24 24">
-                  <path d="m3 6 6-3 6 3 6-3v15l-6 3-6-3-6 3Z"></path>
-                  <path d="M9 3v15M15 6v15"></path>
-                </svg>
+                <img src="../../public/brand/versorgungs-kompass/mark-on-dark.svg" alt="" aria-hidden="true" />
               </span>
-              <span class="sidebar-section-title">Versorgung</span>
+              <span class="sidebar-section-title">Versorgungs-<wbr />Kompass</span>
               <svg class="sidebar-section-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                 <path d="m6 9 6 6 6-6"></path>
               </svg>
@@ -101,17 +105,12 @@
               </button>
             </div>
           </div>
-          <div class="sidebar-section is-collapsed" aria-label="Stakeholder" data-sidebar-section="stakeholders" data-sidebar-group="stakeholders" data-sidebar-collapsible>
+          <div class="sidebar-section is-collapsed" aria-label="Stakeholder-Kompass" data-sidebar-section="stakeholders" data-sidebar-group="stakeholders" data-sidebar-collapsible>
             <button class="sidebar-section-toggle" type="button" id="sidebar-section-stakeholders-toggle" data-sidebar-section-toggle="stakeholders" aria-expanded="false" aria-controls="sidebar-section-stakeholders-content">
               <span class="sidebar-module-icon" aria-hidden="true">
-                <svg viewBox="0 0 24 24">
-                  <circle cx="6" cy="7" r="2.5"></circle>
-                  <circle cx="18" cy="7" r="2.5"></circle>
-                  <circle cx="12" cy="17" r="2.5"></circle>
-                  <path d="m8.2 8.2 2.5 6.2m5.1-6.2-2.5 6.2M8.5 7h7"></path>
-                </svg>
+                <img src="../../public/brand/modules/stakeholder/mark-on-dark.svg" alt="" aria-hidden="true" />
               </span>
-              <span class="sidebar-section-title">Stakeholder</span>
+              <span class="sidebar-section-title">Stakeholder-<wbr />Kompass</span>
               <svg class="sidebar-section-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                 <path d="m6 9 6 6 6-6"></path>
               </svg>
@@ -175,17 +174,12 @@
               </button>
             </div>
           </div>
-          <div class="sidebar-section is-collapsed" aria-label="Hospitation" data-sidebar-section="planning" data-sidebar-group="planning" data-sidebar-collapsible>
+          <div class="sidebar-section is-collapsed" aria-label="Hospitations-Kompass" data-sidebar-section="planning" data-sidebar-group="planning" data-sidebar-collapsible>
             <button class="sidebar-section-toggle" type="button" id="sidebar-section-planning-toggle" data-sidebar-section-toggle="planning" aria-expanded="false" aria-controls="sidebar-section-planning-content">
               <span class="sidebar-module-icon" aria-hidden="true">
-                <svg viewBox="0 0 24 24">
-                  <rect x="3" y="4.5" width="18" height="16.5" rx="2.5"></rect>
-                  <path d="M8 2.5v4M16 2.5v4M3 9.5h18"></path>
-                  <path d="M7.5 15.2s1.6-2.5 4.5-2.5 4.5 2.5 4.5 2.5-1.6 2.5-4.5 2.5-4.5-2.5-4.5-2.5Z"></path>
-                  <circle cx="12" cy="15.2" r="1.15"></circle>
-                </svg>
+                <img src="../../public/brand/modules/hospitation/mark-on-dark.svg" alt="" aria-hidden="true" />
               </span>
-              <span class="sidebar-section-title">Hospitation</span>
+              <span class="sidebar-section-title">Hospitations-<wbr />Kompass</span>
               <svg class="sidebar-section-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                 <path d="m6 9 6 6 6-6"></path>
               </svg>
@@ -251,17 +245,12 @@
               </button>
             </div>
           </div>
-          <div class="sidebar-section is-collapsed" aria-label="Formate" data-sidebar-section="formats" data-sidebar-group="formats" data-sidebar-collapsible>
+          <div class="sidebar-section is-collapsed" aria-label="Format-Kompass" data-sidebar-section="formats" data-sidebar-group="formats" data-sidebar-collapsible>
             <button class="sidebar-section-toggle" type="button" id="sidebar-section-formats-toggle" data-sidebar-section-toggle="formats" aria-expanded="false" aria-controls="sidebar-section-formats-content">
               <span class="sidebar-module-icon" aria-hidden="true">
-                <svg viewBox="0 0 24 24">
-                  <rect x="4" y="4" width="6" height="6" rx="1"></rect>
-                  <rect x="14" y="4" width="6" height="6" rx="1"></rect>
-                  <rect x="4" y="14" width="6" height="6" rx="1"></rect>
-                  <rect x="14" y="14" width="6" height="6" rx="1"></rect>
-                </svg>
+                <img src="../../public/brand/modules/formate/mark-on-dark.svg" alt="" aria-hidden="true" />
               </span>
-              <span class="sidebar-section-title">Formate</span>
+              <span class="sidebar-section-title">Format-<wbr />Kompass</span>
               <svg class="sidebar-section-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                 <path d="m6 9 6 6 6-6"></path>
               </svg>
@@ -554,57 +543,71 @@
                 <h1
                   class="home-reveal-heading"
                   id="home-welcome-title"
-                  aria-label="Willkommen im Versorgungs-Kompass"
-                  data-home-reveal-lines='["Willkommen im","Versorgungs-Kompass"]'
+                  aria-label="Gemeinsam Versorgung gestalten"
+                  data-home-reveal-lines='["Gemeinsam Versorgung","gestalten"]'
                 >
-                  <span class="home-reveal-heading__measure" aria-hidden="true">Willkommen im<br />Versorgungs-<wbr />Kompass</span>
+                  <span class="home-reveal-heading__measure" aria-hidden="true">Gemeinsam Versorgung<br />gestalten</span>
                   <span class="home-reveal-heading__visual" aria-hidden="true"></span>
                 </h1>
-                <p class="home-hero__lead">Wähle den Bereich, in dem du arbeiten möchtest.</p>
+                <p class="home-hero__lead">Wähle den Kompass, in dem du weiterarbeiten möchtest.</p>
                 <button class="home-scroll-cue" type="button" data-home-scroll-cue aria-controls="home-destinations">
                   Bereiche ansehen
                   <span aria-hidden="true">↓</span>
                 </button>
+                <noscript>
+                  <a class="home-scroll-cue" href="#home-destinations">
+                    Bereiche ansehen
+                    <span aria-hidden="true">↓</span>
+                  </a>
+                </noscript>
               </header>
               <nav class="home-destinations-section" id="home-destinations" aria-label="Bereiche" tabindex="-1">
                 <ul class="home-destinations">
                   <li class="home-destination-card">
                     <a class="home-destination-link" data-home-module="care" data-route-link="map" href="#map">
                       <span class="home-destination-link__top">
-                        <span>01</span>
+                        <span class="home-destination-link__identity">
+                          <img class="home-destination-link__mark" src="../../public/brand/versorgungs-kompass/mark.svg" alt="" aria-hidden="true" />
+                        </span>
                         <span aria-hidden="true">→</span>
                       </span>
-                      <strong>Versorgung</strong>
+                      <strong>Versorgungs-Kompass</strong>
                       <span class="home-destination-link__copy">Regionen, Kontakte und Organisationen im Blick.</span>
                     </a>
                   </li>
                   <li class="home-destination-card">
                     <a class="home-destination-link" data-home-module="stakeholders" data-route-link="stakeholders" href="#stakeholders">
                       <span class="home-destination-link__top">
-                        <span>02</span>
+                        <span class="home-destination-link__identity">
+                          <img class="home-destination-link__mark" src="../../public/brand/modules/stakeholder/mark.svg" alt="" aria-hidden="true" />
+                        </span>
                         <span aria-hidden="true">→</span>
                       </span>
-                      <strong>Stakeholder</strong>
+                      <strong>Stakeholder-Kompass</strong>
                       <span class="home-destination-link__copy">Perspektiven und Netzwerke gezielt verbinden.</span>
                     </a>
                   </li>
                   <li class="home-destination-card">
                     <a class="home-destination-link" data-home-module="planning" data-route-link="framework" href="#framework">
                       <span class="home-destination-link__top">
-                        <span>03</span>
+                        <span class="home-destination-link__identity">
+                          <img class="home-destination-link__mark" src="../../public/brand/modules/hospitation/mark.svg" alt="" aria-hidden="true" />
+                        </span>
                         <span aria-hidden="true">→</span>
                       </span>
-                      <strong>Hospitation</strong>
+                      <strong>Hospitations-Kompass</strong>
                       <span class="home-destination-link__copy">Beobachtungen in belastbares Wissen überführen.</span>
                     </a>
                   </li>
                   <li class="home-destination-card">
                     <a class="home-destination-link" data-home-module="formats" data-route-link="formats" href="#formats">
                       <span class="home-destination-link__top">
-                        <span>04</span>
+                        <span class="home-destination-link__identity">
+                          <img class="home-destination-link__mark" src="../../public/brand/modules/formate/mark.svg" alt="" aria-hidden="true" />
+                        </span>
                         <span aria-hidden="true">→</span>
                       </span>
-                      <strong>Formate</strong>
+                      <strong>Format-Kompass</strong>
                       <span class="home-destination-link__copy">Austausch planen und Wirkung gemeinsam gestalten.</span>
                     </a>
                   </li>
@@ -1737,7 +1740,7 @@
             <div class="team-workspace">
               <section class="team-overview" aria-labelledby="team-overview-title">
                 <div class="team-overview__copy">
-                  <span class="team-overview__eyebrow">Gemeinsamer Arbeitsraum</span>
+                  <span class="team-overview__eyebrow">Teams und Zuständigkeiten</span>
                   <h2 id="team-overview-title">Zusammenarbeit im Überblick</h2>
                   <p>Finde Teammitglieder, Rollen und Zuständigkeiten, ohne lange Kontaktlisten durchsuchen zu müssen.</p>
                 </div>

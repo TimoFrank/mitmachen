@@ -1,21 +1,43 @@
 {
-  "schemaVersion": 2,
-  "lastReviewed": "2026-07-20",
+  "schemaVersion": 4,
+  "lastReviewed": "2026-07-28",
+  "commonSender": {
+    "name": "#Mitmachen",
+    "canonicalKit": "public/brand/mitmachen/"
+  },
+  "compassBrands": [
+    {
+      "name": "Versorgungs-Kompass",
+      "canonicalKit": "public/brand/versorgungs-kompass/"
+    },
+    {
+      "name": "Stakeholder-Kompass",
+      "canonicalKit": "public/brand/modules/stakeholder/"
+    },
+    {
+      "name": "Hospitations-Kompass",
+      "canonicalKit": "public/brand/modules/hospitation/"
+    },
+    {
+      "name": "Format-Kompass",
+      "canonicalKit": "public/brand/modules/formate/"
+    }
+  ],
   "assets": [
     {
       "path": "public/brand/gematik/gematik-logo-standard.png",
       "role": "institutional-sender-logo",
       "owner": "gematik GmbH",
       "source": "https://www.gematik.de/media/gematik/Medien/Newsroom/Mediaservice/Logo/Gematik_Logo_Flag.png",
-      "sourceGuide": "https://www.gematik.de/media/gematik/Medien/Newsroom/Mediaservice/Logo/gematik_Markenleitfaden_Dachmarke_web.pdf",
+      "sourceGuide": "https://www.gematik.de/newsroom/mediathek",
       "sha256": "81f822511f5bf03891817a323be10a1d0787fb9bf4e09be333138b80418a1df7",
       "status": "original-source-verified-approval-required-for-co-branding",
       "mayBeModified": false
     },
     {
       "path": "public/brand/mitmachen/",
-      "role": "participation-umbrella-identity",
-      "owner": "Versorgungs-Kompass project",
+      "role": "common-sender-identity",
+      "owner": "Versorgungs-CRM project",
       "source": "repo-authored; visually aligned with the official #Mitmachen web context",
       "sourceReference": "https://www.gematik.de/mitmachen",
       "status": "repo-authored-project-identity-not-gematik-corporate-mark",
@@ -23,64 +45,98 @@
     },
     {
       "path": "public/brand/versorgungs-kompass/mark.svg",
-      "role": "product-mark",
-      "owner": "Versorgungs-Kompass project",
+      "role": "compass-brand-mark",
+      "brand": "Versorgungs-Kompass",
+      "owner": "Versorgungs-CRM project",
       "source": "repo-authored",
       "status": "approved-for-repository-use",
       "mayBeModified": true
     },
     {
       "path": "public/brand/versorgungs-kompass/mark-on-dark.svg",
-      "role": "product-mark-on-dark",
-      "owner": "Versorgungs-Kompass project",
-      "source": "contrast-variant-of-product-mark",
+      "role": "compass-brand-mark-on-dark",
+      "brand": "Versorgungs-Kompass",
+      "owner": "Versorgungs-CRM project",
+      "source": "contrast-variant-of-compass-brand-mark",
       "status": "approved-for-repository-use",
       "mayBeModified": true
     },
     {
       "path": "public/brand/versorgungs-kompass/wordmark.svg",
-      "role": "product-wordmark",
-      "owner": "Versorgungs-Kompass project",
+      "role": "compass-brand-wordmark",
+      "brand": "Versorgungs-Kompass",
+      "owner": "Versorgungs-CRM project",
       "source": "repo-authored",
       "status": "approved-for-repository-use",
       "mayBeModified": true
     },
     {
       "path": "public/brand/versorgungs-kompass/wordmark-on-dark.svg",
-      "role": "product-wordmark-on-dark",
-      "owner": "Versorgungs-Kompass project",
-      "source": "contrast-variant-of-product-wordmark",
+      "role": "compass-brand-wordmark-on-dark",
+      "brand": "Versorgungs-Kompass",
+      "owner": "Versorgungs-CRM project",
+      "source": "contrast-variant-of-compass-brand-wordmark",
       "status": "approved-for-repository-use",
       "mayBeModified": true
     },
     {
       "path": "public/brand/versorgungs-kompass/lockup-horizontal.svg",
-      "role": "product-lockup",
-      "owner": "Versorgungs-Kompass project",
-      "source": "derived-from-product-mark-and-wordmark",
+      "role": "compass-brand-lockup",
+      "brand": "Versorgungs-Kompass",
+      "owner": "Versorgungs-CRM project",
+      "source": "derived-from-compass-brand-mark-and-wordmark",
       "status": "approved-for-repository-use",
       "mayBeModified": true
     },
     {
       "path": "public/brand/versorgungs-kompass/lockup-horizontal-on-dark.svg",
-      "role": "product-lockup-on-dark",
-      "owner": "Versorgungs-Kompass project",
-      "source": "contrast-variant-of-product-lockup",
+      "role": "compass-brand-lockup-on-dark",
+      "brand": "Versorgungs-Kompass",
+      "owner": "Versorgungs-CRM project",
+      "source": "contrast-variant-of-compass-brand-lockup",
       "status": "approved-for-repository-use",
       "mayBeModified": true
     },
     {
       "path": "public/brand/versorgungs-kompass/icons/",
       "role": "application-icons",
-      "owner": "Versorgungs-Kompass project",
-      "source": "derived-from-product-mark",
+      "brand": "Versorgungs-Kompass",
+      "owner": "Versorgungs-CRM project",
+      "source": "derived-from-compass-brand-mark",
+      "status": "approved-for-repository-use",
+      "mayBeModified": true
+    },
+    {
+      "path": "public/brand/modules/stakeholder/",
+      "role": "compass-brand-kit",
+      "brand": "Stakeholder-Kompass",
+      "owner": "Versorgungs-CRM project",
+      "source": "repo-authored; derived from the shared rounded-diamond geometry",
+      "status": "approved-for-repository-use",
+      "mayBeModified": true
+    },
+    {
+      "path": "public/brand/modules/hospitation/",
+      "role": "compass-brand-kit",
+      "brand": "Hospitations-Kompass",
+      "owner": "Versorgungs-CRM project",
+      "source": "repo-authored; derived from the shared rounded-diamond geometry",
+      "status": "approved-for-repository-use",
+      "mayBeModified": true
+    },
+    {
+      "path": "public/brand/modules/formate/",
+      "role": "compass-brand-kit",
+      "brand": "Format-Kompass",
+      "owner": "Versorgungs-CRM project",
+      "source": "repo-authored; derived from the shared rounded-diamond geometry",
       "status": "approved-for-repository-use",
       "mayBeModified": true
     },
     {
       "path": "public/media/demo/mitmachen/versorgungs-netzwerk-concept.svg",
       "role": "registration-demo-illustration",
-      "owner": "Versorgungs-Kompass project",
+      "owner": "Versorgungs-CRM project",
       "source": "repo-authored",
       "status": "demo-only",
       "mayBeModified": true
