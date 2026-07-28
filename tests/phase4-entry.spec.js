@@ -120,21 +120,19 @@ test("Phase 4: #Mitmachen führt in vier Module und Pages über die gemeinsame S
   });
   await page.goto("/dist/pages/index.html");
   await expect(page).toHaveURL(/\/dist\/pages\/index\.html$/);
-  await expect(page).toHaveTitle("Versorgungs-Kompass | #Mitmachen");
-  await expect(page.locator('body[data-public-entry="home"]')).toBeVisible();
-  await expect(page.getByRole("heading", { level: 1 })).toHaveText("Willkommen im Versorgungs-Kompass");
-  await expect(page.getByText("Wähle den Bereich, in dem du arbeiten möchtest.")).toBeVisible();
-  await expect(page.locator("[data-public-entry-styles]")).toHaveCount(1);
-  await expect(page.locator("[data-google-sso-button]")).toHaveCount(0);
-  await expect(page.locator('meta[http-equiv="refresh"]')).toHaveCount(0);
-  const demoEntry = page.getByRole("link", { name: "Demo öffnen" });
-  await expect(demoEntry).toHaveAttribute("href", "./demo/");
-  await expectNoHorizontalOverflow(page);
-  await demoEntry.click();
-  await expect(page).toHaveURL(/\/dist\/pages\/versorgungs-kompass\.html#home$/);
-  await expect(page).toHaveTitle("Startseite · Versorgungs-Kompass");
+  await expect(page).toHaveTitle("Startseite · #Mitmachen");
   await expect(page.locator(".app-sidebar")).toBeVisible();
   await expect(page.locator('[data-view-panel="home"]')).toBeVisible();
+  await expect(page.locator(".home-destination-link strong")).toHaveText([
+    "Versorgungs-Kompass",
+    "Stakeholder-Kompass",
+    "Hospitations-Kompass",
+    "Format-Kompass"
+  ]);
+  await expect(page.locator(".home-destination-link__mark")).toHaveCount(4);
+  await expect(page.locator('body[data-public-entry="home"], [data-public-entry-styles]')).toHaveCount(0);
+  await expect(page.locator('meta[http-equiv="refresh"]')).toHaveCount(0);
+  await expectNoHorizontalOverflow(page);
   await expect(page.locator('[data-view-tab="contacts"]')).toHaveCount(1);
   await expect(page.locator('[data-view-tab="stakeholders"][data-stakeholder-type-route]')).toHaveCount(5);
   await expect(page.locator('[data-view-tab="hospitations"]')).toHaveCount(1);
@@ -143,6 +141,8 @@ test("Phase 4: #Mitmachen führt in vier Module und Pages über die gemeinsame S
   await expect(page.locator('script[src="./data/demo-api.js"]')).toHaveCount(1);
   await expect(page.locator('script[src="./data/data-service.js"]')).toHaveCount(1);
   await expect(page.locator('script[src*="auth-"]')).toHaveCount(0);
+  const removedEntryResponse = await request.get("/dist/pages/mitmachen/index.html");
+  expect(removedEntryResponse.status()).toBe(404);
   await page.locator('.home-destination-link[href="#map"]').click();
   await expect(page).toHaveURL(/#map$/);
   await expect(page.frameLocator('iframe[title="Karte des Versorgungs-Kompass"]').locator("#count")).toHaveText(/[1-9]\d*\s*\/\s*[1-9]\d*/);
@@ -180,9 +180,18 @@ test("Phase 4: #Mitmachen führt in vier Module und Pages über die gemeinsame S
 test("Phase 4: die vier Module bleiben ohne JavaScript vollständig lesbar", async ({ browser, baseURL }) => {
   const context = await browser.newContext({ javaScriptEnabled: false, viewport: { width: 390, height: 844 } });
   const page = await context.newPage();
-  await page.goto(`${baseURL}/frontend/pages/mitmachen/index.html`);
-  await expect(page.getByRole("heading", { level: 1 })).toHaveText("Gemeinsam Versorgung gestalten.");
-  await expect(page.locator(".destinations strong")).toHaveText(["Versorgung", "Stakeholder", "Hospitation", "Formate"]);
+  await page.goto(`${baseURL}/dist/pages/index.html`);
+  await expect(page.getByRole("heading", { level: 1 })).toHaveAccessibleName("Gemeinsam Versorgung gestalten");
+  const moduleLink = page.getByRole("link", { name: "Bereiche ansehen" });
+  await expect(moduleLink).toHaveAttribute("href", "#home-destinations");
+  await expect(page.locator(".home-destinations strong")).toHaveText([
+    "Versorgungs-Kompass",
+    "Stakeholder-Kompass",
+    "Hospitations-Kompass",
+    "Format-Kompass"
+  ]);
+  await moduleLink.click();
+  await expect(page.locator("#home-destinations")).toBeInViewport();
   await expect(page.locator("#registration-form")).toHaveCount(0);
   await expectNoHorizontalOverflow(page);
   await context.close();
@@ -221,7 +230,6 @@ test("Phase 4: Teams zeigen eine Kartenübersicht mit gemeinsamem Detailbereich 
   await expect(page.locator("#workspace-view-title")).not.toBeVisible();
   await expect(page.locator("#workspace-view-subtitle")).not.toBeVisible();
   await expect(page.locator("#team-overview-title")).toHaveText("Teams");
-  await expect(page.getByText("Gemeinsamer Arbeitsraum", { exact: true })).toHaveCount(0);
   await expect(page.getByText("Zusammenarbeit im Überblick", { exact: true })).toHaveCount(0);
   await expect(page.locator("#team-user-count")).toHaveText("36");
   await expect(page.locator("#team-group-count")).toHaveText("3");

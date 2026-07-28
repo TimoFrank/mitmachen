@@ -150,9 +150,11 @@ build_pages() {
     "$STAGE_DIR/data" \
     "$STAGE_DIR/demo" \
     "$STAGE_DIR/public/hospitation" \
-    "$STAGE_DIR/public/brand/mitmachen" \
+    "$STAGE_DIR/public/brand/mitmachen/icons" \
+    "$STAGE_DIR/public/brand/modules/stakeholder" \
+    "$STAGE_DIR/public/brand/modules/hospitation" \
+    "$STAGE_DIR/public/brand/modules/formate" \
     "$STAGE_DIR/public/brand/versorgungs-kompass" \
-    "$STAGE_DIR/public/brand/versorgungs-kompass/icons" \
     "$STAGE_DIR/public/media/demo/mitmachen" \
     "$STAGE_DIR/deutschlandkarte-project/data" \
     "$STAGE_DIR/state-flags" \
@@ -161,16 +163,14 @@ build_pages() {
     "$STAGE_DIR/vendor"
 
   touch "$STAGE_DIR/.nojekyll"
-  cp "$FRONTEND_DIR/public-entry/index.html" "$STAGE_DIR/index.html"
   cp "$FRONTEND_DIR/app/versorgungs-kompass.html" "$STAGE_DIR/versorgungs-kompass.html"
   cp "$FRONTEND_DIR/app/versorgungs-kompass.css" "$STAGE_DIR/versorgungs-kompass.css"
+  cp "$FRONTEND_DIR/app/versorgungs-kompass-no-script.css" "$STAGE_DIR/versorgungs-kompass-no-script.css"
   cp "$FRONTEND_DIR/app/versorgungs-kompass.js" "$STAGE_DIR/versorgungs-kompass.js"
   cp "$FRONTEND_DIR/app/versorgungs-kompass-routes.js" "$STAGE_DIR/versorgungs-kompass-routes.js"
   cp "$FRONTEND_DIR/app/hospitation/index.html" "$STAGE_DIR/hospitation/index.html"
   cp "$FRONTEND_DIR/app/hospitation/hospitation.css" "$STAGE_DIR/hospitation/hospitation.css"
   cp "$FRONTEND_DIR/app/hospitation/hospitation.js" "$STAGE_DIR/hospitation/hospitation.js"
-  cp "$FRONTEND_DIR/pages/mitmachen/index.html" "$STAGE_DIR/mitmachen/index.html"
-  cp "$FRONTEND_DIR/pages/mitmachen/mitmachen.css" "$STAGE_DIR/mitmachen/mitmachen.css"
   cp "$FRONTEND_DIR/pages/mitmachen/versorgungs-netzwerk.html" "$STAGE_DIR/mitmachen/versorgungs-netzwerk.html"
   cp "$FRONTEND_DIR/pages/mitmachen/versorgungs-netzwerk.css" "$STAGE_DIR/mitmachen/versorgungs-netzwerk.css"
   cp "$FRONTEND_DIR/pages/mitmachen/versorgungs-netzwerk.js" "$STAGE_DIR/mitmachen/versorgungs-netzwerk.js"
@@ -234,15 +234,20 @@ EOF
       cp "$ROOT_DIR/public/$asset" "$STAGE_DIR/public/$asset"
     fi
   done
-  cp "$ROOT_DIR/public/brand/mitmachen/mark-on-dark.svg" "$STAGE_DIR/public/brand/mitmachen/mark-on-dark.svg"
-  cp "$ROOT_DIR/public/brand/mitmachen/lockup-horizontal.svg" "$STAGE_DIR/public/brand/mitmachen/lockup-horizontal.svg"
+  for asset in mark.svg mark-on-dark.svg lockup-horizontal.svg; do
+    cp "$ROOT_DIR/public/brand/mitmachen/$asset" "$STAGE_DIR/public/brand/mitmachen/$asset"
+  done
+  for asset in app-icon-32.png app-icon-180.png app-icon-192.png app-icon-512.png; do
+    cp "$ROOT_DIR/public/brand/mitmachen/icons/$asset" "$STAGE_DIR/public/brand/mitmachen/icons/$asset"
+  done
+  for module in stakeholder hospitation formate; do
+    cp "$ROOT_DIR/public/brand/modules/$module/mark.svg" "$STAGE_DIR/public/brand/modules/$module/mark.svg"
+    cp "$ROOT_DIR/public/brand/modules/$module/mark-on-dark.svg" "$STAGE_DIR/public/brand/modules/$module/mark-on-dark.svg"
+  done
   cp "$ROOT_DIR/public/brand/versorgungs-kompass/mark.svg" "$STAGE_DIR/public/brand/versorgungs-kompass/mark.svg"
   cp "$ROOT_DIR/public/brand/versorgungs-kompass/mark-on-dark.svg" "$STAGE_DIR/public/brand/versorgungs-kompass/mark-on-dark.svg"
-  for asset in app-icon-32.png app-icon-180.png app-icon-192.png app-icon-512.png; do
-    cp "$ROOT_DIR/public/brand/versorgungs-kompass/icons/$asset" "$STAGE_DIR/public/brand/versorgungs-kompass/icons/$asset"
-  done
   cp "$ROOT_DIR/public/media/demo/mitmachen/versorgungs-netzwerk-concept.svg" "$STAGE_DIR/public/media/demo/mitmachen/versorgungs-netzwerk-concept.svg"
-  cp "$ROOT_DIR/public/manifest.webmanifest" "$STAGE_DIR/manifest.webmanifest"
+  cp "$ROOT_DIR/public/manifest.pages.webmanifest" "$STAGE_DIR/manifest.webmanifest"
   for asset in mitmachen-hospitations-framework.docx mitmachen-hospitations-framework.pdf; do
     if [ -f "$ROOT_DIR/public/hospitation/$asset" ]; then
       cp "$ROOT_DIR/public/hospitation/$asset" "$STAGE_DIR/public/hospitation/$asset"
@@ -254,16 +259,16 @@ EOF
   perl -0pi -e 's#\.\./\.\./public/brand/#./public/brand/#g; s#\.\./\.\./public/hospitation/#./public/hospitation/#g; s#\.\./\.\./public/manifest\.webmanifest#./manifest.webmanifest#g; s#\.\./public/manifest\.webmanifest#./manifest.webmanifest#g; s#\.\./\.\./public/app-icon-#./public/app-icon-#g; s#\.\./public/app-icon-#./public/app-icon-#g; s#\.\./pages/mitmachen/#./mitmachen/#g; s#\.\./mitmachen/#./mitmachen/#g' "$STAGE_DIR/versorgungs-kompass.html"
   perl -0pi -e 's#\.\./\.\./login/auth-#../auth-#g; s#\.\./\.\./data/#../data/#g; s#\.\./versorgungs-kompass\.html#../versorgungs-kompass.html#g; s#\.\./\.\./\.\./public/brand/#../public/brand/#g; s#\.\./\.\./\.\./public/manifest\.webmanifest#../manifest.webmanifest#g; s#\.\./\.\./\.\./public/app-icon-#../public/app-icon-#g' "$STAGE_DIR/hospitation/index.html"
   perl -0pi -e 's#\.\./\.\./\.\./public/#../public/#g; s#\.\./\.\./public/#../public/#g; s#\.\./public/#../public/#g; s#\.\./\.\./data/#../data/#g; s#\.\./\.\./app/versorgungs-kompass\.html#../versorgungs-kompass.html#g; s#\.\./app/versorgungs-kompass\.html#../versorgungs-kompass.html#g' "$STAGE_DIR/mitmachen/versorgungs-netzwerk.html"
-  perl -0pi -e 's#\.\./data/#../data/#g; s#\.\./\.\./\.\./public/#../public/#g; s#\.\./\.\./app/versorgungs-kompass\.html#../versorgungs-kompass.html#g; s#\.\./\.\./app/hospitation/index\.html#../hospitation/index.html#g; s#\.\./\.\./map/versorgungs-kompass-map-teaser\.html#../versorgungs-kompass-map-teaser.html#g; s#\./versorgungs-netzwerk\.html#./versorgungs-netzwerk.html#g' "$STAGE_DIR/mitmachen/index.html"
+  perl -0pi -e 's~href="./index\.html"~href="../#home"~g' "$STAGE_DIR/mitmachen/versorgungs-netzwerk.html"
+  perl -0pi -e 's#public/brand/versorgungs-kompass/icons/app-icon-#public/brand/mitmachen/icons/app-icon-#g' "$STAGE_DIR/versorgungs-kompass.html" "$STAGE_DIR/hospitation/index.html" "$STAGE_DIR/mitmachen/versorgungs-netzwerk.html"
   perl -0pi -e 's#\.\./login/auth-#./auth-#g; s#\.\./\.\./public/#./public/#g; s#\.\./public/#./public/#g; s#\.\./vendor/#./vendor/#g; s#\.\./data/#__ROOT_DATA__/#g; s#\./data/#./deutschlandkarte-project/data/#g; s#__ROOT_DATA__/#./data/#g' "$STAGE_DIR/versorgungs-kompass-map.html"
   perl -0pi -e 's#\.\./vendor/#./vendor/#g; s#\.\./data/#__ROOT_DATA__/#g; s#\./data/#./deutschlandkarte-project/data/#g; s#__ROOT_DATA__/#./data/#g' "$STAGE_DIR/versorgungs-kompass-map-teaser.html" "$STAGE_DIR/versorgungs-kompass-contact-mini-map.html"
-  perl -0pi -e 's#"start_url": "\.\./frontend/app/versorgungs-kompass\.html"#"start_url": "./versorgungs-kompass.html"#; s#"start_url": "\.\./app/versorgungs-kompass\.html"#"start_url": "./versorgungs-kompass.html"#; s#"scope": "\.\./"#"scope": "./"#; s#"src": "\./brand/#"src": "./public/brand/#g; s#"src": "\./app-icon-#"src": "./public/app-icon-#g' "$STAGE_DIR/manifest.webmanifest"
+  perl -0pi -e 's#"start_url": "\.\./frontend/app/versorgungs-kompass\.html"#"start_url": "./\#home"#; s#"start_url": "\.\./app/versorgungs-kompass\.html"#"start_url": "./\#home"#; s#"scope": "\.\./"#"scope": "./"#; s#"src": "\./brand/#"src": "./public/brand/#g; s#"src": "\./app-icon-#"src": "./public/app-icon-#g' "$STAGE_DIR/manifest.webmanifest"
 
-  node - "$STAGE_DIR" "$FRONTEND_DIR/public-entry/public-entry.css" <<'NODE'
+  node - "$STAGE_DIR" <<'NODE'
 const fs = require("node:fs");
 const path = require("node:path");
 const root = process.argv[2];
-const publicEntryStylePath = process.argv[3];
 
 function walk(directory) {
   return fs.readdirSync(directory, { withFileTypes: true }).flatMap((entry) => {
@@ -283,6 +288,12 @@ for (const htmlPath of walk(root)) {
 
 const appPath = path.join(root, "versorgungs-kompass.html");
 let appHtml = fs.readFileSync(appPath, "utf8");
+if (!/<meta\s+name=["']robots["']/i.test(appHtml)) {
+  appHtml = appHtml.replace(
+    "</head>",
+    '    <meta name="robots" content="noindex, nofollow" />\n  </head>'
+  );
+}
 appHtml = appHtml.replace(
   /\n?\s*<section\b[^>]*data-target-session[^>]*>[\s\S]*?<\/section>/i,
   ""
@@ -296,59 +307,7 @@ appHtml = appHtml.replace(
   '<script src="./data/demo-data.js"></script>\n    <script src="./data/demo-api.js"></script>\n    ' + dataServiceScript
 );
 fs.writeFileSync(appPath, appHtml);
-
-const pagesLandingPath = path.join(root, "index.html");
-const publicEntryStyle = fs.readFileSync(publicEntryStylePath, "utf8").trim();
-const publicEntryStyleMarker = /<link rel="stylesheet" href="\.\/public-entry\.css" data-inline-public-styles\s*\/>/g;
-let pagesLandingHtml = fs.readFileSync(pagesLandingPath, "utf8");
-const publicEntryStyleMarkers = pagesLandingHtml.match(publicEntryStyleMarker) || [];
-const publicEntryHomeLinks = pagesLandingHtml.match(/href="\/"/g) || [];
-const publicEntryActionBlocks = pagesLandingHtml.match(
-  /\n?\s*<div\b[^>]*data-public-primary-action[^>]*>[\s\S]*?<\/div>/gi
-) || [];
-const accessDeniedNotices = pagesLandingHtml.match(
-  /\n?\s*<aside\b[^>]*data-access-denied-notice[^>]*>[\s\S]*?<\/aside>/gi
-) || [];
-if (
-  !publicEntryStyle
-  || /@import|url\s*\(/i.test(publicEntryStyle)
-  || /<\/style/i.test(publicEntryStyle)
-  || publicEntryStyleMarkers.length !== 1
-  || publicEntryHomeLinks.length !== 1
-  || publicEntryActionBlocks.length !== 1
-  || accessDeniedNotices.length !== 1
-) {
-  throw new Error("Pages-Startseite konnte nicht eindeutig aus dem gemeinsamen Public Entry erzeugt werden.");
-}
-pagesLandingHtml = pagesLandingHtml
-  .replace(
-    publicEntryStyleMarker,
-    `<style data-public-entry-styles>\n${publicEntryStyle}\n    </style>`
-  )
-  .replaceAll('href="/"', 'href="./index.html"')
-  .replace(
-    publicEntryActionBlocks[0],
-    `
-        <div class="entry-actions" data-public-primary-action>
-          <a class="demo-action" href="./demo/">
-            Demo öffnen
-            <span aria-hidden="true">→</span>
-          </a>
-          <p class="entry-actions__note" data-public-action-note>Öffentliche Demo mit fiktiven Beispieldaten.</p>
-        </div>`
-  )
-  .replace(accessDeniedNotices[0], "");
-if (
-  !/data-public-entry="home"/.test(pagesLandingHtml)
-  || !/Demo öffnen/.test(pagesLandingHtml)
-  || (pagesLandingHtml.match(/href="\.\/demo\/"/g) || []).length !== 1
-  || /\/api\/|Google anmelden|data-google-sso-button|zugriff-verweigert/i.test(pagesLandingHtml)
-  || /href="\/(?:anmelden)?"/.test(pagesLandingHtml)
-  || /<meta\s+http-equiv="refresh"/i.test(pagesLandingHtml)
-) {
-  throw new Error("Pages-Startseite verletzt den erwarteten oeffentlichen Demo-Einstieg.");
-}
-fs.writeFileSync(pagesLandingPath, pagesLandingHtml);
+fs.writeFileSync(path.join(root, "index.html"), appHtml);
 
 function redirectDocument(target) {
   return `<!doctype html>
@@ -365,7 +324,7 @@ function redirectDocument(target) {
 `;
 }
 
-fs.writeFileSync(path.join(root, "demo", "index.html"), redirectDocument("../versorgungs-kompass.html#home"));
+fs.writeFileSync(path.join(root, "demo", "index.html"), redirectDocument("../#home"));
 NODE
 
   node - "$STAGE_DIR/data/demo-data.js" <<'NODE'
@@ -395,6 +354,7 @@ build_target() {
     "$STAGE_DIR/public/hospitation" \
     "$STAGE_DIR/public/brand/gematik" \
     "$STAGE_DIR/public/brand/mitmachen" \
+    "$STAGE_DIR/public/brand/modules" \
     "$STAGE_DIR/public/brand/versorgungs-kompass/icons" \
     "$STAGE_DIR/public/media/demo/mitmachen" \
     "$STAGE_DIR/deutschlandkarte-project/data" \
@@ -413,6 +373,7 @@ build_target() {
   cp "$FRONTEND_DIR/login/auth-login.js" "$STAGE_DIR/auth-login.js"
   cp "$FRONTEND_DIR/app/versorgungs-kompass.html" "$STAGE_DIR/versorgungs-kompass.html"
   cp "$FRONTEND_DIR/app/versorgungs-kompass.css" "$STAGE_DIR/versorgungs-kompass.css"
+  cp "$FRONTEND_DIR/app/versorgungs-kompass-no-script.css" "$STAGE_DIR/versorgungs-kompass-no-script.css"
   cp "$FRONTEND_DIR/app/versorgungs-kompass.js" "$STAGE_DIR/versorgungs-kompass.js"
   cp "$FRONTEND_DIR/app/versorgungs-kompass-routes.js" "$STAGE_DIR/versorgungs-kompass-routes.js"
   cp "$FRONTEND_DIR/app/hospitation/index.html" "$STAGE_DIR/hospitation/index.html"
@@ -453,6 +414,7 @@ build_target() {
 
   cp "$ROOT_DIR/public/brand/gematik/gematik-logo-standard.png" "$STAGE_DIR/public/brand/gematik/gematik-logo-standard.png"
   cp -R "$ROOT_DIR/public/brand/mitmachen/." "$STAGE_DIR/public/brand/mitmachen/"
+  cp -R "$ROOT_DIR/public/brand/modules/." "$STAGE_DIR/public/brand/modules/"
   cp "$ROOT_DIR/public/brand/versorgungs-kompass/mark.svg" "$STAGE_DIR/public/brand/versorgungs-kompass/mark.svg"
   cp "$ROOT_DIR/public/brand/versorgungs-kompass/mark-on-dark.svg" "$STAGE_DIR/public/brand/versorgungs-kompass/mark-on-dark.svg"
   for asset in app-icon-32.png app-icon-180.png app-icon-192.png app-icon-512.png; do

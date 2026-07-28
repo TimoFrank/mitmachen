@@ -9,6 +9,21 @@ const trackedFiles = execFileSync("git", ["ls-files"], { cwd: root, encoding: "u
   .split(/\r?\n/)
   .filter(Boolean);
 
+const removedWording = ["arbeits", "raum"].join("");
+let removedWordingMatches = "";
+try {
+  removedWordingMatches = execFileSync(
+    "git",
+    ["grep", "--line-number", "--ignore-case", "-I", "--", removedWording],
+    { cwd: root, encoding: "utf8", stdio: ["ignore", "pipe", "pipe"] }
+  );
+} catch (error) {
+  if (error.status !== 1) throw error;
+}
+if (removedWordingMatches.trim()) {
+  failures.push(`Nicht mehr freigegebenes Wording gefunden:\n${removedWordingMatches.trim()}`);
+}
+
 for (const retiredPrefix of [
   ".codex-pet-runs/",
   "docs/",
@@ -82,7 +97,6 @@ const profileExpectations = [
       "frontend/app",
       "frontend/map",
       "frontend/pages/mitmachen",
-      "frontend/public-entry",
       "frontend/data/demo-data.js",
       "frontend/data/demo-api.js",
       "frontend/data/data-service.js",
@@ -220,12 +234,11 @@ requirePattern(pagesFile, pages, /dist\/pages/, "Pages muss aus dist/pages deplo
 requirePattern(pagesFile, pages, /pages:\s*write/, "pages: write fehlt.");
 requirePattern(pagesFile, pages, /id-token:\s*write/, "id-token: write fuer die Pages-Bestaetigung fehlt.");
 requirePattern(pagesFile, pages, /audit_public_assets\.mjs/, "Pages muss vor dem Upload gegen die Demo-Positivliste geprueft werden.");
-requirePattern(pagesFile, pages, /frontend\/public-entry\/\*\*/, "Aenderungen am gemeinsamen Public Entry muessen ein Pages-Deployment ausloesen.");
 requirePattern(pagesFile, pages, /Verify deployed revision belongs to main[\s\S]*git merge-base --is-ancestor HEAD refs\/remotes\/origin\/main/, "Pages darf manuell nur Commits deployen, die zu main gehoeren.");
 forbidPattern(pagesFile, pages, /dist\/target|pre-gematik|FRONTEND_BUCKET|pages-legacy/, "Pages darf keine Legacy-, Target- oder GCP-Deploymentwerte verwenden.");
 requirePattern(pagesFile, pages, /data\/runtime-config\.js[\s\S]*dataMode:[^\n]*demo[\s\S]*authMode:[^\n]*anonymous-demo/, "Pages muss die veroeffentlichte Runtime als anonyme Demo-Konfiguration abnehmen.");
 requirePattern(pagesFile, pages, /versorgungs-kompass\.html[\s\S]*demo-data\.js[\s\S]*demo-api\.js[\s\S]*data-service\.js/, "Pages muss Voll-App-Shell und Demo-Adapter nach dem Deployment abnehmen.");
-requirePattern(pagesFile, pages, /landing_path[\s\S]*data-public-entry="home"[\s\S]*Demo öffnen/, "Pages muss den gemeinsamen Public Entry nach dem Deployment abnehmen.");
+requirePattern(pagesFile, pages, /root_app_path[\s\S]*class="app-shell[\s\S]*data-view-panel="home"[\s\S]*manifest\.start_url\s*!==\s*"\.\/#home"/, "Pages muss die direkte App-Startseite nach dem Deployment abnehmen.");
 requirePattern(pagesFile, pages, /forbidden_path[\s\S]*data\/supabase-config\.js/, "Pages muss den historischen Supabase-Konfigurationspfad mit HTTP 404 abnehmen.");
 
 const targetFile = ".github/workflows/deploy-pre-gematik.yml";

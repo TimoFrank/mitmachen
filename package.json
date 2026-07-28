@@ -13,6 +13,8 @@
     "build:single-hospitation": "node scripts/build_single_html_hospitation.mjs",
     "test:single-hospitation": "node scripts/test_single_html_hospitation.mjs",
     "generate:frontend-sbom": "node scripts/generate_frontend_sbom.mjs",
+    "generate:module-brands": "node scripts/generate_module_brand_assets.mjs",
+    "test:module-brands": "node scripts/generate_module_brand_assets.mjs --check",
     "test:frontend-sbom": "node scripts/test_frontend_sbom.mjs",
     "generate:security-evidence": "node scripts/generate_security_evidence.mjs",
     "test:security-evidence": "node scripts/test_security_evidence.mjs",

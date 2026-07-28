@@ -2,23 +2,23 @@ import { expect, test } from "@playwright/test";
 
 const PAGES_APP = "/dist/pages/versorgungs-kompass.html";
 
-test("Desktop-Auslieferung: gemeinsamer Einstieg führt in die App-Startseite", async ({ page }) => {
+test("Desktop-Auslieferung: Pages startet direkt in der App-Startseite", async ({ page }) => {
   await page.goto("/dist/pages/index.html");
 
-  await expect(page.locator('body[data-public-entry="home"]')).toBeVisible();
-  await expect(page.getByRole("heading", { level: 1 })).toHaveText("Willkommen im Versorgungs-Kompass");
-  await expect(page.getByText("Wähle den Bereich, in dem du arbeiten möchtest.")).toBeVisible();
-  await expect(page.locator("[data-public-entry-styles]")).toHaveCount(1);
-  await expect(page.locator("[data-google-sso-button]")).toHaveCount(0);
-
-  const demoEntry = page.getByRole("link", { name: "Demo öffnen" });
-  await expect(demoEntry).toHaveAttribute("href", "./demo/");
-  await demoEntry.click();
-
-  await expect(page).toHaveURL(/\/dist\/pages\/versorgungs-kompass\.html#home$/);
+  await expect(page).toHaveURL(/\/dist\/pages\/index\.html$/);
+  await expect(page).toHaveTitle("Startseite · #Mitmachen");
+  await expect(page.locator('body[data-public-entry="home"], [data-public-entry-styles]')).toHaveCount(0);
+  await expect(page.locator(".app-sidebar")).toBeVisible();
   await expect(page.locator('[data-view-panel="home"]')).toBeVisible();
   const destinations = page.locator(".home-destination-link");
   await expect(destinations).toHaveCount(4);
+  await expect(destinations.locator("strong")).toHaveText([
+    "Versorgungs-Kompass",
+    "Stakeholder-Kompass",
+    "Hospitations-Kompass",
+    "Format-Kompass"
+  ]);
+  await expect(destinations.locator(".home-destination-link__mark")).toHaveCount(4);
   expect(await destinations.evaluateAll((links) => links.map((link) => link.getAttribute("href")))).toEqual([
     "#map",
     "#stakeholders",

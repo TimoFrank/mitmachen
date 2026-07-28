@@ -26,4 +26,4 @@ nicht.
 
 ## Gemeinsamer Markenvertrag
 
-[`brand-architecture.json`](brand-architecture.json) hält Namen, Basisbeschreibung, Logo-Pfade und die Farbzuordnung der vier Produktmodule maschinenlesbar fest. Die redaktionellen Regeln und Freigabegrenzen stehen im [Markenkit](../dokumentation/produkt-und-design/MARKENARCHITEKTUR.md).
+[`brand-architecture.json`](brand-architecture.json) hält Absender, Namen, Logo-Pfade und die Farbzuordnung der vier gleichrangigen Marken maschinenlesbar fest. Die redaktionellen Regeln und Freigabegrenzen stehen im [Markenkit](../dokumentation/produkt-und-design/MARKENARCHITEKTUR.md).

@@ -5312,9 +5312,9 @@
       let editorScope = "care";
       let organizationEditorScope = "care";
       let showingArchive = false;
-      let greetingLabel = "Willkommen im Versorgungs-Kompass";
+      let greetingLabel = "Gemeinsam Versorgung gestalten";
       const viewLabels = {
-        home: { title: "Startseite", subtitle: "Dein Einstieg in Versorgung, Stakeholder, Hospitation und Formate." },
+        home: { title: "Startseite", subtitle: "Dein Einstieg in Versorgungs-Kompass, Stakeholder-Kompass, Hospitations-Kompass und Format-Kompass." },
         contacts: { title: "Kontakte", subtitle: "Pflege und Suche der Versorgungskontakte." },
         organizations: { title: "Organisationen", subtitle: "Organisationen, Einrichtungen und Institutionen hinter den Versorgungskontakten." },
         activities: { title: "Aktivitäten", subtitle: "Fachlicher Verlauf von Stammdaten, Zuständigkeiten, Einwilligungen, Hospitationen, Formaten und Dokumenten." },
@@ -9279,7 +9279,7 @@
           if (teamUserCount) teamUserCount.textContent = "–";
           if (teamGroupCount) teamGroupCount.textContent = "–";
           teamAccountList.setAttribute("aria-busy", "false");
-          teamAccountList.innerHTML = `<div class="team-directory-state team-directory-state--error" role="alert"><strong>Teamdaten sind gerade nicht verfügbar</strong><span>Bitte lade die Ansicht neu oder prüfe die Verbindung zum Arbeitsraum.</span></div>`;
+          teamAccountList.innerHTML = `<div class="team-directory-state team-directory-state--error" role="alert"><strong>Teamdaten sind gerade nicht verfügbar</strong><span>Bitte lade die Ansicht neu oder prüfe die Verbindung.</span></div>`;
           renderedTeamViewSignature = renderSignature;
           return;
         }
@@ -9305,7 +9305,7 @@
             const teamDefinition = teamDefinitions.find((entry) => entry.name === team);
             const teamSubtitle = group.isUnassigned
               ? "Noch ohne Teamzuordnung"
-              : teamDefinition?.description || "Team im gemeinsamen Arbeitsraum";
+              : teamDefinition?.description || "Team in #Mitmachen";
             const isOpen = accounts.length > 0 && expandedTeamNames.has(team);
             const memberNames = accounts.map((profile) => teamProfileDisplayLabel(profile));
             const memberAvatars = accounts
@@ -34988,7 +34988,7 @@
         if (workspaceViewTitle) workspaceViewTitle.textContent = view.title;
         if (workspaceViewSubtitle) workspaceViewSubtitle.textContent = view.subtitle;
         if (mainContent) mainContent.setAttribute("aria-label", view.title);
-        if (!isHospitationDocumentationStandalone) document.title = `${view.title} · Versorgungs-Kompass`;
+        if (!isHospitationDocumentationStandalone) document.title = `${view.title} · #Mitmachen`;
         const announcement = [view.title, view.subtitle].filter(Boolean).join(". ");
         if (routeAnnouncer && routeAnnouncer.dataset.currentAnnouncement !== announcement) {
           routeAnnouncer.dataset.currentAnnouncement = announcement;

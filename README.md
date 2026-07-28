@@ -3,7 +3,7 @@
 </p>
 
 <p align="center">
-  <a href="https://timofrank.github.io/mitmachen/demo/"><strong>Öffentliche Demo ansehen</strong></a>
+  <a href="https://timofrank.github.io/mitmachen/"><strong>Öffentliche Demo ansehen</strong></a>
   · <a href="dokumentation/betrieb-und-deployment/POC_GEMATIK_DURCHSTICH.md">Gematik-PoC</a>
 </p>
 
@@ -18,12 +18,12 @@
 > Die öffentliche Demo arbeitet ausschließlich mit fiktiven Beispieldaten. Verbindliche Informationen zu [#Mitmachen](https://www.gematik.de/mitmachen) und dem [Versorgungs-Netzwerk](https://www.gematik.de/mitmachen/versorgungs-netzwerk) stehen auf gematik.de.
 
 <p align="center">
-  <img src="dokumentation/assets/readme/versorgungs-kompass-module-collage-v2.png" alt="Die vier Module Versorgung, Stakeholder, Hospitation und Formate im Versorgungs-Kompass" width="100%" />
+  <img src="dokumentation/assets/readme/versorgungs-kompass-module-collage-v2.png" alt="#Mitmachen mit Versorgungs-Kompass, Stakeholder-Kompass, Hospitations-Kompass und Format-Kompass" width="100%" />
 </p>
 
-<p align="center"><sub>Vier Module, ein gemeinsamer Arbeitsraum. Sämtliche dargestellten Personen, Organisationen und Fachdaten sind fiktiv.</sub></p>
+<p align="center"><sub>Vier Marken, eine gemeinsame Anwendung. Sämtliche dargestellten Personen, Organisationen und Fachdaten sind fiktiv.</sub></p>
 
-**Versorgungs-Kompass** verbindet Kontakte, Organisationen, Hospitationen und Formate in einem gemeinsamen Arbeitsraum. So werden regionale Perspektiven sichtbar, Erfahrungen nachvollziehbar und Erkenntnisse für die gemeinsame Arbeit nutzbar.
+**#Mitmachen** verbindet Versorgungs-Kompass, Stakeholder-Kompass, Hospitations-Kompass und Format-Kompass in einer gemeinsamen Anwendung. So werden regionale Perspektiven sichtbar, Erfahrungen nachvollziehbar und Erkenntnisse für die gemeinsame Arbeit nutzbar.
 
 ## Funktionsumfang
 
@@ -38,7 +38,7 @@
 
 | Zugang | Status | Inhalt |
 | --- | --- | --- |
-| [Öffentliche GitHub-Pages-Demo](https://timofrank.github.io/mitmachen/demo/) | Demo | Produkteinblick mit fiktiven Beispieldaten |
+| [Öffentliche GitHub-Pages-Demo](https://timofrank.github.io/mitmachen/) | Demo | Produkteinblick mit fiktiven Beispieldaten |
 | [GKE-Demo](https://versorgungs-kompass.de/) | Interner PoC | Bereits über GKE bereitgestellter Arbeitsstand |
 | Zielbetrieb | In Vorbereitung | Nächster PoC-Schritt in der gematik-Infrastruktur |
 
@@ -88,4 +88,4 @@ Der Quellcode und die technische Dokumentation stehen unter der [Apache License 
 - Version: [v0.21.0](https://github.com/TimoFrank/mitmachen/releases/tag/v0.21.0)
 - Stand: 24. Juli 2026
 - Kurznotiz: Versorgung erleben, Wissen teilen
-- Demo-Kanal: [GitHub Pages](https://timofrank.github.io/mitmachen/demo/)
+- Demo-Kanal: [GitHub Pages](https://timofrank.github.io/mitmachen/)

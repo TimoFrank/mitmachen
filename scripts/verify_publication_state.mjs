@@ -14,7 +14,6 @@ const defaultAssets = [
   "versorgungs-kompass.css",
   "versorgungs-kompass.js",
   "hospitation/index.html",
-  "mitmachen/index.html",
   "data/runtime-config.js",
   "data/demo-data.js",
   "data/demo-api.js",
@@ -29,6 +28,9 @@ const overriddenAssets = String(process.env.PUBLICATION_ASSETS || "")
 const publicationAssets = overriddenAssets.length ? overriddenAssets : defaultAssets;
 const forbiddenAssets = [
   "login.html",
+  "mitmachen/",
+  "mitmachen/index.html",
+  "mitmachen/mitmachen.css",
   "set-password.html",
   "auth-config.js",
   "auth-guard.js",

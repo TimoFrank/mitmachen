@@ -54,7 +54,7 @@ test("Seitennavigation setzt Scrollposition und Fokus zurück; Tabs funktioniere
   await expect(page.locator("#workspace-view-title")).toHaveText("Hospitationen");
   await expect.poll(() => page.evaluate(() => window.scrollY)).toBe(0);
   await expect.poll(() => page.evaluate(() => document.activeElement?.id)).toBe("main-content");
-  await expect(page).toHaveTitle("Hospitationen · Versorgungs-Kompass");
+  await expect(page).toHaveTitle("Hospitationen · #Mitmachen");
 
   await page.locator("#sidebar-section-stakeholders-toggle").click();
   await page.locator('[data-view-tab="experts"]').click();

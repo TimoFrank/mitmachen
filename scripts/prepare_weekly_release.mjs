@@ -420,7 +420,7 @@ function releaseBlock({ version, date, title }, heading = "## Aktueller Release"
 - Version: [v${version}](https://github.com/TimoFrank/mitmachen/releases/tag/v${version})
 - Stand: ${date}
 - Kurznotiz: ${title}
-- Demo-Kanal: [GitHub Pages](https://timofrank.github.io/mitmachen/demo/)
+- Demo-Kanal: [GitHub Pages](https://timofrank.github.io/mitmachen/)
 
 `;
 }
@@ -463,7 +463,7 @@ ${technicalChangesMarkdown(commits)}
 
 ## Links
 
-- Öffentliche Demo: https://timofrank.github.io/mitmachen/demo/
+- Öffentliche Demo: https://timofrank.github.io/mitmachen/
 - Vollständiger Vergleich: https://github.com/TimoFrank/mitmachen/compare/${baseRef}...${tag}
 - Changelog: https://github.com/TimoFrank/mitmachen/blob/${tag}/CHANGELOG.md
 - Interner PoC: Auslieferung über den vereinbarten Target-Kanal
