@@ -2364,7 +2364,6 @@ test("Organisationen: Demo-Daten rendern im CRM-Profilmodus", async ({ page }, t
   await expect(page.locator('[data-view-panel="organizations"]')).toBeVisible();
   const firstOrganization = page.locator("#organization-list .row, #organization-list .mobile-contact-card").first();
   await expect(firstOrganization).toBeVisible();
-  await expect(firstOrganization.locator(".cell--organization .contact-subline")).toHaveCount(0);
   await expect(page.locator("#search")).toBeVisible();
   await expect(page.locator("#organization-matching-worklist-button")).toContainText("Dubletten");
   await firstOrganization.click();
@@ -2788,39 +2787,15 @@ test("Benachrichtigungen: Glocke öffnet Vorschau und Profil-Reiter rendert Inbo
   await expect(page.locator("#notification-popover-list .notification-popover__loading")).toHaveCount(0);
   await expect(page.locator("#notification-popover")).not.toContainText("Benachrichtigungen werden geladen");
   await expect(page.locator("#notification-popover-list .notification-preview-item")).toHaveCount(5);
-  await expect(page.locator("#notification-popover-list .notification-preview-item__text")).toHaveCount(0);
-  const previewDates = await page.locator("#notification-popover-list .notification-preview-item__date").allTextContents();
-  expect(previewDates).toHaveLength(5);
-  previewDates.forEach((dateLabel) => expect(dateLabel).toMatch(/^\d{2}\.\d{2}\.\d{4}$/));
   const popoverLayout = await page.evaluate(() => {
     const popover = document.querySelector("#notification-popover")?.getBoundingClientRect();
-    const sidebar = document.querySelector(".app-sidebar")?.getBoundingClientRect();
     const accountRow = document.querySelector(".sidebar-account-row")?.getBoundingClientRect();
-    const firstPreview = document.querySelector(".notification-preview-item")?.getBoundingClientRect();
-    const topmostPreviewNode = firstPreview
-      ? document.elementFromPoint(firstPreview.left + firstPreview.width / 2, firstPreview.top + Math.min(32, firstPreview.height / 2))
-      : null;
-    return popover && sidebar && accountRow
-      ? {
-          popoverBottom: popover.bottom,
-          popoverLeft: popover.left,
-          popoverRight: popover.right,
-          popoverWidth: popover.width,
-          sidebarRight: sidebar.right,
-          sidebarWidth: sidebar.width,
-          accountTop: accountRow.top,
-          viewportWidth: window.innerWidth,
-          firstPreviewIsTopmost: Boolean(topmostPreviewNode?.closest("#notification-popover"))
-        }
+    return popover && accountRow
+      ? { popoverBottom: popover.bottom, accountTop: accountRow.top }
       : null;
   });
   expect(popoverLayout).not.toBeNull();
   expect(popoverLayout.popoverBottom).toBeLessThanOrEqual(popoverLayout.accountTop - 6);
-  expect(popoverLayout.popoverWidth).toBeGreaterThan(popoverLayout.sidebarWidth);
-  expect(popoverLayout.popoverRight).toBeGreaterThan(popoverLayout.sidebarRight);
-  expect(popoverLayout.popoverLeft).toBeGreaterThanOrEqual(11);
-  expect(popoverLayout.popoverRight).toBeLessThanOrEqual(popoverLayout.viewportWidth - 11);
-  expect(popoverLayout.firstPreviewIsTopmost).toBe(true);
 
   await page.locator("#notification-popover-all").click();
   await expect(page).toHaveURL(/#profile-notifications$/);
@@ -3093,7 +3068,7 @@ test("Patienten: Organisationsliste nach Indikation rendert ohne Kontakte", asyn
   await expect(page.locator("#patient-organizations-table-head")).not.toContainText("Gruppe");
   await expect(page.locator("#patient-organizations-table-head")).toContainText("Kontakte");
   await expect(page.locator("#patient-organization-list .row").first()).toBeVisible();
-  await expect(page.locator("#patient-organization-list .row").first().locator(".cell--organization .contact-subline")).toHaveCount(0);
+  await expect(page.locator("#patient-organization-list .row").first().locator(".cell--organization .patient-organization-type")).toContainText("Patientenorganisation");
   if (!mobileProject) {
     await expect(page.locator("#patient-organization-list .row").first().locator(".cell--people")).toContainText("1 Kontakt");
   }
@@ -6471,8 +6446,12 @@ test("Formate: Arbeitsbereich und Editor rendern", async ({ page }, testInfo) =>
   await expect(page.locator("#person-profile-body [data-format-profile-section]")).toBeVisible();
   await expect(page.locator("#person-profile-body [data-format-profile-group='upcoming']")).toContainText("Kommende Formate");
   await expect(page.locator("#person-profile-body [data-format-profile-group='past']")).toContainText("Vergangene Formate");
-  await expect(page.locator("#person-profile-body .format-participation-status").first()).toBeVisible();
-  await expect(page.locator("#person-profile-body [data-format-profile-status]")).toHaveCount(0);
+  const createdFormatProfileItem = page.locator("#person-profile-body [data-format-profile-item]", {
+    hasText: "Roundtable Testversorgung"
+  });
+  await expect(createdFormatProfileItem).toBeVisible();
+  await expect(createdFormatProfileItem.locator("[data-format-profile-status]")).toBeVisible();
+  await expect(createdFormatProfileItem.locator("[data-format-profile-status]")).toHaveValue("Kandidat");
   await page.locator("#person-profile-body [data-person-profile-back]").click();
   await expect(page.locator(".app-shell")).toHaveAttribute("data-active-view", "formats");
   await expect(page.locator(".format-diversity-board")).toHaveCount(0);

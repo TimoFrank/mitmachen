@@ -92,6 +92,54 @@ for (const [label, sql] of [
     /format_participants_invitation_consent_check/i,
     `${label}: Der Consent-Guard braucht einen stabilen Constraint-/Fehlerbezeichner.`
   );
+  const normalized = compact(sql);
+  const functionStart = normalized.indexOf(
+    "create or replace function public.prepare_format_participation_write()"
+  );
+  const functionEnd = normalized.indexOf(
+    "revoke all on function public.prepare_format_participation_write()",
+    functionStart
+  );
+  const functionBody = normalized.slice(functionStart, functionEnd);
+  const consentGuardPosition = functionBody.indexOf("if new.invitation_status in");
+  const unchangedStatusReturnPosition = functionBody.indexOf("if not status_changed then return new;");
+  assert.ok(
+    functionStart >= 0
+      && functionEnd > functionStart
+      && consentGuardPosition >= 0
+      && unchangedStatusReturnPosition > consentGuardPosition,
+    `${label}: Der Consent-Guard muss vor dem Early-return auch unveränderte geschützte Status prüfen.`
+  );
+}
+
+for (const [label, sql] of [
+  ["Supabase-Consent-Migration", consentMigration],
+  ["Pre-gematik-Migration", preGematikMigration]
+]) {
+  const preflightStart = sql.indexOf("do $format_consent_preflight$");
+  const functionStart = sql.indexOf(
+    "create or replace function public.prepare_format_participation_write()"
+  );
+  assert.ok(
+    preflightStart >= 0 && functionStart > preflightStart,
+    `${label}: Der Bestandsdaten-Preflight muss vor der Triggerinstallation laufen.`
+  );
+  const preflight = sql.slice(preflightStart, functionStart);
+  assert.match(
+    preflight,
+    /format_participants_invitation_consent_preflight/i,
+    `${label}: Der Migrationsabbruch benötigt einen stabilen Constraint-Namen.`
+  );
+  assert.match(
+    preflight,
+    /invitation_status\s+in\s*\(\s*'Eingeladen'\s*,\s*'Zugesagt'\s*,\s*'Teilgenommen'\s*\)[\s\S]*mitmachen_consent_status\s+is\s+distinct\s+from\s+'granted'/i,
+    `${label}: Der Preflight muss alle geschützten Bestandsstatus ohne granted Consent finden.`
+  );
+  assert.doesNotMatch(
+    preflight,
+    /\b(?:update|delete)\s+public\.format_participants|\binsert\s+into\s+public\.format_participants/i,
+    `${label}: Der Preflight darf bestehende Beteiligungen nicht still umschreiben.`
+  );
 }
 
 for (const [label, sql] of [

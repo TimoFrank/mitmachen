@@ -35,6 +35,11 @@ const PROFILE_IDS = Object.freeze([
   "demo-profile-hospitation",
   "demo-profile-formate"
 ]);
+const PROTECTED_FORMAT_CONSENT_NOTE_OVERRIDES = Object.freeze({
+  "demo-contact-05": "Synthetischer Nachweis der erteilten Einwilligung für die geschützte Formatteilnahme.",
+  "demo-contact-07": "Synthetischer Nachweis der erteilten Einwilligung für die geschützte Formatteilnahme.",
+  "demo-contact-41": "Synthetischer Nachweis der erteilten Einwilligung für die geschützte Formatteilnahme."
+});
 const PROFILE_REPLACEMENTS = Object.freeze([
   { id: PROFILE_IDS[0], email: "admin@versorgungs-kompass.example.invalid", display_name: "Mara Stein", initials: "MS", role: "admin" },
   { id: PROFILE_IDS[1], email: "redaktion@versorgungs-kompass.example.invalid", display_name: "Tobias Nguyen", initials: "TN", role: "editor" },
@@ -236,7 +241,7 @@ function transformDemoData(data) {
     mitmachen_consent_recorded_by: needsSyntheticInvitationConsent
       ? mappedProfileId(source.mitmachenConsentRecordedBy, profileIdMap) || seedActor
       : mappedProfileId(source.mitmachenConsentRecordedBy, profileIdMap),
-    mitmachen_consent_note: source.mitmachenConsentNote || null,
+    mitmachen_consent_note: PROTECTED_FORMAT_CONSENT_NOTE_OVERRIDES[source.id] || source.mitmachenConsentNote || null,
     ehc_consent_status: source.ehcConsentStatus || "not_requested",
     ehc_consent_effective_at: source.ehcConsentEffectiveAt || null,
     ehc_consent_source: source.ehcConsentSource || null,
@@ -294,7 +299,9 @@ function transformDemoData(data) {
   }));
 
   const formatParticipants = data.formats.flatMap((format) =>
-    (format.participants || []).map((source) => ({
+    (format.participants || []).map((source) => {
+      const statusChangedAt = source.statusChangedAt || source.updatedAt || source.createdAt;
+      return {
       id: source.id,
       format_id: source.formatId,
       contact_id: source.contactId,
@@ -304,13 +311,15 @@ function transformDemoData(data) {
       invited_at: source.invitedAt,
       responded_at: source.respondedAt,
       participated_at: source.participatedAt,
-      cancelled_at: source.cancelledAt,
-      status_changed_at: source.statusChangedAt,
+      cancelled_at: source.cancelledAt
+        || (source.invitationStatus === "Abgesagt" ? statusChangedAt : null),
+      status_changed_at: statusChangedAt,
       created_at: source.createdAt,
       created_by: mappedProfileId(source.createdBy, profileIdMap),
       updated_at: source.updatedAt,
       updated_by: mappedProfileId(source.updatedBy, profileIdMap)
-    }))
+      };
+    })
   );
 
   const observations = [];

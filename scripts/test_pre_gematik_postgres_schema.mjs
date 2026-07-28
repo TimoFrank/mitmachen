@@ -680,6 +680,38 @@ async function databaseSmoke(pool) {
       actor_id: "pre-gematik-admin",
       contact_id: "contact-contract"
     }, "Der Statuswechsel muss atomar ein fachliches Einladungsereignis erzeugen.");
+    await client.query("savepoint unchanged_protected_status_without_consent");
+    await client.query(`
+      update contacts
+         set mitmachen_consent_status = 'withdrawn',
+             mitmachen_consent_effective_at = now(),
+             mitmachen_consent_note = 'Synthetischer Widerruf für den Triggervertrag.',
+             updated_by = 'pre-gematik-admin'
+       where id = 'contact-contract'
+    `);
+    await assert.rejects(
+      client.query(`
+        update format_participants
+           set participant_role = 'Moderation',
+               notes = 'Darf nach Widerruf nicht gespeichert werden.',
+               updated_by = 'pre-gematik-admin'
+         where format_id = 'format-contract' and contact_id = 'contact-contract'
+      `),
+      (error) => error?.code === "23514"
+        && error?.constraint === "format_participants_invitation_consent_check",
+      "Auch Rollen-/Notizänderungen mit unverändertem geschütztem Status müssen nach Consent-Entzug fail-closed sein."
+    );
+    await client.query("rollback to savepoint unchanged_protected_status_without_consent");
+    const unchangedProtectedParticipant = await client.query(`
+      select participant_role, notes
+        from format_participants
+       where format_id = 'format-contract' and contact_id = 'contact-contract'
+    `);
+    assert.deepEqual(
+      unchangedProtectedParticipant.rows[0],
+      { participant_role: null, notes: null },
+      "Der abgewiesene Same-status-Update darf weder Rolle noch Notiz verändern."
+    );
     await client.query(`
       insert into hospitation_slots (
         id, contact_id, organization_id, starts_at, owner_id, created_by, updated_by
@@ -1270,10 +1302,10 @@ async function assertSqlState(pool, sql, params, expectedCode, message) {
   );
 }
 
-async function applyVersionedMigrations(pool) {
+async function applyVersionedMigrations(pool, fileNames = migrationFiles) {
   const client = await pool.connect();
   try {
-    for (const fileName of migrationFiles) {
+    for (const fileName of fileNames) {
       await client.query(migrationSqlByFile.get(fileName));
     }
   } finally {
@@ -1451,7 +1483,59 @@ async function assertVersionedMigrationUpgrade(connectionString, containerName) 
        order by id
     `);
 
-    await applyVersionedMigrations(upgradePool);
+    const formatMigrationFile = "202607280001_add_format_participation_workflow.sql";
+    const migrationsBeforeFormatWorkflow = migrationFiles.filter(
+      (fileName) => fileName !== formatMigrationFile
+    );
+    await applyVersionedMigrations(upgradePool, migrationsBeforeFormatWorkflow);
+    await upgradePool.query(`
+      insert into public.contacts (
+        id, name, mitmachen_consent_status, created_by, updated_by
+      ) values (
+        'upgrade-format-contact', 'Legacy Formatkontakt', 'not_requested',
+        'upgrade-profile', 'upgrade-profile'
+      );
+      insert into public.formats (
+        id, title, status, created_by, updated_by
+      ) values (
+        'upgrade-format', 'Legacy Format mit ungeklärter Einwilligung', 'Planung',
+        'upgrade-profile', 'upgrade-profile'
+      );
+      insert into public.format_participants (
+        id, format_id, contact_id, invitation_status, created_by, updated_by
+      ) values (
+        'upgrade-format-participant', 'upgrade-format', 'upgrade-format-contact', 'Zugesagt',
+        'upgrade-profile', 'upgrade-profile'
+      );
+    `);
+    const formatMigrationClient = await upgradePool.connect();
+    try {
+      await assert.rejects(
+        formatMigrationClient.query(migrationSqlByFile.get(formatMigrationFile)),
+        (error) => error?.code === "23514"
+          && error?.constraint === "format_participants_invitation_consent_preflight"
+          && /Migration abgebrochen/u.test(String(error?.message || ""))
+          && /upgrade-format\/upgrade-format-contact/u.test(String(error?.detail || "")),
+        "Die Formatmigration muss bei geschützten Legacy-Beteiligungen ohne Consent mit klarer Diagnose abbrechen."
+      );
+      await formatMigrationClient.query("rollback");
+    } finally {
+      formatMigrationClient.release();
+    }
+    const workflowAfterRejectedPreflight = await upgradePool.query(
+      "select to_regprocedure('public.prepare_format_participation_write()')::text as function_name"
+    );
+    assert.equal(
+      workflowAfterRejectedPreflight.rows[0].function_name,
+      null,
+      "Ein abgebrochener Preflight darf die Workflow-Funktion nicht teilweise installieren."
+    );
+    await upgradePool.query(`
+      update public.format_participants
+         set invitation_status = 'Kandidat'
+       where id = 'upgrade-format-participant'
+    `);
+    await applyVersionedMigrations(upgradePool, [formatMigrationFile]);
 
     const columns = await upgradePool.query(`
       select column_name, is_nullable

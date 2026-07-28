@@ -859,6 +859,14 @@ const formatContractRuntime = createRuntime({
         mitmachenConsentStatus: "granted",
         createdAt: FORMAT_TEST_NOW,
         updatedAt: FORMAT_TEST_NOW
+      },
+      {
+        id: "format-contact-second",
+        name: "Zweiter Formatkontakt",
+        status: "active",
+        mitmachenConsentStatus: "granted",
+        createdAt: FORMAT_TEST_NOW,
+        updatedAt: FORMAT_TEST_NOW
       }
     ];
     demoData.activityEvents = [];
@@ -941,8 +949,53 @@ const addParticipantResponse = await formatFetch(`/api/formats/${formatUuid}/par
 });
 assert.equal(addParticipantResponse.status, 200);
 contractFormat = await addParticipantResponse.json();
-const existingParticipant = contractFormat.participants.find((item) => item.contactId === "format-contact-ready");
+let existingParticipant = contractFormat.participants.find((item) => item.contactId === "format-contact-ready");
 assert.ok(existingParticipant?.updatedAt);
+
+const invalidParticipantIfMatchResponse = await formatFetch(
+  `/api/formats/${formatUuid}/participants/format-contact-ready`,
+  {
+    method: "PATCH",
+    headers: { "If-Match": "\"kein-datum\"" },
+    body: JSON.stringify({ notes: "Darf nicht gespeichert werden" })
+  }
+);
+assert.equal(invalidParticipantIfMatchResponse.status, 400);
+assert.equal(
+  (await invalidParticipantIfMatchResponse.json()).code,
+  "FORMAT_PARTICIPANT_PRECONDITION_INVALID"
+);
+
+const participantIfMatchResponse = await formatFetch(
+  `/api/formats/${formatUuid}/participants/format-contact-ready`,
+  {
+    method: "PATCH",
+    headers: { "If-Match": `W/"${existingParticipant.updatedAt}"` },
+    body: JSON.stringify({ notes: "Per If-Match aktualisiert" })
+  }
+);
+assert.equal(participantIfMatchResponse.status, 200);
+contractFormat = await participantIfMatchResponse.json();
+existingParticipant = contractFormat.participants.find((item) => item.contactId === "format-contact-ready");
+assert.equal(existingParticipant.notes, "Per If-Match aktualisiert");
+
+const addSecondParticipantResponse = await formatFetch(`/api/formats/${formatUuid}/participants/batch`, {
+  method: "POST",
+  body: JSON.stringify({ items: [{ contactId: "format-contact-second" }] })
+});
+assert.equal(addSecondParticipantResponse.status, 200);
+contractFormat = await addSecondParticipantResponse.json();
+const secondParticipant = contractFormat.participants.find((item) => item.contactId === "format-contact-second");
+const deleteParticipantIfMatchResponse = await formatFetch(
+  `/api/formats/${formatUuid}/participants/format-contact-second`,
+  {
+    method: "DELETE",
+    headers: { "if-match": `"${secondParticipant.updatedAt}"` }
+  }
+);
+assert.equal(deleteParticipantIfMatchResponse.status, 200);
+contractFormat = await deleteParticipantIfMatchResponse.json();
+assert.ok(!contractFormat.participants.some((item) => item.contactId === "format-contact-second"));
 
 const missingImportVersionResponse = await formatFetch(`/api/formats/${formatUuid}/participants/import`, {
   method: "POST",
@@ -1004,6 +1057,43 @@ assert.equal(
 );
 assert.equal(formatApi.snapshot().activityEvents.length, activityCountBeforeNoop, "Ein identischer Import darf kein Ereignis erzeugen.");
 
+const invalidFormatIfMatchResponse = await formatFetch(`/api/formats/${formatUuid}`, {
+  method: "PATCH",
+  headers: { "If-Match": "\"kein-datum\"" },
+  body: JSON.stringify({ title: "Darf nicht gespeichert werden" })
+});
+assert.equal(invalidFormatIfMatchResponse.status, 400);
+assert.equal((await invalidFormatIfMatchResponse.json()).code, "FORMAT_PRECONDITION_INVALID");
+
+const staleFormatIfMatchResponse = await formatFetch(`/api/formats/${formatUuid}`, {
+  method: "PATCH",
+  headers: { "If-Match": "\"2025-01-01T00:00:00.000Z\"" },
+  body: JSON.stringify({ title: "Darf ebenfalls nicht gespeichert werden" })
+});
+assert.equal(staleFormatIfMatchResponse.status, 409);
+assert.equal((await staleFormatIfMatchResponse.json()).code, "FORMAT_VERSION_CONFLICT");
+
+const formatIfMatchResponse = await formatFetch(`/api/formats/${formatUuid}`, {
+  method: "PATCH",
+  headers: { "If-Match": `W/"${contractFormat.updatedAt}"` },
+  body: JSON.stringify({ title: "Per If-Match aktualisiert" })
+});
+assert.equal(formatIfMatchResponse.status, 200);
+contractFormat = await formatIfMatchResponse.json();
+assert.equal(contractFormat.title, "Per If-Match aktualisiert");
+
+const bodyPrecedenceResponse = await formatFetch(`/api/formats/${formatUuid}`, {
+  method: "PATCH",
+  headers: { "If-Match": "\"2025-01-01T00:00:00.000Z\"" },
+  body: JSON.stringify({
+    goal: "Body-Version bleibt vorrangig",
+    expectedUpdatedAt: contractFormat.updatedAt
+  })
+});
+assert.equal(bodyPrecedenceResponse.status, 200);
+contractFormat = await bodyPrecedenceResponse.json();
+assert.equal(contractFormat.goal, "Body-Version bleibt vorrangig");
+
 const implicitArchiveResponse = await formatFetch(`/api/formats/${formatUuid}`, {
   method: "PATCH",
   body: JSON.stringify({ status: "Archiviert", expectedUpdatedAt: contractFormat.updatedAt })
@@ -1013,7 +1103,7 @@ assert.equal((await implicitArchiveResponse.json()).code, "FORMAT_ARCHIVE_ACTION
 
 const archiveResponse = await formatFetch(`/api/formats/${formatUuid}/archive`, {
   method: "POST",
-  body: JSON.stringify({ expectedUpdatedAt: contractFormat.updatedAt })
+  headers: { "If-Match": `W/"${contractFormat.updatedAt}"` }
 });
 assert.equal(archiveResponse.status, 200);
 contractFormat = await archiveResponse.json();
@@ -1030,12 +1120,27 @@ const archivedPatchResponse = await formatFetch(`/api/formats/${formatUuid}`, {
 assert.equal(archivedPatchResponse.status, 409);
 assert.equal((await archivedPatchResponse.json()).code, "FORMAT_RESTORE_ACTION_REQUIRED");
 
+const restoreResponse = await formatFetch(`/api/formats/${formatUuid}/restore`, {
+  method: "POST",
+  headers: { "if-match": `"${contractFormat.updatedAt}"` }
+});
+assert.equal(restoreResponse.status, 200);
+contractFormat = await restoreResponse.json();
+assert.equal(contractFormat.status, "Planung");
+
+const bodyArchiveResponse = await formatFetch(`/api/formats/${formatUuid}/archive`, {
+  method: "POST",
+  body: JSON.stringify({ expectedUpdatedAt: contractFormat.updatedAt })
+});
+assert.equal(bodyArchiveResponse.status, 200);
+contractFormat = await bodyArchiveResponse.json();
+
 const deleteWithoutVersion = await formatFetch(`/api/formats/${formatUuid}`, { method: "DELETE" });
 assert.equal(deleteWithoutVersion.status, 428);
 assert.equal((await deleteWithoutVersion.json()).code, "FORMAT_PRECONDITION_REQUIRED");
 const deleteFormatResponse = await formatFetch(`/api/formats/${formatUuid}`, {
   method: "DELETE",
-  body: JSON.stringify({ expectedUpdatedAt: contractFormat.updatedAt })
+  headers: { "If-Match": `"${contractFormat.updatedAt}"` }
 });
 assert.equal(deleteFormatResponse.status, 200);
 assert.ok(!formatApi.snapshot().formats.some((item) => item.id === formatUuid));

@@ -576,6 +576,43 @@
     return {};
   }
 
+  function headerValue(headers, name) {
+    if (!headers) return "";
+    if (typeof headers.get === "function") return String(headers.get(name) || "");
+    const normalizedName = String(name || "").toLowerCase();
+    if (Array.isArray(headers)) {
+      const match = headers.find(([key]) => String(key || "").toLowerCase() === normalizedName);
+      return String(match?.[1] || "");
+    }
+    const match = Object.entries(headers).find(([key]) => String(key || "").toLowerCase() === normalizedName);
+    return String(match?.[1] || "");
+  }
+
+  function requestHeaderValue(input, init, name) {
+    const initValue = headerValue(init?.headers, name);
+    if (initValue) return initValue;
+    if (typeof Request !== "undefined" && input instanceof Request) {
+      return headerValue(input.headers, name);
+    }
+    return "";
+  }
+
+  function expectedUpdatedAtFromRequest(body = {}, ifMatch = "") {
+    return String(body.expectedUpdatedAt || body.expected_updated_at || ifMatch || "")
+      .trim()
+      .replace(/^W\//u, "")
+      .replace(/^"|"$/gu, "");
+  }
+
+  function comparableTimestamp(value) {
+    const timestamp = new Date(value || "");
+    return Number.isFinite(timestamp.getTime()) ? timestamp.toISOString() : String(value || "");
+  }
+
+  function timestampsMatch(left, right) {
+    return comparableTimestamp(left) === comparableTimestamp(right);
+  }
+
   function filterActivities(url) {
     const eventKey = url.searchParams.get("eventKey") || "";
     const category = url.searchParams.get("category") || "";
@@ -717,7 +754,7 @@
     });
   }
 
-  async function handleDemoApi(url, method, body) {
+  async function handleDemoApi(url, method, body, ifMatch = "") {
     const path = url.pathname;
     const includeArchived = url.searchParams.get("includeArchived") === "true";
 
@@ -1200,11 +1237,14 @@
       }
       const format = state.formats.find((item) => item.id === decodeURIComponent(formatLifecycleMatch[1]));
       if (!format) return error("Synthetisches Format wurde nicht gefunden.", 404);
-      const expectedUpdatedAt = String(body.expectedUpdatedAt || body.expected_updated_at || "").trim();
+      const expectedUpdatedAt = expectedUpdatedAtFromRequest(body, ifMatch);
       if (!expectedUpdatedAt) {
         return error("Für die Formataktion fehlt der erwartete Änderungsstand.", 428, "FORMAT_PRECONDITION_REQUIRED");
       }
-      if (expectedUpdatedAt !== String(format.updatedAt || "")) {
+      if (!Number.isFinite(Date.parse(expectedUpdatedAt))) {
+        return error("Der erwartete Änderungsstand ist ungültig.", 400, "FORMAT_PRECONDITION_INVALID");
+      }
+      if (!timestampsMatch(expectedUpdatedAt, format.updatedAt)) {
         return error("Das Format wurde zwischenzeitlich geändert.", 409, "FORMAT_VERSION_CONFLICT");
       }
       const restoring = formatLifecycleMatch[2] === "restore";
@@ -1236,7 +1276,7 @@
         if (method === "DELETE" && !currentDemoProfileIsAdmin()) {
           return error("Formate dürfen nur von Admins gelöscht werden.", 403, "FORMAT_ADMIN_REQUIRED");
         }
-        const expectedUpdatedAt = String(body.expectedUpdatedAt || body.expected_updated_at || "").trim();
+        const expectedUpdatedAt = expectedUpdatedAtFromRequest(body, ifMatch);
         if (!expectedUpdatedAt) {
           return error(
             method === "DELETE"
@@ -1246,7 +1286,10 @@
             "FORMAT_PRECONDITION_REQUIRED"
           );
         }
-        if (expectedUpdatedAt !== String(target[index].updatedAt || "")) {
+        if (!Number.isFinite(Date.parse(expectedUpdatedAt))) {
+          return error("Der erwartete Änderungsstand ist ungültig.", 400, "FORMAT_PRECONDITION_INVALID");
+        }
+        if (!timestampsMatch(expectedUpdatedAt, target[index].updatedAt)) {
           return error("Das Format wurde zwischenzeitlich geändert.", 409, "FORMAT_VERSION_CONFLICT");
         }
         if (
@@ -1342,13 +1385,7 @@
       const contact = participantContact(contactId);
       return Boolean(contact && !["archived", "Archiviert"].includes(contact.status));
     };
-    const participantTimestampMatches = (left, right) => {
-      const normalize = (value) => {
-        const timestamp = new Date(value || "");
-        return Number.isFinite(timestamp.getTime()) ? timestamp.toISOString() : String(value || "");
-      };
-      return normalize(left) === normalize(right);
-    };
+    const participantTimestampMatches = timestampsMatch;
     const normalizeParticipantEntries = (items, label, { includeExpectedUpdatedAt = false } = {}) => {
       if (!Array.isArray(items) || items.length < 1 || items.length > FORMAT_PARTICIPANT_BATCH_LIMIT) {
         return {
@@ -1617,12 +1654,19 @@
         : participantConstraintFailure([{ contactId, invitationStatus: requestedStatus }]);
       if (constraintFailure) return constraintFailure;
       if (method === "PATCH" || method === "DELETE") {
-        const expectedUpdatedAt = String(body.expectedUpdatedAt || body.expected_updated_at || "").trim();
+        const expectedUpdatedAt = expectedUpdatedAtFromRequest(body, ifMatch);
         if (!expectedUpdatedAt) {
           return error(
             "Für die Teilnahmeänderung fehlt der erwartete Änderungsstand.",
             428,
             "FORMAT_PARTICIPANT_PRECONDITION_REQUIRED"
+          );
+        }
+        if (!Number.isFinite(Date.parse(expectedUpdatedAt))) {
+          return error(
+            "Der erwartete Änderungsstand der Teilnahme ist ungültig.",
+            400,
+            "FORMAT_PARTICIPANT_PRECONDITION_INVALID"
           );
         }
         if (!participantTimestampMatches(
@@ -1687,7 +1731,8 @@
     const method = String(init.method || (typeof Request !== "undefined" && input instanceof Request ? input.method : "GET")).toUpperCase();
     if (url.origin !== window.location.origin || !url.pathname.startsWith("/api/")) return originalFetch(input, init);
     const body = await requestBody(input, init);
-    return handleDemoApi(url, method, body);
+    const ifMatch = requestHeaderValue(input, init, "if-match");
+    return handleDemoApi(url, method, body, ifMatch);
   };
 
   function installDemoNotice() {

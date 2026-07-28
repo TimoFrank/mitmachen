@@ -1,5 +1,52 @@
 begin;
 
+do $format_consent_preflight$
+declare
+  blocked_count bigint;
+  blocked_examples text[];
+begin
+  select count(*)
+    into blocked_count
+    from public.format_participants participant
+    left join public.contacts contact on contact.id = participant.contact_id
+   where participant.invitation_status in ('Eingeladen', 'Zugesagt', 'Teilgenommen')
+     and (
+       contact.id is null
+       or contact.status = 'archived'
+       or contact.mitmachen_consent_status is distinct from 'granted'
+     );
+
+  if blocked_count > 0 then
+    select array_agg(sample.example order by sample.example)
+      into blocked_examples
+      from (
+        select participant.format_id::text || '/' || participant.contact_id::text
+          || ' (' || participant.invitation_status || ')' as example
+          from public.format_participants participant
+          left join public.contacts contact on contact.id = participant.contact_id
+         where participant.invitation_status in ('Eingeladen', 'Zugesagt', 'Teilgenommen')
+           and (
+             contact.id is null
+             or contact.status = 'archived'
+             or contact.mitmachen_consent_status is distinct from 'granted'
+           )
+         order by participant.format_id, participant.contact_id
+         limit 20
+      ) sample;
+
+    raise exception using
+      errcode = '23514',
+      constraint = 'format_participants_invitation_consent_preflight',
+      message = format(
+        'Formatbeteiligungs-Migration abgebrochen: %s bestehende geschützte Beteiligung(en) ohne aktive #Mitmachen-Einwilligung.',
+        blocked_count
+      ),
+      detail = 'Beispiele (maximal 20): ' || array_to_string(blocked_examples, ', '),
+      hint = 'Einwilligung und Kontaktstatus fachlich klären oder den Beteiligungsstatus auf Kandidat/Abgesagt setzen; die Migration ändert keine Bestandsdaten.';
+  end if;
+end;
+$format_consent_preflight$;
+
 create or replace function public.prepare_format_participation_write()
 returns trigger
 language plpgsql
@@ -24,10 +71,6 @@ begin
     status_changed := old.invitation_status is distinct from new.invitation_status;
   end if;
 
-  if not status_changed then
-    return new;
-  end if;
-
   if new.invitation_status in ('Eingeladen', 'Zugesagt', 'Teilgenommen') then
     select exists (
       select 1
@@ -42,6 +85,10 @@ begin
         constraint = 'format_participants_invitation_consent_check',
         message = 'Für Eingeladen, Zugesagt oder Teilgenommen muss eine gültige Mitmachen-Einwilligung vorliegen.';
     end if;
+  end if;
+
+  if not status_changed then
+    return new;
   end if;
 
   new.status_changed_at := changed_at;

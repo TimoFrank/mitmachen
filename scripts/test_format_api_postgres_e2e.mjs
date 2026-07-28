@@ -342,6 +342,60 @@ async function exerciseFormatApi(baseUrl, pool) {
     []
   );
   assert.equal(invitationEvent.rows[0].count, 1);
+  const invitedParticipant = invited.payload.participants.find(
+    (participant) => participant.contactId === "synthetic-format-contact-granted"
+  );
+  await pool.query(
+    `update contacts
+        set mitmachen_consent_status = 'withdrawn',
+            mitmachen_consent_effective_at = now(),
+            mitmachen_consent_note = 'Synthetischer Widerruf für den API-Vertrag.',
+            updated_by = $1
+      where id = 'synthetic-format-contact-granted'`,
+    [actorId]
+  );
+  const sameStatusConsentFailure = await requestJson(
+    baseUrl,
+    "PATCH",
+    `/api/formats/${formatId}/participants/synthetic-format-contact-granted`,
+    {
+      participantRole: "Moderation",
+      notes: "Darf nach Widerruf nicht gespeichert werden.",
+      expectedUpdatedAt: invitedParticipant.updatedAt
+    }
+  );
+  expectError(
+    sameStatusConsentFailure,
+    409,
+    "FORMAT_INVITATION_CONSENT_REQUIRED",
+    "Rollen-/Notizänderung bei unverändertem geschütztem Status nach Consent-Entzug"
+  );
+  assert.deepEqual(
+    sameStatusConsentFailure.payload.details?.blockedContactIds,
+    ["synthetic-format-contact-granted"]
+  );
+  const participantAfterRevokedPatch = await pool.query(
+    `select participant_role, notes
+       from format_participants
+      where format_id = $1 and contact_id = 'synthetic-format-contact-granted'`,
+    [formatId]
+  );
+  assert.deepEqual(
+    participantAfterRevokedPatch.rows[0],
+    { participant_role: null, notes: null },
+    "Der API-Guard muss Same-status-Updates nach Consent-Entzug vollständig verwerfen."
+  );
+  await pool.query(
+    `update contacts
+        set mitmachen_consent_status = 'granted',
+            mitmachen_consent_effective_at = now() - interval '1 day',
+            mitmachen_consent_source = 'manual_transfer',
+            mitmachen_consent_text_version = 'format-e2e-v1',
+            mitmachen_consent_note = 'Synthetischer Nachweis wiederhergestellt.',
+            updated_by = $1
+      where id = 'synthetic-format-contact-granted'`,
+    [actorId]
+  );
 
   const imported = await requestJson(baseUrl, "POST", `/api/formats/${formatId}/participants/import`, {
     items: [{ contactId: "synthetic-format-contact-import", invitationStatus: "Kandidat" }]

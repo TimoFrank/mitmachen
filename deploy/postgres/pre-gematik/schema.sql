@@ -1632,10 +1632,6 @@ begin
     status_changed := old.invitation_status is distinct from new.invitation_status;
   end if;
 
-  if not status_changed then
-    return new;
-  end if;
-
   if new.invitation_status in ('Eingeladen', 'Zugesagt', 'Teilgenommen') then
     select exists (
       select 1
@@ -1650,6 +1646,10 @@ begin
         constraint = 'format_participants_invitation_consent_check',
         message = 'Für Eingeladen, Zugesagt oder Teilgenommen muss eine gültige Mitmachen-Einwilligung vorliegen.';
     end if;
+  end if;
+
+  if not status_changed then
+    return new;
   end if;
 
   new.status_changed_at := changed_at;
