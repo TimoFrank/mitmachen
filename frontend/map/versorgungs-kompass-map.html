@@ -71,20 +71,22 @@
             <div id="map-active-filters" class="map-active-filters" aria-label="Aktive Kartenfilter"></div>
           </div>
           <div id="mobile-map-preview" class="mobile-map-preview" hidden></div>
-          <div id="list" class="list" style="display:block;"></div>
+          <div id="list" class="list" role="region" aria-label="Kontakte im aktuellen Kartenfilter" style="display:block;"></div>
           <div id="map-pagination" class="map-pagination" aria-label="Kontaktseiten"></div>
         </div>
       </aside>
 
       <main class="map-area">
         <div class="map-search-shell">
-          <label class="map-search-field" for="search">
+          <div class="map-search-field" role="search">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
               <circle cx="11" cy="11" r="7"></circle>
               <path d="m20 20-3.5-3.5"></path>
             </svg>
+            <label class="visually-hidden" for="search">Kontakte auf der Karte durchsuchen</label>
             <input id="search" type="search" placeholder="Name, Organisation, Ort oder Thema suchen" autocomplete="off"/>
-          </label>
+            <button class="map-search-clear" id="map-search-clear" type="button" aria-label="Kartensuche löschen" title="Kartensuche löschen" hidden>&times;</button>
+          </div>
         </div>
         <div class="map-box">
           <div class="map-mode-controls" aria-label="Kartenmodus">
@@ -114,7 +116,8 @@
             <div class="map-legend-title">Legende</div>
             <div class="map-legend-list" id="map-legend-list"></div>
           </aside>
-          <div id="map"></div>
+          <p class="visually-hidden" id="map-accessibility-help">Die Kontaktmarker dienen der räumlichen Orientierung. Alle Kontakte können in der Kontaktliste links mit der Tastatur geöffnet werden.</p>
+          <div id="map" role="region" aria-label="Kontaktkarte Deutschland" aria-describedby="map-accessibility-help"></div>
           <section id="state-view" class="state-view" aria-hidden="true">
             <div class="state-view-header">
               <div class="state-view-copy">
@@ -139,7 +142,7 @@
           </section>
         </div>
       </main>
-      <aside id="map-detail-panel" class="map-detail-panel" aria-live="polite"></aside>
+      <aside id="map-detail-panel" class="map-detail-panel" aria-label="Kontaktdetails" aria-live="polite"></aside>
     </div>
   </div>
 

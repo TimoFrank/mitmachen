@@ -3580,13 +3580,13 @@ test("Kontaktprofil: Detailpanel oeffnet im Lesemodus", async ({ page }, testInf
     await expect(page.locator("#detail-drawer .hospitation-profile-summary__item")).toHaveCount(0);
     await expect(page.locator("#detail-drawer [data-hospitation-profile-section]")).not.toContainText("Dokumentation");
     await expect(page.locator("#detail-drawer [data-hospitation-profile-section]")).not.toContainText("Follow-ups");
-    await expect(page.locator("#detail-drawer [data-hospitation-profile-action='list']")).toHaveCount(0);
+    await expect(page.locator("#detail-drawer [data-hospitation-profile-action='list']")).toHaveText("Alle Hospitationen anzeigen");
     await attachScreenshot(page, testInfo, "kontaktprofil-beteiligung-drawer-hospitationen", { fullPage: false });
     await page.locator('#detail-drawer [data-detail-tab="formats"]').click();
     await expect(page.locator("#detail-drawer [data-format-profile-section]")).toBeVisible();
     await expect(page.locator("#detail-drawer [data-format-profile-status]")).toHaveCount(0);
     await expect(page.locator("#detail-drawer [data-format-profile-action='edit-status']")).toHaveCount(0);
-    await expect(page.locator("#detail-drawer [data-format-profile-action='list']")).toHaveCount(0);
+    await expect(page.locator("#detail-drawer [data-format-profile-action='list']")).toHaveText("Alle Formate anzeigen");
     const formatSection = page.locator("#detail-drawer [data-format-profile-section]");
     await expect(formatSection.locator(".format-profile__type-badge").first()).toBeVisible();
     await expect(formatSection.locator(".profile-date-badge--format").first()).toBeVisible();
@@ -3709,7 +3709,7 @@ test("Kontaktprofil: naechste Hospitation zeigt Datum und Owner kompakt", async 
   await expect(section.locator(".hospitation-profile-record--next .hospitation-profile-record__actions .owner-badge__avatar")).toHaveCount(1);
   await expect(section.locator(".hospitation-profile-record--next [data-hospitation-profile-action='open']")).toHaveText("Öffnen");
   await expect(section.locator("[data-hospitation-profile-action='request']")).toHaveText("Neue Hospitation planen");
-  await expect(section.locator("[data-hospitation-profile-action='list']")).toHaveCount(0);
+  await expect(section.locator("[data-hospitation-profile-action='list']")).toHaveText("Alle Hospitationen anzeigen");
   await expect(section.locator("[data-hospitation-profile-action='booking']")).toHaveCount(0);
   await expect(section).not.toContainText("Dokumentation");
   await expect(section).not.toContainText("Follow-ups");
@@ -3781,7 +3781,7 @@ test("Kontaktprofil: Hospitations-Ladefehler ist kein Leerzustand", async ({ pag
   await expect(history).not.toContainText("Noch keine bisherigen Hospitationen");
 });
 
-test("Kontaktprofil: bestehende Hospitation öffnet direkt ohne Modulwechsel", async ({ page }, testInfo) => {
+test("Kontaktprofil: bestehende Hospitation öffnet direkt; Gesamtliste übernimmt Kontaktfilter", async ({ page }, testInfo) => {
   test.skip(testInfo.project.name.includes("mobile"), "Direktaktionen einmal im Desktop-Drawer prüfen");
   await gotoAuthenticated(page, "/frontend/app/versorgungs-kompass.html#contacts", {
     role: "admin",
@@ -3803,7 +3803,17 @@ test("Kontaktprofil: bestehende Hospitation öffnet direkt ohne Modulwechsel", a
   await expect(editor).toHaveAttribute("aria-hidden", "true");
   await expect(root).toHaveClass(/is-open/);
   await expect(root.locator(".profile-action-menu")).toHaveCount(0);
-  await expect(root.locator('[data-hospitation-profile-action="list"]')).toHaveCount(0);
+
+  await root.locator('[data-hospitation-profile-action="list"]').click();
+  await expect(page.locator(".app-shell")).toHaveAttribute("data-active-view", "hospitations");
+  const contextFilter = page.locator("#hospitation-list [data-hospitation-context-filter]");
+  await expect(contextFilter).toBeVisible();
+  await expect(contextFilter).toContainText("Gefiltert nach Kontakt: Anna Verlauf");
+  await expect(page.locator("#hospitation-list")).toContainText("Anna Verlauf");
+  await expect(page.locator("#hospitation-list")).not.toContainText("Berta Andere");
+  await contextFilter.getByRole("button", { name: "Filter aufheben" }).click();
+  await expect(page.locator("#hospitation-list [data-hospitation-context-filter]")).toHaveCount(0);
+  await expect(page.locator("#hospitation-list")).toContainText("Berta Andere");
 });
 
 test("Kontaktprofil: direkter Deeplink rendert Profilseite", async ({ page }) => {

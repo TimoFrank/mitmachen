@@ -25039,6 +25039,11 @@
         const now = Date.now();
         const { ongoing, nextItem } = hospitationProfileNext(items, now);
         const contextAttrs = `data-context-kind="${escapeHtml(context.kind || "")}" data-context-id="${escapeHtml(context.id || "")}"`;
+        const listAction = `
+          <div class="hospitation-card__actions">
+            <button class="action-button action-button--compact" type="button" data-hospitation-profile-action="list" ${contextAttrs}>Alle Hospitationen anzeigen</button>
+          </div>
+        `;
         const nextStateLabel = hospitationDataState === "loading"
           ? "Wird geladen"
           : hospitationDataState === "error"
@@ -25072,6 +25077,7 @@
               </div>
               ${renderHospitationProfileHistory(items, now)}
             </div>
+            ${listAction}
           </div>
         `;
       }
@@ -25088,7 +25094,16 @@
                 ? { organizationId: contextId }
                 : {};
             const linkedHospitation = hospitations.find((item) => item.id === button.dataset.hospitationId);
-            if (action === "retry") {
+            if (action === "list") {
+              hospitationContextFilter = { kind: contextKind, id: contextId };
+              hospitationArchiveView = false;
+              hospitationScheduleView = "list";
+              selectedHospitationEntryKeys.clear();
+              setActiveView("hospitations");
+              activeHospitationTab = "appointments";
+              updateRouteHash(hospitationRouteForTab("appointments"));
+              updateView();
+            } else if (action === "retry") {
               hospitationDataState = "loading";
               updateView();
               await loadHospitationData({ includeArchived: canAdministerData() });
@@ -25250,11 +25265,12 @@
 
       function renderFormatProfileSection(contact = {}) {
         const editable = canEditCareObject(contact);
+        const listAction = `<div class="hospitation-card__actions"><button class="action-button action-button--compact" type="button" data-format-profile-action="list" data-contact-id="${escapeHtml(contact.id || "")}">Alle Formate anzeigen</button></div>`;
         if (formatDataState === "loading") {
-          return `<div class="section-block" data-format-profile-section><h4 class="detail-section-title">Formate</h4><div class="format-profile__state" role="status"><strong>Formate werden geladen</strong><span>Kandidaturen und Teilnahmen erscheinen gleich.</span></div></div>`;
+          return `<div class="section-block" data-format-profile-section><h4 class="detail-section-title">Formate</h4><div class="format-profile__state" role="status"><strong>Formate werden geladen</strong><span>Kandidaturen und Teilnahmen erscheinen gleich.</span></div>${listAction}</div>`;
         }
         if (formatDataState === "error") {
-          return `<div class="section-block" data-format-profile-section><h4 class="detail-section-title">Formate</h4><div class="format-profile__state format-profile__state--error" role="alert"><strong>Formate konnten nicht geladen werden</strong><span>${escapeHtml(formatLoadErrorMessage || "Bitte prüfe die Verbindung und versuche es erneut.")}</span><button class="action-button action-button--compact" type="button" data-format-profile-action="retry">Erneut laden</button></div></div>`;
+          return `<div class="section-block" data-format-profile-section><h4 class="detail-section-title">Formate</h4><div class="format-profile__state format-profile__state--error" role="alert"><strong>Formate konnten nicht geladen werden</strong><span>${escapeHtml(formatLoadErrorMessage || "Bitte prüfe die Verbindung und versuche es erneut.")}</span><button class="action-button action-button--compact" type="button" data-format-profile-action="retry">Erneut laden</button></div>${listAction}</div>`;
         }
         const entries = formatsForContact(contact.id);
         const now = Date.now();
@@ -25277,6 +25293,7 @@
               ${renderFormatProfileGroup("Vergangene Formate", past, "past")}
               ${renderFormatProfileLinkForm(contact.id, { editable })}
             </div>
+            ${listAction}
           </div>
         `;
       }
@@ -25365,6 +25382,16 @@
             if (action === "retry") {
               await loadFormatData({ includeArchived: canAdministerData() });
               rerender();
+              return;
+            }
+            if (action === "list") {
+              formatContactFilterId = contact.id;
+              activeFormatId = filteredFormats()[0]?.id || null;
+              formatDetailExpanded = false;
+              formatActiveTab = "overview";
+              setActiveView("formats");
+              updateRouteHash("formats");
+              updateView();
               return;
             }
             if (action !== "open") return;

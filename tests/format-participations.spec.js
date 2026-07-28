@@ -162,7 +162,7 @@ test("Issue 28: Kontaktprofil zeigt Beteiligungsstatus kompakt; Pflege erfolgt i
   await expect(formatSection.locator("[data-format-profile-status-form]")).toHaveCount(0);
   await expect(formatSection.locator("[data-format-profile-action='edit-status']")).toHaveCount(0);
   await expect(formatSection.locator("[data-format-profile-link-form]")).toHaveCount(0);
-  await expect(formatSection.locator("[data-format-profile-action='list']")).toHaveCount(0);
+  await expect(formatSection.locator("[data-format-profile-action='list']")).toHaveText("Alle Formate anzeigen");
   const futureItem = formatSection.locator("[data-format-profile-item='format-future']");
   await expect(futureItem.locator(".format-profile__copy > .profile-date-badge--format")).toHaveText(
     "18.09.2099, 11:00 – 18.09.2099, 14:00"
@@ -206,7 +206,14 @@ test("Issue 28: Kontaktprofil zeigt Beteiligungsstatus kompakt; Pflege erfolgt i
   await profile.locator('[data-detail-tab="formats"]').click();
   await expect(profile.locator("[data-format-profile-status='format-future']")).toHaveValue("Teilgenommen");
   await expect(profile.locator("[data-format-profile-item='format-future']")).not.toContainText("Rolle / Beitrag: Impulsgeberin");
-  await expect(profile.locator("[data-format-profile-action='list']")).toHaveCount(0);
+
+  await profile.locator("[data-format-profile-action='list']").click();
+  await expect(page.locator("#format-contact-filter")).toBeVisible();
+  await expect(page.locator("#format-contact-filter-name")).toHaveText("Ada Versorgung");
+  await expect(page.locator("[data-format-detail]")).toHaveCount(2);
+  await page.locator("#format-contact-filter-clear").click();
+  await expect(page.locator("#format-contact-filter")).toBeHidden();
+  await expect(page.locator("[data-format-detail]")).toHaveCount(3);
 
   if (testInfo.project.name.includes("mobile")) {
     await expectNoHorizontalOverflow(page);
@@ -227,7 +234,7 @@ test("Issue 28: Viewer sehen Beteiligungen, können sie aber nicht verändern", 
   await expect(formatSection.locator("[data-format-profile-link-form]")).toHaveCount(0);
   await expect(formatSection.locator("[data-format-profile-action='edit-status']")).toHaveCount(0);
   await expect(formatSection.locator("[data-format-profile-action='link']")).toHaveCount(0);
-  await expect(formatSection.locator("[data-format-profile-action='list']")).toHaveCount(0);
+  await expect(formatSection.locator("[data-format-profile-action='list']")).toHaveText("Alle Formate anzeigen");
   await expect(formatSection).toContainText("Eingeladen");
   await expect(formatSection).toContainText("Teilgenommen");
 });

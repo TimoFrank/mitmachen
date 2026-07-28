@@ -810,6 +810,7 @@
   const elFilters = document.getElementById('filters');
   const elMobileMapFilters = document.getElementById('mobile-map-filter-group');
   const elSearch = document.getElementById('search');
+  const elSearchClear = document.getElementById('map-search-clear');
   const elList = document.getElementById('list');
   const elMapPagination = document.getElementById('map-pagination');
   const elCount = document.getElementById('count');
@@ -980,6 +981,19 @@
       contacts: data.contacts.map(sanitizeMapContact).filter(Boolean)
     };
   }
+  let parentMapReadyNotified = false;
+  function notifyParentMapReady(){
+    if (!EMBED_MODE || !window.parent || window.parent === window) return;
+    if (!ALLOWED_MAP_MESSAGE_CHANNELS.has(MAP_MESSAGE_CHANNEL)) return;
+    if (parentMapReadyNotified) return;
+    parentMapReadyNotified = true;
+    window.parent.postMessage({
+      type: "versorgungs-kompass-map-ready",
+      version: MAP_MESSAGE_VERSION,
+      channel: MAP_MESSAGE_CHANNEL,
+      context: activeMapContext
+    }, window.location.origin);
+  }
   document.addEventListener("error", (event) => {
     const image = event.target;
     if (!(image instanceof HTMLImageElement)) return;
@@ -1013,6 +1027,11 @@
     currentListPage = 1;
   }
 
+  function syncSearchClearButton(){
+    if (!elSearchClear) return;
+    elSearchClear.hidden = !String(elSearch?.value || "").trim();
+  }
+
   function resetMapFilters(){
     activeMapContactId = "";
     mobilePreviewContactId = "";
@@ -1021,6 +1040,7 @@
     activePriorityFilter = "";
     query = "";
     if (elSearch) elSearch.value = "";
+    syncSearchClearButton();
     if (selectedState) {
       setSelectedState("");
     } else {
@@ -1160,6 +1180,7 @@
         } else if (key === 'query') {
           query = "";
           elSearch.value = "";
+          syncSearchClearButton();
           render();
         }
       });
@@ -1338,13 +1359,38 @@
     return detailLineHtml(label, content, { empty: !present });
   }
 
+  const MAP_DETAIL_TAB_LABELS = {
+    overview: "Überblick",
+    contact: "Kontakt",
+    themes: "Themen",
+    notes: "Notizen",
+    activity: "Aktivitäten"
+  };
+  const MAP_DETAIL_TAB_ORDER = Object.keys(MAP_DETAIL_TAB_LABELS);
+  const MAP_DETAIL_PANEL_IDS = {
+    overview: "map-detail-overview",
+    contact: "map-detail-contactways",
+    themes: "map-detail-themes",
+    notes: "map-detail-notes",
+    activity: "map-detail-activity"
+  };
+
   function mapDetailTabButton(tab, label, activeTab) {
     const active = tab === activeTab;
-    return `<button class="detail-tab ${active ? "is-active" : ""}" type="button" data-map-detail-tab="${escapeHtml(tab)}" aria-selected="${active ? "true" : "false"}">${escapeHtml(label)}</button>`;
+    return `<button
+      class="detail-tab ${active ? "is-active" : ""}"
+      type="button"
+      id="map-detail-tab-${escapeHtml(tab)}"
+      role="tab"
+      data-map-detail-tab="${escapeHtml(tab)}"
+      aria-controls="${escapeHtml(MAP_DETAIL_PANEL_IDS[tab])}"
+      aria-selected="${active ? "true" : "false"}"
+      tabindex="${active ? "0" : "-1"}"
+    >${escapeHtml(label)}</button>`;
   }
 
   function mapDetailPanelAttrs(tab, activeTab) {
-    return `class="section-block detail-tab-panel" data-map-detail-panel="${escapeHtml(tab)}" ${tab === activeTab ? "" : "hidden"}`;
+    return `class="section-block detail-tab-panel" role="tabpanel" aria-labelledby="map-detail-tab-${escapeHtml(tab)}" tabindex="0" data-map-detail-panel="${escapeHtml(tab)}" ${tab === activeTab ? "" : "hidden"}`;
   }
 
   function mapDetailPill(label, color = "#155fe4"){
@@ -1396,6 +1442,17 @@
     `;
   }
 
+  function activateMapDetailTab(entry, tab, { focus = true } = {}){
+    if (!MAP_DETAIL_TAB_ORDER.includes(tab)) return;
+    mapDetailActiveTab = tab;
+    renderMapDetail(entry);
+    if (focus) {
+      requestAnimationFrame(() => {
+        elMapDetailPanel?.querySelector(`[data-map-detail-tab="${CSS.escape(tab)}"]`)?.focus();
+      });
+    }
+  }
+
   function renderMapDetail(entry){
     if (!elMapDetailPanel) return;
     if (!entry) {
@@ -1435,7 +1492,7 @@
             <div class="detail-profile-main">
               ${imageUrl ? avatar : `<span class="avatar">${avatar}</span>`}
               <div class="detail-profile-copy">
-                <h3>${escapeHtml(entry.name)}</h3>
+                <h3 id="map-detail-title" tabindex="-1">${escapeHtml(entry.name)}</h3>
                 <div class="detail-profile-role">${escapeHtml(entry.organization || "Organisation nicht dokumentiert")}</div>
                 ${roleText ? `<div class="detail-profile-subline">${escapeHtml(roleText)}</div>` : ""}
               </div>
@@ -1449,11 +1506,7 @@
           </section>
 
           <div class="detail-tabs" role="tablist" aria-label="Detailbereiche">
-            ${mapDetailTabButton("overview", "Überblick", activeTab)}
-            ${mapDetailTabButton("contact", "Kontakt", activeTab)}
-            ${mapDetailTabButton("themes", "Themen", activeTab)}
-            ${mapDetailTabButton("notes", "Notizen", activeTab)}
-            ${mapDetailTabButton("activity", "Aktivitäten", activeTab)}
+            ${MAP_DETAIL_TAB_ORDER.map((tab) => mapDetailTabButton(tab, MAP_DETAIL_TAB_LABELS[tab], activeTab)).join("")}
           </div>
 
           <section ${mapDetailPanelAttrs("overview", activeTab)} id="map-detail-overview">
@@ -1524,6 +1577,7 @@
     document.getElementById('map-detail-archive')?.addEventListener('click', () => openEntryDetail(entry));
     document.getElementById('map-detail-close')?.addEventListener('click', () => {
       const shouldResetMap = mapMovedForActiveContact;
+      const returnFocusId = entry.id;
       activeMapContactId = "";
       mapMovedForActiveContact = false;
       renderMapDetail(null);
@@ -1534,11 +1588,25 @@
         else fitMapToGermany();
       }
       updateMapResetButton();
+      requestAnimationFrame(() => {
+        document.querySelector(`[data-map-contact-id="${CSS.escape(returnFocusId)}"]`)?.focus();
+      });
     });
     elMapDetailPanel.querySelectorAll('[data-map-detail-tab]').forEach((button) => {
       button.addEventListener('click', () => {
-        mapDetailActiveTab = button.dataset.mapDetailTab || "overview";
-        renderMapDetail(entry);
+        activateMapDetailTab(entry, button.dataset.mapDetailTab || "overview");
+      });
+      button.addEventListener('keydown', (event) => {
+        const currentTab = button.dataset.mapDetailTab || "overview";
+        const currentIndex = MAP_DETAIL_TAB_ORDER.indexOf(currentTab);
+        let nextIndex = currentIndex;
+        if (event.key === "ArrowRight") nextIndex = (currentIndex + 1) % MAP_DETAIL_TAB_ORDER.length;
+        else if (event.key === "ArrowLeft") nextIndex = (currentIndex - 1 + MAP_DETAIL_TAB_ORDER.length) % MAP_DETAIL_TAB_ORDER.length;
+        else if (event.key === "Home") nextIndex = 0;
+        else if (event.key === "End") nextIndex = MAP_DETAIL_TAB_ORDER.length - 1;
+        else return;
+        event.preventDefault();
+        activateMapDetailTab(entry, MAP_DETAIL_TAB_ORDER[nextIndex]);
       });
     });
   }
@@ -1584,6 +1652,36 @@
     });
   }
 
+  function contactMarkerAccessibleLabel(entry){
+    return [
+      `Standort von ${entry.name || "Kontakt"}`,
+      entry.organization,
+      entryListLocation(entry),
+      entry.category
+    ].filter(Boolean).join(", ");
+  }
+
+  function annotateContactMarker(marker, entry){
+    const label = contactMarkerAccessibleLabel(entry);
+    marker.on("add", () => {
+      const element = marker.getElement();
+      if (!element) return;
+      element.setAttribute("aria-label", label);
+      element.setAttribute("title", label);
+      element.dataset.mapMarkerContactId = entry.id;
+    });
+    return marker;
+  }
+
+  function bindMapMarkerActivation(marker, activate){
+    marker.on('click', activate);
+    marker.on('keypress', (event) => {
+      if (event.originalEvent?.key !== "Enter" && event.originalEvent?.key !== " ") return;
+      event.originalEvent.preventDefault();
+      activate();
+    });
+  }
+
   function sectorPointFor(d){
     const color = sectorRegistry.colorFor(d.category);
     const size = isMobileLayout() ? 10 : 12;
@@ -1595,7 +1693,14 @@
       popupAnchor: [0,-8],
       tooltipAnchor: [0,-6]
     });
-    return L.marker([d.lat, d.lon], { icon, riseOnHover: true, riseOffset: 1000000 });
+    return annotateContactMarker(L.marker([d.lat, d.lon], {
+      icon,
+      title: contactMarkerAccessibleLabel(d),
+      alt: contactMarkerAccessibleLabel(d),
+      keyboard: true,
+      riseOnHover: true,
+      riseOffset: 1000000
+    }), d);
   }
 
   const GEMATIK_LOCATION_MARKER_PATH = "M256 0C153.755 0 70.573 83.182 70.573 185.426c0 126.888 165.939 313.167 173.004 321.035 6.636 7.391 18.222 7.378 24.846 0 7.065-7.868 173.004-194.147 173.004-321.035C441.425 83.182 358.244 0 256 0zm0 278.719c-51.442 0-93.292-41.851-93.292-93.293S204.559 92.134 256 92.134s93.291 41.851 93.291 93.293-41.85 93.292-93.291 93.292z";
@@ -1645,15 +1750,11 @@
       popupAnchor: [0, -height],
       tooltipAnchor: [0, -height + 2]
     });
-    const accessibleName = [
-      `Standort: ${d.name || "Kontakt"}`,
-      d.organization,
-      [d.city, d.state].filter(Boolean).join(", ")
-    ].filter(Boolean).join(" · ");
+    const accessibleName = contactMarkerAccessibleLabel(d);
     // Geographic truth is non-negotiable: the marker anchor always remains at
     // the record's source coordinates. Visual collision handling must never
     // rewrite this LatLng.
-    return L.marker([d.lat, d.lon], {
+    return annotateContactMarker(L.marker([d.lat, d.lon], {
       icon,
       zIndexOffset: options.zIndexOffset || 0,
       title: accessibleName,
@@ -1661,7 +1762,7 @@
       keyboard: true,
       riseOnHover: true,
       riseOffset: 100000
-    });
+    }), d);
   }
 
   function markerFor(d, options = {}){
@@ -1692,6 +1793,31 @@
     });
 
     return Array.from(buckets.values());
+  }
+
+  function clusterMarkerAccessibleLabel(entries){
+    const statesInCluster = [...new Set(entries.map((entry) => entry.state).filter(Boolean))];
+    const locationLabel = statesInCluster.length === 1
+      ? ` in ${statesInCluster[0]}`
+      : (statesInCluster.length > 1 ? ` in ${statesInCluster.length} Bundesländern` : "");
+    return `Gruppe mit ${entries.length} Kontakten${locationLabel}. Aktivieren, um die Karte zu vergrößern.`;
+  }
+
+  function annotateClusterMarker(marker, entries){
+    const label = clusterMarkerAccessibleLabel(entries);
+    marker.on("add", () => {
+      const element = marker.getElement();
+      if (!element) return;
+      element.setAttribute("role", "button");
+      element.setAttribute("aria-label", label);
+      element.setAttribute("title", label);
+      element.addEventListener("keydown", (event) => {
+        if (event.key !== " " && event.key !== "Spacebar") return;
+        event.preventDefault();
+        marker.fire("click");
+      });
+    });
+    return marker;
   }
 
   function highlightMapContact(id, active){
@@ -2226,28 +2352,35 @@
       : entries;
 
     pageEntries.forEach((d) => {
-      const item = document.createElement('div');
+      const item = document.createElement('button');
       const isActive = activeMapContactId === d.id;
+      item.type = "button";
       item.className = `item${isActive ? " item-active" : ""}`;
       item.dataset.mapContactId = d.id;
+      if (isActive) item.setAttribute("aria-current", "true");
       const color = sectorRegistry.colorFor(d.category);
       const meta = d.organization || "Organisation nicht dokumentiert";
+      const location = entryListLocation(d);
+      item.setAttribute(
+        "aria-label",
+        [d.name, meta, location, d.category, "Details öffnen"].filter(Boolean).join(", ")
+      );
       const ownerPill = ownerPillHtml(d);
-      item.innerHTML = `<div class="item-top">
+      item.innerHTML = `<span class="item-top">
                           ${avatarHtml(d)}
-                          <div class="item-copy">
-                            <div class="t">${escapeHtml(d.name)}</div>
-                            <div class="item-meta-row">
-                              <div class="m">${escapeHtml(meta)}</div>
-                              <div class="item-badge-row">
+                          <span class="item-copy">
+                            <span class="t">${escapeHtml(d.name)}</span>
+                            <span class="item-meta-row">
+                              <span class="m">${escapeHtml(meta)}</span>
+                              <span class="item-badge-row">
                                 <span class="sector-pill" style="--sector-color:${color};--sector-bg:${sectorTint(color)}">${escapeHtml(d.category)}</span>
                                 ${ownerPill}
-                              </div>
-                            </div>
-                          </div>
+                              </span>
+                            </span>
+                          </span>
                           <span class="item-chevron" aria-hidden="true">›</span>
-                        </div>`;
-      item.addEventListener('click', () => {
+                        </span>`;
+      item.addEventListener('click', (event) => {
         activeMapContactId = d.id;
         mapMovedForActiveContact = false;
         if (EMBED_MODE) {
@@ -2263,15 +2396,29 @@
           renderMapDetail(d);
           renderList(entries);
           updateMapResetButton();
+          if (event.detail === 0) {
+            requestAnimationFrame(() => document.getElementById("map-detail-title")?.focus());
+          }
           return;
         }
         focusMapContact(d, { fitState: false });
+        if (event.detail === 0) {
+          requestAnimationFrame(() => document.getElementById("map-detail-title")?.focus());
+        }
       });
       item.addEventListener('mouseenter', () => {
         item.classList.add('item-map-hover');
         highlightMapContact(d.id, true);
       });
       item.addEventListener('mouseleave', () => {
+        item.classList.remove('item-map-hover');
+        highlightMapContact(d.id, false);
+      });
+      item.addEventListener('focus', () => {
+        item.classList.add('item-map-hover');
+        highlightMapContact(d.id, true);
+      });
+      item.addEventListener('blur', () => {
         item.classList.remove('item-map-hover');
         highlightMapContact(d.id, false);
       });
@@ -2328,12 +2475,7 @@
         const activateMarker = () => {
           focusMapContact(entry);
         };
-        marker.on('click', activateMarker);
-        marker.on('keypress', (event) => {
-          if (event.originalEvent?.key !== "Enter" && event.originalEvent?.key !== " ") return;
-          event.originalEvent.preventDefault();
-          activateMarker();
-        });
+        bindMapMarkerActivation(marker, activateMarker);
         markerIndex.push({
           marker,
           ids: [entry.id],
@@ -2347,7 +2489,7 @@
         const d = bucket[0];
         const m = sectorPointFor(d);
         bindMapPointTooltip(m, d);
-        m.on('click', () => {
+        bindMapMarkerActivation(m, () => {
           focusMapContact(d);
         });
         markerIndex.push({ marker: m, ids: [d.id], data: d });
@@ -2360,7 +2502,13 @@
       const active = bucket.some((entry) => entry.id === activeMapContactId);
       const lat = bucket.reduce((sum, entry) => sum + entry.lat, 0) / bucket.length;
       const lon = bucket.reduce((sum, entry) => sum + entry.lon, 0) / bucket.length;
-      const marker = L.marker([lat, lon], { icon: clusterIcon(bucket.length, active) });
+      const marker = annotateClusterMarker(L.marker([lat, lon], {
+        icon: clusterIcon(bucket.length, active),
+        keyboard: true,
+        title: clusterMarkerAccessibleLabel(bucket),
+        riseOnHover: true,
+        riseOffset: 1000000
+      }), bucket);
       marker.on('click', () => {
         fitMapToEntries(bucket);
       });
@@ -2412,7 +2560,17 @@
   elSearch.addEventListener('input', (e) => {
     query = e.target.value;
     resetListPage();
+    syncSearchClearButton();
     render();
+  });
+
+  elSearchClear?.addEventListener('click', () => {
+    query = "";
+    elSearch.value = "";
+    resetListPage();
+    syncSearchClearButton();
+    render();
+    elSearch.focus();
   });
 
   elStateFilterToggle.addEventListener('click', () => {
@@ -2529,6 +2687,7 @@
       elSearch.placeholder = mapLabel("searchPlaceholder", "Name, Organisation, Ort oder Thema suchen");
       elSearch.value = "";
       query = "";
+      syncSearchClearButton();
     }
     if (elPanelTitle) elPanelTitle.textContent = mapLabel("listTitle", "Kontakte");
     renderMapDetail(null);
@@ -2539,12 +2698,14 @@
     map.invalidateSize();
     if (!selectedState && !activeMapContactId) requestAnimationFrame(() => fitMapToGermany());
   });
+  notifyParentMapReady();
   window.addEventListener('load', () => {
     activeCategoryFilter = "";
     activeOwnerFilter = "";
     activePriorityFilter = "";
     query = "";
     elSearch.value = "";
+    syncSearchClearButton();
     elSearch.placeholder = mapLabel("searchPlaceholder", "Name, Organisation, Ort oder Thema suchen");
     if (elPanelTitle) elPanelTitle.textContent = mapLabel("listTitle", "Kontakte");
     renderFilters();
@@ -2553,6 +2714,7 @@
     render();
     map.invalidateSize();
     if (!selectedState && !activeMapContactId) requestAnimationFrame(() => fitMapToGermany());
+    notifyParentMapReady();
   });
   window.addEventListener('resize', () => {
     const mobileLayout = isMobileLayout();
