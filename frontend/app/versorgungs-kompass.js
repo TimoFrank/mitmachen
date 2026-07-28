@@ -964,6 +964,7 @@
       const formatParticipantList = document.getElementById("format-participant-list");
       const formatParticipantClear = document.getElementById("format-participant-clear");
       const formatParticipantSelectionCount = document.getElementById("format-participant-selection-count");
+      const formatParticipantStatus = document.getElementById("format-participant-status");
       const formatEditorDrawer = document.getElementById("format-editor-drawer");
       const formatEditorOverlay = document.getElementById("format-editor-overlay");
       const formatEditorDrawerClose = document.getElementById("format-editor-drawer-close");
@@ -1444,6 +1445,7 @@
       let formatActiveTab = "overview";
       let formatDetailExpanded = false;
       let formatEditorCurrentStep = "basis";
+      let formatEditorIdempotencyKey = "";
       let formatEditingNoteId = null;
       let contactEditingNoteId = null;
       const contactNotesByContact = new Map();
@@ -1540,6 +1542,7 @@
       let participantPlannerFormatId = null;
       let participantPlannerCurrentStep = "filters";
       let participantPlannerSelectedIds = new Set();
+      let participantPlannerBusy = false;
       let pendingFilterDraft = null;
       let activeSavedViewName = "";
       let favoriteContactsOnly = false;
@@ -1845,7 +1848,8 @@
       }
 
       function canExportData() {
-        return currentCapabilities().canExport !== false;
+        const capability = currentCapabilities().canExport;
+        return typeof capability === "boolean" ? capability : currentRole() === "admin";
       }
 
       function isCareView(view = activeView) {
@@ -24968,7 +24972,9 @@
               <span class="format-profile__badges">
                 ${formatProfileOwnerBadgeMarkup(format)}
                 <span class="format-profile__type-badge">${escapeHtml(format.formatType || "Format")}</span>
-                ${formatParticipationStatusBadgeMarkup(participant.invitationStatus)}
+                ${canEditFormat(format)
+                  ? `<select class="format-profile__status-select" data-format-profile-status="${escapeHtml(format.id)}" data-contact-id="${escapeHtml(participant.contactId)}" aria-label="Beteiligungsstatus für ${escapeHtml(format.title || "Format")}">${formatParticipationStatusOptionMarkup(participant.invitationStatus)}</select>`
+                  : formatParticipationStatusBadgeMarkup(participant.invitationStatus)}
               </span>
               <button class="action-button action-button--compact" type="button" data-format-profile-action="open" data-format-id="${escapeHtml(format.id)}">Öffnen</button>
             </div>
@@ -25055,7 +25061,7 @@
             <label class="format-profile__link-field">
               <span>Beteiligungsstatus</span>
               <span class="editor-select-shell format-profile__select-shell" data-custom-select data-select-variant="detail" data-select-type="format-profile-link-status-${escapeHtml(contactId)}">
-                <select class="editor-select" name="invitationStatus" aria-label="Beteiligungsstatus beim Hinzufügen">${formatParticipationStatusOptionMarkup("Eingeladen", { includeCandidate: false })}</select>
+                <select class="editor-select" name="invitationStatus" aria-label="Beteiligungsstatus beim Verknüpfen">${formatParticipationStatusOptionMarkup("Kandidat")}</select>
               </span>
             </label>
             <div class="format-profile__form-actions">
@@ -25069,7 +25075,7 @@
       function renderFormatProfileSection(contact = {}) {
         const editable = canEditCareObject(contact);
         if (formatDataState === "loading") {
-          return `<div class="section-block" data-format-profile-section><h4 class="detail-section-title">Formate</h4><div class="format-profile__state" role="status"><strong>Formate werden geladen</strong><span>Einladungen und Teilnahmen erscheinen gleich.</span></div></div>`;
+          return `<div class="section-block" data-format-profile-section><h4 class="detail-section-title">Formate</h4><div class="format-profile__state" role="status"><strong>Formate werden geladen</strong><span>Kandidaturen und Teilnahmen erscheinen gleich.</span></div></div>`;
         }
         if (formatDataState === "error") {
           return `<div class="section-block" data-format-profile-section><h4 class="detail-section-title">Formate</h4><div class="format-profile__state format-profile__state--error" role="alert"><strong>Formate konnten nicht geladen werden</strong><span>${escapeHtml(formatLoadErrorMessage || "Bitte prüfe die Verbindung und versuche es erneut.")}</span><button class="action-button action-button--compact" type="button" data-format-profile-action="retry">Erneut laden</button></div></div>`;
@@ -25089,6 +25095,7 @@
                 <h4 class="detail-section-title">Formate</h4>
               </div>
             </div>
+            <p class="format-feedback" data-format-profile-feedback role="status" aria-live="polite"></p>
             <div class="format-profile">
               ${renderFormatProfileGroup("Kommende Formate", upcoming, "upcoming")}
               ${renderFormatProfileGroup("Vergangene Formate", past, "past")}
@@ -25099,23 +25106,69 @@
       }
 
       function bindFormatProfileActions(root = document, contact = {}, rerender = () => {}) {
+        const setProfileFormatFeedback = (message = "", tone = "") => {
+          const feedback = root.querySelector("[data-format-profile-feedback]");
+          if (!feedback) return;
+          feedback.textContent = message;
+          feedback.className = `format-feedback${message ? " is-visible" : ""}${tone ? ` format-feedback--${tone}` : ""}`;
+        };
         root.querySelector("[data-format-profile-link-form]")?.addEventListener("submit", async (event) => {
           event.preventDefault();
           if (!canEditCareObject(contact)) return;
           const data = new FormData(event.currentTarget);
           const formatId = String(data.get("formatId") || "");
-          const invitationStatus = String(data.get("invitationStatus") || "Eingeladen");
+          const invitationStatus = String(data.get("invitationStatus") || "Kandidat");
           if (!formatId || !contact.id) return;
+          const format = formats.find((item) => item.id === formatId);
+          if (!canEditFormat(format)) {
+            setProfileFormatFeedback("Das Format ist nicht mehr bearbeitbar. Lade die Ansicht neu und prüfe den Archivstatus.", "error");
+            return;
+          }
+          if (["Eingeladen", "Zugesagt", "Teilgenommen"].includes(invitationStatus) && mitmachenConsentAvailability(contact).key !== "available") {
+            setProfileFormatFeedback("Der Kontakt kann als Kandidat verknüpft werden. Für eine Einladung fehlt eine wirksame #Mitmachen-Einwilligung.", "error");
+            return;
+          }
           try {
+            event.currentTarget.setAttribute("aria-busy", "true");
             const updated = await window.dataService.addFormatParticipant(formatId, contact.id, { invitationStatus });
             replaceFormat(updated);
             setStorageStatus("Kontakt zum Format hinzugefügt");
             detailFormatLinkOpen = false;
             rerender();
           } catch (error) {
-            console.error("Kontakt konnte nicht zum Format hinzugefügt werden.", error);
-            window.alert("Der Kontakt konnte nicht zum Format hinzugefügt werden. Bitte prüfe Berechtigung und Verbindung.");
+            console.error("Format konnte nicht mit dem Kontakt verknüpft werden.", error);
+            event.currentTarget.setAttribute("aria-busy", "false");
+            setProfileFormatFeedback(`Format konnte nicht verknüpft werden: ${error?.message || "Bitte prüfe Berechtigung und Verbindung."}`, "error");
           }
+        });
+        root.querySelectorAll("[data-format-profile-status]").forEach((select) => {
+          select.addEventListener("change", async () => {
+            const format = formats.find((item) => item.id === select.dataset.formatProfileStatus);
+            if (!canEditFormat(format)) return;
+            const participant = (format?.participants || []).find((item) => (item.contactId || item.contact_id) === select.dataset.contactId);
+            if (["Eingeladen", "Zugesagt", "Teilgenommen"].includes(select.value) && mitmachenConsentAvailability(contact).key !== "available") {
+              select.value = participant?.invitationStatus || "Kandidat";
+              setProfileFormatFeedback("Status nicht geändert: Vor einer Einladung muss eine wirksame #Mitmachen-Einwilligung dokumentiert sein.", "error");
+              return;
+            }
+            select.disabled = true;
+            try {
+              const updated = await window.dataService.updateFormatParticipant(
+                select.dataset.formatProfileStatus,
+                select.dataset.contactId,
+                { invitationStatus: select.value },
+                participant?.updatedAt || participant?.updated_at || ""
+              );
+              replaceFormat(updated);
+              setStorageStatus("Beteiligungsstatus aktualisiert");
+              rerender();
+            } catch (error) {
+              console.error("Beteiligungsstatus konnte nicht gespeichert werden.", error);
+              select.disabled = false;
+              select.value = participant?.invitationStatus || "Kandidat";
+              setProfileFormatFeedback(`Beteiligungsstatus nicht gespeichert: ${error?.message || "Bitte versuche es erneut."}`, "error");
+            }
+          });
         });
         root.querySelectorAll("[data-format-profile-action]").forEach((button) => {
           button.addEventListener("click", async () => {
@@ -25239,6 +25292,20 @@
         return new Set((format?.participants || []).map((participant) => participant.contactId));
       }
 
+      function formatIsArchived(format = {}) {
+        return String(format?.status || "") === "Archiviert";
+      }
+
+      function canEditFormat(format = {}) {
+        return canEditContacts() && !formatIsArchived(format);
+      }
+
+      function canImportFormatParticipants(format = {}) {
+        return canAdministerData() && canEditFormat(format);
+      }
+
+      const FORMAT_PARTICIPANT_RESULT_LIMIT = 50;
+
       function formatParticipationStatusOptionMarkup(currentStatus = "", { includeCandidate = true } = {}) {
         const normalized = String(currentStatus || "Kandidat").trim() || "Kandidat";
         const options = [
@@ -25281,17 +25348,26 @@
       }
 
       function formatDateRange(format) {
-        const date = formatDateLabel(format.startsAt || format.endsAt);
-        return date || "Datum offen";
+        const startsAt = formatDateTimeLabel(format.startsAt);
+        const endsAt = formatDateTimeLabel(format.endsAt);
+        if (startsAt && endsAt && startsAt !== endsAt) return `${startsAt} – ${endsAt}`;
+        return startsAt || endsAt || "Termin offen";
       }
 
-      function formatDateInputValue(format) {
-        return String(format?.startsAt || format?.endsAt || "").slice(0, 10);
+      function formatDateTimeInputValue(value) {
+        const date = new Date(value || "");
+        if (!Number.isFinite(date.getTime())) return "";
+        const pad = (part) => String(part).padStart(2, "0");
+        return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
       }
 
-      function normalizeFormatDateInput(value) {
-        const date = String(value || "").trim();
-        return date ? `${date}T00:00:00.000Z` : "";
+      function normalizeFormatDateTimeInput(value, originalValue = "") {
+        const localValue = String(value || "").trim();
+        const original = String(originalValue || "").trim();
+        if (!localValue) return "";
+        if (original && localValue === formatDateTimeInputValue(original)) return original;
+        const date = new Date(localValue);
+        return Number.isFinite(date.getTime()) ? date.toISOString() : "";
       }
 
       function formatOptionMarkup(options, selectedValue) {
@@ -25304,6 +25380,7 @@
 
       function renderFormatEditor(format = null) {
         const editing = Boolean(format?.id);
+        const archived = format?.status === "Archiviert";
         const ownerValue = format?.ownerId || currentProfile?.id || "";
         const notesValue = String(format?.notes || "");
         const notesAreThread = notesValue.trim().startsWith("{") && parseFormatNotesThread(notesValue, format).length > 0;
@@ -25318,7 +25395,8 @@
               <div class="format-editor-grid">
                 <div class="format-editor-field format-editor-field--wide">
                   <label for="format-title">Titel</label>
-                  <input id="format-title" name="title" required value="${escapeHtml(format?.title || "")}" placeholder="z. B. Roundtable Pflegeversorgung Q3" />
+                  <input id="format-title" name="title" required aria-describedby="format-title-error" value="${escapeHtml(format?.title || "")}" placeholder="z. B. Roundtable Pflegeversorgung Q3" />
+                  <span class="format-field-error" id="format-title-error"></span>
                 </div>
                 <div class="format-editor-field">
                   <label for="format-type">Typ</label>
@@ -25328,9 +25406,15 @@
                 </div>
                 <div class="format-editor-field">
                   <label for="format-status">Status</label>
-                  <div class="editor-select-shell" data-custom-select data-select-type="format-status">
-                    <select class="editor-select" id="format-status" name="status">${formatOptionMarkup(formatStatusOptions, format?.status || "Planung")}</select>
-                  </div>
+                  ${archived ? `
+                    <input type="hidden" name="status" value="Archiviert" />
+                    <input id="format-status" value="Archiviert" disabled aria-describedby="format-status-help" />
+                    <span class="format-editor-help" id="format-status-help">Archivierte Formate werden ausschließlich über „Wiederherstellen“ reaktiviert.</span>
+                  ` : `
+                    <div class="editor-select-shell" data-custom-select data-select-type="format-status">
+                      <select class="editor-select" id="format-status" name="status">${formatOptionMarkup(formatStatusOptions, format?.status || "Planung")}</select>
+                    </div>
+                  `}
                 </div>
               </div>
             </section>
@@ -25342,8 +25426,14 @@
               </div>
               <div class="format-editor-grid">
                 <div class="format-editor-field">
-                  <label for="format-date">Datum</label>
-                  <input id="format-date" name="formatDate" type="date" value="${escapeHtml(formatDateInputValue(format))}" />
+                  <label for="format-starts-at">Beginn</label>
+                  <input id="format-starts-at" name="startsAt" type="datetime-local" value="${escapeHtml(formatDateTimeInputValue(format?.startsAt))}" />
+                  <input type="hidden" name="originalStartsAt" value="${escapeHtml(format?.startsAt || "")}" />
+                </div>
+                <div class="format-editor-field">
+                  <label for="format-ends-at">Ende</label>
+                  <input id="format-ends-at" name="endsAt" type="datetime-local" value="${escapeHtml(formatDateTimeInputValue(format?.endsAt))}" />
+                  <input type="hidden" name="originalEndsAt" value="${escapeHtml(format?.endsAt || "")}" />
                 </div>
                 <div class="format-editor-field">
                   <label for="format-location">Ort / Online</label>
@@ -25380,12 +25470,14 @@
                   <div>
                     <strong>Teilnehmer später per Excel ergänzen</strong>
                     <span>Die leere Standard-Vorlage kann bereits vor dem Anlegen heruntergeladen werden.</span>
+                    ${canExportData() ? "" : `<span class="detail-permission-note" id="new-format-template-permission-note">Der Excel-Download ist für dein Nutzerprofil nicht freigeschaltet.</span>`}
                   </div>
-                  <button class="action-button" type="button" id="download-new-format-template">Leere Excel-Vorlage</button>
+                  <button class="action-button" type="button" id="download-new-format-template" ${canExportData() ? "" : `disabled aria-disabled="true" aria-describedby="new-format-template-permission-note"`}>Leere Excel-Vorlage</button>
                 </div>
               `}
             </section>
 
+            <p class="format-editor-status" id="format-editor-status" role="status" aria-live="polite"></p>
             <div class="editor-footer">
               <button class="action-button" type="button" id="format-editor-back">Zurück</button>
               <div class="format-editor-actions">
@@ -25416,7 +25508,7 @@
                       </span>
                     </span>
                   </button>
-                  ${canEditContacts() ? `
+                  ${canEditFormat(format) ? `
                     <div class="participant-card-actions">
                       <button class="action-button participant-card-remove" type="button" data-remove-participant="${escapeHtml(contact.id)}" aria-label="${escapeHtml(contact.name)} aus dem Format entfernen">
                         <svg viewBox="0 0 24 24" aria-hidden="true">
@@ -25426,7 +25518,7 @@
                       </button>
                     </div>
                   ` : ""}
-                  ${canEditContacts() ? `
+                  ${canEditFormat(format) ? `
                     <div class="participant-card-fields">
                       <label class="participant-card-field">
                         <span>Beteiligungsstatus</span>
@@ -25534,8 +25626,8 @@
                 <section class="invitation-status-column invitation-status-column--${normalizeClassPart(status)}" data-invitation-status-drop="${escapeHtml(status)}">
                   <h5>${escapeHtml(status)} <span class="participant-count">${statusEntries.length}</span></h5>
                   <div class="invitation-status-list">
-                    ${statusEntries.length ? statusEntries.map(({ contact }) => `
-                      <article class="invitation-status-card" draggable="${canEditContacts() ? "true" : "false"}" data-invitation-card="${escapeHtml(contact.id)}">
+                    ${statusEntries.length ? statusEntries.map(({ contact, participant }) => `
+                      <article class="invitation-status-card" draggable="${canEditFormat(format) ? "true" : "false"}" data-invitation-card="${escapeHtml(contact.id)}">
                         <button class="invitation-status-person" type="button" data-open-format-contact="${escapeHtml(contact.id)}">
                           ${contactAvatarMarkup(contact, "sm")}
                           <span class="participant-card-copy">
@@ -25546,6 +25638,15 @@
                             </span>
                           </span>
                         </button>
+                        ${canEditFormat(format) ? `
+                          <label class="invitation-status-keyboard-control">
+                            <span>Status ändern</span>
+                            <select
+                              data-invitation-status-select="${escapeHtml(contact.id)}"
+                              aria-label="Beteiligungsstatus von ${escapeHtml(contact.name)} ändern"
+                            >${formatParticipationStatusOptionMarkup(participant.invitationStatus)}</select>
+                          </label>
+                        ` : ""}
                       </article>
                     `).join("") : `<div class="empty">Keine Teilnehmer</div>`}
                   </div>
@@ -25562,7 +25663,7 @@
             <div class="format-overview-copy">
               <div class="format-overview-title">
                 <h4>${escapeHtml(format.title || "Neues Format")}</h4>
-                ${canEditContacts() ? `
+                ${canEditFormat(format) ? `
                   <button class="action-button format-title-edit-button" type="button" data-edit-format-title="${escapeHtml(format.id)}" aria-label="Format-Titel bearbeiten">
                     <svg viewBox="0 0 24 24" aria-hidden="true">
                       <path d="M12 20h9"></path>
@@ -25572,7 +25673,7 @@
                 ` : ""}
               </div>
               <div class="format-overview-actions">
-                ${canEditContacts() ? `<button class="action-button action-button--primary" type="button" id="open-participant-planner">Teilnehmer auswählen</button>` : ""}
+                ${canEditFormat(format) ? `<button class="action-button action-button--primary" type="button" id="open-participant-planner">Teilnehmer auswählen</button>` : ""}
               </div>
             </div>
             <div class="format-overview-visual">
@@ -25656,7 +25757,6 @@
       function formatStatusBadgeMarkup(status = "") {
         const label = String(status || "Planung").trim() || "Planung";
         const normalizedStatus = label.toLowerCase();
-        if (normalizedStatus === "archiviert") return "";
         let tone = "status-planning";
         let icon = `<path d="M4 6h10"></path><path d="M4 12h7"></path><path d="M4 18h5"></path><path d="M17 10v6l4 2"></path>`;
         if (normalizedStatus === "aktiv") {
@@ -25666,6 +25766,10 @@
         else if (normalizedStatus === "abgeschlossen") {
           tone = "status-done";
           icon = `<path d="m5 12 4 4L19 6"></path><circle cx="12" cy="12" r="9"></circle>`;
+        }
+        else if (normalizedStatus === "archiviert") {
+          tone = "status-archived";
+          icon = `<path d="M4 7h16v13H4z"></path><path d="M3 4h18v3H3z"></path><path d="M9 11h6"></path>`;
         }
         return `<span class="format-badge format-status-badge format-badge--${tone}"><svg viewBox="0 0 24 24" aria-hidden="true">${icon}</svg>${escapeHtml(label)}</span>`;
       }
@@ -25677,11 +25781,30 @@
         return ownerBadgeMarkup({ owner: ownerValue, ownerId: format.ownerId || "" });
       }
 
-      function renderFormatTabs() {
+      function formatTabDomId(format, tabId, kind = "tab") {
+        const safeFormatId = normalizeClassPart(format?.id || "format");
+        const safeTabId = normalizeClassPart(tabId || "overview");
+        return `format-${safeFormatId}-${kind}-${safeTabId}`;
+      }
+
+      function formatTabPanelAttributes(format, tabId) {
+        return `id="${escapeHtml(formatTabDomId(format, tabId, "panel"))}" aria-labelledby="${escapeHtml(formatTabDomId(format, tabId))}"`;
+      }
+
+      function renderFormatTabs(format) {
         return `
           <div class="format-tabs" role="tablist" aria-label="Formatplanung">
             ${formatTabItems.map((tab) => `
-              <button class="format-tab ${formatActiveTab === tab.id ? "is-active" : ""}" type="button" role="tab" aria-selected="${formatActiveTab === tab.id ? "true" : "false"}" data-format-tab="${escapeHtml(tab.id)}">
+              <button
+                class="format-tab ${formatActiveTab === tab.id ? "is-active" : ""}"
+                id="${escapeHtml(formatTabDomId(format, tab.id))}"
+                type="button"
+                role="tab"
+                aria-selected="${formatActiveTab === tab.id ? "true" : "false"}"
+                aria-controls="${escapeHtml(formatTabDomId(format, tab.id, "panel"))}"
+                tabindex="${formatActiveTab === tab.id ? "0" : "-1"}"
+                data-format-tab="${escapeHtml(tab.id)}"
+              >
                 ${escapeHtml(tab.label)}
               </button>
             `).join("")}
@@ -25709,7 +25832,7 @@
       }
 
       function renderFormatBasisFacts(format) {
-        if (!canEditContacts()) {
+        if (!canEditFormat(format)) {
           return `
             ${renderFormatFact("Typ", `<strong>${escapeHtml(format.formatType || "Nicht hinterlegt")}</strong>`)}
             ${renderFormatFact("Datum", `<strong>${escapeHtml(formatDateRange(format))}</strong>`)}
@@ -25721,17 +25844,20 @@
         }
         return `
           ${renderFormatFact("Typ", `<div class="editor-select-shell format-fact-select-shell" data-custom-select data-select-type="format-inline-type"><select class="editor-select" data-format-inline-field="formatType" aria-label="Formattyp">${formatOptionMarkup(formatTypeOptions, format.formatType || "Roundtable")}</select></div>`)}
-          ${renderFormatFact("Datum", `<input class="format-fact-control" data-format-inline-field="formatDate" aria-label="Datum" type="date" value="${escapeHtml(formatDateInputValue(format))}" />`)}
+          ${renderFormatFact("Beginn", `<input class="format-fact-control" data-format-inline-field="startsAt" data-original-value="${escapeHtml(format.startsAt || "")}" aria-label="Beginn" type="datetime-local" value="${escapeHtml(formatDateTimeInputValue(format.startsAt))}" />`)}
+          ${renderFormatFact("Ende", `<input class="format-fact-control" data-format-inline-field="endsAt" data-original-value="${escapeHtml(format.endsAt || "")}" aria-label="Ende" type="datetime-local" value="${escapeHtml(formatDateTimeInputValue(format.endsAt))}" />`)}
           ${renderFormatFact("Ort / Online", `<input class="format-fact-control" data-format-inline-field="location" aria-label="Ort oder Online-Hinweis" value="${escapeHtml(format.location || "")}" placeholder="Ort offen" />`)}
           ${renderFormatFact("Owner", `<div class="editor-select-shell format-fact-select-shell" data-custom-select data-select-type="format-inline-owner"><select class="editor-select" data-format-inline-field="ownerId" aria-label="Owner">${buildOwnerSelectOptions(format.ownerId || format.owner || "")}</select></div>`)}
-          ${renderFormatFact("Status", `<div class="editor-select-shell format-fact-select-shell" data-custom-select data-select-type="format-inline-status"><select class="editor-select" data-format-inline-field="status" aria-label="Formatstatus">${formatOptionMarkup(formatStatusOptions, format.status || "Planung")}</select></div>`)}
+          ${format.status === "Archiviert"
+            ? renderFormatFact("Status", `<strong>Archiviert</strong>`)
+            : renderFormatFact("Status", `<div class="editor-select-shell format-fact-select-shell" data-custom-select data-select-type="format-inline-status"><select class="editor-select" data-format-inline-field="status" aria-label="Formatstatus">${formatOptionMarkup(formatStatusOptions, format.status || "Planung")}</select></div>`)}
           ${renderFormatFact("Teilnehmer", renderFormatParticipantFact(format))}
         `;
       }
 
       function renderFormatOverviewTab(format) {
         return `
-          <div class="format-tab-panel" role="tabpanel">
+          <div class="format-tab-panel" role="tabpanel" ${formatTabPanelAttributes(format, "overview")}>
             ${renderFormatOverviewHero(format)}
             <section class="format-section">
               <div class="format-facts-grid">
@@ -25744,12 +25870,12 @@
 
       function renderFormatParticipantsTab(format) {
         return `
-          <div class="format-tab-panel" role="tabpanel">
+          <div class="format-tab-panel" role="tabpanel" ${formatTabPanelAttributes(format, "participants")}>
             <section class="format-section">
               <div class="format-section-head">
                 <div></div>
                 <div class="format-participant-actions">
-                  ${canEditContacts() ? `<button class="action-button action-button--primary" type="button" id="open-participant-planner">Teilnehmer auswählen</button>` : ""}
+                  ${canEditFormat(format) ? `<button class="action-button action-button--primary" type="button" id="open-participant-planner">Teilnehmer auswählen</button>` : ""}
                 </div>
               </div>
               ${renderParticipantCards(format)}
@@ -25760,7 +25886,7 @@
 
       function renderFormatInvitationStatusTab(format) {
         return `
-          <div class="format-tab-panel" role="tabpanel">
+          <div class="format-tab-panel" role="tabpanel" ${formatTabPanelAttributes(format, "invitationStatus")}>
             <section class="format-section">
               ${renderInvitationStatusBoard(format)}
             </section>
@@ -25770,7 +25896,7 @@
 
       function renderFormatReportingTab(format) {
         return `
-          <div class="format-tab-panel" role="tabpanel">
+          <div class="format-tab-panel" role="tabpanel" ${formatTabPanelAttributes(format, "reporting")}>
             <section class="format-section">
               <div class="format-section-head">
                 <div>
@@ -25952,7 +26078,7 @@
           <div class="format-notes-thread">
             <div class="format-chat-list" aria-live="polite">
               ${messages.length ? messages.map((message) => {
-                const canManageMessage = canEditContacts() && ownsFormatNote(message);
+                const canManageMessage = canEditFormat(format) && ownsFormatNote(message);
                 const isEditing = canManageMessage && formatEditingNoteId === message.id;
                 return `
                 <article class="format-chat-message" data-format-note="${escapeHtml(message.id)}">
@@ -25984,7 +26110,7 @@
               `;
               }).join("") : `<div class="empty">Noch keine Notiz im Verlauf.</div>`}
             </div>
-            ${canEditContacts() ? `
+            ${canEditFormat(format) ? `
               <form class="format-chat-composer" id="format-notes-composer">
                 <textarea id="format-notes-message" name="message" placeholder="Neue Notiz schreiben..." aria-label="Neue Formatnotiz"></textarea>
                 <div class="format-chat-composer-footer">
@@ -25995,7 +26121,9 @@
                   <button class="action-button action-button--primary" type="submit">Notiz senden</button>
                 </div>
               </form>
-            ` : `<div class="detail-permission-note">${escapeHtml(viewerCreateDisabledMessage("das Schreiben von Notizen"))}</div>`}
+            ` : `<div class="detail-permission-note">${formatIsArchived(format)
+              ? "Archivierte Formate sind schreibgeschützt. Stelle das Format wieder her, um Notizen zu ergänzen."
+              : escapeHtml(viewerCreateDisabledMessage("das Schreiben von Notizen"))}</div>`}
           </div>
         `;
       }
@@ -26451,7 +26579,7 @@
 
       function renderFormatNotesTab(format) {
         return `
-          <div class="format-tab-panel" role="tabpanel">
+          <div class="format-tab-panel" role="tabpanel" ${formatTabPanelAttributes(format, "notes")}>
             <section class="format-section">
               <div class="format-section-head">
                 <div>
@@ -26466,31 +26594,45 @@
 
       function renderFormatSettingsTab(format) {
         const participantCount = formatParticipantContacts(format).length;
+        const archived = formatIsArchived(format);
+        const exportAllowed = canExportData();
+        const importAllowed = canImportFormatParticipants(format);
+        const excelPermissionNote = [
+          !exportAllowed ? "Excel-Downloads sind für dein Nutzerprofil nicht freigeschaltet." : "",
+          archived
+            ? "Dieses Format ist archiviert. Excel-Import ist erst nach dem Wiederherstellen möglich."
+            : !canAdministerData()
+              ? "Excel-Import steht aus Sicherheitsgründen nur Admins zur Verfügung."
+              : ""
+        ].filter(Boolean).join(" ");
         return `
-          <div class="format-tab-panel" role="tabpanel">
+          <div class="format-tab-panel" role="tabpanel" ${formatTabPanelAttributes(format, "settings")}>
             <section class="format-section">
               <div class="format-export-row">
                 <div>
-                  <h4>Excel für Einladungen</h4>
+                  <h4>Excel für Kandidaten und Beteiligungen</h4>
                   <p>${participantCount
-                    ? `${participantCount} eingeladene Kontakte mit dem aktuellen Einladungsstand herunterladen oder per Excel aktualisieren.`
+                    ? `${participantCount} Kandidaten und Teilnehmende mit dem aktuellen Beteiligungsstand herunterladen oder per Excel aktualisieren.`
                     : "Das Format ist noch leer. Lade die Standard-Vorlage herunter, trage Kontakte ein und importiere sie anschließend."}</p>
                 </div>
                 <div class="format-excel-actions">
-                  <button class="action-button" type="button" id="download-format-template">Leere Vorlage</button>
-                  ${canEditContacts() ? `<button class="action-button" type="button" id="import-format-participants">Excel importieren</button>` : ""}
-                  <button class="action-button action-button--primary" type="button" id="export-format-participants">${participantCount ? "Aktuelle Excel-Datei" : "Excel-Vorlage"}</button>
+                  <button class="action-button" type="button" id="download-format-template" ${exportAllowed ? "" : `disabled aria-disabled="true" aria-describedby="format-excel-permission-note"`}>Leere Vorlage</button>
+                  ${importAllowed ? `<button class="action-button" type="button" id="import-format-participants">Excel importieren</button>` : ""}
+                  <button class="action-button action-button--primary" type="button" id="export-format-participants" ${exportAllowed ? "" : `disabled aria-disabled="true" aria-describedby="format-excel-permission-note"`}>${participantCount ? "Aktuelle Excel-Datei" : "Excel-Vorlage"}</button>
                 </div>
               </div>
+              ${excelPermissionNote ? `<p class="detail-permission-note" id="format-excel-permission-note">${escapeHtml(excelPermissionNote)}</p>` : ""}
             </section>
             <section class="format-section">
               <div class="format-export-row">
                 <div>
                   <h4>Format verwalten</h4>
+                  <p>${archived ? "Dieses Format ist archiviert und kann ausdrücklich wiederhergestellt werden." : "Bearbeiten, archivieren oder mit allen Verknüpfungen endgültig löschen."}</p>
                 </div>
                 <div class="format-settings-actions">
-                  ${canEditContacts() ? `<button class="action-button" type="button" data-edit-format-settings="${escapeHtml(format.id)}">Bearbeiten</button>` : ""}
-                  ${canEditContacts() ? `<button class="action-button" type="button" data-archive-format="${escapeHtml(format.id)}">Archivieren</button>` : ""}
+                  ${canEditFormat(format) ? `<button class="action-button" type="button" data-edit-format-settings="${escapeHtml(format.id)}">Bearbeiten</button>` : ""}
+                  ${canAdministerData() && archived ? `<button class="action-button action-button--primary" type="button" data-restore-format="${escapeHtml(format.id)}">Wiederherstellen</button>` : ""}
+                  ${canAdministerData() && !archived ? `<button class="action-button" type="button" data-archive-format="${escapeHtml(format.id)}">Archivieren</button>` : ""}
                   ${canAdministerData() ? `<button class="action-button action-button--danger-soft" type="button" data-delete-format="${escapeHtml(format.id)}">Löschen</button>` : ""}
                 </div>
               </div>
@@ -26526,7 +26668,7 @@
             ${items.map((format) => {
               const isExpanded = format.id === activeFormatId && formatDetailExpanded;
               return `
-                <div class="format-detail ${isExpanded ? "is-open" : ""}" data-format-detail="${escapeHtml(format.id)}">
+                <div class="format-detail ${isExpanded ? "is-open" : ""} ${format.status === "Archiviert" ? "is-archived" : ""}" data-format-detail="${escapeHtml(format.id)}">
                   <div class="format-detail-head" data-toggle-format-row="${escapeHtml(format.id)}" role="button" tabindex="0" aria-label="${isExpanded ? "Format einklappen" : "Format ausklappen"}" aria-expanded="${isExpanded}" aria-controls="format-detail-body-${escapeHtml(format.id)}">
                     <div class="format-detail-title">
                       ${formatTypeIconMarkup(format.formatType)}
@@ -26549,6 +26691,20 @@
                     </div>
                     <div class="format-detail-actions">
                       ${formatStatusBadgeMarkup(format.status)}
+                      ${(canEditFormat(format) || canAdministerData()) ? `
+                        <details class="format-more-menu">
+                          <summary class="action-button format-more-menu__trigger" aria-label="Weitere Aktionen für ${escapeHtml(format.title)}">Mehr</summary>
+                          <div class="format-more-menu__popover">
+                            ${canEditFormat(format) ? `<button type="button" data-edit-format-settings="${escapeHtml(format.id)}">Bearbeiten</button>` : ""}
+                            ${canAdministerData() && format.status === "Archiviert"
+                              ? `<button type="button" data-restore-format="${escapeHtml(format.id)}">Wiederherstellen</button>`
+                              : canAdministerData()
+                                ? `<button type="button" data-archive-format="${escapeHtml(format.id)}">Archivieren</button>`
+                                : ""}
+                            ${canAdministerData() ? `<button class="is-danger" type="button" data-delete-format="${escapeHtml(format.id)}">Endgültig löschen</button>` : ""}
+                          </div>
+                        </details>
+                      ` : ""}
                       <button class="action-button format-detail-toggle" type="button" data-toggle-format-detail="${escapeHtml(format.id)}" aria-label="${isExpanded ? "Format einklappen" : "Format ausklappen"}" aria-expanded="${isExpanded}" aria-controls="format-detail-body-${escapeHtml(format.id)}">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                           <path d="m6 9 6 6 6-6"></path>
@@ -26559,8 +26715,9 @@
                   ${isExpanded ? `
                     <div class="format-detail-body" id="format-detail-body-${escapeHtml(format.id)}">
                       <div class="format-detail-nav">
-                        ${renderFormatTabs()}
+                        ${renderFormatTabs(format)}
                       </div>
+                      <p class="format-feedback" id="format-feedback" role="status" aria-live="polite"></p>
                       ${renderFormatActiveTab(format)}
                     </div>
                   ` : ""}
@@ -26574,6 +26731,8 @@
 
       function renderFormatsView() {
         const items = filteredFormats();
+        const archivedFilterButton = document.querySelector('[data-format-status-filter="Archiviert"]');
+        if (archivedFilterButton) archivedFilterButton.hidden = !canAdministerData();
         const filteredContact = contacts.find((contact) => contact.id === formatContactFilterId) || null;
         if (formatContactFilter) formatContactFilter.hidden = !filteredContact;
         if (formatContactFilterName) formatContactFilterName.textContent = filteredContact?.displayName || filteredContact?.name || "";
@@ -26591,12 +26750,11 @@
 
       function formatEditorPayload(form) {
         const data = new FormData(form);
-        const formatDate = normalizeFormatDateInput(data.get("formatDate"));
         return {
           title: String(data.get("title") || "").trim(),
           formatType: String(data.get("formatType") || "Roundtable").trim(),
-          startsAt: formatDate,
-          endsAt: formatDate,
+          startsAt: normalizeFormatDateTimeInput(data.get("startsAt"), data.get("originalStartsAt")),
+          endsAt: normalizeFormatDateTimeInput(data.get("endsAt"), data.get("originalEndsAt")),
           location: String(data.get("location") || "").trim(),
           ownerId: String(data.get("ownerId") || "").trim(),
           status: String(data.get("status") || "Planung").trim(),
@@ -26611,39 +26769,146 @@
         activeFormatId = updated.id;
       }
 
+      function showFormatTransientFeedback(message = "", tone = "") {
+        const feedback = formatDetailPanel?.querySelector("#format-feedback");
+        if (!feedback) return;
+        feedback.textContent = message;
+        feedback.className = `format-feedback${message ? " is-visible" : ""}${tone ? ` format-feedback--${tone}` : ""}`;
+      }
+
+      function setFormatEditorStatus(message = "", tone = "") {
+        const status = document.getElementById("format-editor-status");
+        if (!status) return;
+        status.textContent = message;
+        status.className = `format-editor-status${message ? " is-visible" : ""}${tone ? ` format-editor-status--${tone}` : ""}`;
+      }
+
+      function validateFormatEditor(form) {
+        const title = form?.elements.title;
+        const titleError = document.getElementById("format-title-error");
+        const titleValue = String(title?.value || "").trim();
+        if (title) title.setAttribute("aria-invalid", titleValue ? "false" : "true");
+        if (titleError) titleError.textContent = titleValue ? "" : "Bitte gib einen aussagekräftigen Titel ein.";
+        if (!titleValue) {
+          setFormatEditorStatus("Der Titel fehlt. Ergänze ihn, um mit der Planung fortzufahren.", "error");
+          title?.focus();
+          return false;
+        }
+        const startsAt = normalizeFormatDateTimeInput(form?.elements.startsAt?.value);
+        const endsAt = normalizeFormatDateTimeInput(form?.elements.endsAt?.value);
+        if (startsAt && endsAt && new Date(endsAt).getTime() < new Date(startsAt).getTime()) {
+          setFormatEditorStatus("Das Ende muss nach dem Beginn liegen.", "error");
+          form?.elements.endsAt?.setAttribute("aria-invalid", "true");
+          form?.elements.endsAt?.focus();
+          return false;
+        }
+        form?.elements.endsAt?.setAttribute("aria-invalid", "false");
+        setFormatEditorStatus("");
+        return true;
+      }
+
+      function setFormatEditorBusy(form, busy) {
+        if (!form) return;
+        form.dataset.busy = busy ? "true" : "false";
+        form.setAttribute("aria-busy", busy ? "true" : "false");
+        form.querySelectorAll("button, input, select, textarea").forEach((control) => {
+          if (busy) {
+            control.dataset.formatWasDisabled = control.disabled ? "true" : "false";
+            control.disabled = true;
+          } else {
+            control.disabled = control.dataset.formatWasDisabled === "true";
+            delete control.dataset.formatWasDisabled;
+          }
+        });
+      }
+
       function bindFormatEditor() {
         const form = document.getElementById("format-editor-form");
         refreshCustomSelects(form || document);
         renderFormatEditorStep();
         document.getElementById("download-new-format-template")?.addEventListener("click", () => {
+          if (!canExportData()) {
+            setFormatEditorStatus("Der Excel-Download ist für dein Nutzerprofil nicht freigeschaltet.", "error");
+            return;
+          }
           const title = String(document.getElementById("format-title")?.value || "Neues Format").trim() || "Neues Format";
           downloadFormatParticipants({ title }, { empty: true });
         });
         form?.addEventListener("submit", async (event) => {
           event.preventDefault();
+          if (form.dataset.busy === "true") return;
           if (!canEditContacts()) {
             showPermissionDenied(viewerCreateDisabledMessage("das Pflegen von Formaten"));
             return;
           }
-          const payload = formatEditorPayload(form);
-          if (!payload.title) {
-            window.alert("Bitte gib einen Titel für das Format ein.");
+          const editingFormat = formats.find((item) => item.id === editingFormatId);
+          if (editingFormat && !canEditFormat(editingFormat)) {
+            setFormatEditorStatus("Archivierte Formate sind schreibgeschützt. Stelle das Format zuerst wieder her.", "error");
             return;
           }
+          if (formatEditorCurrentStep !== formatEditorSteps.at(-1).id) {
+            if (validateFormatEditor(form)) moveFormatEditorStep(1);
+            return;
+          }
+          if (!validateFormatEditor(form)) return;
+          const payload = formatEditorPayload(form);
+          if (editingFormatId === "__new__") payload.idempotencyKey = formatEditorIdempotencyKey;
           try {
+            setFormatEditorBusy(form, true);
+            setFormatEditorStatus(editingFormatId === "__new__" ? "Format wird angelegt…" : "Änderungen werden gespeichert…", "progress");
             const creatingFormat = editingFormatId === "__new__";
             const saved = editingFormatId === "__new__"
               ? await window.dataService.createFormat(payload)
               : await window.dataService.updateFormat(editingFormatId, payload);
             replaceFormat(saved);
-            formatDetailExpanded = !creatingFormat;
+            formatDetailExpanded = true;
+            formatActiveTab = "overview";
+            if (creatingFormat) {
+              formatStatusFilter = "";
+              formatContactFilterId = "";
+              if (searchInput) searchInput.value = "";
+              syncSearchClearButton();
+              formatEditorIdempotencyKey = "";
+            }
             editingFormatId = null;
             closeFormatEditorDrawer({ rerender: false });
-            setStorageStatus("Format gespeichert");
+            setStorageStatus(creatingFormat ? "Format angelegt · Kandidaten können jetzt ausgewählt werden" : "Format gespeichert");
             renderFormatsView();
+            if (creatingFormat) {
+              window.requestAnimationFrame(() => {
+                window.requestAnimationFrame(() => document.getElementById("open-participant-planner")?.focus({ preventScroll: true }));
+              });
+            }
           } catch (error) {
             console.error("Format konnte nicht gespeichert werden.", error);
-            window.alert("Das Format konnte nicht gespeichert werden. Bitte prüfe Anmeldung, Rolle und Verbindung.");
+            const conflict = error?.code === "FORMAT_IDEMPOTENCY_CONFLICT" || error?.code === "FORMAT_VERSION_CONFLICT";
+            setFormatEditorStatus(
+              conflict
+                ? "Der Datenstand hat sich geändert. Schließe den Editor, prüfe das Format und versuche es erneut."
+                : `Speichern fehlgeschlagen: ${error?.message || "Bitte prüfe Anmeldung, Rolle und Verbindung."}`,
+              "error"
+            );
+          } finally {
+            if (form.isConnected) setFormatEditorBusy(form, false);
+          }
+        });
+        form?.addEventListener("keydown", (event) => {
+          if (event.key === "Escape") {
+            if (event.defaultPrevented || managedDialogHasOpenTransientControl(form.closest('[role="dialog"]'))) return;
+            event.preventDefault();
+            closeFormatEditorDrawer();
+            return;
+          }
+          if (event.key !== "Enter" || event.isComposing || event.target instanceof HTMLTextAreaElement) return;
+          if (formatEditorCurrentStep === formatEditorSteps.at(-1).id) return;
+          event.preventDefault();
+          document.getElementById("format-editor-next")?.click();
+        });
+        form?.elements.title?.addEventListener("input", () => {
+          if (String(form.elements.title.value || "").trim()) {
+            form.elements.title.setAttribute("aria-invalid", "false");
+            const error = document.getElementById("format-title-error");
+            if (error) error.textContent = "";
           }
         });
         document.getElementById("format-editor-cancel")?.addEventListener("click", () => {
@@ -26656,11 +26921,7 @@
         });
         document.getElementById("format-editor-back")?.addEventListener("click", () => moveFormatEditorStep(-1));
         document.getElementById("format-editor-next")?.addEventListener("click", () => {
-          if (formatEditorCurrentStep === "basis" && !String(form?.elements.title?.value || "").trim()) {
-            window.alert("Bitte gib einen Titel für das Format ein.");
-            form?.elements.title?.focus();
-            return;
-          }
+          if (formatEditorCurrentStep === "basis" && !validateFormatEditor(form)) return;
           moveFormatEditorStep(1);
         });
       }
@@ -26707,12 +26968,35 @@
         setFormatEditorStep(formatEditorSteps[nextIndex].id);
       }
 
+      function formatIdempotencyUuid() {
+        if (typeof window.crypto?.randomUUID === "function") return window.crypto.randomUUID();
+        const bytes = new Uint8Array(16);
+        if (typeof window.crypto?.getRandomValues === "function") {
+          window.crypto.getRandomValues(bytes);
+        } else {
+          for (let index = 0; index < bytes.length; index += 1) {
+            bytes[index] = Math.floor(Math.random() * 256);
+          }
+        }
+        bytes[6] = (bytes[6] & 0x0f) | 0x40;
+        bytes[8] = (bytes[8] & 0x3f) | 0x80;
+        const hex = [...bytes].map((value) => value.toString(16).padStart(2, "0")).join("");
+        return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20)}`;
+      }
+
       function openFormatEditorDrawer(format = null) {
         if (!canEditContacts()) {
           showPermissionDenied(viewerCreateDisabledMessage(format?.id ? "das Bearbeiten von Formaten" : "das Anlegen von Formaten"));
           return;
         }
+        if (formatIsArchived(format)) {
+          showFormatTransientFeedback("Archivierte Formate sind schreibgeschützt. Stelle das Format zuerst wieder her.", "error");
+          return;
+        }
         editingFormatId = format?.id || "__new__";
+        formatEditorIdempotencyKey = format?.id
+          ? ""
+          : formatIdempotencyUuid();
         formatEditorCurrentStep = "basis";
         if (formatEditorDrawerTitle) formatEditorDrawerTitle.textContent = format?.id ? "Format bearbeiten" : "Neues Format";
         if (formatEditorDrawerSubtitle) {
@@ -26734,6 +27018,7 @@
         formatEditorDrawer?.setAttribute("aria-hidden", "true");
         if (formatEditorDrawerBody) formatEditorDrawerBody.innerHTML = "";
         editingFormatId = null;
+        formatEditorIdempotencyKey = "";
         syncBodyScrollLock();
         if (rerender) renderFormatsView();
       }
@@ -26781,18 +27066,18 @@
           contact.specialty || "",
           accessibleContactEmail(contact),
           accessibleContactPhone(contact),
-          participant.invitationStatus || "Eingeladen",
+          participant.invitationStatus || "Kandidat",
           participant.participantRole || "",
           participant.notes || "",
           contact.id || participant.contactId || ""
         ]);
         const reservedRows = participantRows.length ? participantRows : Array.from({ length: 15 }, () => Array(10).fill(""));
-        const title = String(format.title || "Standard-Vorlage für Format-Einladungen").trim();
+        const title = String(format.title || "Standard-Vorlage für Format-Beteiligungen").trim();
         const metadata = format.id
           ? `Format-ID: ${format.id}  ·  Stand: ${formatWorkbookTimestamp()}`
           : `Leere Standard-Vorlage  ·  Erstellt: ${formatWorkbookTimestamp()}`;
         const data = [
-          [`Einladungen · ${title}`, "", "", "", "", "", "", "", "", ""],
+          [`Beteiligungen · ${title}`, "", "", "", "", "", "", "", "", ""],
           [metadata, "", "", "", "", "", "", "", "", ""],
           ["Kontakte über die Kontakt-ID zuordnen. Alternativ sind eine eindeutige E-Mail oder Name plus Organisation möglich.", "", "", "", "", "", "", "", "", ""],
           Array(10).fill(""),
@@ -26880,7 +27165,7 @@
           ["So funktioniert die Vorlage", ""],
           ["1", "Kontakte können über die stabile Kontakt-ID zugeordnet werden."],
           ["2", "Fehlt die Kontakt-ID, nutzt der Import eine eindeutige E-Mail-Adresse oder Name plus Organisation."],
-          ["3", "Neue Zeilen werden als eingeladen übernommen. Bestehende Kontakte im Format werden aktualisiert."],
+          ["3", "Neue Zeilen werden als Kandidat übernommen. Bestehende Beteiligungen werden nur mit aktuellem Versionsstand aktualisiert."],
           ["4", "Unbekannte oder nicht eindeutig zuordenbare Kontakte werden nicht importiert und in der Rückmeldung genannt."],
           ["", ""],
           ["Gültige Beteiligungsstatus", "Bedeutung"],
@@ -26916,7 +27201,7 @@
 
         const workbook = window.XLSX.utils.book_new();
         workbook.Props = {
-          Title: `Einladungen · ${title}`,
+          Title: `Beteiligungen · ${title}`,
           Subject: "Import- und Exportvorlage für das Modul Formate",
           Author: "Versorgungs-Kompass",
           Company: "Versorgungs-Kompass"
@@ -26927,16 +27212,25 @@
       }
 
       async function downloadFormatParticipants(format = {}, { empty = false } = {}) {
+        if (!canExportData()) {
+          const message = "Der Excel-Download ist für dein Nutzerprofil nicht freigeschaltet.";
+          if (formatEditorDrawer?.classList.contains("is-open")) setFormatEditorStatus(message, "error");
+          else showFormatTransientFeedback(message, "error");
+          return;
+        }
         try {
           await ensureXlsxLoaded();
           const workbook = buildFormatWorkbook(format, { empty });
-          const suffix = empty ? "leere-vorlage" : "einladungen";
+          const suffix = empty ? "leere-vorlage" : "beteiligungen";
           const filename = `${normalizeClassPart(format.title) || "format"}-${suffix}.xlsx`;
           window.XLSX.writeFile(workbook, filename, { compression: true });
           setStorageStatus(empty ? "Leere Excel-Vorlage heruntergeladen" : "Aktuelle Excel-Datei heruntergeladen");
         } catch (error) {
           console.error("Excel-Datei konnte nicht erstellt werden.", error);
-          window.alert("Die Excel-Datei konnte nicht erstellt werden. Bitte prüfe die Verbindung und versuche es erneut.");
+          const message = `Excel-Datei konnte nicht erstellt werden: ${error?.message || "Bitte prüfe die Verbindung und versuche es erneut."}`;
+          if (formatEditorDrawer?.classList.contains("is-open")) setFormatEditorStatus(message, "error");
+          else showFormatTransientFeedback(message, "error");
+          setStorageStatus("Excel-Download fehlgeschlagen");
         }
       }
 
@@ -26963,7 +27257,7 @@
           name: ["name", "kontakt", "kontaktname"],
           organization: ["organisation", "organization", "einrichtung"],
           email: ["email", "e mail", "e mail adresse"],
-          status: ["einladungsstatus", "status"],
+          status: ["beteiligungsstatus", "einladungsstatus", "status"],
           role: ["rolle im format", "rolle", "teilnehmerrolle"],
           notes: ["notiz", "notizen", "anmerkung"],
           contactId: ["kontakt id", "kontaktid", "contact id", "contactid"]
@@ -26980,8 +27274,10 @@
 
       async function importFormatParticipantsFromFile(format, file) {
         if (!format?.id || !file) return;
-        if (!canEditContacts()) {
-          showPermissionDenied(viewerCreateDisabledMessage("den Excel-Import"));
+        if (!canImportFormatParticipants(format)) {
+          showPermissionDenied(formatIsArchived(format)
+            ? "Archivierte Formate sind schreibgeschützt. Stelle das Format vor dem Import wieder her."
+            : "Excel-Import steht nur Admins zur Verfügung.");
           return;
         }
         await ensureXlsxLoaded();
@@ -27010,7 +27306,7 @@
             unresolved.push(`Zeile ${rowNumber}: ${values.name || values.email || values.contactId || "Kontakt nicht erkannt"}`);
             return;
           }
-          const invitationStatus = invitationStatusByKey.get(normalizeImportKey(values.status)) || "Eingeladen";
+          const invitationStatus = invitationStatusByKey.get(normalizeImportKey(values.status)) || "Kandidat";
           participantByContactId.set(contact.id, {
             contactId: contact.id,
             invitationStatus,
@@ -27020,14 +27316,18 @@
         });
         const participants = [...participantByContactId.values()];
         if (!participants.length) throw new Error("Keiner der Kontakte konnte eindeutig zugeordnet werden.");
+        if (participants.length > 500) throw new Error("Pro Import können höchstens 500 Beteiligungen verarbeitet werden.");
         const updated = await window.dataService.importFormatParticipants(format.id, participants);
         replaceFormat(updated);
         renderFormatsView();
-        setStorageStatus(`${participants.length} Einladungen aus Excel übernommen`);
+        setStorageStatus(`${participants.length} Beteiligungen aus Excel übernommen`);
         const unresolvedSummary = unresolved.length
-          ? `\n\n${unresolved.length} Zeile(n) wurden nicht importiert:\n${unresolved.slice(0, 5).join("\n")}${unresolved.length > 5 ? "\n…" : ""}`
+          ? ` ${unresolved.length} Zeile(n) wurden übersprungen: ${unresolved.slice(0, 5).join("; ")}${unresolved.length > 5 ? "; …" : ""} Korrigiere diese Zeilen und importiere die Datei erneut; bereits übernommene Kontakte bleiben erhalten.`
           : "";
-        window.alert(`${participants.length} Kontakt(e) wurden in das Format übernommen.${unresolvedSummary}`);
+        showFormatTransientFeedback(
+          `${participants.length} Kontakt(e) wurden übernommen.${unresolvedSummary}`,
+          unresolved.length ? "error" : "success"
+        );
       }
 
       function participantPlannerStepMarkup() {
@@ -27051,6 +27351,7 @@
         if (formatParticipantBack) formatParticipantBack.hidden = activeIndex === 0;
         if (formatParticipantNext) formatParticipantNext.hidden = activeIndex === participantPlannerSteps.length - 1;
         if (formatParticipantAdd) formatParticipantAdd.hidden = activeIndex !== participantPlannerSteps.length - 1;
+        updateParticipantPlannerSelectionUi();
       }
 
       function setParticipantPlannerStep(step) {
@@ -27071,14 +27372,24 @@
 
       function openParticipantPlanner(formatId = activeFormatId) {
         const format = formats.find((item) => item.id === formatId);
-        if (!format || !canEditContacts()) return;
+        if (!format || !canEditFormat(format)) {
+          if (formatIsArchived(format)) {
+            showFormatTransientFeedback("Archivierte Formate sind schreibgeschützt. Stelle das Format vor der Teilnehmerauswahl wieder her.", "error");
+          }
+          return;
+        }
         participantPlannerFormatId = format.id;
         participantPlannerCurrentStep = "filters";
         participantPlannerSelectedIds = new Set();
+        participantPlannerBusy = false;
         if (formatParticipantSearch) formatParticipantSearch.value = "";
         if (formatParticipantSector) formatParticipantSector.value = "";
         if (formatParticipantState) formatParticipantState.value = "";
         if (formatParticipantSpecialty) formatParticipantSpecialty.value = "";
+        if (formatParticipantStatus) {
+          formatParticipantStatus.textContent = "";
+          formatParticipantStatus.className = "format-participant-status";
+        }
         renderParticipantPlanner();
         formatParticipantDrawer?.classList.add("is-open");
         formatParticipantDrawer?.setAttribute("aria-hidden", "false");
@@ -27092,6 +27403,11 @@
         participantPlannerFormatId = null;
         participantPlannerCurrentStep = "filters";
         participantPlannerSelectedIds = new Set();
+        participantPlannerBusy = false;
+        if (formatParticipantStatus) {
+          formatParticipantStatus.textContent = "";
+          formatParticipantStatus.className = "format-participant-status";
+        }
         syncBodyScrollLock();
       }
 
@@ -27137,24 +27453,78 @@
         renderOptions(formatParticipantSpecialty, [...new Set(available.map((contact) => specialtyLabel(contact)).filter(Boolean))].sort((a, b) => a.localeCompare(b, "de")), "Alle Fachrichtungen");
       }
 
+      function plannerContactMatchReasons(contact) {
+        const query = String(formatParticipantSearch?.value || "").trim().toLowerCase();
+        const reasons = [];
+        if (query) {
+          [
+            ["Name", contact.name],
+            ["Organisation", contact.organization],
+            ["Ort", `${contact.location || ""} ${stateLabel(contact)}`],
+            ["Fachrichtung", specialtyLabel(contact)],
+            ["Thema", (contact.themes || []).join(" ")]
+          ].forEach(([label, value]) => {
+            if (String(value || "").toLowerCase().includes(query)) reasons.push(label);
+          });
+        }
+        if (formatParticipantSector?.value) reasons.push("Sektor");
+        if (formatParticipantState?.value) reasons.push("Bundesland");
+        if (formatParticipantSpecialty?.value) reasons.push("Fachrichtung");
+        return [...new Set(reasons)];
+      }
+
+      function plannerContactChannelLabel(contact) {
+        if (contactChannelsRestricted(contact)) return "Kontaktkanal geschützt";
+        if (accessibleContactEmail(contact)) return `E-Mail: ${accessibleContactEmail(contact)}`;
+        if (accessibleContactPhone(contact)) return `Telefon: ${accessibleContactPhone(contact)}`;
+        return "Kein Kontaktkanal hinterlegt";
+      }
+
+      function updateParticipantPlannerSelectionUi() {
+        const count = participantPlannerSelectedIds.size;
+        if (formatParticipantSelectionCount) {
+          formatParticipantSelectionCount.textContent = `${count} ${count === 1 ? "Kandidat" : "Kandidaten"} ausgewählt`;
+        }
+        if (formatParticipantAdd) {
+          formatParticipantAdd.textContent = participantPlannerBusy
+            ? `${count} ${count === 1 ? "Kandidat wird" : "Kandidaten werden"} hinzugefügt…`
+            : `${count} ${count === 1 ? "Kandidat" : "Kandidaten"} hinzufügen`;
+          formatParticipantAdd.disabled = participantPlannerBusy || count === 0;
+          formatParticipantAdd.setAttribute("aria-disabled", formatParticipantAdd.disabled ? "true" : "false");
+        }
+        if (formatParticipantClear) formatParticipantClear.disabled = participantPlannerBusy || count === 0;
+        formatParticipantList?.querySelectorAll("[data-planner-contact]").forEach((row) => {
+          const selected = participantPlannerSelectedIds.has(row.dataset.plannerContact);
+          row.classList.toggle("is-selected", selected);
+          const checkbox = row.querySelector('input[type="checkbox"]');
+          if (checkbox) checkbox.checked = selected;
+        });
+      }
+
       function renderParticipantPlanner() {
         const format = formats.find((item) => item.id === participantPlannerFormatId);
         if (!format) return;
         renderParticipantPlannerOptions(format);
         renderParticipantPlannerStep();
-        const items = availablePlannerContacts(format);
-        if (formatParticipantResults) formatParticipantResults.textContent = `${items.length} verfügbare Kontakte`;
-        if (formatParticipantSelectionCount) {
-          const count = participantPlannerSelectedIds.size;
-          formatParticipantSelectionCount.textContent = `${count} ${count === 1 ? "Kontakt" : "Kontakte"} ausgewählt`;
+        const matchingItems = availablePlannerContacts(format);
+        const items = matchingItems.slice(0, FORMAT_PARTICIPANT_RESULT_LIMIT);
+        const resultIsLimited = matchingItems.length > items.length;
+        const existingCount = formatParticipantIds(format).size;
+        if (formatParticipantResults) {
+          formatParticipantResults.textContent = resultIsLimited
+            ? `${items.length} von ${matchingItems.length} verfügbar · Die ersten ${items.length} werden angezeigt. Suche oder Filter grenzen die Auswahl weiter ein.${existingCount ? ` · ${existingCount} bereits im Format` : ""}`
+            : `${items.length} verfügbar${existingCount ? ` · ${existingCount} bereits im Format` : ""}`;
         }
         if (!formatParticipantList) return;
         if (!items.length) {
-          formatParticipantList.innerHTML = `<div class="empty">Keine passenden Kontakte gefunden.</div>`;
+          formatParticipantList.innerHTML = `<div class="empty">Keine neuen passenden Kontakte gefunden. Prüfe Suche und Filter; bereits zugeordnete Kontakte werden nicht doppelt angeboten.</div>`;
+          updateParticipantPlannerSelectionUi();
           return;
         }
         formatParticipantList.innerHTML = items.map((contact) => {
           const selected = participantPlannerSelectedIds.has(contact.id);
+          const consent = contactConsentBadgeState(contact);
+          const matchReasons = plannerContactMatchReasons(contact);
           return `
             <label class="format-participant-row ${selected ? "is-selected" : ""}" data-planner-contact="${escapeHtml(contact.id)}">
               <input type="checkbox" value="${escapeHtml(contact.id)}" ${selected ? "checked" : ""} />
@@ -27162,7 +27532,11 @@
               <span class="format-participant-copy">
                 <span class="format-participant-name">${escapeHtml(contact.name)}</span>
                 <span class="format-participant-meta">${escapeHtml(contact.organization || "Keine Organisation")} · ${escapeHtml(stateLabel(contact) || "Bundesland offen")} · ${escapeHtml(specialtyLabel(contact) || "Fachrichtung offen")}</span>
-                <span class="participant-card-tags">${sectorBadgeMarkup(contact.category)}</span>
+                <span class="participant-card-tags">
+                  ${sectorBadgeMarkup(contact.category)}
+                  <span class="format-participant-readiness format-participant-readiness--${escapeHtml(consent.tone)}" title="${escapeHtml(consent.detail || consent.reason || "")}">${escapeHtml(consent.label)}</span>
+                </span>
+                <span class="format-participant-guidance">${escapeHtml(plannerContactChannelLabel(contact))}${matchReasons.length ? ` · Treffer: ${escapeHtml(matchReasons.join(", "))}` : ""}</span>
               </span>
             </label>
           `;
@@ -27171,28 +27545,40 @@
           checkbox.addEventListener("change", () => {
             if (checkbox.checked) participantPlannerSelectedIds.add(checkbox.value);
             else participantPlannerSelectedIds.delete(checkbox.value);
-            renderParticipantPlanner();
+            updateParticipantPlannerSelectionUi();
           });
         });
+        updateParticipantPlannerSelectionUi();
       }
 
       async function addSelectedPlannerParticipants() {
         const format = formats.find((item) => item.id === participantPlannerFormatId);
         const ids = [...participantPlannerSelectedIds];
-        if (!format || !ids.length) return;
+        if (!format || !ids.length || participantPlannerBusy) return;
         try {
-          let updated = format;
-          for (const contactId of ids) {
-            updated = await window.dataService.addFormatParticipant(format.id, contactId, { invitationStatus: "Kandidat" });
-          }
+          participantPlannerBusy = true;
+          formatParticipantDrawer?.setAttribute("aria-busy", "true");
+          if (formatParticipantStatus) formatParticipantStatus.textContent = "Kandidaten werden gemeinsam hinzugefügt…";
+          updateParticipantPlannerSelectionUi();
+          const updated = await window.dataService.addFormatParticipants(
+            format.id,
+            ids.map((contactId) => ({ contactId, invitationStatus: "Kandidat" }))
+          );
           replaceFormat(updated);
           formatActiveTab = "participants";
-          setStorageStatus(`${ids.length} Teilnehmer hinzugefügt`);
+          setStorageStatus(`${ids.length} ${ids.length === 1 ? "Kandidat" : "Kandidaten"} hinzugefügt`);
           closeParticipantPlanner();
           renderFormatsView();
         } catch (error) {
-          console.error("Teilnehmer konnten nicht hinzugefügt werden.", error);
-          window.alert("Die Teilnehmer konnten nicht hinzugefügt werden.");
+          console.error("Kandidaten konnten nicht hinzugefügt werden.", error);
+          if (formatParticipantStatus) {
+            formatParticipantStatus.textContent = `Hinzufügen fehlgeschlagen: ${error?.message || "Bitte versuche es erneut."}`;
+            formatParticipantStatus.classList.add("is-error");
+          }
+        } finally {
+          participantPlannerBusy = false;
+          formatParticipantDrawer?.setAttribute("aria-busy", "false");
+          updateParticipantPlannerSelectionUi();
         }
       }
 
@@ -27200,52 +27586,99 @@
         const format = activeFormat();
         if (!format) return;
         refreshCustomSelects(formatDetailPanel);
+        const setFormatFeedback = showFormatTransientFeedback;
         const saveFormatInlineField = async (field) => {
           const key = field?.dataset.formatInlineField;
-          if (!key || !canEditContacts()) return;
+          if (!key || !canEditFormat(format)) return;
           const value = field.value;
           let patch = { [key]: value };
-          const currentValue = key === "formatDate"
-            ? formatDateInputValue(format)
+          const dateTimeField = ["startsAt", "endsAt"].includes(key);
+          const currentValue = dateTimeField
+            ? formatDateTimeInputValue(format[key])
             : String(format[key] || "");
           if (value === currentValue) return;
-          if (key === "formatDate") {
-            const normalizedDate = normalizeFormatDateInput(value);
-            patch = { startsAt: normalizedDate, endsAt: normalizedDate };
+          if (dateTimeField) {
+            patch = { [key]: normalizeFormatDateTimeInput(value, field.dataset.originalValue) };
+            const startsAt = key === "startsAt" ? patch[key] : format.startsAt;
+            const endsAt = key === "endsAt" ? patch[key] : format.endsAt;
+            if (startsAt && endsAt && new Date(endsAt).getTime() < new Date(startsAt).getTime()) {
+              field.setAttribute("aria-invalid", "true");
+              setFormatFeedback("Das Ende muss nach dem Beginn liegen.", "error");
+              return;
+            }
           }
           try {
+            field.disabled = true;
+            setFormatFeedback("Änderung wird gespeichert…", "progress");
             const updated = await window.dataService.updateFormat(format.id, patch);
             replaceFormat(updated);
             setStorageStatus("Format aktualisiert");
             renderFormatsView();
           } catch (error) {
             console.error("Format-Basisdaten konnten nicht gespeichert werden.", error);
-            window.alert("Die Basisdaten konnten nicht gespeichert werden.");
-            renderFormatsView();
+            field.disabled = false;
+            setFormatFeedback(`Änderung nicht gespeichert: ${error?.message || "Bitte versuche es erneut."}`, "error");
           }
         };
-        const updateInvitationStatus = async (contactId, invitationStatus) => {
-          if (!contactId || !invitationStatus || !canEditContacts()) return;
+        const updateInvitationStatus = async (contactId, invitationStatus, sourceControl = null) => {
+          if (!contactId || !invitationStatus || !canEditFormat(format)) return;
+          const participant = (format.participants || []).find((item) => (item.contactId || item.contact_id) === contactId);
+          const contact = contacts.find((item) => item.id === contactId);
+          const requiresConsent = ["Eingeladen", "Zugesagt", "Teilgenommen"].includes(invitationStatus);
+          if (requiresConsent && mitmachenConsentAvailability(contact).key !== "available") {
+            if (sourceControl) sourceControl.value = participant?.invitationStatus || "Kandidat";
+            setFormatFeedback(
+              `${contact?.name || "Der Kontakt"} bleibt Kandidat: Vor „${invitationStatus}“ muss eine wirksame #Mitmachen-Einwilligung dokumentiert sein.`,
+              "error"
+            );
+            return;
+          }
           try {
-            const updated = await window.dataService.updateFormatParticipant(format.id, contactId, { invitationStatus });
+            if (sourceControl) sourceControl.disabled = true;
+            setFormatFeedback("Beteiligungsstatus wird gespeichert…", "progress");
+            const updated = await window.dataService.updateFormatParticipant(
+              format.id,
+              contactId,
+              { invitationStatus },
+              participant?.updatedAt || participant?.updated_at || ""
+            );
             replaceFormat(updated);
             renderFormatsView();
           } catch (error) {
             console.error("Beteiligungsstatus konnte nicht gespeichert werden.", error);
-            window.alert("Der Beteiligungsstatus konnte nicht gespeichert werden.");
+            if (sourceControl) {
+              sourceControl.disabled = false;
+              sourceControl.value = participant?.invitationStatus || "Kandidat";
+            }
+            setFormatFeedback(`Beteiligungsstatus nicht gespeichert: ${error?.message || "Bitte versuche es erneut."}`, "error");
           }
         };
-        formatDetailPanel.querySelectorAll("[data-format-tab]").forEach((button) => {
+        const activateFormatTab = (button, { focus = false } = {}) => {
+          formatActiveTab = button.dataset.formatTab || "overview";
+          renderFormatsView();
+          window.requestAnimationFrame(() => {
+            const tabs = formatDetailPanel.querySelector(".format-tabs");
+            const activeTab = tabs?.querySelector("[data-format-tab].is-active");
+            if (!tabs || !activeTab) return;
+            const left = Math.max(0, activeTab.offsetLeft - tabs.offsetLeft - 8);
+            tabs.scrollTo({ left, behavior: "auto" });
+            if (focus) activeTab.focus({ preventScroll: true });
+          });
+        };
+        formatDetailPanel.querySelectorAll("[data-format-tab]").forEach((button, index, tabButtons) => {
           button.addEventListener("click", () => {
-            formatActiveTab = button.dataset.formatTab || "overview";
-            renderFormatsView();
-            window.requestAnimationFrame(() => {
-              const tabs = formatDetailPanel.querySelector(".format-tabs");
-              const activeTab = tabs?.querySelector("[data-format-tab].is-active");
-              if (!tabs || !activeTab) return;
-              const left = Math.max(0, activeTab.offsetLeft - tabs.offsetLeft - 8);
-              tabs.scrollTo({ left, behavior: "auto" });
-            });
+            activateFormatTab(button);
+          });
+          button.addEventListener("keydown", (event) => {
+            const lastIndex = tabButtons.length - 1;
+            let nextIndex = -1;
+            if (event.key === "ArrowRight" || event.key === "ArrowDown") nextIndex = index === lastIndex ? 0 : index + 1;
+            if (event.key === "ArrowLeft" || event.key === "ArrowUp") nextIndex = index === 0 ? lastIndex : index - 1;
+            if (event.key === "Home") nextIndex = 0;
+            if (event.key === "End") nextIndex = lastIndex;
+            if (nextIndex < 0) return;
+            event.preventDefault();
+            activateFormatTab(tabButtons[nextIndex], { focus: true });
           });
         });
         formatDetailPanel.querySelectorAll("[data-open-format-contact]").forEach((button) => {
@@ -27264,7 +27697,7 @@
         };
         formatDetailPanel.querySelectorAll("[data-toggle-format-row]").forEach((row) => {
           row.addEventListener("click", (event) => {
-            if (event.target.closest("button, a, input, select, textarea, [role='button']:not([data-toggle-format-row])")) return;
+            if (event.target.closest("button, a, input, select, textarea, summary, details, [role='button']:not([data-toggle-format-row])")) return;
             toggleFormatDetail(row.dataset.toggleFormatRow);
           });
           row.addEventListener("keydown", (event) => {
@@ -27280,7 +27713,7 @@
           });
         });
         formatDetailPanel.querySelectorAll("[data-format-inline-field]").forEach((field) => {
-          if (field.tagName === "SELECT" || field.type === "date") {
+          if (field.tagName === "SELECT" || ["date", "datetime-local"].includes(field.type)) {
             field.addEventListener("change", () => saveFormatInlineField(field));
           } else {
             field.addEventListener("blur", () => saveFormatInlineField(field));
@@ -27292,20 +27725,10 @@
           }
         });
         formatDetailPanel.querySelectorAll("[data-edit-format-title]").forEach((button) => {
-          button.addEventListener("click", async () => {
+          button.addEventListener("click", () => {
             const selectedFormat = formats.find((item) => item.id === button.dataset.editFormatTitle);
-            if (!selectedFormat || !canEditContacts()) return;
-            const nextTitle = String(window.prompt("Neuer Format-Titel", selectedFormat.title || "") || "").trim();
-            if (!nextTitle || nextTitle === selectedFormat.title) return;
-            try {
-              const updated = await window.dataService.updateFormat(selectedFormat.id, { title: nextTitle });
-              replaceFormat(updated);
-              setStorageStatus("Format-Titel aktualisiert");
-              renderFormatsView();
-            } catch (error) {
-              console.error("Format-Titel konnte nicht gespeichert werden.", error);
-              window.alert("Der Format-Titel konnte nicht gespeichert werden.");
-            }
+            if (!selectedFormat || !canEditFormat(selectedFormat)) return;
+            openFormatEditorDrawer(selectedFormat);
           });
         });
         formatDetailPanel.querySelectorAll("[data-edit-format-settings]").forEach((button) => {
@@ -27319,21 +27742,41 @@
           button.addEventListener("click", async () => {
             const selectedFormat = formats.find((item) => item.id === button.dataset.archiveFormat);
             if (!selectedFormat) return;
-            if (!canEditContacts()) {
-              showPermissionDenied(viewerCreateDisabledMessage("das Archivieren von Formaten"));
+            if (!canAdministerData()) {
+              showPermissionDenied("Nur Admins dürfen Formate archivieren.");
               return;
             }
             if (!window.confirm(`Format "${selectedFormat.title}" archivieren?`)) return;
             try {
               const archived = await window.dataService.archiveFormat(selectedFormat.id);
               formats = formats.map((item) => item.id === selectedFormat.id ? archived : item);
-              activeFormatId = formats.find((item) => item.status !== "Archiviert")?.id || null;
-              formatDetailExpanded = false;
+              activeFormatId = archived.id;
+              formatDetailExpanded = true;
               setStorageStatus("Format archiviert");
               renderFormatsView();
             } catch (error) {
               console.error("Format konnte nicht archiviert werden.", error);
-              window.alert("Das Format konnte nicht archiviert werden.");
+              setFormatFeedback(`Archivieren fehlgeschlagen: ${error?.message || "Bitte versuche es erneut."}`, "error");
+            }
+          });
+        });
+        formatDetailPanel.querySelectorAll("[data-restore-format]").forEach((button) => {
+          button.addEventListener("click", async () => {
+            const selectedFormat = formats.find((item) => item.id === button.dataset.restoreFormat);
+            if (!selectedFormat || !canAdministerData()) return;
+            try {
+              button.disabled = true;
+              const restored = await window.dataService.restoreFormat(selectedFormat.id);
+              formats = formats.map((item) => item.id === selectedFormat.id ? restored : item);
+              activeFormatId = restored.id;
+              formatDetailExpanded = true;
+              formatStatusFilter = "";
+              setStorageStatus("Format wiederhergestellt");
+              renderFormatsView();
+            } catch (error) {
+              button.disabled = false;
+              console.error("Format konnte nicht wiederhergestellt werden.", error);
+              setFormatFeedback(`Wiederherstellen fehlgeschlagen: ${error?.message || "Bitte versuche es erneut."}`, "error");
             }
           });
         });
@@ -27345,7 +27788,10 @@
               showPermissionDenied("Nur Admins dürfen Formate löschen.");
               return;
             }
-            if (!window.confirm(`Format "${selectedFormat.title}" endgültig löschen?`)) return;
+            const participantCount = (selectedFormat.participants || []).length;
+            if (!window.confirm(
+              `Format "${selectedFormat.title}" endgültig löschen? Dabei werden auch ${participantCount} ${participantCount === 1 ? "Teilnehmerverknüpfung" : "Teilnehmerverknüpfungen"} und der Notizverlauf entfernt. Diese Aktion kann nicht rückgängig gemacht werden.`
+            )) return;
             try {
               await window.dataService.deleteFormat(selectedFormat.id);
               formats = formats.filter((item) => item.id !== selectedFormat.id);
@@ -27355,26 +27801,30 @@
               renderFormatsView();
             } catch (error) {
               console.error("Format konnte nicht gelöscht werden.", error);
-              window.alert("Das Format konnte nicht gelöscht werden.");
+              setFormatFeedback(`Löschen fehlgeschlagen: ${error?.message || "Bitte versuche es erneut."}`, "error");
             }
           });
         });
         document.getElementById("open-participant-planner")?.addEventListener("click", () => {
-          if (!canEditContacts()) {
-            showPermissionDenied(viewerCreateDisabledMessage("das Hinzufügen von Teilnehmern"));
+          if (!canEditFormat(format)) {
+            showPermissionDenied(formatIsArchived(format)
+              ? "Archivierte Formate sind schreibgeschützt. Stelle das Format vor der Teilnehmerauswahl wieder her."
+              : viewerCreateDisabledMessage("das Hinzufügen von Teilnehmern"));
             return;
           }
           openParticipantPlanner(format.id);
         });
         document.getElementById("export-format-participants")?.addEventListener("click", () => {
-          if (canExportData()) downloadFormatParticipants(format);
+          downloadFormatParticipants(format);
         });
         document.getElementById("download-format-template")?.addEventListener("click", () => {
-          if (canExportData()) downloadFormatParticipants(format, { empty: true });
+          downloadFormatParticipants(format, { empty: true });
         });
         document.getElementById("import-format-participants")?.addEventListener("click", () => {
-          if (!canEditContacts()) {
-            showPermissionDenied(viewerCreateDisabledMessage("den Excel-Import"));
+          if (!canImportFormatParticipants(format)) {
+            showPermissionDenied(formatIsArchived(format)
+              ? "Archivierte Formate sind schreibgeschützt. Stelle das Format vor dem Import wieder her."
+              : "Excel-Import steht nur Admins zur Verfügung.");
             return;
           }
           formatParticipantsFileInput.dataset.formatId = format.id;
@@ -27397,8 +27847,10 @@
         formatDetailPanel.querySelectorAll("[data-format-note-edit-form]").forEach((form) => {
           form.addEventListener("submit", async (event) => {
             event.preventDefault();
-            if (!canEditContacts()) {
-              showPermissionDenied(viewerCreateDisabledMessage("das Bearbeiten von Notizen"));
+            if (!canEditFormat(format)) {
+              showPermissionDenied(formatIsArchived(format)
+                ? "Archivierte Formate sind schreibgeschützt."
+                : viewerCreateDisabledMessage("das Bearbeiten von Notizen"));
               return;
             }
             const noteId = form.dataset.formatNoteEditForm;
@@ -27426,14 +27878,16 @@
               renderFormatsView();
             } catch (error) {
               console.error("Formatnotiz konnte nicht aktualisiert werden.", error);
-              window.alert("Die Notiz konnte nicht aktualisiert werden.");
+              setFormatFeedback(`Notiz nicht aktualisiert: ${error?.message || "Bitte versuche es erneut."}`, "error");
             }
           });
         });
         formatDetailPanel.querySelectorAll("[data-delete-format-note]").forEach((button) => {
           button.addEventListener("click", async () => {
-            if (!canEditContacts()) {
-              showPermissionDenied(viewerCreateDisabledMessage("das Löschen von Notizen"));
+            if (!canEditFormat(format)) {
+              showPermissionDenied(formatIsArchived(format)
+                ? "Archivierte Formate sind schreibgeschützt."
+                : viewerCreateDisabledMessage("das Löschen von Notizen"));
               return;
             }
             const noteId = button.dataset.deleteFormatNote;
@@ -27454,14 +27908,16 @@
               renderFormatsView();
             } catch (error) {
               console.error("Formatnotiz konnte nicht gelöscht werden.", error);
-              window.alert("Die Notiz konnte nicht gelöscht werden.");
+              setFormatFeedback(`Notiz nicht gelöscht: ${error?.message || "Bitte versuche es erneut."}`, "error");
             }
           });
         });
         document.getElementById("format-notes-composer")?.addEventListener("submit", async (event) => {
           event.preventDefault();
-          if (!canEditContacts()) {
-            showPermissionDenied(viewerCreateDisabledMessage("das Schreiben von Notizen"));
+          if (!canEditFormat(format)) {
+            showPermissionDenied(formatIsArchived(format)
+              ? "Archivierte Formate sind schreibgeschützt."
+              : viewerCreateDisabledMessage("das Schreiben von Notizen"));
             return;
           }
           const textarea = document.getElementById("format-notes-message");
@@ -27489,12 +27945,17 @@
             renderFormatsView();
           } catch (error) {
             console.error("Formatnotiz konnte nicht gespeichert werden.", error);
-            window.alert("Die Notiz konnte nicht gespeichert werden.");
+            setFormatFeedback(`Notiz nicht gespeichert: ${error?.message || "Bitte versuche es erneut."}`, "error");
           }
+        });
+        formatDetailPanel.querySelectorAll("[data-invitation-status-select]").forEach((select) => {
+          select.addEventListener("change", () => {
+            updateInvitationStatus(select.dataset.invitationStatusSelect, select.value, select);
+          });
         });
         formatDetailPanel.querySelectorAll("[data-invitation-card]").forEach((card) => {
           card.addEventListener("dragstart", (event) => {
-            if (!canEditContacts()) {
+            if (!canEditFormat(format)) {
               event.preventDefault();
               return;
             }
@@ -27512,7 +27973,7 @@
         });
         formatDetailPanel.querySelectorAll("[data-invitation-status-drop]").forEach((column) => {
           column.addEventListener("dragover", (event) => {
-            if (!canEditContacts()) return;
+            if (!canEditFormat(format)) return;
             event.preventDefault();
             column.classList.add("is-drop-target");
             if (event.dataTransfer) event.dataTransfer.dropEffect = "move";
@@ -27529,25 +27990,37 @@
           field.addEventListener("change", async () => {
             const row = field.closest("[data-participant-contact]");
             const contactId = row?.dataset.participantContact;
-            if (!contactId || !canEditContacts()) return;
+            if (!contactId || !canEditFormat(format)) return;
             const patch = {};
             row.querySelectorAll("[data-participant-field]").forEach((input) => {
               patch[input.dataset.participantField] = input.value;
             });
+            if (field.dataset.participantField === "invitationStatus") {
+              await updateInvitationStatus(contactId, field.value, field);
+              return;
+            }
+            const participant = (format.participants || []).find((item) => (item.contactId || item.contact_id) === contactId);
             try {
-              const updated = await window.dataService.updateFormatParticipant(format.id, contactId, patch);
+              field.disabled = true;
+              const updated = await window.dataService.updateFormatParticipant(
+                format.id,
+                contactId,
+                patch,
+                participant?.updatedAt || participant?.updated_at || ""
+              );
               replaceFormat(updated);
               renderFormatsView();
             } catch (error) {
+              field.disabled = false;
               console.error("Teilnehmerstatus konnte nicht gespeichert werden.", error);
-              window.alert("Die Teilnehmeränderung konnte nicht gespeichert werden.");
+              setFormatFeedback(`Teilnehmeränderung nicht gespeichert: ${error?.message || "Bitte versuche es erneut."}`, "error");
             }
           });
         });
         formatDetailPanel.querySelectorAll("[data-remove-participant]").forEach((button) => {
           button.addEventListener("click", async () => {
             const contactId = button.dataset.removeParticipant;
-            if (!contactId || !canEditContacts()) return;
+            if (!contactId || !canEditFormat(format)) return;
             const contact = contacts.find((item) => item.id === contactId);
             const name = contact?.name || "diesen Teilnehmer";
             if (!window.confirm(`${name} wirklich aus diesem Format entfernen?`)) return;
@@ -27558,7 +28031,7 @@
               renderFormatsView();
             } catch (error) {
               console.error("Teilnehmer konnte nicht entfernt werden.", error);
-              window.alert("Der Teilnehmer konnte nicht entfernt werden.");
+              setFormatFeedback(`Teilnehmer konnte nicht entfernt werden: ${error?.message || "Bitte versuche es erneut."}`, "error");
             }
           });
         });
@@ -30449,8 +30922,8 @@
       }
 
       const CONSENT_AVAILABILITY_LABELS = Object.freeze({
-        available: "Allgemein freigegeben",
-        missing: "Nicht allgemein freigegeben"
+        available: "#Mitmachen erlaubt",
+        missing: "#Mitmachen nicht erlaubt"
       });
 
       function mitmachenConsentRequiresNote(source) {
@@ -30489,6 +30962,9 @@
         const note = String(contact.mitmachenConsentNote || contact.mitmachen_consent_note || "").trim();
         if (mitmachenConsentRequiresNote(source) && !note) {
           return result("missing", "Nachweisvermerk für die dokumentierte Erteilung fehlt.");
+        }
+        if (mitmachenConsentRequiresNote(source)) {
+          return result("missing", "Schriftliche Bestätigung fehlt.");
         }
 
         return result("available", "Wirksame Erteilung ist vollständig dokumentiert.");
@@ -30540,6 +31016,20 @@
         ].join("");
       }
 
+      function consentOverviewSourceOptions(kind, selected) {
+        const labels = kind === "ehc" ? EHC_CONSENT_SOURCE_LABELS : MITMACHEN_CONSENT_SOURCE_LABELS;
+        const selectedVerbalOption = selected === "verbal_confirmed"
+          ? `<option value="verbal_confirmed" selected hidden>Ausdrücklich mündlich</option>`
+          : "";
+        return [
+          `<option value="">Bitte wählen</option>`,
+          selectedVerbalOption,
+          ...Object.entries(labels)
+            .filter(([value]) => value !== "verbal_confirmed")
+            .map(([value, label]) => `<option value="${value}" ${value === selected ? "selected" : ""}>${escapeHtml(label)}</option>`)
+        ].join("");
+      }
+
       function relationshipBasisOptions(selected) {
         return Object.entries(RELATIONSHIP_BASIS_LABELS)
           .map(([value, label]) => `<option value="${value}" ${value === selected ? "selected" : ""}>${escapeHtml(label)}</option>`)
@@ -30566,8 +31056,21 @@
       }
 
       function isEhcOnlyContact(contact = {}) {
-        return normalizeEhcConsentStatus(contact.ehcConsentStatus) === "granted"
-          && normalizeMitmachenConsentStatus(contact.mitmachenConsentStatus) !== "granted";
+        const ehcStatus = normalizeEhcConsentStatus(contact.ehcConsentStatus);
+        const mitmachenStatus = normalizeMitmachenConsentStatus(contact.mitmachenConsentStatus);
+        const mitmachenSource = String(contact.mitmachenConsentSource || "").trim();
+        const hasWrittenMitmachenPermission = mitmachenStatus === "granted"
+          && ["online_form", "email", "written"].includes(mitmachenSource);
+        const hasEhcHistory = ehcStatus !== "not_requested"
+          || [
+            contact.ehcConsentEffectiveAt,
+            contact.ehcConsentSource,
+            contact.ehcConsentTextVersion,
+            contact.ehcConsentRecordedBy,
+            contact.ehcConsentNote
+          ].some((value) => Boolean(String(value || "").trim()))
+          || ["ehc_authorized", "ehc_restricted"].includes(String(contact.profileAccess || ""));
+        return hasEhcHistory && !hasWrittenMitmachenPermission;
       }
 
       function consentPurposeState(contact, purpose) {
@@ -30582,15 +31085,23 @@
             tone: "success",
             icon: "✓",
             label: "Freigegeben · geschützt",
-            summary: "EHC-Nutzung ist freigegeben. Nachweisdetails bleiben auf berechtigte Owner begrenzt."
+            summary: "Nur berechtigte Owner sehen die Details."
           };
         }
-        if (status === "granted" && complete && mitmachenConsentRequiresNote(source)) {
+        if (status === "granted" && complete && source === "verbal_confirmed") {
           return {
             tone: "warning",
             icon: "!",
-            label: "Mündlich · nachfassen",
-            summary: "Kontakt ist für diesen Zweck dokumentiert. Schriftlichen Nachweis nachfassen."
+            label: "Mündlich bestätigt",
+            summary: "Schriftliche Bestätigung fehlt."
+          };
+        }
+        if (status === "granted" && complete && source === "manual_transfer") {
+          return {
+            tone: "warning",
+            icon: "!",
+            label: "Übernommen · prüfen",
+            summary: "Schriftlichen Nachweis ergänzen."
           };
         }
         if (status === "granted" && complete) {
@@ -30599,8 +31110,8 @@
             icon: "✓",
             label: "Freigegeben",
             summary: isEhc
-              ? "Kontaktaufnahme ausschließlich im Rahmen der E-Health Community."
-              : "Allgemeine #Mitmachen-Kommunikation ist freigegeben."
+              ? "Nur für EHC-Themen ansprechen."
+              : "#Mitmachen-Nachrichten sind erlaubt."
           };
         }
         if (status === "granted") {
@@ -30608,15 +31119,15 @@
             tone: "warning",
             icon: "!",
             label: "Nachweis unvollständig",
-            summary: "Nicht nutzen, bis Zeitpunkt, Quelle und Erfassung vollständig sind."
+            summary: "Vor Nutzung Nachweis ergänzen."
           };
         }
         if (status === "clarification_needed") {
           return {
             tone: "warning",
             icon: "!",
-            label: "Klärung erforderlich",
-            summary: "Vor einer Nutzung für diesen Zweck muss der Nachweis geklärt werden."
+            label: "Nicht kontaktieren · prüfen",
+            summary: "Status zuerst klären."
           };
         }
         if (status === "declined") {
@@ -30624,7 +31135,7 @@
             tone: "danger",
             icon: "×",
             label: "Abgelehnt",
-            summary: "Für diesen Zweck besteht keine Kontaktfreigabe."
+            summary: "Nicht für diesen Zweck ansprechen."
           };
         }
         if (status === "withdrawn") {
@@ -30632,14 +31143,14 @@
             tone: "danger",
             icon: "×",
             label: "Widerrufen",
-            summary: "Kontaktaufnahme für diesen Zweck ist gesperrt."
+            summary: "Nicht für diesen Zweck ansprechen."
           };
         }
         return {
           tone: "neutral",
           icon: "–",
           label: "Nicht angefragt",
-          summary: "Für diesen Zweck ist keine Freigabe dokumentiert."
+          summary: "Nicht für diesen Zweck ansprechen."
         };
       }
 
@@ -30649,8 +31160,8 @@
           return {
             tone: "warning",
             icon: "!",
-            label: "Grundlage prüfen",
-            summary: "Das Profil darf nicht automatisch für allgemeine Ansprache genutzt werden."
+            label: "Nicht kontaktieren · prüfen",
+            summary: "Grundlage zuerst klären."
           };
         }
         if (basis === "verbal_contact") {
@@ -30658,7 +31169,7 @@
             tone: "warning",
             icon: "!",
             label: "Mündlich dokumentiert",
-            summary: "Profilanlage dokumentiert; schriftlichen Nachweis nachfassen."
+            summary: "Schriftliche Bestätigung fehlt."
           };
         }
         if (basis === "public_professional_source") {
@@ -30666,37 +31177,38 @@
             tone: "warning",
             icon: "!",
             label: "Quelle dokumentiert",
-            summary: "Nur anlassbezogen nutzen; Transparenz nach Art. 14 prüfen."
+            summary: "Nur anlassbezogen nutzen."
           };
         }
         return {
           tone: "success",
           icon: "✓",
           label: RELATIONSHIP_BASIS_LABELS[basis],
-          summary: "Die Grundlage für die interne Profilführung ist dokumentiert."
+          summary: "Profil darf intern gespeichert werden."
         };
       }
 
       function consentTabState(contact) {
         const mitmachen = consentPurposeState(contact, "mitmachen");
         const ehc = consentPurposeState(contact, "ehc");
-        if (mitmachen.tone === "success") return { key: "granted", label: "#Mitmachen freigegeben" };
-        if (isEhcOnlyContact(contact)) return { key: "limited", label: "Nur EHC" };
+        if (mitmachen.tone === "success") return { key: "granted", label: "#Mitmachen erlaubt" };
         if (mitmachen.tone === "danger" || ehc.tone === "danger") return { key: "blocked", label: "Kontaktzweck gesperrt" };
+        if (isEhcOnlyContact(contact) && ehc.tone === "success") return { key: "limited", label: "Nur EHC" };
         if (mitmachen.tone === "warning" || ehc.tone === "warning" || relationshipBasisState(contact).tone === "warning") {
           return { key: "clarification_needed", label: "Klärung oder Nachfassung erforderlich" };
         }
-        return { key: "not_requested", label: "Keine allgemeine Freigabe" };
+        return { key: "not_requested", label: "#Mitmachen nicht erlaubt" };
       }
 
       function contactConsentBadgeState(contact) {
         const availability = mitmachenConsentAvailability(contact);
         const mitmachen = consentPurposeState(contact, "mitmachen");
-        if (isEhcOnlyContact(contact)) {
+        const ehc = consentPurposeState(contact, "ehc");
+        if (isEhcOnlyContact(contact) && ehc.tone === "success") {
           return { ...availability, tone: "limited", icon: "🔒", label: "Nur EHC", detail: "Kontaktaufnahme ausschließlich für die E-Health Community." };
         }
         if (mitmachen.tone === "success") {
-          return { ...availability, tone: "success", icon: "✓", label: "#Mitmachen frei", detail: mitmachen.summary };
+          return { ...availability, tone: "success", icon: "✓", label: "#Mitmachen erlaubt", detail: mitmachen.summary };
         }
         if (mitmachen.tone === "warning") {
           return { ...availability, tone: "warning", icon: "!", label: "Nachfassen", detail: mitmachen.summary };
@@ -30704,14 +31216,18 @@
         if (mitmachen.tone === "danger") {
           return { ...availability, tone: "danger", icon: "×", label: "Gesperrt", detail: mitmachen.summary };
         }
-        return { ...availability, tone: "neutral", icon: "–", label: "Nicht freigegeben", detail: mitmachen.summary };
+        return { ...availability, tone: "neutral", icon: "–", label: "Nicht erlaubt", detail: mitmachen.summary };
       }
 
       function ehcProfileBadgeMarkup(contact, { compact = false } = {}) {
         if (!isEhcOnlyContact(contact)) return "";
         const restricted = contact.profileAccess === "ehc_restricted";
-        const label = restricted ? "EHC geschützt" : "EHC-only";
-        return `<span class="ehc-profile-badge ${compact ? "ehc-profile-badge--compact" : ""}" title="Nutzung und Kontaktaufnahme nur im Rahmen der E-Health Community"><span aria-hidden="true">🔒</span>${escapeHtml(label)}</span>`;
+        const activeEhcConsent = consentPurposeState(contact, "ehc").tone === "success";
+        const label = restricted || !activeEhcConsent ? "EHC geschützt" : "EHC-only";
+        const title = activeEhcConsent
+          ? "Nutzung und Kontaktaufnahme nur im Rahmen der E-Health Community"
+          : "EHC-Profil geschützt; keine Kontaktaufnahme freigegeben";
+        return `<span class="ehc-profile-badge ${compact ? "ehc-profile-badge--compact" : ""}" title="${escapeHtml(title)}"><span aria-hidden="true">🔒</span>${escapeHtml(label)}</span>`;
       }
 
       function consentInlineEditButton(field, label) {
@@ -31092,20 +31608,141 @@
         });
       }
 
-      function consentSignalCard({ key, eyebrow, title, state, editable = false }) {
+      function consentStatusRow({ key, title, state }) {
         return `
-          <article class="consent-signal-card consent-signal-card--${escapeHtml(state.tone)}" data-consent-signal="${escapeHtml(key)}">
-            <div class="consent-signal-card__head">
-              <span class="consent-signal-card__icon" aria-hidden="true">${escapeHtml(state.icon)}</span>
-              <div>
-                <span class="consent-signal-card__eyebrow">${escapeHtml(eyebrow)}</span>
-                <h5>${escapeHtml(title)}</h5>
-              </div>
+          <article class="consent-status-row consent-status-row--${escapeHtml(state.tone)}" data-consent-signal="${escapeHtml(key)}">
+            <span class="consent-status-row__icon" aria-hidden="true">${escapeHtml(state.icon)}</span>
+            <div class="consent-status-row__body">
+              <span class="consent-status-row__title">${escapeHtml(title)}</span>
+              <strong>${escapeHtml(state.label)}</strong>
+              <small>${escapeHtml(state.summary)}</small>
             </div>
-            <strong class="consent-signal-card__status">${escapeHtml(state.label)}</strong>
-            <p>${escapeHtml(state.summary)}</p>
-            ${editable ? `<button class="consent-card-edit" type="button" data-edit-consent-record="${escapeHtml(key)}" aria-controls="consent-record-editor-${escapeHtml(key)}" aria-expanded="false">${escapeHtml(title)} bearbeiten</button>` : ""}
           </article>
+        `;
+      }
+
+      function consentChoiceMarkup({ name, value, label, icon, tone, selected }) {
+        return `
+          <label class="consent-choice consent-choice--${escapeHtml(tone)}">
+            <input type="radio" name="${escapeHtml(name)}" value="${escapeHtml(value)}" ${selected === value ? "checked" : ""} />
+            <span>${escapeHtml(label)}</span>
+          </label>
+        `;
+      }
+
+      function consentEditorStatusValue(contact, kind) {
+        const prefix = kind === "ehc" ? "ehcConsent" : "mitmachenConsent";
+        const status = kind === "ehc"
+          ? normalizeEhcConsentStatus(contact[`${prefix}Status`])
+          : normalizeMitmachenConsentStatus(contact[`${prefix}Status`]);
+        const source = String(contact[`${prefix}Source`] || "").trim();
+        return status === "granted" && source === "verbal_confirmed" ? "verbal" : status;
+      }
+
+      function consentStatusChoiceGroup(kind, contact) {
+        const selected = consentEditorStatusValue(contact, kind);
+        const name = `${kind}_status`;
+        const choices = [
+          { value: "granted", label: "Erteilt", icon: "✓", tone: "success" },
+          { value: "verbal", label: "Mündlich", icon: "!", tone: "warning" },
+          { value: "not_requested", label: "Nicht erfasst", icon: "–", tone: "neutral" },
+          { value: "clarification_needed", label: "Prüfen", icon: "!", tone: "warning" },
+          { value: "declined", label: "Abgelehnt", icon: "×", tone: "danger" },
+          { value: "withdrawn", label: "Widerrufen", icon: "×", tone: "danger" }
+        ];
+        return choices.map((choice) => consentChoiceMarkup({ ...choice, name, selected })).join("");
+      }
+
+      function relationshipBasisChoiceGroup(contact) {
+        const selected = normalizeRelationshipBasis(contact.relationshipBasis);
+        const choices = [
+          { value: "active_collaboration", label: "Aktive Zusammenarbeit", icon: "✓", tone: "success" },
+          { value: "self_submitted", label: "Selbst eingetragen", icon: "✓", tone: "success" },
+          { value: "public_task", label: "Gesetzliche Aufgabe", icon: "✓", tone: "success" },
+          { value: "verbal_contact", label: "Mündlich", icon: "!", tone: "warning" },
+          { value: "public_professional_source", label: "Öffentliche Quelle", icon: "!", tone: "warning" },
+          { value: "review_required", label: "Prüfen", icon: "!", tone: "warning" }
+        ];
+        return choices
+          .map((choice) => consentChoiceMarkup({ ...choice, name: "relationship_basis", selected }))
+          .join("");
+      }
+
+      function consentOverviewPurposeEditor(kind, contact) {
+        const isEhc = kind === "ehc";
+        const prefix = isEhc ? "ehcConsent" : "mitmachenConsent";
+        const selectedStatus = consentEditorStatusValue(contact, kind);
+        const source = String(contact[`${prefix}Source`] || "").trim();
+        const needsTime = ["granted", "verbal", "declined", "withdrawn"].includes(selectedStatus);
+        const showsSource = selectedStatus === "granted";
+        const showsNote = selectedStatus !== "not_requested";
+        return `
+          <fieldset class="consent-overview-section" data-consent-overview-section="${escapeHtml(kind)}" data-consent-initial-status="${escapeHtml(selectedStatus)}">
+            <legend>${isEhc ? "E-Health Community" : "#Mitmachen"}</legend>
+            <div class="consent-choice-grid">
+              ${consentStatusChoiceGroup(kind, contact)}
+            </div>
+            <div class="consent-overview-fields">
+              <label class="consent-field" data-consent-effective-field ${needsTime ? "" : "hidden"}>
+                Datum
+                <input type="datetime-local" name="${escapeHtml(kind)}_effectiveAt" value="${escapeHtml(consentDateTimeInputValue(contact[`${prefix}EffectiveAt`]))}" max="${escapeHtml(consentDateTimeInputValue(new Date().toISOString()))}" />
+              </label>
+              <label class="consent-field" data-consent-source-field ${showsSource ? "" : "hidden"}>
+                Woher stammt die Einwilligung?
+                <select name="${escapeHtml(kind)}_source">${consentOverviewSourceOptions(kind, source)}</select>
+              </label>
+              <label class="consent-field" data-consent-text-version-field ${showsSource ? "" : "hidden"}>
+                Textversion <span class="consent-field__optional">(optional)</span>
+                <input name="${escapeHtml(kind)}_textVersion" value="${escapeHtml(contact[`${prefix}TextVersion`] || "")}" placeholder="${isEhc ? "z. B. ehc-panel-v1" : "z. B. mitmachen-v2"}" />
+              </label>
+              <label class="consent-field consent-field--full" data-consent-note-field ${showsNote ? "" : "hidden"}>
+                Kurzer Vermerk <span class="consent-field__optional">(bei Mündlich/Übernahme Pflicht)</span>
+                <textarea name="${escapeHtml(kind)}_note" placeholder="Was wurde vereinbart?">${escapeHtml(contact[`${prefix}Note`] || "")}</textarea>
+              </label>
+            </div>
+          </fieldset>
+        `;
+      }
+
+      function consentOverviewEditor(contact) {
+        const relationshipBasis = normalizeRelationshipBasis(contact.relationshipBasis);
+        return `
+          <form class="consent-overview-editor" id="consent-overview-editor" data-consent-overview-editor aria-labelledby="consent-overview-editor-title" hidden novalidate>
+            <div class="consent-overview-editor__head">
+              <div>
+                <strong id="consent-overview-editor-title">Einwilligungen bearbeiten</strong>
+                <span>Alle Bereiche gemeinsam speichern.</span>
+              </div>
+              <button class="icon-button" type="button" data-cancel-consent-overview aria-label="Bearbeitung schließen">×</button>
+            </div>
+
+            <fieldset class="consent-overview-section" data-consent-overview-section="relationship" data-consent-initial-basis="${escapeHtml(relationshipBasis)}">
+              <legend>Profil im Versorgungskompass</legend>
+              <span class="consent-overview-section__question">Warum ist das Profil gespeichert?</span>
+              <div class="consent-choice-grid">
+                ${relationshipBasisChoiceGroup(contact)}
+              </div>
+              <div class="consent-overview-fields">
+                <label class="consent-field" data-consent-relationship-effective-field ${relationshipBasis === "review_required" ? "hidden" : ""}>
+                  Dokumentiert am
+                  <input type="datetime-local" name="relationship_effectiveAt" value="${escapeHtml(consentDateTimeInputValue(contact.relationshipBasisEffectiveAt))}" max="${escapeHtml(consentDateTimeInputValue(new Date().toISOString()))}" />
+                </label>
+                <label class="consent-field consent-field--full">
+                  Kurzer Vermerk <span class="consent-field__optional">(bei mündlicher Angabe erforderlich)</span>
+                  <textarea name="relationship_note" placeholder="Warum darf das Profil gespeichert werden?">${escapeHtml(contact.relationshipBasisNote || "")}</textarea>
+                </label>
+              </div>
+            </fieldset>
+
+            ${consentOverviewPurposeEditor("ehc", contact)}
+            ${consentOverviewPurposeEditor("mitmachen", contact)}
+
+            <div class="consent-overview-actions">
+              <span class="consent-inline-status" id="consent-overview-status" data-consent-status role="status" aria-live="polite"></span>
+              <button class="action-button" type="button" data-cancel-consent-overview>Abbrechen</button>
+              <button class="action-button action-button--primary" type="submit">Alles speichern</button>
+            </div>
+          </form>
         `;
       }
 
@@ -31190,7 +31827,6 @@
                 <div><dt>Erfasst von</dt><dd>${escapeHtml(recordedBy ? ownerOptionLabel(recordedBy) || recordedBy : "Nicht hinterlegt")}</dd></div>
                 <div class="consent-record__wide"><dt>Vermerk</dt><dd>${escapeHtml(contact.relationshipBasisNote || "Nicht hinterlegt")}</dd></div>
               </dl>
-              ${editable ? consentRecordEditor("relationship", contact) : ""}
             </article>
           `;
         }
@@ -31219,55 +31855,55 @@
               <div><dt>Erfasst von</dt><dd>${escapeHtml(recordedBy ? ownerOptionLabel(recordedBy) || recordedBy : "Nicht hinterlegt")}</dd></div>
               <div class="consent-record__wide"><dt>Vermerk</dt><dd>${escapeHtml(contact[`${prefix}Note`] || "Nicht hinterlegt")}</dd></div>
             </dl>
-            ${editable ? consentRecordEditor(kind, contact) : ""}
           </article>
         `;
       }
 
       function consentScopeSummary(contact) {
         const mitmachen = consentPurposeState(contact, "mitmachen");
+        const ehc = consentPurposeState(contact, "ehc");
         if (mitmachen.tone === "success") {
           return {
             tone: "success",
             icon: "✓",
-            eyebrow: "Nutzungsrahmen",
-            title: "Allgemeine #Mitmachen-Kommunikation freigegeben",
-            text: "Vor jedem Versand aktuellen Status und Zweck prüfen."
+            eyebrow: "Was ist erlaubt?",
+            title: "#Mitmachen-Nachrichten erlaubt",
+            text: "Status vor dem Versand prüfen."
           };
         }
-        if (isEhcOnlyContact(contact)) {
+        if (isEhcOnlyContact(contact) && ehc.tone === "success") {
           return {
             tone: "limited",
             icon: "🔒",
-            eyebrow: "EHC-geschützter Kontakt",
+            eyebrow: "Was ist erlaubt?",
             title: "Nur für die E-Health Community",
-            text: "Keine #Mitmachen-Einladung. Identifizierende Daten bleiben auf berechtigte Owner begrenzt."
+            text: "Keine #Mitmachen-Nachrichten."
           };
         }
-        if (mitmachen.tone === "warning" || relationshipBasisState(contact).tone === "warning") {
+        if (mitmachen.tone === "warning" || ehc.tone === "warning" || relationshipBasisState(contact).tone === "warning") {
           return {
             tone: "warning",
             icon: "!",
-            eyebrow: "Nutzungsrahmen",
-            title: "Klärung oder schriftliche Nachfassung nötig",
-            text: "Profil kann bestehen; keine allgemeine Ansprache ohne belastbaren Nachweis."
+            eyebrow: "Aktion nötig",
+            title: "Schriftlich nachfassen oder Status klären",
+            text: "Bis dahin keine #Mitmachen-Nachrichten."
           };
         }
-        if (mitmachen.tone === "danger") {
+        if (mitmachen.tone === "danger" || ehc.tone === "danger") {
           return {
             tone: "danger",
             icon: "×",
-            eyebrow: "Kontaktsperre",
-            title: "Keine allgemeine Kontaktaufnahme",
-            text: "Ablehnung oder Widerruf beachten; minimalen Sperrnachweis erhalten."
+            eyebrow: "Gesperrt",
+            title: "Nicht kontaktieren",
+            text: "Ablehnung oder Widerruf beachten."
           };
         }
         return {
           tone: "neutral",
           icon: "–",
-          eyebrow: "Nutzungsrahmen",
-          title: "Keine allgemeine Kontaktfreigabe",
-          text: "Nur eine konkret vereinbarte, operative Kommunikation ist zulässig."
+          eyebrow: "Was ist erlaubt?",
+          title: "#Mitmachen-Nachrichten nicht erlaubt",
+          text: "Keine Einwilligung erfasst."
         };
       }
 
@@ -31281,14 +31917,10 @@
           <div class="consent-panel">
             <div class="consent-panel__heading">
               <div>
-                <span class="consent-panel__eyebrow">Zweck statt pauschalem Ja oder Nein</span>
-                <h4 class="detail-section-title">Einwilligungen &amp; Nutzung</h4>
+                <span class="consent-panel__eyebrow">Auf einen Blick</span>
+                <h4 class="detail-section-title">Einwilligungen</h4>
               </div>
-              <div class="consent-legend" aria-label="Statuslegende">
-                <span><i class="consent-legend__dot consent-legend__dot--success"></i>Freigegeben</span>
-                <span><i class="consent-legend__dot consent-legend__dot--warning"></i>Nachfassen</span>
-                <span><i class="consent-legend__dot consent-legend__dot--danger"></i>Gesperrt</span>
-              </div>
+              ${canEdit ? `<button class="action-button consent-overview-edit-button" type="button" data-edit-consent-overview aria-controls="consent-overview-editor" aria-expanded="false">Einwilligungen bearbeiten</button>` : ""}
             </div>
 
             <section class="consent-scope-summary consent-scope-summary--${escapeHtml(summary.tone)}" aria-label="${escapeHtml(summary.title)}">
@@ -31300,33 +31932,25 @@
               </div>
             </section>
 
-            <div class="consent-signal-grid" aria-label="Status nach Zweck">
-              ${consentSignalCard({ key: "relationship", eyebrow: "Profil", title: "Versorgungskompass", state: relationship, editable: canEdit })}
-              ${consentSignalCard({ key: "ehc", eyebrow: "Zweckgebunden", title: "E-Health Community", state: ehc, editable: canEdit })}
-              ${consentSignalCard({ key: "mitmachen", eyebrow: "Weitere Formate", title: "#Mitmachen", state: mitmachen, editable: canEdit })}
+            <div class="consent-status-list" role="list" aria-label="Einwilligungsstatus">
+              <div role="listitem">${consentStatusRow({ key: "relationship", title: "Profil im Versorgungskompass", state: relationship })}</div>
+              <div role="listitem">${consentStatusRow({ key: "ehc", title: "E-Health Community", state: ehc })}</div>
+              <div role="listitem">${consentStatusRow({ key: "mitmachen", title: "#Mitmachen", state: mitmachen })}</div>
             </div>
+
+            ${canEdit ? consentOverviewEditor(contact) : ""}
+
+            ${isEhcOnlyContact(contact) ? `<p class="consent-protection-note"><span aria-hidden="true">🔒</span> Kontaktdaten nur für berechtigte EHC-Owner sichtbar.</p>` : ""}
 
             <details class="consent-disclosure" data-consent-disclosure="evidence">
               <summary>
-                <span><strong>Nachweise &amp; Herkunft</strong><small>Zeitpunkt, Quelle, Textversion und Vermerk</small></span>
+                <span><strong>Nachweise anzeigen</strong><small>Datum, Quelle und Vermerk</small></span>
                 <span class="consent-disclosure__chevron" aria-hidden="true">⌄</span>
               </summary>
               <div class="consent-disclosure__body">
                 ${consentRecordReadout("relationship", contact, canEdit)}
                 ${consentRecordReadout("ehc", contact, canEdit)}
                 ${consentRecordReadout("mitmachen", contact, canEdit)}
-              </div>
-            </details>
-
-            <details class="consent-disclosure" data-consent-disclosure="access">
-              <summary>
-                <span><strong>Zugriff &amp; Schutz</strong><small>Wer darf was sehen und nutzen?</small></span>
-                <span class="consent-disclosure__chevron" aria-hidden="true">⌄</span>
-              </summary>
-              <div class="consent-disclosure__body consent-protection-copy">
-                <p><span aria-hidden="true">✓</span> CRM-Speicherung und Kontaktfreigabe werden getrennt bewertet.</p>
-                <p><span aria-hidden="true">🔒</span> EHC-only-Profile sind für allgemeine Nutzer nicht identifizierbar.</p>
-                <p><span aria-hidden="true">×</span> EHC-Mitgliedschaft gilt nie automatisch als #Mitmachen-Einwilligung.</p>
               </div>
             </details>
           </div>
@@ -31339,7 +31963,15 @@
           statusNode.textContent = message;
           statusNode.classList.add("is-error");
         }
-        if (fieldName && form.elements[fieldName]) form.elements[fieldName].focus();
+        if (fieldName && form.elements[fieldName]) {
+          const field = form.elements[fieldName];
+          const focusTarget = typeof field.focus === "function" ? field : field[0];
+          focusTarget?.setAttribute?.("aria-invalid", "true");
+          if (form.querySelector("#consent-overview-status")) {
+            focusTarget?.setAttribute?.("aria-describedby", "consent-overview-status");
+          }
+          focusTarget?.focus?.();
+        }
       }
 
       function consentFormEffectiveAt(form, required = false) {
@@ -31454,6 +32086,340 @@
           controls.forEach((control) => { control.disabled = false; });
           form.removeAttribute("aria-busy");
         }
+      }
+
+      function consentOverviewEffectiveAt(form, fieldName, required = false) {
+        const field = form.elements[fieldName];
+        const raw = String(field?.value || "").trim();
+        if (!raw) {
+          if (required) consentFormError(form, "Bitte ein Datum dokumentieren.", fieldName);
+          return required ? null : "";
+        }
+        const date = new Date(raw);
+        if (Number.isNaN(date.getTime())) {
+          consentFormError(form, "Bitte ein gültiges Datum eingeben.", fieldName);
+          return null;
+        }
+        if (date.getTime() > Date.now()) {
+          consentFormError(form, "Das Datum darf nicht in der Zukunft liegen.", fieldName);
+          return null;
+        }
+        return date.toISOString();
+      }
+
+      function addChangedConsentField(patch, contact, key, value) {
+        const current = String(contact[key] || "").trim();
+        const next = String(value || "").trim();
+        if (current !== next) patch[key] = next;
+      }
+
+      function consentOverviewPurposePatch(contact, form, kind) {
+        const isEhc = kind === "ehc";
+        const prefix = isEhc ? "ehcConsent" : "mitmachenConsent";
+        const currentUiStatus = consentEditorStatusValue(contact, kind);
+        const uiStatus = String(form.elements[`${kind}_status`]?.value || "not_requested");
+        const statusChanged = uiStatus !== currentUiStatus;
+        const currentEffectiveAt = String(contact[`${prefix}EffectiveAt`] || "").trim();
+        const currentEffectiveInput = consentDateTimeInputValue(contact[`${prefix}EffectiveAt`]);
+        const effectiveInput = String(form.elements[`${kind}_effectiveAt`]?.value || "").trim();
+        const currentSource = String(contact[`${prefix}Source`] || "").trim();
+        const sourceInput = String(form.elements[`${kind}_source`]?.value || "").trim();
+        const currentTextVersion = String(contact[`${prefix}TextVersion`] || "").trim();
+        const textVersionInput = String(form.elements[`${kind}_textVersion`]?.value || "").trim();
+        const currentNote = String(contact[`${prefix}Note`] || "").trim();
+        const noteInput = String(form.elements[`${kind}_note`]?.value || "").trim();
+        const groupChanged = uiStatus !== currentUiStatus
+          || effectiveInput !== currentEffectiveInput
+          || sourceInput !== currentSource
+          || textVersionInput !== currentTextVersion
+          || noteInput !== currentNote;
+        if (!groupChanged) return {};
+
+        const status = uiStatus === "verbal"
+          ? "granted"
+          : isEhc
+            ? normalizeEhcConsentStatus(uiStatus)
+            : normalizeMitmachenConsentStatus(uiStatus);
+        const needsTime = ["granted", "declined", "withdrawn"].includes(status);
+        const effectiveAt = needsTime
+          ? consentOverviewEffectiveAt(form, `${kind}_effectiveAt`, true)
+          : currentEffectiveAt;
+        if (needsTime && effectiveAt === null) return null;
+        const source = uiStatus === "verbal"
+          ? "verbal_confirmed"
+          : status === "granted"
+            ? sourceInput
+            : currentSource;
+        const textVersion = status === "granted" ? textVersionInput : currentTextVersion;
+        const note = status === "not_requested" ? currentNote : noteInput;
+
+        if (status === "granted" && !source) {
+          consentFormError(form, "Bitte die Herkunft der Einwilligung auswählen.", `${kind}_source`);
+          return null;
+        }
+        if (status === "granted" && !currentProfile?.id) {
+          consentFormError(form, "Die erfassende Person konnte nicht ermittelt werden.");
+          return null;
+        }
+        if (mitmachenConsentRequiresNote(source) && !note) {
+          consentFormError(form, "Kurzer Nachweis fehlt.", `${kind}_note`);
+          return null;
+        }
+        if (statusChanged && ["clarification_needed", "declined", "withdrawn"].includes(status) && !note) {
+          consentFormError(form, "Kurzer Vermerk zur Entscheidung fehlt.", `${kind}_note`);
+          return null;
+        }
+
+        const patch = {};
+        addChangedConsentField(patch, contact, `${prefix}Status`, status);
+        addChangedConsentField(patch, contact, `${prefix}EffectiveAt`, effectiveAt);
+        addChangedConsentField(patch, contact, `${prefix}Source`, source);
+        addChangedConsentField(patch, contact, `${prefix}TextVersion`, textVersion);
+        addChangedConsentField(patch, contact, `${prefix}Note`, note);
+        addChangedConsentField(patch, contact, `${prefix}RecordedBy`, currentProfile?.id || contact[`${prefix}RecordedBy`] || "");
+        return patch;
+      }
+
+      function consentOverviewPatch(contact, form) {
+        const patch = {};
+        const basis = normalizeRelationshipBasis(form.elements.relationship_basis?.value);
+        const currentBasis = normalizeRelationshipBasis(contact.relationshipBasis);
+        const currentRelationshipEffectiveInput = consentDateTimeInputValue(contact.relationshipBasisEffectiveAt);
+        const relationshipEffectiveInput = String(form.elements.relationship_effectiveAt?.value || "").trim();
+        const currentRelationshipNote = String(contact.relationshipBasisNote || "").trim();
+        const relationshipNote = String(form.elements.relationship_note?.value || "").trim();
+        const relationshipChanged = basis !== currentBasis
+          || relationshipEffectiveInput !== currentRelationshipEffectiveInput
+          || relationshipNote !== currentRelationshipNote;
+        if (relationshipChanged) {
+          const relationshipNeedsTime = basis !== "review_required";
+          const effectiveAt = consentOverviewEffectiveAt(form, "relationship_effectiveAt", relationshipNeedsTime);
+          if (effectiveAt === null) return null;
+          if (basis === "verbal_contact" && !relationshipNote) {
+            consentFormError(form, "Kurzer Nachweis fehlt.", "relationship_note");
+            return null;
+          }
+          addChangedConsentField(patch, contact, "relationshipBasis", basis);
+          addChangedConsentField(
+            patch,
+            contact,
+            "relationshipBasisEffectiveAt",
+            relationshipNeedsTime ? effectiveAt : String(contact.relationshipBasisEffectiveAt || "").trim()
+          );
+          addChangedConsentField(patch, contact, "relationshipBasisNote", relationshipNote);
+          addChangedConsentField(patch, contact, "relationshipBasisRecordedBy", currentProfile?.id || contact.relationshipBasisRecordedBy || "");
+        }
+
+        for (const kind of ["ehc", "mitmachen"]) {
+          const purposePatch = consentOverviewPurposePatch(contact, form, kind);
+          if (purposePatch === null) return null;
+          Object.assign(patch, purposePatch);
+        }
+        return patch;
+      }
+
+      async function saveConsentOverview(contact, form) {
+        if (!canEditCareObject(contact)) {
+          showPermissionDenied("Dieser Kontakt gehört nicht zu deinem freigegebenen Bearbeitungsbereich.");
+          return;
+        }
+        const statusNode = form.querySelector("[data-consent-status]");
+        const patch = consentOverviewPatch(contact, form);
+        if (!patch) return;
+        if (!Object.keys(patch).length) {
+          if (statusNode) statusNode.textContent = "Keine Änderungen.";
+          return;
+        }
+
+        const withdrawnPurposes = [];
+        if (patch.ehcConsentStatus === "withdrawn" && normalizeEhcConsentStatus(contact.ehcConsentStatus) !== "withdrawn") {
+          withdrawnPurposes.push("E-Health Community");
+        }
+        if (patch.mitmachenConsentStatus === "withdrawn" && normalizeMitmachenConsentStatus(contact.mitmachenConsentStatus) !== "withdrawn") {
+          withdrawnPurposes.push("#Mitmachen");
+        }
+        if (withdrawnPurposes.length && !window.confirm(`${withdrawnPurposes.join(" und ")} als widerrufen speichern? Für diese Bereiche darf die Person anschließend nicht mehr angesprochen werden.`)) {
+          return;
+        }
+
+        if (statusNode) {
+          statusNode.textContent = "Wird gespeichert …";
+          statusNode.classList.remove("is-error");
+        }
+        const controls = Array.from(form.elements);
+        controls.forEach((control) => { control.disabled = true; });
+        form.setAttribute("aria-busy", "true");
+        try {
+          const updated = await window.dataService.updateContact(contact.id, patch);
+          contacts = contacts.map((item, index) => item.id === contact.id ? sanitizeContact({ ...item, ...updated }, index) : item);
+          contactHistoryCache.delete(contact.id);
+          detailActiveTab = "consent";
+          setStorageStatus("Einwilligungen gespeichert");
+          refreshContactDetailView(contact.id);
+          window.requestAnimationFrame(() => {
+            const editButton = Array.from(document.querySelectorAll("[data-edit-consent-overview]"))
+              .find((candidate) => candidate.offsetParent !== null);
+            editButton?.focus();
+          });
+        } catch (error) {
+          console.error("Einwilligungen konnten nicht gespeichert werden.", error);
+          consentFormError(form, "Speichern fehlgeschlagen. Bitte Eingaben, Rolle und Verbindung prüfen.");
+          controls.forEach((control) => { control.disabled = false; });
+          form.removeAttribute("aria-busy");
+        }
+      }
+
+      function syncConsentOverviewPurpose(form, kind, { statusChanged = false } = {}) {
+        const section = form.querySelector(`[data-consent-overview-section="${CSS.escape(kind)}"]`);
+        if (!section) return;
+        const uiStatus = String(form.elements[`${kind}_status`]?.value || "not_requested");
+        const initialStatus = String(section.dataset.consentInitialStatus || "not_requested");
+        const needsTime = ["granted", "verbal", "declined", "withdrawn"].includes(uiStatus);
+        const showsSource = uiStatus === "granted";
+        const showsNote = uiStatus !== "not_requested";
+        const effectiveField = section.querySelector("[data-consent-effective-field]");
+        const sourceField = section.querySelector("[data-consent-source-field]");
+        const textVersionField = section.querySelector("[data-consent-text-version-field]");
+        const noteField = section.querySelector("[data-consent-note-field]");
+        if (effectiveField) effectiveField.hidden = !needsTime;
+        if (sourceField) sourceField.hidden = !showsSource;
+        if (textVersionField) textVersionField.hidden = !showsSource;
+        if (noteField) noteField.hidden = !showsNote;
+        if (form.elements[`${kind}_effectiveAt`]) {
+          const effectiveAtField = form.elements[`${kind}_effectiveAt`];
+          effectiveAtField.required = needsTime;
+          if (statusChanged && uiStatus === initialStatus) {
+            effectiveAtField.value = effectiveAtField.defaultValue;
+          } else if (statusChanged && needsTime) {
+            effectiveAtField.value = consentDateTimeInputValue(new Date().toISOString());
+          }
+        }
+        if (form.elements[`${kind}_source`]) {
+          if (statusChanged && uiStatus === initialStatus) {
+            const initialOption = form.elements[`${kind}_source`].querySelector("option[selected]");
+            form.elements[`${kind}_source`].value = initialOption?.value || "";
+          } else if (statusChanged && uiStatus === "granted" && form.elements[`${kind}_source`].value === "verbal_confirmed") {
+            form.elements[`${kind}_source`].value = "";
+          }
+          form.elements[`${kind}_source`].required = showsSource;
+        }
+        if (form.elements[`${kind}_note`]) {
+          const noteField = form.elements[`${kind}_note`];
+          if (statusChanged && uiStatus === initialStatus) {
+            noteField.value = noteField.defaultValue;
+          } else if (statusChanged && ["verbal", "clarification_needed", "declined", "withdrawn"].includes(uiStatus)) {
+            noteField.value = "";
+          }
+          const source = uiStatus === "verbal"
+            ? "verbal_confirmed"
+            : String(form.elements[`${kind}_source`]?.value || "");
+          noteField.required = mitmachenConsentRequiresNote(source)
+            || ["clarification_needed", "declined", "withdrawn"].includes(uiStatus);
+        }
+      }
+
+      function syncConsentOverviewRelationship(form, { basisChanged = false } = {}) {
+        const section = form.querySelector('[data-consent-overview-section="relationship"]');
+        const basis = normalizeRelationshipBasis(form.elements.relationship_basis?.value);
+        const initialBasis = normalizeRelationshipBasis(section?.dataset.consentInitialBasis);
+        const effectiveField = form.querySelector("[data-consent-relationship-effective-field]");
+        const needsTime = basis !== "review_required";
+        if (effectiveField) effectiveField.hidden = !needsTime;
+        if (form.elements.relationship_effectiveAt) {
+          const relationshipEffectiveAt = form.elements.relationship_effectiveAt;
+          relationshipEffectiveAt.required = needsTime;
+          if (basisChanged && basis === initialBasis) {
+            relationshipEffectiveAt.value = relationshipEffectiveAt.defaultValue;
+          } else if (basisChanged && needsTime) {
+            relationshipEffectiveAt.value = consentDateTimeInputValue(new Date().toISOString());
+          }
+        }
+        if (form.elements.relationship_note) {
+          form.elements.relationship_note.required = basis === "verbal_contact";
+        }
+      }
+
+      function bindConsentOverviewEditor(contact, root) {
+        const button = root.querySelector("[data-edit-consent-overview]");
+        const form = root.querySelector("[data-consent-overview-editor]");
+        if (!button || !form) return;
+
+        const clearErrors = () => {
+          form.querySelectorAll("[aria-invalid='true']").forEach((field) => {
+            field.removeAttribute("aria-invalid");
+            if (field.getAttribute("aria-describedby") === "consent-overview-status") {
+              field.removeAttribute("aria-describedby");
+            }
+          });
+          const statusNode = form.querySelector("[data-consent-status]");
+          if (statusNode) {
+            statusNode.textContent = "";
+            statusNode.classList.remove("is-error");
+          }
+        };
+        const syncForm = () => {
+          syncConsentOverviewRelationship(form);
+          syncConsentOverviewPurpose(form, "ehc");
+          syncConsentOverviewPurpose(form, "mitmachen");
+        };
+        const closeEditor = () => {
+          form.reset();
+          clearErrors();
+          syncForm();
+          form.hidden = true;
+          button.setAttribute("aria-expanded", "false");
+        };
+        const openEditor = () => {
+          form.reset();
+          clearErrors();
+          syncForm();
+          form.hidden = false;
+          button.setAttribute("aria-expanded", "true");
+          window.requestAnimationFrame(() => form.querySelector("input:checked, select, textarea")?.focus());
+        };
+
+        button.addEventListener("click", () => {
+          if (form.hidden) openEditor();
+          else {
+            closeEditor();
+            button.focus();
+          }
+        });
+        form.querySelectorAll("[data-cancel-consent-overview]").forEach((cancelButton) => {
+          cancelButton.addEventListener("click", () => {
+            closeEditor();
+            button.focus();
+          });
+        });
+        form.addEventListener("submit", (event) => {
+          event.preventDefault();
+          saveConsentOverview(contact, form);
+        });
+        form.addEventListener("keydown", (event) => {
+          if (event.key === "Escape") {
+            event.preventDefault();
+            event.stopPropagation();
+            closeEditor();
+            button.focus();
+          } else if (event.key === "Enter" && (event.metaKey || event.ctrlKey) && event.target.matches("textarea")) {
+            event.preventDefault();
+            form.requestSubmit();
+          }
+        });
+        form.addEventListener("change", (event) => {
+          event.target.removeAttribute("aria-invalid");
+          clearErrors();
+          if (event.target.name === "relationship_basis") {
+            syncConsentOverviewRelationship(form, { basisChanged: true });
+          }
+          for (const kind of ["ehc", "mitmachen"]) {
+            if (event.target.name === `${kind}_status`) {
+              syncConsentOverviewPurpose(form, kind, { statusChanged: true });
+            } else if (event.target.name === `${kind}_source`) {
+              syncConsentOverviewPurpose(form, kind);
+            }
+          }
+        });
       }
 
       function bindConsentRecordEditors(contact, root) {
@@ -35779,7 +36745,7 @@
         });
         const noteInput = targetPanel.querySelector("#detail-note-input");
         const noteStatus = targetPanel.querySelector("#detail-note-status");
-        bindConsentRecordEditors(contact, targetPanel);
+        bindConsentOverviewEditor(contact, targetPanel);
         targetPanel.querySelector("#detail-note-save")?.addEventListener("click", () => saveDetailNote(contact, noteInput, noteStatus));
         targetPanel.querySelectorAll("[data-viewer-theme-blocked]").forEach((element) => {
           element.addEventListener("click", () => showPermissionDenied(viewerCreateDisabledMessage("das Bearbeiten von Themen")));
@@ -37468,7 +38434,8 @@
       formatParticipantAdd?.addEventListener("click", addSelectedPlannerParticipants);
       formatParticipantClear?.addEventListener("click", () => {
         participantPlannerSelectedIds.clear();
-        renderParticipantPlanner();
+        updateParticipantPlannerSelectionUi();
+        formatParticipantList?.querySelector("input")?.focus({ preventScroll: true });
       });
       [formatParticipantSearch, formatParticipantSector, formatParticipantState, formatParticipantSpecialty].forEach((control) => {
         control?.addEventListener("input", renderParticipantPlanner);
@@ -37876,7 +38843,11 @@
           await importFormatParticipantsFromFile(format, file);
         } catch (error) {
           console.error("Format-Einladungen konnten nicht importiert werden.", error);
-          window.alert(`Die Excel-Datei konnte nicht importiert werden. ${error.message || "Bitte verwende die Standard-Vorlage."}`);
+          showFormatTransientFeedback(
+            `Excel-Import fehlgeschlagen: ${error?.message || "Bitte verwende die Standard-Vorlage und versuche es erneut."}`,
+            "error"
+          );
+          setStorageStatus("Excel-Import fehlgeschlagen");
         }
       });
 
@@ -38351,6 +39322,8 @@
             closeImportWizard();
           } else if (formatParticipantDrawer?.classList.contains("is-open")) {
             closeParticipantPlanner();
+          } else if (formatEditorDrawer?.classList.contains("is-open")) {
+            closeFormatEditorDrawer();
           } else if (organizationEditorDrawer.classList.contains("is-open")) {
             closeOrganizationEditor();
           } else if (editorDrawer.classList.contains("is-open")) {

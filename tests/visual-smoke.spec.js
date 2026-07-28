@@ -546,7 +546,8 @@ function consentBackendFixtureScript({ savedViews = [] } = {}) {
           name: "Emil Klärung",
           mitmachenConsentStatus: "clarification_needed",
           mitmachenConsentEffectiveAt: "",
-          mitmachenConsentSource: "",
+          mitmachenConsentSource: "manual_transfer",
+          mitmachenConsentTextVersion: "mitmachen-altbestand-v1",
           mitmachenConsentRecordedBy: adminId,
           mitmachenConsentNote: "Nachweis wird geprüft."
         },
@@ -857,7 +858,7 @@ test("Kontakte: Einwilligungsspalte bewertet, filtert und sortiert nachvollziehb
   await expect(consentBadges).toHaveCount(9);
 
   const availableBadge = page.locator('#contact-list .row[data-id="consent-granted-valid"] [data-consent-availability]');
-  await expect(availableBadge).toContainText("#Mitmachen frei");
+  await expect(availableBadge).toContainText("#Mitmachen erlaubt");
   await expect(availableBadge).toHaveAttribute("data-consent-availability", "available");
   await expect(availableBadge).toHaveAttribute("data-consent-status", "granted");
   await expect(availableBadge).toHaveAttribute("title", /Detailstatus #Mitmachen: Erteilt.*vollständig dokumentiert/);
@@ -869,7 +870,8 @@ test("Kontakte: Einwilligungsspalte bewertet, filtert und sortiert nachvollziehb
     ["consent-clarification", "clarification_needed"],
     ["consent-granted-invalid", "granted"],
     ["consent-granted-future", "granted"],
-    ["consent-ehc-only", "not_requested"]
+    ["consent-ehc-only", "not_requested"],
+    ["consent-verbal", "granted"]
   ];
   for (const [contactId, status] of expectedMissing) {
     const badge = page.locator(`#contact-list .row[data-id="${contactId}"] [data-consent-availability]`);
@@ -886,12 +888,12 @@ test("Kontakte: Einwilligungsspalte bewertet, filtert und sortiert nachvollziehb
   const filterButton = page.locator('#contacts-table-head [data-header-filter-button][data-header-filter-key="consent"]');
   await filterButton.click();
   await page.locator('[data-header-filter-menu][data-header-filter-key="consent"]:not([hidden]) [data-header-filter-value="available"]').click();
-  await expect(rows).toHaveCount(2);
-  await expect(rows.locator('[data-consent-availability="available"]')).toHaveCount(2);
+  await expect(rows).toHaveCount(1);
+  await expect(rows.locator('[data-consent-availability="available"]')).toHaveCount(1);
 
   await filterButton.click();
   await page.locator('[data-header-filter-menu][data-header-filter-key="consent"]:not([hidden]) [data-header-filter-value="missing"]').click();
-  await expect(rows).toHaveCount(7);
+  await expect(rows).toHaveCount(8);
   await expect(rows.locator('[data-consent-availability="available"]')).toHaveCount(0);
 
   await filterButton.click();
@@ -935,7 +937,7 @@ test("Kontakte: Gespeicherte Ansicht stellt Einwilligungsfilter und Sortierung w
 
   const rows = page.locator("#contact-list .row");
   await expect(page.locator("#view-select-label")).toHaveText("Owner: Einwilligung offen");
-  await expect(rows).toHaveCount(7);
+  await expect(rows).toHaveCount(8);
   await expect(rows.locator('[data-consent-availability="available"]')).toHaveCount(0);
   await expect(page.locator('#contacts-table-head [data-contact-sort="consent"]')).toHaveAttribute("aria-sort", "ascending");
   await expect(rows.first()).toHaveAttribute("data-id", "consent-not-requested");
@@ -952,7 +954,7 @@ test("Kontakte: Einwilligungsbadge bleibt mobil sichtbar", async ({ page }, test
   const badges = cards.locator(".mobile-contact-consent [data-consent-availability]");
   await expect(cards).toHaveCount(6);
   await expect(badges).toHaveCount(6);
-  await expect(page.locator('#contact-list .mobile-contact-card[data-id="consent-granted-valid"] [data-consent-availability]')).toContainText("#Mitmachen frei");
+  await expect(page.locator('#contact-list .mobile-contact-card[data-id="consent-granted-valid"] [data-consent-availability]')).toContainText("#Mitmachen erlaubt");
   await expect(page.locator('#contact-list .mobile-contact-card[data-id="consent-granted-invalid"] [data-consent-availability]')).toContainText("Nachfassen");
   await page.locator('#pagination [data-page-nav="next"]').click();
   await expect(cards).toHaveCount(3);
@@ -2362,6 +2364,7 @@ test("Organisationen: Demo-Daten rendern im CRM-Profilmodus", async ({ page }, t
   await expect(page.locator('[data-view-panel="organizations"]')).toBeVisible();
   const firstOrganization = page.locator("#organization-list .row, #organization-list .mobile-contact-card").first();
   await expect(firstOrganization).toBeVisible();
+  await expect(firstOrganization.locator(".cell--organization .contact-subline")).toHaveCount(0);
   await expect(page.locator("#search")).toBeVisible();
   await expect(page.locator("#organization-matching-worklist-button")).toContainText("Dubletten");
   await firstOrganization.click();
@@ -2785,15 +2788,39 @@ test("Benachrichtigungen: Glocke öffnet Vorschau und Profil-Reiter rendert Inbo
   await expect(page.locator("#notification-popover-list .notification-popover__loading")).toHaveCount(0);
   await expect(page.locator("#notification-popover")).not.toContainText("Benachrichtigungen werden geladen");
   await expect(page.locator("#notification-popover-list .notification-preview-item")).toHaveCount(5);
+  await expect(page.locator("#notification-popover-list .notification-preview-item__text")).toHaveCount(0);
+  const previewDates = await page.locator("#notification-popover-list .notification-preview-item__date").allTextContents();
+  expect(previewDates).toHaveLength(5);
+  previewDates.forEach((dateLabel) => expect(dateLabel).toMatch(/^\d{2}\.\d{2}\.\d{4}$/));
   const popoverLayout = await page.evaluate(() => {
     const popover = document.querySelector("#notification-popover")?.getBoundingClientRect();
+    const sidebar = document.querySelector(".app-sidebar")?.getBoundingClientRect();
     const accountRow = document.querySelector(".sidebar-account-row")?.getBoundingClientRect();
-    return popover && accountRow
-      ? { popoverBottom: popover.bottom, accountTop: accountRow.top }
+    const firstPreview = document.querySelector(".notification-preview-item")?.getBoundingClientRect();
+    const topmostPreviewNode = firstPreview
+      ? document.elementFromPoint(firstPreview.left + firstPreview.width / 2, firstPreview.top + Math.min(32, firstPreview.height / 2))
+      : null;
+    return popover && sidebar && accountRow
+      ? {
+          popoverBottom: popover.bottom,
+          popoverLeft: popover.left,
+          popoverRight: popover.right,
+          popoverWidth: popover.width,
+          sidebarRight: sidebar.right,
+          sidebarWidth: sidebar.width,
+          accountTop: accountRow.top,
+          viewportWidth: window.innerWidth,
+          firstPreviewIsTopmost: Boolean(topmostPreviewNode?.closest("#notification-popover"))
+        }
       : null;
   });
   expect(popoverLayout).not.toBeNull();
   expect(popoverLayout.popoverBottom).toBeLessThanOrEqual(popoverLayout.accountTop - 6);
+  expect(popoverLayout.popoverWidth).toBeGreaterThan(popoverLayout.sidebarWidth);
+  expect(popoverLayout.popoverRight).toBeGreaterThan(popoverLayout.sidebarRight);
+  expect(popoverLayout.popoverLeft).toBeGreaterThanOrEqual(11);
+  expect(popoverLayout.popoverRight).toBeLessThanOrEqual(popoverLayout.viewportWidth - 11);
+  expect(popoverLayout.firstPreviewIsTopmost).toBe(true);
 
   await page.locator("#notification-popover-all").click();
   await expect(page).toHaveURL(/#profile-notifications$/);
@@ -3066,7 +3093,7 @@ test("Patienten: Organisationsliste nach Indikation rendert ohne Kontakte", asyn
   await expect(page.locator("#patient-organizations-table-head")).not.toContainText("Gruppe");
   await expect(page.locator("#patient-organizations-table-head")).toContainText("Kontakte");
   await expect(page.locator("#patient-organization-list .row").first()).toBeVisible();
-  await expect(page.locator("#patient-organization-list .row").first().locator(".cell--organization .patient-organization-type")).toContainText("Patientenorganisation");
+  await expect(page.locator("#patient-organization-list .row").first().locator(".cell--organization .contact-subline")).toHaveCount(0);
   if (!mobileProject) {
     await expect(page.locator("#patient-organization-list .row").first().locator(".cell--people")).toContainText("1 Kontakt");
   }
@@ -3784,6 +3811,11 @@ test("Kontaktprofil: bereichsbezogene Bearbeitung bleibt eindeutig", async ({ pa
 });
 
 test("Kontaktprofil: Einwilligungen sind zweckbezogen und per Tastatur dokumentierbar", async ({ page }, testInfo) => {
+  const consentPatches = [];
+  page.on("request", (request) => {
+    if (request.method() !== "PATCH" || !request.url().endsWith("/api/contacts/consent-not-requested")) return;
+    consentPatches.push(request.postDataJSON());
+  });
   await gotoAuthenticated(page, "/frontend/app/versorgungs-kompass.html#contacts", {
     role: "admin",
     backendFixtureScript: consentBackendFixtureScript()
@@ -3795,40 +3827,66 @@ test("Kontaktprofil: Einwilligungen sind zweckbezogen und per Tastatur dokumenti
   await expect(root.locator('[data-detail-tab="consent"]')).toContainText("Einwilligungen");
   await root.locator('[data-detail-tab="consent"]').click();
   await expect(root.locator("#detail-consent")).toBeVisible();
-  await expect(root.locator(".consent-signal-card")).toHaveCount(3);
+  const statusRows = root.locator(".consent-status-row");
+  await expect(statusRows).toHaveCount(3);
   await expect(root.locator('[data-consent-signal="relationship"]')).toContainText("Versorgungskompass");
   await expect(root.locator('[data-consent-signal="ehc"]')).toContainText("E-Health Community");
   await expect(root.locator('[data-consent-signal="mitmachen"]')).toContainText("Nicht angefragt");
-  await expect(root.locator(".consent-scope-summary")).toContainText("Keine allgemeine Kontaktfreigabe");
-  await expect(root.locator(".consent-disclosure")).toHaveCount(2);
-  await expect(root.locator(".consent-record-editor:visible")).toHaveCount(0);
+  await expect(root.locator(".consent-scope-summary")).toContainText("#Mitmachen-Nachrichten nicht erlaubt");
+  await expect(root.locator(".consent-disclosure")).toHaveCount(1);
+  await expect(root.getByRole("button", { name: "Einwilligungen bearbeiten" })).toHaveCount(1);
+  await expect(root.locator(".consent-overview-editor:visible")).toHaveCount(0);
+  const statusGeometry = await statusRows.evaluateAll((rows) => rows.map((row) => {
+    const box = row.getBoundingClientRect();
+    const icon = row.querySelector(".consent-status-row__icon")?.getBoundingClientRect();
+    return { top: box.top, bottom: box.bottom, iconLeft: icon?.left || 0 };
+  }));
+  expect(statusGeometry[1].top).toBeGreaterThanOrEqual(statusGeometry[0].bottom - 1);
+  expect(statusGeometry[2].top).toBeGreaterThanOrEqual(statusGeometry[1].bottom - 1);
+  expect(Math.max(...statusGeometry.map((item) => item.iconLeft)) - Math.min(...statusGeometry.map((item) => item.iconLeft))).toBeLessThanOrEqual(1);
   await attachScreenshot(page, testInfo, "kontaktprofil-einwilligungen-ampel", { fullPage: false });
 
-  const editButton = root.getByRole("button", { name: "#Mitmachen bearbeiten" });
+  const editButton = root.getByRole("button", { name: "Einwilligungen bearbeiten" });
   await editButton.click();
-  const statusForm = root.locator("#consent-record-editor-mitmachen");
+  const statusForm = root.locator("#consent-overview-editor");
   await expect(editButton).toHaveAttribute("aria-expanded", "true");
-  await expect(root.locator('[data-consent-disclosure="evidence"]')).toHaveAttribute("open", "");
+  await expect(root.locator('[data-consent-disclosure="evidence"]')).not.toHaveAttribute("open", "");
   await expect(statusForm).toBeVisible();
-  await expect(statusForm.locator('select[name="status"]')).toBeFocused();
+  await expect(statusForm.locator("fieldset")).toHaveCount(3);
+  await expect(statusForm.locator('input[name="relationship_basis"]:checked')).toBeFocused();
+  await expect(statusForm.locator('button[type="submit"]')).toHaveCount(1);
+  await statusForm.locator('button[type="submit"]').click();
+  await expect(statusForm.locator("[data-consent-status]")).toHaveText("Keine Änderungen.");
+  expect(consentPatches).toHaveLength(0);
   await page.keyboard.press("Escape");
   await expect(statusForm).toBeHidden();
   await expect(editButton).toBeFocused();
 
   await editButton.click();
-  await statusForm.locator('select[name="status"]').selectOption("granted");
-  await statusForm.locator('select[name="source"]').selectOption("manual_transfer");
-  await expect(statusForm.locator('input[name="effectiveAt"]')).not.toHaveValue("");
-  const note = statusForm.locator('textarea[name="note"]');
+  await statusForm.locator('input[name="mitmachen_status"][value="granted"]').check();
+  await statusForm.locator('select[name="mitmachen_source"]').selectOption("manual_transfer");
+  await expect(statusForm.locator('input[name="mitmachen_effectiveAt"]')).not.toHaveValue("");
+  await statusForm.locator('input[name="mitmachen_effectiveAt"]').fill("2026-07-16T10:00");
+  const note = statusForm.locator('textarea[name="mitmachen_note"]');
   await expect(note).toBeVisible();
   await note.press("Control+Enter");
   await expect(statusForm).toBeVisible();
-  await expect(statusForm.locator("[data-consent-status]")).toContainText("Nachweisvermerk erforderlich");
+  await expect(statusForm.locator("[data-consent-status]")).toContainText("Kurzer Nachweis fehlt");
   await expect(note).toBeFocused();
 
   await note.fill("Am 16.07.2026 aus dem freigegebenen Altbestand nachvollziehbar übernommen.");
   await note.press("Control+Enter");
-  await expect(root.locator('[data-consent-signal="mitmachen"]')).toContainText("Mündlich · nachfassen");
+  await expect(root.locator('[data-consent-signal="mitmachen"]')).toContainText("Übernommen · prüfen");
+  await expect(root.getByRole("button", { name: "Einwilligungen bearbeiten" })).toBeFocused();
+  expect(consentPatches).toHaveLength(1);
+  expect(Object.keys(consentPatches[0])).toEqual(expect.arrayContaining([
+    "mitmachenConsentStatus",
+    "mitmachenConsentEffectiveAt",
+    "mitmachenConsentSource",
+    "mitmachenConsentNote",
+    "mitmachenConsentRecordedBy"
+  ]));
+  expect(Object.keys(consentPatches[0]).some((key) => key.startsWith("ehc") || key.startsWith("relationship"))).toBe(false);
   await root.locator('[data-consent-disclosure="evidence"] > summary').click();
   await expect(root.locator('[data-consent-record="mitmachen"]')).toContainText("Manuelle Übernahme");
   await expect(root.locator('[data-consent-record="mitmachen"]')).toContainText("freigegebenen Altbestand");
@@ -3844,9 +3902,11 @@ test("Kontaktprofil: Einwilligungen sind zweckbezogen und per Tastatur dokumenti
   await expect(grantedActivity.locator(".history-value--new")).toContainText("Erteilt");
 
   await root.locator('[data-detail-tab="consent"]').click();
-  await root.getByRole("button", { name: "#Mitmachen bearbeiten" }).click();
-  const withdrawalForm = root.locator("#consent-record-editor-mitmachen");
-  await withdrawalForm.locator('select[name="status"]').selectOption("withdrawn");
+  await root.getByRole("button", { name: "Einwilligungen bearbeiten" }).click();
+  const withdrawalForm = root.locator("#consent-overview-editor");
+  await withdrawalForm.locator('input[name="mitmachen_status"][value="withdrawn"]').check();
+  await expect(withdrawalForm.locator('input[name="mitmachen_effectiveAt"]')).not.toHaveValue("2026-07-16T10:00");
+  await withdrawalForm.locator('textarea[name="mitmachen_note"]').fill("Widerruf am 28.07.2026 dokumentiert.");
   let withdrawalDialog = "";
   page.once("dialog", async (dialog) => {
     withdrawalDialog = dialog.message();
@@ -3854,14 +3914,26 @@ test("Kontaktprofil: Einwilligungen sind zweckbezogen und per Tastatur dokumenti
   });
   await withdrawalForm.locator('button[type="submit"]').click();
   await expect(root.locator('[data-consent-signal="mitmachen"]')).toContainText("Widerrufen");
-  expect(withdrawalDialog).toContain("Kontaktaufnahme für diesen Zweck");
-  await expect(root.locator(".consent-scope-summary")).toContainText("Keine allgemeine Kontaktaufnahme");
+  expect(withdrawalDialog).toContain("nicht mehr angesprochen");
+  expect(consentPatches).toHaveLength(2);
+  expect(consentPatches[1]).toMatchObject({
+    mitmachenConsentStatus: "withdrawn",
+    mitmachenConsentNote: "Widerruf am 28.07.2026 dokumentiert."
+  });
+  expect(consentPatches[1].mitmachenConsentEffectiveAt).not.toBe(consentPatches[0].mitmachenConsentEffectiveAt);
+  expect(consentPatches[1]).not.toHaveProperty("mitmachenConsentSource");
+  expect(consentPatches[1]).not.toHaveProperty("mitmachenConsentTextVersion");
+  await expect(root.locator(".consent-scope-summary")).toContainText("Nicht kontaktieren");
+  await root.locator('[data-consent-disclosure="evidence"] > summary').click();
+  await expect(root.locator('[data-consent-record="mitmachen"]')).toContainText("Manuelle Übernahme");
+  await expect(root.locator('[data-consent-record="mitmachen"]')).toContainText("mitmachen-kontakt-v1");
+  await expect(root.locator('[data-consent-record="mitmachen"]')).toContainText("Widerruf am 28.07.2026 dokumentiert.");
 
   await root.locator('[data-detail-tab="activity"]').click();
   await expect(root.locator('#history-timeline .history-item[data-activity-event-key="contact.consent.withdrawn"]').first()).toBeVisible();
 });
 
-test("Kontaktprofil: Editor kann EHC-Nachweis bearbeiten und abbrechen", async ({ page }, testInfo) => {
+test("Kontaktprofil: gemeinsamer Einwilligungseditor lässt sich einfach öffnen und abbrechen", async ({ page }, testInfo) => {
   await gotoAuthenticated(page, "/frontend/app/versorgungs-kompass.html#contacts", {
     role: "editor",
     backendFixtureScript: consentBackendFixtureScript()
@@ -3872,14 +3944,71 @@ test("Kontaktprofil: Editor kann EHC-Nachweis bearbeiten und abbrechen", async (
   const root = page.locator(isMobile ? "#person-profile-body" : "#detail-drawer");
   await root.locator('[data-detail-tab="consent"]').click();
 
-  const editButton = root.getByRole("button", { name: "E-Health Community bearbeiten" });
+  const editButton = root.getByRole("button", { name: "Einwilligungen bearbeiten" });
   await editButton.click();
-  const form = root.locator("#consent-record-editor-ehc");
+  const form = root.locator("#consent-overview-editor");
   await expect(form).toBeVisible();
-  await expect(form.locator('select[name="status"]')).toBeFocused();
+  await expect(form.getByRole("group", { name: "Profil im Versorgungskompass" })).toBeVisible();
+  await expect(form.getByRole("group", { name: "E-Health Community" })).toBeVisible();
+  await expect(form.getByRole("group", { name: "#Mitmachen" })).toBeVisible();
+  await expect(form.locator('input[name="relationship_basis"]:checked')).toBeFocused();
   await form.getByRole("button", { name: "Abbrechen" }).click();
   await expect(form).toBeHidden();
   await expect(editButton).toBeFocused();
+});
+
+test("Kontaktprofil: Vermerkänderung erhält vorhandene Einwilligungsnachweise", async ({ page }, testInfo) => {
+  const consentPatches = [];
+  page.on("request", (request) => {
+    if (request.method() !== "PATCH" || !request.url().endsWith("/api/contacts/consent-clarification")) return;
+    consentPatches.push(request.postDataJSON());
+  });
+  await gotoAuthenticated(page, "/frontend/app/versorgungs-kompass.html#contacts", {
+    role: "admin",
+    backendFixtureScript: consentBackendFixtureScript()
+  });
+
+  const isMobile = testInfo.project.name.includes("mobile");
+  await page.locator('#contact-list [data-id="consent-clarification"]').click();
+  const root = page.locator(isMobile ? "#person-profile-body" : "#detail-drawer");
+  await root.locator('[data-detail-tab="consent"]').click();
+  await root.getByRole("button", { name: "Einwilligungen bearbeiten" }).click();
+  const form = root.locator("#consent-overview-editor");
+  await expect(form.locator('select option[value="verbal_confirmed"]')).toHaveCount(0);
+  await expect(form.locator('select[name="mitmachen_source"]')).toHaveValue("manual_transfer");
+  await expect(form.locator('input[name="mitmachen_textVersion"]')).toHaveValue("mitmachen-altbestand-v1");
+  await form.locator('textarea[name="mitmachen_note"]').fill("Altbestand wird schriftlich geprüft.");
+  await form.locator('button[type="submit"]').click();
+
+  await expect(root.getByRole("button", { name: "Einwilligungen bearbeiten" })).toBeFocused();
+  expect(consentPatches).toEqual([{ mitmachenConsentNote: "Altbestand wird schriftlich geprüft." }]);
+  await root.locator('[data-consent-disclosure="evidence"] > summary').click();
+  await expect(root.locator('[data-consent-record="mitmachen"]')).toContainText("Manuelle Übernahme");
+  await expect(root.locator('[data-consent-record="mitmachen"]')).toContainText("mitmachen-altbestand-v1");
+  await expect(root.locator('[data-consent-record="mitmachen"]')).toContainText("Altbestand wird schriftlich geprüft.");
+});
+
+test("Kontaktprofil: Öffnen erfindet keinen fehlenden Einwilligungszeitpunkt", async ({ page }, testInfo) => {
+  const consentPatches = [];
+  page.on("request", (request) => {
+    if (request.method() !== "PATCH" || !request.url().endsWith("/api/contacts/consent-granted-invalid")) return;
+    consentPatches.push(request.postDataJSON());
+  });
+  await gotoAuthenticated(page, "/frontend/app/versorgungs-kompass.html#contacts", {
+    role: "admin",
+    backendFixtureScript: consentBackendFixtureScript()
+  });
+
+  const isMobile = testInfo.project.name.includes("mobile");
+  await page.locator('#contact-list [data-id="consent-granted-invalid"]').click();
+  const root = page.locator(isMobile ? "#person-profile-body" : "#detail-drawer");
+  await root.locator('[data-detail-tab="consent"]').click();
+  await root.getByRole("button", { name: "Einwilligungen bearbeiten" }).click();
+  const form = root.locator("#consent-overview-editor");
+  await expect(form.locator('input[name="mitmachen_effectiveAt"]')).toHaveValue("");
+  await form.locator('button[type="submit"]').click();
+  await expect(form.locator("[data-consent-status]")).toHaveText("Keine Änderungen.");
+  expect(consentPatches).toHaveLength(0);
 });
 
 test("Kontaktprofil: EHC-only und mündliche Nachfassung sind auf einen Blick unterscheidbar", async ({ page }, testInfo) => {
@@ -3898,13 +4027,24 @@ test("Kontaktprofil: EHC-only und mündliche Nachfassung sind auf einen Blick un
   await expect(profile.locator('[data-consent-record="ehc"]')).toContainText("EHC / Survalyzer");
   await attachScreenshot(page, testInfo, "kontaktprofil-ehc-only", { fullPage: false });
 
+  await profile.getByRole("button", { name: "Einwilligungen bearbeiten" }).click();
+  const ehcForm = profile.locator("#consent-overview-editor");
+  await ehcForm.locator('input[name="ehc_status"][value="withdrawn"]').check();
+  await ehcForm.locator('textarea[name="ehc_note"]').fill("EHC-Einwilligung am 28.07.2026 widerrufen.");
+  page.once("dialog", (dialog) => dialog.accept());
+  await ehcForm.locator('button[type="submit"]').click();
+  await expect(profile.locator(".ehc-profile-badge")).toContainText("EHC geschützt");
+  await expect(profile.locator(".consent-scope-summary")).toContainText("Nicht kontaktieren");
+  await expect(profile.locator('[data-consent-signal="ehc"]')).toContainText("Widerrufen");
+  await expect(profile.locator(".consent-protection-note")).toBeVisible();
+
   await gotoAuthenticated(page, "/frontend/app/versorgungs-kompass.html#person/contact/consent-verbal?tab=consent", {
     role: "admin",
     backendFixtureScript: consentBackendFixtureScript()
   });
-  await expect(profile.locator(".consent-scope-summary")).toContainText("schriftliche Nachfassung");
+  await expect(profile.locator(".consent-scope-summary")).toContainText("Schriftlich nachfassen");
   await expect(profile.locator('[data-consent-signal="relationship"]')).toContainText("Mündlich dokumentiert");
-  await expect(profile.locator('[data-consent-signal="mitmachen"]')).toContainText("Mündlich · nachfassen");
+  await expect(profile.locator('[data-consent-signal="mitmachen"]')).toContainText("Mündlich bestätigt");
 });
 
 test("Kontaktprofil-Drawer: Notizen erscheinen als Chat", async ({ page }, testInfo) => {
@@ -4017,9 +4157,9 @@ test("Kontaktprofil: Viewer lesen Notizen-Chat ohne Composer", async ({ page }, 
   await expect(profile.locator("#detail-notes .detail-permission-note")).toBeVisible();
   await profile.locator('[data-detail-tab="consent"]').click();
   await expect(profile.locator("#detail-consent")).toBeVisible();
-  await expect(profile.locator(".consent-record-editor")).toHaveCount(0);
-  await expect(profile.locator("[data-edit-consent-record]")).toHaveCount(0);
-  await expect(profile.locator("#detail-consent .consent-signal-grid")).toBeVisible();
+  await expect(profile.locator(".consent-overview-editor")).toHaveCount(0);
+  await expect(profile.locator("[data-edit-consent-overview]")).toHaveCount(0);
+  await expect(profile.locator("#detail-consent .consent-status-list")).toBeVisible();
   await expect(profile.locator(".profile-owner-control__badge")).toBeVisible();
   await expect(profile.getByRole("button", { name: "Owner bearbeiten" })).toHaveCount(0);
 });
@@ -6231,13 +6371,21 @@ test("Formate: Arbeitsbereich und Editor rendern", async ({ page }, testInfo) =>
 
   await expect(page.locator('[data-view-panel="formats"]')).toBeVisible();
   await expect(page.locator("#new-format-button")).toBeVisible();
+  await page.locator("#search").fill("Nichtpassender Suchbegriff vor Neuanlage");
   await page.locator("#new-format-button").click();
   await expect(page.locator("#format-editor-drawer.is-open")).toBeVisible();
   await expect(page.locator("#format-editor-form")).toBeVisible();
   await expect(page.locator("#format-editor-steps")).toBeVisible();
   await expect(page.locator("#format-title")).toBeVisible();
+  await page.locator("#format-title").fill("Nicht gespeicherter Entwurf");
+  page.once("dialog", (dialog) => dialog.accept());
+  await page.keyboard.press("Escape");
+  await expect(page.locator("#format-editor-drawer")).toHaveAttribute("aria-hidden", "true");
+  await expect(page.locator("#format-editor-drawer")).not.toHaveClass(/is-open/);
+  await page.locator("#new-format-button").click();
+  await expect(page.locator("#format-editor-drawer.is-open")).toBeVisible();
   await page.locator("#format-title").fill("Roundtable Testversorgung");
-  await page.locator("#format-editor-next").click();
+  await page.locator("#format-title").press("Enter");
   await expect(page.locator('[data-format-editor-step="planung"]')).toBeVisible();
   await page.locator("#format-editor-next").click();
   await expect(page.locator('[data-format-editor-step="inhalt"]')).toBeVisible();
@@ -6246,15 +6394,29 @@ test("Formate: Arbeitsbereich und Editor rendern", async ({ page }, testInfo) =>
   await expect(page.locator("#format-editor-drawer")).not.toHaveClass(/is-open/);
   await expect(page.locator("#toggle-format-overview")).toHaveCount(0);
   const createdFormat = page.locator('[data-format-detail]', { hasText: "Roundtable Testversorgung" }).first();
+  await expect(page.locator("#search")).toHaveValue("");
   await expect(createdFormat.locator(".format-detail-title")).toContainText("Roundtable Testversorgung");
+  await expect(createdFormat).toHaveClass(/is-open/);
+  await expect(page.locator(".format-overview-hero")).toBeVisible();
+  await expect(page.locator("#open-participant-planner")).toBeFocused();
+  const overviewTab = createdFormat.getByRole("tab", { name: "Überblick" });
+  const participantsTab = createdFormat.getByRole("tab", { name: "Teilnehmer" });
+  const overviewPanelId = await overviewTab.getAttribute("aria-controls");
+  expect(overviewPanelId).toBeTruthy();
+  await expect(createdFormat.locator(`#${overviewPanelId}`)).toHaveAttribute("aria-labelledby", await overviewTab.getAttribute("id"));
+  await overviewTab.focus();
+  await overviewTab.press("ArrowRight");
+  await expect(participantsTab).toBeFocused();
+  await expect(participantsTab).toHaveAttribute("aria-selected", "true");
+  await participantsTab.press("ArrowLeft");
+  await expect(overviewTab).toBeFocused();
+  await expect(overviewTab).toHaveAttribute("aria-selected", "true");
   await page.locator('[data-format-status-filter="Planung"]').click();
   await expect(page.locator('[data-format-status-filter="Planung"]')).toHaveAttribute("aria-pressed", "true");
   await expect(createdFormat.locator(".format-detail-title")).toContainText("Roundtable Testversorgung");
   await page.locator('[data-format-status-filter="Planung"]').click();
   await expect(page.locator('[data-format-status-filter="Planung"]')).toHaveAttribute("aria-pressed", "false");
   await expect(createdFormat.locator(".format-type-icon")).toBeVisible();
-  await expect(page.locator(".format-detail.is-open")).toHaveCount(0);
-  await expect(page.locator(".format-overview-hero")).toHaveCount(0);
   await createdFormat.locator("[data-toggle-format-detail]").click();
   await expect(page.locator(".format-overview-hero")).toBeVisible();
   await expect(page.locator(".format-roundtable-illustration")).toBeVisible();
@@ -6286,7 +6448,11 @@ test("Formate: Arbeitsbereich und Editor rendern", async ({ page }, testInfo) =>
   await expect(page.locator('[data-format-participant-step="filters"]')).toBeVisible();
   await page.locator("#format-participant-next").click();
   await expect(page.locator('[data-format-participant-step="select"]')).toBeVisible();
-  await page.locator('[data-planner-contact="demo-contact-01"] input').check();
+  const plannerCheckbox = page.locator('[data-planner-contact="demo-contact-08"] input');
+  await plannerCheckbox.check();
+  await expect(plannerCheckbox).toBeFocused();
+  await expect(page.locator("#format-participant-add")).toBeEnabled();
+  await expect(page.locator("#format-participant-add")).toHaveText("1 Kandidat hinzufügen");
   await page.locator("#format-participant-add").click();
   await expect(page.locator("#format-participant-drawer")).toHaveAttribute("aria-hidden", "true");
   await expect(page.locator("#format-participant-drawer")).not.toHaveClass(/is-open/);
@@ -6297,9 +6463,9 @@ test("Formate: Arbeitsbereich und Editor rendern", async ({ page }, testInfo) =>
   await expect(page.locator('.participant-card [data-participant-field="invitationStatus"]')).toBeVisible();
   await expect(page.locator('.participant-card [data-participant-field="invitationStatus"] option[value="Teilgenommen"]')).toHaveCount(1);
   await expect(page.locator('[data-format-tab="composition"]')).toHaveCount(0);
-  await page.locator('[data-open-format-contact="demo-contact-01"]').first().click();
+  await page.locator('[data-open-format-contact="demo-contact-08"]').first().click();
   await expect(page.locator("#person-profile-page.is-active")).toBeVisible();
-  await expect(page).toHaveURL(/#person\/contact\/demo-contact-01$/);
+  await expect(page).toHaveURL(/#person\/contact\/demo-contact-08$/);
   await expect(page.locator(".app-shell")).toHaveAttribute("data-active-view", "personProfile");
   await page.locator('#person-profile-body [data-detail-tab="formats"]').click();
   await expect(page.locator("#person-profile-body [data-format-profile-section]")).toBeVisible();
@@ -6312,11 +6478,11 @@ test("Formate: Arbeitsbereich und Editor rendern", async ({ page }, testInfo) =>
   await expect(page.locator(".format-diversity-board")).toHaveCount(0);
   await page.locator('[data-format-tab="invitationStatus"]').click();
   await expect(page.locator(".invitation-status-board")).toBeVisible();
-  await expect(page.locator(".invitation-status-select")).toHaveCount(0);
+  await expect(page.locator('[data-invitation-status-select="demo-contact-08"]')).toBeVisible();
   await expect(page.locator('[data-invitation-status-drop="Teilgenommen"]')).toHaveCount(1);
   if (testInfo.project.name === "chromium-desktop") {
-    await page.locator('[data-invitation-card="demo-contact-01"]').dragTo(page.locator('[data-invitation-status-drop="Zugesagt"]'));
-    await expect(page.locator('[data-invitation-status-drop="Zugesagt"] [data-invitation-card="demo-contact-01"]')).toBeVisible();
+    await page.locator('[data-invitation-card="demo-contact-08"]').dragTo(page.locator('[data-invitation-status-drop="Zugesagt"]'));
+    await expect(page.locator('[data-invitation-status-drop="Zugesagt"] [data-invitation-card="demo-contact-08"]')).toBeVisible();
   }
   await page.locator('[data-format-tab="reporting"]').click();
   await expect(page.locator(".format-diversity-board")).toBeVisible();
@@ -6341,7 +6507,7 @@ test("Formate: Arbeitsbereich und Editor rendern", async ({ page }, testInfo) =>
   await expect(formatChatMessages).toHaveCount(0);
   await page.locator('[data-format-tab="settings"]').click();
   await expect(page.locator("#export-format-participants")).toBeVisible();
-  await expect(page.locator("[data-archive-format]")).toBeVisible();
+  await expect(createdFormat.locator(".format-tab-panel [data-archive-format]")).toBeVisible();
   if (testInfo.project.name.includes("mobile")) {
     await expect(createdFormat.locator('[data-format-tab="settings"]')).toBeInViewport();
     await expectNoHorizontalOverflow(page);

@@ -16,6 +16,17 @@
   const NOW = "2026-07-19T12:00:00.000Z";
   const DEMO_IMAGE_TYPES = new Set(["image/jpeg", "image/png", "image/webp"]);
   const SENSITIVE_CONTACT_FIELDS = new Set(["email", "phone"]);
+  const FORMAT_STATUSES = Object.freeze(["Planung", "Aktiv", "Abgeschlossen", "Archiviert"]);
+  const FORMAT_PARTICIPANT_STATUSES = Object.freeze([
+    "Kandidat",
+    "Eingeladen",
+    "Zugesagt",
+    "Abgesagt",
+    "Keine Rückmeldung",
+    "Teilgenommen"
+  ]);
+  const FORMAT_PARTICIPANT_BATCH_LIMIT = 500;
+  const FORMAT_IDEMPOTENCY_UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/u;
   const DEMO_NOTICE_DATA_VIEWS = new Set([
     "map",
     "contacts",
@@ -82,6 +93,7 @@
     state.contactNotes ||= [];
     state.contactNoteAttachments ||= [];
     state.userSettings ||= {};
+    state.formatCreateRequests ||= [];
     return state;
   }
 
@@ -101,9 +113,34 @@
     return Boolean(state.currentProfileId) && contactOwnerIds(contact).includes(state.currentProfileId);
   }
 
+  function currentDemoProfile() {
+    return state.profiles.find((profile) => profile.id === state.currentProfileId) || state.profiles[0] || {};
+  }
+
+  function currentDemoProfileIsAdmin() {
+    return String(currentDemoProfile().role || "").toLowerCase() === "admin";
+  }
+
   function isEhcOnlyContact(contact = {}) {
-    return String(contact.ehcConsentStatus || contact.ehc_consent_status || "") === "granted"
-      && String(contact.mitmachenConsentStatus || contact.mitmachen_consent_status || "not_requested") !== "granted";
+    const ehcStatus = String(contact.ehcConsentStatus || contact.ehc_consent_status || "not_requested");
+    const mitmachenStatus = String(contact.mitmachenConsentStatus || contact.mitmachen_consent_status || "not_requested");
+    const mitmachenSource = String(contact.mitmachenConsentSource || contact.mitmachen_consent_source || "").trim();
+    const hasWrittenMitmachenPermission = mitmachenStatus === "granted"
+      && ["online_form", "email", "written"].includes(mitmachenSource);
+    const hasEhcHistory = ehcStatus !== "not_requested"
+      || [
+        contact.ehcConsentEffectiveAt,
+        contact.ehc_consent_effective_at,
+        contact.ehcConsentSource,
+        contact.ehc_consent_source,
+        contact.ehcConsentTextVersion,
+        contact.ehc_consent_text_version,
+        contact.ehcConsentRecordedBy,
+        contact.ehc_consent_recorded_by,
+        contact.ehcConsentNote,
+        contact.ehc_consent_note
+      ].some((value) => Boolean(String(value || "").trim()));
+    return hasEhcHistory && !hasWrittenMitmachenPermission;
   }
 
   function restrictedEhcContact(contact = {}) {
@@ -434,8 +471,21 @@
     });
   }
 
-  function error(message, status = 400) {
-    return json({ error: message }, status);
+  function error(message, status = 400, code = "", extras = {}) {
+    const blockedContactIds = Array.isArray(extras.blockedContactIds)
+      ? [...new Set(extras.blockedContactIds.map((contactId) => String(contactId || "").trim()).filter(Boolean))]
+      : [];
+    const details = extras.details && typeof extras.details === "object"
+      ? { ...extras.details }
+      : {};
+    if (blockedContactIds.length) details.blockedContactIds = blockedContactIds;
+    return json({
+      error: message,
+      ...(code ? { code } : {}),
+      ...extras,
+      ...(blockedContactIds.length ? { blockedContactIds } : {}),
+      ...(Object.keys(details).length ? { details } : {})
+    }, status);
   }
 
   function activeRows(rows, includeArchived) {
@@ -1061,30 +1111,118 @@
     if (method === "POST" && createResource) {
       const [property, prefix, payload] = createResource;
       const safePayload = sanitizeDemoMediaFields(property, payload);
+      const formatIdempotencyKey = property === "formats"
+        ? String(safePayload.idempotencyKey || safePayload.idempotency_key || "").trim().toLowerCase()
+        : "";
+      if (property === "formats" && !formatIdempotencyKey) {
+        return error("Für das Anlegen eines Formats fehlt der Idempotenzschlüssel.", 428, "FORMAT_IDEMPOTENCY_KEY_REQUIRED");
+      }
+      if (property === "formats" && !FORMAT_IDEMPOTENCY_UUID_PATTERN.test(formatIdempotencyKey)) {
+        return error("Der Idempotenzschlüssel für die Formatanlage muss eine UUID sein.", 400, "FORMAT_IDEMPOTENCY_KEY_INVALID");
+      }
+      if (
+        property === "formats"
+        && safePayload.id
+        && String(safePayload.id).trim().toLowerCase() !== formatIdempotencyKey
+      ) {
+        return error("Format-ID und Idempotenzschlüssel dürfen nicht voneinander abweichen.", 400, "FORMAT_IDEMPOTENCY_KEY_MISMATCH");
+      }
+      if (
+        property === "formats"
+        && safePayload.status !== undefined
+        && !FORMAT_STATUSES.includes(String(safePayload.status || "").trim())
+      ) {
+        return error("Der Formatstatus ist ungültig.", 400, "FORMAT_STATUS_INVALID");
+      }
+      const persistedPayload = property === "formats"
+        ? {
+            ...Object.fromEntries(Object.entries(safePayload).filter(([key]) => !["idempotencyKey", "idempotency_key"].includes(key))),
+            id: formatIdempotencyKey
+          }
+        : safePayload;
+      if (property === "formats") {
+        const requestSignature = JSON.stringify(persistedPayload);
+        const priorRequest = state.formatCreateRequests.find((entry) =>
+          entry.actorId === state.currentProfileId && entry.key === formatIdempotencyKey
+        );
+        if (priorRequest) {
+          if (priorRequest.signature !== requestSignature) {
+            return error("Der Idempotenzschlüssel wurde bereits mit anderen Formatdaten verwendet.", 409, "FORMAT_IDEMPOTENCY_CONFLICT");
+          }
+          const existingFormat = state.formats.find((item) => item.id === priorRequest.formatId);
+          if (existingFormat) return json(existingFormat, 201);
+        }
+      }
       if (
         property === "contacts"
-        && isEhcOnlyContact(safePayload)
-        && !contactOwnerIds(safePayload).includes(state.currentProfileId)
+        && isEhcOnlyContact(persistedPayload)
+        && !contactOwnerIds(persistedPayload).includes(state.currentProfileId)
       ) {
         return error("EHC-only-Profile dürfen nur für den aktuellen Contact Owner angelegt werden.", 403);
       }
       if (
         property === "contacts"
         && OWNER_ONLY_CONTACT_CHANNELS
-        && bodySetsSensitiveContactFields(safePayload)
-        && !contactOwnerIds(safePayload).includes(state.currentProfileId)
+        && bodySetsSensitiveContactFields(persistedPayload)
+        && !contactOwnerIds(persistedPayload).includes(state.currentProfileId)
       ) {
         return error("E-Mail und Telefon dürfen in der Demo nur von Contact Ownern gesetzt werden.", 403);
       }
       const createdPayload = property === "contacts"
-        ? withDemoContactConsentDefaults(safePayload)
-        : safePayload;
-      const created = { ...createdPayload, id: createdPayload.id || nextId(prefix), createdAt: createdPayload.createdAt || new Date().toISOString(), updatedAt: new Date().toISOString() };
+        ? withDemoContactConsentDefaults(persistedPayload)
+        : persistedPayload;
+      const created = {
+        ...createdPayload,
+        id: property === "formats" ? formatIdempotencyKey : (createdPayload.id || nextId(prefix)),
+        participants: property === "formats" ? (createdPayload.participants || []) : createdPayload.participants,
+        createdAt: createdPayload.createdAt || new Date().toISOString(),
+        updatedAt: new Date().toISOString()
+      };
       state[property].unshift(created);
+      if (property === "formats") {
+        state.formatCreateRequests.push({
+          actorId: state.currentProfileId,
+          key: formatIdempotencyKey,
+          signature: JSON.stringify(persistedPayload),
+          formatId: created.id
+        });
+      }
       if (property === "organizationPrimarySystems") updateOrganizationPrimarySystems();
       const eventRoot = property === "hospitations" ? "hospitation" : property === "formats" ? "format" : property === "contacts" ? "contact" : "record";
       addDemoActivity({ eventKey: `${eventRoot}.created`, categoryKey: eventRoot === "record" ? "master_data" : eventRoot, actionKey: "create", objectType: eventRoot, objectId: created.id, contactId: created.contactId || (property === "contacts" ? created.id : ""), title: "Synthetischen Demo-Datensatz angelegt" });
       return json(property === "contacts" ? projectContactForCurrentProfile(created) : created, 201);
+    }
+
+    const formatLifecycleMatch = path.match(/^\/api\/formats\/([^/]+)\/(archive|restore)$/);
+    if (formatLifecycleMatch && method === "POST") {
+      if (!currentDemoProfileIsAdmin()) {
+        return error("Archivieren und Wiederherstellen von Formaten ist nur für Admins erlaubt.", 403, "FORMAT_ADMIN_REQUIRED");
+      }
+      const format = state.formats.find((item) => item.id === decodeURIComponent(formatLifecycleMatch[1]));
+      if (!format) return error("Synthetisches Format wurde nicht gefunden.", 404);
+      const expectedUpdatedAt = String(body.expectedUpdatedAt || body.expected_updated_at || "").trim();
+      if (!expectedUpdatedAt) {
+        return error("Für die Formataktion fehlt der erwartete Änderungsstand.", 428, "FORMAT_PRECONDITION_REQUIRED");
+      }
+      if (expectedUpdatedAt !== String(format.updatedAt || "")) {
+        return error("Das Format wurde zwischenzeitlich geändert.", 409, "FORMAT_VERSION_CONFLICT");
+      }
+      const restoring = formatLifecycleMatch[2] === "restore";
+      if (!restoring && format.status === "Archiviert") return json(format);
+      if (restoring && format.status !== "Archiviert") {
+        return error("Nur archivierte Formate können wiederhergestellt werden.", 409, "FORMAT_NOT_ARCHIVED");
+      }
+      format.status = restoring ? "Planung" : "Archiviert";
+      format.updatedAt = new Date().toISOString();
+      addDemoActivity({
+        eventKey: restoring ? "format.restored" : "format.archived",
+        categoryKey: "format",
+        actionKey: restoring ? "restore" : "archive",
+        objectType: "format",
+        objectId: format.id,
+        title: restoring ? "Synthetisches Format wiederhergestellt" : "Synthetisches Format archiviert"
+      });
+      return json(format);
     }
 
     const updateMatch = path.match(/^\/api\/(contacts|organizations|organization-primary-systems|expert-contacts|expert-organizations|expert-entity-links|hospitation-slots|hospitations|hospitation-observations|formats|saved-views)\/([^/]+)$/);
@@ -1094,6 +1232,43 @@
       const id = decodeURIComponent(updateMatch[2]);
       const index = target.findIndex((item) => item.id === id);
       if (index < 0) return error("Synthetischer Datensatz wurde nicht gefunden.", 404);
+      if (property === "formats") {
+        if (method === "DELETE" && !currentDemoProfileIsAdmin()) {
+          return error("Formate dürfen nur von Admins gelöscht werden.", 403, "FORMAT_ADMIN_REQUIRED");
+        }
+        const expectedUpdatedAt = String(body.expectedUpdatedAt || body.expected_updated_at || "").trim();
+        if (!expectedUpdatedAt) {
+          return error(
+            method === "DELETE"
+              ? "Zum Löschen des Formats fehlt der erwartete Änderungsstand."
+              : "Zum Aktualisieren des Formats fehlt der erwartete Änderungsstand.",
+            428,
+            "FORMAT_PRECONDITION_REQUIRED"
+          );
+        }
+        if (expectedUpdatedAt !== String(target[index].updatedAt || "")) {
+          return error("Das Format wurde zwischenzeitlich geändert.", 409, "FORMAT_VERSION_CONFLICT");
+        }
+        if (
+          method === "PATCH"
+          && body.status !== undefined
+          && !FORMAT_STATUSES.includes(String(body.status || "").trim())
+        ) {
+          return error("Der Formatstatus ist ungültig.", 400, "FORMAT_STATUS_INVALID");
+        }
+        if (
+          method === "PATCH"
+          && !Object.keys(body).some((key) => !["expectedUpdatedAt", "expected_updated_at"].includes(key))
+        ) {
+          return error("Keine unterstützten Formatfelder im Request.", 400, "FORMAT_PATCH_EMPTY");
+        }
+        if (method === "PATCH" && target[index].status === "Archiviert") {
+          return error("Archivierte Formate müssen ausdrücklich wiederhergestellt werden.", 409, "FORMAT_RESTORE_ACTION_REQUIRED");
+        }
+        if (method === "PATCH" && body.status === "Archiviert") {
+          return error("Formate müssen über die Archivieren-Aktion archiviert werden.", 409, "FORMAT_ARCHIVE_ACTION_REQUIRED");
+        }
+      }
       if (property === "contacts" && restrictedEhcContact(target[index])) {
         return error("EHC-only-Profile dürfen nur von ihren Contact Ownern geändert werden.", 403);
       }
@@ -1111,7 +1286,12 @@
         return json({ ok: true });
       }
       const before = target[index];
-      const safeBody = sanitizeDemoMediaFields(property, body);
+      const safeBody = sanitizeDemoMediaFields(
+        property,
+        property === "formats"
+          ? Object.fromEntries(Object.entries(body).filter(([key]) => !["expectedUpdatedAt", "expected_updated_at"].includes(key)))
+          : body
+      );
       if (
         property === "contacts"
         && OWNER_ONLY_CONTACT_CHANNELS
@@ -1148,34 +1328,354 @@
       return json({ items });
     }
 
-    const formatParticipantsImportMatch = path.match(/^\/api\/formats\/([^/]+)\/participants\/import$/);
-    if (formatParticipantsImportMatch && method === "POST") {
-      const format = state.formats.find((item) => item.id === decodeURIComponent(formatParticipantsImportMatch[1]));
-      if (!format) return error("Synthetisches Format wurde nicht gefunden.", 404);
-      format.participants ||= [];
-      (body.items || []).forEach((entry) => {
-        const contactId = entry.contactId || entry.contact_id || "";
-        const index = format.participants.findIndex((item) => (item.contactId || item.contact_id) === contactId);
-        const participant = { ...(index >= 0 ? format.participants[index] : {}), ...entry, id: index >= 0 ? format.participants[index].id : (entry.id || nextId("demo-format-participant")), formatId: format.id, contactId, updatedAt: new Date().toISOString() };
-        if (index >= 0) format.participants[index] = participant;
-        else format.participants.push(participant);
-      });
+    const participantContact = (contactId) => state.contacts.find((item) => item.id === contactId);
+    const participantStatusNeedsConsent = (status) =>
+      ["Eingeladen", "Zugesagt", "Teilgenommen"].includes(String(status || ""));
+    const participantContactIsInviteable = (contactId) => {
+      const contact = participantContact(contactId);
+      return Boolean(
+        contact
+        && String(contact.mitmachenConsentStatus || contact.mitmachen_consent_status || "") === "granted"
+      );
+    };
+    const participantContactIsAvailable = (contactId) => {
+      const contact = participantContact(contactId);
+      return Boolean(contact && !["archived", "Archiviert"].includes(contact.status));
+    };
+    const participantTimestampMatches = (left, right) => {
+      const normalize = (value) => {
+        const timestamp = new Date(value || "");
+        return Number.isFinite(timestamp.getTime()) ? timestamp.toISOString() : String(value || "");
+      };
+      return normalize(left) === normalize(right);
+    };
+    const normalizeParticipantEntries = (items, label, { includeExpectedUpdatedAt = false } = {}) => {
+      if (!Array.isArray(items) || items.length < 1 || items.length > FORMAT_PARTICIPANT_BATCH_LIMIT) {
+        return {
+          failure: error(
+            `${label} muss zwischen 1 und ${FORMAT_PARTICIPANT_BATCH_LIMIT} Einträge enthalten.`,
+            400,
+            "FORMAT_PARTICIPANT_BATCH_SIZE_INVALID"
+          )
+        };
+      }
+      const seen = new Set();
+      const rows = [];
+      for (let index = 0; index < items.length; index += 1) {
+        const item = items[index] || {};
+        const contactId = String(item.contactId || item.contact_id || "").trim();
+        if (!contactId) {
+          return {
+            failure: error(
+              `Kontakt-ID in ${label}, Eintrag ${index + 1}, fehlt.`,
+              400,
+              "FORMAT_PARTICIPANT_CONTACT_REQUIRED"
+            )
+          };
+        }
+        if (seen.has(contactId)) {
+          return {
+            failure: error(
+              `Kontakt ${contactId} kommt im selben Batch mehrfach vor.`,
+              400,
+              "FORMAT_PARTICIPANT_BATCH_DUPLICATE"
+            )
+          };
+        }
+        seen.add(contactId);
+        const invitationStatus = String(item.invitationStatus || item.invitation_status || "Kandidat").trim();
+        if (!FORMAT_PARTICIPANT_STATUSES.includes(invitationStatus)) {
+          return {
+            failure: error(
+              `Ungültiger Beteiligungsstatus. Erlaubt sind: ${FORMAT_PARTICIPANT_STATUSES.join(", ")}.`,
+              400,
+              "FORMAT_PARTICIPANT_STATUS_INVALID"
+            )
+          };
+        }
+        rows.push({
+          contactId,
+          invitationStatus,
+          participantRole: String(item.participantRole || item.participant_role || ""),
+          notes: String(item.notes || ""),
+          ...(includeExpectedUpdatedAt
+            ? { expectedUpdatedAt: String(item.expectedUpdatedAt || item.expected_updated_at || "").trim() }
+            : {})
+        });
+      }
+      return { rows };
+    };
+    const participantConstraintFailure = (rows) => {
+      const unavailableContactIds = rows
+        .map((row) => row.contactId)
+        .filter((contactId) => !participantContactIsAvailable(contactId));
+      if (unavailableContactIds.length) {
+        return error(
+          "Mindestens ein ausgewählter Kontakt ist nicht verfügbar oder archiviert.",
+          409,
+          "FORMAT_PARTICIPANT_CONTACT_UNAVAILABLE",
+          { blockedContactIds: unavailableContactIds }
+        );
+      }
+      const consentBlockedContactIds = rows
+        .filter((row) => participantStatusNeedsConsent(row.invitationStatus))
+        .map((row) => row.contactId)
+        .filter((contactId) => !participantContactIsInviteable(contactId));
+      if (consentBlockedContactIds.length) {
+        return error(
+          "Für Eingeladen, Zugesagt oder Teilgenommen muss eine gültige Mitmachen-Einwilligung vorliegen.",
+          409,
+          "FORMAT_INVITATION_CONSENT_REQUIRED",
+          { blockedContactIds: consentBlockedContactIds }
+        );
+      }
+      return null;
+    };
+    const archivedParticipantMutationFailure = (format) => format.status === "Archiviert"
+      ? error(
+          "Archivierte Formate müssen vor Teilnehmeränderungen wiederhergestellt werden.",
+          409,
+          "FORMAT_RESTORE_ACTION_REQUIRED"
+        )
+      : null;
+    const updateFormatAfterParticipantMutation = (format, actionKey, title, contactId = "") => {
       format.updatedAt = new Date().toISOString();
+      addDemoActivity({
+        eventKey: "format.participant.updated",
+        categoryKey: "format",
+        actionKey,
+        objectType: "format",
+        objectId: format.id,
+        contactId,
+        title
+      });
+    };
+
+    const formatParticipantsBatchMatch = path.match(/^\/api\/formats\/([^/]+)\/participants\/batch$/);
+    if (formatParticipantsBatchMatch && method === "POST") {
+      const format = state.formats.find((item) => item.id === decodeURIComponent(formatParticipantsBatchMatch[1]));
+      if (!format) return error("Synthetisches Format wurde nicht gefunden.", 404, "FORMAT_NOT_FOUND");
+      const normalized = normalizeParticipantEntries(body.items, "Der Format-Teilnehmer-Batch");
+      if (normalized.failure) return normalized.failure;
+      const archivedFailure = archivedParticipantMutationFailure(format);
+      if (archivedFailure) return archivedFailure;
+      const constraintFailure = participantConstraintFailure(normalized.rows);
+      if (constraintFailure) return constraintFailure;
+      format.participants ||= [];
+      const existingIds = new Set(format.participants.map((entry) => entry.contactId || entry.contact_id));
+      const newRows = normalized.rows.filter((entry) => !existingIds.has(entry.contactId));
+      if (newRows.length) {
+        const now = new Date().toISOString();
+        format.participants.push(...newRows.map((entry) => ({
+          ...entry,
+          id: nextId("demo-format-participant"),
+          formatId: format.id,
+          createdAt: now,
+          updatedAt: now
+        })));
+        updateFormatAfterParticipantMutation(
+          format,
+          "batch_add",
+          `${newRows.length} synthetische Formatkandidaten hinzugefügt`
+        );
+      }
       return json(format);
     }
+
+    const formatParticipantsImportMatch = path.match(/^\/api\/formats\/([^/]+)\/participants\/import$/);
+    if (formatParticipantsImportMatch && method === "POST") {
+      if (!currentDemoProfileIsAdmin()) {
+        return error("Excel-Import von Formatbeteiligungen ist nur für Admins erlaubt.", 403, "FORMAT_ADMIN_REQUIRED");
+      }
+      const format = state.formats.find((item) => item.id === decodeURIComponent(formatParticipantsImportMatch[1]));
+      if (!format) return error("Synthetisches Format wurde nicht gefunden.", 404, "FORMAT_NOT_FOUND");
+      const normalized = normalizeParticipantEntries(
+        body.items,
+        "Der Format-Einladungsimport",
+        { includeExpectedUpdatedAt: true }
+      );
+      if (normalized.failure) return normalized.failure;
+      const archivedFailure = archivedParticipantMutationFailure(format);
+      if (archivedFailure) return archivedFailure;
+      format.participants ||= [];
+      const existingByContactId = new Map(
+        format.participants.map((participant) => [participant.contactId || participant.contact_id, participant])
+      );
+      const rowsToWrite = [];
+      const missingPreconditionContactIds = [];
+      const versionConflictContactIds = [];
+      normalized.rows.forEach((row) => {
+        const existing = existingByContactId.get(row.contactId);
+        if (!existing) {
+          if (row.expectedUpdatedAt) versionConflictContactIds.push(row.contactId);
+          else rowsToWrite.push({ ...row, existing: null });
+          return;
+        }
+        const unchanged = (
+          String(existing.invitationStatus || existing.invitation_status || "Kandidat") === row.invitationStatus
+          && String(existing.participantRole || existing.participant_role || "") === row.participantRole
+          && String(existing.notes || "") === row.notes
+        );
+        if (unchanged) return;
+        if (!row.expectedUpdatedAt) {
+          missingPreconditionContactIds.push(row.contactId);
+          return;
+        }
+        if (!participantTimestampMatches(row.expectedUpdatedAt, existing.updatedAt || existing.updated_at)) {
+          versionConflictContactIds.push(row.contactId);
+          return;
+        }
+        rowsToWrite.push({ ...row, existing });
+      });
+      if (missingPreconditionContactIds.length) {
+        return error(
+          "Für geänderte bestehende Importzeilen fehlt der Versionsstand des Teilnehmers.",
+          428,
+          "FORMAT_PARTICIPANT_IMPORT_PRECONDITION_REQUIRED",
+          {
+            blockedContactIds: missingPreconditionContactIds,
+            details: { reason: "expectedUpdatedAt_required_for_existing_update" }
+          }
+        );
+      }
+      if (versionConflictContactIds.length) {
+        return error(
+          "Mindestens eine Importzeile wurde zwischenzeitlich geändert. Bitte neu laden.",
+          409,
+          "FORMAT_PARTICIPANT_IMPORT_VERSION_CONFLICT",
+          {
+            blockedContactIds: versionConflictContactIds,
+            details: { reason: "participant_version_conflict" }
+          }
+        );
+      }
+      const constraintFailure = participantConstraintFailure(rowsToWrite);
+      if (constraintFailure) return constraintFailure;
+      if (rowsToWrite.length) {
+        const now = new Date().toISOString();
+        rowsToWrite.forEach((row) => {
+          const participant = {
+            ...(row.existing || {}),
+            id: row.existing?.id || nextId("demo-format-participant"),
+            formatId: format.id,
+            contactId: row.contactId,
+            invitationStatus: row.invitationStatus,
+            participantRole: row.participantRole,
+            notes: row.notes,
+            createdAt: row.existing?.createdAt || row.existing?.created_at || now,
+            updatedAt: now
+          };
+          const index = format.participants.findIndex(
+            (item) => (item.contactId || item.contact_id) === row.contactId
+          );
+          if (index >= 0) format.participants[index] = participant;
+          else format.participants.push(participant);
+        });
+        updateFormatAfterParticipantMutation(
+          format,
+          "import",
+          `${rowsToWrite.length} synthetische Formatbeteiligungen importiert`
+        );
+      }
+      return json(format);
+    }
+
     const formatParticipantsMatch = path.match(/^\/api\/formats\/([^/]+)\/participants(?:\/([^/]+))?$/);
     if (formatParticipantsMatch && ["POST", "PATCH", "DELETE"].includes(method)) {
       const format = state.formats.find((item) => item.id === decodeURIComponent(formatParticipantsMatch[1]));
-      if (!format) return error("Synthetisches Format wurde nicht gefunden.", 404);
+      if (!format) return error("Synthetisches Format wurde nicht gefunden.", 404, "FORMAT_NOT_FOUND");
+      const archivedFailure = archivedParticipantMutationFailure(format);
+      if (archivedFailure) return archivedFailure;
       format.participants ||= [];
-      const contactId = formatParticipantsMatch[2] ? decodeURIComponent(formatParticipantsMatch[2]) : (body.contactId || body.contact_id || "");
-      const index = format.participants.findIndex((item) => (item.contactId || item.contact_id) === contactId);
-      if (method === "POST" && index < 0) format.participants.push({ ...body, id: body.id || nextId("demo-format-participant"), formatId: format.id, contactId, updatedAt: new Date().toISOString() });
-      if (method === "PATCH" && index >= 0) format.participants[index] = { ...format.participants[index], ...body, updatedAt: new Date().toISOString() };
-      if (method === "DELETE") format.participants = format.participants.filter((item) => (item.contactId || item.contact_id) !== contactId);
-      format.updatedAt = new Date().toISOString();
-      addDemoActivity({ eventKey: "format.participant.updated", categoryKey: "format", actionKey: method.toLowerCase(), objectType: "format", objectId: format.id, contactId, title: "Synthetische Formatteilnahme aktualisiert" });
-      return json(format, method === "POST" ? 201 : 200);
+      const contactId = String(
+        formatParticipantsMatch[2]
+          ? decodeURIComponent(formatParticipantsMatch[2])
+          : (body.contactId || body.contact_id || "")
+      ).trim();
+      if (!contactId) {
+        return error("Kontakt-ID für Teilnehmer fehlt.", 400, "FORMAT_PARTICIPANT_CONTACT_REQUIRED");
+      }
+      const index = format.participants.findIndex(
+        (item) => (item.contactId || item.contact_id) === contactId
+      );
+      if (["PATCH", "DELETE"].includes(method) && index < 0) {
+        return error("Synthetische Formatteilnahme wurde nicht gefunden.", 404, "FORMAT_PARTICIPANT_NOT_FOUND");
+      }
+      const existingStatus = index >= 0
+        ? (format.participants[index].invitationStatus || format.participants[index].invitation_status || "Kandidat")
+        : "Kandidat";
+      const requestedStatus = String(body.invitationStatus || body.invitation_status || existingStatus).trim();
+      if (method !== "DELETE" && !FORMAT_PARTICIPANT_STATUSES.includes(requestedStatus)) {
+        return error(
+          `Ungültiger Beteiligungsstatus. Erlaubt sind: ${FORMAT_PARTICIPANT_STATUSES.join(", ")}.`,
+          400,
+          "FORMAT_PARTICIPANT_STATUS_INVALID"
+        );
+      }
+      const constraintFailure = method === "DELETE"
+        ? null
+        : participantConstraintFailure([{ contactId, invitationStatus: requestedStatus }]);
+      if (constraintFailure) return constraintFailure;
+      if (method === "PATCH" || method === "DELETE") {
+        const expectedUpdatedAt = String(body.expectedUpdatedAt || body.expected_updated_at || "").trim();
+        if (!expectedUpdatedAt) {
+          return error(
+            "Für die Teilnahmeänderung fehlt der erwartete Änderungsstand.",
+            428,
+            "FORMAT_PARTICIPANT_PRECONDITION_REQUIRED"
+          );
+        }
+        if (!participantTimestampMatches(
+          expectedUpdatedAt,
+          format.participants[index].updatedAt || format.participants[index].updated_at
+        )) {
+          return error(
+            "Die Teilnahme wurde zwischenzeitlich geändert.",
+            409,
+            "FORMAT_PARTICIPANT_VERSION_CONFLICT"
+          );
+        }
+      }
+      const now = new Date().toISOString();
+      let changed = false;
+      if (method === "POST" && index < 0) {
+        format.participants.push({
+          id: nextId("demo-format-participant"),
+          formatId: format.id,
+          contactId,
+          invitationStatus: requestedStatus,
+          participantRole: String(body.participantRole || body.participant_role || ""),
+          notes: String(body.notes || ""),
+          createdAt: now,
+          updatedAt: now
+        });
+        changed = true;
+      }
+      if (method === "PATCH") {
+        format.participants[index] = {
+          ...format.participants[index],
+          invitationStatus: requestedStatus,
+          ...(body.participantRole !== undefined || body.participant_role !== undefined
+            ? { participantRole: String(body.participantRole || body.participant_role || "") }
+            : {}),
+          ...(body.notes !== undefined ? { notes: String(body.notes || "") } : {}),
+          updatedAt: now
+        };
+        changed = true;
+      }
+      if (method === "DELETE") {
+        format.participants.splice(index, 1);
+        changed = true;
+      }
+      if (changed) {
+        updateFormatAfterParticipantMutation(
+          format,
+          method.toLowerCase(),
+          "Synthetische Formatteilnahme aktualisiert",
+          contactId
+        );
+      }
+      return json(format);
     }
 
     return error(`Die lokale Demo-API kennt den Aufruf ${method} ${path} noch nicht.`, 501);

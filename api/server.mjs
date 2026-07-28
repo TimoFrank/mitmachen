@@ -765,6 +765,8 @@ const USER_SETTINGS_INPUT_FIELDS = [
 ];
 const FORMAT_INPUT_FIELDS = [
   "id",
+  "idempotencyKey",
+  "idempotency_key",
   "title",
   "formatType",
   "format_type",
@@ -778,9 +780,21 @@ const FORMAT_INPUT_FIELDS = [
   "owner_id",
   "owner",
   "status",
-  "notes"
+  "notes",
+  "expectedUpdatedAt",
+  "expected_updated_at"
 ];
-const FORMAT_PARTICIPANT_INPUT_FIELDS = ["contactId", "contact_id", "invitationStatus", "invitation_status", "participantRole", "participant_role", "notes"];
+const FORMAT_PARTICIPANT_INPUT_FIELDS = [
+  "contactId",
+  "contact_id",
+  "invitationStatus",
+  "invitation_status",
+  "participantRole",
+  "participant_role",
+  "notes",
+  "expectedUpdatedAt",
+  "expected_updated_at"
+];
 const HOSPITATION_SLOT_INPUT_FIELDS = [
   "id",
   "contactId",
@@ -1057,16 +1071,31 @@ function normalizePriority(value) {
   return "Mittel";
 }
 
+const FORMAT_STATUSES = Object.freeze(["Planung", "Aktiv", "Abgeschlossen", "Archiviert"]);
+const INVITATION_STATUSES = Object.freeze([
+  "Kandidat",
+  "Eingeladen",
+  "Zugesagt",
+  "Abgesagt",
+  "Keine Rückmeldung",
+  "Teilgenommen"
+]);
+const FORMAT_CONSENT_REQUIRED_STATUSES = new Set([
+  "Eingeladen",
+  "Zugesagt",
+  "Teilgenommen"
+]);
+
 function normalizeFormatStatus(value) {
   const label = String(value || "").trim();
-  if (["Planung", "Aktiv", "Abgeschlossen", "Archiviert"].includes(label)) return label;
+  if (FORMAT_STATUSES.includes(label)) return label;
   if (label === "archived") return "Archiviert";
   return "Planung";
 }
 
 function normalizeInvitationStatus(value) {
   const label = String(value || "").trim();
-  if (["Kandidat", "Eingeladen", "Zugesagt", "Abgesagt", "Keine Rückmeldung", "Teilgenommen"].includes(label)) return label;
+  if (INVITATION_STATUSES.includes(label)) return label;
   return "Kandidat";
 }
 
@@ -1953,17 +1982,189 @@ function currentProfileToClient(row = {}) {
   };
 }
 
+function contractError(message, status, code, extras = {}) {
+  return Object.assign(new Error(message), { status, code, ...extras });
+}
+
+function strictFormatStatus(value) {
+  const label = String(value || "").trim();
+  if (!FORMAT_STATUSES.includes(label)) {
+    throw contractError(
+      `Ungültiger Formatstatus. Erlaubt sind: ${FORMAT_STATUSES.join(", ")}.`,
+      400,
+      "FORMAT_STATUS_INVALID"
+    );
+  }
+  return label;
+}
+
+function strictInvitationStatus(value) {
+  const label = String(value || "").trim();
+  if (!INVITATION_STATUSES.includes(label)) {
+    throw contractError(
+      `Ungültiger Beteiligungsstatus. Erlaubt sind: ${INVITATION_STATUSES.join(", ")}.`,
+      400,
+      "FORMAT_PARTICIPANT_STATUS_INVALID"
+    );
+  }
+  return label;
+}
+
+function formatTimestampInput(value, fieldLabel) {
+  if (value === undefined || value === null || value === "") return null;
+  const raw = String(value).trim();
+  if (!raw || !Number.isFinite(Date.parse(raw))) {
+    throw contractError(
+      `${fieldLabel} muss ein gültiger ISO-Datum-Zeit-Wert sein.`,
+      400,
+      "FORMAT_DATETIME_INVALID"
+    );
+  }
+  return raw;
+}
+
+function assertFormatTimeline(startsAt, endsAt) {
+  if (!startsAt || !endsAt) return;
+  if (Date.parse(endsAt) < Date.parse(startsAt)) {
+    throw contractError(
+      "Das Formatende darf nicht vor dem Formatbeginn liegen.",
+      400,
+      "FORMAT_ENDS_BEFORE_START"
+    );
+  }
+}
+
+function formatIdempotencyKey(input = {}) {
+  const raw = String(input.idempotencyKey || input.idempotency_key || "").trim().toLowerCase();
+  if (!raw) {
+    throw contractError(
+      "Für die Formatanlage fehlt der Idempotency-Key.",
+      428,
+      "FORMAT_IDEMPOTENCY_KEY_REQUIRED"
+    );
+  }
+  if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/u.test(raw)) {
+    throw contractError(
+      "Der Idempotency-Key für die Formatanlage muss eine UUID sein.",
+      400,
+      "FORMAT_IDEMPOTENCY_KEY_INVALID"
+    );
+  }
+  const suppliedId = String(input.id || "").trim().toLowerCase();
+  if (suppliedId && suppliedId !== raw) {
+    throw contractError(
+      "Format-ID und Idempotency-Key dürfen nicht voneinander abweichen.",
+      400,
+      "FORMAT_IDEMPOTENCY_KEY_MISMATCH"
+    );
+  }
+  return raw;
+}
+
+function formatExpectedUpdatedAt(request, input = {}) {
+  const bodyValue = input.expectedUpdatedAt || input.expected_updated_at || "";
+  const headerValue = Array.isArray(request?.headers?.["if-match"])
+    ? request.headers["if-match"][0]
+    : request?.headers?.["if-match"];
+  const supplied = String(bodyValue || headerValue || "")
+    .trim()
+    .replace(/^W\//u, "")
+    .replace(/^"|"$/gu, "");
+  if (!supplied) {
+    throw contractError(
+      "Für diese Änderung fehlt der Versionsstand des Formats.",
+      428,
+      "FORMAT_PRECONDITION_REQUIRED"
+    );
+  }
+  if (!Number.isFinite(Date.parse(supplied))) {
+    throw contractError(
+      "Der Versionsstand des Formats ist ungültig.",
+      400,
+      "FORMAT_PRECONDITION_INVALID"
+    );
+  }
+  return new Date(supplied).toISOString();
+}
+
+function participantExpectedUpdatedAt(request, input = {}) {
+  const bodyValue = input.expectedUpdatedAt || input.expected_updated_at || "";
+  const headerValue = Array.isArray(request?.headers?.["if-match"])
+    ? request.headers["if-match"][0]
+    : request?.headers?.["if-match"];
+  const supplied = String(bodyValue || headerValue || "")
+    .trim()
+    .replace(/^W\//u, "")
+    .replace(/^"|"$/gu, "");
+  if (!supplied) {
+    throw contractError(
+      "Für diese Änderung fehlt der Versionsstand des Teilnehmers.",
+      428,
+      "FORMAT_PARTICIPANT_PRECONDITION_REQUIRED"
+    );
+  }
+  if (!Number.isFinite(Date.parse(supplied))) {
+    throw contractError(
+      "Der Versionsstand des Teilnehmers ist ungültig.",
+      400,
+      "FORMAT_PARTICIPANT_PRECONDITION_INVALID"
+    );
+  }
+  return new Date(supplied).toISOString();
+}
+
+function optionalParticipantExpectedUpdatedAt(input = {}) {
+  const supplied = String(input.expectedUpdatedAt || input.expected_updated_at || "")
+    .trim()
+    .replace(/^W\//u, "")
+    .replace(/^"|"$/gu, "");
+  if (!supplied) return "";
+  if (!Number.isFinite(Date.parse(supplied))) {
+    throw contractError(
+      "Der Versionsstand des Teilnehmers ist ungültig.",
+      400,
+      "FORMAT_PARTICIPANT_PRECONDITION_INVALID"
+    );
+  }
+  return new Date(supplied).toISOString();
+}
+
+function comparableTimestamp(value) {
+  if (!value) return "";
+  const timestamp = new Date(value);
+  return Number.isFinite(timestamp.getTime()) ? timestamp.toISOString() : String(value);
+}
+
+function sameFormatCreationIntent(existing = {}, payload = {}) {
+  const pairs = [
+    [existing.title, payload.title],
+    [existing.format_type, payload.format_type],
+    [comparableTimestamp(existing.starts_at), comparableTimestamp(payload.starts_at)],
+    [comparableTimestamp(existing.ends_at), comparableTimestamp(payload.ends_at)],
+    [existing.location || "", payload.location || ""],
+    [existing.goal || "", payload.goal || ""],
+    [existing.owner_id || "", payload.owner_id || ""],
+    [existing.status || "Planung", payload.status || "Planung"],
+    [existing.notes || "", payload.notes || ""]
+  ];
+  return pairs.every(([left, right]) => String(left ?? "") === String(right ?? ""));
+}
+
 function formatToDb(format = {}) {
+  const startsAt = formatTimestampInput(format.startsAt ?? format.starts_at, "Formatbeginn");
+  const endsAt = formatTimestampInput(format.endsAt ?? format.ends_at, "Formatende");
+  assertFormatTimeline(startsAt, endsAt);
+  const hasStatus = Object.prototype.hasOwnProperty.call(format, "status");
   return {
     id: String(format.id || generatedId("format")).trim(),
     title: String(format.title || "").trim(),
     format_type: String(format.formatType || format.format_type || "Roundtable").trim() || "Roundtable",
-    starts_at: format.startsAt || format.starts_at || null,
-    ends_at: format.endsAt || format.ends_at || null,
+    starts_at: startsAt,
+    ends_at: endsAt,
     location: String(format.location || "").trim() || null,
     goal: String(format.goal || "").trim() || null,
     owner_id: format.ownerId || format.owner_id || resolveOwnerId(format.owner) || null,
-    status: normalizeFormatStatus(format.status),
+    status: hasStatus ? strictFormatStatus(format.status) : "Planung",
     notes: String(format.notes || "").trim() || null
   };
 }
@@ -1972,23 +2173,27 @@ function formatPatchToDb(patch = {}) {
   const db = {};
   if ("title" in patch) db.title = String(patch.title || "").trim();
   if ("formatType" in patch || "format_type" in patch) db.format_type = String(patch.formatType || patch.format_type || "Roundtable").trim() || "Roundtable";
-  if ("startsAt" in patch || "starts_at" in patch) db.starts_at = patch.startsAt || patch.starts_at || null;
-  if ("endsAt" in patch || "ends_at" in patch) db.ends_at = patch.endsAt || patch.ends_at || null;
+  if ("startsAt" in patch || "starts_at" in patch) db.starts_at = formatTimestampInput(patch.startsAt ?? patch.starts_at, "Formatbeginn");
+  if ("endsAt" in patch || "ends_at" in patch) db.ends_at = formatTimestampInput(patch.endsAt ?? patch.ends_at, "Formatende");
   if ("location" in patch) db.location = String(patch.location || "").trim() || null;
   if ("goal" in patch) db.goal = String(patch.goal || "").trim() || null;
   if ("ownerId" in patch || "owner_id" in patch) db.owner_id = patch.ownerId || patch.owner_id || null;
   if (!("ownerId" in patch) && !("owner_id" in patch) && "owner" in patch) db.owner_id = resolveOwnerId(patch.owner);
-  if ("status" in patch) db.status = normalizeFormatStatus(patch.status);
+  if ("status" in patch) db.status = strictFormatStatus(patch.status);
   if ("notes" in patch) db.notes = String(patch.notes || "").trim() || null;
   return db;
 }
 
 function formatParticipantToDb(participant = {}, formatId, contactId) {
+  const hasStatus = Object.prototype.hasOwnProperty.call(participant, "invitationStatus")
+    || Object.prototype.hasOwnProperty.call(participant, "invitation_status");
   return {
     id: String(participant.id || generatedId("format-participant")).trim(),
     format_id: formatId || participant.formatId || participant.format_id,
     contact_id: contactId || participant.contactId || participant.contact_id,
-    invitation_status: normalizeInvitationStatus(participant.invitationStatus || participant.invitation_status),
+    invitation_status: hasStatus
+      ? strictInvitationStatus(participant.invitationStatus ?? participant.invitation_status)
+      : "Kandidat",
     participant_role: String(participant.participantRole || participant.participant_role || "").trim() || null,
     notes: String(participant.notes || "").trim() || null
   };
@@ -1996,7 +2201,9 @@ function formatParticipantToDb(participant = {}, formatId, contactId) {
 
 function formatParticipantPatchToDb(patch = {}) {
   const db = {};
-  if ("invitationStatus" in patch || "invitation_status" in patch) db.invitation_status = normalizeInvitationStatus(patch.invitationStatus || patch.invitation_status);
+  if ("invitationStatus" in patch || "invitation_status" in patch) {
+    db.invitation_status = strictInvitationStatus(patch.invitationStatus ?? patch.invitation_status);
+  }
   if ("participantRole" in patch || "participant_role" in patch) db.participant_role = String(patch.participantRole || patch.participant_role || "").trim() || null;
   if ("notes" in patch) db.notes = String(patch.notes || "").trim() || null;
   return db;
@@ -4043,12 +4250,73 @@ const PUBLIC_DUPLICATE_CONFLICT_CODES = new Set([
   "CONTACT_POTENTIAL_DUPLICATE",
   "HOSPITATION_DUPLICATE"
 ]);
+const PUBLIC_FORMAT_ERROR_CODES = new Set([
+  "FORMAT_ADMIN_REQUIRED",
+  "FORMAT_ARCHIVE_ACTION_REQUIRED",
+  "FORMAT_DATETIME_INVALID",
+  "FORMAT_ENDS_BEFORE_START",
+  "FORMAT_IDEMPOTENCY_CONFLICT",
+  "FORMAT_IDEMPOTENCY_KEY_INVALID",
+  "FORMAT_IDEMPOTENCY_KEY_MISMATCH",
+  "FORMAT_IDEMPOTENCY_KEY_REQUIRED",
+  "FORMAT_INVITATION_CONSENT_REQUIRED",
+  "FORMAT_NOT_ARCHIVED",
+  "FORMAT_NOT_FOUND",
+  "FORMAT_PARTICIPANT_BATCH_DUPLICATE",
+  "FORMAT_PARTICIPANT_BATCH_SIZE_INVALID",
+  "FORMAT_PARTICIPANT_CONTACT_REQUIRED",
+  "FORMAT_PARTICIPANT_CONTACT_UNAVAILABLE",
+  "FORMAT_PARTICIPANT_IMPORT_PRECONDITION_REQUIRED",
+  "FORMAT_PARTICIPANT_IMPORT_VERSION_CONFLICT",
+  "FORMAT_PARTICIPANT_NOT_FOUND",
+  "FORMAT_PARTICIPANT_PATCH_EMPTY",
+  "FORMAT_PARTICIPANT_PRECONDITION_INVALID",
+  "FORMAT_PARTICIPANT_PRECONDITION_REQUIRED",
+  "FORMAT_PARTICIPANT_STATUS_INVALID",
+  "FORMAT_PARTICIPANT_VERSION_CONFLICT",
+  "FORMAT_PATCH_EMPTY",
+  "FORMAT_PRECONDITION_INVALID",
+  "FORMAT_PRECONDITION_REQUIRED",
+  "FORMAT_RESTORE_ACTION_REQUIRED",
+  "FORMAT_STATUS_INVALID",
+  "FORMAT_TITLE_REQUIRED",
+  "FORMAT_VERSION_CONFLICT"
+]);
 
 function duplicateConflict(code, duplicateId, message) {
   const error = new Error(message);
   error.status = 409;
   error.code = code;
   error.duplicateId = duplicateId;
+  return error;
+}
+
+function publicDatabaseContractError(error) {
+  const constraint = String(error?.constraint || "");
+  if (error?.code === "23514" && constraint === "format_participants_invitation_consent_check") {
+    return contractError(
+      "Für Eingeladen, Zugesagt oder Teilgenommen muss eine gültige Mitmachen-Einwilligung vorliegen.",
+      409,
+      "FORMAT_INVITATION_CONSENT_REQUIRED"
+    );
+  }
+  if (error?.code === "23514" && /format_participants.*invitation_status/i.test(constraint)) {
+    return contractError(
+      "Der Beteiligungsstatus ist ungültig.",
+      400,
+      "FORMAT_PARTICIPANT_STATUS_INVALID"
+    );
+  }
+  if (error?.code === "23514" && /formats.*status/i.test(constraint)) {
+    return contractError("Der Formatstatus ist ungültig.", 400, "FORMAT_STATUS_INVALID");
+  }
+  if (error?.code === "23503" && /format_participants.*contact_id/i.test(constraint)) {
+    return contractError(
+      "Der ausgewählte Kontakt ist nicht verfügbar.",
+      409,
+      "FORMAT_PARTICIPANT_CONTACT_UNAVAILABLE"
+    );
+  }
   return error;
 }
 
@@ -4736,12 +5004,41 @@ async function notifyFormatChanged(request, format = {}, actorId = "", action = 
   const recipients = action === "create" || ownerChanged
     ? uniqueIds([previousOwnerId, nextOwnerId, ...participantOwnerIds])
     : idsExcept(baseRecipients, actorId);
+  const eventType = action === "create"
+    ? "format_created"
+    : ownerChanged
+      ? "format_owner_changed"
+      : action === "participant"
+        ? "format_participant_changed"
+        : action === "archive"
+          ? "format_archived"
+          : action === "restore"
+            ? "format_restored"
+            : "format_updated";
+  const title = action === "create"
+    ? "Neues Format"
+    : ownerChanged
+      ? "Format-Owner geändert"
+      : action === "participant"
+        ? "Format-Teilnehmer geändert"
+        : action === "archive"
+          ? "Format archiviert"
+          : action === "restore"
+            ? "Format wiederhergestellt"
+            : "Format aktualisiert";
+  const verb = action === "create"
+    ? "angelegt"
+    : action === "archive"
+      ? "archiviert"
+      : action === "restore"
+        ? "wiederhergestellt"
+        : "aktualisiert";
   await createNotificationEvent(request, {
-    eventType: action === "create" ? "format_created" : ownerChanged ? "format_owner_changed" : action === "participant" ? "format_participant_changed" : "format_updated",
+    eventType,
     entityType: action === "participant" ? "format_participant" : "format",
     entityId: format.id,
-    title: action === "create" ? "Neues Format" : ownerChanged ? "Format-Owner geändert" : action === "participant" ? "Format-Teilnehmer geändert" : "Format aktualisiert",
-    body: `${format.title || "Ein Format"} wurde ${action === "create" ? "angelegt" : "aktualisiert"}.`,
+    title,
+    body: `${format.title || "Ein Format"} wurde ${verb}.`,
     route: formatRoute(format.id),
     payload: {
       formatTitle: format.title || "",
@@ -6657,6 +6954,16 @@ async function getFormat(request, id) {
   return formatToDto(rows[0], participantGroups.get(id) || []);
 }
 
+function assertFormatVersion(expectedUpdatedAt, actualUpdatedAt, code = "FORMAT_VERSION_CONFLICT") {
+  if (comparableTimestamp(expectedUpdatedAt) !== comparableTimestamp(actualUpdatedAt)) {
+    throw contractError(
+      "Das Format wurde zwischenzeitlich geändert. Bitte neu laden.",
+      409,
+      code
+    );
+  }
+}
+
 async function createFormat(request) {
   await loadProfiles(request);
   const userId = userIdFromToken(request);
@@ -6665,15 +6972,38 @@ async function createFormat(request) {
     error.status = 401;
     throw error;
   }
-  const payload = formatToDb(await readValidatedJsonBody(request, FORMAT_INPUT_FIELDS, "Format"));
+  const input = await readValidatedJsonBody(request, FORMAT_INPUT_FIELDS, "Format");
+  const idempotencyKey = formatIdempotencyKey(input);
+  const payload = formatToDb({ ...input, id: idempotencyKey });
   if (!payload.title) {
-    const error = new Error("Titel des Formats fehlt.");
-    error.status = 400;
-    throw error;
+    throw contractError("Titel des Formats fehlt.", 400, "FORMAT_TITLE_REQUIRED");
   }
   payload.created_by = userId;
   payload.updated_by = userId;
-  const row = await withDomainTransaction(async (transaction) => {
+  payload.created_at = new Date().toISOString();
+  payload.updated_at = payload.created_at;
+  const outcome = await withDomainTransaction(async (transaction) => {
+    await databaseQuery(
+      transaction,
+      "select pg_advisory_xact_lock(hashtextextended($1, 0))",
+      [`format-create:${idempotencyKey}`]
+    );
+    const existingRows = await cloudSqlRest("formats", request, new URLSearchParams({
+      id: `eq.${idempotencyKey}`,
+      select: FORMAT_FIELDS.join(","),
+      limit: "1"
+    }), { transaction });
+    if (existingRows?.[0]) {
+      const existing = existingRows[0];
+      if (existing.created_by !== userId || !sameFormatCreationIntent(existing, payload)) {
+        throw contractError(
+          "Dieser Idempotency-Key wurde bereits für eine andere Formatanlage verwendet.",
+          409,
+          "FORMAT_IDEMPOTENCY_CONFLICT"
+        );
+      }
+      return { row: existing, created: false };
+    }
     const rows = await cloudSqlRest("formats", request, new URLSearchParams({
       select: FORMAT_FIELDS.join(",")
     }), {
@@ -6689,10 +7019,11 @@ async function createFormat(request) {
       entityId: created.id,
       objectLabel: created.title
     });
-    return created;
+    return { row: created, created: true };
   });
-  const dto = formatToDto(row, []);
-  await notifyFormatChanged(request, dto, userId, "create");
+  const participantGroups = await formatParticipantsByFormat(request, [outcome.row.id]);
+  const dto = formatToDto(outcome.row, participantGroups.get(outcome.row.id) || []);
+  if (outcome.created) await notifyFormatChanged(request, dto, userId, "create");
   return dto;
 }
 
@@ -6705,22 +7036,54 @@ async function patchFormat(request, id, patch = null) {
     throw error;
   }
   const rawPatch = patch || await readValidatedJsonBody(request, FORMAT_INPUT_FIELDS, "Format-Update");
-  const shouldNotify = Object.keys(rawPatch || {}).length > 0;
-  const previous = shouldNotify ? await getFormat(request, id) : null;
+  const expectedUpdatedAt = formatExpectedUpdatedAt(request, rawPatch);
+  const previous = await getFormat(request, id);
+  assertFormatVersion(expectedUpdatedAt, previous.updatedAt);
   const domainPatch = formatPatchToDb(rawPatch);
   if (!Object.keys(domainPatch).length) {
-    const error = new Error("Keine unterstützten Formatfelder im Request.");
-    error.status = 400;
-    throw error;
+    throw contractError(
+      "Keine unterstützten Formatfelder im Request.",
+      400,
+      "FORMAT_PATCH_EMPTY"
+    );
   }
+  if (previous.status === "Archiviert") {
+    throw contractError(
+      "Archivierte Formate können nur über die Wiederherstellen-Aktion reaktiviert werden.",
+      409,
+      "FORMAT_RESTORE_ACTION_REQUIRED"
+    );
+  }
+  if (domainPatch.status === "Archiviert") {
+    throw contractError(
+      "Formate müssen über die Archivieren-Aktion archiviert werden.",
+      409,
+      "FORMAT_ARCHIVE_ACTION_REQUIRED"
+    );
+  }
+  assertFormatTimeline(
+    Object.prototype.hasOwnProperty.call(domainPatch, "starts_at") ? domainPatch.starts_at : previous.startsAt,
+    Object.prototype.hasOwnProperty.call(domainPatch, "ends_at") ? domainPatch.ends_at : previous.endsAt
+  );
   const payload = {
     ...domainPatch,
     updated_by: userId,
     updated_at: new Date().toISOString()
   };
   const row = await withDomainTransaction(async (transaction) => {
-    const updateParams = new URLSearchParams({ id: `eq.${id}`, select: FORMAT_FIELDS.join(",") });
-    if (previous?.updatedAt) updateParams.set("updated_at", `eq.${previous.updatedAt}`);
+    const current = await databaseQuery(
+      transaction,
+      "select * from public.formats where id = $1 for update",
+      [id]
+    );
+    if (!current.rows?.[0]) {
+      throw contractError("Format wurde nicht gefunden.", 404, "FORMAT_NOT_FOUND");
+    }
+    assertFormatVersion(expectedUpdatedAt, current.rows[0].updated_at);
+    const updateParams = new URLSearchParams({
+      id: `eq.${id}`,
+      select: FORMAT_FIELDS.join(",")
+    });
     const rows = await cloudSqlRest("formats", request, updateParams, {
       method: "PATCH",
       headers: { prefer: "return=representation" },
@@ -6728,9 +7091,11 @@ async function patchFormat(request, id, patch = null) {
       transaction
     });
     if (!rows?.[0]) {
-      const error = new Error("Format wurde zwischenzeitlich geändert. Bitte neu laden.");
-      error.status = 409;
-      throw error;
+      throw contractError(
+        "Das Format wurde zwischenzeitlich geändert. Bitte neu laden.",
+        409,
+        "FORMAT_VERSION_CONFLICT"
+      );
     }
     await recordActivityEventInternal(transaction, request, {
       eventKey: "format.updated",
@@ -6743,18 +7108,106 @@ async function patchFormat(request, id, patch = null) {
   });
   const participantGroups = await formatParticipantsByFormat(request, [id]);
   const dto = formatToDto(row, participantGroups.get(id) || []);
-  if (shouldNotify) await notifyFormatChanged(request, dto, userId, "update", previous);
+  await notifyFormatChanged(request, dto, userId, "update", previous);
+  return dto;
+}
+
+async function transitionFormatArchiveState(request, id, archived) {
+  await loadProfiles(request);
+  if (roleRank(request.currentProfile?.role) < roleRank("admin")) {
+    throw contractError(
+      "Archivieren und Wiederherstellen von Formaten ist nur für Admins erlaubt.",
+      403,
+      "FORMAT_ADMIN_REQUIRED"
+    );
+  }
+  const userId = userIdFromToken(request);
+  if (!userId) throw contractError("User-ID konnte nicht aus dem Token gelesen werden.", 401, "AUTH_USER_REQUIRED");
+  const input = await readValidatedJsonBody(
+    request,
+    ["expectedUpdatedAt", "expected_updated_at"],
+    archived ? "Format-Archivierung" : "Format-Wiederherstellung"
+  );
+  const expectedUpdatedAt = formatExpectedUpdatedAt(request, input);
+  const previous = await getFormat(request, id);
+  assertFormatVersion(expectedUpdatedAt, previous.updatedAt);
+  const nextStatus = archived ? "Archiviert" : "Planung";
+  if (archived && previous.status === "Archiviert") return previous;
+  if (!archived && previous.status !== "Archiviert") {
+    throw contractError(
+      "Nur archivierte Formate können wiederhergestellt werden.",
+      409,
+      "FORMAT_NOT_ARCHIVED"
+    );
+  }
+  const row = await withDomainTransaction(async (transaction) => {
+    const current = await databaseQuery(
+      transaction,
+      "select * from public.formats where id = $1 for update",
+      [id]
+    );
+    if (!current.rows?.[0]) {
+      throw contractError("Format wurde nicht gefunden.", 404, "FORMAT_NOT_FOUND");
+    }
+    assertFormatVersion(expectedUpdatedAt, current.rows[0].updated_at);
+    const rows = await cloudSqlRest("formats", request, new URLSearchParams({
+      id: `eq.${id}`,
+      select: FORMAT_FIELDS.join(",")
+    }), {
+      method: "PATCH",
+      headers: { prefer: "return=representation" },
+      body: {
+        status: nextStatus,
+        updated_by: userId,
+        updated_at: new Date().toISOString()
+      },
+      transaction
+    });
+    if (!rows?.[0]) {
+      throw contractError(
+        "Das Format wurde zwischenzeitlich geändert. Bitte neu laden.",
+        409,
+        "FORMAT_VERSION_CONFLICT"
+      );
+    }
+    await recordActivityEventInternal(transaction, request, {
+      eventKey: "format.updated",
+      entityType: "format",
+      entityId: id,
+      objectLabel: rows[0].title,
+      details: { action: archived ? "archive" : "restore", changedFields: ["status"] }
+    });
+    return rows[0];
+  });
+  const participantGroups = await formatParticipantsByFormat(request, [id]);
+  const dto = formatToDto(row, participantGroups.get(id) || []);
+  await notifyFormatChanged(request, dto, userId, archived ? "archive" : "restore", previous);
   return dto;
 }
 
 async function deleteFormat(request, id) {
+  if (roleRank(request.currentProfile?.role) < roleRank("admin")) {
+    throw contractError(
+      "Formate dürfen nur von Admins gelöscht werden.",
+      403,
+      "FORMAT_ADMIN_REQUIRED"
+    );
+  }
+  const input = await readValidatedJsonBody(
+    request,
+    ["expectedUpdatedAt", "expected_updated_at"],
+    "Format-Löschung"
+  );
+  const expectedUpdatedAt = formatExpectedUpdatedAt(request, input);
   await withDomainTransaction(async (transaction) => {
-    const existing = await cloudSqlRest("formats", request, new URLSearchParams({
-      id: `eq.${id}`,
-      select: "id,title",
-      limit: "1"
-    }), { transaction });
-    if (!existing?.[0]) throw Object.assign(new Error("Format wurde nicht gefunden."), { status: 404 });
+    const existingResult = await databaseQuery(
+      transaction,
+      "select id, title, updated_at from public.formats where id = $1 for update",
+      [id]
+    );
+    const existing = existingResult.rows?.[0];
+    if (!existing) throw contractError("Format wurde nicht gefunden.", 404, "FORMAT_NOT_FOUND");
+    assertFormatVersion(expectedUpdatedAt, existing.updated_at);
     await cloudSqlRest("formats", request, new URLSearchParams({ id: `eq.${id}` }), {
       method: "DELETE",
       headers: { prefer: "return=minimal" },
@@ -6764,16 +7217,136 @@ async function deleteFormat(request, id) {
       eventKey: "format.updated",
       entityType: "format",
       entityId: id,
-      objectLabel: existing[0].title,
+      objectLabel: existing.title,
       details: { action: "delete" }
     });
   });
   return { ok: true };
 }
 
+function changedParticipantRows(result) {
+  if (Array.isArray(result)) return result.length;
+  if (Number.isFinite(Number(result?.changedCount))) return Number(result.changedCount);
+  return result ? 1 : 0;
+}
+
+async function assertParticipantContactsAvailable(transaction, participantRows = []) {
+  const contactIds = [...new Set(participantRows.map((row) => String(row.contact_id || "").trim()).filter(Boolean))];
+  if (!contactIds.length) return;
+  const result = await databaseQuery(
+    transaction,
+    `select id, status, mitmachen_consent_status
+       from public.contacts
+      where id = any($1::text[])
+      order by id
+      for share`,
+    [contactIds]
+  );
+  const contacts = new Map((result.rows || []).map((row) => [row.id, row]));
+  const unavailable = contactIds.filter((contactId) => {
+    const contact = contacts.get(contactId);
+    return !contact || isArchivedStatus(contact.status);
+  });
+  if (unavailable.length) {
+    const blockedContactIds = [...new Set(unavailable)];
+    throw contractError(
+      "Mindestens ein ausgewählter Kontakt ist nicht verfügbar oder archiviert.",
+      409,
+      "FORMAT_PARTICIPANT_CONTACT_UNAVAILABLE",
+      {
+        blockedContactIds,
+        details: { blockedContactIds }
+      }
+    );
+  }
+  const consentRequired = participantRows
+    .filter((row) => FORMAT_CONSENT_REQUIRED_STATUSES.has(row.invitation_status))
+    .map((row) => row.contact_id)
+    .filter((contactId) => contacts.get(contactId)?.mitmachen_consent_status !== "granted");
+  if (consentRequired.length) {
+    const blockedContactIds = [...new Set(consentRequired)];
+    throw contractError(
+      "Für Eingeladen, Zugesagt oder Teilgenommen muss eine gültige Mitmachen-Einwilligung vorliegen.",
+      409,
+      "FORMAT_INVITATION_CONSENT_REQUIRED",
+      {
+        blockedContactIds,
+        details: { blockedContactIds }
+      }
+    );
+  }
+}
+
+function normalizedParticipantRows(items, formatId, userId, label, options = {}) {
+  if (!Array.isArray(items) || !items.length || items.length > 500) {
+    throw contractError(
+      `${label} muss zwischen 1 und 500 Einträge enthalten.`,
+      400,
+      "FORMAT_PARTICIPANT_BATCH_SIZE_INVALID"
+    );
+  }
+  const now = new Date().toISOString();
+  const seen = new Set();
+  return items.map((item, index) => {
+    assertAllowedFields(item, FORMAT_PARTICIPANT_INPUT_FIELDS, `${label}, Eintrag ${index + 1}`);
+    const contactId = String(item?.contactId || item?.contact_id || "").trim();
+    if (!contactId) {
+      throw contractError(
+        `Kontakt-ID in ${label}, Eintrag ${index + 1}, fehlt.`,
+        400,
+        "FORMAT_PARTICIPANT_CONTACT_REQUIRED"
+      );
+    }
+    if (seen.has(contactId)) {
+      throw contractError(
+        `Kontakt ${contactId} kommt im selben Batch mehrfach vor.`,
+        400,
+        "FORMAT_PARTICIPANT_BATCH_DUPLICATE"
+      );
+    }
+    seen.add(contactId);
+    const row = formatParticipantToDb(item, formatId, contactId);
+    return {
+      ...row,
+      created_by: userId,
+      updated_by: userId,
+      updated_at: now,
+      ...(options.includeExpectedUpdatedAt
+        ? { _expected_updated_at: optionalParticipantExpectedUpdatedAt(item) }
+        : {})
+    };
+  });
+}
+
+function sameParticipantImportIntent(existing = {}, imported = {}) {
+  return [
+    ["invitation_status", "Kandidat"],
+    ["participant_role", ""],
+    ["notes", ""]
+  ].every(([field, fallback]) =>
+    String(existing[field] ?? fallback) === String(imported[field] ?? fallback)
+  );
+}
+
 async function mutateFormatParticipants(request, formatId, userId, action, work) {
-  await withDomainTransaction(async (transaction) => {
-    await work(transaction);
+  const mutation = await withDomainTransaction(async (transaction) => {
+    const current = await databaseQuery(
+      transaction,
+      "select * from public.formats where id = $1 for update",
+      [formatId]
+    );
+    if (!current.rows?.[0]) {
+      throw contractError("Format wurde nicht gefunden.", 404, "FORMAT_NOT_FOUND");
+    }
+    if (current.rows[0].status === "Archiviert") {
+      throw contractError(
+        "Archivierte Formate müssen vor Teilnehmeränderungen wiederhergestellt werden.",
+        409,
+        "FORMAT_RESTORE_ACTION_REQUIRED"
+      );
+    }
+    const result = await work(transaction);
+    if (!changedParticipantRows(result)) return { changed: false };
     const rows = await cloudSqlRest("formats", request, new URLSearchParams({
       id: `eq.${formatId}`,
       select: FORMAT_FIELDS.join(",")
@@ -6791,9 +7364,10 @@ async function mutateFormatParticipants(request, formatId, userId, action, work)
       objectLabel: rows[0].title,
       details: { participantAction: action }
     });
+    return { changed: true };
   });
   const updated = await getFormat(request, formatId);
-  await notifyFormatChanged(request, updated, userId, "participant");
+  if (mutation.changed) await notifyFormatChanged(request, updated, userId, "participant");
   return updated;
 }
 
@@ -6807,18 +7381,36 @@ async function addFormatParticipant(request, formatId) {
   const body = await readValidatedJsonBody(request, FORMAT_PARTICIPANT_INPUT_FIELDS, "Format-Teilnehmer");
   const contactId = body.contactId || body.contact_id;
   if (!contactId) {
-    const error = new Error("Kontakt-ID fuer Teilnehmer fehlt.");
-    error.status = 400;
-    throw error;
+    throw contractError("Kontakt-ID für Teilnehmer fehlt.", 400, "FORMAT_PARTICIPANT_CONTACT_REQUIRED");
   }
   await linkedContactVisibleToRequest(request, contactId);
   const payload = formatParticipantToDb(body, formatId, contactId);
   payload.created_by = userId;
   payload.updated_by = userId;
+  payload.updated_at = new Date().toISOString();
   return mutateFormatParticipants(request, formatId, userId, "add", async (transaction) => {
-    await cloudSqlRest("format_participants", request, new URLSearchParams({ on_conflict: "format_id,contact_id" }), {
+    await assertParticipantContactsAvailable(transaction, [payload]);
+    return cloudSqlRest("format_participants", request, new URLSearchParams({ on_conflict: "format_id,contact_id" }), {
       method: "POST",
-      headers: { prefer: "resolution=ignore-duplicates,return=minimal" },
+      headers: { prefer: "resolution=ignore-duplicates,return=representation" },
+      body: payload,
+      transaction
+    });
+  });
+}
+
+async function addFormatParticipantBatch(request, formatId) {
+  const userId = userIdFromToken(request);
+  if (!userId) throw contractError("User-ID konnte nicht aus dem Token gelesen werden.", 401, "AUTH_USER_REQUIRED");
+  const body = await readValidatedJsonBody(request, ["items"], "Format-Teilnehmer-Batch");
+  const payload = normalizedParticipantRows(body.items, formatId, userId, "Der Format-Teilnehmer-Batch");
+  return mutateFormatParticipants(request, formatId, userId, "batch_add", async (transaction) => {
+    await assertParticipantContactsAvailable(transaction, payload);
+    return cloudSqlRest("format_participants", request, new URLSearchParams({
+      on_conflict: "format_id,contact_id"
+    }), {
+      method: "POST",
+      headers: { prefer: "resolution=ignore-duplicates,return=representation" },
       body: payload,
       transaction
     });
@@ -6833,33 +7425,128 @@ async function importFormatParticipants(request, formatId) {
     throw error;
   }
   const body = await readValidatedJsonBody(request, ["items"], "Format-Einladungsimport");
-  const items = Array.isArray(body.items) ? body.items : [];
-  if (!items.length || items.length > 500) {
-    const error = new Error("Der Format-Einladungsimport muss zwischen 1 und 500 Einträge enthalten.");
-    error.status = 400;
-    throw error;
-  }
-  const now = new Date().toISOString();
-  const payload = [];
-  for (const item of items) {
-    const contactId = item?.contactId || item?.contact_id;
-    if (!contactId) {
-      const error = new Error("Kontakt-ID für einen importierten Format-Teilnehmer fehlt.");
-      error.status = 400;
-      throw error;
-    }
-    await linkedContactVisibleToRequest(request, contactId);
-    const row = formatParticipantToDb(item, formatId, contactId);
-    delete row.id;
-    payload.push({ ...row, updated_by: userId, updated_at: now });
-  }
+  const payload = normalizedParticipantRows(
+    body.items,
+    formatId,
+    userId,
+    "Der Format-Einladungsimport",
+    { includeExpectedUpdatedAt: true }
+  );
   return mutateFormatParticipants(request, formatId, userId, "import", async (transaction) => {
-    await cloudSqlRest("format_participants", request, new URLSearchParams({ on_conflict: "format_id,contact_id" }), {
-      method: "POST",
-      headers: { prefer: "resolution=merge-duplicates,return=minimal" },
-      body: payload,
-      transaction
-    });
+    const contactIds = payload.map((row) => row.contact_id);
+    const existingResult = await databaseQuery(
+      transaction,
+      `select *
+         from public.format_participants
+        where format_id = $1 and contact_id = any($2::text[])
+        for update`,
+      [formatId, contactIds]
+    );
+    const existingByContactId = new Map(
+      (existingResult.rows || []).map((row) => [row.contact_id, row])
+    );
+    const newRows = [];
+    const changedRows = [];
+    const missingPreconditionContactIds = [];
+    const versionConflictContactIds = [];
+
+    for (const imported of payload) {
+      const existing = existingByContactId.get(imported.contact_id);
+      if (!existing) {
+        if (imported._expected_updated_at) {
+          versionConflictContactIds.push(imported.contact_id);
+        } else {
+          newRows.push(imported);
+        }
+        continue;
+      }
+      if (sameParticipantImportIntent(existing, imported)) continue;
+      if (!imported._expected_updated_at) {
+        missingPreconditionContactIds.push(imported.contact_id);
+        continue;
+      }
+      if (
+        comparableTimestamp(imported._expected_updated_at)
+        !== comparableTimestamp(existing.updated_at)
+      ) {
+        versionConflictContactIds.push(imported.contact_id);
+        continue;
+      }
+      changedRows.push(imported);
+    }
+
+    if (missingPreconditionContactIds.length) {
+      const blockedContactIds = [...new Set(missingPreconditionContactIds)];
+      throw contractError(
+        "Für geänderte bestehende Importzeilen fehlt der Versionsstand des Teilnehmers.",
+        428,
+        "FORMAT_PARTICIPANT_IMPORT_PRECONDITION_REQUIRED",
+        {
+          blockedContactIds,
+          details: {
+            blockedContactIds,
+            reason: "expectedUpdatedAt_required_for_existing_update"
+          }
+        }
+      );
+    }
+    if (versionConflictContactIds.length) {
+      const blockedContactIds = [...new Set(versionConflictContactIds)];
+      throw contractError(
+        "Mindestens eine Importzeile wurde zwischenzeitlich geändert. Bitte neu laden.",
+        409,
+        "FORMAT_PARTICIPANT_IMPORT_VERSION_CONFLICT",
+        {
+          blockedContactIds,
+          details: {
+            blockedContactIds,
+            reason: "participant_version_conflict"
+          }
+        }
+      );
+    }
+
+    const rowsToWrite = [...newRows, ...changedRows];
+    await assertParticipantContactsAvailable(transaction, rowsToWrite);
+    const changed = [];
+    if (newRows.length) {
+      const inserted = await cloudSqlRest(
+        "format_participants",
+        request,
+        new URLSearchParams({ on_conflict: "format_id,contact_id" }),
+        {
+          method: "POST",
+          headers: { prefer: "resolution=ignore-duplicates,return=representation" },
+          body: newRows,
+          transaction
+        }
+      );
+      changed.push(...(inserted || []));
+    }
+    for (const imported of changedRows) {
+      const updated = await cloudSqlRest(
+        "format_participants",
+        request,
+        new URLSearchParams({
+          format_id: `eq.${formatId}`,
+          contact_id: `eq.${imported.contact_id}`
+        }),
+        {
+          method: "PATCH",
+          headers: { prefer: "return=representation" },
+          body: {
+            invitation_status: imported.invitation_status,
+            participant_role: imported.participant_role,
+            notes: imported.notes,
+            updated_by: userId,
+            updated_at: imported.updated_at
+          },
+          transaction
+        }
+      );
+      changed.push(...(updated || []));
+    }
+    return changed;
   });
 }
 
@@ -6871,15 +7558,42 @@ async function patchFormatParticipant(request, formatId, contactId) {
     error.status = 401;
     throw error;
   }
-  const payload = formatParticipantPatchToDb(await readValidatedJsonBody(request, FORMAT_PARTICIPANT_INPUT_FIELDS, "Format-Teilnehmer"));
+  const input = await readValidatedJsonBody(request, FORMAT_PARTICIPANT_INPUT_FIELDS, "Format-Teilnehmer");
+  const expectedUpdatedAt = participantExpectedUpdatedAt(request, input);
+  const payload = formatParticipantPatchToDb(input);
   if (!Object.keys(payload).length) {
-    const error = new Error("Keine unterstützten Teilnehmerfelder im Request.");
-    error.status = 400;
-    throw error;
+    throw contractError(
+      "Keine unterstützten Teilnehmerfelder im Request.",
+      400,
+      "FORMAT_PARTICIPANT_PATCH_EMPTY"
+    );
   }
   payload.updated_by = userId;
   payload.updated_at = new Date().toISOString();
   return mutateFormatParticipants(request, formatId, userId, "update", async (transaction) => {
+    const currentResult = await databaseQuery(
+      transaction,
+      `select *
+         from public.format_participants
+        where format_id = $1 and contact_id = $2
+        for update`,
+      [formatId, contactId]
+    );
+    const currentParticipant = currentResult.rows?.[0];
+    if (!currentParticipant) {
+      throw contractError("Format-Teilnehmer wurde nicht gefunden.", 404, "FORMAT_PARTICIPANT_NOT_FOUND");
+    }
+    if (comparableTimestamp(currentParticipant.updated_at) !== comparableTimestamp(expectedUpdatedAt)) {
+      throw contractError(
+        "Der Teilnehmer wurde zwischenzeitlich geändert. Bitte neu laden.",
+        409,
+        "FORMAT_PARTICIPANT_VERSION_CONFLICT"
+      );
+    }
+    await assertParticipantContactsAvailable(transaction, [{
+      contact_id: contactId,
+      invitation_status: payload.invitation_status || currentParticipant.invitation_status
+    }]);
     const rows = await cloudSqlRest("format_participants", request, new URLSearchParams({
       format_id: `eq.${formatId}`,
       contact_id: `eq.${contactId}`
@@ -6889,7 +7603,14 @@ async function patchFormatParticipant(request, formatId, contactId) {
       body: payload,
       transaction
     });
-    if (!rows?.[0]) throw Object.assign(new Error("Format-Teilnehmer wurde nicht gefunden."), { status: 404 });
+    if (!rows?.[0]) {
+      throw contractError(
+        "Der Teilnehmer wurde zwischenzeitlich geändert. Bitte neu laden.",
+        409,
+        "FORMAT_PARTICIPANT_VERSION_CONFLICT"
+      );
+    }
+    return rows;
   });
 }
 
@@ -6897,22 +7618,47 @@ async function removeFormatParticipant(request, formatId, contactId) {
   await linkedContactVisibleToRequest(request, contactId);
   const userId = userIdFromToken(request);
   if (!userId) throw Object.assign(new Error("User-ID konnte nicht aus dem Token gelesen werden."), { status: 401 });
+  const input = await readValidatedJsonBody(
+    request,
+    ["expectedUpdatedAt", "expected_updated_at"],
+    "Format-Teilnehmer-Löschung"
+  );
+  const expectedUpdatedAt = participantExpectedUpdatedAt(request, input);
   return mutateFormatParticipants(request, formatId, userId, "remove", async (transaction) => {
-    const existing = await cloudSqlRest("format_participants", request, new URLSearchParams({
-      format_id: `eq.${formatId}`,
-      contact_id: `eq.${contactId}`,
-      select: "id",
-      limit: "1"
-    }), { transaction });
-    if (!existing?.[0]) throw Object.assign(new Error("Format-Teilnehmer wurde nicht gefunden."), { status: 404 });
-    await cloudSqlRest("format_participants", request, new URLSearchParams({
-      format_id: `eq.${formatId}`,
-      contact_id: `eq.${contactId}`
-    }), {
-      method: "DELETE",
-      headers: { prefer: "return=minimal" },
-      transaction
-    });
+    const currentResult = await databaseQuery(
+      transaction,
+      `select id, updated_at
+         from public.format_participants
+        where format_id = $1 and contact_id = $2
+        for update`,
+      [formatId, contactId]
+    );
+    const currentParticipant = currentResult.rows?.[0];
+    if (!currentParticipant) {
+      throw contractError("Format-Teilnehmer wurde nicht gefunden.", 404, "FORMAT_PARTICIPANT_NOT_FOUND");
+    }
+    if (comparableTimestamp(currentParticipant.updated_at) !== comparableTimestamp(expectedUpdatedAt)) {
+      throw contractError(
+        "Der Teilnehmer wurde zwischenzeitlich geändert. Bitte neu laden.",
+        409,
+        "FORMAT_PARTICIPANT_VERSION_CONFLICT"
+      );
+    }
+    const deleted = await databaseQuery(
+      transaction,
+      `delete from public.format_participants
+        where format_id = $1 and contact_id = $2
+        returning id`,
+      [formatId, contactId]
+    );
+    if (!deleted.rows?.[0]) {
+      throw contractError(
+        "Der Teilnehmer wurde zwischenzeitlich geändert. Bitte neu laden.",
+        409,
+        "FORMAT_PARTICIPANT_VERSION_CONFLICT"
+      );
+    }
+    return deleted.rows;
   });
 }
 
@@ -9120,6 +9866,13 @@ async function handle(request, response) {
         decodeURIComponent(formatParticipantImportMatch[1])
       ));
     }
+    const formatParticipantBatchMatch = /^\/api\/formats\/([^/]+)\/participants\/batch$/.exec(url.pathname);
+    if (request.method === "POST" && formatParticipantBatchMatch) {
+      return jsonResponse(response, 200, await addFormatParticipantBatch(
+        request,
+        decodeURIComponent(formatParticipantBatchMatch[1])
+      ));
+    }
     const formatParticipantMatch = /^\/api\/formats\/([^/]+)\/participants(?:\/([^/]+))?$/.exec(url.pathname);
     if (request.method === "POST" && formatParticipantMatch && !formatParticipantMatch[2]) {
       return jsonResponse(response, 200, await addFormatParticipant(request, decodeURIComponent(formatParticipantMatch[1])));
@@ -9136,6 +9889,14 @@ async function handle(request, response) {
         request,
         decodeURIComponent(formatParticipantMatch[1]),
         decodeURIComponent(formatParticipantMatch[2])
+      ));
+    }
+    const formatLifecycleMatch = /^\/api\/formats\/([^/]+)\/(archive|restore)$/.exec(url.pathname);
+    if (request.method === "POST" && formatLifecycleMatch) {
+      return jsonResponse(response, 200, await transitionFormatArchiveState(
+        request,
+        decodeURIComponent(formatLifecycleMatch[1]),
+        formatLifecycleMatch[2] === "archive"
       ));
     }
     const formatMatch = /^\/api\/formats\/([^/]+)$/.exec(url.pathname);
@@ -9181,7 +9942,8 @@ async function handle(request, response) {
       return jsonResponse(response, 200, await patchContact(request, decodeURIComponent(contactMatch[1])));
     }
     return jsonResponse(response, 404, { error: "Not found" });
-  } catch (error) {
+  } catch (caughtError) {
+    const error = publicDatabaseContractError(caughtError);
     const status = Number(error.status || 500);
     if (error.retryAfter) response.setHeader("retry-after", String(error.retryAfter));
     if (status >= 500) console.error(JSON.stringify({
@@ -9192,9 +9954,18 @@ async function handle(request, response) {
     const payload = {
       error: status >= 500 ? "API-Anfrage fehlgeschlagen." : error.message
     };
-    if (status === 409 && PUBLIC_DUPLICATE_CONFLICT_CODES.has(error.code)) {
+    if (PUBLIC_DUPLICATE_CONFLICT_CODES.has(error.code)) {
       payload.code = error.code;
       if (error.duplicateId) payload.duplicateId = error.duplicateId;
+    }
+    if (PUBLIC_FORMAT_ERROR_CODES.has(error.code)) {
+      payload.code = error.code;
+      if (Array.isArray(error.blockedContactIds) && error.blockedContactIds.length) {
+        payload.blockedContactIds = error.blockedContactIds;
+      }
+      if (error.details && typeof error.details === "object" && !Array.isArray(error.details)) {
+        payload.details = error.details;
+      }
     }
     if (process.env.NODE_ENV !== "production" && error.details) payload.details = error.details;
     return jsonResponse(response, status, payload);

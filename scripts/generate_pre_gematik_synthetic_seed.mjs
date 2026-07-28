@@ -190,7 +190,18 @@ function transformDemoData(data) {
   );
 
   const organizationById = new Map(data.organizations.map((organization) => [organization.id, organization]));
-  const contacts = data.contacts.map((source) => ({
+  const invitedContactIds = new Set(
+    data.formats.flatMap((format) =>
+      (format.participants || [])
+        .filter((participant) =>
+          ["Eingeladen", "Zugesagt", "Teilgenommen"].includes(participant.invitationStatus)
+        )
+        .map((participant) => participant.contactId)
+    )
+  );
+  const contacts = data.contacts.map((source) => {
+    const needsSyntheticInvitationConsent = invitedContactIds.has(source.id);
+    return {
     id: source.id,
     name: source.name,
     organization_id: source.organizationId || null,
@@ -212,11 +223,19 @@ function transformDemoData(data) {
     relationship_basis_effective_at: source.relationshipBasisEffectiveAt || null,
     relationship_basis_recorded_by: mappedProfileId(source.relationshipBasisRecordedBy, profileIdMap),
     relationship_basis_note: source.relationshipBasisNote || null,
-    mitmachen_consent_status: source.mitmachenConsentStatus || "not_requested",
-    mitmachen_consent_effective_at: source.mitmachenConsentEffectiveAt || null,
-    mitmachen_consent_source: source.mitmachenConsentSource || null,
-    mitmachen_consent_text_version: source.mitmachenConsentTextVersion || null,
-    mitmachen_consent_recorded_by: mappedProfileId(source.mitmachenConsentRecordedBy, profileIdMap),
+    mitmachen_consent_status: needsSyntheticInvitationConsent ? "granted" : source.mitmachenConsentStatus || "not_requested",
+    mitmachen_consent_effective_at: needsSyntheticInvitationConsent
+      ? source.mitmachenConsentEffectiveAt || source.createdAt
+      : source.mitmachenConsentEffectiveAt || null,
+    mitmachen_consent_source: needsSyntheticInvitationConsent
+      ? source.mitmachenConsentSource || "email"
+      : source.mitmachenConsentSource || null,
+    mitmachen_consent_text_version: needsSyntheticInvitationConsent
+      ? source.mitmachenConsentTextVersion || "synthetic-format-invitation-v1"
+      : source.mitmachenConsentTextVersion || null,
+    mitmachen_consent_recorded_by: needsSyntheticInvitationConsent
+      ? mappedProfileId(source.mitmachenConsentRecordedBy, profileIdMap) || seedActor
+      : mappedProfileId(source.mitmachenConsentRecordedBy, profileIdMap),
     mitmachen_consent_note: source.mitmachenConsentNote || null,
     ehc_consent_status: source.ehcConsentStatus || "not_requested",
     ehc_consent_effective_at: source.ehcConsentEffectiveAt || null,
@@ -244,7 +263,8 @@ function transformDemoData(data) {
     created_by: seedActor,
     updated_at: source.updatedAt,
     updated_by: seedActor
-  }));
+    };
+  });
   const contactNameById = new Map(contacts.map((contact) => [contact.id, contact.name]));
 
   const contactOwners = data.contacts.flatMap((contact) =>

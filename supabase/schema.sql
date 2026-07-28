@@ -1094,6 +1094,7 @@ set search_path = ''
 as $function$
 declare
   status_changed boolean;
+  invitation_allowed boolean;
   changed_at timestamptz := statement_timestamp();
 begin
   if auth.uid() is not null then
@@ -1111,6 +1112,22 @@ begin
 
   if not status_changed then
     return new;
+  end if;
+
+  if new.invitation_status in ('Eingeladen', 'Zugesagt', 'Teilgenommen') then
+    select exists (
+      select 1
+        from public.contacts contact
+       where contact.id = new.contact_id
+         and contact.status <> 'archived'
+         and contact.mitmachen_consent_status = 'granted'
+    ) into invitation_allowed;
+    if not invitation_allowed then
+      raise exception using
+        errcode = '23514',
+        constraint = 'format_participants_invitation_consent_check',
+        message = 'Für Eingeladen, Zugesagt oder Teilgenommen muss eine gültige Mitmachen-Einwilligung vorliegen.';
+    end if;
   end if;
 
   new.status_changed_at := changed_at;
