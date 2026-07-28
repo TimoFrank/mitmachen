@@ -372,7 +372,7 @@
         ["strategie", "Strategie und Standards"],
         ["analyse", "Strategie und Standards"]
       ]);
-      const defaultContactColumnKeys = ["name", "organization", "category", "specialty", "location", "owner", "consent", "updated"];
+      const defaultContactColumnKeys = ["name", "organization", "category", "specialty", "location", "owner", "updated"];
       const defaultExpertContactColumnKeys = ["name", "organization", "category", "location", "owner", "updated"];
       const contactTableColumns = [
         { key: "name", label: "Name", template: "minmax(220px, 1.18fr)", required: true },
@@ -1641,7 +1641,6 @@
           const saved = JSON.parse(savedValue ?? legacySavedValue ?? "null");
           const allowed = new Set(contactTableColumns.map((column) => column.key));
           const normalized = Array.isArray(saved) ? saved.filter((key) => allowed.has(key)) : [];
-          if (legacySavedValue !== null && !normalized.includes("consent")) normalized.push("consent");
           if (normalized.length) {
             const migratedColumns = contactTableColumns
               .filter((column) => column.required || normalized.includes(column.key))

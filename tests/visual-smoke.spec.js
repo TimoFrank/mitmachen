@@ -854,6 +854,12 @@ test("Kontakte: Einwilligungsspalte bewertet, filtert und sortiert nachvollziehb
   const consentHeader = page.locator("#contacts-table-head .cell--consent");
   const consentBadges = rows.locator(".cell--consent [data-consent-availability]");
   await expect(rows).toHaveCount(9);
+  await expect(consentHeader).toHaveCount(0);
+  await page.locator("#columns-button").click();
+  const consentColumnToggle = page.locator('[data-column-toggle="consent"]');
+  await expect(consentColumnToggle).not.toBeChecked();
+  await consentColumnToggle.check();
+  await page.locator("#columns-button").click();
   await expect(consentHeader).toContainText("Einwilligung");
   await expect(consentBadges).toHaveCount(9);
 
@@ -930,6 +936,9 @@ test("Kontakte: Gespeicherte Ansicht stellt Einwilligungsfilter und Sortierung w
     backendFixtureScript: consentBackendFixtureScript({ savedViews: [savedView] })
   });
 
+  await page.locator("#columns-button").click();
+  await page.locator('[data-column-toggle="consent"]').check();
+  await page.locator("#columns-button").click();
   await page.locator("#view-select-button").click();
   const savedViewButton = page.locator('#view-select-saved-views [data-apply-saved-view="consent-missing-view"]');
   await expect(savedViewButton).toBeVisible();
@@ -5784,7 +5793,7 @@ test("Produkttour: Admin-Schritte bleiben sichtbar und bedienbar", async ({ page
       if (await page.evaluate(() => matchMedia("(max-width: 760px)").matches)) {
         await expect(page.locator("#contact-list .mobile-contact-card").first()).toHaveClass(/product-tour-highlight/);
       } else {
-        await expect(page.locator("#contacts-table-head [data-contact-sort]")).toHaveCount(8);
+        await expect(page.locator("#contacts-table-head [data-contact-sort]")).toHaveCount(7);
         await expect(page.locator("#contacts-table-head [data-header-filter-button]")).not.toHaveCount(0);
       }
     }
