@@ -149,7 +149,7 @@ assert.deepEqual(GENERATED_COLUMNS, {
   contact_note_attachments: ["search_vector"]
 });
 assert.equal(SYNTHETIC_SEED_CONTENT_FINGERPRINT_ALGORITHM, "complete-replaceable-content-v2");
-assert.equal(SYNTHETIC_SEED_CONTENT_MANIFESTS.length, 12);
+assert.equal(SYNTHETIC_SEED_CONTENT_MANIFESTS.length, 14);
 assert.equal(
   new Set(SYNTHETIC_SEED_CONTENT_MANIFESTS.map((manifest) => manifest.id)).size,
   SYNTHETIC_SEED_CONTENT_MANIFESTS.length,
@@ -161,7 +161,7 @@ assert.equal(
   "Jede erlaubte Seed-Variante braucht einen eindeutigen Inhaltsfingerprint."
 );
 for (const manifest of SYNTHETIC_SEED_CONTENT_MANIFESTS) {
-  assert.match(manifest.id, /^pre-gematik-synthetic-v1@[0-9a-f]{7}\/(?:base|avatar-patch-v1)$/u);
+  assert.match(manifest.id, /^pre-gematik-synthetic-v1@[0-9a-f]{7}\/(?:base|avatar-patch-v1|scheduled-on-v1|scheduled-on-avatar-patch-v1)$/u);
   assert.match(manifest.seedRevision, /^[0-9a-f]{7}$/u);
   assert.match(manifest.seedArtifactSha256, /^sha256:[0-9a-f]{64}$/u);
   assert.match(manifest.fingerprint, /^sha256:[0-9a-f]{64}$/u);
@@ -1230,7 +1230,7 @@ try {
   );
   assert.equal(
     restoredSeedDryRun.targetClassificationEvidence.syntheticSeedContentManifestId,
-    "pre-gematik-synthetic-v1@11f18bf/base"
+    "pre-gematik-synthetic-v1@11f18bf/scheduled-on-v1"
   );
   assert.equal(
     restoredSeedDryRun.targetClassificationEvidence.syntheticSeedContentFingerprintAlgorithm,
@@ -1688,7 +1688,7 @@ try {
       SYNTHETIC_SEED_CONTENT_MANIFESTS.find(
         (manifest) => manifest.fingerprint === avatarPatchedFingerprint
       )?.id,
-      "pre-gematik-synthetic-v1@11f18bf/avatar-patch-v1",
+      "pre-gematik-synthetic-v1@11f18bf/scheduled-on-avatar-patch-v1",
       "Der versionierte synthetische Avatar-Patch braucht einen exakten Seed-Manifest-Fingerprint."
     );
     await target.query(`

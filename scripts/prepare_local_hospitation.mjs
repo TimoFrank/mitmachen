@@ -97,7 +97,7 @@ const stagingTools = `(function () {
   ];
   const HOSPITATION_FIELDS = [
     "id", "contactId", "contactName", "organizationId", "organizationName", "status",
-    "startsAt", "endsAt", "location", "city", "state", "sector", "goal", "topics",
+    "scheduledOn", "startsAt", "endsAt", "location", "city", "state", "sector", "goal", "topics",
     "requestNote", "documentationSummary", "documentationOutcome", "followUpNote",
     "followUpDueAt", "documentedAt"
   ];
