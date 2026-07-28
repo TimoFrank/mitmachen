@@ -1893,6 +1893,7 @@
       objectId: definition.entityId,
       entityType: definition.entityType,
       entityId: definition.entityId,
+      entityLabel: definition.entityLabel,
       occurredAt: new Date(Date.UTC(2026, 6, 19 - index, 9, index * 3)).toISOString(),
       unread: index < 7,
       readAt: index < 7 ? "" : new Date(Date.UTC(2026, 6, 19 - index, 10, 0)).toISOString(),

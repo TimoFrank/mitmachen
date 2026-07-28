@@ -2947,16 +2947,16 @@
 
       .notification-popover {
         position: fixed;
-        width: min(220px, calc(100vw - 24px));
-        max-height: min(460px, calc(100vh - 24px));
+        width: min(440px, calc(100vw - 24px));
+        max-height: min(620px, calc(100vh - 24px));
         display: grid;
         grid-template-rows: auto minmax(0, 1fr) auto;
-        gap: 10px;
-        padding: 12px;
+        gap: 12px;
+        padding: 16px;
         border: 1px solid var(--border);
         border-radius: var(--radius-lg);
         background: var(--surface);
-        box-shadow: var(--shadow-md);
+        box-shadow: var(--shadow-lg);
         z-index: 120;
       }
 
@@ -2975,32 +2975,32 @@
       .notification-popover__title {
         margin: 0;
         color: var(--text-primary);
-        font-size: var(--font-size-md);
+        font-size: var(--font-size-lg);
         font-weight: 950;
         line-height: var(--line-height-tight);
       }
 
       .notification-popover__list {
         min-height: 0;
-        max-height: min(300px, calc(100vh - 180px));
+        max-height: min(460px, calc(100vh - 200px));
         display: grid;
         align-content: start;
-        gap: 8px;
+        gap: 10px;
         overflow: auto;
       }
 
       .notification-preview-item {
         width: 100%;
         display: grid;
-        grid-template-columns: 32px minmax(0, 1fr);
-        gap: 10px;
+        grid-template-columns: 36px minmax(0, 1fr);
+        gap: 12px;
         align-items: start;
         border: 1px solid var(--border);
         border-radius: var(--radius-sm);
         background: var(--surface);
         color: inherit;
         cursor: pointer;
-        padding: 10px;
+        padding: 12px;
         text-align: left;
       }
 
@@ -3017,13 +3017,43 @@
       }
 
       .notification-preview-item .notification-item__icon {
-        width: 32px;
-        height: 32px;
+        width: 36px;
+        height: 36px;
       }
 
       .notification-preview-item .notification-item__icon svg {
-        width: 16px;
-        height: 16px;
+        width: 18px;
+        height: 18px;
+      }
+
+      .notification-preview-item .notification-preview-item__icon--care {
+        background: rgba(var(--module-care-rgb), 0.16);
+        color: var(--module-care-strong);
+      }
+
+      .notification-preview-item .notification-preview-item__icon--planning {
+        background: rgba(var(--module-planning-rgb), 0.18);
+        color: var(--module-planning-strong);
+      }
+
+      .notification-preview-item .notification-preview-item__icon--formats {
+        background: rgba(var(--module-formats-rgb), 0.17);
+        color: var(--module-formats-strong);
+      }
+
+      .notification-preview-item .notification-preview-item__icon--team {
+        background: rgba(var(--module-stakeholders-rgb), 0.16);
+        color: var(--module-stakeholders-strong);
+      }
+
+      .notification-preview-item .notification-preview-item__icon--product {
+        background: var(--info-soft);
+        color: var(--info);
+      }
+
+      .notification-preview-item .notification-preview-item__icon--neutral {
+        background: var(--surface-muted);
+        color: var(--text-secondary);
       }
 
       .notification-preview-item__copy {
@@ -3033,24 +3063,77 @@
       .notification-preview-item__title {
         display: block;
         color: var(--text-primary);
-        font-size: var(--font-size-sm);
+        font-size: var(--font-size-md);
         font-weight: 900;
         line-height: var(--line-height-tight);
         overflow-wrap: anywhere;
       }
 
-      .notification-preview-item__text,
       .notification-preview-item__meta {
+        min-width: 0;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        margin-top: 7px;
+      }
+
+      .notification-preview-item__context {
+        min-width: 0;
+        max-width: calc(100% - 82px);
+        display: inline-flex;
+        align-items: center;
+        padding: 3px 8px;
+        border: 1px solid var(--border);
+        border-radius: 999px;
+        background: var(--surface-muted);
+        color: var(--text-secondary);
+        font-size: var(--font-size-xs);
+        font-weight: 800;
+        line-height: 1.2;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+      .notification-preview-item__context--care {
+        border-color: rgba(var(--module-care-rgb), 0.42);
+        background: rgba(var(--module-care-rgb), 0.14);
+        color: var(--module-care-strong);
+      }
+
+      .notification-preview-item__context--planning {
+        border-color: rgba(var(--module-planning-rgb), 0.48);
+        background: rgba(var(--module-planning-rgb), 0.16);
+        color: var(--module-planning-strong);
+      }
+
+      .notification-preview-item__context--formats {
+        border-color: rgba(var(--module-formats-rgb), 0.46);
+        background: rgba(var(--module-formats-rgb), 0.15);
+        color: var(--module-formats-strong);
+      }
+
+      .notification-preview-item__context--team {
+        border-color: rgba(var(--module-stakeholders-rgb), 0.44);
+        background: rgba(var(--module-stakeholders-rgb), 0.14);
+        color: var(--module-stakeholders-strong);
+      }
+
+      .notification-preview-item__context--product {
+        border-color: var(--border-strong);
+        background: var(--info-soft);
+        color: var(--info);
+      }
+
+      .notification-preview-item__date {
         display: block;
-        margin-top: 3px;
+        flex: 0 0 auto;
+        margin-left: auto;
         color: var(--text-muted);
         font-size: var(--font-size-xs);
         line-height: var(--line-height-normal);
-        overflow-wrap: anywhere;
-      }
-
-      .notification-preview-item__meta {
         font-weight: 800;
+        overflow-wrap: anywhere;
       }
 
       .notification-popover__empty,
@@ -39684,7 +39767,7 @@
 
         .app-shell.is-mobile-sidebar-expanded .sidebar-account-section {
           position: relative;
-          z-index: 2;
+          z-index: 130;
           flex: 0 0 auto;
           margin-top: auto;
           padding: 12px 4px calc(4px + env(safe-area-inset-bottom));
