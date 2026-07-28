@@ -105,6 +105,20 @@ export const SYNTHETIC_SEED_CONTENT_MANIFESTS = Object.freeze([
     seedArtifactSha256: "sha256:e27b26efdd827c23495e54f111409a50a76c7189af393d33782c9d2e0ec2204a",
     avatarPatch: true,
     fingerprint: "sha256:11bd01f8c7b71e2380ff4b685cc84f4ba187e617678933aac0fffbea6aaac0bb"
+  }),
+  Object.freeze({
+    id: "pre-gematik-synthetic-v1@11f18bf/base",
+    seedRevision: "11f18bf",
+    seedArtifactSha256: "sha256:f04b1b9f7f19671012a78b91c444f3d3c5ef5be8f26dfee026e1f382bf2a9a56",
+    avatarPatch: false,
+    fingerprint: "sha256:b59c963d0abc531781979013231f46614566179522593d3b5613420f1bc2a845"
+  }),
+  Object.freeze({
+    id: "pre-gematik-synthetic-v1@11f18bf/avatar-patch-v1",
+    seedRevision: "11f18bf",
+    seedArtifactSha256: "sha256:f04b1b9f7f19671012a78b91c444f3d3c5ef5be8f26dfee026e1f382bf2a9a56",
+    avatarPatch: true,
+    fingerprint: "sha256:23f09c3e7cbebbd9900177c5d304b221d23ba5508b46cb3b4380ec1022880539"
   })
 ]);
 
@@ -1031,6 +1045,35 @@ function protectedBootstrapProfileFingerprint(profileRecord, userSettingsRecord,
 
 export function normalizeSyntheticSeedRecord(table, rowRecord) {
   const record = { ...rowRecord };
+  // The format workflow trigger deliberately stamps every protected initial
+  // status with the database execution time. The reviewed seed fixes all
+  // fachlich relevant invitation/response timestamps, so only this derived
+  // trigger timestamp is normalized.
+  if (
+    table === "format_participants"
+    && String(record.id || "").startsWith("demo-")
+  ) {
+    record.status_changed_at = "<seed-trigger-time>";
+  }
+  // Format participation events are emitted by the same trigger while the
+  // reviewed seed runs. occurred_at and created_at both derive from that
+  // database execution time and cannot be pinned byte-for-byte.
+  if (
+    table === "activity_events"
+    && record.entity_type === "format_participant"
+    && String(record.entity_id || "").startsWith("demo-")
+    && String(record.contact_id || "").startsWith("demo-")
+    && String(record.correlation_id || "").startsWith("format:demo-")
+    && [
+      "format.invitation.created",
+      "format.invitation.accepted",
+      "format.participation.recorded",
+      "format.invitation.declined"
+    ].includes(record.event_key)
+  ) {
+    record.occurred_at = "<seed-trigger-time>";
+    record.created_at = "<seed-trigger-time>";
+  }
   // The observation audit row is emitted by a trigger while the seed runs.
   // Its timestamp therefore cannot be fixed by the seed artifact itself.
   if (table === "hospitation_observation_changes") {
@@ -1219,7 +1262,35 @@ async function classifyTarget(source, target, aggregates, targetDatabaseName) {
               or source_url not like 'https://' || $1 || '.example.invalid/%')
          + (select count(*) from public.contact_owners
              where contact_id not like 'demo-%' or profile_id not like 'demo-profile-%')
-         + (select count(*) from public.activity_events)
+         + (select count(*)
+              from public.activity_events activity
+              left join public.format_participants participant
+                on participant.id = activity.entity_id
+             where participant.id is null
+                or activity.entity_type is distinct from 'format_participant'
+                or activity.category is distinct from 'format'
+                or activity.origin_type is distinct from 'manual'
+                or participant.id not like 'demo-%'
+                or participant.format_id not like 'demo-%'
+                or participant.contact_id not like 'demo-%'
+                or activity.contact_id is distinct from participant.contact_id
+                or activity.actor_id is distinct from coalesce(participant.updated_by, participant.created_by)
+                or activity.correlation_id is distinct from
+                  'format:' || participant.format_id || ':contact:' || participant.contact_id
+                or activity.event_key is distinct from case participant.invitation_status
+                  when 'Eingeladen' then 'format.invitation.created'
+                  when 'Zugesagt' then 'format.invitation.accepted'
+                  when 'Teilgenommen' then 'format.participation.recorded'
+                  when 'Abgesagt' then 'format.invitation.declined'
+                  else null
+                end
+                or activity.action is distinct from case participant.invitation_status
+                  when 'Eingeladen' then 'invited'
+                  when 'Zugesagt' then 'accepted'
+                  when 'Teilgenommen' then 'participated'
+                  when 'Abgesagt' then 'declined'
+                  else null
+                end)
          + (select count(*) from public.changes)
          + (select count(*) from public.contact_notes)
          + (select count(*) from public.contact_note_attachments)
@@ -1716,6 +1787,47 @@ async function insertRows(target, plan, rows, { upsert = false } = {}) {
   }
 }
 
+async function restoreFormatParticipantStatusTimestamps(target, rows) {
+  for (let offset = 0; offset < rows.length; offset += BATCH_SIZE) {
+    const batch = rows.slice(offset, offset + BATCH_SIZE);
+    const values = [];
+    const placeholders = batch.map((row) => {
+      values.push(String(row.id), row.status_changed_at, row.updated_at);
+      return `($${values.length - 2}::text, $${values.length - 1}::timestamptz, $${values.length}::timestamptz)`;
+    });
+    await safeQuery(
+      target,
+      "restore-format-participant-status-timestamps",
+      `update public.format_participants participant
+          set status_changed_at = source.status_changed_at,
+              updated_at = case
+                when participant.updated_at is not distinct from source.updated_at
+                  then source.updated_at + interval '1 microsecond'
+                else source.updated_at
+              end
+         from (values ${placeholders.join(", ")}) as source(id, status_changed_at, updated_at)
+        where participant.id::text = source.id
+          and (
+            participant.status_changed_at is distinct from source.status_changed_at
+            or participant.updated_at is not distinct from source.updated_at
+          )`,
+      values,
+      "format_participants"
+    );
+    await safeQuery(
+      target,
+      "restore-format-participant-updated-timestamps",
+      `update public.format_participants participant
+          set updated_at = source.updated_at
+         from (values ${placeholders.join(", ")}) as source(id, status_changed_at, updated_at)
+        where participant.id::text = source.id
+          and participant.updated_at is distinct from source.updated_at`,
+      values,
+      "format_participants"
+    );
+  }
+}
+
 async function reconcileTargetProfiles(target, plan, rows) {
   if (plan.table !== "profiles") {
     throw new MigrationSafetyError("Profile reconciliation received the wrong table plan.", "PROFILE_PLAN_INVALID");
@@ -1768,8 +1880,8 @@ async function reconcileTargetProfiles(target, plan, rows) {
   await insertRows(target, plan, rows, { upsert: true });
 }
 
-async function advanceIdentitySequences(target) {
-  for (const table of IDENTITY_TABLES) {
+async function advanceIdentitySequences(target, tables = IDENTITY_TABLES) {
+  for (const table of tables) {
     const sequenceName = `${table}_id_seq`;
     const state = await safeQuery(
       target,
@@ -2164,6 +2276,9 @@ export async function runDatabaseMigration(
     }
 
     await deleteTargetData(target);
+    const sourceActivityEventIds = sourceRows
+      .get("activity_events")
+      .map((row) => String(row.id));
     for (const plan of plans) {
       if (plan.table === "hospitation_observation_changes") {
         // Der Zieltrigger erzeugt beim Beobachtungsimport temporäre Auditzeilen.
@@ -2181,7 +2296,28 @@ export async function runDatabaseMigration(
       } else {
         await insertRows(target, plan, sourceRows.get(plan.table));
       }
+      if (plan.table === "format_participants") {
+        // Der Schutztrigger setzt den Statuszeitpunkt bei INSERT absichtlich auf
+        // statement_timestamp(). Für die verlustfreie Migration wird danach der
+        // historische Quellwert über ein statusneutrales UPDATE zurückgespielt.
+        await restoreFormatParticipantStatusTimestamps(
+          target,
+          sourceRows.get(plan.table)
+        );
+      }
+      if (plan.table === "activity_events") {
+        // Nach expliziten Quell-IDs muss die Sequenz vor späteren Zieltriggern
+        // kollisionsfrei oberhalb der unveränderten Historie stehen.
+        await advanceIdentitySequences(target, ["activity_events"]);
+      }
     }
+    await safeQuery(
+      target,
+      "remove-generated-activities",
+      "delete from public.activity_events where not (id = any($1::bigint[]))",
+      [sourceActivityEventIds],
+      "activity_events"
+    );
     await advanceIdentitySequences(target);
 
     const targetRowsAfter = new Map();
