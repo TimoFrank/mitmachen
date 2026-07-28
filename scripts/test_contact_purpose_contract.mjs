@@ -212,6 +212,69 @@ assert.equal(
   projectContactForRequest(adminRequest, fullContact, rawEhcOnly, []).name,
   "Erika Mustermann"
 );
+for (const ehcStatus of ["withdrawn", "not_requested"]) {
+  const rawHistoricalEhc = {
+    ...rawEhcOnly,
+    ehc_consent_status: ehcStatus,
+    ehc_consent_source: "survalyzer_ehc",
+    ehc_consent_effective_at: "2026-02-10T10:00:00.000Z"
+  };
+  const historicalEhcContact = {
+    ...fullContact,
+    ehcConsentStatus: ehcStatus
+  };
+  const historicalProjection = projectContactForRequest(
+    viewerRequest,
+    historicalEhcContact,
+    rawHistoricalEhc,
+    ["profile-owner"]
+  );
+  assert.equal(
+    historicalProjection.profileAccess,
+    "ehc_restricted",
+    `Der EHC-Profilschutz muss nach Status ${ehcStatus} erhalten bleiben.`
+  );
+  assert.equal(historicalProjection.name, "Geschützter EHC-Kontakt");
+  assert.equal(historicalProjection.email, "");
+}
+const verbalMitmachenProjection = projectContactForRequest(
+  viewerRequest,
+  {
+    ...fullContact,
+    mitmachenConsentStatus: "granted",
+    mitmachenConsentSource: "verbal_confirmed"
+  },
+  {
+    ...rawEhcOnly,
+    mitmachen_consent_status: "granted",
+    mitmachen_consent_source: "verbal_confirmed"
+  },
+  ["profile-owner"]
+);
+assert.equal(
+  verbalMitmachenProjection.profileAccess,
+  "ehc_restricted",
+  "Eine nur mündliche #Mitmachen-Angabe darf den EHC-Profilschutz nicht aufheben."
+);
+const writtenMitmachenProjection = projectContactForRequest(
+  viewerRequest,
+  {
+    ...fullContact,
+    mitmachenConsentStatus: "granted",
+    mitmachenConsentSource: "written"
+  },
+  {
+    ...rawEhcOnly,
+    mitmachen_consent_status: "granted",
+    mitmachen_consent_source: "written"
+  },
+  ["profile-owner"]
+);
+assert.equal(
+  writtenMitmachenProjection.profileAccess,
+  "standard",
+  "Eine schriftlich belegte #Mitmachen-Einwilligung darf den EHC-only-Schutz ablösen."
+);
 
 const activityVisibilitySource = sourceBetween(
   api,
