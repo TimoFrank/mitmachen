@@ -1280,10 +1280,11 @@
 
   function avatarHtml(entry){
     const imageUrl = safeImageUrl(entry.image);
+    const sectorColor = sectorRegistry.colorFor(entry.category || "");
     if (imageUrl) {
-      return `<span class="item-avatar"><img src="${escapeHtml(imageUrl)}" alt="" loading="eager" decoding="async" data-image-fallback="${escapeHtml(initials(entry.name))}"></span>`;
+      return `<span class="item-avatar item-avatar--sector-ring" style="--avatar-sector-color:${escapeHtml(sectorColor)}"><img src="${escapeHtml(imageUrl)}" alt="" loading="eager" decoding="async" data-image-fallback="${escapeHtml(initials(entry.name))}"></span>`;
     }
-    return `<span class="item-avatar">${escapeHtml(initials(entry.name))}</span>`;
+    return `<span class="item-avatar item-avatar--sector-ring" style="--avatar-sector-color:${escapeHtml(sectorColor)}">${escapeHtml(initials(entry.name))}</span>`;
   }
 
   function missingEntryFields(entry){

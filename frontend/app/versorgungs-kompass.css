@@ -39808,3 +39808,12 @@
           font-size: 1.24rem;
         }
       }
+
+      .avatar.avatar--sector-ring,
+      .mobile-contact-card .avatar.avatar--sector-ring,
+      .organization-logo.organization-logo--sector-ring {
+        box-sizing: border-box;
+        border: 2px solid var(--avatar-sector-color, #64748b);
+        border-radius: 999px;
+        background-clip: padding-box;
+      }
