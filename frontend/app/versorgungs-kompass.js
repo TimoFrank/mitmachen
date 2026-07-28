@@ -104,6 +104,7 @@
       let ownerProfiles = [];
       let teamDirectoryState = "loading";
       const expandedTeamNames = new Set();
+      let teamSearchQuery = "";
       const germanStates = [
         "Baden-Württemberg",
         "Bayern",
@@ -936,6 +937,7 @@
       const notificationsList = document.getElementById("notifications-list");
       const notificationsMeta = document.getElementById("notifications-meta");
       const notificationFilterButtons = [...document.querySelectorAll("[data-notification-filter]")];
+      const notificationsFilterPanel = document.getElementById("notifications-filter-panel");
       const notificationsMarkAllRead = document.getElementById("notifications-mark-all-read");
       const notificationsLoadMoreRow = document.getElementById("notifications-load-more-row");
       const notificationsLoadMoreButton = document.getElementById("notifications-load-more");
@@ -1265,6 +1267,10 @@
       const teamAccountList = document.getElementById("team-account-list");
       const teamUserCount = document.getElementById("team-user-count");
       const teamGroupCount = document.getElementById("team-group-count");
+      const teamContactCount = document.getElementById("team-contact-count");
+      const teamDirectoryResult = document.getElementById("team-directory-result");
+      const teamSearchInput = document.getElementById("team-search-input");
+      const teamSearchClearButton = document.getElementById("team-search-clear");
       const accountAvatar = document.getElementById("account-avatar");
       const sidebarProfileButton = document.getElementById("sidebar-profile-button");
       const sidebarTourButton = document.getElementById("sidebar-tour-button");
@@ -5510,7 +5516,7 @@
           icon: "team",
           summary: "Nutzer, Rollen und Zuständigkeiten sind als eigener Teams-Bereich sichtbar.",
           items: [
-            "Teammitglieder werden übersichtlich nach Teams gruppiert.",
+            "Nutzer werden übersichtlich nach Teams gruppiert.",
             "Rollen wie Admin, Editor und Viewer sind schneller erkennbar.",
             "Team- und Rollenhinweise sind ruhiger in die App eingebunden."
           ]
@@ -9228,11 +9234,24 @@
         details.dataset.teamOwnerLoaded = "true";
       }
 
+      function teamProfileMatchesSearch(profile, query = "") {
+        if (!query) return true;
+        return normalizeTeamLookup([
+          teamProfileDisplayLabel(profile),
+          profile?.display_name,
+          profile?.displayName,
+          profile?.email,
+          profile?.initials,
+          roleLabel(String(profile?.role || "viewer").toLowerCase())
+        ].filter(Boolean).join(" ")).includes(query);
+      }
+
       let renderedTeamViewSignature = "";
 
       function teamViewRenderSignature(profiles = []) {
         return JSON.stringify([
           teamDirectoryState,
+          normalizeTeamLookup(teamSearchQuery),
           profiles.map((profile) => [
             profile.id,
             profile.label,
@@ -9269,6 +9288,8 @@
         if (teamDirectoryState === "loading") {
           if (teamUserCount) teamUserCount.textContent = "–";
           if (teamGroupCount) teamGroupCount.textContent = "–";
+          if (teamContactCount) teamContactCount.textContent = "–";
+          if (teamDirectoryResult) teamDirectoryResult.textContent = "Nutzer werden geladen.";
           teamAccountList.setAttribute("aria-busy", "true");
           teamAccountList.innerHTML = `<div class="team-directory-state"><strong>Teams werden geladen</strong><span>Profile und Zuständigkeiten werden vorbereitet.</span></div>`;
           renderedTeamViewSignature = renderSignature;
@@ -9278,6 +9299,8 @@
         if (teamDirectoryState === "error") {
           if (teamUserCount) teamUserCount.textContent = "–";
           if (teamGroupCount) teamGroupCount.textContent = "–";
+          if (teamContactCount) teamContactCount.textContent = "–";
+          if (teamDirectoryResult) teamDirectoryResult.textContent = "Teamdaten sind nicht verfügbar.";
           teamAccountList.setAttribute("aria-busy", "false");
           teamAccountList.innerHTML = `<div class="team-directory-state team-directory-state--error" role="alert"><strong>Teamdaten sind gerade nicht verfügbar</strong><span>Bitte lade die Ansicht neu oder prüfe die Verbindung.</span></div>`;
           renderedTeamViewSignature = renderSignature;
@@ -9286,17 +9309,61 @@
 
         const contactIndex = teamContactIndex(profiles);
         const allTeams = new Set(profiles.map((profile) => resolvedProfileTeam(profile)).filter((team) => team && team !== TEAM_UNASSIGNED_LABEL));
+        const assignedContactIds = new Set([...contactIndex.values()].flat().map((contact) => contact.id));
         if (teamUserCount) teamUserCount.textContent = String(profiles.length);
         if (teamGroupCount) teamGroupCount.textContent = String(allTeams.size);
+        if (teamContactCount) teamContactCount.textContent = String(assignedContactIds.size);
         teamAccountList.setAttribute("aria-busy", "false");
 
         if (!profiles.length) {
+          if (teamDirectoryResult) teamDirectoryResult.textContent = "Noch keine Nutzer vorhanden.";
           teamAccountList.innerHTML = `<div class="team-directory-state"><strong>Noch keine Nutzer vorhanden</strong><span>Sobald Profile eingerichtet sind, erscheinen sie hier nach Teams gruppiert.</span></div>`;
           renderedTeamViewSignature = renderSignature;
           return;
         }
 
-        const groups = groupedTeamProfiles(profiles);
+        const searchQuery = normalizeTeamLookup(teamSearchQuery);
+        const allGroups = groupedTeamProfiles(profiles);
+        const groups = searchQuery
+          ? allGroups
+              .map((group) => {
+                const teamDefinition = teamDefinitions.find((entry) => entry.name === group.name);
+                const teamText = normalizeTeamLookup([group.name, teamDefinition?.description || ""].join(" "));
+                return {
+                  ...group,
+                  accounts: teamText.includes(searchQuery)
+                    ? group.accounts
+                    : group.accounts.filter((profile) => teamProfileMatchesSearch(profile, searchQuery))
+                };
+              })
+              .filter((group) => group.accounts.length)
+          : allGroups;
+        const visibleMemberCount = groups.reduce((sum, group) => sum + group.accounts.length, 0);
+        if (teamDirectoryResult) {
+          teamDirectoryResult.textContent = searchQuery
+            ? `${visibleMemberCount} Treffer in ${groups.length} ${groups.length === 1 ? "Team" : "Teams"}`
+            : `${profiles.length} Nutzer in ${groups.length} ${groups.length === 1 ? "Bereich" : "Bereichen"}`;
+        }
+
+        if (!groups.length) {
+          teamAccountList.innerHTML = `
+            <div class="team-directory-state">
+              <strong>Keine Nutzer gefunden</strong>
+              <span>Prüfe den Suchbegriff oder zeige wieder alle Teams an.</span>
+              <button class="action-button action-button--ghost action-button--compact" type="button" data-team-search-reset>Suche zurücksetzen</button>
+            </div>
+          `;
+          teamAccountList.querySelector("[data-team-search-reset]")?.addEventListener("click", () => {
+            teamSearchQuery = "";
+            if (teamSearchInput) teamSearchInput.value = "";
+            if (teamSearchClearButton) teamSearchClearButton.hidden = true;
+            renderTeamView();
+            teamSearchInput?.focus();
+          });
+          renderedTeamViewSignature = renderSignature;
+          return;
+        }
+
         teamAccountList.innerHTML = groups
           .map((group, groupIndex) => {
             const team = group.name;
@@ -9306,7 +9373,7 @@
             const teamSubtitle = group.isUnassigned
               ? "Noch ohne Teamzuordnung"
               : teamDefinition?.description || "Team in #Mitmachen";
-            const isOpen = accounts.length > 0 && expandedTeamNames.has(team);
+            const isOpen = accounts.length > 0 && (Boolean(searchQuery) || expandedTeamNames.has(team));
             const memberNames = accounts.map((profile) => teamProfileDisplayLabel(profile));
             const memberAvatars = accounts
               .map((profile) => {
@@ -9323,10 +9390,10 @@
                     <span>${escapeHtml(teamSubtitle)}</span>
                   </span>
                   <span class="team-column-preview">
-                    ${accounts.length ? `<span class="team-column-members" role="img" aria-label="${escapeHtml(accounts.length === 1 ? `Teammitglied: ${memberNames[0]}` : `Teammitglieder: ${memberNames.join(", ")}`)}">${memberAvatars}</span>` : ""}
-                    <span class="team-column-count" aria-label="${accounts.length} ${accounts.length === 1 ? "Mitglied" : "Mitglieder"}">
+                    ${accounts.length ? `<span class="team-column-members" role="img" aria-label="${escapeHtml(`Nutzer: ${memberNames.join(", ")}`)}">${memberAvatars}</span>` : ""}
+                    <span class="team-column-count" aria-label="${accounts.length} Nutzer">
                       <strong>${accounts.length}</strong>
-                      <span>${accounts.length === 1 ? "Mitglied" : "Mitglieder"}</span>
+                      <span>Nutzer</span>
                     </span>
                   </span>
                   <span class="team-column-toggle" aria-hidden="true">⌄</span>
@@ -9384,6 +9451,20 @@
         });
         renderedTeamViewSignature = renderSignature;
       }
+
+      teamSearchInput?.addEventListener("input", () => {
+        teamSearchQuery = teamSearchInput.value;
+        if (teamSearchClearButton) teamSearchClearButton.hidden = !teamSearchQuery.trim();
+        renderTeamView();
+      });
+
+      teamSearchClearButton?.addEventListener("click", () => {
+        teamSearchQuery = "";
+        if (teamSearchInput) teamSearchInput.value = "";
+        teamSearchClearButton.hidden = true;
+        renderTeamView();
+        teamSearchInput?.focus();
+      });
 
       function renderProfileOwnerSummary() {
         if (!profileOwnerSummary) return;
@@ -12475,8 +12556,13 @@
         notificationFilterButtons.forEach((button) => {
           const active = button.dataset.notificationFilter === activeNotificationFilter;
           button.classList.toggle("is-active", active);
-          button.setAttribute("aria-pressed", String(active));
+          button.setAttribute("role", "tab");
+          button.setAttribute("aria-selected", String(active));
+          button.removeAttribute("aria-pressed");
+          button.tabIndex = active ? 0 : -1;
         });
+        const activeFilterButton = notificationFilterButtons.find((button) => button.dataset.notificationFilter === activeNotificationFilter);
+        if (activeFilterButton?.id) notificationsFilterPanel?.setAttribute("aria-labelledby", activeFilterButton.id);
         if (!notificationsLoaded || notificationRequestKey() !== notificationsRequestKey) {
           notificationsRequestKey = notificationRequestKey();
           loadNotifications({ reset: true });
@@ -37350,6 +37436,69 @@
         }
       }
 
+      function applyRenderedTableSemantics() {
+        document.querySelectorAll("[data-semantic-table]").forEach((semanticTable) => {
+          const tableHead = semanticTable.querySelector(":scope > .thead");
+          const headerCells = tableHead ? [...tableHead.children] : [];
+          if (!headerCells.length) {
+            semanticTable.setAttribute("role", "region");
+            semanticTable.removeAttribute("aria-colcount");
+            semanticTable.removeAttribute("aria-rowcount");
+            tableHead?.removeAttribute("role");
+            [...semanticTable.children].forEach((container) => container.removeAttribute("role"));
+            return;
+          }
+
+          semanticTable.setAttribute("role", "table");
+          if (tableHead) {
+            tableHead.setAttribute("role", "row");
+            headerCells.forEach((cell) => {
+              cell.setAttribute("role", "columnheader");
+              const sortControl = cell.querySelector("[aria-sort]");
+              if (sortControl) {
+                cell.setAttribute("aria-sort", sortControl.getAttribute("aria-sort"));
+              } else {
+                cell.removeAttribute("aria-sort");
+              }
+            });
+            semanticTable.setAttribute("aria-colcount", String(headerCells.length));
+          }
+
+          [...semanticTable.children].forEach((container) => {
+            if (container !== tableHead && container.querySelector(":scope > .row")) {
+              container.setAttribute("role", "rowgroup");
+            }
+          });
+          const rows = [...semanticTable.querySelectorAll(".row")];
+          rows.forEach((row) => {
+            row.setAttribute("role", "row");
+            [...row.children].forEach((cell) => {
+              if (!cell.hasAttribute("role")) cell.setAttribute("role", "cell");
+            });
+          });
+          semanticTable.setAttribute("aria-rowcount", String(rows.length + (tableHead ? 1 : 0)));
+        });
+      }
+
+      function initializeRenderedTableSemantics() {
+        const semanticTables = [...document.querySelectorAll("[data-semantic-table]")];
+        if (!semanticTables.length) return;
+        let scheduled = false;
+        const schedule = () => {
+          if (scheduled) return;
+          scheduled = true;
+          window.requestAnimationFrame(() => {
+            scheduled = false;
+            applyRenderedTableSemantics();
+          });
+        };
+        const observer = new MutationObserver((records) => {
+          if (records.some((record) => record.addedNodes.length || record.removedNodes.length)) schedule();
+        });
+        semanticTables.forEach((table) => observer.observe(table, { childList: true, subtree: true }));
+        applyRenderedTableSemantics();
+      }
+
       function updateView() {
         organizations = mergeOrganizations(organizations, deriveOrganizationsFromContacts(contacts));
         expertOrganizations = mergeExpertOrganizations(expertOrganizations, deriveExpertOrganizationsFromContacts(expertContacts));
@@ -39930,6 +40079,7 @@
         mainContent?.scrollIntoView({ block: "start" });
       });
       initializeManagedDialogFocus();
+      initializeRenderedTableSemantics();
       window.setTimeout(() => {
         if (!isInitialDataLoading) return;
         initialDataLoadingSlow = true;
