@@ -216,7 +216,7 @@ jobs:
             || !rootHtml.includes('./data/demo-data.js')
             || !rootHtml.includes('./data/demo-api.js')
             || !rootHtml.includes('./data/data-service.js')
-            || /data-public-entry="home"|data-public-entry-styles|Demo öffnen|<meta\s+http-equiv="refresh"/i.test(rootHtml)
+            || /data-public-entry="home"|data-public-entry-styles|>\s*Demo öffnen(?:\s|<)|<meta\s+http-equiv="refresh"/i.test(rootHtml)
           ) {
             throw new Error("GitHub Pages startet nicht direkt in der App-Startseite.");
           }

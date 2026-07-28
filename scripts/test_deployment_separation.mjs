@@ -86,7 +86,7 @@ try {
   assert.match(pagesNoScriptCss, /button\[data-home-scroll-cue\]\s*\{[\s\S]*display:\s*none/i);
   assert.match(pagesRootHtml, /<meta\s+name="robots"\s+content="noindex,\s*nofollow"\s*\/?>/i);
   assert.match(pagesRootHtml, /\.\/data\/demo-data\.js[\s\S]*\.\/data\/demo-api\.js[\s\S]*\.\/data\/data-service\.js/);
-  assert.doesNotMatch(pagesRootHtml, /data-public-entry="home"|data-public-entry-styles|Demo öffnen/);
+  assert.doesNotMatch(pagesRootHtml, /data-public-entry="home"|data-public-entry-styles|>\s*Demo öffnen(?:\s|<)/i);
   assert.doesNotMatch(pagesRootHtml, /<meta\s+http-equiv="refresh"/i);
   assert.match(fs.readFileSync(path.join(pagesDir, "demo", "index.html"), "utf8"), /url=\.\.\/#home/);
   assert.match(

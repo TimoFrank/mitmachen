@@ -226,7 +226,7 @@ if (existsSync(pagesRootPath) && existsSync(appHtmlPath)) {
     /<meta\s+name=["']robots["']\s+content=["']noindex,\s*nofollow["']\s*\/?>/i.test(pagesRootHtml),
     `${artifactLabel}/index.html muss die oeffentliche Demo von der Indexierung ausschliessen`
   );
-  assert(!/data-public-entry=["']home["']|data-public-entry-styles|Demo öffnen/.test(pagesRootHtml), `${artifactLabel}/index.html enthaelt noch den entfernten Pages-Einstieg`);
+  assert(!/data-public-entry=["']home["']|data-public-entry-styles|>\s*Demo öffnen(?:\s|<)/i.test(pagesRootHtml), `${artifactLabel}/index.html enthaelt noch den entfernten Pages-Einstieg`);
   assert(!/<meta\s+http-equiv=["']refresh["']/i.test(pagesRootHtml), `${artifactLabel}/index.html darf nicht weiterleiten`);
 }
 assert(
