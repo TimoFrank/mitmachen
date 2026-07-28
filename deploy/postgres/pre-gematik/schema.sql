@@ -1004,6 +1004,7 @@ create table if not exists public.hospitations (
   status text not null default 'Angefragt'
     check (status in ('Entwurf', 'Angefragt', 'Angeboten', 'Gebucht', 'Abgelehnt', 'Abgesagt', 'Durchgeführt', 'Dokumentiert', 'Archiviert')),
   requested_windows jsonb not null default '[]'::jsonb check (jsonb_typeof(requested_windows) = 'array'),
+  scheduled_on date,
   starts_at timestamptz,
   ends_at timestamptz,
   location text,
@@ -1029,6 +1030,14 @@ create table if not exists public.hospitations (
 
 create index if not exists hospitations_status_time_idx
   on public.hospitations (status, starts_at desc, updated_at desc);
+create index if not exists hospitations_status_date_idx
+  on public.hospitations (status, scheduled_on desc, updated_at desc);
+create index if not exists hospitations_schedule_idx
+  on public.hospitations (
+    scheduled_on desc nulls last,
+    starts_at desc nulls last,
+    updated_at desc
+  );
 create index if not exists hospitations_slot_idx on public.hospitations (slot_id);
 create index if not exists hospitations_contact_idx on public.hospitations (contact_id, updated_at desc);
 create index if not exists hospitations_organization_idx on public.hospitations (organization_id, updated_at desc);

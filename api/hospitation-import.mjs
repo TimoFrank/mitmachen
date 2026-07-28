@@ -20,7 +20,7 @@ const CONTACT_FIELDS = Object.freeze([
 ]);
 const HOSPITATION_FIELDS = Object.freeze([
   "id", "contactId", "contactName", "organizationId", "organizationName", "status",
-  "startsAt", "endsAt", "location", "city", "state", "sector", "goal", "topics",
+  "scheduledOn", "startsAt", "endsAt", "location", "city", "state", "sector", "goal", "topics",
   "requestNote", "documentationSummary", "documentationOutcome", "followUpNote",
   "followUpDueAt", "documentedAt"
 ]);
@@ -112,8 +112,20 @@ function timestamp(value, label, { required = false } = {}) {
 function dateValue(value, label) {
   const normalized = text(value, label, { max: 10 });
   if (normalized === undefined || normalized === "") return normalized;
-  if (!/^\d{4}-\d{2}-\d{2}$/u.test(normalized) || !Number.isFinite(Date.parse(`${normalized}T00:00:00.000Z`))) {
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/u.exec(normalized);
+  if (!match) {
     throw validationError(`${label} muss ein Datum im Format YYYY-MM-DD sein.`);
+  }
+  const year = Number(match[1]);
+  const month = Number(match[2]);
+  const day = Number(match[3]);
+  const parsed = new Date(Date.UTC(year, month - 1, day));
+  if (
+    parsed.getUTCFullYear() !== year
+    || parsed.getUTCMonth() !== month - 1
+    || parsed.getUTCDate() !== day
+  ) {
+    throw validationError(`${label} muss ein gueltiges Datum sein.`);
   }
   return normalized;
 }
@@ -178,7 +190,15 @@ function normalizeHospitation(source, index) {
   if (Object.prototype.hasOwnProperty.call(source, "status")) {
     result.status = normalizeStatus(source.status, ["Entwurf", "Angefragt", "Angeboten", "Gebucht", "Abgelehnt", "Abgesagt", "Durchgeführt", "Dokumentiert", "Archiviert"], "Angefragt", `${label}.status`);
   }
-  result.startsAt = timestamp(source.startsAt, `${label}.startsAt`, { required: true });
+  if (Object.prototype.hasOwnProperty.call(source, "scheduledOn")) {
+    result.scheduledOn = dateValue(source.scheduledOn, `${label}.scheduledOn`);
+  }
+  if (Object.prototype.hasOwnProperty.call(source, "startsAt")) {
+    result.startsAt = timestamp(source.startsAt, `${label}.startsAt`);
+  }
+  if (!result.scheduledOn && !result.startsAt) {
+    throw validationError(`${label} benoetigt scheduledOn oder startsAt.`);
+  }
   if (Object.prototype.hasOwnProperty.call(source, "endsAt")) result.endsAt = timestamp(source.endsAt, `${label}.endsAt`);
   if (result.endsAt && result.endsAt < result.startsAt) throw validationError(`${label}.endsAt darf nicht vor startsAt liegen.`);
   if (Object.prototype.hasOwnProperty.call(source, "followUpDueAt")) result.followUpDueAt = dateValue(source.followUpDueAt, `${label}.followUpDueAt`);
@@ -389,9 +409,10 @@ export function normalizeHospitationImportManifest(input) {
   assertUniqueNaturalKeys(normalized.hospitations, "hospitations", (item) => {
     const contact = manifestContactsById.get(item.contactId);
     const person = canonicalPersonName(item.contactName || contact?.name);
-    if (person) return `${item.startsAt}|person:${person}`;
+    const scheduledValue = item.scheduledOn || item.startsAt;
+    if (person) return `${scheduledValue}|person:${person}`;
     const organization = manifestOrganizationsById.get(item.organizationId);
-    return `${item.startsAt}|organization:${canonicalOrganizationName(item.organizationName || organization?.name) || item.organizationId || "unknown"}`;
+    return `${scheduledValue}|organization:${canonicalOrganizationName(item.organizationName || organization?.name) || item.organizationId || "unknown"}`;
   });
   assertUniqueNaturalKeys(normalized.observations, "observations", (item) => `${item.hospitationId}|${item.sequence || ""}|${normalizeName(item.title)}`);
 
@@ -507,10 +528,9 @@ function desiredContact(source, targetId, organizationId, ownerId, targetRow = n
 }
 
 function desiredHospitation(source, targetId, contactId, organizationId, ownerId, targetRow = null) {
-  const record = {
-    id: targetId,
-    starts_at: source.startsAt
-  };
+  const record = { id: targetId };
+  if (hasImportContent(source.scheduledOn)) record.scheduled_on = source.scheduledOn;
+  if (hasImportContent(source.startsAt)) record.starts_at = source.startsAt;
   if (!targetRow || !hasImportContent(targetRow.owner_id)) record.owner_id = ownerId;
   if (!targetRow) record.requester_profile_id = ownerId;
   const mapping = { contactName: "contact_name", organizationName: "organization_name", status: "status", endsAt: "ends_at", location: "location", city: "city", state: "federal_state", sector: "sector", goal: "goal", topics: "topics", requestNote: "request_note", documentationSummary: "documentation_summary", documentationOutcome: "documentation_outcome", followUpNote: "follow_up_note", followUpDueAt: "follow_up_due_at", documentedAt: "documented_at" };
@@ -584,6 +604,28 @@ function canonicalTargetTimestamp(value) {
   if (!value) return "";
   const parsed = new Date(value);
   return Number.isFinite(parsed.getTime()) ? parsed.toISOString() : "";
+}
+
+function canonicalTargetDate(value) {
+  if (!value) return "";
+  if (value instanceof Date) {
+    if (!Number.isFinite(value.getTime())) return "";
+    return [
+      String(value.getFullYear()).padStart(4, "0"),
+      String(value.getMonth() + 1).padStart(2, "0"),
+      String(value.getDate()).padStart(2, "0")
+    ].join("-");
+  }
+  const raw = String(value).trim();
+  if (/^\d{4}-\d{2}-\d{2}$/u.test(raw)) return raw;
+  const parsed = new Date(raw);
+  if (!Number.isFinite(parsed.getTime())) return "";
+  return new Intl.DateTimeFormat("en-CA", {
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    timeZone: "Europe/Berlin"
+  }).format(parsed);
 }
 
 function conflictItem(entityType, source, code, message, label, reference = "") {
@@ -707,10 +749,15 @@ function contactPotentialDuplicateCandidatesFor(source, organizationId, rows) {
 
 function hospitationCandidatesFor(source, contactId, organizationId, sourceContact, rows, targetContactsById) {
   const timestamp = canonicalTargetTimestamp(source.startsAt);
+  const scheduledOn = source.scheduledOn || "";
   const sourcePerson = canonicalPersonName(source.contactName || sourceContact?.name);
   const sourceOrganization = canonicalOrganizationName(source.organizationName);
   return uniqueRows((rows || []).filter((row) => {
-    if (canonicalTargetTimestamp(row.starts_at) !== timestamp) return false;
+    if (scheduledOn) {
+      if (canonicalTargetDate(row.scheduled_on || row.starts_at) !== scheduledOn) return false;
+    } else if (canonicalTargetTimestamp(row.starts_at) !== timestamp) {
+      return false;
+    }
     if (contactId && row.contact_id === contactId) return true;
     const targetContact = targetContactsById.get(String(row.contact_id || ""));
     const targetPerson = canonicalPersonName(targetContact?.name || row.contact_name);
@@ -825,12 +872,12 @@ export function buildHospitationImportPlan(manifest, target, ownerProfile) {
     }
     const targetId = result.row?.id || source.id;
     if (claimedTargetIds.hospitations.has(targetId)) {
-      items.hospitations.push(conflictItem("hospitation", source, "duplicate_target_mapping", `Der Zieltermin ${targetId} ist bereits dem Snapshot-Eintrag ${claimedTargetIds.hospitations.get(targetId)} zugeordnet.`, source.contactName || source.organizationName || source.id, source.startsAt));
+      items.hospitations.push(conflictItem("hospitation", source, "duplicate_target_mapping", `Der Zieltermin ${targetId} ist bereits dem Snapshot-Eintrag ${claimedTargetIds.hospitations.get(targetId)} zugeordnet.`, source.contactName || source.organizationName || source.id, source.scheduledOn || source.startsAt));
       continue;
     }
     claimedTargetIds.hospitations.set(targetId, source.id);
     mappings.hospitations.set(source.id, targetId);
-    items.hospitations.push(plannedItem("hospitation", source, result.row, targetId, desiredHospitation(source, targetId, contactId, organizationId, ownerProfile.id, result.row), source.contactName || source.organizationName || source.id, source.startsAt));
+    items.hospitations.push(plannedItem("hospitation", source, result.row, targetId, desiredHospitation(source, targetId, contactId, organizationId, ownerProfile.id, result.row), source.contactName || source.organizationName || source.id, source.scheduledOn || source.startsAt));
   }
 
   for (const source of manifest.observations) {

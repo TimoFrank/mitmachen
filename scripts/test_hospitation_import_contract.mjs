@@ -92,6 +92,22 @@ assert.ok(!Object.hasOwn(createPlan.items.observations[0].record.payload, "updat
 assert.deepEqual(Object.keys(createPlan.publicItems.observations[0]).sort(), ["action", "changedFields", "entityType", "sourceId", "targetId"]);
 assert.doesNotMatch(JSON.stringify(createPlan.publicItems), /Lokaler Ablauf/u);
 
+const dateOnlyHospitation = { ...manifest().hospitations[0], scheduledOn: "2026-07-17" };
+delete dateOnlyHospitation.startsAt;
+delete dateOnlyHospitation.endsAt;
+const dateOnlyManifest = normalizeHospitationImportManifest(manifest({
+  hospitations: [dateOnlyHospitation]
+}));
+const dateOnlyPlan = buildHospitationImportPlan(dateOnlyManifest, emptyTarget, owner);
+assert.equal(dateOnlyPlan.items.hospitations[0].record.scheduled_on, "2026-07-17");
+assert.ok(!Object.hasOwn(dateOnlyPlan.items.hospitations[0].record, "starts_at"));
+assert.throws(
+  () => normalizeHospitationImportManifest(manifest({
+    hospitations: [{ ...dateOnlyHospitation, scheduledOn: "2026-02-31" }]
+  })),
+  /gueltiges Datum/u
+);
+
 const appliedTarget = {
   organizations: createPlan.items.organizations.map((item) => ({ ...item.record, created_at: "2026-07-22T12:01:00.000Z" })),
   contacts: createPlan.items.contacts.map((item) => ({ ...item.record, created_at: "2026-07-22T12:01:00.000Z" })),

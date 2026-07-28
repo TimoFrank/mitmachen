@@ -314,6 +314,7 @@ const HOSPITATION_FIELDS = [
   "owner_id",
   "status",
   "requested_windows",
+  "scheduled_on",
   "starts_at",
   "ends_at",
   "location",
@@ -842,6 +843,8 @@ const HOSPITATION_INPUT_FIELDS = [
   "status",
   "requestedWindows",
   "requested_windows",
+  "scheduledOn",
+  "scheduled_on",
   "startsAt",
   "starts_at",
   "endsAt",
@@ -1111,6 +1114,32 @@ function normalizeHospitationSlotStatus(value) {
   if (["Frei", "Reserviert", "Gebucht", "Abgesagt", "Archiviert"].includes(label)) return label;
   if (label === "archived") return "Archiviert";
   return "Frei";
+}
+
+function normalizeHospitationScheduledOn(value) {
+  let raw = "";
+  if (value instanceof Date) {
+    if (!Number.isFinite(value.getTime())) throw validationError("Der angegebene Hospitationstag ist ungültig.");
+    raw = [
+      String(value.getFullYear()).padStart(4, "0"),
+      String(value.getMonth() + 1).padStart(2, "0"),
+      String(value.getDate()).padStart(2, "0")
+    ].join("-");
+  } else {
+    raw = String(value || "").trim();
+  }
+  if (!raw) return null;
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(raw)) throw validationError("Der Hospitationstag muss im Format JJJJ-MM-TT angegeben werden.");
+  const [year, month, day] = raw.split("-").map(Number);
+  const parsed = new Date(Date.UTC(year, month - 1, day));
+  if (
+    parsed.getUTCFullYear() !== year
+    || parsed.getUTCMonth() !== month - 1
+    || parsed.getUTCDate() !== day
+  ) {
+    throw validationError("Der angegebene Hospitationstag ist ungültig.");
+  }
+  return raw;
 }
 
 function stringifyValue(value) {
@@ -2264,6 +2293,7 @@ function hospitationToDto(row = {}) {
     owner: profileName(row.owner_id),
     status: normalizeHospitationStatus(row.status),
     requestedWindows: Array.isArray(row.requested_windows) ? row.requested_windows : [],
+    scheduledOn: normalizeHospitationScheduledOn(row.scheduled_on) || "",
     startsAt: row.starts_at || "",
     endsAt: row.ends_at || "",
     location: row.location || "",
@@ -2401,6 +2431,7 @@ function hospitationToDb(hospitation = {}, userId = "") {
     // node-postgres treats JavaScript arrays as PostgreSQL arrays. This column
     // is JSONB and therefore needs an explicit JSON representation.
     requested_windows: JSON.stringify(Array.isArray(hospitation.requestedWindows || hospitation.requested_windows) ? hospitation.requestedWindows || hospitation.requested_windows : []),
+    scheduled_on: normalizeHospitationScheduledOn(hospitation.scheduledOn || hospitation.scheduled_on),
     starts_at: hospitation.startsAt || hospitation.starts_at || null,
     ends_at: hospitation.endsAt || hospitation.ends_at || null,
     location: String(hospitation.location || "").trim() || null,
@@ -2434,6 +2465,7 @@ function hospitationPatchToDb(patch = {}) {
   if ("requestedWindows" in patch || "requested_windows" in patch) {
     db.requested_windows = JSON.stringify(Array.isArray(patch.requestedWindows || patch.requested_windows) ? patch.requestedWindows || patch.requested_windows : []);
   }
+  if ("scheduledOn" in patch || "scheduled_on" in patch) db.scheduled_on = normalizeHospitationScheduledOn(patch.scheduledOn || patch.scheduled_on);
   if ("startsAt" in patch || "starts_at" in patch) db.starts_at = patch.startsAt || patch.starts_at || null;
   if ("endsAt" in patch || "ends_at" in patch) db.ends_at = patch.endsAt || patch.ends_at || null;
   if ("location" in patch) db.location = String(patch.location || "").trim() || null;
@@ -4259,7 +4291,7 @@ const CONTACT_DUPLICATE_IDENTITY_FIELDS = new Set([
   "email", "phone", "linkedin"
 ]);
 const HOSPITATION_DUPLICATE_IDENTITY_FIELDS = new Set([
-  "contact_id", "contact_name", "organization_id", "organization_name", "starts_at", "city"
+  "contact_id", "contact_name", "organization_id", "organization_name", "scheduled_on", "starts_at", "city"
 ]);
 const PUBLIC_DUPLICATE_CONFLICT_CODES = new Set([
   "CONTACT_DUPLICATE",
@@ -4485,11 +4517,14 @@ function contactIdentityFromHospitationCandidate(row = {}) {
 }
 
 async function assertNoHospitationDuplicate(transaction, hospitation = {}, excludeId = "", request = null) {
-  if (!hospitation.starts_at) return;
-  const startsAt = new Date(hospitation.starts_at);
-  if (!Number.isFinite(startsAt.getTime())) return;
+  const scheduledOn = normalizeHospitationScheduledOn(hospitation.scheduled_on || hospitation.scheduledOn) || "";
+  const startsAt = hospitation.starts_at ? new Date(hospitation.starts_at) : null;
+  if (!scheduledOn && (!startsAt || !Number.isFinite(startsAt.getTime()))) return;
   const incomingContact = await contactIdentityForHospitation(transaction, hospitation);
   const incomingHasContact = Boolean(canonicalDuplicatePersonName(incomingContact.name) || incomingContact.id);
+  const dateClause = scheduledOn
+    ? "coalesce(h.scheduled_on, (h.starts_at at time zone 'Europe/Berlin')::date) = $1::date"
+    : "h.starts_at = $1::timestamptz";
   const result = await databaseQuery(
     transaction,
     `select h.id as duplicate_hospitation_id,
@@ -4517,10 +4552,10 @@ async function assertNoHospitationDuplicate(transaction, hospitation = {}, exclu
        left join contacts c on c.id = h.contact_id
        left join organizations o on o.id = c.organization_id
        left join organizations ho on ho.id = h.organization_id
-      where h.starts_at = $1::timestamptz
+      where ${dateClause}
         and ($2::text = '' or h.id <> $2)
       order by h.id asc`,
-    [startsAt.toISOString(), String(excludeId || "")]
+    [scheduledOn || startsAt.toISOString(), String(excludeId || "")]
   );
   const duplicate = result.rows.find((candidate) => {
     const candidateContact = contactIdentityFromHospitationCandidate(candidate);
@@ -4536,7 +4571,7 @@ async function assertNoHospitationDuplicate(transaction, hospitation = {}, exclu
       duplicateIdVisibleToRequest(request, duplicate.duplicate_hospitation_status)
         ? duplicate.duplicate_hospitation_id
         : "",
-      "Für diese Kontakt- oder Organisationsidentität ist zum selben Zeitpunkt bereits ein Hospitationstermin vorhanden."
+      "Für diese Kontakt- oder Organisationsidentität ist am selben Tag bereits ein Hospitationstermin vorhanden."
     );
   }
 }
@@ -7853,7 +7888,7 @@ async function listHospitations(request, url) {
   await loadProfiles(request);
   const rows = await cloudSqlRest("hospitations", request, new URLSearchParams({
     select: HOSPITATION_FIELDS.join(","),
-    order: "starts_at.desc.nullslast,updated_at.desc.nullslast"
+    order: "scheduled_on.desc.nullslast,starts_at.desc.nullslast,updated_at.desc.nullslast"
   }));
   const includeArchived = url.searchParams.get("includeArchived") === "true";
   const visibleRows = await filterRowsByEhcLinkedContact(request, rows || []);

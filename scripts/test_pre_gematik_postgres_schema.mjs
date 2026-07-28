@@ -35,6 +35,7 @@ const expectedMigrationFiles = Object.freeze([
   "202607200003_restrict_stakeholder_logo_urls.sql",
   "202607240001_add_test_access_enrollment.sql",
   "202607250001_add_test_access_allowlist.sql",
+  "202607270001_add_hospitation_scheduled_on.sql",
   "202607270002_add_contact_relationship_basis_and_ehc_consent.sql",
   "202607280001_add_format_participation_workflow.sql"
 ]);
@@ -59,9 +60,9 @@ function replaceSchemaFragmentExactlyOnce(source, pattern, replacement, descript
 }
 
 // Reconstruct the exact capabilities that existed immediately before the
-// seven versioned migrations. Keeping this derived from today's full schema
+// eight versioned migrations. Keeping this derived from today's full schema
 // makes the upgrade smoke exercise all current tables while deliberately
-// removing only the seven capabilities supplied by those migrations.
+// removing only the eight capabilities supplied by those migrations.
 let legacyUpgradeSchemaSql = replaceSchemaFragmentExactlyOnce(
   schemaSql,
   /  if new\.updated_at is not distinct from old\.updated_at then\n    new\.updated_at := now\(\);\n  end if;/u,
@@ -100,33 +101,51 @@ legacyUpgradeSchemaSql = replaceSchemaFragmentExactlyOnce(
 );
 legacyUpgradeSchemaSql = replaceSchemaFragmentExactlyOnce(
   legacyUpgradeSchemaSql,
+  /\n  scheduled_on date,/u,
+  "",
+  "Hospitationstag vor Migration 006"
+);
+legacyUpgradeSchemaSql = replaceSchemaFragmentExactlyOnce(
+  legacyUpgradeSchemaSql,
+  /\ncreate index if not exists hospitations_status_date_idx\n  on public\.hospitations \(status, scheduled_on desc, updated_at desc\);/u,
+  "",
+  "Hospitationstagsindex vor Migration 006"
+);
+legacyUpgradeSchemaSql = replaceSchemaFragmentExactlyOnce(
+  legacyUpgradeSchemaSql,
+  /\ncreate index if not exists hospitations_schedule_idx\n  on public\.hospitations \([\s\S]*?\n  \);/u,
+  "",
+  "Hospitationsplanungsindex vor Migration 006"
+);
+legacyUpgradeSchemaSql = replaceSchemaFragmentExactlyOnce(
+  legacyUpgradeSchemaSql,
   /\n  relationship_basis text not null default 'review_required'[\s\S]*?\n  relationship_basis_note text,/u,
   "",
-  "Beziehungsgrundlagen-Spalten vor Migration 006"
+  "Beziehungsgrundlagen-Spalten vor Migration 007"
 );
 legacyUpgradeSchemaSql = replaceSchemaFragmentExactlyOnce(
   legacyUpgradeSchemaSql,
   /\n  ehc_consent_status text not null default 'not_requested'[\s\S]*?\n  ehc_consent_note text,/u,
   "",
-  "EHC-Einwilligungsspalten vor Migration 006"
+  "EHC-Einwilligungsspalten vor Migration 007"
 );
 legacyUpgradeSchemaSql = replaceSchemaFragmentExactlyOnce(
   legacyUpgradeSchemaSql,
   /,\n  constraint contacts_relationship_basis_required_fields_check check \([\s\S]*?\n  \)(?=,\n  constraint contacts_image_dimensions_check)/u,
   "",
-  "Zweck- und EHC-Constraints vor Migration 006"
+  "Zweck- und EHC-Constraints vor Migration 007"
 );
 legacyUpgradeSchemaSql = replaceSchemaFragmentExactlyOnce(
   legacyUpgradeSchemaSql,
   /\ncreate index if not exists contacts_ehc_only_idx[\s\S]*?\n  where ehc_consent_status = 'granted' and mitmachen_consent_status <> 'granted';/u,
   "",
-  "EHC-Only-Index vor Migration 006"
+  "EHC-Only-Index vor Migration 007"
 );
 legacyUpgradeSchemaSql = replaceSchemaFragmentExactlyOnce(
   legacyUpgradeSchemaSql,
   /\ncreate or replace function public\.pre_gematik_prepare_contact_purpose_write\(\)[\s\S]*?\nrevoke all on function public\.pre_gematik_log_contact_purpose_change\(\) from public;\n/u,
   "\n",
-  "Kontaktzweck-Funktionen vor Migration 006"
+  "Kontaktzweck-Funktionen vor Migration 007"
 );
 legacyUpgradeSchemaSql = replaceSchemaFragmentExactlyOnce(
   legacyUpgradeSchemaSql,
@@ -138,7 +157,7 @@ legacyUpgradeSchemaSql = replaceSchemaFragmentExactlyOnce(
   legacyUpgradeSchemaSql,
   /\ndrop trigger if exists contacts_pre_gematik_prepare_contact_purpose_insert[\s\S]*?execute function public\.pre_gematik_log_contact_purpose_change\(\);\n/u,
   "\n",
-  "Kontaktzweck-Trigger vor Migration 006"
+  "Kontaktzweck-Trigger vor Migration 007"
 );
 legacyUpgradeSchemaSql = replaceSchemaFragmentExactlyOnce(
   legacyUpgradeSchemaSql,
@@ -1339,6 +1358,14 @@ async function migrationUpgradeDataSnapshot(pool) {
               from public.identity_bindings binding
              where binding.subject like 'upgrade-%'
           ) snapshot_row
+      ), '[]'::jsonb),
+      'hospitations', coalesce((
+        select jsonb_agg(to_jsonb(snapshot_row) order by snapshot_row.id)
+          from (
+            select hospitation.*, hospitation.xmin::text as row_xmin
+              from public.hospitations hospitation
+             where hospitation.id like 'upgrade-%'
+          ) snapshot_row
       ), '[]'::jsonb)
     ) as snapshot
   `);
@@ -1439,6 +1466,15 @@ async function assertVersionedMigrationUpgrade(connectionString, containerName) 
     `);
     assert.equal(legacyLogoConstraint.rows[0].count, 0,
       "Die Legacy-Baseline darf Migration 003 nicht vorwegnehmen.");
+    const legacyHospitationSchedule = await upgradePool.query(`
+      select count(*)::int as count
+        from information_schema.columns
+       where table_schema = 'public'
+         and table_name = 'hospitations'
+         and column_name = 'scheduled_on'
+    `);
+    assert.equal(legacyHospitationSchedule.rows[0].count, 0,
+      "Die Legacy-Baseline darf Migration 006 nicht vorwegnehmen.");
 
     await upgradePool.query(`
       insert into public.profiles (
@@ -1475,6 +1511,12 @@ async function assertVersionedMigrationUpgrade(connectionString, containerName) 
           'legacy null logo', null,
           '2020-01-01T00:00:00.000Z', '2020-01-01T00:00:00.000Z'
         );
+      insert into public.hospitations (
+        id, starts_at, created_at, updated_at
+      ) values (
+        'upgrade-hospitation', '2026-07-17T22:30:00.000Z',
+        '2020-01-01T00:00:00.000Z', '2020-01-01T00:00:00.000Z'
+      );
     `);
     const logosBeforeUpgrade = await upgradePool.query(`
       select id, logo_url, updated_at, xmin::text as row_xmin
@@ -1536,6 +1578,19 @@ async function assertVersionedMigrationUpgrade(connectionString, containerName) 
        where id = 'upgrade-format-participant'
     `);
     await applyVersionedMigrations(upgradePool, [formatMigrationFile]);
+
+    const migratedHospitationSchedule = await upgradePool.query(`
+      select scheduled_on::text as scheduled_on,
+             to_regclass('public.hospitations_status_date_idx')::text as status_date_index,
+             to_regclass('public.hospitations_schedule_idx')::text as schedule_index
+        from public.hospitations
+       where id = 'upgrade-hospitation'
+    `);
+    assert.deepEqual(migratedHospitationSchedule.rows, [{
+      scheduled_on: "2026-07-18",
+      status_date_index: "hospitations_status_date_idx",
+      schedule_index: "hospitations_schedule_idx"
+    }], "Migration 006 muss Legacy-Zeitstempel in den Berliner Hospitationstag überführen und beide Planungsindizes anlegen.");
 
     const columns = await upgradePool.query(`
       select column_name, is_nullable
@@ -1706,9 +1761,9 @@ async function assertVersionedMigrationUpgrade(connectionString, containerName) 
     const dataAfterSecondPass = await migrationUpgradeDataSnapshot(upgradePool);
     const secondSemantics = await migrationUpgradeSemanticSnapshot(upgradePool);
     assert.deepEqual(dataAfterSecondPass, dataBeforeSecondPass,
-      "Der zweite Lauf aller sieben Migrationen darf einschliesslich xmin keine Daten erneut veraendern.");
+      "Der zweite Lauf aller acht Migrationen darf einschliesslich xmin keine Daten erneut veraendern.");
     assert.deepEqual(secondSemantics, firstSemantics,
-      "Der zweite Lauf aller sieben Migrationen muss denselben logischen Tabellen-, Constraint-, Trigger- und Rechtezustand ergeben.");
+      "Der zweite Lauf aller acht Migrationen muss denselben logischen Tabellen-, Constraint-, Trigger- und Rechtezustand ergeben.");
 
     const secondExplicitTimestamp = new Date("2003-04-05T06:07:08.901Z");
     const secondExplicit = await upgradePool.query(`
@@ -2175,7 +2230,7 @@ try {
     await databaseSmoke(pool);
     console.log("Externe Test-DB verwendet: runtime-role.sql und grants.sql wurden statisch, aber nicht mit temporären Rollen ausgeführt.");
   }
-  console.log("PostgreSQL 16 contract OK: Vollschema und sieben Upgrade-Migrationen zweifach/idempotent; Legacy-Logo-Bereinigung, Identity-/Allowlist-Grenzen, getrennte NOLOGIN-Identity-Administration, explicit updated_at, Zweckachsen, Formatbeteiligungs-Workflow, Laufzeitrolle und relationaler Smoke-Test erfolgreich.");
+  console.log("PostgreSQL 16 contract OK: Vollschema und acht Upgrade-Migrationen zweifach/idempotent; Legacy-Logo-Bereinigung, Identity-/Allowlist-Grenzen, getrennte NOLOGIN-Identity-Administration, explicit updated_at, Hospitationstag, Zweckachsen, Formatbeteiligungs-Workflow, Laufzeitrolle und relationaler Smoke-Test erfolgreich.");
 } finally {
   if (pool) await pool.end().catch(() => {});
   if (containerName) {
