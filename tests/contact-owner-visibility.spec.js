@@ -106,7 +106,7 @@ test.describe("GitHub-Pages-Demo: Owner-Sichtbarkeit der Kontaktkanäle", () => 
     await expect(profile.locator(".ehc-profile-badge")).toContainText("EHC geschützt");
     await expect(profile.locator(".consent-scope-summary")).toContainText("Nur für die E-Health Community");
     await expect(profile.locator('[data-consent-signal="ehc"]')).toContainText("Freigegeben · geschützt");
-    await expect(profile.locator("[data-edit-consent-record], [data-detail-edit-section], [data-detail-owner-edit]")).toHaveCount(0);
+    await expect(profile.locator("[data-edit-consent-overview], [data-detail-edit-section], [data-detail-owner-edit]")).toHaveCount(0);
 
     const pageMarkup = await page.locator("html").innerHTML();
     for (const protectedValue of [EHC_ONLY_NAME, EHC_ONLY_EMAIL, EHC_ONLY_PHONE, EHC_ONLY_ORGANIZATION]) {

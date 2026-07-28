@@ -1225,7 +1225,23 @@ function contactOwnersChanged(oldOwnerIds = [], nextOwnerIds = []) {
 function isEhcOnlyContact(contact = {}) {
   const ehcStatus = contact.ehcConsentStatus || contact.ehc_consent_status || "not_requested";
   const mitmachenStatus = contact.mitmachenConsentStatus || contact.mitmachen_consent_status || "not_requested";
-  return ehcStatus === "granted" && mitmachenStatus !== "granted";
+  const mitmachenSource = String(contact.mitmachenConsentSource || contact.mitmachen_consent_source || "").trim();
+  const hasWrittenMitmachenPermission = mitmachenStatus === "granted"
+    && ["online_form", "email", "written"].includes(mitmachenSource);
+  const hasEhcHistory = ehcStatus !== "not_requested"
+    || [
+      contact.ehcConsentEffectiveAt,
+      contact.ehc_consent_effective_at,
+      contact.ehcConsentSource,
+      contact.ehc_consent_source,
+      contact.ehcConsentTextVersion,
+      contact.ehc_consent_text_version,
+      contact.ehcConsentRecordedBy,
+      contact.ehc_consent_recorded_by,
+      contact.ehcConsentNote,
+      contact.ehc_consent_note
+    ].some((value) => Boolean(String(value || "").trim()));
+  return hasEhcHistory && !hasWrittenMitmachenPermission;
 }
 
 function requestHasEhcContactAccess(request, contact = {}, ownerIds = []) {

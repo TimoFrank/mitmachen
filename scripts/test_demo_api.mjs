@@ -178,6 +178,43 @@ assert.equal(legacyRestrictedEhcContact.profileAccess, "ehc_restricted", "Der EH
 assert.equal(legacyRestrictedEhcContact.name, "Geschützter EHC-Kontakt");
 assert.equal(legacyRestrictedEhcContact.email, "");
 
+for (const ehcConsentStatus of ["withdrawn", "not_requested"]) {
+  const historicalEhcRuntime = createRuntime({
+    demoProfile: "demo-profile-editor",
+    mutateDemoData(demoData) {
+      const contact = demoData.contacts.find((item) => item.id === "demo-contact-76");
+      contact.ehcConsentStatus = ehcConsentStatus;
+    }
+  });
+  const historicalEhcContact = await (
+    await historicalEhcRuntime.window.fetch("/api/contacts/demo-contact-76")
+  ).json();
+  assert.equal(
+    historicalEhcContact.profileAccess,
+    "ehc_restricted",
+    `Der EHC-Profilschutz muss nach Status ${ehcConsentStatus} erhalten bleiben.`
+  );
+  assert.equal(historicalEhcContact.name, "Geschützter EHC-Kontakt");
+  assert.equal(historicalEhcContact.email, "");
+}
+const verbalMitmachenEhcRuntime = createRuntime({
+  demoProfile: "demo-profile-editor",
+  mutateDemoData(demoData) {
+    const contact = demoData.contacts.find((item) => item.id === "demo-contact-76");
+    contact.mitmachenConsentStatus = "granted";
+    contact.mitmachenConsentSource = "verbal_confirmed";
+  }
+});
+const verbalMitmachenEhcContact = await (
+  await verbalMitmachenEhcRuntime.window.fetch("/api/contacts/demo-contact-76")
+).json();
+assert.equal(
+  verbalMitmachenEhcContact.profileAccess,
+  "ehc_restricted",
+  "Eine nur mündliche #Mitmachen-Angabe darf den EHC-Profilschutz nicht aufheben."
+);
+assert.equal(verbalMitmachenEhcContact.name, "Geschützter EHC-Kontakt");
+
 const seededSensitiveHistoryRuntime = createRuntime({
   mutateDemoData(demoData) {
     demoData.activityEvents.unshift({
