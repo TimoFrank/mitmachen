@@ -69,13 +69,17 @@ Alle Antworten sind JSON. Listen liefern `{ "items": [...] }`.
 | `GET` | `/api/user-settings` | Einstellungen des angemeldeten Nutzers laden |
 | `PUT` | `/api/user-settings` | Einstellungen des angemeldeten Nutzers upserten |
 | `GET` | `/api/formats` | Formate mit Teilnehmern laden, optional `includeArchived=true` |
-| `POST` | `/api/formats` | Format anlegen |
+| `POST` | `/api/formats` | Format idempotent anlegen; Body benötigt `idempotencyKey` als UUID |
 | `GET` | `/api/formats/:id` | Einzelformat mit Teilnehmern laden |
-| `PATCH` | `/api/formats/:id` | Format aktualisieren, inklusive Archivieren über `status` |
-| `DELETE` | `/api/formats/:id` | Format löschen |
+| `PATCH` | `/api/formats/:id` | Aktives Format mit `expectedUpdatedAt` oder `If-Match` aktualisieren |
+| `POST` | `/api/formats/:id/archive` | Format mit `expectedUpdatedAt` explizit archivieren; nur `admin` |
+| `POST` | `/api/formats/:id/restore` | Archiviertes Format mit `expectedUpdatedAt` explizit als `Planung` wiederherstellen; nur `admin` |
+| `DELETE` | `/api/formats/:id` | Format mit `expectedUpdatedAt` oder `If-Match` löschen; nur `admin` |
 | `POST` | `/api/formats/:id/participants` | Kontakt als Teilnehmer hinzufügen |
-| `PATCH` | `/api/formats/:id/participants/:contactId` | Teilnehmerstatus, Rolle oder Notiz aktualisieren |
-| `DELETE` | `/api/formats/:id/participants/:contactId` | Teilnehmer aus Format entfernen |
+| `POST` | `/api/formats/:id/participants/batch` | 1 bis 500 Kontakte als atomaren, dublettensicheren Teilnehmer-Batch hinzufügen |
+| `POST` | `/api/formats/:id/participants/import` | 1 bis 500 Teilnehmer atomar importieren; geänderte Bestandszeilen benötigen je `expectedUpdatedAt`; nur `admin` |
+| `PATCH` | `/api/formats/:id/participants/:contactId` | Teilnehmerstatus, Rolle oder Notiz mit `expectedUpdatedAt` oder `If-Match` aktualisieren |
+| `DELETE` | `/api/formats/:id/participants/:contactId` | Teilnehmer mit `expectedUpdatedAt` oder `If-Match` race-sicher entfernen |
 | `GET` | `/api/hospitation-slots` | Interne Hospitationstermine laden, optional `includeArchived=true` |
 | `POST` | `/api/hospitation-slots` | Internen Hospitationstermin anbieten |
 | `PATCH` | `/api/hospitation-slots/:id` | Hospitationstermin aktualisieren |
@@ -88,6 +92,28 @@ Alle Antworten sind JSON. Listen liefern `{ "items": [...] }`.
 | `PUT` | `/api/hospitations/:id/observations/sync` | Beobachtungen eines Quellformulars per stabiler ID upserten und entfernte Objekte archivieren |
 | `POST` | `/api/admin/hospitation-import/preview` | Schreibfreie Vorschau eines lokalen Hospitations-Staging-Manifests; nur `admin` |
 | `POST` | `/api/admin/hospitation-import/apply` | Exakt bestätigte und erneut geprüfte Vorschau transaktional übernehmen; nur `admin` |
+
+### Schreibvertrag für Formate und Teilnehmer
+
+`POST /api/formats` verwendet die UUID aus `idempotencyKey` zugleich als stabile Format-ID. Ein identischer Replay derselben Person liefert das bereits angelegte Format, ohne eine zweite Zeile, Aktivität oder Benachrichtigung zu erzeugen. Derselbe Schlüssel mit abweichendem Payload endet mit `409 FORMAT_IDEMPOTENCY_CONFLICT`. Dadurch benötigt das aktuelle Zielschema keine zusätzliche Idempotenzspalte.
+
+Format- und Teilnehmer-PATCH sowie Format- und Teilnehmer-DELETE arbeiten optimistisch gegen den zuletzt gelesenen `updatedAt`-Wert. Der Client sendet ihn als `expectedUpdatedAt` im Body oder als `If-Match`; ohne Vorbedingung antwortet die API mit `428`, bei einem veralteten Stand mit `409`. Beginn und Ende sind getrennte ISO-Datum-Zeit-Werte. Ein Teil-PATCH überschreibt den jeweils nicht gesendeten Wert nicht; ein Ende vor dem Beginn wird abgewiesen.
+
+Der Teilnehmer-Batch ist eine einzelne Datenbanktransaktion. Ein unbekannter oder archivierter Kontakt verwirft den gesamten Batch. Bereits vorhandene Kontakt-Format-Beziehungen werden ohne erneute Formataktivität ignoriert. `Kandidat` ist ohne Kontaktfreigabe zulässig; die Status `Eingeladen`, `Zugesagt` und `Teilgenommen` setzen dagegen jeweils `contacts.mitmachen_consent_status = granted` voraus. Diese Regel liegt in der API und zusätzlich im PostgreSQL-Trigger.
+
+Der Excel-Import unterscheidet Neuanlagen, tatsächliche Bestandsänderungen und identische Dubletten. Neue Beziehungen dürfen `expectedUpdatedAt` weglassen. Jede tatsächlich geänderte Bestandszeile muss ihren eigenen zuletzt gelesenen `updatedAt` als `expectedUpdatedAt` mitsenden; fehlt er, wird der gesamte Import mit `428` verworfen, bei einem veralteten Wert mit `409`. Identische Bestandszeilen bleiben ohne Schreibvorgang und ohne Formataktivität. Neubeziehungen erhalten `created_by` und `updated_by` aus der angemeldeten Person; Bestandsupdates bewahren `created_by`.
+
+Archivierte Formate sind unveränderlich, bis ein Admin die explizite Restore-Aktion ausführt. Ein normales PATCH darf weder archivieren noch reaktivieren. Die Antworten bleiben über das Feld `error` rückwärtskompatibel; für gezielte UI-Hinweise kommt ein maschinenlesbares `code` hinzu. Bei kontaktbezogenen Konflikten bleiben `blockedContactIds` sowie die strukturierten `details` auch in produktiven Antworten erhalten.
+
+| HTTP | Code | Bedeutung |
+| --- | --- | --- |
+| `400` | `FORMAT_STATUS_INVALID`, `FORMAT_PARTICIPANT_STATUS_INVALID` | Status liegt außerhalb der kontrollierten Werteliste. |
+| `400` | `FORMAT_DATETIME_INVALID`, `FORMAT_ENDS_BEFORE_START` | Datum/Zeit ist ungültig oder der Zeitraum widersprüchlich. |
+| `428` | `FORMAT_IDEMPOTENCY_KEY_REQUIRED`, `FORMAT_PRECONDITION_REQUIRED`, `FORMAT_PARTICIPANT_PRECONDITION_REQUIRED`, `FORMAT_PARTICIPANT_IMPORT_PRECONDITION_REQUIRED` | Idempotenz- oder Versionsvorbedingung fehlt. |
+| `409` | `FORMAT_IDEMPOTENCY_CONFLICT` | Derselbe Anlageschlüssel beschreibt eine andere Anlageabsicht. |
+| `409` | `FORMAT_VERSION_CONFLICT`, `FORMAT_PARTICIPANT_VERSION_CONFLICT`, `FORMAT_PARTICIPANT_IMPORT_VERSION_CONFLICT` | Der gelesene Stand ist veraltet. |
+| `409` | `FORMAT_INVITATION_CONSENT_REQUIRED` | Der Kontakt darf als Kandidat geführt werden; Einladen, Zusage und Teilnahme benötigen eine gültige Einwilligung. |
+| `409` | `FORMAT_ARCHIVE_ACTION_REQUIRED`, `FORMAT_RESTORE_ACTION_REQUIRED` | Eine Lifecycle-Grenze wurde über einen normalen PATCH beziehungsweise an einem archivierten Format umgangen. |
 
 ## Hospitations-Staging-Import
 

@@ -193,6 +193,19 @@
   );
 
   const contacts = names.map((name, index) => contact(index, index % organizations.length, name));
+  contacts[7] = {
+    ...contacts[7],
+    relationshipBasis: "self_submitted",
+    relationshipBasisEffectiveAt: "2026-05-09T10:15:00.000Z",
+    relationshipBasisRecordedBy: contacts[7].ownerId,
+    relationshipBasisNote: "Synthetische Selbstregistrierung fuer Beteiligungstests.",
+    mitmachenConsentStatus: "granted",
+    mitmachenConsentEffectiveAt: "2026-05-09T10:15:00.000Z",
+    mitmachenConsentSource: "online_form",
+    mitmachenConsentTextVersion: "mitmachen-kontakt-v2",
+    mitmachenConsentRecordedBy: contacts[7].ownerId,
+    mitmachenConsentNote: "Vollstaendiger synthetischer Einwilligungsnachweis fuer Beteiligungstests."
+  };
   contacts[5] = { ...contacts[5], email: "", note: "Fiktiver Kontakt mit fehlender E-Mail fuer Datenqualitaets-QA." };
   contacts[8] = { ...contacts[8], phone: "", note: "Fiktiver Kontakt mit fehlender Telefonnummer fuer Datenqualitaets-QA." };
   contacts[12] = { ...contacts[12], specialty: "", note: "Fiktiver Kontakt mit fehlender Fachrichtung fuer Filter- und QA-Pruefung." };

@@ -33,6 +33,30 @@ export default defineConfig({
         ...devices["Pixel 5"],
         viewport: { width: 390, height: 844 }
       }
+    },
+    {
+      name: "firefox-desktop",
+      testMatch: /format-review-matrix\.spec\.js/,
+      use: {
+        ...devices["Desktop Firefox"],
+        viewport: { width: 1440, height: 1000 }
+      }
+    },
+    {
+      name: "webkit-desktop",
+      testMatch: /format-review-matrix\.spec\.js/,
+      use: {
+        ...devices["Desktop Safari"],
+        viewport: { width: 1440, height: 1000 }
+      }
+    },
+    {
+      name: "chromium-tablet",
+      testMatch: /format-review-matrix\.spec\.js/,
+      use: {
+        ...devices["iPad Pro 11"],
+        browserName: "chromium"
+      }
     }
   ],
   webServer: {

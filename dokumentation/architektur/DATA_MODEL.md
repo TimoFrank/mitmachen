@@ -426,6 +426,13 @@ Wichtigste Felder:
 | `notes` | Interne Planungsnotiz. |
 | `created_by`, `updated_by`, `created_at`, `updated_at` | Nachvollziehbarkeit. |
 
+Kritische Regeln:
+
+- `starts_at` und `ends_at` sind unabhängige Datum-Zeit-Werte; ein Ende vor dem Beginn ist unzulässig. Teiländerungen dürfen den jeweils anderen Wert nicht zurücksetzen.
+- Die UUID aus dem API-`idempotencyKey` wird als stabile `id` verwendet. Identische Replays legen weder eine zweite Zeile noch ein zweites `format.created`-Ereignis an.
+- Archivierung und Wiederherstellung sind explizite Admin-Fachvorgänge. Archivierte Formate bleiben bis zur Wiederherstellung unveränderlich.
+- Schreibkonflikte werden gegen den vom Client gesendeten letzten `updated_at`-Stand geprüft.
+
 ## Tabelle `format_participants`
 
 Zweck:
@@ -443,12 +450,20 @@ Wichtigste Felder:
 | `invitation_status` | `Kandidat`, `Eingeladen`, `Zugesagt`, `Abgesagt`, `Keine Rückmeldung` oder `Teilgenommen`. |
 | `participant_role` | Rolle im Format, z. B. Sprecherin, Teilnehmer, Moderation. |
 | `notes` | Format-spezifische Teilnehmernotiz. |
+| `invited_at`, `responded_at` | Erster Einladungs- und Reaktionszeitpunkt. |
+| `participated_at`, `cancelled_at` | Erster Teilnahme- beziehungsweise Absagezeitpunkt. |
+| `status_changed_at` | Zeitpunkt des letzten fachlichen Statuswechsels. |
 | `created_by`, `updated_by`, `created_at`, `updated_at` | Nachvollziehbarkeit. |
 
 Kritische Regeln:
 
 - `format_id` und `contact_id` sind eindeutig kombiniert; ein Kontakt kann pro Format nur einmal auftauchen.
-- Viewer lesen Formate und Teilnehmer, Editor/Admin pflegen sie, nur Admins löschen Formate.
+- Ein Batch schreibt alle Beziehungen oder keine; bestehende Dubletten erzeugen weder eine neue Beziehung noch ein fälschliches Formatereignis.
+- `Kandidat` ist ohne #Mitmachen-Einwilligung zulässig. `Eingeladen`, `Zugesagt` und `Teilgenommen` setzen jeweils einen aktiven Kontakt mit `mitmachen_consent_status = granted` voraus; API und Datenbanktrigger erzwingen dieselbe Regel.
+- Workflow-Trigger leiten Statuszeitpunkte ab und erzeugen `format.invitation.created`, `format.invitation.accepted`, `format.invitation.declined` sowie `format.participation.recorded` transaktional.
+- Import-Neuanlagen speichern die angemeldete Person als `created_by` und `updated_by`. Tatsächliche Bestandsänderungen benötigen je Zeile den gelesenen `updated_at`-Stand, bewahren `created_by` und werden zusammen mit Neuanlagen atomar geschrieben; identische Dubletten bleiben ohne Schreibvorgang.
+- Updates und Deletes prüfen den vom Client gelesenen `updated_at`-Stand.
+- Viewer lesen Formate und Teilnehmer, Editor/Admin pflegen Teilnehmer und aktive Formatdaten; nur Admins archivieren, stellen wieder her oder löschen Formate.
 
 ## Tabelle `hospitation_slots`
 

@@ -149,7 +149,7 @@ assert.deepEqual(GENERATED_COLUMNS, {
   contact_note_attachments: ["search_vector"]
 });
 assert.equal(SYNTHETIC_SEED_CONTENT_FINGERPRINT_ALGORITHM, "complete-replaceable-content-v2");
-assert.equal(SYNTHETIC_SEED_CONTENT_MANIFESTS.length, 10);
+assert.equal(SYNTHETIC_SEED_CONTENT_MANIFESTS.length, 12);
 assert.equal(
   new Set(SYNTHETIC_SEED_CONTENT_MANIFESTS.map((manifest) => manifest.id)).size,
   SYNTHETIC_SEED_CONTENT_MANIFESTS.length,
@@ -190,6 +190,42 @@ assert.equal(
   }).updated_at,
   "must-stay",
   "Bei einem abweichenden Fachwert darf auch die Auditzeit nicht normalisiert werden."
+);
+assert.deepEqual(
+  normalizeSyntheticSeedRecord("format_participants", {
+    id: "demo-format-participant-01",
+    invitation_status: "Eingeladen",
+    invited_at: "2026-05-01T09:00:00.000Z",
+    status_changed_at: "deployment-variable"
+  }),
+  {
+    id: "demo-format-participant-01",
+    invitation_status: "Eingeladen",
+    invited_at: "2026-05-01T09:00:00.000Z",
+    status_changed_at: "<seed-trigger-time>"
+  }
+);
+assert.deepEqual(
+  normalizeSyntheticSeedRecord("activity_events", {
+    id: "1",
+    event_key: "format.invitation.created",
+    entity_type: "format_participant",
+    entity_id: "demo-format-participant-01",
+    contact_id: "demo-contact-01",
+    correlation_id: "format:demo-format-01:contact:demo-contact-01",
+    occurred_at: "deployment-variable",
+    created_at: "deployment-variable"
+  }),
+  {
+    id: "1",
+    event_key: "format.invitation.created",
+    entity_type: "format_participant",
+    entity_id: "demo-format-participant-01",
+    contact_id: "demo-contact-01",
+    correlation_id: "format:demo-format-01:contact:demo-contact-01",
+    occurred_at: "<seed-trigger-time>",
+    created_at: "<seed-trigger-time>"
+  }
 );
 assert.deepEqual(
   normalizeSyntheticSeedRecord("hospitation_observation_changes", {
@@ -1194,7 +1230,7 @@ try {
   );
   assert.equal(
     restoredSeedDryRun.targetClassificationEvidence.syntheticSeedContentManifestId,
-    "pre-gematik-synthetic-v1@ce30e93/base"
+    "pre-gematik-synthetic-v1@11f18bf/base"
   );
   assert.equal(
     restoredSeedDryRun.targetClassificationEvidence.syntheticSeedContentFingerprintAlgorithm,
@@ -1652,7 +1688,7 @@ try {
       SYNTHETIC_SEED_CONTENT_MANIFESTS.find(
         (manifest) => manifest.fingerprint === avatarPatchedFingerprint
       )?.id,
-      "pre-gematik-synthetic-v1@ce30e93/avatar-patch-v1",
+      "pre-gematik-synthetic-v1@11f18bf/avatar-patch-v1",
       "Der versionierte synthetische Avatar-Patch braucht einen exakten Seed-Manifest-Fingerprint."
     );
     await target.query(`

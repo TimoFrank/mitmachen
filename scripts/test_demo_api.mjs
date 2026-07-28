@@ -7,6 +7,7 @@ const demoApiSource = fs.readFileSync("frontend/data/demo-api.js", "utf8");
 const dataServiceSource = fs.readFileSync("frontend/data/data-service.js", "utf8");
 const registrationSource = fs.readFileSync("frontend/pages/mitmachen/versorgungs-netzwerk.js", "utf8");
 const targetAuditSource = fs.readFileSync("scripts/audit_target_assets.mjs", "utf8");
+const FORMAT_TEST_NOW = "2026-07-19T12:00:00.000Z";
 
 assert.doesNotMatch(
   demoApiSource,
@@ -838,6 +839,334 @@ const afterHospitationDelete = api.snapshot();
 assert.ok(!afterHospitationDelete.hospitationObservations.some((item) => (item.hospitationId || item.hospitation_id) === hospitationId), "Hospitationsbeobachtungen müssen lokal kaskadieren.");
 assert.ok(!afterHospitationDelete.hospitationRoadmapAssessments.some((item) => (item.hospitationId || item.hospitation_id) === hospitationId), "Roadmap-Bewertungen müssen lokal kaskadieren.");
 assert.ok(!afterHospitationDelete.hospitationUnmetNeeds.some((item) => (item.hospitationId || item.hospitation_id) === hospitationId), "Unmet Needs müssen lokal kaskadieren.");
+
+const formatContractRuntime = createRuntime({
+  mutateDemoData(demoData) {
+    demoData.formats = [];
+    demoData.contacts = [
+      {
+        id: "format-contact-ready",
+        name: "Formatkontakt Freigegeben",
+        status: "active",
+        mitmachenConsentStatus: "granted",
+        createdAt: FORMAT_TEST_NOW,
+        updatedAt: FORMAT_TEST_NOW
+      },
+      {
+        id: "format-contact-archived",
+        name: "Formatkontakt Archiviert",
+        status: "archived",
+        mitmachenConsentStatus: "granted",
+        createdAt: FORMAT_TEST_NOW,
+        updatedAt: FORMAT_TEST_NOW
+      },
+      {
+        id: "format-contact-second",
+        name: "Zweiter Formatkontakt",
+        status: "active",
+        mitmachenConsentStatus: "granted",
+        createdAt: FORMAT_TEST_NOW,
+        updatedAt: FORMAT_TEST_NOW
+      }
+    ];
+    demoData.activityEvents = [];
+  }
+});
+const formatFetch = formatContractRuntime.window.fetch;
+const formatApi = formatContractRuntime.window.VersorgungsCompassDemoApi;
+const formatUuid = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa";
+
+const missingFormatKeyResponse = await formatFetch("/api/formats", {
+  method: "POST",
+  body: JSON.stringify({ title: "Fehlender Schlüssel" })
+});
+assert.equal(missingFormatKeyResponse.status, 428);
+assert.equal((await missingFormatKeyResponse.json()).code, "FORMAT_IDEMPOTENCY_KEY_REQUIRED");
+
+const invalidFormatKeyResponse = await formatFetch("/api/formats", {
+  method: "POST",
+  body: JSON.stringify({ title: "Ungültiger Schlüssel", idempotencyKey: "kein-uuid" })
+});
+assert.equal(invalidFormatKeyResponse.status, 400);
+assert.equal((await invalidFormatKeyResponse.json()).code, "FORMAT_IDEMPOTENCY_KEY_INVALID");
+
+const createdFormatResponse = await formatFetch("/api/formats", {
+  method: "POST",
+  body: JSON.stringify({
+    title: "Atomarer Formatvertrag",
+    status: "Planung",
+    idempotencyKey: formatUuid
+  })
+});
+assert.equal(createdFormatResponse.status, 201);
+let contractFormat = await createdFormatResponse.json();
+assert.equal(contractFormat.id, formatUuid, "Der Idempotency-Key muss zugleich die stabile Format-ID sein.");
+const replayFormatResponse = await formatFetch("/api/formats", {
+  method: "POST",
+  body: JSON.stringify({
+    title: "Atomarer Formatvertrag",
+    status: "Planung",
+    idempotencyKey: formatUuid
+  })
+});
+assert.equal(replayFormatResponse.status, 201);
+assert.equal(formatApi.snapshot().formats.filter((item) => item.id === formatUuid).length, 1);
+
+const oversizedBatchResponse = await formatFetch(`/api/formats/${formatUuid}/participants/batch`, {
+  method: "POST",
+  body: JSON.stringify({
+    items: Array.from({ length: 501 }, () => ({ contactId: "format-contact-ready" }))
+  })
+});
+assert.equal(oversizedBatchResponse.status, 400);
+assert.equal((await oversizedBatchResponse.json()).code, "FORMAT_PARTICIPANT_BATCH_SIZE_INVALID");
+
+const duplicateBatchResponse = await formatFetch(`/api/formats/${formatUuid}/participants/batch`, {
+  method: "POST",
+  body: JSON.stringify({
+    items: [
+      { contactId: "format-contact-ready" },
+      { contactId: "format-contact-ready" }
+    ]
+  })
+});
+assert.equal(duplicateBatchResponse.status, 400);
+assert.equal((await duplicateBatchResponse.json()).code, "FORMAT_PARTICIPANT_BATCH_DUPLICATE");
+
+const blockedContactResponse = await formatFetch(`/api/formats/${formatUuid}/participants/batch`, {
+  method: "POST",
+  body: JSON.stringify({ items: [{ contactId: "format-contact-archived" }] })
+});
+assert.equal(blockedContactResponse.status, 409);
+const blockedContactPayload = await blockedContactResponse.json();
+assert.equal(blockedContactPayload.code, "FORMAT_PARTICIPANT_CONTACT_UNAVAILABLE");
+assert.deepEqual(blockedContactPayload.blockedContactIds, ["format-contact-archived"]);
+assert.deepEqual(blockedContactPayload.details.blockedContactIds, ["format-contact-archived"]);
+
+const addParticipantResponse = await formatFetch(`/api/formats/${formatUuid}/participants/batch`, {
+  method: "POST",
+  body: JSON.stringify({ items: [{ contactId: "format-contact-ready" }] })
+});
+assert.equal(addParticipantResponse.status, 200);
+contractFormat = await addParticipantResponse.json();
+let existingParticipant = contractFormat.participants.find((item) => item.contactId === "format-contact-ready");
+assert.ok(existingParticipant?.updatedAt);
+
+const invalidParticipantIfMatchResponse = await formatFetch(
+  `/api/formats/${formatUuid}/participants/format-contact-ready`,
+  {
+    method: "PATCH",
+    headers: { "If-Match": "\"kein-datum\"" },
+    body: JSON.stringify({ notes: "Darf nicht gespeichert werden" })
+  }
+);
+assert.equal(invalidParticipantIfMatchResponse.status, 400);
+assert.equal(
+  (await invalidParticipantIfMatchResponse.json()).code,
+  "FORMAT_PARTICIPANT_PRECONDITION_INVALID"
+);
+
+const participantIfMatchResponse = await formatFetch(
+  `/api/formats/${formatUuid}/participants/format-contact-ready`,
+  {
+    method: "PATCH",
+    headers: { "If-Match": `W/"${existingParticipant.updatedAt}"` },
+    body: JSON.stringify({ notes: "Per If-Match aktualisiert" })
+  }
+);
+assert.equal(participantIfMatchResponse.status, 200);
+contractFormat = await participantIfMatchResponse.json();
+existingParticipant = contractFormat.participants.find((item) => item.contactId === "format-contact-ready");
+assert.equal(existingParticipant.notes, "Per If-Match aktualisiert");
+
+const addSecondParticipantResponse = await formatFetch(`/api/formats/${formatUuid}/participants/batch`, {
+  method: "POST",
+  body: JSON.stringify({ items: [{ contactId: "format-contact-second" }] })
+});
+assert.equal(addSecondParticipantResponse.status, 200);
+contractFormat = await addSecondParticipantResponse.json();
+const secondParticipant = contractFormat.participants.find((item) => item.contactId === "format-contact-second");
+const deleteParticipantIfMatchResponse = await formatFetch(
+  `/api/formats/${formatUuid}/participants/format-contact-second`,
+  {
+    method: "DELETE",
+    headers: { "if-match": `"${secondParticipant.updatedAt}"` }
+  }
+);
+assert.equal(deleteParticipantIfMatchResponse.status, 200);
+contractFormat = await deleteParticipantIfMatchResponse.json();
+assert.ok(!contractFormat.participants.some((item) => item.contactId === "format-contact-second"));
+
+const missingImportVersionResponse = await formatFetch(`/api/formats/${formatUuid}/participants/import`, {
+  method: "POST",
+  body: JSON.stringify({
+    items: [{ contactId: "format-contact-ready", participantRole: "Moderation" }]
+  })
+});
+assert.equal(missingImportVersionResponse.status, 428);
+assert.equal((await missingImportVersionResponse.json()).code, "FORMAT_PARTICIPANT_IMPORT_PRECONDITION_REQUIRED");
+
+const staleImportResponse = await formatFetch(`/api/formats/${formatUuid}/participants/import`, {
+  method: "POST",
+  body: JSON.stringify({
+    items: [{
+      contactId: "format-contact-ready",
+      participantRole: "Moderation",
+      expectedUpdatedAt: "2025-01-01T00:00:00.000Z"
+    }]
+  })
+});
+assert.equal(staleImportResponse.status, 409);
+assert.equal((await staleImportResponse.json()).code, "FORMAT_PARTICIPANT_IMPORT_VERSION_CONFLICT");
+
+const importResponse = await formatFetch(`/api/formats/${formatUuid}/participants/import`, {
+  method: "POST",
+  body: JSON.stringify({
+    items: [{
+      contactId: "format-contact-ready",
+      participantRole: "Moderation",
+      expectedUpdatedAt: existingParticipant.updatedAt
+    }]
+  })
+});
+assert.equal(importResponse.status, 200);
+contractFormat = await importResponse.json();
+const participantAfterImport = contractFormat.participants.find((item) => item.contactId === "format-contact-ready");
+assert.equal(participantAfterImport.participantRole, "Moderation");
+const formatUpdatedAtBeforeNoop = contractFormat.updatedAt;
+const participantUpdatedAtBeforeNoop = participantAfterImport.updatedAt;
+const activityCountBeforeNoop = formatApi.snapshot().activityEvents.length;
+const noopImportResponse = await formatFetch(`/api/formats/${formatUuid}/participants/import`, {
+  method: "POST",
+  body: JSON.stringify({
+    items: [{
+      contactId: "format-contact-ready",
+      invitationStatus: "Kandidat",
+      participantRole: "Moderation",
+      notes: ""
+    }]
+  })
+});
+assert.equal(noopImportResponse.status, 200);
+contractFormat = await noopImportResponse.json();
+assert.equal(contractFormat.updatedAt, formatUpdatedAtBeforeNoop, "Ein identischer Import darf das Format nicht versionieren.");
+assert.equal(
+  contractFormat.participants.find((item) => item.contactId === "format-contact-ready").updatedAt,
+  participantUpdatedAtBeforeNoop,
+  "Ein identischer Import darf die Beteiligung nicht versionieren."
+);
+assert.equal(formatApi.snapshot().activityEvents.length, activityCountBeforeNoop, "Ein identischer Import darf kein Ereignis erzeugen.");
+
+const invalidFormatIfMatchResponse = await formatFetch(`/api/formats/${formatUuid}`, {
+  method: "PATCH",
+  headers: { "If-Match": "\"kein-datum\"" },
+  body: JSON.stringify({ title: "Darf nicht gespeichert werden" })
+});
+assert.equal(invalidFormatIfMatchResponse.status, 400);
+assert.equal((await invalidFormatIfMatchResponse.json()).code, "FORMAT_PRECONDITION_INVALID");
+
+const staleFormatIfMatchResponse = await formatFetch(`/api/formats/${formatUuid}`, {
+  method: "PATCH",
+  headers: { "If-Match": "\"2025-01-01T00:00:00.000Z\"" },
+  body: JSON.stringify({ title: "Darf ebenfalls nicht gespeichert werden" })
+});
+assert.equal(staleFormatIfMatchResponse.status, 409);
+assert.equal((await staleFormatIfMatchResponse.json()).code, "FORMAT_VERSION_CONFLICT");
+
+const formatIfMatchResponse = await formatFetch(`/api/formats/${formatUuid}`, {
+  method: "PATCH",
+  headers: { "If-Match": `W/"${contractFormat.updatedAt}"` },
+  body: JSON.stringify({ title: "Per If-Match aktualisiert" })
+});
+assert.equal(formatIfMatchResponse.status, 200);
+contractFormat = await formatIfMatchResponse.json();
+assert.equal(contractFormat.title, "Per If-Match aktualisiert");
+
+const bodyPrecedenceResponse = await formatFetch(`/api/formats/${formatUuid}`, {
+  method: "PATCH",
+  headers: { "If-Match": "\"2025-01-01T00:00:00.000Z\"" },
+  body: JSON.stringify({
+    goal: "Body-Version bleibt vorrangig",
+    expectedUpdatedAt: contractFormat.updatedAt
+  })
+});
+assert.equal(bodyPrecedenceResponse.status, 200);
+contractFormat = await bodyPrecedenceResponse.json();
+assert.equal(contractFormat.goal, "Body-Version bleibt vorrangig");
+
+const implicitArchiveResponse = await formatFetch(`/api/formats/${formatUuid}`, {
+  method: "PATCH",
+  body: JSON.stringify({ status: "Archiviert", expectedUpdatedAt: contractFormat.updatedAt })
+});
+assert.equal(implicitArchiveResponse.status, 409);
+assert.equal((await implicitArchiveResponse.json()).code, "FORMAT_ARCHIVE_ACTION_REQUIRED");
+
+const archiveResponse = await formatFetch(`/api/formats/${formatUuid}/archive`, {
+  method: "POST",
+  headers: { "If-Match": `W/"${contractFormat.updatedAt}"` }
+});
+assert.equal(archiveResponse.status, 200);
+contractFormat = await archiveResponse.json();
+const archivedParticipantMutation = await formatFetch(`/api/formats/${formatUuid}/participants/batch`, {
+  method: "POST",
+  body: JSON.stringify({ items: [{ contactId: "format-contact-ready" }] })
+});
+assert.equal(archivedParticipantMutation.status, 409);
+assert.equal((await archivedParticipantMutation.json()).code, "FORMAT_RESTORE_ACTION_REQUIRED");
+const archivedPatchResponse = await formatFetch(`/api/formats/${formatUuid}`, {
+  method: "PATCH",
+  body: JSON.stringify({ title: "Unzulässige Änderung", expectedUpdatedAt: contractFormat.updatedAt })
+});
+assert.equal(archivedPatchResponse.status, 409);
+assert.equal((await archivedPatchResponse.json()).code, "FORMAT_RESTORE_ACTION_REQUIRED");
+
+const restoreResponse = await formatFetch(`/api/formats/${formatUuid}/restore`, {
+  method: "POST",
+  headers: { "if-match": `"${contractFormat.updatedAt}"` }
+});
+assert.equal(restoreResponse.status, 200);
+contractFormat = await restoreResponse.json();
+assert.equal(contractFormat.status, "Planung");
+
+const bodyArchiveResponse = await formatFetch(`/api/formats/${formatUuid}/archive`, {
+  method: "POST",
+  body: JSON.stringify({ expectedUpdatedAt: contractFormat.updatedAt })
+});
+assert.equal(bodyArchiveResponse.status, 200);
+contractFormat = await bodyArchiveResponse.json();
+
+const deleteWithoutVersion = await formatFetch(`/api/formats/${formatUuid}`, { method: "DELETE" });
+assert.equal(deleteWithoutVersion.status, 428);
+assert.equal((await deleteWithoutVersion.json()).code, "FORMAT_PRECONDITION_REQUIRED");
+const deleteFormatResponse = await formatFetch(`/api/formats/${formatUuid}`, {
+  method: "DELETE",
+  headers: { "If-Match": `"${contractFormat.updatedAt}"` }
+});
+assert.equal(deleteFormatResponse.status, 200);
+assert.ok(!formatApi.snapshot().formats.some((item) => item.id === formatUuid));
+
+const editorFormatRuntime = createRuntime({
+  demoProfile: "demo-profile-editor",
+  mutateDemoData(demoData) {
+    demoData.formats = [{
+      id: "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb",
+      title: "Editor-Import gesperrt",
+      status: "Planung",
+      createdAt: FORMAT_TEST_NOW,
+      updatedAt: FORMAT_TEST_NOW,
+      participants: []
+    }];
+  }
+});
+const editorImportResponse = await editorFormatRuntime.window.fetch(
+  "/api/formats/bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb/participants/import",
+  {
+    method: "POST",
+    body: JSON.stringify({ items: [{ contactId: "demo-contact-01" }] })
+  }
+);
+assert.equal(editorImportResponse.status, 403);
+assert.equal((await editorImportResponse.json()).code, "FORMAT_ADMIN_REQUIRED");
 
 const unknownResponse = await window.fetch("/api/not-part-of-demo-contract", { method: "POST" });
 assert.equal(unknownResponse.status, 501, "Unbekannte Demo-Routen müssen fail-closed antworten.");

@@ -1228,6 +1228,10 @@
                     <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m5 12 4 4L19 6"></path><circle cx="12" cy="12" r="9"></circle></svg>
                     Abgeschlossen
                   </button>
+                  <button class="format-badge format-status-badge format-status-filter format-badge--status-archived" type="button" data-format-status-filter="Archiviert" aria-pressed="false">
+                    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16v13H4z"></path><path d="M3 4h18v3H3z"></path><path d="M9 11h6"></path></svg>
+                    Archiviert
+                  </button>
                 </div>
               </div>
               <div class="formats-layout">
@@ -2693,7 +2697,7 @@
         <div class="format-participant-header">
           <div>
             <h3 id="format-participant-title">Teilnehmer zusammenstellen</h3>
-            <p id="format-participant-subtitle">Kontakte suchen und zur Einladungsliste hinzufügen.</p>
+            <p id="format-participant-subtitle">Kontakte suchen und als Kandidaten zum Format hinzufügen.</p>
           </div>
           <button class="import-close" type="button" id="format-participant-close" aria-label="Teilnehmerauswahl schließen">&times;</button>
         </div>
@@ -2703,7 +2707,7 @@
             <div class="editor-section-head">
               <div>
                 <h4 id="format-participant-step-filters">Eingrenzen</h4>
-                <p>Suche und Filter helfen, ein passendes Teilnehmerfeld vorzubereiten.</p>
+                <p>Suche zuerst nach Name, Organisation, Ort oder Thema und grenze die Kandidaten bei Bedarf weiter ein.</p>
               </div>
             </div>
             <div class="format-participant-controls">
@@ -2734,13 +2738,14 @@
             <div class="editor-section-head">
               <div>
                 <h4 id="format-participant-step-select">Auswählen</h4>
-                <p>Kontakte markieren und gemeinsam zur Einladungsliste hinzufügen.</p>
+                <p>Kontakte markieren und gemeinsam als Kandidaten zum Format hinzufügen. Eine Einladung erfolgt erst nach Freigabe.</p>
               </div>
             </div>
             <div class="format-participant-results-head">
-              <span id="format-participant-results">0 Kontakte</span>
+              <span id="format-participant-results" role="status" aria-live="polite">0 Kontakte</span>
               <button class="action-button action-button--compact" type="button" id="format-participant-clear">Auswahl leeren</button>
             </div>
+            <p class="format-participant-status" id="format-participant-status" role="status" aria-live="polite"></p>
             <div class="format-participant-list" id="format-participant-list"></div>
           </section>
         </div>
@@ -2750,7 +2755,7 @@
             <button class="action-button" type="button" id="format-participant-cancel">Abbrechen</button>
             <button class="action-button" type="button" id="format-participant-back" hidden>Zurück</button>
             <button class="action-button action-button--primary" type="button" id="format-participant-next">Weiter</button>
-            <button class="action-button action-button--primary" type="button" id="format-participant-add">Auswahl hinzufügen</button>
+            <button class="action-button action-button--primary" type="button" id="format-participant-add" disabled>0 Kandidaten hinzufügen</button>
           </div>
         </div>
       </section>

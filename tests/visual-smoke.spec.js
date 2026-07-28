@@ -6346,13 +6346,21 @@ test("Formate: Arbeitsbereich und Editor rendern", async ({ page }, testInfo) =>
 
   await expect(page.locator('[data-view-panel="formats"]')).toBeVisible();
   await expect(page.locator("#new-format-button")).toBeVisible();
+  await page.locator("#search").fill("Nichtpassender Suchbegriff vor Neuanlage");
   await page.locator("#new-format-button").click();
   await expect(page.locator("#format-editor-drawer.is-open")).toBeVisible();
   await expect(page.locator("#format-editor-form")).toBeVisible();
   await expect(page.locator("#format-editor-steps")).toBeVisible();
   await expect(page.locator("#format-title")).toBeVisible();
+  await page.locator("#format-title").fill("Nicht gespeicherter Entwurf");
+  page.once("dialog", (dialog) => dialog.accept());
+  await page.keyboard.press("Escape");
+  await expect(page.locator("#format-editor-drawer")).toHaveAttribute("aria-hidden", "true");
+  await expect(page.locator("#format-editor-drawer")).not.toHaveClass(/is-open/);
+  await page.locator("#new-format-button").click();
+  await expect(page.locator("#format-editor-drawer.is-open")).toBeVisible();
   await page.locator("#format-title").fill("Roundtable Testversorgung");
-  await page.locator("#format-editor-next").click();
+  await page.locator("#format-title").press("Enter");
   await expect(page.locator('[data-format-editor-step="planung"]')).toBeVisible();
   await page.locator("#format-editor-next").click();
   await expect(page.locator('[data-format-editor-step="inhalt"]')).toBeVisible();
@@ -6361,15 +6369,29 @@ test("Formate: Arbeitsbereich und Editor rendern", async ({ page }, testInfo) =>
   await expect(page.locator("#format-editor-drawer")).not.toHaveClass(/is-open/);
   await expect(page.locator("#toggle-format-overview")).toHaveCount(0);
   const createdFormat = page.locator('[data-format-detail]', { hasText: "Roundtable Testversorgung" }).first();
+  await expect(page.locator("#search")).toHaveValue("");
   await expect(createdFormat.locator(".format-detail-title")).toContainText("Roundtable Testversorgung");
+  await expect(createdFormat).toHaveClass(/is-open/);
+  await expect(page.locator(".format-overview-hero")).toBeVisible();
+  await expect(page.locator("#open-participant-planner")).toBeFocused();
+  const overviewTab = createdFormat.getByRole("tab", { name: "Überblick" });
+  const participantsTab = createdFormat.getByRole("tab", { name: "Teilnehmer" });
+  const overviewPanelId = await overviewTab.getAttribute("aria-controls");
+  expect(overviewPanelId).toBeTruthy();
+  await expect(createdFormat.locator(`#${overviewPanelId}`)).toHaveAttribute("aria-labelledby", await overviewTab.getAttribute("id"));
+  await overviewTab.focus();
+  await overviewTab.press("ArrowRight");
+  await expect(participantsTab).toBeFocused();
+  await expect(participantsTab).toHaveAttribute("aria-selected", "true");
+  await participantsTab.press("ArrowLeft");
+  await expect(overviewTab).toBeFocused();
+  await expect(overviewTab).toHaveAttribute("aria-selected", "true");
   await page.locator('[data-format-status-filter="Planung"]').click();
   await expect(page.locator('[data-format-status-filter="Planung"]')).toHaveAttribute("aria-pressed", "true");
   await expect(createdFormat.locator(".format-detail-title")).toContainText("Roundtable Testversorgung");
   await page.locator('[data-format-status-filter="Planung"]').click();
   await expect(page.locator('[data-format-status-filter="Planung"]')).toHaveAttribute("aria-pressed", "false");
   await expect(createdFormat.locator(".format-type-icon")).toBeVisible();
-  await expect(page.locator(".format-detail.is-open")).toHaveCount(0);
-  await expect(page.locator(".format-overview-hero")).toHaveCount(0);
   await createdFormat.locator("[data-toggle-format-detail]").click();
   await expect(page.locator(".format-overview-hero")).toBeVisible();
   await expect(page.locator(".format-roundtable-illustration")).toBeVisible();
@@ -6401,7 +6423,11 @@ test("Formate: Arbeitsbereich und Editor rendern", async ({ page }, testInfo) =>
   await expect(page.locator('[data-format-participant-step="filters"]')).toBeVisible();
   await page.locator("#format-participant-next").click();
   await expect(page.locator('[data-format-participant-step="select"]')).toBeVisible();
-  await page.locator('[data-planner-contact="demo-contact-01"] input').check();
+  const plannerCheckbox = page.locator('[data-planner-contact="demo-contact-08"] input');
+  await plannerCheckbox.check();
+  await expect(plannerCheckbox).toBeFocused();
+  await expect(page.locator("#format-participant-add")).toBeEnabled();
+  await expect(page.locator("#format-participant-add")).toHaveText("1 Kandidat hinzufügen");
   await page.locator("#format-participant-add").click();
   await expect(page.locator("#format-participant-drawer")).toHaveAttribute("aria-hidden", "true");
   await expect(page.locator("#format-participant-drawer")).not.toHaveClass(/is-open/);
@@ -6412,26 +6438,30 @@ test("Formate: Arbeitsbereich und Editor rendern", async ({ page }, testInfo) =>
   await expect(page.locator('.participant-card [data-participant-field="invitationStatus"]')).toBeVisible();
   await expect(page.locator('.participant-card [data-participant-field="invitationStatus"] option[value="Teilgenommen"]')).toHaveCount(1);
   await expect(page.locator('[data-format-tab="composition"]')).toHaveCount(0);
-  await page.locator('[data-open-format-contact="demo-contact-01"]').first().click();
+  await page.locator('[data-open-format-contact="demo-contact-08"]').first().click();
   await expect(page.locator("#person-profile-page.is-active")).toBeVisible();
-  await expect(page).toHaveURL(/#person\/contact\/demo-contact-01$/);
+  await expect(page).toHaveURL(/#person\/contact\/demo-contact-08$/);
   await expect(page.locator(".app-shell")).toHaveAttribute("data-active-view", "personProfile");
   await page.locator('#person-profile-body [data-detail-tab="formats"]').click();
   await expect(page.locator("#person-profile-body [data-format-profile-section]")).toBeVisible();
   await expect(page.locator("#person-profile-body [data-format-profile-group='upcoming']")).toContainText("Kommende Formate");
   await expect(page.locator("#person-profile-body [data-format-profile-group='past']")).toContainText("Vergangene Formate");
-  await expect(page.locator("#person-profile-body .format-participation-status").first()).toBeVisible();
-  await expect(page.locator("#person-profile-body [data-format-profile-status]")).toHaveCount(0);
+  const createdFormatProfileItem = page.locator("#person-profile-body [data-format-profile-item]", {
+    hasText: "Roundtable Testversorgung"
+  });
+  await expect(createdFormatProfileItem).toBeVisible();
+  await expect(createdFormatProfileItem.locator("[data-format-profile-status]")).toBeVisible();
+  await expect(createdFormatProfileItem.locator("[data-format-profile-status]")).toHaveValue("Kandidat");
   await page.locator("#person-profile-body [data-person-profile-back]").click();
   await expect(page.locator(".app-shell")).toHaveAttribute("data-active-view", "formats");
   await expect(page.locator(".format-diversity-board")).toHaveCount(0);
   await page.locator('[data-format-tab="invitationStatus"]').click();
   await expect(page.locator(".invitation-status-board")).toBeVisible();
-  await expect(page.locator(".invitation-status-select")).toHaveCount(0);
+  await expect(page.locator('[data-invitation-status-select="demo-contact-08"]')).toBeVisible();
   await expect(page.locator('[data-invitation-status-drop="Teilgenommen"]')).toHaveCount(1);
   if (testInfo.project.name === "chromium-desktop") {
-    await page.locator('[data-invitation-card="demo-contact-01"]').dragTo(page.locator('[data-invitation-status-drop="Zugesagt"]'));
-    await expect(page.locator('[data-invitation-status-drop="Zugesagt"] [data-invitation-card="demo-contact-01"]')).toBeVisible();
+    await page.locator('[data-invitation-card="demo-contact-08"]').dragTo(page.locator('[data-invitation-status-drop="Zugesagt"]'));
+    await expect(page.locator('[data-invitation-status-drop="Zugesagt"] [data-invitation-card="demo-contact-08"]')).toBeVisible();
   }
   await page.locator('[data-format-tab="reporting"]').click();
   await expect(page.locator(".format-diversity-board")).toBeVisible();
@@ -6456,7 +6486,7 @@ test("Formate: Arbeitsbereich und Editor rendern", async ({ page }, testInfo) =>
   await expect(formatChatMessages).toHaveCount(0);
   await page.locator('[data-format-tab="settings"]').click();
   await expect(page.locator("#export-format-participants")).toBeVisible();
-  await expect(page.locator("[data-archive-format]")).toBeVisible();
+  await expect(createdFormat.locator(".format-tab-panel [data-archive-format]")).toBeVisible();
   if (testInfo.project.name.includes("mobile")) {
     await expect(createdFormat.locator('[data-format-tab="settings"]')).toBeInViewport();
     await expectNoHorizontalOverflow(page);

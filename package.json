@@ -36,6 +36,8 @@
     "qa:full": "npm run qa",
     "test:api-runtime": "node scripts/test_api_runtime_config.mjs",
     "test:api-postgres-contracts": "node scripts/test_api_postgres_contracts.mjs",
+    "test:format-api-e2e": "node scripts/test_format_api_postgres_e2e.mjs",
+    "test:format-api-e2e:release": "node scripts/test_format_api_postgres_e2e.mjs --require-docker",
     "test:pre-gematik-schema": "node scripts/test_pre_gematik_postgres_schema.mjs",
     "migrate:pre-gematik": "node scripts/migrate_supabase_to_pre_gematik.mjs",
     "migrate:pre-gematik-storage": "node scripts/migrate_supabase_storage_to_gcs.mjs",

@@ -78,7 +78,19 @@
       }
       if (!response.ok) {
         const requestError = new Error(payload.error || `API-Anfrage fehlgeschlagen (${response.status}).`);
-        throw requestError.status = response.status, requestError.code = payload.code || `API_HTTP_${response.status}`, requestError;
+        requestError.status = response.status;
+        requestError.code = payload.code || `API_HTTP_${response.status}`;
+        const errorDetails = payload.details && typeof payload.details === "object"
+          ? { ...payload.details }
+          : {};
+        if (Array.isArray(payload.blockedContactIds)) {
+          errorDetails.blockedContactIds = [...payload.blockedContactIds];
+        }
+        requestError.details = Object.keys(errorDetails).length ? errorDetails : null;
+        requestError.blockedContactIds = Array.isArray(errorDetails.blockedContactIds)
+          ? [...errorDetails.blockedContactIds]
+          : [];
+        throw requestError;
       }
       return payload;
     } catch (error) {
@@ -894,9 +906,13 @@
   }
   async function updateFormat(id, patch) {
     {
+      const current = formatCache.find(format => format.id === id);
       const updated = await apiRequest(`/api/formats/${encodeURIComponent(id)}`, {
         method: "PATCH",
-        body: patch
+        body: {
+          ...patch,
+          expectedUpdatedAt: patch?.expectedUpdatedAt || current?.updatedAt || current?.updated_at || ""
+        }
       });
       return formatCache = formatCache.map(format => format.id === id ? updated : format),
       updated;
@@ -1694,13 +1710,34 @@
     },
     updateFormat: updateFormat,
     archiveFormat: async function(id) {
-      return updateFormat(id, {
-        status: "Archiviert"
+      const current = formatCache.find(format => format.id === id);
+      const archived = await apiRequest(`/api/formats/${encodeURIComponent(id)}/archive`, {
+        method: "POST",
+        body: {
+          expectedUpdatedAt: current?.updatedAt || current?.updated_at || ""
+        }
       });
+      return formatCache = formatCache.map(format => format.id === id ? archived : format),
+      archived;
+    },
+    restoreFormat: async function(id) {
+      const current = formatCache.find(format => format.id === id);
+      const restored = await apiRequest(`/api/formats/${encodeURIComponent(id)}/restore`, {
+        method: "POST",
+        body: {
+          expectedUpdatedAt: current?.updatedAt || current?.updated_at || ""
+        }
+      });
+      return formatCache = formatCache.map(format => format.id === id ? restored : format),
+      restored;
     },
     deleteFormat: async function(id) {
+      const current = formatCache.find(format => format.id === id);
       return await apiRequest(`/api/formats/${encodeURIComponent(id)}`, {
-        method: "DELETE"
+        method: "DELETE",
+        body: {
+          expectedUpdatedAt: current?.updatedAt || current?.updated_at || ""
+        }
       }), formatCache = formatCache.filter(format => format.id !== id), !0;
     },
     addFormatParticipant: async function(formatId, contactId, patch = {}) {
@@ -1716,9 +1753,67 @@
         updated;
       }
     },
+    addFormatParticipants: async function(formatId, participants = []) {
+      const entries = Array.isArray(participants) ? participants : [];
+      if (!formatId || entries.length < 1 || entries.length > 500) {
+        const batchSizeError = new Error("Bitte wähle zwischen 1 und 500 Kandidaten aus.");
+        batchSizeError.code = "FORMAT_PARTICIPANT_BATCH_SIZE_INVALID";
+        throw batchSizeError;
+      }
+      const contactIds = entries.map(participant => String(participant?.contactId || participant?.contact_id || "").trim());
+      if (contactIds.some(contactId => !contactId)) {
+        const contactError = new Error("Mindestens ein Kandidat hat keine Kontakt-ID.");
+        contactError.code = "FORMAT_PARTICIPANT_CONTACT_UNAVAILABLE";
+        throw contactError;
+      }
+      if (new Set(contactIds).size !== contactIds.length) {
+        const duplicateError = new Error("Ein Kontakt darf pro Anfrage nur einmal enthalten sein.");
+        duplicateError.code = "FORMAT_PARTICIPANT_BATCH_DUPLICATE";
+        throw duplicateError;
+      }
+      {
+        const updated = await apiRequest(`/api/formats/${encodeURIComponent(formatId)}/participants/batch`, {
+          method: "POST",
+          body: {
+            items: entries
+          }
+        });
+        return formatCache = formatCache.map(format => format.id === formatId ? updated : format),
+        updated;
+      }
+    },
     importFormatParticipants: async function(formatId, participants = []) {
-      const entries = Array.isArray(participants) ? participants.filter(participant => participant?.contactId || participant?.contact_id) : [];
-      if (!formatId || !entries.length) throw new Error("Keine Format-Einladungen für den Import vorhanden.");
+      const rawEntries = Array.isArray(participants) ? participants : [];
+      if (!formatId || rawEntries.length < 1 || rawEntries.length > 500) {
+        const importSizeError = new Error("Der Import muss zwischen 1 und 500 Beteiligungen enthalten.");
+        importSizeError.code = "FORMAT_PARTICIPANT_BATCH_SIZE_INVALID";
+        throw importSizeError;
+      }
+      const format = formatCache.find(item => item.id === formatId);
+      const participantByContactId = new Map((format?.participants || []).map(participant => [
+        String(participant.contactId || participant.contact_id || ""),
+        participant
+      ]));
+      const entries = rawEntries.map(participant => {
+        const contactId = String(participant?.contactId || participant?.contact_id || "").trim();
+        const existing = participantByContactId.get(contactId);
+        if (!existing || participant?.expectedUpdatedAt || participant?.expected_updated_at) return participant;
+        return {
+          ...participant,
+          expectedUpdatedAt: existing.updatedAt || existing.updated_at || ""
+        };
+      });
+      const contactIds = entries.map(participant => String(participant?.contactId || participant?.contact_id || "").trim());
+      if (contactIds.some(contactId => !contactId)) {
+        const contactError = new Error("Mindestens eine Importzeile hat keine Kontakt-ID.");
+        contactError.code = "FORMAT_PARTICIPANT_CONTACT_UNAVAILABLE";
+        throw contactError;
+      }
+      if (new Set(contactIds).size !== contactIds.length) {
+        const duplicateError = new Error("Ein Kontakt darf im Import nur einmal enthalten sein.");
+        duplicateError.code = "FORMAT_PARTICIPANT_BATCH_DUPLICATE";
+        throw duplicateError;
+      }
       {
         const updated = await apiRequest(`/api/formats/${encodeURIComponent(formatId)}/participants/import`, {
           method: "POST",
@@ -1730,11 +1825,16 @@
         updated;
       }
     },
-    updateFormatParticipant: async function(formatId, contactId, patch = {}) {
+    updateFormatParticipant: async function(formatId, contactId, patch = {}, expectedUpdatedAt = "") {
       {
+        const format = formatCache.find(item => item.id === formatId);
+        const participant = (format?.participants || []).find(item => (item.contactId || item.contact_id) === contactId);
         const updated = await apiRequest(`/api/formats/${encodeURIComponent(formatId)}/participants/${encodeURIComponent(contactId)}`, {
           method: "PATCH",
-          body: patch
+          body: {
+            ...patch,
+            expectedUpdatedAt: expectedUpdatedAt || participant?.updatedAt || participant?.updated_at || ""
+          }
         });
         return formatCache = formatCache.map(format => format.id === formatId ? updated : format),
         updated;
@@ -1742,8 +1842,13 @@
     },
     removeFormatParticipant: async function(formatId, contactId) {
       {
+        const format = formatCache.find(item => item.id === formatId);
+        const participant = (format?.participants || []).find(item => (item.contactId || item.contact_id) === contactId);
         const updated = await apiRequest(`/api/formats/${encodeURIComponent(formatId)}/participants/${encodeURIComponent(contactId)}`, {
-          method: "DELETE"
+          method: "DELETE",
+          body: {
+            expectedUpdatedAt: participant?.updatedAt || participant?.updated_at || ""
+          }
         });
         return formatCache = formatCache.map(format => format.id === formatId ? updated : format),
         updated;

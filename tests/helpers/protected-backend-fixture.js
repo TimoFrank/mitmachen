@@ -729,9 +729,20 @@ export async function installProtectedBackend(page, fixture) {
     }[path];
     if (method === "POST" && createCollection) {
       const [target, prefix, payload] = createCollection;
-      const created = { ...payload, id: payload.id || idFor(prefix), createdAt: payload.createdAt || NOW, updatedAt: NOW };
+      const persistedPayload = path === "/api/formats"
+        ? Object.fromEntries(Object.entries(payload).filter(([key]) => key !== "idempotencyKey"))
+        : payload;
+      const created = { ...persistedPayload, id: persistedPayload.id || idFor(prefix), createdAt: persistedPayload.createdAt || NOW, updatedAt: NOW };
       target.unshift(created);
       await fulfillJson(route, created, 201);
+      return;
+    }
+    const formatLifecycleMatch = path.match(/^\/api\/formats\/([^/]+)\/(archive|restore)$/);
+    if (formatLifecycleMatch && method === "POST") {
+      const format = fixture.formats.find((item) => item.id === decodeURIComponent(formatLifecycleMatch[1]));
+      format.status = formatLifecycleMatch[2] === "restore" ? "Planung" : "Archiviert";
+      format.updatedAt = NOW;
+      await fulfillJson(route, format);
       return;
     }
     const updateMatch = path.match(/^\/api\/(contacts|organizations|organization-primary-systems|expert-contacts|expert-organizations|expert-entity-links|hospitation-slots|hospitations|hospitation-observations|formats|saved-views)\/([^/]+)$/);
@@ -744,7 +755,12 @@ export async function installProtectedBackend(page, fixture) {
       const index = target.findIndex((item) => item.id === id);
       const previous = index >= 0 ? { ...target[index] } : null;
       if (method === "DELETE") target.splice(index, 1);
-      else target[index] = { ...target[index], ...body, updatedAt: NOW };
+      else {
+        const persistedBody = key === "formats"
+          ? Object.fromEntries(Object.entries(body).filter(([field]) => field !== "expectedUpdatedAt"))
+          : body;
+        target[index] = { ...target[index], ...persistedBody, updatedAt: NOW };
+      }
       if (method === "PATCH" && key === "contacts" && previous) {
         const profile = fixture.profiles.find((item) => item.id === fixture.currentProfileId) || fixture.profiles[0] || {};
         const activity = consentActivity(previous, target[index], profile);
@@ -761,6 +777,26 @@ export async function installProtectedBackend(page, fixture) {
       const items = (body.items || body.observations || []).map((item) => ({ ...item, id: item.id || idFor("demo-item"), hospitationId, updatedAt: NOW }));
       fixture[key].push(...items);
       await fulfillJson(route, collectionResponse(items));
+      return;
+    }
+    const formatParticipantsBatchMatch = path.match(/^\/api\/formats\/([^/]+)\/participants\/batch$/);
+    if (formatParticipantsBatchMatch && method === "POST") {
+      const format = fixture.formats.find((item) => item.id === decodeURIComponent(formatParticipantsBatchMatch[1]));
+      format.participants ||= [];
+      (body.items || []).forEach((entry) => {
+        const contactId = entry.contactId || entry.contact_id || "";
+        if (format.participants.some((item) => (item.contactId || item.contact_id) === contactId)) return;
+        format.participants.push({
+          ...entry,
+          id: entry.id || idFor("demo-format-participant"),
+          formatId: format.id,
+          contactId,
+          createdAt: NOW,
+          updatedAt: NOW
+        });
+      });
+      format.updatedAt = NOW;
+      await fulfillJson(route, format, 201);
       return;
     }
     const formatParticipantsImportMatch = path.match(/^\/api\/formats\/([^/]+)\/participants\/import$/);
@@ -796,7 +832,8 @@ export async function installProtectedBackend(page, fixture) {
         }
       } else if (method === "PATCH") {
         const index = format.participants.findIndex((item) => (item.contactId || item.contact_id) === contactId);
-        format.participants[index] = { ...format.participants[index], ...body, updatedAt: NOW };
+        const persistedBody = Object.fromEntries(Object.entries(body).filter(([field]) => field !== "expectedUpdatedAt"));
+        format.participants[index] = { ...format.participants[index], ...persistedBody, updatedAt: NOW };
       } else {
         format.participants = format.participants.filter((item) => (item.contactId || item.contact_id) !== contactId);
       }

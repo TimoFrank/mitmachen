@@ -56,6 +56,7 @@ export const ROUTE_POLICIES = Object.freeze([
   route(["POST"], /^\/api\/admin\/hospitation-import\/preview$/, "admin", "hospitation.import.preview"),
   route(["POST"], /^\/api\/admin\/hospitation-import\/apply$/, "admin", "hospitation.import.apply"),
   route(["POST"], /^\/api\/formats\/[^/]+\/participants\/import$/, "admin", "format.participant.import"),
+  route(["POST"], /^\/api\/formats\/[^/]+\/(?:archive|restore)$/, "admin", "format.lifecycle.write"),
   route(["DELETE"], /^\/api\/(?:organization-primary-systems|expert-entity-links|hospitation-slots|hospitations|formats)\/[^/]+$/, "admin", "domain.delete"),
 
   // Absichtlich vorhandener, stets abgewiesener Activity-Writer. Der Dispatcher

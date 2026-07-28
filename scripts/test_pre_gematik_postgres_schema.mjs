@@ -35,7 +35,8 @@ const expectedMigrationFiles = Object.freeze([
   "202607200003_restrict_stakeholder_logo_urls.sql",
   "202607240001_add_test_access_enrollment.sql",
   "202607250001_add_test_access_allowlist.sql",
-  "202607270002_add_contact_relationship_basis_and_ehc_consent.sql"
+  "202607270002_add_contact_relationship_basis_and_ehc_consent.sql",
+  "202607280001_add_format_participation_workflow.sql"
 ]);
 const migrationFiles = readdirSync(migrationsUrl)
   .filter((fileName) => /^\d+_[a-z0-9_]+\.sql$/u.test(fileName))
@@ -58,9 +59,9 @@ function replaceSchemaFragmentExactlyOnce(source, pattern, replacement, descript
 }
 
 // Reconstruct the exact capabilities that existed immediately before the
-// six versioned migrations. Keeping this derived from today's full schema
+// seven versioned migrations. Keeping this derived from today's full schema
 // makes the upgrade smoke exercise all current tables while deliberately
-// removing only the six capabilities supplied by those migrations.
+// removing only the seven capabilities supplied by those migrations.
 let legacyUpgradeSchemaSql = replaceSchemaFragmentExactlyOnce(
   schemaSql,
   /  if new\.updated_at is not distinct from old\.updated_at then\n    new\.updated_at := now\(\);\n  end if;/u,
@@ -129,9 +130,21 @@ legacyUpgradeSchemaSql = replaceSchemaFragmentExactlyOnce(
 );
 legacyUpgradeSchemaSql = replaceSchemaFragmentExactlyOnce(
   legacyUpgradeSchemaSql,
+  /\ncreate or replace function public\.prepare_format_participation_write\(\)[\s\S]*?\nrevoke all on function public\.log_format_participation_status_change\(\) from public;\n/u,
+  "\n",
+  "Formatbeteiligungs-Funktionen vor Migration 008"
+);
+legacyUpgradeSchemaSql = replaceSchemaFragmentExactlyOnce(
+  legacyUpgradeSchemaSql,
   /\ndrop trigger if exists contacts_pre_gematik_prepare_contact_purpose_insert[\s\S]*?execute function public\.pre_gematik_log_contact_purpose_change\(\);\n/u,
   "\n",
   "Kontaktzweck-Trigger vor Migration 006"
+);
+legacyUpgradeSchemaSql = replaceSchemaFragmentExactlyOnce(
+  legacyUpgradeSchemaSql,
+  /\ndrop trigger if exists format_participants_prepare_workflow[\s\S]*?execute function public\.log_format_participation_status_change\(\);\n/u,
+  "\n",
+  "Formatbeteiligungs-Trigger vor Migration 008"
 );
 assert.doesNotMatch(legacyUpgradeSchemaSql, /public\.identity_bindings|identity_bindings_/u);
 assert.doesNotMatch(
@@ -142,6 +155,10 @@ assert.doesNotMatch(legacyUpgradeSchemaSql, /stakeholder_organizations_logo_url_
 assert.doesNotMatch(
   legacyUpgradeSchemaSql,
   /relationship_basis|ehc_consent_|pre_gematik_(?:prepare|log)_contact_purpose/u
+);
+assert.doesNotMatch(
+  legacyUpgradeSchemaSql,
+  /prepare_format_participation_write|log_format_participation_status_change|format_participants_(?:prepare_workflow|log_status_change)/u
 );
 assert.match(
   legacyUpgradeSchemaSql,
@@ -605,10 +622,96 @@ async function databaseSmoke(pool) {
       insert into formats (id, title, owner_id, created_by, updated_by)
       values ('format-contract', 'Synthetisches Format', 'pre-gematik-admin', 'pre-gematik-admin', 'pre-gematik-admin')
     `);
-    await client.query(`
+    const candidateParticipant = await client.query(`
       insert into format_participants (format_id, contact_id, created_by, updated_by)
       values ('format-contract', 'contact-contract', 'pre-gematik-admin', 'pre-gematik-admin')
+      returning id, invitation_status, status_changed_at, created_by, updated_by
     `);
+    assert.equal(candidateParticipant.rows[0].invitation_status, "Kandidat");
+    assert.ok(candidateParticipant.rows[0].status_changed_at);
+    assert.equal(candidateParticipant.rows[0].created_by, "pre-gematik-admin");
+    assert.equal(candidateParticipant.rows[0].updated_by, "pre-gematik-admin");
+
+    for (const invitationStatus of ["Eingeladen", "Zugesagt", "Teilgenommen"]) {
+      await client.query("savepoint participation_without_consent");
+      await assert.rejects(
+        client.query(
+          `update format_participants
+              set invitation_status = $1, updated_by = 'pre-gematik-admin'
+            where format_id = 'format-contract' and contact_id = 'contact-contract'`,
+          [invitationStatus]
+        ),
+        (error) => error?.code === "23514"
+          && error?.constraint === "format_participants_invitation_consent_check",
+        `Ohne Mitmachen-Einwilligung darf Kandidat nicht auf ${invitationStatus} wechseln.`
+      );
+      await client.query("rollback to savepoint participation_without_consent");
+    }
+    await client.query(`
+      update contacts
+         set mitmachen_consent_status = 'granted',
+             mitmachen_consent_effective_at = now() - interval '1 day',
+             mitmachen_consent_source = 'manual_transfer',
+             mitmachen_consent_text_version = 'mitmachen-contract-v1',
+             mitmachen_consent_recorded_by = 'pre-gematik-admin',
+             mitmachen_consent_note = 'Synthetischer Einladungsnachweis.',
+             updated_by = 'pre-gematik-admin'
+       where id = 'contact-contract'
+    `);
+    const invitedParticipant = await client.query(`
+      update format_participants
+         set invitation_status = 'Eingeladen', updated_by = 'pre-gematik-admin'
+       where format_id = 'format-contract' and contact_id = 'contact-contract'
+      returning invited_at, status_changed_at
+    `);
+    assert.ok(invitedParticipant.rows[0].invited_at);
+    assert.ok(invitedParticipant.rows[0].status_changed_at);
+    const invitationActivity = await client.query(`
+      select event_key, action, actor_id, contact_id
+        from activity_events
+       where entity_type = 'format_participant'
+         and entity_id = $1
+       order by id desc
+       limit 1
+    `, [candidateParticipant.rows[0].id]);
+    assert.deepEqual(invitationActivity.rows[0], {
+      event_key: "format.invitation.created",
+      action: "invited",
+      actor_id: "pre-gematik-admin",
+      contact_id: "contact-contract"
+    }, "Der Statuswechsel muss atomar ein fachliches Einladungsereignis erzeugen.");
+    await client.query("savepoint unchanged_protected_status_without_consent");
+    await client.query(`
+      update contacts
+         set mitmachen_consent_status = 'withdrawn',
+             mitmachen_consent_effective_at = now(),
+             mitmachen_consent_note = 'Synthetischer Widerruf für den Triggervertrag.',
+             updated_by = 'pre-gematik-admin'
+       where id = 'contact-contract'
+    `);
+    await assert.rejects(
+      client.query(`
+        update format_participants
+           set participant_role = 'Moderation',
+               notes = 'Darf nach Widerruf nicht gespeichert werden.',
+               updated_by = 'pre-gematik-admin'
+         where format_id = 'format-contract' and contact_id = 'contact-contract'
+      `),
+      (error) => error?.code === "23514"
+        && error?.constraint === "format_participants_invitation_consent_check",
+      "Auch Rollen-/Notizänderungen mit unverändertem geschütztem Status müssen nach Consent-Entzug fail-closed sein."
+    );
+    await client.query("rollback to savepoint unchanged_protected_status_without_consent");
+    const unchangedProtectedParticipant = await client.query(`
+      select participant_role, notes
+        from format_participants
+       where format_id = 'format-contract' and contact_id = 'contact-contract'
+    `);
+    assert.deepEqual(
+      unchangedProtectedParticipant.rows[0],
+      { participant_role: null, notes: null },
+      "Der abgewiesene Same-status-Update darf weder Rolle noch Notiz verändern."
+    );
     await client.query(`
       insert into hospitation_slots (
         id, contact_id, organization_id, starts_at, owner_id, created_by, updated_by
@@ -1199,10 +1302,10 @@ async function assertSqlState(pool, sql, params, expectedCode, message) {
   );
 }
 
-async function applyVersionedMigrations(pool) {
+async function applyVersionedMigrations(pool, fileNames = migrationFiles) {
   const client = await pool.connect();
   try {
-    for (const fileName of migrationFiles) {
+    for (const fileName of fileNames) {
       await client.query(migrationSqlByFile.get(fileName));
     }
   } finally {
@@ -1275,12 +1378,29 @@ async function migrationUpgradeSemanticSnapshot(pool) {
          where trigger_state.tgrelid = 'public.test_access_allowlist'::regclass
            and not trigger_state.tgisinternal
       ) as allowlist_triggers,
+      (
+        select array_agg(pg_get_triggerdef(trigger_state.oid, true) order by trigger_state.tgname)
+          from pg_catalog.pg_trigger trigger_state
+         where trigger_state.tgrelid = 'public.format_participants'::regclass
+           and trigger_state.tgname in (
+             'format_participants_prepare_workflow',
+             'format_participants_log_status_change'
+           )
+           and not trigger_state.tgisinternal
+      ) as format_participation_triggers,
+      to_regprocedure('public.prepare_format_participation_write()')::text as format_prepare_function,
+      to_regprocedure('public.log_format_participation_status_change()')::text as format_log_function,
       pg_get_functiondef('public.pre_gematik_touch_updated_at()'::regprocedure) as touch_function,
       has_table_privilege('vk_app_runtime', 'public.identity_bindings', 'SELECT') as runtime_select,
       has_table_privilege('vk_app_runtime', 'public.identity_bindings', 'INSERT') as runtime_insert,
       has_table_privilege('vk_app_runtime', 'public.identity_bindings', 'UPDATE') as runtime_update,
       has_table_privilege('vk_app_runtime', 'public.identity_bindings', 'DELETE') as runtime_delete,
-      has_function_privilege('vk_app_runtime', 'public.pre_gematik_touch_updated_at()', 'EXECUTE') as runtime_execute
+      has_function_privilege('vk_app_runtime', 'public.pre_gematik_touch_updated_at()', 'EXECUTE') as runtime_execute,
+      has_function_privilege(
+        'vk_app_runtime',
+        'public.log_format_participation_status_change()',
+        'EXECUTE'
+      ) as runtime_format_log_execute
   `);
   return result.rows[0];
 }
@@ -1363,7 +1483,59 @@ async function assertVersionedMigrationUpgrade(connectionString, containerName) 
        order by id
     `);
 
-    await applyVersionedMigrations(upgradePool);
+    const formatMigrationFile = "202607280001_add_format_participation_workflow.sql";
+    const migrationsBeforeFormatWorkflow = migrationFiles.filter(
+      (fileName) => fileName !== formatMigrationFile
+    );
+    await applyVersionedMigrations(upgradePool, migrationsBeforeFormatWorkflow);
+    await upgradePool.query(`
+      insert into public.contacts (
+        id, name, mitmachen_consent_status, created_by, updated_by
+      ) values (
+        'upgrade-format-contact', 'Legacy Formatkontakt', 'not_requested',
+        'upgrade-profile', 'upgrade-profile'
+      );
+      insert into public.formats (
+        id, title, status, created_by, updated_by
+      ) values (
+        'upgrade-format', 'Legacy Format mit ungeklärter Einwilligung', 'Planung',
+        'upgrade-profile', 'upgrade-profile'
+      );
+      insert into public.format_participants (
+        id, format_id, contact_id, invitation_status, created_by, updated_by
+      ) values (
+        'upgrade-format-participant', 'upgrade-format', 'upgrade-format-contact', 'Zugesagt',
+        'upgrade-profile', 'upgrade-profile'
+      );
+    `);
+    const formatMigrationClient = await upgradePool.connect();
+    try {
+      await assert.rejects(
+        formatMigrationClient.query(migrationSqlByFile.get(formatMigrationFile)),
+        (error) => error?.code === "23514"
+          && error?.constraint === "format_participants_invitation_consent_preflight"
+          && /Migration abgebrochen/u.test(String(error?.message || ""))
+          && /upgrade-format\/upgrade-format-contact/u.test(String(error?.detail || "")),
+        "Die Formatmigration muss bei geschützten Legacy-Beteiligungen ohne Consent mit klarer Diagnose abbrechen."
+      );
+      await formatMigrationClient.query("rollback");
+    } finally {
+      formatMigrationClient.release();
+    }
+    const workflowAfterRejectedPreflight = await upgradePool.query(
+      "select to_regprocedure('public.prepare_format_participation_write()')::text as function_name"
+    );
+    assert.equal(
+      workflowAfterRejectedPreflight.rows[0].function_name,
+      null,
+      "Ein abgebrochener Preflight darf die Workflow-Funktion nicht teilweise installieren."
+    );
+    await upgradePool.query(`
+      update public.format_participants
+         set invitation_status = 'Kandidat'
+       where id = 'upgrade-format-participant'
+    `);
+    await applyVersionedMigrations(upgradePool, [formatMigrationFile]);
 
     const columns = await upgradePool.query(`
       select column_name, is_nullable
@@ -1407,6 +1579,12 @@ async function assertVersionedMigrationUpgrade(connectionString, containerName) 
       "Migration 001 muss genau einen updated_at-Trigger auf Identity-Bindings anlegen.");
     assert.equal(firstSemantics.allowlist_triggers.length, 1,
       "Migration 005 muss genau einen updated_at-Trigger auf der Auto-Enrollment-Allowlist anlegen.");
+    assert.equal(firstSemantics.format_prepare_function, "prepare_format_participation_write()");
+    assert.equal(firstSemantics.format_log_function, "log_format_participation_status_change()");
+    assert.equal(firstSemantics.format_participation_triggers.length, 2,
+      "Migration 008 muss Vorbereitung und Aktivitätsprotokoll der Formatbeteiligung aktivieren.");
+    assert.equal(firstSemantics.runtime_format_log_execute, false,
+      "Die privilegierte Format-Triggerfunktion darf für die Laufzeitrolle nicht direkt aufrufbar sein.");
     assert.match(firstSemantics.touch_function, /if new\.updated_at is not distinct from old\.updated_at then/iu,
       "Migration 002 muss explizite updated_at-Werte bewahren.");
     assert.deepEqual({
@@ -1528,9 +1706,9 @@ async function assertVersionedMigrationUpgrade(connectionString, containerName) 
     const dataAfterSecondPass = await migrationUpgradeDataSnapshot(upgradePool);
     const secondSemantics = await migrationUpgradeSemanticSnapshot(upgradePool);
     assert.deepEqual(dataAfterSecondPass, dataBeforeSecondPass,
-      "Der zweite Lauf aller sechs Migrationen darf einschliesslich xmin keine Daten erneut veraendern.");
+      "Der zweite Lauf aller sieben Migrationen darf einschliesslich xmin keine Daten erneut veraendern.");
     assert.deepEqual(secondSemantics, firstSemantics,
-      "Der zweite Lauf aller sechs Migrationen muss denselben logischen Tabellen-, Constraint-, Trigger- und Rechtezustand ergeben.");
+      "Der zweite Lauf aller sieben Migrationen muss denselben logischen Tabellen-, Constraint-, Trigger- und Rechtezustand ergeben.");
 
     const secondExplicitTimestamp = new Date("2003-04-05T06:07:08.901Z");
     const secondExplicit = await upgradePool.query(`
@@ -1997,7 +2175,7 @@ try {
     await databaseSmoke(pool);
     console.log("Externe Test-DB verwendet: runtime-role.sql und grants.sql wurden statisch, aber nicht mit temporären Rollen ausgeführt.");
   }
-  console.log("PostgreSQL 16 contract OK: Vollschema und sechs Upgrade-Migrationen zweifach/idempotent; Legacy-Logo-Bereinigung, Identity-/Allowlist-Grenzen, getrennte NOLOGIN-Identity-Administration, explicit updated_at, Zweckachsen, Laufzeitrolle und relationaler Smoke-Test erfolgreich.");
+  console.log("PostgreSQL 16 contract OK: Vollschema und sieben Upgrade-Migrationen zweifach/idempotent; Legacy-Logo-Bereinigung, Identity-/Allowlist-Grenzen, getrennte NOLOGIN-Identity-Administration, explicit updated_at, Zweckachsen, Formatbeteiligungs-Workflow, Laufzeitrolle und relationaler Smoke-Test erfolgreich.");
 } finally {
   if (pool) await pool.end().catch(() => {});
   if (containerName) {
