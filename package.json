@@ -91,7 +91,7 @@
     "test:visual:update": "playwright test --update-snapshots"
   },
   "devDependencies": {
-    "@playwright/test": "1.61.1",
+    "@playwright/test": "1.62.0",
     "esbuild": "0.28.1"
   },
   "dependencies": {
