@@ -40057,3 +40057,78 @@
         border-radius: 999px;
         background-clip: padding-box;
       }
+
+      /* Match the public GKE entry rail while the full Pages app is on its home view. */
+      .app-shell.is-public-demo-profile[data-active-view="home"] :is(
+        .sidebar-collapse,
+        .sidebar-nav,
+        .sidebar-account-section,
+        .sidebar-brand-word
+      ) {
+        display: none !important;
+      }
+
+      @media (min-width: 761px) {
+        .app-shell.is-public-demo-profile[data-active-view="home"] {
+          grid-template-columns: 76px minmax(0, 1fr);
+        }
+
+        .app-shell.is-public-demo-profile[data-active-view="home"] .app-sidebar {
+          width: 76px;
+          padding: 22px 12px 18px;
+        }
+
+        .app-shell.is-public-demo-profile[data-active-view="home"] .sidebar-brand {
+          min-height: 58px;
+          align-items: flex-start;
+          justify-content: center;
+          padding: 7px 0 15px;
+        }
+
+        .app-shell.is-public-demo-profile[data-active-view="home"] .sidebar-brand .brand-mark {
+          width: 36px;
+          height: 36px;
+          flex: 0 0 36px;
+          margin: 0;
+        }
+      }
+
+      @media (max-width: 760px) {
+        .app-shell.is-public-demo-profile[data-active-view="home"] {
+          --mobile-sidebar-header-height: 64px;
+        }
+
+        .app-shell.is-public-demo-profile[data-active-view="home"]::after {
+          display: none;
+        }
+
+        .app-shell.is-public-demo-profile[data-active-view="home"] .app-sidebar {
+          width: 100vw !important;
+          min-width: 100vw !important;
+          max-width: 100vw !important;
+          height: 64px !important;
+          min-height: 64px;
+          padding: 8px 14px !important;
+          background: linear-gradient(100deg, var(--sidebar-bg), var(--sidebar-bg-strong));
+          box-shadow: none;
+        }
+
+        .app-shell.is-public-demo-profile[data-active-view="home"] .sidebar-brand {
+          position: static;
+          inset: auto;
+          width: 48px;
+          min-height: 48px;
+          align-items: center;
+          justify-content: center;
+          gap: 0;
+          padding: 6px;
+          overflow: visible;
+        }
+
+        .app-shell.is-public-demo-profile[data-active-view="home"] .sidebar-brand .brand-mark {
+          width: 34px;
+          height: 34px;
+          flex: 0 0 34px;
+          margin: 0;
+        }
+      }

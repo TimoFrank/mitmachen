@@ -1121,6 +1121,7 @@
       const MAP_MESSAGE_VERSION = 1;
       const MAP_MESSAGE_CHANNELS = new Set(["contacts", "stakeholders"]);
       const appShell = document.querySelector(".app-shell");
+      appShell?.classList.toggle("is-public-demo-profile", IS_PUBLIC_DEMO_PROFILE);
       const skipLink = document.querySelector(".skip-link");
       const mainContent = document.getElementById("main-content");
       const routeAnnouncer = document.getElementById("route-announcer");
@@ -38387,6 +38388,7 @@
         handleRovingTabKeydown(event, stakeholderTypeActions.querySelectorAll('[role="tab"]'));
       });
       const initialSidebarRouteView = routeViewFromLocation() || "home";
+      if (appShell) appShell.dataset.activeView = initialSidebarRouteView;
       const transientInitialHomeSidebarCollapse = !isMobileLayout() && initialSidebarRouteView === "home";
       if (transientInitialHomeSidebarCollapse) {
         setSidebarCollapsed(true, { persist: false });
