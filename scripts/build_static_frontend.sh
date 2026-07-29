@@ -250,6 +250,7 @@ EOF
   cp "$ROOT_DIR/public/brand/versorgungs-kompass/mark-on-dark.svg" "$STAGE_DIR/public/brand/versorgungs-kompass/mark-on-dark.svg"
   cp "$ROOT_DIR/public/media/demo/mitmachen/versorgungs-netzwerk-concept.svg" "$STAGE_DIR/public/media/demo/mitmachen/versorgungs-netzwerk-concept.svg"
   cp "$ROOT_DIR/public/media/social/mitmachen-share-v1.png" "$STAGE_DIR/public/media/social/mitmachen-share-v1.png"
+  cp "$ROOT_DIR/public/media/social/mitmachen-share-v2.png" "$STAGE_DIR/public/media/social/mitmachen-share-v2.png"
   cp "$ROOT_DIR/public/media/social/versorgungs-netzwerk-share-v1.png" "$STAGE_DIR/public/media/social/versorgungs-netzwerk-share-v1.png"
   cp "$ROOT_DIR/public/manifest.pages.webmanifest" "$STAGE_DIR/manifest.webmanifest"
   for asset in mitmachen-hospitations-framework.docx mitmachen-hospitations-framework.pdf; do
@@ -372,8 +373,8 @@ const rootShareMetadata = {
   url: `${pagesBaseUrl}/`,
   title: "Jetzt #Mitmachen: Gemeinsam Versorgung besser machen",
   description: "Entdecken Sie vier Kompasse, die Menschen, Wissen und Ideen verbinden – in einer öffentlichen Demo mit ausschließlich fiktiven Daten.",
-  image: `${pagesBaseUrl}/public/media/social/mitmachen-share-v1.png`,
-  imageAlt: "#Mitmachen: Gemeinsam Versorgung besser machen – mit vier Kompassen in einer öffentlichen Demo."
+  image: `${pagesBaseUrl}/public/media/social/mitmachen-share-v2.png`,
+  imageAlt: "#Mitmachen: Gemeinsam Versorgung besser machen – großes Hashtag-Signet auf dunkelblauem Hintergrund."
 };
 appHtml = injectShareMetadata(appHtml, rootShareMetadata);
 fs.writeFileSync(appPath, appHtml);
