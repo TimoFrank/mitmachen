@@ -3,6 +3,9 @@ import { createHash } from "node:crypto";
 import { execFileSync, spawnSync } from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";
+import htmlMetadataTags from "./html_metadata_tags.cjs";
+
+const { parseHtmlAttributes, scanHtmlStartTags } = htmlMetadataTags;
 
 const root = process.cwd();
 const distRoot = path.join(root, "dist");
@@ -14,6 +17,24 @@ const builder = path.join(root, "scripts", "build_static_frontend.sh");
 const publicAudit = path.join(root, "scripts", "audit_public_assets.mjs");
 const targetAudit = path.join(root, "scripts", "audit_target_assets.mjs");
 const apiBaseUrl = "https://gateway.pre-gematik.example";
+
+const quotedGreaterThanTag = scanHtmlStartTags(
+  '<head><meta content="Wrong>Preview" property=og:title></head>',
+  ["meta"]
+);
+assert.equal(quotedGreaterThanTag.length, 1, "Der Metadaten-Scanner darf nicht an > innerhalb von Quotes abbrechen");
+assert.equal(parseHtmlAttributes(quotedGreaterThanTag[0]).values.content, "Wrong>Preview");
+
+const duplicateAttributeTag = parseHtmlAttributes('<meta property="og:title" property="not-share" content="Wrong">');
+assert.equal(duplicateAttributeTag.values.property, "og:title", "Attributparsing muss wie der Browser den ersten Wert behalten");
+assert.deepEqual(duplicateAttributeTag.duplicateNames, ["property"]);
+
+const encodedStructuralTag = parseHtmlAttributes('<meta property="og&#58;title" content="Wrong">');
+assert.deepEqual(
+  encodedStructuralTag.structuralCharacterReferenceNames,
+  ["property"],
+  "Zeichenreferenzen in strukturellen Metadaten-Attributen muessen fail-closed markiert werden"
+);
 
 function build(...args) {
   execFileSync("bash", [builder, ...args], { cwd: root, encoding: "utf8", stdio: "pipe" });
@@ -75,6 +96,8 @@ try {
   assert.equal(fs.existsSync(path.join(pagesDir, "data", "runtime-config.js")), true, "Pages muss eine explizite Demo-Runtime enthalten");
   assert.equal(fs.existsSync(path.join(pagesDir, "vendor", "leaflet", "leaflet.js")), true, "Pages muss die Kartenbibliothek enthalten");
   assert.equal(fs.existsSync(path.join(pagesDir, "vendor", "xlsx", "xlsx.bundle.js")), true, "Pages muss die Exportbibliothek der Voll-App enthalten");
+  assert.equal(fs.existsSync(path.join(pagesDir, "public", "media", "social", "mitmachen-share-v1.png")), true, "Pages muss das #Mitmachen-Share-Bild enthalten");
+  assert.equal(fs.existsSync(path.join(pagesDir, "public", "media", "social", "versorgungs-netzwerk-share-v1.png")), true, "Pages muss das Netzwerk-Share-Bild enthalten");
   const pagesRootHtml = fs.readFileSync(path.join(pagesDir, "index.html"), "utf8");
   const pagesAliasHtml = fs.readFileSync(path.join(pagesDir, "versorgungs-kompass.html"), "utf8");
   const pagesNoScriptCss = fs.readFileSync(path.join(pagesDir, "versorgungs-kompass-no-script.css"), "utf8");
@@ -85,10 +108,18 @@ try {
   assert.match(pagesNoScriptCss, /\.view-panel\[data-view-panel="home"\]\s*\{[\s\S]*display:\s*block\s*!important/i);
   assert.match(pagesNoScriptCss, /button\[data-home-scroll-cue\]\s*\{[\s\S]*display:\s*none/i);
   assert.match(pagesRootHtml, /<meta\s+name="robots"\s+content="noindex,\s*nofollow"\s*\/?>/i);
+  assert.match(pagesRootHtml, /<link rel="canonical" href="https:\/\/timofrank\.github\.io\/mitmachen\/" \/>/);
+  assert.match(pagesRootHtml, /<meta property="og:title" content="Jetzt #Mitmachen: Gemeinsam Versorgung besser machen" \/>/);
+  assert.match(pagesRootHtml, /<meta property="og:description" content="Entdecken Sie vier Kompasse, die Menschen, Wissen und Ideen verbinden – in einer öffentlichen Demo mit ausschließlich fiktiven Daten\." \/>/);
+  assert.match(pagesRootHtml, /<meta property="og:image" content="https:\/\/timofrank\.github\.io\/mitmachen\/public\/media\/social\/mitmachen-share-v1\.png" \/>/);
+  assert.match(pagesRootHtml, /<meta name="twitter:card" content="summary_large_image" \/>/);
   assert.match(pagesRootHtml, /\.\/data\/demo-data\.js[\s\S]*\.\/data\/demo-api\.js[\s\S]*\.\/data\/data-service\.js/);
   assert.doesNotMatch(pagesRootHtml, /data-public-entry="home"|data-public-entry-styles|>\s*Demo öffnen(?:\s|<)/i);
   assert.doesNotMatch(pagesRootHtml, /<meta\s+http-equiv="refresh"/i);
-  assert.match(fs.readFileSync(path.join(pagesDir, "demo", "index.html"), "utf8"), /url=\.\.\/#home/);
+  const pagesDemoAliasHtml = fs.readFileSync(path.join(pagesDir, "demo", "index.html"), "utf8");
+  assert.match(pagesDemoAliasHtml, /url=\.\.\/#home/);
+  assert.match(pagesDemoAliasHtml, /<link rel="canonical" href="https:\/\/timofrank\.github\.io\/mitmachen\/" \/>/);
+  assert.match(pagesDemoAliasHtml, /<meta property="og:image" content="https:\/\/timofrank\.github\.io\/mitmachen\/public\/media\/social\/mitmachen-share-v1\.png" \/>/);
   assert.match(
     fs.readFileSync(path.join(pagesDir, "versorgungs-kompass.html"), "utf8"),
     /href="\.\/public\/brand\/mitmachen\/icons\/app-icon-32\.png"/
@@ -172,6 +203,11 @@ try {
   }
   const pagesRegistrationHtml = fs.readFileSync(path.join(pagesDir, "mitmachen", "versorgungs-netzwerk.html"), "utf8");
   assert.match(pagesRegistrationHtml, /<script src="\.\/versorgungs-netzwerk\.js"><\/script>/);
+  assert.match(pagesRegistrationHtml, /<link rel="canonical" href="https:\/\/timofrank\.github\.io\/mitmachen\/mitmachen\/versorgungs-netzwerk\.html" \/>/);
+  assert.match(pagesRegistrationHtml, /<meta property="og:title" content="Ihre Erfahrung zählt: Digitale Versorgung besser machen" \/>/);
+  assert.match(pagesRegistrationHtml, /<meta property="og:description" content="Entdecken Sie die Idee des Versorgungs-Netzwerks – als Konzeptdemo mit fiktiven Angaben, ohne echte Anmeldung, Übermittlung oder Speicherung\." \/>/);
+  assert.match(pagesRegistrationHtml, /<meta property="og:image" content="https:\/\/timofrank\.github\.io\/mitmachen\/public\/media\/social\/versorgungs-netzwerk-share-v1\.png" \/>/);
+  assert.match(pagesRegistrationHtml, /<meta name="twitter:card" content="summary_large_image" \/>/);
   assert.doesNotMatch(
     pagesRegistrationHtml,
     /data\/(?:runtime-config|demo-data|demo-api)\.js/,
@@ -224,6 +260,61 @@ try {
   assert.notEqual(auditResult.status, 0, "Public Asset Audit muss einen externen Demo-API-Origin fail-closed ablehnen");
   assert.match(`${auditResult.stderr}\n${auditResult.stdout}`, /Public Asset Audit FAILED/);
   fs.writeFileSync(pagesConfigPath, cleanPagesConfig);
+
+  const pagesShareImagePath = path.join(pagesDir, "public", "media", "social", "mitmachen-share-v1.png");
+  const cleanPagesShareImage = fs.readFileSync(pagesShareImagePath);
+  fs.writeFileSync(pagesShareImagePath, cleanPagesShareImage.subarray(0, 24));
+  auditResult = spawnSync(process.execPath, [publicAudit, "--artifact-root", pagesDir], {
+    cwd: root,
+    encoding: "utf8"
+  });
+  assert.notEqual(auditResult.status, 0, "Public Asset Audit muss ein abgeschnittenes Share-PNG fail-closed ablehnen");
+  assert.match(`${auditResult.stderr}\n${auditResult.stdout}`, /muss ein PNG mit 1200 x 630 Pixeln sein/);
+  fs.writeFileSync(pagesShareImagePath, cleanPagesShareImage);
+
+  const pagesShareDocuments = ["index.html", "versorgungs-kompass.html", "demo/index.html"];
+  for (const [markup, label, expectedFailure] of [
+    [
+      "<meta property=og:title content=Wrong>",
+      "unquoted doppelte Share-Metadaten",
+      /muss genau ein property="og:title" enthalten/
+    ],
+    [
+      '<meta content="Wrong>Preview" property=og:title>',
+      "> innerhalb eines gequoteten Attributwerts",
+      /muss genau ein property="og:title" enthalten/
+    ],
+    [
+      '<meta property="og&#58;title" content="Wrong">',
+      "verschleierte strukturelle Attribute",
+      /darf name, property oder rel nicht per Zeichenreferenz verschleiern/
+    ],
+    [
+      '<meta property="og:title" property="not-share" content="Wrong">',
+      "doppelte Attribute innerhalb eines Meta-Tags",
+      /darf in Share-relevanten Tags keine doppelten Attribute enthalten/
+    ]
+  ]) {
+    const cleanPagesShareDocuments = new Map();
+    try {
+      for (const relativePath of pagesShareDocuments) {
+        const documentPath = path.join(pagesDir, relativePath);
+        const cleanDocument = fs.readFileSync(documentPath, "utf8");
+        cleanPagesShareDocuments.set(documentPath, cleanDocument);
+        fs.writeFileSync(documentPath, cleanDocument.replace(/<head>/i, `$&\n    ${markup}`));
+      }
+      auditResult = spawnSync(process.execPath, [publicAudit, "--artifact-root", pagesDir], {
+        cwd: root,
+        encoding: "utf8"
+      });
+      assert.notEqual(auditResult.status, 0, `Public Asset Audit muss ${label} fail-closed ablehnen`);
+      assert.match(`${auditResult.stderr}\n${auditResult.stdout}`, expectedFailure);
+    } finally {
+      for (const [documentPath, cleanDocument] of cleanPagesShareDocuments) {
+        fs.writeFileSync(documentPath, cleanDocument);
+      }
+    }
+  }
 
   for (const [relativePath, marker, label] of [
     ["data/demo-api.js", 'window.VK_DEMO_BACKEND = "api";', "umschaltbaren Backendmodus"],
@@ -298,7 +389,9 @@ try {
     "public-login.html",
     "enrollment.html",
     "enrollment.css",
-    "enrollment.js"
+    "enrollment.js",
+    "public/media/social/mitmachen-share-v1.png",
+    "public/media/social/versorgungs-netzwerk-share-v1.png"
   );
 
   const targetPublicIndexHtml = fs.readFileSync(path.join(targetDir, "public-index.html"), "utf8");
@@ -346,6 +439,7 @@ try {
 
   const targetText = textArtifact(targetDir);
   assert.doesNotMatch(targetText, /https:\/\/[a-z0-9-]+\.supabase\.co/i, "Target darf keine direkte Supabase-Projekt-URL enthalten");
+  assert.doesNotMatch(targetText, /https:\/\/timofrank\.github\.io\/mitmachen\/public\/media\/social\//i, "Target darf keine Pages-spezifischen Share-URLs enthalten");
   assert.doesNotMatch(targetText, /@supabase\/supabase-js|supabase-js@/i, "Target darf kein Supabase Browser-SDK laden");
   assert.doesNotMatch(targetText, new RegExp(["arbeits", "raum"].join(""), "i"), "Target enthaelt nicht mehr freigegebenes Wording");
 

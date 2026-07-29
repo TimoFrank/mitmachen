@@ -2,6 +2,9 @@ import { existsSync, readFileSync, readdirSync, statSync } from "node:fs";
 import { execFileSync } from "node:child_process";
 import { dirname, extname, join, relative, resolve, sep } from "node:path";
 import { fileURLToPath } from "node:url";
+import htmlMetadataTags from "./html_metadata_tags.cjs";
+
+const { parseHtmlAttributes, scanHtmlStartTags } = htmlMetadataTags;
 
 const root = fileURLToPath(new URL("..", import.meta.url));
 const args = process.argv.slice(2);
@@ -36,6 +39,112 @@ function walk(directory) {
     return entry.isFile() ? [fullPath] : [];
   });
 }
+
+function parsedMetadataTags(html, tagNames, label) {
+  return scanHtmlStartTags(html, tagNames).map((tag) => {
+    const parsed = parseHtmlAttributes(tag);
+    assert(
+      parsed.duplicateNames.length === 0,
+      `${label} darf in Share-relevanten Tags keine doppelten Attribute enthalten: ${parsed.duplicateNames.join(", ")}`
+    );
+    assert(
+      parsed.structuralCharacterReferenceNames.length === 0,
+      `${label} darf name, property oder rel nicht per Zeichenreferenz verschleiern`
+    );
+    return parsed.values;
+  });
+}
+
+function metadataContent(html, attribute, key, label) {
+  const matches = parsedMetadataTags(html, ["meta"], label)
+    .filter((attributes) => String(attributes[attribute] || "").toLowerCase() === key.toLowerCase());
+  assert(matches.length === 1, `${label} muss genau ein ${attribute}="${key}" enthalten`);
+  return matches[0]?.content;
+}
+
+function canonicalHref(html, label) {
+  const matches = parsedMetadataTags(html, ["link"], label)
+    .filter((attributes) => String(attributes.rel || "").toLowerCase().split(/\s+/).includes("canonical"));
+  assert(matches.length === 1, `${label} muss genau einen Canonical-Link enthalten`);
+  return matches[0]?.href;
+}
+
+function crc32(buffer) {
+  let crc = 0xffffffff;
+  for (const byte of buffer) {
+    crc ^= byte;
+    for (let bit = 0; bit < 8; bit += 1) {
+      crc = (crc >>> 1) ^ (crc & 1 ? 0xedb88320 : 0);
+    }
+  }
+  return (crc ^ 0xffffffff) >>> 0;
+}
+
+function inspectPng(filePath) {
+  const image = readFileSync(filePath);
+  const pngSignature = "89504e470d0a1a0a";
+  if (image.length < 45 || image.subarray(0, 8).toString("hex") !== pngSignature) return null;
+
+  let offset = 8;
+  let width;
+  let height;
+  let sawHeader = false;
+  let sawImageData = false;
+  let sawEnd = false;
+  while (offset + 12 <= image.length) {
+    const length = image.readUInt32BE(offset);
+    const typeStart = offset + 4;
+    const dataStart = offset + 8;
+    const dataEnd = dataStart + length;
+    const chunkEnd = dataEnd + 4;
+    if (chunkEnd > image.length) return null;
+
+    const type = image.subarray(typeStart, dataStart).toString("ascii");
+    const expectedCrc = image.readUInt32BE(dataEnd);
+    if (crc32(image.subarray(typeStart, dataEnd)) !== expectedCrc) return null;
+    if (!sawHeader) {
+      if (type !== "IHDR" || length !== 13) return null;
+      width = image.readUInt32BE(dataStart);
+      height = image.readUInt32BE(dataStart + 4);
+      sawHeader = true;
+    } else if (type === "IHDR") {
+      return null;
+    }
+    if (type === "IDAT") sawImageData = true;
+    if (type === "IEND") {
+      if (length !== 0 || chunkEnd !== image.length) return null;
+      sawEnd = true;
+      offset = chunkEnd;
+      break;
+    }
+    offset = chunkEnd;
+  }
+
+  if (!sawHeader || !sawImageData || !sawEnd || offset !== image.length) return null;
+  return { width, height };
+}
+
+const pagesBaseUrl = "https://timofrank.github.io/mitmachen";
+const shareContracts = [
+  {
+    documents: ["index.html", "versorgungs-kompass.html", "demo/index.html"],
+    url: `${pagesBaseUrl}/`,
+    title: "Jetzt #Mitmachen: Gemeinsam Versorgung besser machen",
+    description: "Entdecken Sie vier Kompasse, die Menschen, Wissen und Ideen verbinden – in einer öffentlichen Demo mit ausschließlich fiktiven Daten.",
+    image: `${pagesBaseUrl}/public/media/social/mitmachen-share-v1.png`,
+    imageAlt: "#Mitmachen: Gemeinsam Versorgung besser machen – mit vier Kompassen in einer öffentlichen Demo.",
+    imagePath: "public/media/social/mitmachen-share-v1.png"
+  },
+  {
+    documents: ["mitmachen/versorgungs-netzwerk.html"],
+    url: `${pagesBaseUrl}/mitmachen/versorgungs-netzwerk.html`,
+    title: "Ihre Erfahrung zählt: Digitale Versorgung besser machen",
+    description: "Entdecken Sie die Idee des Versorgungs-Netzwerks – als Konzeptdemo mit fiktiven Angaben, ohne echte Anmeldung, Übermittlung oder Speicherung.",
+    image: `${pagesBaseUrl}/public/media/social/versorgungs-netzwerk-share-v1.png`,
+    imageAlt: "#Mitmachen Versorgungs-Netzwerk: Ihre Erfahrung zählt – Konzeptdemo für digitale Beteiligung.",
+    imagePath: "public/media/social/versorgungs-netzwerk-share-v1.png"
+  }
+];
 
 assert(existsSync(artifactRoot) && statSync(artifactRoot).isDirectory(), `${artifactLabel} fehlt oder ist kein Verzeichnis`);
 
@@ -121,7 +230,9 @@ const requiredFiles = new Set([
   "public/demo-profile-viewer.svg",
   "public/hospitation/mitmachen-hospitations-framework.docx",
   "public/hospitation/mitmachen-hospitations-framework.pdf",
-  "public/media/demo/mitmachen/versorgungs-netzwerk-concept.svg"
+  "public/media/demo/mitmachen/versorgungs-netzwerk-concept.svg",
+  "public/media/social/mitmachen-share-v1.png",
+  "public/media/social/versorgungs-netzwerk-share-v1.png"
 ]);
 
 for (const required of requiredFiles) {
@@ -129,6 +240,67 @@ for (const required of requiredFiles) {
 }
 for (const file of actualFiles) {
   assert(requiredFiles.has(file), `${artifactLabel}/${file} ist nicht fuer die oeffentliche Demo freigegeben`);
+}
+
+for (const contract of shareContracts) {
+  const imagePath = join(artifactRoot, contract.imagePath);
+  if (existsSync(imagePath)) {
+    const dimensions = inspectPng(imagePath);
+    assert(
+      dimensions?.width === 1200 && dimensions?.height === 630,
+      `${artifactLabel}/${contract.imagePath} muss ein PNG mit 1200 x 630 Pixeln sein`
+    );
+    assert(
+      statSync(imagePath).size <= 600_000,
+      `${artifactLabel}/${contract.imagePath} muss fuer Messenger hoechstens 600 KB gross sein`
+    );
+  }
+
+  for (const document of contract.documents) {
+    const documentPath = join(artifactRoot, document);
+    if (!existsSync(documentPath)) continue;
+    const html = readFileSync(documentPath, "utf8");
+    const label = `${artifactLabel}/${document}`;
+    assert(canonicalHref(html, label) === contract.url, `${label} verwendet nicht die kanonische Pages-URL`);
+    for (const [property, expected] of [
+      ["og:type", "website"],
+      ["og:locale", "de_DE"],
+      ["og:site_name", "#Mitmachen"],
+      ["og:title", contract.title],
+      ["og:description", contract.description],
+      ["og:url", contract.url],
+      ["og:image", contract.image],
+      ["og:image:secure_url", contract.image],
+      ["og:image:type", "image/png"],
+      ["og:image:width", "1200"],
+      ["og:image:height", "630"],
+      ["og:image:alt", contract.imageAlt]
+    ]) {
+      assert(
+        metadataContent(html, "property", property, label) === expected,
+        `${label} verwendet fuer ${property} nicht den freigegebenen Wert`
+      );
+    }
+    for (const [name, expected] of [
+      ["twitter:card", "summary_large_image"],
+      ["twitter:title", contract.title],
+      ["twitter:description", contract.description],
+      ["twitter:image", contract.image],
+      ["twitter:image:alt", contract.imageAlt]
+    ]) {
+      assert(
+        metadataContent(html, "name", name, label) === expected,
+        `${label} verwendet fuer ${name} nicht den freigegebenen Wert`
+      );
+    }
+    for (const url of [canonicalHref(html, label), metadataContent(html, "property", "og:url", label), metadataContent(html, "property", "og:image", label)]) {
+      try {
+        assert(new URL(url).protocol === "https:", `${label} verwendet eine nicht sichere Share-URL: ${url}`);
+      } catch {
+        assert(false, `${label} verwendet eine ungueltige Share-URL: ${url}`);
+      }
+    }
+  }
 }
 
 const textExtensions = new Set([".css", ".html", ".js", ".json", ".mjs", ".webmanifest"]);

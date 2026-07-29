@@ -27,6 +27,7 @@ on:
       - package-lock.json
       - scripts/build_static_frontend.sh
       - scripts/audit_public_assets.mjs
+      - scripts/html_metadata_tags.cjs
       - scripts/check_deployment_governance.mjs
       - .github/workflows/deploy-pages.yml
   workflow_dispatch:
@@ -155,6 +156,8 @@ jobs:
           no_script_style_path="${RUNNER_TEMP}/pages-no-script.css"
           app_path="${RUNNER_TEMP}/pages-versorgungs-kompass.html"
           registration_path="${RUNNER_TEMP}/pages-versorgungs-netzwerk.html"
+          root_share_image_path="${RUNNER_TEMP}/mitmachen-share-v1.png"
+          network_share_image_path="${RUNNER_TEMP}/versorgungs-netzwerk-share-v1.png"
 
           curl --fail "${curl_retry_args[@]}" \
             "${page_root}/?${cache_buster}" --output "$root_app_path"
@@ -177,6 +180,16 @@ jobs:
             "${page_root}/mitmachen/versorgungs-netzwerk.html?${cache_buster}" --output "$registration_path"
           curl --fail "${curl_retry_args[@]}" \
             "${page_root}/data/data-service.js?${cache_buster}" >/dev/null
+          root_share_content_type="$(curl --fail "${curl_retry_args[@]}" \
+            "${page_root}/public/media/social/mitmachen-share-v1.png?${cache_buster}" \
+            --output "$root_share_image_path" --write-out '%{content_type}')"
+          network_share_content_type="$(curl --fail "${curl_retry_args[@]}" \
+            "${page_root}/public/media/social/versorgungs-netzwerk-share-v1.png?${cache_buster}" \
+            --output "$network_share_image_path" --write-out '%{content_type}')"
+          if [ "$root_share_content_type" != "image/png" ] || [ "$network_share_content_type" != "image/png" ]; then
+            echo "GitHub Pages does not serve the share previews as image/png." >&2
+            exit 1
+          fi
 
           grep --extended-regexp --ignore-case --quiet 'synthetisch|fiktiv' "$demo_data_path"
           grep --extended-regexp --quiet 'dataMode:[[:space:]]*"demo"' "$runtime_config_path"
@@ -186,7 +199,14 @@ jobs:
           for app_label in Versorgung Auswertung Aktivitäten Stakeholder Expertenkreis Hospitationen Beobachtungen Fragebogen Dashboard Formate Teams; do
             grep --fixed-strings --quiet "$app_label" "$app_path"
           done
-          node - "$app_path" "$registration_path" "$root_app_path" "$manifest_path" "$no_script_style_path" <<'NODE'
+          node - \
+            "$app_path" \
+            "$registration_path" \
+            "$root_app_path" \
+            "$manifest_path" \
+            "$no_script_style_path" \
+            "$root_share_image_path" \
+            "$network_share_image_path" <<'NODE'
           const fs = require("node:fs");
           const html = fs.readFileSync(process.argv[2], "utf8");
           const positions = ["./data/demo-data.js", "./data/demo-api.js", "./data/data-service.js"].map((value) => html.indexOf(value));
@@ -202,6 +222,97 @@ jobs:
           }
           if (/data\/(?:runtime-config|demo-data|demo-api)\.js/i.test(registrationHtml)) {
             throw new Error("Die statische Netzwerkregistrierung bindet unerwartet Demo-Datenadapter ein.");
+          }
+          for (const [label, document, expected] of [
+            ["Startseite", html, {
+              canonical: "https://timofrank.github.io/mitmachen/",
+              title: "Jetzt #Mitmachen: Gemeinsam Versorgung besser machen",
+              description: "Entdecken Sie vier Kompasse, die Menschen, Wissen und Ideen verbinden – in einer öffentlichen Demo mit ausschließlich fiktiven Daten.",
+              image: "https://timofrank.github.io/mitmachen/public/media/social/mitmachen-share-v1.png"
+            }],
+            ["Versorgungs-Netzwerk", registrationHtml, {
+              canonical: "https://timofrank.github.io/mitmachen/mitmachen/versorgungs-netzwerk.html",
+              title: "Ihre Erfahrung zählt: Digitale Versorgung besser machen",
+              description: "Entdecken Sie die Idee des Versorgungs-Netzwerks – als Konzeptdemo mit fiktiven Angaben, ohne echte Anmeldung, Übermittlung oder Speicherung.",
+              image: "https://timofrank.github.io/mitmachen/public/media/social/versorgungs-netzwerk-share-v1.png"
+            }]
+          ]) {
+            for (const marker of [
+              `<link rel="canonical" href="${expected.canonical}" />`,
+              `<meta property="og:title" content="${expected.title}" />`,
+              `<meta property="og:description" content="${expected.description}" />`,
+              `<meta property="og:image" content="${expected.image}" />`,
+              '<meta property="og:image:width" content="1200" />',
+              '<meta property="og:image:height" content="630" />',
+              '<meta name="twitter:card" content="summary_large_image" />'
+            ]) {
+              if (!document.includes(marker)) {
+                throw new Error(`${label} enthält nicht den erwarteten Social-Preview-Vertrag: ${marker}`);
+              }
+            }
+          }
+          function crc32(buffer) {
+            let crc = 0xffffffff;
+            for (const byte of buffer) {
+              crc ^= byte;
+              for (let bit = 0; bit < 8; bit += 1) {
+                crc = (crc >>> 1) ^ (crc & 1 ? 0xedb88320 : 0);
+              }
+            }
+            return (crc ^ 0xffffffff) >>> 0;
+          }
+          function inspectPng(image) {
+            if (
+              image.length < 45
+              || image.subarray(0, 8).toString("hex") !== "89504e470d0a1a0a"
+            ) {
+              return null;
+            }
+            let offset = 8;
+            let width;
+            let height;
+            let sawHeader = false;
+            let sawImageData = false;
+            let sawEnd = false;
+            while (offset + 12 <= image.length) {
+              const length = image.readUInt32BE(offset);
+              const typeStart = offset + 4;
+              const dataStart = offset + 8;
+              const dataEnd = dataStart + length;
+              const chunkEnd = dataEnd + 4;
+              if (chunkEnd > image.length) return null;
+              const type = image.subarray(typeStart, dataStart).toString("ascii");
+              if (crc32(image.subarray(typeStart, dataEnd)) !== image.readUInt32BE(dataEnd)) return null;
+              if (!sawHeader) {
+                if (type !== "IHDR" || length !== 13) return null;
+                width = image.readUInt32BE(dataStart);
+                height = image.readUInt32BE(dataStart + 4);
+                sawHeader = true;
+              } else if (type === "IHDR") {
+                return null;
+              }
+              if (type === "IDAT") sawImageData = true;
+              if (type === "IEND") {
+                if (length !== 0 || chunkEnd !== image.length) return null;
+                sawEnd = true;
+                offset = chunkEnd;
+                break;
+              }
+              offset = chunkEnd;
+            }
+            if (!sawHeader || !sawImageData || !sawEnd || offset !== image.length) return null;
+            return { width, height };
+          }
+          for (const imagePath of [process.argv[7], process.argv[8]]) {
+            const image = fs.readFileSync(imagePath);
+            const dimensions = inspectPng(image);
+            if (
+              dimensions?.width !== 1200
+              || dimensions?.height !== 630
+              || image.length > 600_000
+            ) {
+              throw new Error(`Share-Vorschau ist kein valides PNG mit 1200 x 630 Pixeln unter 600 KB: ${imagePath}`);
+            }
           }
           const rootHtml = fs.readFileSync(process.argv[4], "utf8");
           const noScriptCss = fs.readFileSync(process.argv[6], "utf8");

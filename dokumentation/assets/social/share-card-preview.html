@@ -1,0 +1,195 @@
+<!doctype html>
+<html lang="de">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=1440, initial-scale=1" />
+    <link rel="icon" href="data:," />
+    <title>#Mitmachen – Linkvorschauen</title>
+    <style>
+      :root {
+        font-family: Arial, Helvetica, sans-serif;
+        color: #17275f;
+        background: #eef3fa;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      html,
+      body {
+        width: 1440px;
+        height: 900px;
+        margin: 0;
+        overflow: hidden;
+      }
+
+      body {
+        background:
+          radial-gradient(circle at 92% 2%, rgba(0, 255, 101, 0.1), transparent 28%),
+          linear-gradient(180deg, #f8faff 0%, #e8eef7 100%);
+      }
+
+      .preview {
+        width: 100%;
+        height: 100%;
+        padding: 48px 58px;
+      }
+
+      .preview__header {
+        display: flex;
+        align-items: flex-end;
+        justify-content: space-between;
+        gap: 40px;
+        margin-bottom: 34px;
+      }
+
+      h1 {
+        margin: 0;
+        color: #10236e;
+        font-size: 42px;
+        letter-spacing: -1.4px;
+      }
+
+      .preview__header p {
+        max-width: 540px;
+        margin: 0;
+        color: #65728a;
+        font-size: 18px;
+        line-height: 1.45;
+        text-align: right;
+      }
+
+      .cards {
+        display: grid;
+        grid-template-columns: repeat(2, 390px);
+        justify-content: center;
+        gap: 48px;
+      }
+
+      .preview-card {
+        overflow: hidden;
+        border: 1px solid #cad6e8;
+        border-radius: 20px;
+        background: #ffffff;
+        box-shadow: 0 22px 54px rgba(16, 35, 110, 0.14);
+      }
+
+      .preview-card__label {
+        display: flex;
+        align-items: center;
+        gap: 9px;
+        margin: 0;
+        padding: 13px 18px;
+        border-bottom: 1px solid #dbe3ef;
+        background: #f7f9fd;
+        color: #66738b;
+        font-size: 14px;
+        font-weight: 800;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+      }
+
+      .preview-card__label::before {
+        width: 9px;
+        height: 9px;
+        border-radius: 50%;
+        background: #00d95a;
+        content: "";
+      }
+
+      .preview-card img {
+        display: block;
+        width: 100%;
+        height: auto;
+        aspect-ratio: 1200 / 630;
+        object-fit: cover;
+        border-bottom: 1px solid #dbe3ef;
+      }
+
+      .preview-card__copy {
+        min-height: 202px;
+        padding: 18px 20px 22px;
+      }
+
+      .preview-card__site {
+        display: block;
+        margin-bottom: 8px;
+        color: #6d7890;
+        font-size: 13px;
+        font-weight: 700;
+        letter-spacing: 0.035em;
+        text-transform: uppercase;
+      }
+
+      .preview-card h2 {
+        margin: 0;
+        color: #14255e;
+        font-size: 21px;
+        letter-spacing: -0.45px;
+        line-height: 1.18;
+      }
+
+      .preview-card__copy p {
+        margin: 10px 0 0;
+        color: #56647c;
+        font-size: 15px;
+        line-height: 1.42;
+      }
+
+      .preview__note {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        justify-content: center;
+        margin: 28px 0 0;
+        color: #53627a;
+        font-size: 15px;
+        font-weight: 700;
+      }
+
+      .preview__note::before {
+        display: inline-grid;
+        width: 25px;
+        height: 25px;
+        place-items: center;
+        border-radius: 50%;
+        background: #dff9ea;
+        color: #087b5c;
+        content: "✓";
+      }
+    </style>
+  </head>
+  <body>
+    <main class="preview">
+      <header class="preview__header">
+        <h1>#Mitmachen-Linkvorschauen</h1>
+        <p>Bewusst kompakt dargestellt: Beide Motive bleiben auch als kleine Messenger-Thumbnails eindeutig.</p>
+      </header>
+
+      <section class="cards" aria-label="Vorschau der beiden öffentlichen Seiten">
+        <article class="preview-card">
+          <p class="preview-card__label">Öffentliche Demo</p>
+          <img src="../../../public/media/social/mitmachen-share-v1.png" alt="" />
+          <div class="preview-card__copy">
+            <span class="preview-card__site">timofrank.github.io</span>
+            <h2>Jetzt #Mitmachen: Gemeinsam Versorgung besser machen</h2>
+            <p>Entdecken Sie vier Kompasse, die Menschen, Wissen und Ideen verbinden – in einer öffentlichen Demo mit ausschließlich fiktiven Daten.</p>
+          </div>
+        </article>
+
+        <article class="preview-card">
+          <p class="preview-card__label">Versorgungs-Netzwerk</p>
+          <img src="../../../public/media/social/versorgungs-netzwerk-share-v1.png" alt="" />
+          <div class="preview-card__copy">
+            <span class="preview-card__site">timofrank.github.io</span>
+            <h2>Ihre Erfahrung zählt: Digitale Versorgung besser machen</h2>
+            <p>Entdecken Sie die Idee des Versorgungs-Netzwerks – als Konzeptdemo mit fiktiven Angaben, ohne echte Anmeldung, Übermittlung oder Speicherung.</p>
+          </div>
+        </article>
+      </section>
+
+      <p class="preview__note">Beide Karten verwenden absolute HTTPS-Bild-URLs und 1200 × 630 Pixel große PNGs.</p>
+    </main>
+  </body>
+</html>

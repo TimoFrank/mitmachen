@@ -1,0 +1,135 @@
+<!doctype html>
+<html lang="de">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=1100, initial-scale=1" />
+    <link rel="icon" href="data:," />
+    <title>#Mitmachen – Thumbnail-Abnahme</title>
+    <style>
+      :root {
+        font-family: Arial, Helvetica, sans-serif;
+        color: #132567;
+        background: #eef3fa;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      html,
+      body {
+        width: 1100px;
+        height: 600px;
+        margin: 0;
+        overflow: hidden;
+      }
+
+      body {
+        background:
+          radial-gradient(circle at 92% 4%, rgba(0, 255, 101, 0.1), transparent 28%),
+          linear-gradient(180deg, #f8faff 0%, #e8eef7 100%);
+      }
+
+      main {
+        padding: 42px 54px;
+      }
+
+      h1 {
+        margin: 0 0 32px;
+        font-size: 38px;
+        letter-spacing: -1.2px;
+      }
+
+      .checks {
+        display: grid;
+        gap: 30px;
+      }
+
+      .check {
+        display: grid;
+        grid-template-columns: 110px 1fr;
+        gap: 28px;
+        align-items: center;
+      }
+
+      .check__label {
+        margin: 0;
+        color: #66738b;
+        font-size: 16px;
+        font-weight: 800;
+        line-height: 1.25;
+        text-align: right;
+        text-transform: uppercase;
+      }
+
+      .check__images {
+        display: flex;
+        align-items: center;
+        gap: 24px;
+      }
+
+      figure {
+        margin: 0;
+      }
+
+      img {
+        display: block;
+        border-radius: 9px;
+        box-shadow: 0 14px 30px rgba(16, 35, 110, 0.18);
+      }
+
+      .check--medium img {
+        width: 300px;
+        height: 158px;
+      }
+
+      .check--small img {
+        width: 160px;
+        height: 84px;
+        border-radius: 5px;
+      }
+
+      figcaption {
+        margin-top: 8px;
+        color: #56647c;
+        font-size: 13px;
+        font-weight: 700;
+        text-align: center;
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <h1>Abnahme im Messenger-Maßstab</h1>
+      <section class="checks" aria-label="Share-Bilder in zwei kompakten Größen">
+        <div class="check check--medium">
+          <p class="check__label">300 × 158<br />Pixel</p>
+          <div class="check__images">
+            <figure>
+              <img src="../../../public/media/social/mitmachen-share-v1.png" alt="#Mitmachen-Vorschau in 300 mal 158 Pixel" />
+              <figcaption>#Mitmachen</figcaption>
+            </figure>
+            <figure>
+              <img src="../../../public/media/social/versorgungs-netzwerk-share-v1.png" alt="Versorgungs-Netzwerk-Vorschau in 300 mal 158 Pixel" />
+              <figcaption>Versorgungs-Netzwerk</figcaption>
+            </figure>
+          </div>
+        </div>
+
+        <div class="check check--small">
+          <p class="check__label">160 × 84<br />Pixel</p>
+          <div class="check__images">
+            <figure>
+              <img src="../../../public/media/social/mitmachen-share-v1.png" alt="#Mitmachen-Vorschau in 160 mal 84 Pixel" />
+              <figcaption>#Mitmachen</figcaption>
+            </figure>
+            <figure>
+              <img src="../../../public/media/social/versorgungs-netzwerk-share-v1.png" alt="Versorgungs-Netzwerk-Vorschau in 160 mal 84 Pixel" />
+              <figcaption>Versorgungs-Netzwerk</figcaption>
+            </figure>
+          </div>
+        </div>
+      </section>
+    </main>
+  </body>
+</html>
