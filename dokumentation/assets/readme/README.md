@@ -2,6 +2,10 @@
 
 Diese Bilder sind versionierte Dokumentationsassets und keine Laufzeitquellen der Anwendung.
 
+- `mitmachen-kompass-banner-v3.png`: aktuelles Markenbanner mit `#Mitmachen` und den vier gleichrangigen Kompassen.
+- `mitmachen-kompass-collage-v3.png`: aktuelle Collage aus neu aufgenommenen Browserzuständen aller vier Kompasse.
+- `mitmachen-kompass-collage-v3.html`: reproduzierbare Browserquelle der aktuellen Collage.
+- `module-previews-v3/`: aktuelle Browseraufnahmen für die vier Collage-Kacheln.
 - `versorgungs-kompass-header-v2.svg`: skalierbarer README-Header mit den vier Produktmodulen.
 - `versorgungs-kompass-module-collage-v2.png`: gerenderte Collage aus realen Browserzuständen aller vier Produktmodule.
 - `versorgungs-kompass-module-collage-v2.html`: reproduzierbare Browserquelle der Collage.
