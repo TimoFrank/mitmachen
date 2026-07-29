@@ -131,9 +131,9 @@ const shareContracts = [
     url: `${pagesBaseUrl}/`,
     title: "Jetzt #Mitmachen: Gemeinsam Versorgung besser machen",
     description: "Entdecken Sie vier Kompasse, die Menschen, Wissen und Ideen verbinden – in einer öffentlichen Demo mit ausschließlich fiktiven Daten.",
-    image: `${pagesBaseUrl}/public/media/social/mitmachen-share-v1.png`,
-    imageAlt: "#Mitmachen: Gemeinsam Versorgung besser machen – mit vier Kompassen in einer öffentlichen Demo.",
-    imagePath: "public/media/social/mitmachen-share-v1.png"
+    image: `${pagesBaseUrl}/public/media/social/mitmachen-share-v2.png`,
+    imageAlt: "#Mitmachen: Gemeinsam Versorgung besser machen – großes Hashtag-Signet auf dunkelblauem Hintergrund.",
+    imagePath: "public/media/social/mitmachen-share-v2.png"
   },
   {
     documents: ["mitmachen/versorgungs-netzwerk.html"],
@@ -232,6 +232,7 @@ const requiredFiles = new Set([
   "public/hospitation/mitmachen-hospitations-framework.pdf",
   "public/media/demo/mitmachen/versorgungs-netzwerk-concept.svg",
   "public/media/social/mitmachen-share-v1.png",
+  "public/media/social/mitmachen-share-v2.png",
   "public/media/social/versorgungs-netzwerk-share-v1.png"
 ]);
 

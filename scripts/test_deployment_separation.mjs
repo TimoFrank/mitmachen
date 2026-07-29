@@ -96,7 +96,8 @@ try {
   assert.equal(fs.existsSync(path.join(pagesDir, "data", "runtime-config.js")), true, "Pages muss eine explizite Demo-Runtime enthalten");
   assert.equal(fs.existsSync(path.join(pagesDir, "vendor", "leaflet", "leaflet.js")), true, "Pages muss die Kartenbibliothek enthalten");
   assert.equal(fs.existsSync(path.join(pagesDir, "vendor", "xlsx", "xlsx.bundle.js")), true, "Pages muss die Exportbibliothek der Voll-App enthalten");
-  assert.equal(fs.existsSync(path.join(pagesDir, "public", "media", "social", "mitmachen-share-v1.png")), true, "Pages muss das #Mitmachen-Share-Bild enthalten");
+  assert.equal(fs.existsSync(path.join(pagesDir, "public", "media", "social", "mitmachen-share-v1.png")), true, "Pages muss das bisherige #Mitmachen-Share-Bild fuer bestehende Vorschauen behalten");
+  assert.equal(fs.existsSync(path.join(pagesDir, "public", "media", "social", "mitmachen-share-v2.png")), true, "Pages muss das aktuelle #Mitmachen-Share-Bild enthalten");
   assert.equal(fs.existsSync(path.join(pagesDir, "public", "media", "social", "versorgungs-netzwerk-share-v1.png")), true, "Pages muss das Netzwerk-Share-Bild enthalten");
   const pagesRootHtml = fs.readFileSync(path.join(pagesDir, "index.html"), "utf8");
   const pagesAliasHtml = fs.readFileSync(path.join(pagesDir, "versorgungs-kompass.html"), "utf8");
@@ -111,7 +112,7 @@ try {
   assert.match(pagesRootHtml, /<link rel="canonical" href="https:\/\/timofrank\.github\.io\/mitmachen\/" \/>/);
   assert.match(pagesRootHtml, /<meta property="og:title" content="Jetzt #Mitmachen: Gemeinsam Versorgung besser machen" \/>/);
   assert.match(pagesRootHtml, /<meta property="og:description" content="Entdecken Sie vier Kompasse, die Menschen, Wissen und Ideen verbinden – in einer öffentlichen Demo mit ausschließlich fiktiven Daten\." \/>/);
-  assert.match(pagesRootHtml, /<meta property="og:image" content="https:\/\/timofrank\.github\.io\/mitmachen\/public\/media\/social\/mitmachen-share-v1\.png" \/>/);
+  assert.match(pagesRootHtml, /<meta property="og:image" content="https:\/\/timofrank\.github\.io\/mitmachen\/public\/media\/social\/mitmachen-share-v2\.png" \/>/);
   assert.match(pagesRootHtml, /<meta name="twitter:card" content="summary_large_image" \/>/);
   assert.match(pagesRootHtml, /\.\/data\/demo-data\.js[\s\S]*\.\/data\/demo-api\.js[\s\S]*\.\/data\/data-service\.js/);
   assert.doesNotMatch(pagesRootHtml, /data-public-entry="home"|data-public-entry-styles|>\s*Demo öffnen(?:\s|<)/i);
@@ -119,7 +120,7 @@ try {
   const pagesDemoAliasHtml = fs.readFileSync(path.join(pagesDir, "demo", "index.html"), "utf8");
   assert.match(pagesDemoAliasHtml, /url=\.\.\/#home/);
   assert.match(pagesDemoAliasHtml, /<link rel="canonical" href="https:\/\/timofrank\.github\.io\/mitmachen\/" \/>/);
-  assert.match(pagesDemoAliasHtml, /<meta property="og:image" content="https:\/\/timofrank\.github\.io\/mitmachen\/public\/media\/social\/mitmachen-share-v1\.png" \/>/);
+  assert.match(pagesDemoAliasHtml, /<meta property="og:image" content="https:\/\/timofrank\.github\.io\/mitmachen\/public\/media\/social\/mitmachen-share-v2\.png" \/>/);
   assert.match(
     fs.readFileSync(path.join(pagesDir, "versorgungs-kompass.html"), "utf8"),
     /href="\.\/public\/brand\/mitmachen\/icons\/app-icon-32\.png"/
@@ -261,7 +262,7 @@ try {
   assert.match(`${auditResult.stderr}\n${auditResult.stdout}`, /Public Asset Audit FAILED/);
   fs.writeFileSync(pagesConfigPath, cleanPagesConfig);
 
-  const pagesShareImagePath = path.join(pagesDir, "public", "media", "social", "mitmachen-share-v1.png");
+  const pagesShareImagePath = path.join(pagesDir, "public", "media", "social", "mitmachen-share-v2.png");
   const cleanPagesShareImage = fs.readFileSync(pagesShareImagePath);
   fs.writeFileSync(pagesShareImagePath, cleanPagesShareImage.subarray(0, 24));
   auditResult = spawnSync(process.execPath, [publicAudit, "--artifact-root", pagesDir], {
@@ -391,6 +392,7 @@ try {
     "enrollment.css",
     "enrollment.js",
     "public/media/social/mitmachen-share-v1.png",
+    "public/media/social/mitmachen-share-v2.png",
     "public/media/social/versorgungs-netzwerk-share-v1.png"
   );
 

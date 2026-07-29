@@ -3,8 +3,9 @@
 Die HTML-Dateien in diesem Ordner sind die reproduzierbaren Browserquellen für
 die 1200 × 630 Pixel großen Open-Graph-Bilder der öffentlichen `#Mitmachen`-Demo.
 
-- `mitmachen-share-v1.html` rendert
-  `public/media/social/mitmachen-share-v1.png`.
+- `mitmachen-share-v1.html` dokumentiert die erste veröffentlichte Fassung.
+- `mitmachen-share-v2.html` rendert die aktuelle
+  `public/media/social/mitmachen-share-v2.png`.
 - `versorgungs-netzwerk-share-v1.html` rendert
   `public/media/social/versorgungs-netzwerk-share-v1.png`.
 - `share-card-preview.html` zeigt beide Bilder zusammen mit den zugehörigen
