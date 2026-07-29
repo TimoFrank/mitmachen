@@ -1,6 +1,6 @@
 {
   "schemaVersion": 4,
-  "lastReviewed": "2026-07-28",
+  "lastReviewed": "2026-07-29",
   "commonSender": {
     "name": "#Mitmachen",
     "canonicalKit": "public/brand/mitmachen/"
@@ -139,6 +139,22 @@
       "owner": "Versorgungs-CRM project",
       "source": "repo-authored",
       "status": "demo-only",
+      "mayBeModified": true
+    },
+    {
+      "path": "public/media/social/mitmachen-share-v1.png",
+      "role": "public-demo-social-preview",
+      "owner": "Versorgungs-CRM project",
+      "source": "browser-rendered from dokumentation/assets/social/mitmachen-share-v1.html",
+      "status": "approved-for-public-demo",
+      "mayBeModified": true
+    },
+    {
+      "path": "public/media/social/versorgungs-netzwerk-share-v1.png",
+      "role": "registration-demo-social-preview",
+      "owner": "Versorgungs-CRM project",
+      "source": "browser-rendered from dokumentation/assets/social/versorgungs-netzwerk-share-v1.html",
+      "status": "approved-for-public-demo",
       "mayBeModified": true
     }
   ]

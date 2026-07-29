@@ -156,6 +156,7 @@ build_pages() {
     "$STAGE_DIR/public/brand/modules/formate" \
     "$STAGE_DIR/public/brand/versorgungs-kompass" \
     "$STAGE_DIR/public/media/demo/mitmachen" \
+    "$STAGE_DIR/public/media/social" \
     "$STAGE_DIR/deutschlandkarte-project/data" \
     "$STAGE_DIR/state-flags" \
     "$STAGE_DIR/mitmachen" \
@@ -248,6 +249,8 @@ EOF
   cp "$ROOT_DIR/public/brand/versorgungs-kompass/mark.svg" "$STAGE_DIR/public/brand/versorgungs-kompass/mark.svg"
   cp "$ROOT_DIR/public/brand/versorgungs-kompass/mark-on-dark.svg" "$STAGE_DIR/public/brand/versorgungs-kompass/mark-on-dark.svg"
   cp "$ROOT_DIR/public/media/demo/mitmachen/versorgungs-netzwerk-concept.svg" "$STAGE_DIR/public/media/demo/mitmachen/versorgungs-netzwerk-concept.svg"
+  cp "$ROOT_DIR/public/media/social/mitmachen-share-v1.png" "$STAGE_DIR/public/media/social/mitmachen-share-v1.png"
+  cp "$ROOT_DIR/public/media/social/versorgungs-netzwerk-share-v1.png" "$STAGE_DIR/public/media/social/versorgungs-netzwerk-share-v1.png"
   cp "$ROOT_DIR/public/manifest.pages.webmanifest" "$STAGE_DIR/manifest.webmanifest"
   for asset in mitmachen-hospitations-framework.docx mitmachen-hospitations-framework.pdf; do
     if [ -f "$ROOT_DIR/public/hospitation/$asset" ]; then
@@ -266,10 +269,15 @@ EOF
   perl -0pi -e 's#\.\./vendor/#./vendor/#g; s#\.\./data/#__ROOT_DATA__/#g; s#\./data/#./deutschlandkarte-project/data/#g; s#__ROOT_DATA__/#./data/#g' "$STAGE_DIR/versorgungs-kompass-map-teaser.html" "$STAGE_DIR/versorgungs-kompass-contact-mini-map.html"
   perl -0pi -e 's#"start_url": "\.\./frontend/app/versorgungs-kompass\.html"#"start_url": "./\#home"#; s#"start_url": "\.\./app/versorgungs-kompass\.html"#"start_url": "./\#home"#; s#"scope": "\.\./"#"scope": "./"#; s#"src": "\./brand/#"src": "./public/brand/#g; s#"src": "\./app-icon-#"src": "./public/app-icon-#g' "$STAGE_DIR/manifest.webmanifest"
 
-  node - "$STAGE_DIR" <<'NODE'
+  node - "$STAGE_DIR" "$ROOT_DIR" <<'NODE'
 const fs = require("node:fs");
 const path = require("node:path");
 const root = process.argv[2];
+const repositoryRoot = process.argv[3];
+const {
+  parseHtmlAttributes,
+  scanHtmlStartTags
+} = require(path.join(repositoryRoot, "scripts", "html_metadata_tags.cjs"));
 
 function walk(directory) {
   return fs.readdirSync(directory, { withFileTypes: true }).flatMap((entry) => {
@@ -277,6 +285,58 @@ function walk(directory) {
     if (entry.isDirectory()) return walk(fullPath);
     return entry.isFile() && entry.name.endsWith(".html") ? [fullPath] : [];
   });
+}
+
+function escapeAttribute(value) {
+  return String(value)
+    .replaceAll("&", "&amp;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;");
+}
+
+function injectShareMetadata(html, metadata) {
+  const existingTags = scanHtmlStartTags(html, ["link", "meta"])
+    .map((tag) => parseHtmlAttributes(tag));
+  const unsafeTag = existingTags.find((parsed) =>
+    parsed.duplicateNames.length > 0 || parsed.structuralCharacterReferenceNames.length > 0
+  );
+  if (unsafeTag) {
+    throw new Error(`Pages-Build fand mehrdeutige Share-Metadaten fuer ${metadata.url}.`);
+  }
+  const alreadyHasShareMetadata = existingTags.some((attributes) => {
+    attributes = attributes.values;
+    const rel = String(attributes.rel || "").toLowerCase().split(/\s+/);
+    const property = String(attributes.property || "").toLowerCase();
+    const name = String(attributes.name || "").toLowerCase();
+    return rel.includes("canonical") || property.startsWith("og:") || name.startsWith("twitter:");
+  });
+  if (alreadyHasShareMetadata) {
+    throw new Error(`Pages-Build fand bereits Share-Metadaten fuer ${metadata.url}.`);
+  }
+
+  const tags = [
+    `<link rel="canonical" href="${escapeAttribute(metadata.url)}" />`,
+    '<meta property="og:type" content="website" />',
+    '<meta property="og:locale" content="de_DE" />',
+    '<meta property="og:site_name" content="#Mitmachen" />',
+    `<meta property="og:title" content="${escapeAttribute(metadata.title)}" />`,
+    `<meta property="og:description" content="${escapeAttribute(metadata.description)}" />`,
+    `<meta property="og:url" content="${escapeAttribute(metadata.url)}" />`,
+    `<meta property="og:image" content="${escapeAttribute(metadata.image)}" />`,
+    `<meta property="og:image:secure_url" content="${escapeAttribute(metadata.image)}" />`,
+    '<meta property="og:image:type" content="image/png" />',
+    '<meta property="og:image:width" content="1200" />',
+    '<meta property="og:image:height" content="630" />',
+    `<meta property="og:image:alt" content="${escapeAttribute(metadata.imageAlt)}" />`,
+    '<meta name="twitter:card" content="summary_large_image" />',
+    `<meta name="twitter:title" content="${escapeAttribute(metadata.title)}" />`,
+    `<meta name="twitter:description" content="${escapeAttribute(metadata.description)}" />`,
+    `<meta name="twitter:image" content="${escapeAttribute(metadata.image)}" />`,
+    `<meta name="twitter:image:alt" content="${escapeAttribute(metadata.imageAlt)}" />`
+  ];
+
+  return html.replace(/\s*<\/head>/, `\n    ${tags.join("\n    ")}\n  </head>`);
 }
 
 for (const htmlPath of walk(root)) {
@@ -291,8 +351,8 @@ const appPath = path.join(root, "versorgungs-kompass.html");
 let appHtml = fs.readFileSync(appPath, "utf8");
 if (!/<meta\s+name=["']robots["']/i.test(appHtml)) {
   appHtml = appHtml.replace(
-    "</head>",
-    '    <meta name="robots" content="noindex, nofollow" />\n  </head>'
+    /\s*<\/head>/,
+    '\n    <meta name="robots" content="noindex, nofollow" />\n  </head>'
   );
 }
 appHtml = appHtml.replace(
@@ -307,22 +367,40 @@ appHtml = appHtml.replace(
   dataServiceScript,
   '<script src="./data/demo-data.js"></script>\n    <script src="./data/demo-api.js"></script>\n    ' + dataServiceScript
 );
+const pagesBaseUrl = "https://timofrank.github.io/mitmachen";
+const rootShareMetadata = {
+  url: `${pagesBaseUrl}/`,
+  title: "Jetzt #Mitmachen: Gemeinsam Versorgung besser machen",
+  description: "Entdecken Sie vier Kompasse, die Menschen, Wissen und Ideen verbinden – in einer öffentlichen Demo mit ausschließlich fiktiven Daten.",
+  image: `${pagesBaseUrl}/public/media/social/mitmachen-share-v1.png`,
+  imageAlt: "#Mitmachen: Gemeinsam Versorgung besser machen – mit vier Kompassen in einer öffentlichen Demo."
+};
+appHtml = injectShareMetadata(appHtml, rootShareMetadata);
 fs.writeFileSync(appPath, appHtml);
 fs.writeFileSync(path.join(root, "index.html"), appHtml);
 
+const registrationPath = path.join(root, "mitmachen", "versorgungs-netzwerk.html");
+const registrationHtml = injectShareMetadata(fs.readFileSync(registrationPath, "utf8"), {
+  url: `${pagesBaseUrl}/mitmachen/versorgungs-netzwerk.html`,
+  title: "Ihre Erfahrung zählt: Digitale Versorgung besser machen",
+  description: "Entdecken Sie die Idee des Versorgungs-Netzwerks – als Konzeptdemo mit fiktiven Angaben, ohne echte Anmeldung, Übermittlung oder Speicherung.",
+  image: `${pagesBaseUrl}/public/media/social/versorgungs-netzwerk-share-v1.png`,
+  imageAlt: "#Mitmachen Versorgungs-Netzwerk: Ihre Erfahrung zählt – Konzeptdemo für digitale Beteiligung."
+});
+fs.writeFileSync(registrationPath, registrationHtml);
+
 function redirectDocument(target) {
-  return `<!doctype html>
+  return injectShareMetadata(`<!doctype html>
 <html lang="de">
   <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta http-equiv="refresh" content="0; url=${target}">
     <title>Versorgungs-Kompass Demo</title>
-    <link rel="canonical" href="${target}">
   </head>
   <body><p><a href="${target}">Oeffentliche Demo oeffnen</a></p></body>
 </html>
-`;
+`, rootShareMetadata);
 }
 
 fs.writeFileSync(path.join(root, "demo", "index.html"), redirectDocument("../#home"));
