@@ -28,7 +28,10 @@
   <body>
     <a class="skip-link" href="#main-content">Zum Hauptinhalt springen</a>
     <div class="visually-hidden" id="route-announcer" role="status" aria-live="polite" aria-atomic="true"></div>
-    <div class="global-status" id="global-status" role="status" aria-live="polite" aria-atomic="true" hidden></div>
+    <div class="global-status" id="global-status" role="status" aria-live="polite" aria-atomic="true" hidden>
+      <span class="global-status__icon" aria-hidden="true"></span>
+      <span id="global-status-message"></span>
+    </div>
     <div class="app-shell is-initializing" aria-busy="true">
       <aside class="app-sidebar" id="app-sidebar" aria-label="Hauptnavigation">
         <button class="sidebar-collapse" type="button" id="sidebar-collapse-button" aria-label="Seitenleiste einklappen" aria-controls="app-sidebar" aria-expanded="true" title="Menü einklappen">
@@ -544,9 +547,9 @@
                   class="home-reveal-heading"
                   id="home-welcome-title"
                   aria-label="Gemeinsam Versorgung gestalten"
-                  data-home-reveal-lines='["Gemeinsam Versorgung","gestalten"]'
+                  data-home-reveal-lines='["Gemeinsam","Versorgung","gestalten"]'
                 >
-                  <span class="home-reveal-heading__measure" aria-hidden="true">Gemeinsam Versorgung<br />gestalten</span>
+                  <span class="home-reveal-heading__measure" aria-hidden="true">Gemeinsam<br />Versorgung<br />gestalten</span>
                   <span class="home-reveal-heading__visual" aria-hidden="true"></span>
                 </h1>
                 <p class="home-hero__lead">Wähle den Kompass, in dem du weiterarbeiten möchtest.</p>
@@ -572,7 +575,7 @@
                         <span aria-hidden="true">→</span>
                       </span>
                       <strong>Versorgungs-Kompass</strong>
-                      <span class="home-destination-link__copy">Regionen, Kontakte und Organisationen im Blick.</span>
+                      <span class="home-destination-link__copy">Versorgung regional verstehen.</span>
                     </a>
                   </li>
                   <li class="home-destination-card">
@@ -584,7 +587,7 @@
                         <span aria-hidden="true">→</span>
                       </span>
                       <strong>Stakeholder-Kompass</strong>
-                      <span class="home-destination-link__copy">Perspektiven und Netzwerke gezielt verbinden.</span>
+                      <span class="home-destination-link__copy">Perspektiven gezielt verbinden.</span>
                     </a>
                   </li>
                   <li class="home-destination-card">
@@ -596,7 +599,7 @@
                         <span aria-hidden="true">→</span>
                       </span>
                       <strong>Hospitations-Kompass</strong>
-                      <span class="home-destination-link__copy">Beobachtungen in belastbares Wissen überführen.</span>
+                      <span class="home-destination-link__copy">Von Beobachtung zu Evidenz.</span>
                     </a>
                   </li>
                   <li class="home-destination-card">
@@ -608,7 +611,7 @@
                         <span aria-hidden="true">→</span>
                       </span>
                       <strong>Format-Kompass</strong>
-                      <span class="home-destination-link__copy">Austausch planen und Wirkung gemeinsam gestalten.</span>
+                      <span class="home-destination-link__copy">Austausch wirksam gestalten.</span>
                     </a>
                   </li>
                 </ul>
