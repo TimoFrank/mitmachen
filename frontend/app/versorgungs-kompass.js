@@ -1125,6 +1125,7 @@
       const mainContent = document.getElementById("main-content");
       const routeAnnouncer = document.getElementById("route-announcer");
       const globalStatus = document.getElementById("global-status");
+      const globalStatusMessage = document.getElementById("global-status-message");
       const initialLoadingSkeleton = document.getElementById("app-initial-skeleton");
       const standaloneModule = new URLSearchParams(window.location.search).get("standalone") || "";
       const isHospitationDocumentationStandalone =
@@ -1788,19 +1789,24 @@
 
       let globalStatusTimer = null;
 
-      function setStorageStatus(message) {
+      function setStorageStatus(message, options = {}) {
         if (!message) return;
         console.info(`[Versorgungs-Kompass] ${message}`);
         if (!globalStatus) return;
         const isError = /fehl|nicht verfügbar|keine geschützten|error|warnung/i.test(message);
+        const variant = !isError && options.variant === "ready" ? "ready" : "";
         window.clearTimeout(globalStatusTimer);
-        globalStatus.textContent = message;
+        (globalStatusMessage || globalStatus).textContent = message;
         globalStatus.hidden = false;
         globalStatus.classList.toggle("is-error", isError);
+        globalStatus.classList.toggle("is-ready", variant === "ready");
+        globalStatus.classList.remove("is-entering");
+        void globalStatus.offsetWidth;
+        globalStatus.classList.add("is-entering");
         globalStatusTimer = window.setTimeout(() => {
           globalStatus.hidden = true;
-          globalStatus.classList.remove("is-error");
-        }, isError ? 12000 : 5000);
+          globalStatus.classList.remove("is-error", "is-ready", "is-entering");
+        }, isError ? 12000 : Number(options.duration || 5000));
       }
 
       function currentRole() {
@@ -35235,11 +35241,7 @@
         if (!homeRevealPrepared) return;
         homeRevealStarted = true;
         const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-        let alreadyPlayed = false;
-        try {
-          alreadyPlayed = window.sessionStorage.getItem("versorgungs-kompass:home-reveal") === "1";
-        } catch {}
-        if (reducedMotion || alreadyPlayed) {
+        if (reducedMotion) {
           homeRevealHeading.classList.add("is-static");
           return;
         }
@@ -35249,13 +35251,10 @@
           });
         });
         const characterCount = Number(homeRevealHeading.dataset.characterCount || "0");
-        const totalDuration = 220 + characterCount * 30 + 240;
+        const totalDuration = 220 + characterCount * 30 + 440;
         window.setTimeout(() => {
           homeRevealHeading.classList.remove("is-playing");
           homeRevealHeading.classList.add("is-complete");
-          try {
-            window.sessionStorage.setItem("versorgungs-kompass:home-reveal", "1");
-          } catch {}
           document.dispatchEvent(new CustomEvent("versorgungs-compass:home-reveal-complete"));
         }, totalDuration);
       }
@@ -39970,8 +39969,11 @@
         organizations = deriveOrganizationsFromContacts(contacts);
         loadedContactsFromStorage = false;
         setStorageStatus(String(window.VERSORGUNGS_COMPASS_CONFIG?.dataMode || "").toLowerCase() === "demo"
-          ? `${contacts.length} synthetische Demo-Kontakte lokal geladen`
-          : `${contacts.length} Kontakte aus dem Backend geladen`);
+          ? `Startklar: ${contacts.length} synthetische Demo-Kontakte stehen bereit.`
+          : `Startklar: ${contacts.length} Kontakte stehen bereit.`, {
+          variant: "ready",
+          duration: 6500
+        });
       }
 
       let deferredInitialDataPromise = null;
