@@ -13,6 +13,7 @@
   if (CONFIG.dataMode !== "demo" || CONFIG.authMode !== "anonymous-demo") return;
 
   const OWNER_ONLY_CONTACT_CHANNELS = CONFIG.capabilities?.ownerOnlyContactChannels === true;
+  const ALL_DEMO_CONTACTS_INVITABLE = CONFIG.capabilities?.allDemoContactsInvitable === true;
   const NOW = "2026-07-19T12:00:00.000Z";
   const DEMO_IMAGE_TYPES = new Set(["image/jpeg", "image/png", "image/webp"]);
   const SENSITIVE_CONTACT_FIELDS = new Set(["email", "phone"]);
@@ -27,24 +28,7 @@
   ]);
   const FORMAT_PARTICIPANT_BATCH_LIMIT = 500;
   const FORMAT_IDEMPOTENCY_UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/u;
-  const DEMO_NOTICE_DATA_VIEWS = new Set([
-    "map",
-    "contacts",
-    "organizations",
-    "activities",
-    "analytics",
-    "quality",
-    "experts",
-    "patients",
-    "stakeholders",
-    "framework",
-    "hospitations",
-    "questionnaire",
-    "formats",
-    "team",
-    "personProfile",
-    "organizationProfile"
-  ]);
+  const DIRECTLY_INVITABLE_MITMACHEN_SOURCES = new Set(["online_form", "email", "written"]);
   const baseline = window.VERSORGUNGS_COMPASS_DEMO_DATA || {};
   const originalFetch = window.fetch.bind(window);
   let idCounter = 0;
@@ -70,6 +54,47 @@
       || activeProfiles[0]?.id
       || "demo-profile-admin";
     state.contacts ||= [];
+    if (ALL_DEMO_CONTACTS_INVITABLE) {
+      const profileIds = new Set(state.profiles.map((profile) => profile.id).filter(Boolean));
+      state.contacts = state.contacts.map((contact) => {
+        const effectiveAt = String(contact.mitmachenConsentEffectiveAt || "").trim();
+        const effectiveTime = new Date(effectiveAt).getTime();
+        const source = String(contact.mitmachenConsentSource || "").trim();
+        const recordedByCandidates = [
+          contact.mitmachenConsentRecordedBy,
+          contact.ownerId,
+          ...(Array.isArray(contact.ownerIds) ? contact.ownerIds : []),
+          "demo-profile-admin"
+        ];
+        const recordedBy = recordedByCandidates.find((candidate) => profileIds.has(candidate))
+          || state.profiles[0]?.id
+          || "demo-profile-admin";
+        const alreadyDirectlyInvitable =
+          contact.mitmachenConsentStatus === "granted"
+          && DIRECTLY_INVITABLE_MITMACHEN_SOURCES.has(source)
+          && Number.isFinite(effectiveTime)
+          && effectiveTime <= new Date(NOW).getTime()
+          && profileIds.has(contact.mitmachenConsentRecordedBy);
+        const wasArchived = ["archived", "Archiviert"].includes(contact.status);
+        return {
+          ...contact,
+          status: wasArchived ? "active" : contact.status,
+          note: wasArchived
+            ? "Synthetischer Demo-Kontakt für öffentliche Format-Einladungen."
+            : contact.note,
+          mitmachenConsentStatus: "granted",
+          mitmachenConsentEffectiveAt: Number.isFinite(effectiveTime) && effectiveTime <= new Date(NOW).getTime()
+            ? effectiveAt
+            : NOW,
+          mitmachenConsentSource: DIRECTLY_INVITABLE_MITMACHEN_SOURCES.has(source) ? source : "written",
+          mitmachenConsentTextVersion: contact.mitmachenConsentTextVersion || "mitmachen-kontakt-v2",
+          mitmachenConsentRecordedBy: recordedBy,
+          mitmachenConsentNote: alreadyDirectlyInvitable && contact.mitmachenConsentNote
+            ? contact.mitmachenConsentNote
+            : "Vollständig dokumentierte, rein synthetische #Mitmachen-Einwilligung für Einladungen zu Formaten."
+        };
+      });
+    }
     state.organizations ||= [];
     state.organizationPrimarySystems = state.organizations.flatMap((organization) => organization.primarySystems || []);
     state.expertGroups ||= [];
@@ -1735,119 +1760,6 @@
     return handleDemoApi(url, method, body, ifMatch);
   };
 
-  function installDemoNotice() {
-    if (!document.body || document.getElementById("vk-public-demo-notice")) return;
-    const style = document.createElement("style");
-    style.textContent = `
-      #vk-public-demo-notice {
-        position: fixed; z-index: 70;
-        top: calc(14px + env(safe-area-inset-top, 0px)); right: calc(16px + env(safe-area-inset-right, 0px));
-        min-height: 38px; box-sizing: border-box;
-        display: flex; gap: 10px; align-items: center;
-        padding: 4px 5px 4px 11px; border: 1px solid #d8e1ef; border-radius: 11px;
-        color: #64748b; background: rgba(255,255,255,.96); box-shadow: 0 7px 18px rgba(16,35,110,.08);
-        font: 620 11px/1.25 Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-        backdrop-filter: blur(12px);
-      }
-      #vk-public-demo-notice[hidden], #vk-public-demo-trigger[hidden] { display: none; }
-      #vk-public-demo-notice .vk-demo-copy { min-width: 0; display: flex; gap: 4px; align-items: center; }
-      #vk-public-demo-notice strong { color: #475569; font-size: 11px; font-weight: 760; }
-      #vk-public-demo-notice button {
-        min-width: 38px; min-height: 30px; padding: 0 9px; border: 0; border-radius: 8px;
-        color: #17275f; background: #eef3fb; font: inherit; font-weight: 760; cursor: pointer;
-      }
-      #vk-public-demo-notice button:hover, #vk-public-demo-notice button:focus-visible {
-        background: #e2eafb; outline: 3px solid #155fe4; outline-offset: 2px;
-      }
-      #vk-public-demo-trigger {
-        position: fixed; z-index: 70;
-        top: calc(12px + env(safe-area-inset-top, 0px)); right: calc(12px + env(safe-area-inset-right, 0px));
-        width: 38px; height: 38px; display: inline-grid; place-items: center;
-        padding: 0; border: 1px solid #c9d8ef; border-radius: 11px;
-        color: #1555a5; background: #eaf2ff; box-shadow: 0 7px 18px rgba(16,35,110,.08);
-        backdrop-filter: blur(12px); cursor: pointer;
-      }
-      #vk-public-demo-trigger:hover, #vk-public-demo-trigger:focus-visible {
-        background: #dceaff; outline: 3px solid #155fe4; outline-offset: 2px;
-      }
-      #vk-public-demo-trigger .vk-demo-trigger-mark {
-        display: grid; place-items: center; width: 100%; height: 100%;
-        color: inherit; background: transparent;
-      }
-      #vk-public-demo-trigger svg {
-        width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 2;
-        stroke-linecap: round; stroke-linejoin: round;
-      }
-      @media (max-width: 620px) {
-        #vk-public-demo-notice {
-          top: calc(10px + env(safe-area-inset-top, 0px)); right: calc(10px + env(safe-area-inset-right, 0px));
-        }
-      }
-    `;
-    document.head.appendChild(style);
-    const notice = document.createElement("aside");
-    notice.id = "vk-public-demo-notice";
-    notice.setAttribute("role", "note");
-    notice.setAttribute("aria-label", "Hinweis zur öffentlichen Demo");
-    notice.hidden = true;
-    notice.innerHTML = `
-      <div class="vk-demo-copy"><strong>Hinweis:</strong> <span>Öffentliche Demo</span></div>
-      <button type="button" data-demo-notice-close>OK</button>
-    `;
-    const closeButton = notice.querySelector("[data-demo-notice-close]");
-    const trigger = document.createElement("button");
-    trigger.id = "vk-public-demo-trigger";
-    trigger.type = "button";
-    trigger.hidden = true;
-    trigger.setAttribute("aria-label", "Hinweis zur öffentlichen Demo anzeigen");
-    trigger.setAttribute("aria-controls", notice.id);
-    trigger.setAttribute("aria-expanded", "false");
-    trigger.innerHTML = `
-      <span class="vk-demo-trigger-mark" aria-hidden="true">
-        <svg viewBox="0 0 24 24">
-          <circle cx="12" cy="12" r="9"></circle>
-          <path d="M12 11v5"></path>
-          <path d="M12 8h.01"></path>
-        </svg>
-      </span>
-    `;
-    let noticeCollapsed = false;
-    const appShell = document.querySelector(".app-shell");
-    const mobileViewport = window.matchMedia("(max-width: 760px)");
-    const syncNoticeVisibility = () => {
-      const activeView = appShell?.dataset.activeView || "";
-      const mobileNavigationOpen =
-        mobileViewport.matches &&
-        appShell?.classList.contains("is-mobile-sidebar-expanded");
-      const eligible =
-        DEMO_NOTICE_DATA_VIEWS.has(activeView) &&
-        !mobileNavigationOpen;
-      notice.hidden = !eligible || noticeCollapsed;
-      trigger.hidden = !eligible || !noticeCollapsed;
-      trigger.setAttribute("aria-expanded", eligible && !noticeCollapsed ? "true" : "false");
-    };
-    closeButton.addEventListener("click", () => {
-      noticeCollapsed = true;
-      syncNoticeVisibility();
-      if (!trigger.hidden) trigger.focus({ preventScroll: true });
-    });
-    trigger.addEventListener("click", () => {
-      noticeCollapsed = false;
-      syncNoticeVisibility();
-      if (!notice.hidden) closeButton.focus({ preventScroll: true });
-    });
-    (document.querySelector(".app-main") || document.body).prepend(notice);
-    document.body.appendChild(trigger);
-    if (appShell) {
-      new MutationObserver(syncNoticeVisibility).observe(appShell, {
-        attributes: true,
-        attributeFilter: ["data-active-view", "class"]
-      });
-    }
-    mobileViewport.addEventListener?.("change", syncNoticeVisibility);
-    syncNoticeVisibility();
-  }
-
   window.VERSORGUNGS_COMPASS_DEMO_RUNTIME = Object.freeze({
     publicDemo: true,
     persistence: "memory-only",
@@ -1866,6 +1778,4 @@
     }
   });
 
-  if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", installDemoNotice, { once: true });
-  else installDemoNotice();
 })();

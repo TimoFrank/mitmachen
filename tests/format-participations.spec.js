@@ -133,7 +133,7 @@ async function expectNoHorizontalOverflow(page, selector = "html") {
   expect(overflow).toBeLessThanOrEqual(1);
 }
 
-test("Issue 28: Kontaktprofil zeigt Beteiligungsstatus kompakt; Pflege erfolgt im Format", async ({ page }, testInfo) => {
+test("Kontaktprofil listet Formate ohne Einladungsstatus; Pflege erfolgt im Format", async ({ page }, testInfo) => {
   await gotoAuthenticated(page, "/frontend/app/versorgungs-kompass.html#person/contact/format-contact-ada", {
     role: "admin",
     backendFixtureScript: formatParticipationBackendFixtureScript()
@@ -156,9 +156,8 @@ test("Issue 28: Kontaktprofil zeigt Beteiligungsstatus kompakt; Pflege erfolgt i
   const pastGroup = formatSection.locator("[data-format-profile-group='past']");
   await expect(pastGroup).not.toHaveAttribute("open", "");
   await expect(pastGroup.locator("[data-format-profile-item='format-past']")).toBeHidden();
-  await expect(formatSection.locator("[data-format-profile-status]")).toHaveCount(2);
-  await expect(formatSection.locator("[data-format-profile-status='format-future']")).toHaveValue("Eingeladen");
-  await expect(formatSection.locator("[data-format-profile-status='format-past']")).toHaveValue("Teilgenommen");
+  await expect(formatSection.locator("[data-format-profile-status]")).toHaveCount(0);
+  await expect(formatSection.locator(".format-participation-status")).toHaveCount(0);
   await expect(formatSection.locator("[data-format-profile-status-form]")).toHaveCount(0);
   await expect(formatSection.locator("[data-format-profile-action='edit-status']")).toHaveCount(0);
   await expect(formatSection.locator("[data-format-profile-link-form]")).toHaveCount(0);
@@ -169,11 +168,13 @@ test("Issue 28: Kontaktprofil zeigt Beteiligungsstatus kompakt; Pflege erfolgt i
   );
   await expect(futureItem.locator(".format-profile__trailing .owner-badge__label")).toHaveText("Erika Editor");
   await expect(futureItem.locator(".format-profile__trailing .format-profile__type-badge")).toHaveText("Workshop");
-  await expect(futureItem.locator("[data-format-profile-status='format-future']")).toHaveValue("Eingeladen");
+  await expect(futureItem).not.toContainText("Eingeladen");
   await page.locator("#global-status").evaluate((status) => { status.hidden = true; });
   await page.screenshot({ path: testInfo.outputPath("kontaktprofil-beteiligung-formate.png"), fullPage: false });
   await formatSection.getByRole("button", { name: "Zu Format hinzufügen" }).click();
   await expect(formatSection.locator("[data-format-profile-link-form] option[value='format-unlinked']")).toHaveCount(1);
+  await expect(formatSection.locator("[data-format-profile-link-form] [name='invitationStatus']")).toHaveCount(0);
+  await expect(formatSection.locator("[data-format-profile-link-form]")).not.toContainText("Beteiligungsstatus");
   await expect(formatSection.locator("[data-format-profile-link-form]").getByRole("button", { name: "Hinzufügen", exact: true })).toBeVisible();
   await page.screenshot({ path: testInfo.outputPath("kontaktprofil-beteiligung-format-verknuepfen.png"), fullPage: false });
   await formatSection.locator("[data-format-profile-action='cancel-link']").click();
@@ -187,7 +188,7 @@ test("Issue 28: Kontaktprofil zeigt Beteiligungsstatus kompakt; Pflege erfolgt i
   );
   await expect(pastItem.locator(".format-profile__trailing .owner-badge__label")).toHaveText("Erika Editor");
   await expect(pastItem.locator(".format-profile__trailing .format-profile__type-badge")).toHaveText("Fachgespräch");
-  await expect(pastItem.locator("[data-format-profile-status='format-past']")).toHaveValue("Teilgenommen");
+  await expect(pastItem).not.toContainText("Teilgenommen");
 
   await profile.locator("[data-format-profile-item='format-future'] [data-format-profile-action='open']").click();
   await expect(page.locator(".app-shell")).toHaveAttribute("data-active-view", "formats");
@@ -204,7 +205,8 @@ test("Issue 28: Kontaktprofil zeigt Beteiligungsstatus kompakt; Pflege erfolgt i
   await page.locator("[data-format-detail='format-future'] [data-open-format-contact='format-contact-ada']").click();
   await expect(page.locator(".app-shell")).toHaveAttribute("data-active-view", "personProfile");
   await profile.locator('[data-detail-tab="formats"]').click();
-  await expect(profile.locator("[data-format-profile-status='format-future']")).toHaveValue("Teilgenommen");
+  await expect(profile.locator("[data-format-profile-status='format-future']")).toHaveCount(0);
+  await expect(profile.locator("[data-format-profile-item='format-future']")).not.toContainText("Teilgenommen");
   await expect(profile.locator("[data-format-profile-item='format-future']")).not.toContainText("Rolle / Beitrag: Impulsgeberin");
 
   await profile.locator("[data-format-profile-action='list']").click();
@@ -220,7 +222,7 @@ test("Issue 28: Kontaktprofil zeigt Beteiligungsstatus kompakt; Pflege erfolgt i
   }
 });
 
-test("Issue 28: Viewer sehen Beteiligungen, können sie aber nicht verändern", async ({ page }) => {
+test("Viewer sehen verknüpfte Formate ohne Einladungsstatus", async ({ page }) => {
   await gotoAuthenticated(page, "/frontend/app/versorgungs-kompass.html#person/contact/format-contact-ada", {
     role: "viewer",
     backendFixtureScript: formatParticipationBackendFixtureScript("viewer")
@@ -235,6 +237,6 @@ test("Issue 28: Viewer sehen Beteiligungen, können sie aber nicht verändern", 
   await expect(formatSection.locator("[data-format-profile-action='edit-status']")).toHaveCount(0);
   await expect(formatSection.locator("[data-format-profile-action='link']")).toHaveCount(0);
   await expect(formatSection.locator("[data-format-profile-action='list']")).toHaveText("Alle Formate anzeigen");
-  await expect(formatSection).toContainText("Eingeladen");
-  await expect(formatSection).toContainText("Teilgenommen");
+  await expect(formatSection).not.toContainText("Eingeladen");
+  await expect(formatSection).not.toContainText("Teilgenommen");
 });

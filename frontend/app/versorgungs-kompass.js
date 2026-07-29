@@ -1616,6 +1616,7 @@
       const contactHistoryCache = new Map();
       const contactHistoryFilters = new Map();
       const contactHistoryOwnerFilters = new Map();
+      const contactHistoryRequests = new WeakMap();
       let savedViews = [];
       let userSettings = null;
       let favoriteContactIds = new Set();
@@ -25157,7 +25158,7 @@
         return "";
       }
 
-      function renderFormatProfileItem({ format, participant } = {}, phase = "upcoming") {
+      function renderFormatProfileItem({ format } = {}, phase = "upcoming") {
         const dateLabel = formatDateRange(format);
         return `
           <article class="format-profile__item ${phase === "past" ? "format-profile__item--past" : ""}" data-format-profile-item="${escapeHtml(format.id)}" data-format-profile-phase="${escapeHtml(phase)}">
@@ -25169,9 +25170,6 @@
               <span class="format-profile__badges">
                 ${formatProfileOwnerBadgeMarkup(format)}
                 <span class="format-profile__type-badge">${escapeHtml(format.formatType || "Format")}</span>
-                ${canEditFormat(format)
-                  ? `<select class="format-profile__status-select" data-format-profile-status="${escapeHtml(format.id)}" data-contact-id="${escapeHtml(participant.contactId)}" aria-label="Beteiligungsstatus für ${escapeHtml(format.title || "Format")}">${formatParticipationStatusOptionMarkup(participant.invitationStatus)}</select>`
-                  : formatParticipationStatusBadgeMarkup(participant.invitationStatus)}
               </span>
               <button class="action-button action-button--compact" type="button" data-format-profile-action="open" data-format-id="${escapeHtml(format.id)}">Öffnen</button>
             </div>
@@ -25255,12 +25253,6 @@
                 </select>
               </span>
             </label>
-            <label class="format-profile__link-field">
-              <span>Beteiligungsstatus</span>
-              <span class="editor-select-shell format-profile__select-shell" data-custom-select data-select-variant="detail" data-select-type="format-profile-link-status-${escapeHtml(contactId)}">
-                <select class="editor-select" name="invitationStatus" aria-label="Beteiligungsstatus beim Verknüpfen">${formatParticipationStatusOptionMarkup("Kandidat")}</select>
-              </span>
-            </label>
             <div class="format-profile__form-actions">
               <button class="action-button action-button--compact action-button--primary" type="submit">Hinzufügen</button>
               <button class="action-button action-button--compact" type="button" data-format-profile-action="cancel-link">Abbrechen</button>
@@ -25316,20 +25308,15 @@
           if (!canEditCareObject(contact)) return;
           const data = new FormData(event.currentTarget);
           const formatId = String(data.get("formatId") || "");
-          const invitationStatus = String(data.get("invitationStatus") || "Kandidat");
           if (!formatId || !contact.id) return;
           const format = formats.find((item) => item.id === formatId);
           if (!canEditFormat(format)) {
             setProfileFormatFeedback("Das Format ist nicht mehr bearbeitbar. Lade die Ansicht neu und prüfe den Archivstatus.", "error");
             return;
           }
-          if (["Eingeladen", "Zugesagt", "Teilgenommen"].includes(invitationStatus) && mitmachenConsentAvailability(contact).key !== "available") {
-            setProfileFormatFeedback("Der Kontakt kann als Kandidat verknüpft werden. Für eine Einladung fehlt eine wirksame #Mitmachen-Einwilligung.", "error");
-            return;
-          }
           try {
             event.currentTarget.setAttribute("aria-busy", "true");
-            const updated = await window.dataService.addFormatParticipant(formatId, contact.id, { invitationStatus });
+            const updated = await window.dataService.addFormatParticipant(formatId, contact.id, { invitationStatus: "Kandidat" });
             replaceFormat(updated);
             setStorageStatus("Kontakt zum Format hinzugefügt");
             detailFormatLinkOpen = false;
@@ -25339,35 +25326,6 @@
             event.currentTarget.setAttribute("aria-busy", "false");
             setProfileFormatFeedback(`Format konnte nicht verknüpft werden: ${error?.message || "Bitte prüfe Berechtigung und Verbindung."}`, "error");
           }
-        });
-        root.querySelectorAll("[data-format-profile-status]").forEach((select) => {
-          select.addEventListener("change", async () => {
-            const format = formats.find((item) => item.id === select.dataset.formatProfileStatus);
-            if (!canEditFormat(format)) return;
-            const participant = (format?.participants || []).find((item) => (item.contactId || item.contact_id) === select.dataset.contactId);
-            if (["Eingeladen", "Zugesagt", "Teilgenommen"].includes(select.value) && mitmachenConsentAvailability(contact).key !== "available") {
-              select.value = participant?.invitationStatus || "Kandidat";
-              setProfileFormatFeedback("Status nicht geändert: Vor einer Einladung muss eine wirksame #Mitmachen-Einwilligung dokumentiert sein.", "error");
-              return;
-            }
-            select.disabled = true;
-            try {
-              const updated = await window.dataService.updateFormatParticipant(
-                select.dataset.formatProfileStatus,
-                select.dataset.contactId,
-                { invitationStatus: select.value },
-                participant?.updatedAt || participant?.updated_at || ""
-              );
-              replaceFormat(updated);
-              setStorageStatus("Beteiligungsstatus aktualisiert");
-              rerender();
-            } catch (error) {
-              console.error("Beteiligungsstatus konnte nicht gespeichert werden.", error);
-              select.disabled = false;
-              select.value = participant?.invitationStatus || "Kandidat";
-              setProfileFormatFeedback(`Beteiligungsstatus nicht gespeichert: ${error?.message || "Bitte versuche es erneut."}`, "error");
-            }
-          });
         });
         root.querySelectorAll("[data-format-profile-action]").forEach((button) => {
           button.addEventListener("click", async () => {
@@ -25884,18 +25842,6 @@
               <div class="format-overview-actions">
                 ${canEditFormat(format) ? `<button class="action-button action-button--primary" type="button" id="open-participant-planner">Teilnehmer auswählen</button>` : ""}
               </div>
-            </div>
-            <div class="format-overview-visual">
-              <svg class="format-roundtable-illustration" viewBox="0 0 360 225" role="img" aria-label="Drei Personen im Gespräch mit Sprechblasen">
-                <path class="format-roundtable-illustration__connector" d="M123 142c28 18 86 18 114 0"></path>
-                <path class="format-roundtable-illustration__bubble" d="M58 48h102a18 18 0 0 1 18 18v34a18 18 0 0 1-18 18h-39l-28 25 7-25H58a18 18 0 0 1-18-18V66a18 18 0 0 1 18-18Z"></path>
-                <path class="format-roundtable-illustration__bubble-line" d="M70 75h70M70 94h48"></path>
-                <path class="format-roundtable-illustration__bubble" d="M207 38h91a18 18 0 0 1 18 18v32a18 18 0 0 1-18 18h-31l-31 26 8-26h-37a18 18 0 0 1-18-18V56a18 18 0 0 1 18-18Z"></path>
-                <path class="format-roundtable-illustration__bubble-line" d="M219 65h61M219 84h39"></path>
-                <path class="format-roundtable-illustration__person format-roundtable-illustration__person--green" d="M82 178c0-22 18-38 42-38s42 16 42 38M124 125a20 20 0 1 0 0-40 20 20 0 0 0 0 40Z"></path>
-                <path class="format-roundtable-illustration__person format-roundtable-illustration__person--blue" d="M138 188c0-28 22-48 52-48s52 20 52 48M190 122a25 25 0 1 0 0-50 25 25 0 0 0 0 50Z"></path>
-                <path class="format-roundtable-illustration__person format-roundtable-illustration__person--amber" d="M214 178c0-22 18-38 42-38s42 16 42 38M256 125a20 20 0 1 0 0-40 20 20 0 0 0 0 40Z"></path>
-              </svg>
             </div>
           </section>
         `;
@@ -32917,7 +32863,7 @@
         return `<div class="history-filter-group" aria-label="Aktivitätskategorie">${categoryButtons}</div>${ownerSelect}`;
       }
 
-      function renderHistoryTimeline(contactId, changes = []) {
+      function renderHistoryTimeline(contactId, changes = [], root = document) {
         const activeFilter = contactHistoryFilters.get(contactId) || "all";
         const activeOwner = contactHistoryOwnerFilters.get(contactId) || "all";
         const filteredActivities = changes.filter((change) => {
@@ -32928,19 +32874,19 @@
           return matchesCategory && matchesOwner;
         });
         const groups = groupHistoryChanges(filteredActivities);
-        const timeline = document.getElementById("history-timeline");
-        const filters = document.getElementById("history-filters");
+        const timeline = root.querySelector("#history-timeline");
+        const filters = root.querySelector("#history-filters");
         if (filters) filters.innerHTML = renderHistoryFilters(contactId, changes);
         const bindHistoryControls = () => {
           filters?.querySelectorAll("[data-history-filter]").forEach((button) => {
             button.addEventListener("click", () => {
               contactHistoryFilters.set(contactId, button.dataset.historyFilter || "all");
-              renderHistoryTimeline(contactId, changes);
+              renderHistoryTimeline(contactId, changes, root);
             });
           });
           filters?.querySelector("#history-owner-filter")?.addEventListener("change", (event) => {
             contactHistoryOwnerFilters.set(contactId, event.target.value || "all");
-            renderHistoryTimeline(contactId, changes);
+            renderHistoryTimeline(contactId, changes, root);
           });
           timeline?.querySelectorAll("[data-activity-details-toggle]").forEach((button) => {
             button.addEventListener("click", () => toggleActivityDetails(button));
@@ -32962,25 +32908,33 @@
         bindHistoryControls();
       }
 
-      async function loadContactHistory(contactId) {
-        const timeline = document.getElementById("history-timeline");
+      async function loadContactHistory(contactId, root = document) {
+        const timeline = root.querySelector("#history-timeline");
         if (!timeline) return;
+        const requestToken = {};
+        contactHistoryRequests.set(root, requestToken);
+        const requestIsCurrent = () => contactHistoryRequests.get(root) === requestToken;
         if (!window.dataService?.getContactChanges) {
-          renderHistoryTimeline(contactId, []);
+          renderHistoryTimeline(contactId, [], root);
           return;
         }
         if (contactHistoryCache.has(contactId)) {
-          renderHistoryTimeline(contactId, contactHistoryCache.get(contactId));
+          renderHistoryTimeline(contactId, contactHistoryCache.get(contactId), root);
           return;
         }
         timeline.innerHTML = `<div class="history-loading">Verlauf wird geladen...</div>`;
         try {
           const changes = await window.dataService.getContactChanges(contactId);
           contactHistoryCache.set(contactId, changes);
-          renderHistoryTimeline(contactId, changes);
+          if (!requestIsCurrent()) return;
+          renderHistoryTimeline(contactId, changes, root);
         } catch (error) {
           console.error("Änderungsverlauf konnte nicht geladen werden.", error);
-          timeline.innerHTML = `<div class="history-error">Der Änderungsverlauf konnte nicht geladen werden. Bitte prüfe Anmeldung, Rolle und Verbindung.</div>`;
+          if (!requestIsCurrent()) return;
+          const currentTimeline = root.querySelector("#history-timeline");
+          if (currentTimeline) {
+            currentTimeline.innerHTML = `<div class="history-error">Der Änderungsverlauf konnte nicht geladen werden. Bitte prüfe Anmeldung, Rolle und Verbindung.</div>`;
+          }
         }
       }
 
@@ -35351,6 +35305,24 @@
         if (isMobileLayout()) setMobileSidebarExpanded(false);
       }
 
+      function openSidebarForHomeDestination() {
+        if (!isMobileLayout()) {
+          setSidebarCollapsed(false, { persist: false });
+          return;
+        }
+        window.setTimeout(() => {
+          if (!isMobileLayout()) {
+            setSidebarCollapsed(false, { persist: false });
+            return;
+          }
+          setMobileSidebarExpanded(true);
+          window.requestAnimationFrame(() => {
+            const activeItem = document.querySelector(".sidebar-nav .primary-tab.is-active");
+            activeItem?.focus({ preventScroll: true });
+          });
+        }, 0);
+      }
+
       function routeTokenForView(view) {
         const routeView = onboardingActive && view !== "onboarding" ? "onboarding" : view || activeView || "home";
         if (routeView === "personProfile") return personProfileRoute();
@@ -36825,7 +36797,7 @@
         }
         if (!expertScope) bindFavoriteContactButtons(targetPanel);
         refreshCustomSelects(targetPanel);
-        if (!expertScope) loadContactHistory(contact.id);
+        if (!expertScope) loadContactHistory(contact.id, targetPanel);
         window.requestAnimationFrame(() => {
           targetPanel.querySelector('.detail-tabs [role="tab"].is-active')?.scrollIntoView({ block: "nearest", inline: "nearest" });
         });
@@ -38269,6 +38241,7 @@
       });
       routeLinks.forEach((link) => {
         const routeToken = link.dataset.routeLink || "home";
+        const opensSidebarForOrientation = link.matches(".home-destination-link[data-home-module]");
         if (APP_ROUTES?.urlForRouteToken) {
           link.setAttribute("href", APP_ROUTES.urlForRouteToken(routeToken, { search: window.location.search }));
         }
@@ -38290,6 +38263,7 @@
           setActiveView(targetView);
           updateRouteHash(routeToken);
           updateView();
+          if (opensSidebarForOrientation) openSidebarForHomeDestination();
         });
       });
       viewTabs.forEach((tab) => {

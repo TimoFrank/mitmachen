@@ -64,6 +64,7 @@ test.describe("GitHub-Pages-Demo: Owner-Sichtbarkeit der Kontaktkanäle", () => 
     const runtimeConfig = await runtimeResponse.text();
     expect(runtimeConfig).toContain('dataMode: "demo"');
     expect(runtimeConfig).toMatch(/ownerOnlyContactChannels:\s*true/);
+    expect(runtimeConfig).toMatch(/allDemoContactsInvitable:\s*true/);
   });
 
   test("Admin-Owner sieht E-Mail und Telefon samt Kontaktlinks", async ({ page }) => {
@@ -79,16 +80,16 @@ test.describe("GitHub-Pages-Demo: Owner-Sichtbarkeit der Kontaktkanäle", () => 
     });
   });
 
-  test("EHC-Owner sieht das vollständige zweckgebundene Profil", async ({ page }) => {
+  test("EHC-Kontakt ist zusätzlich vollständig für #Mitmachen freigegeben", async ({ page }) => {
     await page.goto(pagesUrl(PROFILE_ADMIN, "#person/contact/demo-contact-76?tab=consent"));
 
     const profile = page.locator("#person-profile-body");
     await expect(profile).toBeVisible();
     await expect(profile.getByRole("heading", { level: 3, name: EHC_ONLY_NAME })).toBeVisible();
-    await expect(profile.locator(".ehc-profile-badge")).toContainText("EHC-only");
-    await expect(profile.locator(".consent-scope-summary")).toContainText("Nur für die E-Health Community");
+    await expect(profile.locator(".ehc-profile-badge")).toHaveCount(0);
+    await expect(profile.locator(".consent-scope-summary")).toContainText("#Mitmachen-Nachrichten erlaubt");
     await expect(profile.locator('[data-consent-signal="ehc"]')).toContainText("Freigegeben");
-    await expect(profile.locator('[data-consent-signal="mitmachen"]')).toContainText("Nicht angefragt");
+    await expect(profile.locator('[data-consent-signal="mitmachen"]')).toContainText("Freigegeben");
 
     await profile.getByRole("tab", { name: "Kontakt", exact: true }).click();
     await expectContactLinks(profile.locator("#detail-contactways"), {
@@ -97,22 +98,24 @@ test.describe("GitHub-Pages-Demo: Owner-Sichtbarkeit der Kontaktkanäle", () => 
     });
   });
 
-  test("EHC-only-Profil bleibt für normale Nutzer nicht identifizierbar", async ({ page }) => {
+  test("Schriftliche #Mitmachen-Freigabe hebt den EHC-only-Profilschutz auf", async ({ page }) => {
     await page.goto(pagesUrl(PROFILE_EDITOR, "#person/contact/demo-contact-76?tab=consent"));
 
     const profile = page.locator("#person-profile-body");
     await expect(profile).toBeVisible();
-    await expect(profile.getByRole("heading", { level: 3, name: "Geschützter EHC-Kontakt" })).toBeVisible();
-    await expect(profile.locator(".ehc-profile-badge")).toContainText("EHC geschützt");
-    await expect(profile.locator(".consent-scope-summary")).toContainText("Nur für die E-Health Community");
-    await expect(profile.locator('[data-consent-signal="ehc"]')).toContainText("Freigegeben · geschützt");
-    await expect(profile.locator("[data-edit-consent-overview], [data-detail-edit-section], [data-detail-owner-edit]")).toHaveCount(0);
+    await expect(profile.getByRole("heading", { level: 3, name: EHC_ONLY_NAME })).toBeVisible();
+    await expect(profile.locator(".ehc-profile-badge")).toHaveCount(0);
+    await expect(profile.locator(".consent-scope-summary")).toContainText("#Mitmachen-Nachrichten erlaubt");
+    await expect(profile.locator('[data-consent-signal="ehc"]')).toContainText("Freigegeben");
+    await expect(profile.locator('[data-consent-signal="mitmachen"]')).toContainText("Freigegeben");
+    await expect(profile).toContainText(EHC_ONLY_ORGANIZATION);
 
-    const pageMarkup = await page.locator("html").innerHTML();
-    for (const protectedValue of [EHC_ONLY_NAME, EHC_ONLY_EMAIL, EHC_ONLY_PHONE, EHC_ONLY_ORGANIZATION]) {
-      expect(pageMarkup).not.toContain(protectedValue);
-    }
-    await expect(page.locator('a[href^="mailto:"], a[href^="tel:"]')).toHaveCount(0);
+    await profile.getByRole("tab", { name: "Kontakt", exact: true }).click();
+    const contactPanel = profile.locator("#detail-contactways");
+    await expect(contactPanel.locator(".contact-channel-restricted")).toHaveCount(2);
+    await expect(contactPanel).not.toContainText(EHC_ONLY_EMAIL);
+    await expect(contactPanel).not.toContainText(EHC_ONLY_PHONE);
+    await expect(contactPanel.locator('a[href^="mailto:"], a[href^="tel:"]')).toHaveCount(0);
   });
 
   test("Admin-Non-Owner sieht weder Werte noch Links des eingeschränkten Kontakts", async ({ page }) => {

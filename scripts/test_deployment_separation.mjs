@@ -159,6 +159,7 @@ try {
   assert.match(pagesConfig, /apiBaseUrl:\s*""/);
   assert.match(pagesConfig, /requireApiGateway:\s*false/);
   assert.match(pagesConfig, /ownerOnlyContactChannels:\s*true/);
+  assert.match(pagesConfig, /allDemoContactsInvitable:\s*true/);
 
   const pagesHtml = fs.readFileSync(path.join(pagesDir, "versorgungs-kompass.html"), "utf8");
   const demoDataPosition = pagesHtml.indexOf("./data/demo-data.js");
@@ -260,6 +261,7 @@ try {
   assert.match(targetConfig, /apiCredentials:\s*"include"/);
   assert.match(targetConfig, /requireApiGateway:\s*true/);
   assert.doesNotMatch(targetConfig, /ownerOnlyContactChannels:\s*true/);
+  assert.doesNotMatch(targetConfig, /allDemoContactsInvitable:\s*true/);
   assert.ok(targetConfig.includes(`apiBaseUrl: "${apiBaseUrl}"`));
   assert.doesNotMatch(targetConfig, /supabaseUrl|supabaseAnonKey|registrationEndpoint/);
 
