@@ -177,6 +177,7 @@ if (existsSync(runtimeConfigPath)) {
   assert(/requireApiGateway:\s*false/.test(runtimeConfig), `${artifactLabel}/data/runtime-config.js fordert unerwartet ein API-Gateway`);
   assert(/cleanUrls:\s*false/.test(runtimeConfig), `${artifactLabel}/data/runtime-config.js darf ohne Rewrite-Server keine Clean URLs aktivieren`);
   assert(/ownerOnlyContactChannels:\s*true/.test(runtimeConfig), `${artifactLabel}/data/runtime-config.js aktiviert den Owner-Schutz fuer Kontaktkanaele nicht`);
+  assert(/allDemoContactsInvitable:\s*true/.test(runtimeConfig), `${artifactLabel}/data/runtime-config.js gibt nicht alle Demo-Bestandskontakte fuer Einladungen frei`);
   assert(!/apiBaseUrl:\s*["']https?:/i.test(runtimeConfig), `${artifactLabel}/data/runtime-config.js konfiguriert einen externen API-Zugriff`);
 }
 

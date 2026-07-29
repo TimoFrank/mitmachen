@@ -5323,15 +5323,6 @@
         }
       }
 
-      .home-hero__lead {
-        max-width: 680px;
-        margin: 30px auto 0;
-        color: #53617a;
-        font-size: clamp(0.96rem, 1.25vw, 1.08rem);
-        font-weight: 620;
-        line-height: 1.55;
-      }
-
       .home-scroll-cue {
         min-height: 44px;
         display: inline-flex;
@@ -5353,10 +5344,35 @@
       .home-destinations-section {
         min-height: 100%;
         display: flex;
+        flex-direction: column;
         align-items: center;
         justify-content: center;
+        gap: 22px;
         padding: 80px 56px;
         scroll-margin-top: 0;
+      }
+
+      .home-destinations__intro {
+        width: min(1120px, 100%);
+        display: flex;
+        align-items: center;
+        gap: 9px;
+        margin: 0;
+        color: var(--text-muted);
+        font-size: 0.82rem;
+        font-weight: 650;
+        line-height: 1.45;
+        text-align: left;
+      }
+
+      .home-destinations__intro::before {
+        width: 18px;
+        height: 2px;
+        flex: 0 0 18px;
+        border-radius: 999px;
+        background: var(--primary);
+        content: "";
+        opacity: 0.58;
       }
 
       .home-destinations {
@@ -5500,6 +5516,7 @@
 
         .home-destinations-section {
           align-items: flex-start;
+          gap: 17px;
           padding: 62px 18px;
         }
 
@@ -12163,10 +12180,6 @@
         flex-wrap: wrap;
       }
 
-      .format-profile__status-select {
-        width: 100%;
-      }
-
       .format-participation-status {
         display: inline-flex;
         align-items: center;
@@ -12199,7 +12212,7 @@
 
       .format-profile__link-form {
         display: grid;
-        grid-template-columns: minmax(0, 1fr) minmax(132px, 0.55fr);
+        grid-template-columns: minmax(0, 1fr);
         gap: 8px;
         align-items: end;
         border: 1px dashed var(--border-strong);
@@ -12562,7 +12575,6 @@
           align-items: stretch;
         }
 
-        .format-profile__status-select,
         .format-profile__status-form .action-button,
         .format-profile__link-form .action-button {
           width: 100%;
@@ -32429,7 +32441,7 @@
 
       .format-overview-hero {
         display: grid;
-        grid-template-columns: minmax(420px, 1fr) minmax(220px, 300px);
+        grid-template-columns: minmax(0, 1fr);
         gap: 18px;
         align-items: center;
         border: 0;
@@ -32677,66 +32689,6 @@
       .format-detail-actions .format-status-badge svg {
         width: 16px;
         height: 16px;
-      }
-
-      .format-overview-visual {
-        min-width: 0;
-        display: grid;
-        align-items: center;
-        justify-items: end;
-        border: 0;
-        background: transparent;
-        padding: 0;
-      }
-
-      .format-roundtable-illustration {
-        width: min(100%, 280px);
-        aspect-ratio: 16 / 10;
-        display: block;
-        border: 1px solid var(--border);
-        border-radius: var(--radius-md);
-        background: #ffffff;
-      }
-
-      .format-roundtable-illustration__bubble {
-        fill: #ffffff;
-        stroke: #cad7ef;
-        stroke-width: 2.2;
-      }
-
-      .format-roundtable-illustration__bubble-line,
-      .format-roundtable-illustration__person {
-        fill: none;
-        stroke-linecap: round;
-        stroke-linejoin: round;
-      }
-
-      .format-roundtable-illustration__bubble-line {
-        stroke: var(--primary);
-        stroke-width: 3;
-      }
-
-      .format-roundtable-illustration__person {
-        stroke-width: 3.2;
-      }
-
-      .format-roundtable-illustration__person--blue {
-        stroke: var(--primary);
-      }
-
-      .format-roundtable-illustration__person--green {
-        stroke: #178a55;
-      }
-
-      .format-roundtable-illustration__person--amber {
-        stroke: #b7791f;
-      }
-
-      .format-roundtable-illustration__connector {
-        fill: none;
-        stroke: #dbe5f8;
-        stroke-linecap: round;
-        stroke-width: 2.4;
       }
 
       .format-section {
@@ -34496,10 +34448,6 @@
         .format-reporting-layout,
         .participant-board {
           grid-template-columns: repeat(2, minmax(0, 1fr));
-        }
-
-        .format-overview-hero {
-          grid-template-columns: minmax(360px, 1fr) minmax(220px, 300px);
         }
 
         .format-diversity-board,

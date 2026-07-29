@@ -71,20 +71,21 @@ test("Desktop-Auslieferung: Pages startet direkt in der App-Startseite", async (
   const heroSpacing = await page.locator(".home-hero").evaluate((hero) => {
     const brand = hero.querySelector(".home-hero__brand")?.getBoundingClientRect();
     const title = hero.querySelector(".home-reveal-heading")?.getBoundingClientRect();
-    const lead = hero.querySelector(".home-hero__lead")?.getBoundingClientRect();
     const cue = hero.querySelector(".home-scroll-cue")?.getBoundingClientRect();
     return {
       brandWidth: brand?.width || 0,
       brandToTitle: brand && title ? title.top - brand.bottom : 0,
-      titleToLead: title && lead ? lead.top - title.bottom : 0,
-      leadToCue: lead && cue ? cue.top - lead.bottom : 0
+      titleToCue: title && cue ? cue.top - title.bottom : 0
     };
   });
   const isMobileProject = testInfo.project.name.includes("mobile");
   expect(heroSpacing.brandWidth).toBeGreaterThan(isMobileProject ? 250 : 340);
   expect(heroSpacing.brandToTitle).toBeGreaterThanOrEqual(isMobileProject ? 34 : 44);
-  expect(heroSpacing.titleToLead).toBeGreaterThanOrEqual(26);
-  expect(heroSpacing.leadToCue).toBeGreaterThanOrEqual(38);
+  expect(heroSpacing.titleToCue).toBeGreaterThanOrEqual(38);
+  await expect(page.locator(".home-hero .home-destinations__intro")).toHaveCount(0);
+  await expect(page.locator("#home-destinations > .home-destinations__intro")).toHaveText(
+    "Wähle den Kompass, in dem du weiterarbeiten möchtest."
+  );
 });
 
 test("Desktop-Auslieferung: reduzierte Bewegung zeigt die Startüberschrift ruhig", async ({ page }) => {
@@ -96,6 +97,35 @@ test("Desktop-Auslieferung: reduzierte Bewegung zeigt die Startüberschrift ruhi
   await expect(heading.locator(".home-reveal-heading__line")).toHaveCount(3);
   await expect(heading.locator(".home-reveal-heading__char").first()).toHaveCSS("animation-name", "none");
   await expect(heading.locator(".home-reveal-heading__char").first()).toHaveCSS("opacity", "1");
+});
+
+test("Startkarte öffnet den passenden Navigationsbereich auf Desktop", async ({ page }, testInfo) => {
+  test.skip(testInfo.project.name.includes("mobile"), "Der Desktop-Zustand wird im Desktop-Projekt geprüft.");
+  await page.goto("/dist/pages/index.html");
+
+  const shell = page.locator(".app-shell");
+  await expect(shell).toHaveClass(/is-sidebar-collapsed/);
+  await page.locator('.home-destination-link[data-home-module="planning"]').click();
+
+  await expect(page).toHaveURL(/#framework$/);
+  await expect(shell).not.toHaveClass(/is-sidebar-collapsed/);
+  await expect(page.locator('[data-sidebar-section="planning"]')).toHaveClass(/is-active-section/);
+  await expect(page.locator('[data-sidebar-section-toggle="planning"]')).toHaveAttribute("aria-expanded", "true");
+  await expect(page.locator('[data-view-tab="framework"]')).toHaveAttribute("aria-current", "page");
+});
+
+test("Startkarte öffnet und fokussiert die mobile Navigation", async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto("/dist/pages/index.html");
+
+  const shell = page.locator(".app-shell");
+  await page.locator('.home-destination-link[data-home-module="stakeholders"]').click();
+
+  await expect(page).toHaveURL(/#stakeholders\/kv$/);
+  await expect(shell).toHaveClass(/is-mobile-sidebar-expanded/);
+  await expect(page.locator('[data-sidebar-section="stakeholders"]')).toHaveClass(/is-active-section/);
+  await expect(page.locator('[data-sidebar-section-toggle="stakeholders"]')).toHaveAttribute("aria-expanded", "true");
+  await expect(page.locator('[data-sidebar-section="stakeholders"] .primary-tab.is-active')).toBeFocused();
 });
 
 test("Mobile-Auslieferung: Startklar-Hinweis bleibt oberhalb der Fußzeile", async ({ page }) => {

@@ -6456,7 +6456,7 @@ test("Formate: Arbeitsbereich und Editor rendern", async ({ page }, testInfo) =>
   await expect(createdFormat.locator(".format-type-icon")).toBeVisible();
   await createdFormat.locator("[data-toggle-format-detail]").click();
   await expect(page.locator(".format-overview-hero")).toBeVisible();
-  await expect(page.locator(".format-roundtable-illustration")).toBeVisible();
+  await expect(page.locator(".format-roundtable-illustration, .format-overview-visual")).toHaveCount(0);
   await expect(createdFormat).toBeVisible();
   await expect(page.locator('[data-edit-format]')).toHaveCount(0);
   await expect(page.locator('[data-format-tab="notes"]')).toHaveText("Notizen");
@@ -6512,8 +6512,7 @@ test("Formate: Arbeitsbereich und Editor rendern", async ({ page }, testInfo) =>
     hasText: "Roundtable Testversorgung"
   });
   await expect(createdFormatProfileItem).toBeVisible();
-  await expect(createdFormatProfileItem.locator("[data-format-profile-status]")).toBeVisible();
-  await expect(createdFormatProfileItem.locator("[data-format-profile-status]")).toHaveValue("Kandidat");
+  await expect(createdFormatProfileItem.locator("[data-format-profile-status], .format-participation-status")).toHaveCount(0);
   await page.locator("#person-profile-body [data-person-profile-back]").click();
   await expect(page.locator(".app-shell")).toHaveAttribute("data-active-view", "formats");
   await expect(page.locator(".format-diversity-board")).toHaveCount(0);

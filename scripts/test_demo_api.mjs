@@ -24,17 +24,13 @@ assert.match(demoApiSource, /resetOnReload:\s*true/, "Die Demo-Runtime muss den 
 assert.match(demoApiSource, /const\s+baseline\s*=\s*window\.VERSORGUNGS_COMPASS_DEMO_DATA/, "Die Demo-API muss ausschließlich den synthetischen Datensatz als Baseline verwenden.");
 assert.match(demoApiSource, /const\s+state\s*=\s*clone\(baseline\)|const\s+state\s*=\s*clone\s*\(\s*baseline\s*\)/, "Die Demo-API muss ihre Baseline tief kopieren.");
 assert.match(demoApiSource, /ownerOnlyContactChannels\s*===\s*true/, "Die Owner-Projektion muss explizit durch die Pages-Capability aktiviert werden.");
+assert.match(demoApiSource, /allDemoContactsInvitable\s*===\s*true/, "Die vollständige Demo-Einladungsfreigabe muss explizit durch die Pages-Capability aktiviert werden.");
 assert.match(demoApiSource, /contactChannelAccess:\s*hasAccess\s*\?\s*["']owner["']\s*:\s*["']restricted["']/, "Der Demo-Adapter muss den Kontaktkanal-Zugriff explizit ausweisen.");
-assert.match(demoApiSource, /<strong>Hinweis:<\/strong>\s*<span>Öffentliche Demo<\/span>/, "Der Demo-Hinweis muss die öffentliche Demo knapp als Hinweis benennen.");
-assert.doesNotMatch(demoApiSource, /Bitte keine echten Angaben eingeben/, "Der subtile Demo-Hinweis darf keinen zusätzlichen Warnsatz anzeigen.");
-assert.match(demoApiSource, /data-demo-notice-close>OK<\/button>/, "Der Demo-Hinweis muss sich mit einer knappen Bestätigung schließen lassen.");
-assert.match(demoApiSource, /id\s*=\s*["']vk-public-demo-trigger["']/, "Die geschlossene Demo-Leiste muss über einen schwebenden Trigger wieder erreichbar sein.");
-assert.match(demoApiSource, /<svg viewBox=["']0 0 24 24["']>[\s\S]*?<circle[\s\S]*?<path/, "Der geschlossene Demo-Hinweis muss ein echtes Info-Symbol statt eines Buchstabens verwenden.");
-assert.match(demoApiSource, /const\s+DEMO_NOTICE_DATA_VIEWS\s*=\s*new Set/, "Der Demo-Hinweis muss auf ausdrücklich freigegebene Datenansichten begrenzt sein.");
-assert.match(demoApiSource, /DEMO_NOTICE_DATA_VIEWS\.has\(activeView\)/, "Die Sichtbarkeit des Demo-Hinweises muss der aktiven Datenansicht folgen.");
-assert.match(demoApiSource, /mobileViewport\.matches[\s\S]*?is-mobile-sidebar-expanded/, "Die Demo-Kennzeichnung darf die geöffnete mobile Navigation nicht überdecken.");
-assert.match(demoApiSource, /attributeFilter:\s*\[\s*["']data-active-view["']\s*,\s*["']class["']\s*\]/, "Der Demo-Hinweis muss auf Ansichts- und Navigationswechsel reagieren.");
-assert.doesNotMatch(demoApiSource, /Demo zurücksetzen|Änderungen verschwinden beim Neuladen|window\.location\.reload\s*\(/, "Das Schließen des Demo-Hinweises darf weder Reset-Text noch Reload-Logik enthalten.");
+assert.doesNotMatch(
+  demoApiSource,
+  /vk-public-demo-notice|vk-public-demo-trigger|data-demo-notice-close/,
+  "Die öffentliche Demo darf keinen schwebenden Hinweis am Bildschirmrand injizieren."
+);
 assert.match(dataServiceSource, /VersorgungsCompassDemoApi[\s\S]*?active\s*===\s*true/, "Der gemeinsame Data-Service muss im Demo-Profil einen aktiven lokalen Adapter verlangen.");
 assert.match(registrationSource, /function\s+completeDemo\s*\(/, "Die Konzeptdemo muss ihren rein lokalen Abschluss explizit benennen.");
 assert.doesNotMatch(registrationSource, /VersorgungsCompassDemoApi|\b(?:fetch|XMLHttpRequest|sendBeacon)\b/, "Die Konzeptdemo darf weder den Demo-Adapter noch eine Transport-API verwenden.");
@@ -53,6 +49,7 @@ function createRuntime({
   demoRole = "admin",
   demoProfile = "",
   ownerOnlyContactChannels = true,
+  allDemoContactsInvitable = true,
   mutateDemoData
 } = {}) {
   const originalFetchCalls = [];
@@ -76,7 +73,8 @@ function createRuntime({
       requireApiGateway: false,
       demoRole,
       capabilities: {
-        ownerOnlyContactChannels
+        ownerOnlyContactChannels,
+        allDemoContactsInvitable
       }
     },
     dispatchEvent(event) {
@@ -133,12 +131,28 @@ function createRuntime({
   };
 }
 
+function makeContact76EhcOnly(demoData) {
+  const contact = demoData.contacts.find((item) => item.id === "demo-contact-76");
+  Object.assign(contact, {
+    mitmachenConsentStatus: "not_requested",
+    mitmachenConsentEffectiveAt: "",
+    mitmachenConsentSource: "",
+    mitmachenConsentTextVersion: "",
+    mitmachenConsentRecordedBy: "",
+    mitmachenConsentNote: ""
+  });
+}
+
 const inactiveRuntime = createRuntime({ dataMode: "api", authMode: "oidc" });
 assert.equal(inactiveRuntime.window.fetch, inactiveRuntime.originalFetch, "Demo-API darf sich außerhalb des expliziten Demo-Profils nicht aktivieren.");
 assert.equal(inactiveRuntime.window.VersorgungsCompassDemoApi, undefined, "Target-Profil darf keine Demo-Runtime exportieren.");
 assert.equal(inactiveRuntime.window.VERSORGUNGS_COMPASS_DEMO_RUNTIME, undefined, "Target-Profil darf keine Demo-Metadaten exportieren.");
 
-const editorRuntime = createRuntime({ demoProfile: "demo-profile-editor" });
+const editorRuntime = createRuntime({
+  demoProfile: "demo-profile-editor",
+  allDemoContactsInvitable: false,
+  mutateDemoData: makeContact76EhcOnly
+});
 assert.equal(
   editorRuntime.window.VersorgungsCompassDemoApi.snapshot().currentProfileId,
   "demo-profile-editor",
@@ -169,7 +183,9 @@ assert.equal(legacyContact.email, "kontakt-002@versorgung.example.invalid", "Ohn
 assert.equal(legacyContact.contactChannelAccess, undefined, "Ohne Pages-Capability darf kein neuer Access-State erzwungen werden.");
 const legacyRestrictedEhcRuntime = createRuntime({
   demoProfile: "demo-profile-editor",
-  ownerOnlyContactChannels: false
+  ownerOnlyContactChannels: false,
+  allDemoContactsInvitable: false,
+  mutateDemoData: makeContact76EhcOnly
 });
 const legacyRestrictedEhcContact = await (
   await legacyRestrictedEhcRuntime.window.fetch("/api/contacts/demo-contact-76")
@@ -181,7 +197,9 @@ assert.equal(legacyRestrictedEhcContact.email, "");
 for (const ehcConsentStatus of ["withdrawn", "not_requested"]) {
   const historicalEhcRuntime = createRuntime({
     demoProfile: "demo-profile-editor",
+    allDemoContactsInvitable: false,
     mutateDemoData(demoData) {
+      makeContact76EhcOnly(demoData);
       const contact = demoData.contacts.find((item) => item.id === "demo-contact-76");
       contact.ehcConsentStatus = ehcConsentStatus;
     }
@@ -199,7 +217,9 @@ for (const ehcConsentStatus of ["withdrawn", "not_requested"]) {
 }
 const verbalMitmachenEhcRuntime = createRuntime({
   demoProfile: "demo-profile-editor",
+  allDemoContactsInvitable: false,
   mutateDemoData(demoData) {
+    makeContact76EhcOnly(demoData);
     const contact = demoData.contacts.find((item) => item.id === "demo-contact-76");
     contact.mitmachenConsentStatus = "granted";
     contact.mitmachenConsentSource = "verbal_confirmed";
@@ -270,7 +290,7 @@ assert.deepEqual(
   "Die Runtime-Metadaten müssen den öffentlichen, synthetischen memory-only Betrieb eindeutig beschreiben."
 );
 assert.equal(runtime.storageAccesses.length, 0, "Initialisierung darf keinen persistenten Browser-Speicher berühren.");
-assert.ok(runtime.documentListeners.has("DOMContentLoaded"), "Der sichtbare Demo-Hinweis muss für DOMContentLoaded registriert sein.");
+assert.equal(runtime.documentListeners.has("DOMContentLoaded"), false, "Ohne schwebenden Demo-Hinweis ist kein DOMContentLoaded-Hook nötig.");
 
 const initialSnapshot = api.snapshot();
 const immutableBaselineCount = window.VERSORGUNGS_COMPASS_DEMO_DATA.contacts.length;
@@ -286,13 +306,29 @@ assert.equal(initialSnapshot.contacts.find((contact) => contact.id === "demo-con
 assert.equal(initialSnapshot.contacts.find((contact) => contact.id === "demo-contact-17")?.contactChannelAccess, "restricted");
 assert.equal(initialSnapshot.contacts.find((contact) => contact.id === "demo-contact-17")?.email, "", "Ownerlose Kontakte müssen für alle Demo-Profile eingeschränkt bleiben.");
 const ownedEhcOnlyContact = initialSnapshot.contacts.find((contact) => contact.id === "demo-contact-76");
-assert.equal(ownedEhcOnlyContact?.profileAccess, "ehc_authorized", "Der EHC-Owner benötigt den expliziten Vollprofilzugriff.");
+assert.equal(ownedEhcOnlyContact?.profileAccess, undefined, "Ein schriftlich für #Mitmachen freigegebener Kontakt ist nicht mehr EHC-only.");
 assert.equal(ownedEhcOnlyContact?.contactChannelAccess, "owner");
 assert.notEqual(ownedEhcOnlyContact?.name, "Geschützter EHC-Kontakt");
 assert.equal(ownedEhcOnlyContact?.ehcConsentStatus, "granted");
 assert.equal(ownedEhcOnlyContact?.ehcConsentSource, "survalyzer_ehc");
-assert.equal(ownedEhcOnlyContact?.mitmachenConsentStatus, "not_requested");
+assert.equal(ownedEhcOnlyContact?.mitmachenConsentStatus, "granted");
+assert.equal(ownedEhcOnlyContact?.mitmachenConsentSource, "written");
 assert.ok(ownedEhcOnlyContact?.ehcConsentTextVersion, "Der Owner muss den vollständigen synthetischen EHC-Nachweis sehen.");
+const directlyInvitableContacts = initialSnapshot.contacts.filter((contact) => {
+  const effectiveTime = new Date(contact.mitmachenConsentEffectiveAt || "").getTime();
+  return contact.mitmachenConsentStatus === "granted"
+    && ["online_form", "email", "written"].includes(contact.mitmachenConsentSource)
+    && Number.isFinite(effectiveTime)
+    && effectiveTime <= new Date(FORMAT_TEST_NOW).getTime()
+    && Boolean(contact.mitmachenConsentTextVersion)
+    && Boolean(contact.mitmachenConsentRecordedBy);
+});
+assert.equal(directlyInvitableContacts.length, initialSnapshot.contacts.length, "Alle 130 Bestandskontakte der öffentlichen Demo müssen grün einladbar sein.");
+assert.equal(
+  initialSnapshot.contacts.filter((contact) => ["archived", "Archiviert"].includes(contact.status)).length,
+  0,
+  "Die öffentliche Demo darf keine archivierten und dadurch nicht einladbaren Bestandskontakte enthalten."
+);
 assert.equal(
   window.VERSORGUNGS_COMPASS_DEMO_DATA.contacts.find((contact) => contact.id === "demo-contact-02")?.email,
   "kontakt-002@versorgung.example.invalid",
@@ -841,6 +877,7 @@ assert.ok(!afterHospitationDelete.hospitationRoadmapAssessments.some((item) => (
 assert.ok(!afterHospitationDelete.hospitationUnmetNeeds.some((item) => (item.hospitationId || item.hospitation_id) === hospitationId), "Unmet Needs müssen lokal kaskadieren.");
 
 const formatContractRuntime = createRuntime({
+  allDemoContactsInvitable: false,
   mutateDemoData(demoData) {
     demoData.formats = [];
     demoData.contacts = [
