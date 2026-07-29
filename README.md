@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="dokumentation/assets/readme/versorgungs-kompass-header-v2.svg" alt="#Mitmachen und Versorgungs-Kompass mit den Modulen Versorgung, Stakeholder, Hospitation und Formate" width="100%" />
+  <img src="dokumentation/assets/readme/mitmachen-kompass-banner-v3.png" alt="#Mitmachen mit Versorgungs-Kompass, Stakeholder-Kompass, Hospitations-Kompass und Format-Kompass" width="100%" />
 </p>
 
 <p align="center">
@@ -17,11 +17,40 @@
 > [!IMPORTANT]
 > Die öffentliche Demo arbeitet ausschließlich mit fiktiven Beispieldaten. Verbindliche Informationen zu [#Mitmachen](https://www.gematik.de/mitmachen) und dem [Versorgungs-Netzwerk](https://www.gematik.de/mitmachen/versorgungs-netzwerk) stehen auf gematik.de.
 
+## Vier Kompasse
+
+**#Mitmachen** verbindet vier gleichrangige Kompasse. Eigene Signets und Farben schaffen Orientierung; die vollständigen Namen bleiben in allen Ansichten sichtbar.
+
+<table>
+  <tr>
+    <td width="50%" align="center">
+      <img src="public/brand/versorgungs-kompass/lockup-horizontal.svg" alt="Versorgungs-Kompass" width="92%" />
+      <br /><sub>Versorgung regional verstehen.</sub>
+    </td>
+    <td width="50%" align="center">
+      <img src="public/brand/modules/stakeholder/lockup-horizontal.svg" alt="Stakeholder-Kompass" width="92%" />
+      <br /><sub>Perspektiven gezielt verbinden.</sub>
+    </td>
+  </tr>
+  <tr>
+    <td width="50%" align="center">
+      <img src="public/brand/modules/hospitation/lockup-horizontal.svg" alt="Hospitations-Kompass" width="92%" />
+      <br /><sub>Von Beobachtung zu Evidenz.</sub>
+    </td>
+    <td width="50%" align="center">
+      <img src="public/brand/modules/formate/lockup-horizontal.svg" alt="Format-Kompass" width="92%" />
+      <br /><sub>Austausch wirksam gestalten.</sub>
+    </td>
+  </tr>
+</table>
+
+## Aktueller Einblick
+
 <p align="center">
-  <img src="dokumentation/assets/readme/versorgungs-kompass-module-collage-v2.png" alt="#Mitmachen mit Versorgungs-Kompass, Stakeholder-Kompass, Hospitations-Kompass und Format-Kompass" width="100%" />
+  <img src="dokumentation/assets/readme/mitmachen-kompass-collage-v3.png" alt="Aktuelle Anwendungscollage mit Versorgungs-Kompass, Stakeholder-Kompass, Hospitations-Kompass und Format-Kompass" width="100%" />
 </p>
 
-<p align="center"><sub>Vier Marken, eine gemeinsame Anwendung. Sämtliche dargestellten Personen, Organisationen und Fachdaten sind fiktiv.</sub></p>
+<p align="center"><sub>Vier Kompasse, eine gemeinsame Anwendung. Sämtliche dargestellten Personen, Organisationen und Fachdaten sind fiktiv.</sub></p>
 
 **#Mitmachen** verbindet Versorgungs-Kompass, Stakeholder-Kompass, Hospitations-Kompass und Format-Kompass in einer gemeinsamen Anwendung. So werden regionale Perspektiven sichtbar, Erfahrungen nachvollziehbar und Erkenntnisse für die gemeinsame Arbeit nutzbar.
 

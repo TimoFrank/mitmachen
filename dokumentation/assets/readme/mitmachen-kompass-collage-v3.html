@@ -1,0 +1,203 @@
+<!doctype html>
+<html lang="de">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <link rel="icon" href="data:," />
+    <title>#Mitmachen – vier Kompasse</title>
+    <style>
+      :root {
+        font-family: Arial, Helvetica, sans-serif;
+        color: #17275f;
+        background: #eef3fa;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      html,
+      body {
+        width: 1600px;
+        height: 1200px;
+        margin: 0;
+        overflow: hidden;
+      }
+
+      body {
+        background:
+          radial-gradient(circle at 92% 4%, rgba(0, 255, 101, 0.1), transparent 24%),
+          linear-gradient(180deg, #f8faff 0%, #edf2f9 100%);
+      }
+
+      .collage {
+        width: 100%;
+        height: 100%;
+        padding: 42px 54px 46px;
+      }
+
+      .collage__header {
+        height: 132px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 42px;
+      }
+
+      .collage__headline {
+        display: flex;
+        align-items: center;
+        gap: 30px;
+      }
+
+      .mitmachen-lockup {
+        width: 330px;
+        height: auto;
+      }
+
+      .header-divider {
+        width: 1px;
+        height: 64px;
+        background: #cbd6e8;
+      }
+
+      .collage__title {
+        max-width: 610px;
+        margin: 0;
+        color: #10236e;
+        font-size: 36px;
+        line-height: 1.08;
+        letter-spacing: -1.2px;
+      }
+
+      .collage__badge {
+        padding: 12px 18px;
+        border: 1px solid #cbd8eb;
+        border-radius: 999px;
+        background: rgba(255, 255, 255, 0.8);
+        color: #65728a;
+        font-size: 15px;
+        font-weight: 700;
+      }
+
+      .compass-grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        grid-template-rows: repeat(2, 1fr);
+        gap: 24px;
+        height: calc(100% - 132px);
+      }
+
+      .compass-card {
+        --accent: #559ee8;
+        overflow: hidden;
+        border: 1px solid #d5deec;
+        border-top: 8px solid var(--accent);
+        border-radius: 22px;
+        background: #ffffff;
+        box-shadow: 0 18px 44px rgba(16, 35, 110, 0.1);
+      }
+
+      .compass-card--stakeholder {
+        --accent: #43b391;
+      }
+
+      .compass-card--hospitation {
+        --accent: #e0a44d;
+      }
+
+      .compass-card--format {
+        --accent: #a980da;
+      }
+
+      .compass-card__media {
+        height: 330px;
+        overflow: hidden;
+        border-bottom: 1px solid #dce4f0;
+        background: #eef3fa;
+      }
+
+      .compass-card__media img {
+        width: 100%;
+        height: 100%;
+        display: block;
+        object-fit: cover;
+        object-position: top center;
+      }
+
+      .compass-card__body {
+        min-height: 140px;
+        padding: 21px 26px 22px;
+      }
+
+      .compass-card__lockup {
+        width: min(430px, 100%);
+        height: auto;
+        display: block;
+        margin-bottom: 12px;
+      }
+
+      .compass-card p {
+        margin: 0;
+        color: #59677f;
+        font-size: 18px;
+        font-weight: 650;
+        line-height: 1.35;
+      }
+    </style>
+  </head>
+  <body>
+    <main class="collage" aria-labelledby="collage-title">
+      <header class="collage__header">
+        <div class="collage__headline">
+          <img class="mitmachen-lockup" src="../../../public/brand/mitmachen/lockup-horizontal.svg" alt="#Mitmachen" />
+          <span class="header-divider" aria-hidden="true"></span>
+          <h1 class="collage__title" id="collage-title">Vier Kompasse.<br />Gemeinsam Versorgung gestalten.</h1>
+        </div>
+        <span class="collage__badge">Aktueller Einblick · synthetische Demo</span>
+      </header>
+
+      <section class="compass-grid" aria-label="Einblicke in die vier Kompasse">
+        <article class="compass-card">
+          <div class="compass-card__media">
+            <img src="./module-previews-v3/versorgung.png" alt="Kartenansicht mit regional verteilten Kontakten" />
+          </div>
+          <div class="compass-card__body">
+            <img class="compass-card__lockup" src="../../../public/brand/versorgungs-kompass/lockup-horizontal.svg" alt="Versorgungs-Kompass" />
+            <p>Versorgung regional verstehen.</p>
+          </div>
+        </article>
+
+        <article class="compass-card compass-card--stakeholder">
+          <div class="compass-card__media">
+            <img src="./module-previews-v3/stakeholder.png" alt="Stakeholder-Organisationen in einer strukturierten Übersicht" />
+          </div>
+          <div class="compass-card__body">
+            <img class="compass-card__lockup" src="../../../public/brand/modules/stakeholder/lockup-horizontal.svg" alt="Stakeholder-Kompass" />
+            <p>Perspektiven gezielt verbinden.</p>
+          </div>
+        </article>
+
+        <article class="compass-card compass-card--hospitation">
+          <div class="compass-card__media">
+            <img src="./module-previews-v3/hospitation.png" alt="Hospitationsframework von Beobachtungen bis zu nächsten Schritten" />
+          </div>
+          <div class="compass-card__body">
+            <img class="compass-card__lockup" src="../../../public/brand/modules/hospitation/lockup-horizontal.svg" alt="Hospitations-Kompass" />
+            <p>Von Beobachtung zu Evidenz.</p>
+          </div>
+        </article>
+
+        <article class="compass-card compass-card--format">
+          <div class="compass-card__media">
+            <img src="./module-previews-v3/formate.png" alt="Formate für Roundtables, Fachgespräche und Veranstaltungen" />
+          </div>
+          <div class="compass-card__body">
+            <img class="compass-card__lockup" src="../../../public/brand/modules/formate/lockup-horizontal.svg" alt="Format-Kompass" />
+            <p>Austausch wirksam gestalten.</p>
+          </div>
+        </article>
+      </section>
+    </main>
+  </body>
+</html>
