@@ -3,6 +3,25 @@ import { gotoAuthenticated } from "./helpers/app-test-session.js";
 
 const PAGES_APP = "/dist/pages/versorgungs-kompass.html";
 
+async function expectCleanHomeSidebar(page) {
+  await expect(page.locator(".app-shell")).toHaveClass(/is-public-demo-profile/);
+  const sidebar = page.locator(".app-sidebar");
+  await expect(page.locator(".app-shell")).toHaveAttribute("data-active-view", "home");
+  await expect(sidebar.locator(".sidebar-brand")).toBeVisible();
+  await expect(sidebar.locator(".sidebar-brand .brand-mark")).toBeVisible();
+  await expect(sidebar.locator(".sidebar-brand-word")).toBeHidden();
+  await expect(sidebar.locator(".sidebar-collapse")).toBeHidden();
+  await expect(sidebar.locator(".sidebar-nav")).toBeHidden();
+  await expect(sidebar.locator(".sidebar-account-section")).toBeHidden();
+  await expect(sidebar.locator("button:visible")).toHaveCount(0);
+  await expect(sidebar.locator("a:visible")).toHaveCount(1);
+  if ((page.viewportSize()?.width || 0) <= 760) {
+    await expect(sidebar).toHaveCSS("height", "64px");
+  } else {
+    await expect(sidebar).toHaveCSS("width", "76px");
+  }
+}
+
 test("Desktop-Auslieferung: Pages startet direkt in der App-Startseite", async ({ page }, testInfo) => {
   await page.emulateMedia({ reducedMotion: "no-preference" });
   await page.addInitScript(() => {
@@ -18,6 +37,7 @@ test("Desktop-Auslieferung: Pages startet direkt in der App-Startseite", async (
   await expect(page.locator('body[data-public-entry="home"], [data-public-entry-styles]')).toHaveCount(0);
   await expect(page.locator(".app-sidebar")).toBeVisible();
   await expect(page.locator('[data-view-panel="home"]')).toBeVisible();
+  await expectCleanHomeSidebar(page);
   const destinations = page.locator(".home-destination-link");
   await expect(destinations).toHaveCount(4);
   await expect(destinations.locator("strong")).toHaveText([
@@ -109,9 +129,17 @@ test("Startkarte öffnet den passenden Navigationsbereich auf Desktop", async ({
 
   await expect(page).toHaveURL(/#framework$/);
   await expect(shell).not.toHaveClass(/is-sidebar-collapsed/);
+  await expect(page.locator(".sidebar-collapse")).toBeVisible();
+  await expect(page.locator(".sidebar-nav")).toBeVisible();
+  await expect(page.locator(".sidebar-account-section")).toBeVisible();
+  await expect(page.locator(".sidebar-brand-word")).toBeVisible();
   await expect(page.locator('[data-sidebar-section="planning"]')).toHaveClass(/is-active-section/);
   await expect(page.locator('[data-sidebar-section-toggle="planning"]')).toHaveAttribute("aria-expanded", "true");
   await expect(page.locator('[data-view-tab="framework"]')).toHaveAttribute("aria-current", "page");
+
+  await page.goBack();
+  await expect(page).toHaveURL(/\/dist\/pages\/index\.html$/);
+  await expectCleanHomeSidebar(page);
 });
 
 test("Startkarte öffnet und fokussiert die mobile Navigation", async ({ page }) => {
@@ -123,9 +151,17 @@ test("Startkarte öffnet und fokussiert die mobile Navigation", async ({ page })
 
   await expect(page).toHaveURL(/#stakeholders\/kv$/);
   await expect(shell).toHaveClass(/is-mobile-sidebar-expanded/);
+  await expect(page.locator(".sidebar-collapse")).toBeVisible();
+  await expect(page.locator(".sidebar-nav")).toBeVisible();
+  await expect(page.locator(".sidebar-account-section")).toBeVisible();
+  await expect(page.locator(".sidebar-brand-word")).toBeVisible();
   await expect(page.locator('[data-sidebar-section="stakeholders"]')).toHaveClass(/is-active-section/);
   await expect(page.locator('[data-sidebar-section-toggle="stakeholders"]')).toHaveAttribute("aria-expanded", "true");
   await expect(page.locator('[data-sidebar-section="stakeholders"] .primary-tab.is-active')).toBeFocused();
+
+  await page.locator("#brand-home-link").click();
+  await expect(page).toHaveURL(/#home$/);
+  await expectCleanHomeSidebar(page);
 });
 
 test("Mobile-Auslieferung: Startklar-Hinweis bleibt oberhalb der Fußzeile", async ({ page }) => {
@@ -151,6 +187,17 @@ test("Mobile-Auslieferung: Startklar-Hinweis bleibt oberhalb der Fußzeile", asy
 test("Geschützte Auslieferung: Kontakte werden motivierend als startklar angekündigt", async ({ page }) => {
   await gotoAuthenticated(page, "/frontend/app/versorgungs-kompass.html#home");
 
+  const shell = page.locator(".app-shell");
+  await expect(shell).not.toHaveClass(/is-public-demo-profile/);
+  await expect(page.locator(".sidebar-collapse")).toBeVisible();
+  await expect(page.locator(".sidebar-brand-word")).toBeVisible();
+  if ((page.viewportSize()?.width || 0) <= 760) {
+    await expect(page.locator(".sidebar-nav")).toBeHidden();
+    await expect(page.locator(".sidebar-account-section")).toBeHidden();
+  } else {
+    await expect(page.locator(".sidebar-nav")).toBeVisible();
+    await expect(page.locator(".sidebar-account-section")).toBeVisible();
+  }
   const status = page.locator("#global-status");
   await expect(status).toBeVisible();
   await expect(status).toHaveText(/Startklar: \d+ Kontakte stehen bereit\./);
