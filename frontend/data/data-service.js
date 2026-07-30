@@ -1368,6 +1368,9 @@
     },
     loadStakeholderOrganizations: loadStakeholderOrganizations,
     loadStakeholderPeople: loadStakeholderPeople,
+    loadHealthCommitteeMembers: async function() {
+      return clone(await apiGet("/api/politics/health-committee"));
+    },
     upsertStakeholderImport: async function(payload = {}) {
       (payload.types || []).map(stakeholderTypeUiToDb), (payload.organizations || []).map(stakeholderOrganizationUiToDb).filter(organization => organization.name),
       (payload.people || []).map(stakeholderPersonUiToDb).filter(person => person.name);

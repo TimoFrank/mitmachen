@@ -59,6 +59,7 @@
     "test:pre-gematik-test-access-allowlist": "node scripts/test_pre_gematik_test_access_allowlist.mjs",
     "test:pre-gematik-test-access-allowlist-postgres": "node scripts/test_pre_gematik_test_access_allowlist_postgres.mjs",
     "test:stakeholder-logo-contract": "node scripts/test_stakeholder_logo_contract.mjs",
+    "test:bundestag-health-committee": "node scripts/test_bundestag_health_committee.mjs",
     "test:sector-model": "node scripts/test_care_sector_model.mjs",
     "generate:pre-gematik-seed": "node scripts/generate_pre_gematik_synthetic_seed.mjs",
     "build:browser-vendor": "node scripts/build_browser_vendor.mjs",

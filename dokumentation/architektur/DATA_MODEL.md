@@ -404,6 +404,8 @@ Pflegeweg:
 - Sichtbare Korrekturen werden als geschützte Datenpflege oder kontrollierter Backfill vorgenommen.
 - Eine automatische Aktualisierung öffentlicher Mitgliederzahlen ist ein separater Datenjob mit Quellenprüfung, Konfliktlogik und Live-Backfill. Sie ist kein Teil normaler UI-Fixes.
 
+Die Politik-Unterseite ist kein zusätzlicher Tabellenbestand: Die aktuelle Besetzung des Gesundheitsausschusses wird serverseitig über den geschützten Leseendpunkt `/api/politics/health-committee` aus der festen offiziellen Bundestag-Quelle geladen, validiert und zeitlich begrenzt zwischengespeichert. Diese Mandatsdaten werden weder in `stakeholder_people` persistiert noch in das öffentliche Demo-Artefakt eingebettet.
+
 ## Tabelle `formats`
 
 Zweck:

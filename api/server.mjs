@@ -4,6 +4,7 @@ import { readFileSync } from "node:fs";
 import { checkServerIdentity } from "node:tls";
 import { Pool } from "pg";
 import "../frontend/data/activity-model.js";
+import { createBundestagHealthCommitteeDirectory } from "./bundestag-health-committee.mjs";
 import { careSectorForRead, careSectorForWrite } from "./care-sector-model.mjs";
 import {
   CONTACT_DUPLICATE_LOCK_KEY,
@@ -552,6 +553,9 @@ const OIDC_SUBJECT_CLAIM = process.env.OIDC_SUBJECT_CLAIM || "sub";
 const AUTH_EMAIL_HEADER = String(process.env.AUTH_EMAIL_HEADER || "x-auth-request-email").toLowerCase();
 const AUTH_SUBJECT_HEADER = String(process.env.AUTH_SUBJECT_HEADER || "x-auth-request-user").toLowerCase();
 const OUTBOUND_FETCH_TIMEOUT_MS = Math.max(1000, Number(process.env.OUTBOUND_FETCH_TIMEOUT_MS || 5000));
+const bundestagHealthCommitteeDirectory = createBundestagHealthCommitteeDirectory({
+  timeoutMs: OUTBOUND_FETCH_TIMEOUT_MS
+});
 const REQUEST_BODY_LIMIT_BYTES = Math.max(64 * 1024, Number(process.env.REQUEST_BODY_LIMIT_BYTES || 2 * 1024 * 1024));
 const HOSPITATION_IMPORT_MANIFEST_LIMIT_BYTES = 1024 * 1024;
 const HOSPITATION_IMPORT_OWNER_PROFILE_ID = String(process.env.HOSPITATION_IMPORT_OWNER_PROFILE_ID || "").trim();
@@ -9791,6 +9795,9 @@ async function handle(request, response) {
     }
     if (request.method === "GET" && url.pathname === "/api/stakeholder-people") {
       return jsonResponse(response, 200, await listStakeholderPeople(request, url));
+    }
+    if (request.method === "GET" && url.pathname === "/api/politics/health-committee") {
+      return jsonResponse(response, 200, await bundestagHealthCommitteeDirectory.load());
     }
     if (request.method === "POST" && url.pathname === "/api/stakeholder-import") {
       return jsonResponse(response, 200, await upsertStakeholderImport(request));
