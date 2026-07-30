@@ -143,7 +143,7 @@ function syntheticHealthCommittee() {
         imageSourceUrl: `https://www.bundestag.de/abgeordnete/biografien/D/demo-ausschussmitglied-${number}`,
         imageAttribution: `Deutscher Bundestag / Demo-Fotografie ${number}`,
         imageUsageTermsUrl: "https://www.bundestag.de/services/impressum",
-        imageRightsStatus: "review_required",
+        imageRightsStatus: "approved",
         constituency: hasConstituency
           ? `Wahlkreis ${constituencyNumber}: Demo-Wahlkreis ${number}`
           : "",

@@ -963,23 +963,57 @@
                 </div>
                 <div class="politics-context__meta">
                   <span class="politics-status-pill" id="politics-member-count">Mitglieder werden geladen</span>
-                  <a
-                    class="politics-source-link"
-                    id="politics-committee-source"
-                    href="https://www.bundestag.de/ausschuesse/gesundheit/"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                  >
-                    Quelle öffnen
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
-                      <path d="M14 5h5v5M10 14 19 5"></path>
-                      <path d="M19 13v6H5V5h6"></path>
-                    </svg>
-                  </a>
+                  <div class="politics-context__actions">
+                    <button class="action-button politics-map-open" id="politics-map-open" type="button">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                        <path d="M9 18 3 21V6l6-3 6 3 6-3v15l-6 3-6-3Z"></path>
+                        <path d="M9 3v15M15 6v15"></path>
+                      </svg>
+                      Auf Karte anzeigen
+                    </button>
+                    <a
+                      class="politics-source-link"
+                      id="politics-committee-source"
+                      href="https://www.bundestag.de/ausschuesse/gesundheit/"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                    >
+                      Quelle öffnen
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                        <path d="M14 5h5v5M10 14 19 5"></path>
+                        <path d="M19 13v6H5V5h6"></path>
+                      </svg>
+                    </a>
+                  </div>
                 </div>
               </header>
 
               <div class="politics-data-notice" id="politics-data-notice" role="status" aria-live="polite" hidden></div>
+
+              <section class="politics-map-panel" id="politics-map-panel" aria-label="Mitglieder des Gesundheitsausschusses auf der Deutschlandkarte" hidden>
+                <div class="politics-map-toolbar">
+                  <button class="action-button" id="politics-map-close" type="button">
+                    <span aria-hidden="true">←</span>
+                    Zur Mitgliederliste
+                  </button>
+                  <div class="politics-map-toolbar__meta">
+                    <span id="politics-map-meta">Politiker werden auf der Karte geladen</span>
+                    <small>
+                      © Die Bundeswahlleiterin, Statistisches Bundesamt, Wiesbaden 2024, Wahlkreiskarte für die Wahl zum
+                      21. Deutschen Bundestag · Grundlage der Geoinformationen © Geobasis-DE / BKG 2024
+                    </small>
+                  </div>
+                </div>
+                <iframe
+                  class="map-embed-frame politics-map-frame"
+                  id="politics-map-frame"
+                  title="Deutschlandkarte der Mitglieder des Gesundheitsausschusses"
+                  src="../map/versorgungs-kompass-map.html?embed=1&amp;channel=politics"
+                  data-message-channel="politics"
+                  loading="lazy"
+                  referrerpolicy="no-referrer"
+                ></iframe>
+              </section>
 
               <div class="table-wrap politics-table-wrap" id="politics-table-wrap">
                 <section class="table politics-table">
@@ -992,7 +1026,7 @@
                 </section>
               </div>
 
-              <div class="table-footer politics-table-footer">
+              <div class="table-footer politics-table-footer" id="politics-table-footer">
                 <div class="table-footer__meta" id="politics-results-meta">Mitglieder werden geladen</div>
                 <div class="politics-source-meta" id="politics-source-meta">Offizielle Quelle: Deutscher Bundestag</div>
               </div>
@@ -2904,6 +2938,7 @@
     </aside>
 
     <script src="../map/data/state-polygons.js"></script>
+    <script src="../map/data/constituency-polygons.js"></script>
     <script src="../data/sector-registry.js"></script>
     <script src="../data/hospitation-model.js"></script>
     <script src="../data/hospitation-export.js"></script>

@@ -6,11 +6,13 @@ import {
   BUNDESTAG_HEALTH_COMMITTEE_MAX_RESPONSE_BYTES,
   BUNDESTAG_HEALTH_COMMITTEE_MEMBERS_URL,
   BUNDESTAG_HEALTH_COMMITTEE_STALE_TTL_MS,
+  BUNDESTAG_IMAGE_DATABASE_USAGE_TERMS_URL,
   BUNDESTAG_IMAGE_USAGE_TERMS_URL,
   BundestagHealthCommitteeError,
   createBundestagHealthCommitteeDirectory,
   parseBundestagConstituencyDataJson,
-  parseBundestagHealthCommitteeHtml
+  parseBundestagHealthCommitteeHtml,
+  publicPortraitMetadataForMember
 } from "../api/bundestag-health-committee.mjs";
 
 function memberCard({
@@ -207,6 +209,44 @@ assert.equal(parsed.members[0].imageSourceUrl, parsed.members[0].profileUrl);
 assert.equal(parsed.members[0].imageAttribution, "© Dr. Ada Beispiel / Testfotografie");
 assert.equal(parsed.members[0].imageRightsStatus, "review_required");
 assert.equal(parsed.members[0].imageUsageTermsUrl, BUNDESTAG_IMAGE_USAGE_TERMS_URL);
+const commonsPortrait = publicPortraitMetadataForMember({
+  profileUrl: parsed.members[0].profileUrl,
+  ...parsed.members[0],
+  id: "1045922"
+});
+assert.equal(commonsPortrait.imageProvider, "Wikimedia Commons");
+assert.equal(commonsPortrait.imageRightsStatus, "approved");
+assert.equal(commonsPortrait.imageLicense, "CC BY 4.0");
+assert.match(commonsPortrait.imageUrl, /^https:\/\/commons\.wikimedia\.org\/wiki\/Special:Redirect\/file\//u);
+assert.match(commonsPortrait.imageSourceUrl, /^https:\/\/commons\.wikimedia\.org\/wiki\/File:/u);
+const bundestagDatabasePortrait = publicPortraitMetadataForMember({
+  ...parsed.members[0],
+  id: "1045200"
+});
+assert.equal(
+  bundestagDatabasePortrait.imageProvider,
+  "Bilddatenbank des Deutschen Bundestages"
+);
+assert.equal(bundestagDatabasePortrait.imageRightsStatus, "approved");
+assert.equal(
+  bundestagDatabasePortrait.imageLicense,
+  "Private und kommerzielle nicht-werbliche Nutzung"
+);
+assert.match(
+  bundestagDatabasePortrait.imageUrl,
+  /^https:\/\/bilddatenbank\.bundestag\.de\/fotos\/file[a-z0-9]+\.jpg$/u
+);
+assert.equal(
+  bundestagDatabasePortrait.imageSourceUrl,
+  "https://bilddatenbank.bundestag.de/site/picture-detail?id=5013430"
+);
+assert.equal(
+  bundestagDatabasePortrait.imageUsageTermsUrl,
+  BUNDESTAG_IMAGE_DATABASE_USAGE_TERMS_URL
+);
+const officialPortrait = publicPortraitMetadataForMember(parsed.members[0]);
+assert.equal(officialPortrait.imageProvider, "Deutscher Bundestag");
+assert.equal(officialPortrait.imageRightsStatus, "review_required");
 assert.equal(parsed.members[0].constituency, "");
 assert.equal(parsed.members[0].constituencyNumber, "");
 assert.equal(parsed.members[0].postalCodeCoverage, "not_applicable");

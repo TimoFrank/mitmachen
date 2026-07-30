@@ -38,7 +38,7 @@ Stand: 2026-07-30. Analysebasis sind die aktuellen HTML-Einstiegspunkte mit ihre
 
 - Kontaktliste: `.contacts-table`, `.thead`, `.row`, dynamisches Grid via `--contacts-grid-template`.
 - Organisationen: `.organizations-table`, ähnlicher Tabellenaufbau.
-- Politik: `.politics-table` nutzt dasselbe semantische Grid-Muster für die quellengestützte Leseliste des Gesundheitsausschusses. `.politics-party-chip` verwendet ausschließlich die fest definierte, kontrastgeprüfte Fraktionsfarben-Allowlist; auf kleinen Viewports bleiben Sortierung und Spaltenfilter als kompakte Steuerleiste erhalten, während die Zeilen zu Lesekarten ohne horizontales Scrollen werden. Recherchierte Portraitquellen und Urheberhinweise erscheinen im Profil; ein Bild wird erst bei dokumentiertem Status `approved` geladen, andernfalls bleibt der Initialen-Fallback aktiv.
+- Politik: `.politics-table` nutzt dasselbe semantische Grid-Muster für die quellengestützte Leseliste des Gesundheitsausschusses. `.politics-party-chip` verwendet ausschließlich die fest definierte, kontrastgeprüfte Fraktionsfarben-Allowlist; auf kleinen Viewports bleiben Sortierung und Spaltenfilter als kompakte Steuerleiste erhalten, während die Zeilen zu Lesekarten ohne horizontales Scrollen werden. Die PLZ-Spalte zeigt nur `representativePostalCode`. Eingebettet werden 21 frei lizenzierte Wikimedia-Commons-Portraits und sieben ausdrücklich für private sowie kommerzielle nicht-werbliche Nutzung freigegebene Aufnahmen der Bundestag-Bilddatenbank. Letztere erscheinen ohne isolierenden Zuschnitt; bei den übrigen zehn offiziellen Bundestag-Portraits bleibt bis zu einer nachgewiesenen Weiterverwendungsfreigabe der Initialen-Fallback aktiv. Quelle, Urheber, Lizenz und Rechtehinweis stehen im Profil.
 - Import: `.import-preview-table`, `.import-review-table`, `.import-map-table`, `.import-entry-table`.
 - Care Workbench: `.care-workbench-table`.
 - Befund: Kontakt-/Organisationstabellen sind div-basierte Grids, Import/Care echte Tabellen. Beide Muster sind legitim, brauchen aber gleiche Headerhöhe, Zellpadding, Hover, Active-State, Checkbox- und Aktionsspalte.
@@ -46,6 +46,7 @@ Stand: 2026-07-30. Analysebasis sind die aktuellen HTML-Einstiegspunkte mit ihre
 ## Drawer
 
 - Lesedrawer: `.detail-drawer`, `.detail-panel`, `.detail-overlay`.
+- Politikprofil: `.detail-panel--politics` öffnet als rechter Lesedrawer über der weiterhin sichtbaren Politikliste, ohne Profilreiter. Es enthält Mandatsdaten, eine ausgewählte Wahlkreis-PLZ, Bildnachweis und eine Mini-Deutschlandkarte mit hervorgehobener Wahlkreisgeometrie.
 - Editor: `.editor-drawer`, `.editor-panel`, `.editor-overlay`, plus Organisationeneditor mit gleicher Klasse.
 - Import: `.import-drawer`, `.import-panel`, `.import-overlay`.
 - Dashboard/Karte als Vollflächenlayer: `.dashboard-drawer`, `.map-mode-drawer`.
@@ -61,6 +62,7 @@ Stand: 2026-07-30. Analysebasis sind die aktuellen HTML-Einstiegspunkte mit ihre
 ## App-Shell und Navigation
 
 - Sidebar-Hauptarbeit: Kontakte, Organisationen, Karte, Auswertung.
+- Politik: `#politics-map-open` wechselt von der Ausschussliste zur eingebetteten Politik-Deutschlandkarte. Die Karte nutzt das bestehende VK-Kartenmuster, fraktionsfarbige Personenmarker und repräsentative Innenpunkte der gebündelten Wahlkreisgeometrien der Bundeswahlleiterin.
 - Sidebar-Administration/Pflege: Datenqualität, Importe.
 - Sidebar-Persönlich/System: Einstellungen; `Mein Profil` wird über den Nutzerbereich unten geöffnet.
 - Topbar: ruhig halten. Kontextuelle Hauptaktionen wie `Neuer Kontakt`, `Organisation anlegen` und bei Bedarf Archiv liegen in den jeweiligen Workspace-/Tabellen-Command-Rows. Kein dauerhafter Kontaktimport in der Topbar.

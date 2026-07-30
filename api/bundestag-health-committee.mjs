@@ -12,6 +12,10 @@ export const BUNDESTAG_CONSTITUENCY_SOURCE_URL =
   "https://www.bundestag.de/abgeordnete/wahlkreise/";
 export const BUNDESTAG_IMAGE_USAGE_TERMS_URL =
   "https://www.bundestag.de/services/impressum";
+export const BUNDESTAG_IMAGE_DATABASE_USAGE_TERMS_URL =
+  "https://bilddatenbank.bundestag.de/site/nutzungsbedingungen";
+export const WIKIMEDIA_COMMONS_REUSE_URL =
+  "https://commons.wikimedia.org/wiki/Commons:Reusing_content_outside_Wikimedia";
 export const BUNDESTAG_HEALTH_COMMITTEE_CACHE_TTL_MS = 6 * 60 * 60 * 1000;
 export const BUNDESTAG_HEALTH_COMMITTEE_STALE_TTL_MS = 24 * 60 * 60 * 1000;
 export const BUNDESTAG_HEALTH_COMMITTEE_TIMEOUT_MS = 8_000;
@@ -25,6 +29,38 @@ export const BUNDESTAG_HEALTH_COMMITTEE_PARTIES = Object.freeze([
 ]);
 
 const ALLOWED_PARTIES = new Set(BUNDESTAG_HEALTH_COMMITTEE_PARTIES);
+const COMMONS_PORTRAITS_BY_MEMBER_ID = new Map([
+  ["1045922", ["Dr. Tanja Machalet (2021).jpg", "photothek.net", "CC BY 4.0", "https://creativecommons.org/licenses/by/4.0/"]],
+  ["1046542", ["2020-02-13 Deutscher Bundestag IMG 3367 by Stepro.jpg", "Steffen Prößdorf", "CC BY-SA 4.0", "https://creativecommons.org/licenses/by-sa/4.0/"]],
+  ["1043764", ["Simone Borchardt c Ritchie Herbert.jpg", "VZukovsky", "CC BY-SA 4.0", "https://creativecommons.org/licenses/by-sa/4.0/"]],
+  ["1048714", ["Portrait Matthias Hiller.jpg", "TeamHiller", "CC BY-SA 4.0", "https://creativecommons.org/licenses/by-sa/4.0/"]],
+  ["1048984", ["MJK 67600 Axel Müller (Bundestag 2020).jpg", "Martin Kraft", "CC BY-SA 4.0", "https://creativecommons.org/licenses/by-sa/4.0/"]],
+  ["1046496", ["260326 Pauls Plenum.jpg", "CDU/CSU-Fraktion", "CC0", "https://creativecommons.org/publicdomain/zero/1.0/"]],
+  ["1049274", ["Hendrik Streeck.jpg", "Frank Burkhardt", "CC BY 2.5", "https://creativecommons.org/licenses/by/2.5/"]],
+  ["1048288", ["Emmi Zeulner 2013.jpg", "Wolf Heider-Sawall", "CC BY-SA 3.0 DE", "https://creativecommons.org/licenses/by-sa/3.0/de/"]],
+  ["1047420", ["2018-10-12 Martin Sichert AfD 8111.jpg", "Michael Lucan", "CC BY-SA 3.0 DE", "https://creativecommons.org/licenses/by-sa/3.0/de/"]],
+  ["1046124", ["Matthias Mieves (2023).jpg", "Christian Schneider", "CC BY 4.0", "https://creativecommons.org/licenses/by/4.0/"]],
+  ["1046166", ["2020-02-14 Deutscher Bundestag IMG 3739 by Stepro.jpg", "Steffen Prößdorf", "CC BY-SA 4.0", "https://creativecommons.org/licenses/by-sa/4.0/"]],
+  ["1046474", ["Dr. Christos Pantazis (2021).jpg", "photothek.net", "CC BY 4.0", "https://creativecommons.org/licenses/by/4.0/"]],
+  ["1047394", ["Dr. Lina Seitzl (2021).jpg", "photothek.net", "CC BY 4.0", "https://creativecommons.org/licenses/by/4.0/"]],
+  ["1048252", ["Serdar Yüksel (2014).jpg", "LTH89", "CC BY-SA 4.0", "https://creativecommons.org/licenses/by-sa/4.0/"]],
+  ["1043990", ["Janosch Dahmen.jpg", "Turnbeutel85", "CC BY-SA 4.0", "https://creativecommons.org/licenses/by-sa/4.0/"]],
+  ["1044328", ["SF2026.jpg", "Laura Dittrich", "CC BY 4.0", "https://creativecommons.org/licenses/by/4.0/"]],
+  ["1044850", ["Linda Heitmann (Bundestagsabgeordnete).jpg", "Mghamburg", "CC BY-SA 4.0", "https://creativecommons.org/licenses/by-sa/4.0/"]],
+  ["1045310", ["Dr. Kappert-Gonther, Kirsten-8957.jpg", "Foto-AG Melle", "CC BY-SA 4.0", "https://creativecommons.org/licenses/by-sa/4.0/"]],
+  ["1047936", ["Johannes.Wagner.Portraet.jpg", "Maloujow", "CC BY-SA 4.0", "https://creativecommons.org/licenses/by-sa/4.0/"]],
+  ["1044658", ["Ates Gürpinar 6917.jpg", "Henning Schlottmann", "CC BY-SA 4.0", "https://creativecommons.org/licenses/by-sa/4.0/"]],
+  ["1046072", ["2025-01-18 Außerordentlicher Bundesparteitag Die Linke 2025 in Berlin by Sandro Halank–122.jpg", "Sandro Halank", "CC BY-SA 4.0", "https://creativecommons.org/licenses/by-sa/4.0/"]]
+]);
+const BUNDESTAG_IMAGE_DATABASE_PORTRAITS_BY_MEMBER_ID = new Map([
+  ["1045200", ["file7o2ln3nzw44uqicjh0.jpg", "5013430", "Jörg Carstensen / photothek"]],
+  ["1047392", ["file82xxn0vpgo0171kqpe9n.jpg", "5028033", "Thomas Trutschel / photothek"]],
+  ["1049354", ["file7k6a5es8ni9193hsmh82.jpg", "5009089", "Felix Zahn / photothek"]],
+  ["1043728", ["file82nup2clwhtipl7jjlp.jpg", "5027864", "Christina Czybik"]],
+  ["1044132", ["file82nup2c95kh1e9hnz87j.jpg", "5027863", "Christina Czybik"]],
+  ["1049402", ["file7mzntq6k0aeu4qjm8z4.jpg", "5012567", "Thomas Imo / photothek"]],
+  ["1047344", ["file7c4mysrgrn518lb694dz.jpg", "2284416", "Renate Blanke"]]
+]);
 const NAMED_HTML_ENTITIES = Object.freeze({
   amp: "&",
   apos: "'",
@@ -221,8 +257,60 @@ function portraitMetadata(slide, profileUrl) {
     imageUrl,
     imageSourceUrl: profileUrl,
     imageAttribution,
+    imageLicense: "Nutzungsbedingungen des Deutschen Bundestages",
+    imageProvider: "Deutscher Bundestag",
     imageRightsStatus: "review_required",
     imageUsageTermsUrl: BUNDESTAG_IMAGE_USAGE_TERMS_URL
+  });
+}
+
+function commonsFilePageUrl(fileName) {
+  return `https://commons.wikimedia.org/wiki/File:${encodeURIComponent(fileName).replace(/%20/gu, "_")}`;
+}
+
+function commonsThumbnailUrl(fileName) {
+  return `https://commons.wikimedia.org/wiki/Special:Redirect/file/${encodeURIComponent(fileName)}?width=360`;
+}
+
+export function publicPortraitMetadataForMember(member = {}) {
+  const commonsPortrait = COMMONS_PORTRAITS_BY_MEMBER_ID.get(String(member.id || ""));
+  if (commonsPortrait) {
+    const [fileName, author, license, licenseUrl] = commonsPortrait;
+    return Object.freeze({
+      imageUrl: commonsThumbnailUrl(fileName),
+      imageSourceUrl: commonsFilePageUrl(fileName),
+      imageAttribution: `${author} · ${license} · Wikimedia Commons`,
+      imageLicense: license,
+      imageProvider: "Wikimedia Commons",
+      imageRightsStatus: "approved",
+      imageUsageTermsUrl: licenseUrl
+    });
+  }
+
+  const bundestagDatabasePortrait = BUNDESTAG_IMAGE_DATABASE_PORTRAITS_BY_MEMBER_ID.get(
+    String(member.id || "")
+  );
+  if (bundestagDatabasePortrait) {
+    const [fileName, pictureId, author] = bundestagDatabasePortrait;
+    return Object.freeze({
+      imageUrl: `https://bilddatenbank.bundestag.de/fotos/${fileName}`,
+      imageSourceUrl: `https://bilddatenbank.bundestag.de/site/picture-detail?id=${pictureId}`,
+      imageAttribution: `Deutscher Bundestag/${author}`,
+      imageLicense: "Private und kommerzielle nicht-werbliche Nutzung",
+      imageProvider: "Bilddatenbank des Deutschen Bundestages",
+      imageRightsStatus: "approved",
+      imageUsageTermsUrl: BUNDESTAG_IMAGE_DATABASE_USAGE_TERMS_URL
+    });
+  }
+
+  return Object.freeze({
+    imageUrl: member.imageUrl || "",
+    imageSourceUrl: member.imageSourceUrl || member.profileUrl || "",
+    imageAttribution: member.imageAttribution || "",
+    imageLicense: member.imageLicense || "Nutzungsbedingungen des Deutschen Bundestages",
+    imageProvider: member.imageProvider || "Deutscher Bundestag",
+    imageRightsStatus: "review_required",
+    imageUsageTermsUrl: member.imageUsageTermsUrl || BUNDESTAG_IMAGE_USAGE_TERMS_URL
   });
 }
 
@@ -697,10 +785,16 @@ function enrichedPayload(payload, constituencyMetadata) {
   if (constituencyMetadata.length !== payload.members.length) {
     throw responseError("Die Anzahl der Bundestag-Wahlkreise stimmt nicht mit der Mitgliederliste überein.");
   }
-  const members = payload.members.map((member, index) => Object.freeze({
-    ...member,
-    ...constituencyMetadata[index]
-  }));
+  const members = payload.members.map((member, index) => {
+    const constituency = constituencyMetadata[index];
+    return Object.freeze({
+      ...member,
+      ...publicPortraitMetadataForMember(member),
+      ...constituency,
+      representativePostalCode: constituency.postalCodes[0] || "",
+      mapPostalCode: constituency.postalCodes[0] || ""
+    });
+  });
   return Object.freeze({
     ...payload,
     members: Object.freeze(members)

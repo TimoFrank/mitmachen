@@ -228,6 +228,7 @@ EOF
   cp "$FRONTEND_DIR/map/data/city-labels.js" "$STAGE_DIR/deutschlandkarte-project/data/city-labels.js"
   cp "$FRONTEND_DIR/map/data/state-labels.js" "$STAGE_DIR/deutschlandkarte-project/data/state-labels.js"
   cp "$FRONTEND_DIR/map/data/state-polygons.js" "$STAGE_DIR/deutschlandkarte-project/data/state-polygons.js"
+  cp "$FRONTEND_DIR/map/data/constituency-polygons.js" "$STAGE_DIR/deutschlandkarte-project/data/constituency-polygons.js"
   for asset in \
     demo-profile-admin.svg \
     demo-profile-editor.svg \
@@ -512,6 +513,7 @@ build_target() {
   cp "$FRONTEND_DIR/map/data/city-labels.js" "$STAGE_DIR/deutschlandkarte-project/data/city-labels.js"
   cp "$FRONTEND_DIR/map/data/state-labels.js" "$STAGE_DIR/deutschlandkarte-project/data/state-labels.js"
   cp "$FRONTEND_DIR/map/data/state-polygons.js" "$STAGE_DIR/deutschlandkarte-project/data/state-polygons.js"
+  cp "$FRONTEND_DIR/map/data/constituency-polygons.js" "$STAGE_DIR/deutschlandkarte-project/data/constituency-polygons.js"
 
   node - \
     "$FRONTEND_DIR/public-entry/public-entry.css" \
