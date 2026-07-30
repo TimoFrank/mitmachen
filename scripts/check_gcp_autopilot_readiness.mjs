@@ -26,6 +26,7 @@ const requiredFiles = [
   "public/demo-profile-admin.svg",
   "public/demo-profile-editor.svg",
   "public/demo-profile-viewer.svg",
+  "public/media/social/mitmachen-share-v3.png",
   "deploy/helm/versorgungs-kompass/values-gcp-autopilot.yaml",
   "deploy/helm/versorgungs-kompass/values.schema.json",
   "deploy/helm/versorgungs-kompass/templates/configmap.yaml",
@@ -122,6 +123,12 @@ const contentChecks = [
       /--iap=disabled/,
       /deploy_release "\$iap_audience" false/,
       /data-public-entry="home"/,
+      /frontend\.publicEntry\.rootAliasHosts\[0\]=www\.versorgungs-kompass\.de/,
+      /\/public\/media\/social\/mitmachen-share-v3\.png/,
+      /WhatsApp\/2\.24\.7\.75 A/,
+      /whatsapp_share_status/,
+      /public_ingress_is_isolated/,
+      /public_url_map_is_isolated/,
       /data-google-sso-button/,
       /Protected path \$\{protected_path\} did not return an IAP-generated boundary response/,
       /matrix_aliases=\([\s\S]*\/;probe[\s\S]*\/anmelden;probe/,
@@ -143,7 +150,7 @@ const contentChecks = [
       /image\.digest/,
       /release_uri="gs:\/\/\$\{FRONTEND_BUCKET\}\/releases\/\$\{FRONTEND_RELEASE_ID\}"/
     ],
-    reason: "GitHub Actions nutzt Environment, schluesselloses WIF, DNS-Endpunkt, den zweistufigen IAP-Rollout und den vollstaendigen DB-Vertragscheck."
+    reason: "GitHub Actions nutzt Environment, schluesselloses WIF, DNS-Endpunkt, den zweistufigen IAP-Rollout, explizite Teams-/WhatsApp-Crawler-Smokes und den vollstaendigen DB-Vertragscheck."
   },
   {
     file: "api/Dockerfile",
@@ -192,8 +199,8 @@ const contentChecks = [
   },
   {
     file: "scripts/build_static_frontend.sh",
-    patterns: [/demo-profile-admin\.svg/, /demo-profile-editor\.svg/, /demo-profile-viewer\.svg/],
-    reason: "Die neutralen Demo-Avatare werden in beide getrennten Frontend-Artefakte uebernommen."
+    patterns: [/demo-profile-admin\.svg/, /demo-profile-editor\.svg/, /demo-profile-viewer\.svg/, /mitmachen-share-v3\.png/],
+    reason: "Die neutralen Demo-Avatare und das freigegebene Teams-Vorschaubild werden in die vorgesehenen getrennten Frontend-Artefakte uebernommen."
   },
   {
     file: "deploy/helm/versorgungs-kompass/templates/networkpolicy.yaml",
@@ -217,7 +224,7 @@ const contentChecks = [
   {
     file: "deploy/helm/versorgungs-kompass/templates/frontend-public-deployment.yaml",
     patterns: [/publicImageDigest/, /frontendPublicSelectorLabels/, /frontendPublicServiceAccountName/, /automountServiceAccountToken/, /image:\s*"\{\{ \$publicImageRepository \}\}@\{\{ \$publicImageDigest \}\}"/, /_healthz/],
-    reason: "Das dedizierte Public-Deployment nutzt ausschließlich ein digest-gepinntes Ein-Dokument-Image und eine eigene KSA ohne Kubernetes-API-Token."
+    reason: "Das dedizierte Public-Deployment nutzt ausschließlich ein digest-gepinntes Zwei-Dateien-Webroot aus HTML und PNG sowie eine eigene KSA ohne Kubernetes-API-Token."
   },
   {
     file: "deploy/helm/versorgungs-kompass/templates/frontend-public-backendconfig.yaml",
@@ -226,18 +233,44 @@ const contentChecks = [
   },
   {
     file: "deploy/helm/versorgungs-kompass/templates/ingress.yaml",
-    patterns: [/path:\s*\/[\s\S]*pathType:\s*Exact[\s\S]*frontendPublicFullname/, /path:\s*\/anmelden[\s\S]*pathType:\s*Exact[\s\S]*frontendPublicFullname/, /eq \$host \$\.Values\.ingress\.host/],
-    reason: "Nur die beiden exakten Pfade am kanonischen Host zeigen auf das Public-Backend."
+    patterns: [
+      /\$publicRootAliasHosts := \.Values\.frontend\.publicEntry\.rootAliasHosts/,
+      /or \(eq \$host \$\.Values\.ingress\.host\) \(hasKey \$publicRootAliasHostSet \$host\)/,
+      /path:\s*\/[\s\S]*pathType:\s*Exact[\s\S]*frontendPublicFullname/,
+      /if eq \$host \$\.Values\.ingress\.host[\s\S]*path:\s*\/anmelden[\s\S]*pathType:\s*Exact[\s\S]*frontendPublicFullname/,
+      /path:\s*\/public\/media\/social\/mitmachen-share-v3\.png[\s\S]*pathType:\s*Exact[\s\S]*frontendPublicFullname/,
+      /if and \$\.Values\.frontend\.enabled \(hasKey \$redirectHosts \$host\)[\s\S]*path:\s*\/[\s\S]*pathType:\s*Prefix[\s\S]*frontendFullname/
+    ],
+    reason: "Das Public-Backend erhaelt am Apex nur die drei freigegebenen Exact-Pfade und am explizit erlaubten www-Alias nur Exact /; alle Alias-Catch-alls bleiben beim IAP-geschuetzten Frontend."
   },
   {
     file: "deploy/helm/versorgungs-kompass/files/frontend-public.conf",
-    patterns: [/map \$request_uri \$public_entry_document/, /merge_slashes off/, /if \(\$public_entry_document = ""\)/, /default-src 'none'/, /script-src 'none'/, /Cache-Control "no-store"/],
-    reason: "Der Public-nginx erlaubt nur die beiden rohen Request-URIs und lehnt normalisierte oder codierte Aliase mit strikten Browser-Headern ab."
+    patterns: [
+      /map \$request_uri \$public_entry_document/,
+      /map \$request_uri \$public_share_image_document/,
+      /merge_slashes off/,
+      /if \(\$public_entry_document = ""\)/,
+      /location = \/public\/media\/social\/mitmachen-share-v3\.png/,
+      /try_files \/\$public_share_image_document =404/,
+      /default-src 'none'/,
+      /script-src 'none'/,
+      /Cache-Control "no-store"/
+    ],
+    reason: "Der Public-nginx erlaubt nur die rohen Einstiegs-URIs und das eine freigegebene PNG; normalisierte, codierte oder weitere Datei-Aliase werden mit strikten Browser-Headern abgelehnt."
   },
   {
     file: "deploy/frontend-public/Dockerfile",
-    patterns: [/nginx-unprivileged:[^\s]+@sha256:[a-f0-9]{64}/, /COPY --chown=101:101 dist\/target\/public-index\.html/, /frontend-public\.conf/, /USER 101:101/, /nginx -t/],
-    reason: "Das Public-Image enthaelt nur das auditierte Hauptdokument und die getestete nginx-Konfiguration auf einem gepinnten Non-Root-Basisimage."
+    patterns: [
+      /nginx-unprivileged:[^\s]+@sha256:[a-f0-9]{64}/,
+      /COPY --chown=101:101 dist\/target\/public-index\.html/,
+      /COPY --chown=101:101 dist\/target\/public\/media\/social\/mitmachen-share-v3\.png/,
+      /find \/usr\/share\/nginx\/html -type f[\s\S]*= "2"/,
+      /test -f \/usr\/share\/nginx\/html\/public\/media\/social\/mitmachen-share-v3\.png/,
+      /frontend-public\.conf/,
+      /USER 101:101/,
+      /nginx -t/
+    ],
+    reason: "Das Public-Image enthaelt im Webroot exakt das auditierte HTML und ein freigegebenes PNG sowie die getestete nginx-Konfiguration auf einem gepinnten Non-Root-Basisimage."
   },
   {
     file: "deploy/helm/versorgungs-kompass/templates/deployment.yaml",

@@ -376,6 +376,16 @@ try {
   assert.equal(fs.existsSync(path.join(targetDir, "vendor", "xlsx", "xlsx.bundle.js")), true, "Target muss das Export-Asset enthalten");
   assert.equal(fs.existsSync(path.join(targetDir, "public", "brand", "mitmachen", "mark-on-dark.svg")), true, "Target muss die #Mitmachen-Sidebar-Marke enthalten");
   assert.equal(fs.existsSync(path.join(targetDir, "public", "brand", "mitmachen", "lockup-horizontal.svg")), true, "Target muss die #Mitmachen-Wortmarke enthalten");
+  assert.equal(
+    fs.existsSync(path.join(targetDir, "public", "media", "social", "mitmachen-share-v3.png")),
+    true,
+    "Target muss das freigegebene Pages-Share-Bild fuer die oeffentliche Teams-Vorschau enthalten"
+  );
+  assert.deepEqual(
+    fs.readFileSync(path.join(targetDir, "public", "media", "social", "mitmachen-share-v3.png")),
+    fs.readFileSync(path.join(pagesDir, "public", "media", "social", "mitmachen-share-v3.png")),
+    "Target und Pages muessen exakt dasselbe Share-Bild ausliefern"
+  );
   assertMissing(
     targetDir,
     "demo",
@@ -394,7 +404,6 @@ try {
     "enrollment.js",
     "public/media/social/mitmachen-share-v1.png",
     "public/media/social/mitmachen-share-v2.png",
-    "public/media/social/mitmachen-share-v3.png",
     "public/media/social/versorgungs-netzwerk-share-v1.png"
   );
 
@@ -413,7 +422,29 @@ try {
   assert.match(targetPublicIndexHtml, /Mit Google anmelden/);
   assert.match(targetPublicIndexHtml, /Willkommen im Versorgungs-Kompass/);
   assert.match(targetPublicIndexHtml, /id="zugriff-verweigert"/);
+  assert.ok(targetPublicIndexHtml.includes(`<link rel="canonical" href="${apiBaseUrl}/" />`));
+  assert.match(targetPublicIndexHtml, /<meta property="og:title" content="#Mitmachen" \/>/);
+  assert.match(targetPublicIndexHtml, /<meta property="og:description" content="Deine Plattform für Austausch, Wissen und Vernetzung\." \/>/);
+  assert.ok(
+    targetPublicIndexHtml.includes(
+      `<meta property="og:image" content="${apiBaseUrl}/public/media/social/mitmachen-share-v3.png" />`
+    )
+  );
+  assert.match(targetPublicIndexHtml, /<meta name="twitter:card" content="summary_large_image" \/>/);
+  assert.match(targetPublicIndexHtml, /<meta name="twitter:description" content="Deine Plattform für Austausch, Wissen und Vernetzung\." \/>/);
   assert.doesNotMatch(targetPublicIndexHtml, /Testzugang aktivieren|enrollment\.html|\b(?:IAP|OIDC|Runtime|API-Gateway)\b/i);
+
+  const targetShareImagePath = path.join(targetDir, "public", "media", "social", "mitmachen-share-v3.png");
+  const cleanTargetShareImage = fs.readFileSync(targetShareImagePath);
+  fs.writeFileSync(targetShareImagePath, cleanTargetShareImage.subarray(0, 24));
+  auditResult = spawnSync(process.execPath, [targetAudit, "--artifact-root", targetDir], {
+    cwd: root,
+    encoding: "utf8"
+  });
+  assert.notEqual(auditResult.status, 0, "Target Asset Audit muss ein abgeschnittenes Teams-Share-PNG fail-closed ablehnen");
+  assert.match(`${auditResult.stderr}\n${auditResult.stdout}`, /muss ein PNG mit 1200 x 630 Pixeln sein/);
+  fs.writeFileSync(targetShareImagePath, cleanTargetShareImage);
+  execFileSync(process.execPath, [targetAudit, "--artifact-root", targetDir], { cwd: root, stdio: "pipe" });
   const targetIndexHtml = fs.readFileSync(path.join(targetDir, "index.html"), "utf8");
   assert.match(targetIndexHtml, /<aside class="module-sidebar"/);
   assert.match(targetIndexHtml, /<h1 id="welcome-title">Gemeinsam Versorgung gestalten\.<\/h1>/);

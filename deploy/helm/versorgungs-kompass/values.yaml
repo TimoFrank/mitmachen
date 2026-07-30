@@ -148,6 +148,7 @@ frontend:
       oauthClientCredentialsSecretName: ""
   publicEntry:
     enabled: false
+    rootAliasHosts: []
     replicaCount: 2
     podAnnotations: {}
     image:

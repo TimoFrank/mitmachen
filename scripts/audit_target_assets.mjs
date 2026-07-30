@@ -1,6 +1,9 @@
 import { existsSync, readFileSync, readdirSync, statSync } from "node:fs";
 import { extname, join, relative, resolve, sep } from "node:path";
 import { fileURLToPath } from "node:url";
+import htmlMetadataTags from "./html_metadata_tags.cjs";
+
+const { parseHtmlAttributes, scanHtmlStartTags } = htmlMetadataTags;
 
 const root = fileURLToPath(new URL("..", import.meta.url));
 const args = process.argv.slice(2);
@@ -26,6 +29,89 @@ function walk(directory) {
     if (entry.isDirectory()) return walk(fullPath);
     return entry.isFile() ? [fullPath] : [];
   });
+}
+
+function parsedMetadataTags(html, tagNames, label) {
+  return scanHtmlStartTags(html, tagNames).map((tag) => {
+    const parsed = parseHtmlAttributes(tag);
+    assert(
+      parsed.duplicateNames.length === 0,
+      `${label} darf in Share-relevanten Tags keine doppelten Attribute enthalten: ${parsed.duplicateNames.join(", ")}`
+    );
+    assert(
+      parsed.structuralCharacterReferenceNames.length === 0,
+      `${label} darf name, property oder rel nicht per Zeichenreferenz verschleiern`
+    );
+    return parsed.values;
+  });
+}
+
+function metadataContent(html, attribute, key, label) {
+  const matches = parsedMetadataTags(html, ["meta"], label)
+    .filter((attributes) => String(attributes[attribute] || "").toLowerCase() === key.toLowerCase());
+  assert(matches.length === 1, `${label} muss genau ein ${attribute}="${key}" enthalten`);
+  return matches[0]?.content;
+}
+
+function canonicalHref(html, label) {
+  const matches = parsedMetadataTags(html, ["link"], label)
+    .filter((attributes) => String(attributes.rel || "").toLowerCase().split(/\s+/).includes("canonical"));
+  assert(matches.length === 1, `${label} muss genau einen Canonical-Link enthalten`);
+  return matches[0]?.href;
+}
+
+function crc32(buffer) {
+  let crc = 0xffffffff;
+  for (const byte of buffer) {
+    crc ^= byte;
+    for (let bit = 0; bit < 8; bit += 1) {
+      crc = (crc >>> 1) ^ (crc & 1 ? 0xedb88320 : 0);
+    }
+  }
+  return (crc ^ 0xffffffff) >>> 0;
+}
+
+function inspectPng(filePath) {
+  const image = readFileSync(filePath);
+  if (image.length < 45 || image.subarray(0, 8).toString("hex") !== "89504e470d0a1a0a") return null;
+
+  let offset = 8;
+  let width;
+  let height;
+  let sawHeader = false;
+  let sawImageData = false;
+  let sawEnd = false;
+  while (offset + 12 <= image.length) {
+    const length = image.readUInt32BE(offset);
+    const typeStart = offset + 4;
+    const dataStart = offset + 8;
+    const dataEnd = dataStart + length;
+    const chunkEnd = dataEnd + 4;
+    if (chunkEnd > image.length) return null;
+
+    const type = image.subarray(typeStart, dataStart).toString("ascii");
+    const expectedCrc = image.readUInt32BE(dataEnd);
+    if (crc32(image.subarray(typeStart, dataEnd)) !== expectedCrc) return null;
+    if (!sawHeader) {
+      if (type !== "IHDR" || length !== 13) return null;
+      width = image.readUInt32BE(dataStart);
+      height = image.readUInt32BE(dataStart + 4);
+      sawHeader = true;
+    } else if (type === "IHDR") {
+      return null;
+    }
+    if (type === "IDAT") sawImageData = true;
+    if (type === "IEND") {
+      if (length !== 0 || chunkEnd !== image.length) return null;
+      sawEnd = true;
+      offset = chunkEnd;
+      break;
+    }
+    offset = chunkEnd;
+  }
+
+  if (!sawHeader || !sawImageData || !sawEnd || offset !== image.length) return null;
+  return { width, height };
 }
 
 assert(existsSync(artifactRoot) && statSync(artifactRoot).isDirectory(), `${artifactLabel} fehlt oder ist kein Verzeichnis`);
@@ -63,7 +149,8 @@ for (const required of [
   "public/brand/modules/stakeholder/mark-on-dark.svg",
   "public/brand/modules/stakeholder/mark.svg",
   "public/brand/versorgungs-kompass/mark-on-dark.svg",
-  "public/brand/versorgungs-kompass/mark.svg"
+  "public/brand/versorgungs-kompass/mark.svg",
+  "public/media/social/mitmachen-share-v3.png"
 ]) {
   assert(actualFiles.includes(required), `${artifactLabel}/${required} fehlt im geschuetzten Target-Artefakt`);
 }
@@ -95,6 +182,7 @@ for (const forbiddenPrefix of [
 }
 
 const configPath = join(artifactRoot, "data", "runtime-config.js");
+let targetBaseUrl = "";
 if (existsSync(configPath)) {
   const config = readFileSync(configPath, "utf8");
   assert(/dataMode:\s*"api"/.test(config), `${artifactLabel}/data/runtime-config.js erzwingt nicht den API-Modus`);
@@ -105,6 +193,35 @@ if (existsSync(configPath)) {
   assert(!/ownerOnlyContactChannels:\s*true/.test(config), `${artifactLabel}/data/runtime-config.js darf den Pages-spezifischen Owner-Schutz nicht aktivieren`);
   assert(!/allDemoContactsInvitable:\s*true/.test(config), `${artifactLabel}/data/runtime-config.js darf keine synthetische Demo-Einladungsfreigabe aktivieren`);
   assert(!/supabaseUrl|supabaseAnonKey|registrationEndpoint/.test(config), `${artifactLabel}/data/runtime-config.js enthaelt direkte Supabase-Browserkonfiguration`);
+  targetBaseUrl = /apiBaseUrl:\s*"([^"]+)"/.exec(config)?.[1] || "";
+  try {
+    const parsedTargetBaseUrl = new URL(targetBaseUrl);
+    assert(
+      parsedTargetBaseUrl.protocol === "https:" && parsedTargetBaseUrl.origin === targetBaseUrl,
+      `${artifactLabel}/data/runtime-config.js enthaelt keinen sicheren kanonischen Target-Origin`
+    );
+  } catch {
+    assert(false, `${artifactLabel}/data/runtime-config.js enthaelt keinen gueltigen Target-Origin`);
+  }
+}
+
+const shareImagePath = join(artifactRoot, "public", "media", "social", "mitmachen-share-v3.png");
+if (existsSync(shareImagePath)) {
+  const approvedShareImagePath = join(root, "public", "media", "social", "mitmachen-share-v3.png");
+  const dimensions = inspectPng(shareImagePath);
+  assert(
+    dimensions?.width === 1200 && dimensions?.height === 630,
+    `${artifactLabel}/public/media/social/mitmachen-share-v3.png muss ein PNG mit 1200 x 630 Pixeln sein`
+  );
+  assert(
+    statSync(shareImagePath).size <= 600_000,
+    `${artifactLabel}/public/media/social/mitmachen-share-v3.png muss fuer Messenger hoechstens 600 KB gross sein`
+  );
+  assert(
+    existsSync(approvedShareImagePath)
+      && readFileSync(shareImagePath).equals(readFileSync(approvedShareImagePath)),
+    `${artifactLabel}/public/media/social/mitmachen-share-v3.png muss bytegleich mit dem freigegebenen Pages-Bild sein`
+  );
 }
 
 const dataServicePath = join(artifactRoot, "data", "data-service.js");
@@ -194,6 +311,47 @@ for (const relativePath of ["public-index.html"]) {
 const publicIndexPath = join(artifactRoot, "public-index.html");
 if (existsSync(publicIndexPath)) {
   const html = readFileSync(publicIndexPath, "utf8");
+  const label = `${artifactLabel}/public-index.html`;
+  const shareUrl = `${targetBaseUrl}/`;
+  const shareImage = `${targetBaseUrl}/public/media/social/mitmachen-share-v3.png`;
+  const headEnd = html.toLowerCase().indexOf("</head>");
+  assert(headEnd >= 0, `${label} enthaelt keinen geschlossenen head-Bereich`);
+  assert(
+    Buffer.byteLength(html.slice(0, headEnd + "</head>".length), "utf8") <= 300_000,
+    `${label} muss den vollstaendigen Open-Graph-head innerhalb der ersten 300 KB fuer WhatsApp ausliefern`
+  );
+  assert(canonicalHref(html, label) === shareUrl, `${label} verwendet nicht die kanonische Target-URL`);
+  for (const [property, expected] of [
+    ["og:type", "website"],
+    ["og:locale", "de_DE"],
+    ["og:site_name", "#Mitmachen"],
+    ["og:title", "#Mitmachen"],
+    ["og:description", "Deine Plattform für Austausch, Wissen und Vernetzung."],
+    ["og:url", shareUrl],
+    ["og:image", shareImage],
+    ["og:image:secure_url", shareImage],
+    ["og:image:type", "image/png"],
+    ["og:image:width", "1200"],
+    ["og:image:height", "630"],
+    ["og:image:alt", "#Mitmachen Demo: Zusammenarbeit in der Versorgung auf einen Blick – zentriertes Banner auf dunkelblauem Hintergrund."]
+  ]) {
+    assert(
+      metadataContent(html, "property", property, label) === expected,
+      `${label} verwendet fuer ${property} nicht denselben freigegebenen Wert wie Pages`
+    );
+  }
+  for (const [name, expected] of [
+    ["twitter:card", "summary_large_image"],
+    ["twitter:title", "#Mitmachen"],
+    ["twitter:description", "Deine Plattform für Austausch, Wissen und Vernetzung."],
+    ["twitter:image", shareImage],
+    ["twitter:image:alt", "#Mitmachen Demo: Zusammenarbeit in der Versorgung auf einen Blick – zentriertes Banner auf dunkelblauem Hintergrund."]
+  ]) {
+    assert(
+      metadataContent(html, "name", name, label) === expected,
+      `${label} verwendet fuer ${name} nicht denselben freigegebenen Wert wie Pages`
+    );
+  }
   assert(
     (html.match(/href=[\"']\/api\/auth\/bootstrap\?return=%2Fstart%3Fiap_authenticated%3D1[\"']/gi) || []).length === 1,
     `${artifactLabel}/public-index.html muss genau einmal den realen Google-/IAP-Bootstrap starten`
