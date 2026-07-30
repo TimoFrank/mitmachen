@@ -32,6 +32,8 @@ export const GUEST_ACCESS_INPUT_VERSION = 1;
 export const GUEST_ACCESS_OPERATION = "PREBIND_IDENTITY_PLATFORM_PASSWORD_GUEST";
 export const GUEST_ACCESS_CREATE_PROFILE_OPERATION =
   "CREATE_PROFILE_AND_PREBIND_IDENTITY_PLATFORM_PASSWORD_GUEST";
+export const GUEST_ACCESS_RECONCILE_PROFILE_DISPLAY_NAME_OPERATION =
+  "RECONCILE_PROFILE_DISPLAY_NAME_AND_PREBIND_IDENTITY_PLATFORM_PASSWORD_GUEST";
 export const GUEST_ACCESS_REVOKE_OPERATION =
   "REVOKE_IDENTITY_PLATFORM_PASSWORD_GUEST_ACCESS";
 export const EXPECTED_ENVIRONMENT = "pre-gematik";
@@ -41,6 +43,7 @@ const ADVISORY_LOCK_NAME = "versorgungs-kompass:pre-gematik:identity-bindings";
 const DATABASE_URL_ENV = "PRE_GEMATIK_ACCESS_ADMIN_DATABASE_URL";
 const TARGET_FINGERPRINT_ENV = "PRE_GEMATIK_ACCESS_TARGET_SHA256";
 const REPOSITORY_ROOT_ENV = "PRE_GEMATIK_ACCESS_REPOSITORY_ROOT";
+const EXPECTED_PROJECT_ENV = "PRE_GEMATIK_ACCESS_EXPECTED_PROJECT_ID";
 const MAX_INPUT_BYTES = 64 * 1024;
 const PROJECT_PATTERN = /^[a-z][a-z0-9-]{4,28}[a-z0-9]$/u;
 const UID_PATTERN = /^[A-Za-z0-9_-]{8,128}$/u;
@@ -314,6 +317,19 @@ function sameProfile(actual, expected) {
     && actual.active === expected.active;
 }
 
+function sameProfileExceptDisplayName(actual, expected) {
+  return actual.id === expected.id
+    && actual.email === expected.email
+    && actual.display_name !== expected.display_name
+    && typeof actual.display_name === "string"
+    && actual.display_name.length > 0
+    && actual.display_name === actual.display_name.trim()
+    && actual.display_name.length <= 256
+    && !/[\u0000-\u001f\u007f]/u.test(actual.display_name)
+    && actual.role === expected.role
+    && actual.active === expected.active;
+}
+
 function sameNewGuestProfile(actual, expected) {
   return sameProfile(actual, expected)
     && actual.initials === expected.initials
@@ -488,6 +504,72 @@ export function buildIdentityPlatformGuestProfileCreationPlan(
   );
 }
 
+export function buildIdentityPlatformGuestProfileDisplayNameReconciliationPlan(
+  documentValue,
+  profileRows,
+  bindingRows,
+  requestRows
+) {
+  const document = validateIdentityPlatformGuestAccessDocument(documentValue);
+  const profile = expectedProfile(document);
+  const binding = expectedBinding(document);
+  const profiles = profileRows.map(canonicalProfile);
+  const bindings = bindingRows.map(canonicalBinding);
+  const requests = requestRows.map(canonicalRequest);
+  const currentStateFingerprint = fingerprintState({ profiles, bindings, requests });
+  const expectedStateFingerprint = fingerprintState({
+    profiles: [profile],
+    bindings: [binding],
+    requests: []
+  });
+
+  if (requests.length !== 0) {
+    throw new SafeCliError(
+      "Ein Enrollment-Request kollidiert mit dem expliziten Anzeigename-Abgleich; "
+      + "der Vorgang wurde fail-closed abgebrochen."
+    );
+  }
+  if (
+    profiles.length === 1
+    && bindings.length === 1
+    && sameProfile(profiles[0], profile)
+    && sameBinding(bindings[0], binding)
+  ) {
+    return Object.freeze({
+      action: "unchanged",
+      profile,
+      currentProfile: profiles[0],
+      binding,
+      profileUpdateCount: 0,
+      bindingInsertCount: 0,
+      currentStateFingerprint,
+      expectedStateFingerprint
+    });
+  }
+  if (
+    profiles.length === 1
+    && bindings.length === 0
+    && sameProfileExceptDisplayName(profiles[0], profile)
+  ) {
+    return Object.freeze({
+      action: "reconcile_profile_display_name_and_create_binding",
+      profile,
+      currentProfile: profiles[0],
+      binding,
+      profileUpdateCount: 1,
+      bindingInsertCount: 1,
+      currentStateFingerprint,
+      expectedStateFingerprint
+    });
+  }
+
+  throw new SafeCliError(
+    "Der explizite Anzeigename-Abgleich erlaubt nur genau ein ansonsten exaktes "
+    + "aktives Profil mit abweichendem Anzeigenamen und ohne Binding oder den "
+    + "exakten vollstaendigen Profil-und-test_only-Binding-No-op."
+  );
+}
+
 export function buildIdentityPlatformGuestRevocationPlan(
   documentValue,
   profileRows,
@@ -620,6 +702,7 @@ export function parseIdentityPlatformGuestAccessArguments(argv) {
     apply: false,
     revoke: false,
     createProfileAndPrebind: false,
+    reconcileProfileDisplayNameAndPrebind: false,
     input: "",
     confirmEnvironment: "",
     confirmProject: "",
@@ -644,6 +727,8 @@ export function parseIdentityPlatformGuestAccessArguments(argv) {
     else if (argument === "--revoke") options.revoke = true;
     else if (argument === "--create-profile-and-prebind") {
       options.createProfileAndPrebind = true;
+    } else if (argument === "--reconcile-profile-display-name-and-prebind") {
+      options.reconcileProfileDisplayNameAndPrebind = true;
     } else if (valueOptions.has(argument)) {
       options[valueOptions.get(argument)] = optionValue(argv, index, argument);
       index += 1;
@@ -651,9 +736,15 @@ export function parseIdentityPlatformGuestAccessArguments(argv) {
       throw new SafeCliError("Unbekannte oder unvollstaendige Kommandozeilenoption.");
     }
   }
-  if (options.revoke && options.createProfileAndPrebind) {
+  if (
+    Number(options.revoke)
+      + Number(options.createProfileAndPrebind)
+      + Number(options.reconcileProfileDisplayNameAndPrebind)
+    > 1
+  ) {
     throw new SafeCliError(
-      "--revoke und --create-profile-and-prebind sind gegenseitig ausgeschlossen."
+      "--revoke, --create-profile-and-prebind und "
+      + "--reconcile-profile-display-name-and-prebind sind gegenseitig ausgeschlossen."
     );
   }
   return Object.freeze(options);
@@ -664,9 +755,15 @@ export function validateIdentityPlatformGuestAccessConfirmations(
   document,
   fingerprint
 ) {
-  if (options.revoke && options.createProfileAndPrebind) {
+  if (
+    Number(options.revoke)
+      + Number(options.createProfileAndPrebind)
+      + Number(options.reconcileProfileDisplayNameAndPrebind)
+    > 1
+  ) {
     throw new SafeCliError(
-      "--revoke und --create-profile-and-prebind sind gegenseitig ausgeschlossen."
+      "--revoke, --create-profile-and-prebind und "
+      + "--reconcile-profile-display-name-and-prebind sind gegenseitig ausgeschlossen."
     );
   }
   if (!options.input && !options.help) {
@@ -695,7 +792,9 @@ export function validateIdentityPlatformGuestAccessConfirmations(
         ? GUEST_ACCESS_REVOKE_OPERATION
         : options.createProfileAndPrebind
           ? GUEST_ACCESS_CREATE_PROFILE_OPERATION
-          : GUEST_ACCESS_OPERATION
+          : options.reconcileProfileDisplayNameAndPrebind
+            ? GUEST_ACCESS_RECONCILE_PROFILE_DISPLAY_NAME_OPERATION
+            : GUEST_ACCESS_OPERATION
     )
     || options.confirmFingerprint !== fingerprint
     || !FINGERPRINT_PATTERN.test(options.confirmFingerprint)
@@ -815,6 +914,36 @@ export function formatIdentityPlatformGuestProfileCreationResult({
   });
 }
 
+export function formatIdentityPlatformGuestProfileDisplayNameReconciliationResult({
+  applied,
+  action,
+  inputFingerprint,
+  currentStateFingerprint,
+  expectedStateFingerprint,
+  complete
+}) {
+  const bindingCount = applied || action === "unchanged" ? 1 : 0;
+  return JSON.stringify({
+    schema_version: 1,
+    operation: GUEST_ACCESS_RECONCILE_PROFILE_DISPLAY_NAME_OPERATION,
+    mode: applied ? "APPLY" : "PREVIEW",
+    result: action,
+    identity_platform_account_verified: true,
+    provider_verified: EXPECTED_PASSWORD_PROVIDER,
+    subject_namespace_verified: true,
+    access_scope_verified: "test_only",
+    profile_count: 1,
+    binding_count: bindingCount,
+    active_binding_count: bindingCount,
+    profile_display_name_matches_identity: complete,
+    profile_binding_complete: complete,
+    database_transaction_committed: applied,
+    input_fingerprint: inputFingerprint,
+    current_state_fingerprint: currentStateFingerprint,
+    expected_state_fingerprint: expectedStateFingerprint
+  });
+}
+
 export function formatIdentityPlatformGuestRevocationResult({
   applied,
   action,
@@ -868,6 +997,22 @@ export class GuestAccessProfileCreationCommitOutcomeUnknownError extends SafeCli
     );
     this.name = "GuestAccessProfileCreationCommitOutcomeUnknownError";
     this.code = "GUEST_ACCESS_PROFILE_CREATION_COMMIT_OUTCOME_UNKNOWN";
+  }
+}
+
+export class GuestAccessProfileDisplayNameReconciliationCommitOutcomeUnknownError
+  extends SafeCliError {
+  constructor(inputFingerprint, expectedStateFingerprint) {
+    super(
+      "COMMIT-Ergebnis fuer den atomaren Gastprofil-Anzeigename-Abgleich und das "
+      + "Pre-Binding ist unbekannt. Nicht blind wiederholen; zuerst einen neuen "
+      + "--reconcile-profile-display-name-and-prebind-Preview ausfuehren. "
+      + `input_fingerprint=${inputFingerprint} `
+      + `expected_state_fingerprint=${expectedStateFingerprint}.`,
+      1
+    );
+    this.name = "GuestAccessProfileDisplayNameReconciliationCommitOutcomeUnknownError";
+    this.code = "GUEST_ACCESS_PROFILE_DISPLAY_NAME_RECONCILIATION_COMMIT_OUTCOME_UNKNOWN";
   }
 }
 
@@ -996,6 +1141,161 @@ export async function executeIdentityPlatformGuestPreBindingTransaction({
     log(formatIdentityPlatformGuestAccessResult({
       applied: true,
       action: plan.action === "unchanged" ? "unchanged" : `${plan.action}_completed`,
+      inputFingerprint: fingerprint,
+      currentStateFingerprint: finalPlan.currentStateFingerprint,
+      expectedStateFingerprint: plan.expectedStateFingerprint,
+      complete: true
+    }));
+    return finalPlan;
+  } catch (error) {
+    if (transactionOpen && !commitAttempted) {
+      await client.query("rollback").catch(() => {});
+    }
+    throw error;
+  }
+}
+
+export async function executeIdentityPlatformGuestProfileDisplayNameReconciliationTransaction({
+  client,
+  document: documentValue,
+  fingerprint,
+  apply,
+  confirmedCurrentStateFingerprint = "",
+  expectedDatabase = "",
+  verifyIdentity,
+  log = console.log
+}) {
+  const document = validateIdentityPlatformGuestAccessDocument(documentValue);
+  if (identityPlatformGuestAccessFingerprint(document) !== fingerprint) {
+    throw new SafeCliError("Der Gastzugriffs-Fingerprint entspricht nicht dem Eingabedokument.");
+  }
+  if (typeof verifyIdentity !== "function") {
+    throw new SafeCliError("Der administrative Identity-Platform-Readback fehlt.");
+  }
+
+  let transactionOpen = false;
+  let commitAttempted = false;
+  try {
+    await client.query("begin isolation level serializable");
+    transactionOpen = true;
+    await client.query("set local lock_timeout = '5s'");
+    await client.query("set local statement_timeout = '30s'");
+    await assumeAccessAdministrationRole(client);
+    await client.query("select pg_advisory_xact_lock(hashtext($1))", [ADVISORY_LOCK_NAME]);
+    const databaseResult = await client.query("select current_database() as database_name");
+    if (apply && databaseResult.rows[0]?.database_name !== expectedDatabase) {
+      throw new SafeCliError("Der tatsaechliche Datenbankname entspricht nicht --confirm-database.");
+    }
+    await checkAccessPrivileges(client);
+
+    assertVerifiedEvidence(await verifyIdentity(), document);
+    const current = await readRelevantState(client, document);
+    const plan = buildIdentityPlatformGuestProfileDisplayNameReconciliationPlan(
+      document,
+      current.profiles,
+      current.bindings,
+      current.requests
+    );
+
+    if (apply && confirmedCurrentStateFingerprint !== plan.currentStateFingerprint) {
+      throw new SafeCliError(
+        "Der aktuelle Gastprofil-Zustand entspricht nicht dem bestaetigten "
+        + "current_state_fingerprint aus dem Anzeigename-Abgleich-Preview."
+      );
+    }
+
+    if (!apply) {
+      await client.query("rollback");
+      transactionOpen = false;
+      log(formatIdentityPlatformGuestProfileDisplayNameReconciliationResult({
+        applied: false,
+        action: plan.action,
+        inputFingerprint: fingerprint,
+        currentStateFingerprint: plan.currentStateFingerprint,
+        expectedStateFingerprint: plan.expectedStateFingerprint,
+        complete: plan.action === "unchanged"
+      }));
+      return plan;
+    }
+
+    if (plan.profileUpdateCount === 1) {
+      const result = await client.query(
+        `update public.profiles
+            set display_name = $1
+          where id = $2
+            and email = $3
+            and display_name = $4
+            and role = $5
+            and active = true`,
+        [
+          plan.profile.display_name,
+          plan.profile.id,
+          plan.profile.email,
+          plan.currentProfile.display_name,
+          plan.profile.role
+        ]
+      );
+      if (result.rowCount !== 1) {
+        throw new SafeCliError(
+          "Der gepinnte Profil-Anzeigename wurde konkurrierend veraendert; "
+          + "der atomare Abgleich wurde abgebrochen."
+        );
+      }
+    }
+    if (plan.bindingInsertCount === 1) {
+      const result = await client.query(
+        `insert into public.identity_bindings
+           (issuer, subject, profile_id, active, access_scope, scope_ref)
+         values ($1, $2, $3, true, 'test_only', $4)`,
+        [
+          plan.binding.issuer,
+          plan.binding.subject,
+          plan.binding.profile_id,
+          plan.binding.scope_ref
+        ]
+      );
+      if (result.rowCount !== 1) {
+        throw new SafeCliError(
+          "Das test_only-Sollbinding wurde beim atomaren Anzeigename-Abgleich "
+          + "nicht exakt einmal angelegt."
+        );
+      }
+    }
+
+    const finalState = await readRelevantState(client, document);
+    const finalPlan = buildIdentityPlatformGuestProfileDisplayNameReconciliationPlan(
+      document,
+      finalState.profiles,
+      finalState.bindings,
+      finalState.requests
+    );
+    if (
+      finalPlan.action !== "unchanged"
+      || finalPlan.currentStateFingerprint !== plan.expectedStateFingerprint
+    ) {
+      throw new SafeCliError(
+        "Die transaktionale Abschlusskontrolle von Profil-Anzeigename und "
+        + "test_only-Binding ist fehlgeschlagen."
+      );
+    }
+    assertVerifiedEvidence(await verifyIdentity(), document);
+
+    commitAttempted = true;
+    try {
+      await client.query("commit");
+    } catch {
+      transactionOpen = false;
+      throw new GuestAccessProfileDisplayNameReconciliationCommitOutcomeUnknownError(
+        fingerprint,
+        plan.expectedStateFingerprint
+      );
+    }
+    transactionOpen = false;
+    log(formatIdentityPlatformGuestProfileDisplayNameReconciliationResult({
+      applied: true,
+      action: plan.action === "unchanged"
+        ? "unchanged"
+        : "profile_display_name_reconciled_and_binding_created",
       inputFingerprint: fingerprint,
       currentStateFingerprint: finalPlan.currentStateFingerprint,
       expectedStateFingerprint: plan.expectedStateFingerprint,
@@ -1318,6 +1618,23 @@ Explizite Neunutzeranlage anwenden:
     --confirm-fingerprint sha256:<preview-input-fingerprint> \\
     --confirm-current-state-fingerprint sha256:<preview-state-fingerprint>
 
+Expliziter Preview fuer einen atomaren Anzeigename-Abgleich plus Pre-Binding:
+  node scripts/provision_pre_gematik_identity_platform_guest_access.mjs \\
+    --input /absolut/owner-only/guest-access.json \\
+    --reconcile-profile-display-name-and-prebind
+
+Expliziten Anzeigename-Abgleich plus Pre-Binding anwenden:
+  node scripts/provision_pre_gematik_identity_platform_guest_access.mjs \\
+    --input /absolut/owner-only/guest-access.json \\
+    --reconcile-profile-display-name-and-prebind \\
+    --apply \\
+    --confirm-environment ${EXPECTED_ENVIRONMENT} \\
+    --confirm-project <project-id> \\
+    --confirm-database <database> \\
+    --confirm-operation ${GUEST_ACCESS_RECONCILE_PROFILE_DISPLAY_NAME_OPERATION} \\
+    --confirm-fingerprint sha256:<preview-input-fingerprint> \\
+    --confirm-current-state-fingerprint sha256:<preview-state-fingerprint>
+
 Widerrufs-Preview:
   node scripts/provision_pre_gematik_identity_platform_guest_access.mjs \\
     --input /absolut/owner-only/guest-access.json \\
@@ -1341,6 +1658,10 @@ leitet den IAP-Subject selbst ab und legt im Standardmodus ausschliesslich ein a
 test_only-Binding auf ein bereits vorhandenes, exakt gepinntes Profil an. Nur der
 ausdrueckliche --create-profile-and-prebind-Modus darf aus einem vollstaendig leeren
 Zielzustand Profil und test_only-Binding atomar anlegen; jeder Teilzustand bricht ab.
+Der ausdrueckliche --reconcile-profile-display-name-and-prebind-Modus akzeptiert
+nur ein ansonsten exakt passendes aktives Bestandsprofil mit abweichendem Anzeigenamen
+und ohne Binding; er gleicht genau diesen Anzeigenamen und das test_only-Binding atomar
+ab. Ein bereits vollstaendiger Sollzustand bleibt in demselben Modus ein No-op.
 Der explizite --revoke-Modus deaktiviert ausschliesslich diese exakt gepinnte
 test_only-Bindung. Vollstaendige Wiederholungslaeufe sind jeweils No-ops.
 Die Verbindung kommt aus ${DATABASE_URL_ENV}; ${TARGET_FINGERPRINT_ENV} bindet sie
@@ -1379,6 +1700,15 @@ export async function main(
     options.input,
     { repository: root }
   );
+  const expectedProject = environment[EXPECTED_PROJECT_ENV];
+  if (expectedProject !== undefined && expectedProject !== "") {
+    assertText(expectedProject, EXPECTED_PROJECT_ENV, 30, PROJECT_PATTERN);
+    if (expectedProject !== document.project_id) {
+      throw new SafeCliError(
+        "Das Gastzugriffs-Dokument gehoert nicht zum geschuetzt erwarteten Zielprojekt."
+      );
+    }
+  }
   const fingerprint = identityPlatformGuestAccessFingerprint(document);
   validateIdentityPlatformGuestAccessConfirmations(options, document, fingerprint);
 
@@ -1401,7 +1731,9 @@ export async function main(
     ? "vk-identity-platform-guest-revocation"
     : options.createProfileAndPrebind
       ? "vk-identity-platform-guest-profile-create"
-      : "vk-identity-platform-guest-prebinding";
+      : options.reconcileProfileDisplayNameAndPrebind
+        ? "vk-identity-platform-guest-display-name-reconcile"
+        : "vk-identity-platform-guest-prebinding";
   const useManagedProxy = options.apply
     || environment.CLOUD_SQL_AUTH_PROXY_CONNECT_MODE !== undefined;
   const gateResult = useManagedProxy
@@ -1439,7 +1771,9 @@ export async function main(
       ? executeIdentityPlatformGuestRevocationTransaction
       : options.createProfileAndPrebind
         ? executeIdentityPlatformGuestProfileCreationTransaction
-        : executeIdentityPlatformGuestPreBindingTransaction;
+        : options.reconcileProfileDisplayNameAndPrebind
+          ? executeIdentityPlatformGuestProfileDisplayNameReconciliationTransaction
+          : executeIdentityPlatformGuestPreBindingTransaction;
     await executeTransaction({
       client,
       document,

@@ -9,19 +9,24 @@ import {
   EXPECTED_PASSWORD_PROVIDER,
   GUEST_ACCESS_CREATE_PROFILE_OPERATION,
   GUEST_ACCESS_OPERATION,
+  GUEST_ACCESS_RECONCILE_PROFILE_DISPLAY_NAME_OPERATION,
   GUEST_ACCESS_REVOKE_OPERATION,
   GuestAccessCommitOutcomeUnknownError,
   GuestAccessProfileCreationCommitOutcomeUnknownError,
+  GuestAccessProfileDisplayNameReconciliationCommitOutcomeUnknownError,
   GuestAccessRevocationCommitOutcomeUnknownError,
   buildIdentityPlatformGuestPreBindingPlan,
   buildIdentityPlatformGuestProfileCreationPlan,
+  buildIdentityPlatformGuestProfileDisplayNameReconciliationPlan,
   buildIdentityPlatformGuestRevocationPlan,
   executeIdentityPlatformGuestPreBindingTransaction,
   executeIdentityPlatformGuestProfileCreationTransaction,
+  executeIdentityPlatformGuestProfileDisplayNameReconciliationTransaction,
   executeIdentityPlatformGuestRevocationTransaction,
   identityPlatformGuestAccessFingerprint,
   identityPlatformGuestSubject,
   loadProtectedIdentityPlatformGuestAccessDocument,
+  main as identityPlatformGuestAccessMain,
   parseIdentityPlatformGuestAccessArguments,
   validateIdentityPlatformGuestAccessConfirmations,
   validateIdentityPlatformGuestAccessDocument,
@@ -250,6 +255,10 @@ const binding = {
   scope_ref: document.scope_ref
 };
 const revokedBinding = { ...binding, active: false };
+const profileWithPreviousDisplayName = {
+  ...profile,
+  display_name: "Previous Test Name"
+};
 
 const newGuestCreationPlan = buildIdentityPlatformGuestProfileCreationPlan(
   document,
@@ -334,6 +343,71 @@ const unchangedPlan = buildIdentityPlatformGuestPreBindingPlan(
 assert.equal(unchangedPlan.action, "unchanged");
 assert.equal(unchangedPlan.currentStateFingerprint, unchangedPlan.expectedStateFingerprint);
 assert.equal(unchangedPlan.bindingInsertCount, 0);
+
+const displayNameReconciliationPlan =
+  buildIdentityPlatformGuestProfileDisplayNameReconciliationPlan(
+    document,
+    [profileWithPreviousDisplayName],
+    [],
+    []
+  );
+assert.equal(
+  displayNameReconciliationPlan.action,
+  "reconcile_profile_display_name_and_create_binding"
+);
+assert.equal(displayNameReconciliationPlan.profileUpdateCount, 1);
+assert.equal(displayNameReconciliationPlan.bindingInsertCount, 1);
+assert.notEqual(
+  displayNameReconciliationPlan.currentStateFingerprint,
+  displayNameReconciliationPlan.expectedStateFingerprint
+);
+const displayNameReconciliationNoopPlan =
+  buildIdentityPlatformGuestProfileDisplayNameReconciliationPlan(
+    document,
+    [profile],
+    [binding],
+    []
+  );
+assert.equal(displayNameReconciliationNoopPlan.action, "unchanged");
+assert.equal(displayNameReconciliationNoopPlan.profileUpdateCount, 0);
+assert.equal(displayNameReconciliationNoopPlan.bindingInsertCount, 0);
+assert.equal(
+  displayNameReconciliationNoopPlan.currentStateFingerprint,
+  displayNameReconciliationNoopPlan.expectedStateFingerprint
+);
+for (const [profiles, bindings, requests, pattern] of [
+  [[profile], [], [], /ansonsten exaktes/u],
+  [[profileWithPreviousDisplayName], [binding], [], /ansonsten exaktes/u],
+  [[{ ...profileWithPreviousDisplayName, role: "viewer" }], [], [], /ansonsten exaktes/u],
+  [[{ ...profileWithPreviousDisplayName, active: false }], [], [], /ansonsten exaktes/u],
+  [[{ ...profileWithPreviousDisplayName, email: "other@example.invalid" }], [], [], /ansonsten exaktes/u],
+  [[{ ...profileWithPreviousDisplayName, display_name: " Previous Test Name " }], [], [], /ansonsten exaktes/u],
+  [[profileWithPreviousDisplayName, { ...profileWithPreviousDisplayName }], [], [], /ansonsten exaktes/u],
+  [[profileWithPreviousDisplayName], [binding, { ...binding }], [], /ansonsten exaktes/u],
+  [
+    [profileWithPreviousDisplayName],
+    [],
+    [{
+      request_id: "11111111-1111-4111-8111-111111111111",
+      issuer: binding.issuer,
+      subject,
+      verified_email: document.email,
+      status: "pending",
+      applied_profile_id: null
+    }],
+    /Enrollment-Request/u
+  ]
+]) {
+  safeFailure(
+    () => buildIdentityPlatformGuestProfileDisplayNameReconciliationPlan(
+      document,
+      profiles,
+      bindings,
+      requests
+    ),
+    pattern
+  );
+}
 
 const revokePlan = buildIdentityPlatformGuestRevocationPlan(
   document,
@@ -479,6 +553,49 @@ safeFailure(
     fingerprint
   ),
   /Apply-Bestaetigungen/u
+);
+const reconcilePreviewOptions = parseIdentityPlatformGuestAccessArguments([
+  "--input", "/protected/guest-access.json",
+  "--reconcile-profile-display-name-and-prebind"
+]);
+assert.equal(reconcilePreviewOptions.reconcileProfileDisplayNameAndPrebind, true);
+validateIdentityPlatformGuestAccessConfirmations(
+  reconcilePreviewOptions,
+  document,
+  fingerprint
+);
+const reconcileApplyOptions = parseIdentityPlatformGuestAccessArguments([
+  "--input", "/protected/guest-access.json",
+  "--reconcile-profile-display-name-and-prebind",
+  "--apply",
+  "--confirm-environment", "pre-gematik",
+  "--confirm-project", document.project_id,
+  "--confirm-database", "versorgungs_kompass",
+  "--confirm-operation", GUEST_ACCESS_RECONCILE_PROFILE_DISPLAY_NAME_OPERATION,
+  "--confirm-fingerprint", fingerprint,
+  "--confirm-current-state-fingerprint",
+  displayNameReconciliationPlan.currentStateFingerprint
+]);
+validateIdentityPlatformGuestAccessConfirmations(
+  reconcileApplyOptions,
+  document,
+  fingerprint
+);
+safeFailure(
+  () => validateIdentityPlatformGuestAccessConfirmations(
+    { ...reconcileApplyOptions, confirmOperation: GUEST_ACCESS_OPERATION },
+    document,
+    fingerprint
+  ),
+  /Apply-Bestaetigungen/u
+);
+safeFailure(
+  () => parseIdentityPlatformGuestAccessArguments([
+    "--input", "/protected/guest-access.json",
+    "--create-profile-and-prebind",
+    "--reconcile-profile-display-name-and-prebind"
+  ]),
+  /gegenseitig ausgeschlossen/u
 );
 safeFailure(
   () => parseIdentityPlatformGuestAccessArguments([
@@ -656,6 +773,24 @@ class MockTransactionalClient {
         role: values[3],
         active: true
       });
+      return { rows: [], rowCount: 1 };
+    }
+    if (
+      normalized.startsWith("update public.profiles")
+      && normalized.includes("set display_name = $1")
+    ) {
+      const profileIndex = this.state.profiles.findIndex((candidate) =>
+        candidate.id === values[1]
+        && candidate.email === values[2]
+        && candidate.display_name === values[3]
+        && candidate.role === values[4]
+        && candidate.active === true
+      );
+      if (profileIndex === -1) return { rows: [], rowCount: 0 };
+      this.state.profiles[profileIndex] = {
+        ...this.state.profiles[profileIndex],
+        display_name: values[0]
+      };
       return { rows: [], rowCount: 1 };
     }
     if (normalized.startsWith("insert into public.identity_bindings")) {
@@ -965,6 +1100,186 @@ assert.equal(
 );
 assert.equal(JSON.parse(unchangedLogs[0]).result, "unchanged");
 
+const displayNameReconciliationClient = new MockTransactionalClient({
+  profiles: [profileWithPreviousDisplayName]
+});
+const displayNameReconciliationPreviewLogs = [];
+const displayNameReconciliationPreview =
+  await executeIdentityPlatformGuestProfileDisplayNameReconciliationTransaction({
+    client: displayNameReconciliationClient,
+    document,
+    fingerprint,
+    apply: false,
+    verifyIdentity: verifiedIdentityCallback(),
+    log: (value) => displayNameReconciliationPreviewLogs.push(value)
+  });
+assert.equal(
+  displayNameReconciliationPreview.action,
+  "reconcile_profile_display_name_and_create_binding"
+);
+assert.deepEqual(
+  displayNameReconciliationClient.state.profiles,
+  [profileWithPreviousDisplayName]
+);
+const displayNameReconciliationPreviewOutput =
+  JSON.parse(displayNameReconciliationPreviewLogs[0]);
+assert.equal(
+  displayNameReconciliationPreviewOutput.operation,
+  GUEST_ACCESS_RECONCILE_PROFILE_DISPLAY_NAME_OPERATION
+);
+assert.equal(
+  displayNameReconciliationPreviewOutput.profile_display_name_matches_identity,
+  false
+);
+assert.equal(displayNameReconciliationPreviewOutput.profile_binding_complete, false);
+
+const displayNameReconciliationApplyLogs = [];
+await executeIdentityPlatformGuestProfileDisplayNameReconciliationTransaction({
+  client: displayNameReconciliationClient,
+  document,
+  fingerprint,
+  apply: true,
+  confirmedCurrentStateFingerprint:
+    displayNameReconciliationPreview.currentStateFingerprint,
+  expectedDatabase: "versorgungs_kompass",
+  verifyIdentity: verifiedIdentityCallback(),
+  log: (value) => displayNameReconciliationApplyLogs.push(value)
+});
+assert.deepEqual(displayNameReconciliationClient.state.profiles, [profile]);
+assert.deepEqual(displayNameReconciliationClient.state.bindings, [binding]);
+assert.equal(
+  displayNameReconciliationClient.calls.filter(
+    (call) => call.sql.startsWith("update public.profiles")
+  ).length,
+  1
+);
+assert.equal(
+  displayNameReconciliationClient.calls.filter(
+    (call) => call.sql.startsWith("insert into public.identity_bindings")
+  ).length,
+  1
+);
+const displayNameReconciliationApplyOutput =
+  JSON.parse(displayNameReconciliationApplyLogs[0]);
+assert.equal(
+  displayNameReconciliationApplyOutput.result,
+  "profile_display_name_reconciled_and_binding_created"
+);
+assert.equal(
+  displayNameReconciliationApplyOutput.profile_display_name_matches_identity,
+  true
+);
+assert.equal(displayNameReconciliationApplyOutput.profile_binding_complete, true);
+
+const displayNameReconciliationNoopPreviewLogs = [];
+const displayNameReconciliationNoopPreview =
+  await executeIdentityPlatformGuestProfileDisplayNameReconciliationTransaction({
+    client: displayNameReconciliationClient,
+    document,
+    fingerprint,
+    apply: false,
+    verifyIdentity: verifiedIdentityCallback(),
+    log: (value) => displayNameReconciliationNoopPreviewLogs.push(value)
+  });
+assert.equal(displayNameReconciliationNoopPreview.action, "unchanged");
+const displayNameReconciliationNoopApplyLogs = [];
+await executeIdentityPlatformGuestProfileDisplayNameReconciliationTransaction({
+  client: displayNameReconciliationClient,
+  document,
+  fingerprint,
+  apply: true,
+  confirmedCurrentStateFingerprint:
+    displayNameReconciliationNoopPreview.currentStateFingerprint,
+  expectedDatabase: "versorgungs_kompass",
+  verifyIdentity: verifiedIdentityCallback(),
+  log: (value) => displayNameReconciliationNoopApplyLogs.push(value)
+});
+assert.equal(
+  displayNameReconciliationClient.calls.filter(
+    (call) => call.sql.startsWith("update public.profiles")
+  ).length,
+  1
+);
+assert.equal(
+  displayNameReconciliationClient.calls.filter(
+    (call) => call.sql.startsWith("insert into public.identity_bindings")
+  ).length,
+  1
+);
+assert.equal(JSON.parse(displayNameReconciliationNoopApplyLogs[0]).result, "unchanged");
+
+const driftingDisplayNameReconciliationClient = new MockTransactionalClient({
+  profiles: [profileWithPreviousDisplayName]
+});
+await safeRejection(
+  () => executeIdentityPlatformGuestProfileDisplayNameReconciliationTransaction({
+    client: driftingDisplayNameReconciliationClient,
+    document,
+    fingerprint,
+    apply: true,
+    confirmedCurrentStateFingerprint:
+      displayNameReconciliationPlan.currentStateFingerprint,
+    expectedDatabase: "versorgungs_kompass",
+    verifyIdentity: verifiedIdentityCallback({ failOnCall: 2 }),
+    log: () => {}
+  }),
+  /simulated identity drift/u
+);
+assert.deepEqual(
+  driftingDisplayNameReconciliationClient.state,
+  { profiles: [profileWithPreviousDisplayName], bindings: [], requests: [] }
+);
+assert.ok(
+  !driftingDisplayNameReconciliationClient.calls.some(
+    (call) => call.sql === "commit"
+  )
+);
+
+const staleDisplayNameReconciliationClient = new MockTransactionalClient({
+  profiles: [profileWithPreviousDisplayName]
+});
+await safeRejection(
+  () => executeIdentityPlatformGuestProfileDisplayNameReconciliationTransaction({
+    client: staleDisplayNameReconciliationClient,
+    document,
+    fingerprint,
+    apply: true,
+    confirmedCurrentStateFingerprint:
+      displayNameReconciliationNoopPlan.currentStateFingerprint,
+    expectedDatabase: "versorgungs_kompass",
+    verifyIdentity: verifiedIdentityCallback(),
+    log: () => {}
+  }),
+  /current_state_fingerprint/u
+);
+assert.deepEqual(
+  staleDisplayNameReconciliationClient.state,
+  { profiles: [profileWithPreviousDisplayName], bindings: [], requests: [] }
+);
+
+const wrongDatabaseDisplayNameReconciliationClient = new MockTransactionalClient({
+  profiles: [profileWithPreviousDisplayName],
+  database: "other_database"
+});
+await safeRejection(
+  () => executeIdentityPlatformGuestProfileDisplayNameReconciliationTransaction({
+    client: wrongDatabaseDisplayNameReconciliationClient,
+    document,
+    fingerprint,
+    apply: true,
+    confirmedCurrentStateFingerprint:
+      displayNameReconciliationPlan.currentStateFingerprint,
+    expectedDatabase: "versorgungs_kompass",
+    verifyIdentity: verifiedIdentityCallback(),
+    log: () => {}
+  }),
+  /tatsaechliche Datenbankname/u
+);
+assert.deepEqual(
+  wrongDatabaseDisplayNameReconciliationClient.state,
+  { profiles: [profileWithPreviousDisplayName], bindings: [], requests: [] }
+);
+
 const revokeClient = new MockTransactionalClient({
   profiles: [profile],
   bindings: [binding]
@@ -1151,6 +1466,52 @@ assert.ok(
   "Ein unbekanntes COMMIT-Ergebnis darf nicht nachtraeglich zurueckgerollt werden."
 );
 
+const displayNameReconciliationCommitFailureClient = new MockTransactionalClient({
+  profiles: [profileWithPreviousDisplayName],
+  failCommit: true
+});
+await assert.rejects(
+  () => executeIdentityPlatformGuestProfileDisplayNameReconciliationTransaction({
+    client: displayNameReconciliationCommitFailureClient,
+    document,
+    fingerprint,
+    apply: true,
+    confirmedCurrentStateFingerprint:
+      displayNameReconciliationPlan.currentStateFingerprint,
+    expectedDatabase: "versorgungs_kompass",
+    verifyIdentity: verifiedIdentityCallback(),
+    log: () => {}
+  }),
+  (error) => {
+    assert.ok(
+      error
+        instanceof GuestAccessProfileDisplayNameReconciliationCommitOutcomeUnknownError
+    );
+    assert.equal(
+      error.code,
+      "GUEST_ACCESS_PROFILE_DISPLAY_NAME_RECONCILIATION_COMMIT_OUTCOME_UNKNOWN"
+    );
+    assert.match(error.message, /Nicht blind wiederholen/u);
+    assert.match(
+      error.message,
+      /--reconcile-profile-display-name-and-prebind-Preview/u
+    );
+    assert.doesNotMatch(error.message, new RegExp(document.email, "u"));
+    assert.doesNotMatch(error.message, new RegExp(document.uid, "u"));
+    assert.doesNotMatch(
+      error.message,
+      new RegExp(profileWithPreviousDisplayName.display_name, "u")
+    );
+    return true;
+  }
+);
+assert.ok(
+  !displayNameReconciliationCommitFailureClient.calls.some(
+    (call) => call.sql === "rollback"
+  ),
+  "Ein unbekanntes Reconcile-COMMIT-Ergebnis darf nicht zurueckgerollt werden."
+);
+
 const revokeCommitFailureClient = new MockTransactionalClient({
   profiles: [profile],
   bindings: [binding],
@@ -1185,6 +1546,10 @@ for (const output of [
   ...existingPreviewLogs,
   ...existingProfileApplyLogs,
   ...unchangedLogs,
+  ...displayNameReconciliationPreviewLogs,
+  ...displayNameReconciliationApplyLogs,
+  ...displayNameReconciliationNoopPreviewLogs,
+  ...displayNameReconciliationNoopApplyLogs,
   ...revokePreviewLogs,
   ...revokeApplyLogs,
   ...revokedNoopPreviewLogs,
@@ -1195,6 +1560,7 @@ for (const output of [
   assert.ok([
     GUEST_ACCESS_CREATE_PROFILE_OPERATION,
     GUEST_ACCESS_OPERATION,
+    GUEST_ACCESS_RECONCILE_PROFILE_DISPLAY_NAME_OPERATION,
     GUEST_ACCESS_REVOKE_OPERATION
   ].includes(parsed.operation));
   assert.equal(parsed.identity_platform_account_verified, true);
@@ -1204,11 +1570,13 @@ for (const output of [
   assert.match(parsed.input_fingerprint, /^sha256:[a-f0-9]{64}$/u);
   assert.match(parsed.current_state_fingerprint, /^sha256:[a-f0-9]{64}$/u);
   assert.match(parsed.expected_state_fingerprint, /^sha256:[a-f0-9]{64}$/u);
+  assert.doesNotMatch(output, /https?:\/\//iu, "Maschinenausgabe enthaelt einen Link.");
   for (const forbidden of [
     document.email,
     document.uid,
     document.profile_id,
     document.display_name,
+    profileWithPreviousDisplayName.display_name,
     subject,
     document.scope_ref
   ]) {
@@ -1228,6 +1596,16 @@ await fs.chmod(inputPath, 0o600);
 assert.deepEqual(
   await loadProtectedIdentityPlatformGuestAccessDocument(inputPath, { repository }),
   document
+);
+await safeRejection(
+  () => identityPlatformGuestAccessMain(
+    ["--input", inputPath],
+    {
+      PRE_GEMATIK_ACCESS_REPOSITORY_ROOT: repository,
+      PRE_GEMATIK_ACCESS_EXPECTED_PROJECT_ID: "other-project-123"
+    }
+  ),
+  /erwarteten Zielprojekt/u
 );
 
 const insideRepositoryInput = path.join(repository, "guest-access.json");
@@ -1277,6 +1655,18 @@ assert.match(
   operatorSource,
   /CREATE_PROFILE_AND_PREBIND_IDENTITY_PLATFORM_PASSWORD_GUEST/u
 );
+assert.match(
+  operatorSource,
+  /RECONCILE_PROFILE_DISPLAY_NAME_AND_PREBIND_IDENTITY_PLATFORM_PASSWORD_GUEST/u
+);
+assert.match(
+  operatorSource,
+  /--reconcile-profile-display-name-and-prebind/u
+);
+assert.match(
+  operatorSource,
+  /update public\.profiles[\s\S]*set display_name = \$1[\s\S]*and display_name = \$4/iu
+);
 assert.match(operatorSource, /insert\s+into\s+public\.profiles/iu);
 const defaultPrebindingSource = operatorSource.slice(
   operatorSource.indexOf("export async function executeIdentityPlatformGuestPreBindingTransaction"),
@@ -1293,6 +1683,6 @@ assert.match(operatorSource, /getUserByEmail\(document\.email\)/u);
 
 console.log(
   "Identity Platform Gast-Pre-Binding OK: password-only Readback, kontrolliertes "
-  + "Bestandsprofil, explizite atomare Neunutzeranlage, test_only-Binding, Widerruf "
-  + "und exakter No-op sind fail-closed."
+  + "Bestandsprofil, atomarer Anzeigename-Abgleich, explizite Neunutzeranlage, "
+  + "test_only-Binding, Widerruf und exakter No-op sind fail-closed."
 );

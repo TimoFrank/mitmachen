@@ -35,8 +35,14 @@ const LOGO_REMEDIATION_OBJECT_DIRECTORY = `${PROTECTED_INPUT}/logo-remediation-o
 const LOGO_REMEDIATION_SCHEMA = "versorgungs-kompass-logo-remediation-v1";
 const MAX_LOGO_REMEDIATION_OBJECTS = 128;
 const IDENTITY_OPERATION = "UPSERT_IAP_IDENTITY_BINDINGS";
+const GUEST_ACCESS_OPERATION = "PREBIND_IDENTITY_PLATFORM_PASSWORD_GUEST";
+const GUEST_ACCESS_RECONCILE_PROFILE_DISPLAY_NAME_OPERATION =
+  "RECONCILE_PROFILE_DISPLAY_NAME_AND_PREBIND_IDENTITY_PLATFORM_PASSWORD_GUEST";
+const GUEST_ACCESS_RECONCILE_MODE_ENV =
+  "GUEST_ACCESS_RECONCILE_PROFILE_DISPLAY_NAME_AND_PREBIND";
 const TARGET_DATABASE_NAME = "versorgungs_kompass";
 const SHA256_PATTERN = /^sha256:[a-f0-9]{64}$/u;
+const PROJECT_PATTERN = /^[a-z][a-z0-9-]{4,28}[a-z0-9]$/u;
 const NON_NEGATIVE_INTEGER_PATTERN = /^(?:0|[1-9][0-9]*)$/u;
 const POSITIVE_INTEGER_PATTERN = /^[1-9][0-9]*$/u;
 const BACKUP_ID_PATTERN = /^[A-Za-z0-9][A-Za-z0-9_.:/-]{2,255}$/u;
@@ -111,6 +117,44 @@ function identitySubjectRemapArguments(environment, { apply = false } = {}) {
     );
   }
   return Object.freeze(argumentsList);
+}
+
+function guestAccessMode(environment) {
+  const mode = environment[GUEST_ACCESS_RECONCILE_MODE_ENV];
+  if (mode !== "true" && mode !== "false") {
+    throw new MigrationOperatorError(
+      `${GUEST_ACCESS_RECONCILE_MODE_ENV} must be exactly true or false.`
+    );
+  }
+  return Object.freeze({
+    arguments: Object.freeze(
+      mode === "true"
+        ? ["--reconcile-profile-display-name-and-prebind"]
+        : []
+    ),
+    operation: mode === "true"
+      ? GUEST_ACCESS_RECONCILE_PROFILE_DISPLAY_NAME_OPERATION
+      : GUEST_ACCESS_OPERATION
+  });
+}
+
+function guestAccessTargetProject(environment) {
+  const targetProject = required(
+    environment,
+    "EXPECTED_TARGET_PROJECT_ID",
+    PROJECT_PATTERN
+  );
+  const gatedProject = required(
+    environment,
+    "GCP_PROJECT_ID",
+    PROJECT_PATTERN
+  );
+  if (targetProject !== gatedProject) {
+    throw new MigrationOperatorError(
+      "Guest access requires EXPECTED_TARGET_PROJECT_ID and GCP_PROJECT_ID to match exactly."
+    );
+  }
+  return targetProject;
 }
 
 export function phaseExecution(phase, environment = process.env) {
@@ -256,6 +300,63 @@ export function phaseExecution(phase, environment = process.env) {
       logoRemediationBundle: false,
       managedTarget: true,
       requiresSourceCa: false
+    });
+  }
+
+  if (phase === "guest-preview") {
+    const targetProject = guestAccessTargetProject(environment);
+    const mode = guestAccessMode(environment);
+    return Object.freeze({
+      script: "scripts/provision_pre_gematik_identity_platform_guest_access.mjs",
+      arguments: Object.freeze([
+        "--input", `${PROTECTED_INPUT}/guest-access.json`,
+        ...mode.arguments
+      ]),
+      protectedInputs: Object.freeze(["guest-access.json"]),
+      logoRemediationBundle: false,
+      managedTarget: true,
+      requiresSourceCa: false,
+      guestAccessTargetProject: targetProject
+    });
+  }
+
+  if (phase === "guest-apply") {
+    const targetProject = guestAccessTargetProject(environment);
+    const inputFingerprint = required(
+      environment,
+      "CONFIRM_GUEST_ACCESS_INPUT_FINGERPRINT",
+      SHA256_PATTERN
+    );
+    const currentStateFingerprint = required(
+      environment,
+      "CONFIRM_GUEST_ACCESS_CURRENT_STATE_FINGERPRINT",
+      SHA256_PATTERN
+    );
+    const mode = guestAccessMode(environment);
+    const confirmedOperation = environment.CONFIRM_GUEST_ACCESS_OPERATION;
+    if (confirmedOperation !== mode.operation) {
+      throw new MigrationOperatorError(
+        "CONFIRM_GUEST_ACCESS_OPERATION must exactly match the reviewed guest-preview operation."
+      );
+    }
+    return Object.freeze({
+      script: "scripts/provision_pre_gematik_identity_platform_guest_access.mjs",
+      arguments: Object.freeze([
+        "--input", `${PROTECTED_INPUT}/guest-access.json`,
+        ...mode.arguments,
+        "--apply",
+        "--confirm-environment", "pre-gematik",
+        "--confirm-project", targetProject,
+        "--confirm-database", TARGET_DATABASE_NAME,
+        "--confirm-operation", confirmedOperation,
+        "--confirm-fingerprint", inputFingerprint,
+        "--confirm-current-state-fingerprint", currentStateFingerprint
+      ]),
+      protectedInputs: Object.freeze(["guest-access.json"]),
+      logoRemediationBundle: false,
+      managedTarget: true,
+      requiresSourceCa: false,
+      guestAccessTargetProject: targetProject
     });
   }
 
@@ -535,6 +636,11 @@ export async function main(environment = process.env) {
     }
     if (phase === "identity-preview" || phase === "identity-apply") {
       childEnvironment.PRE_GEMATIK_IDENTITY_REPOSITORY_ROOT = WORKSPACE;
+    }
+    if (execution.guestAccessTargetProject) {
+      childEnvironment.PRE_GEMATIK_ACCESS_REPOSITORY_ROOT = WORKSPACE;
+      childEnvironment.PRE_GEMATIK_ACCESS_EXPECTED_PROJECT_ID =
+        execution.guestAccessTargetProject;
     }
     if (phase === "database-apply") {
       childEnvironment.STORAGE_MIGRATION_MANIFEST_PATH = `${PROTECTED_INPUT}/storage-apply.json`;

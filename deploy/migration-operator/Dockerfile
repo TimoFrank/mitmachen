@@ -22,6 +22,9 @@ COPY scripts/check_pre_gematik_migration_gcp.mjs ./scripts/check_pre_gematik_mig
 COPY scripts/migrate_supabase_storage_to_gcs.mjs ./scripts/migrate_supabase_storage_to_gcs.mjs
 COPY scripts/migrate_supabase_to_pre_gematik.mjs ./scripts/migrate_supabase_to_pre_gematik.mjs
 COPY scripts/provision_iap_identity_bindings.mjs ./scripts/provision_iap_identity_bindings.mjs
+COPY scripts/provision_pre_gematik_identity_platform_account.mjs ./scripts/provision_pre_gematik_identity_platform_account.mjs
+COPY scripts/provision_pre_gematik_identity_platform_guest_access.mjs ./scripts/provision_pre_gematik_identity_platform_guest_access.mjs
+COPY scripts/provision_pre_gematik_test_access.mjs ./scripts/provision_pre_gematik_test_access.mjs
 COPY scripts/lib/cloud-sql-managed-proxy.mjs ./scripts/lib/cloud-sql-managed-proxy.mjs
 COPY scripts/lib/pre-gematik-database-migration.mjs ./scripts/lib/pre-gematik-database-migration.mjs
 COPY scripts/lib/target-database-connection.mjs ./scripts/lib/target-database-connection.mjs
