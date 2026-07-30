@@ -374,7 +374,7 @@ const pagesBaseUrl = "https://timofrank.github.io/mitmachen";
 const rootShareMetadata = {
   url: `${pagesBaseUrl}/`,
   title: "#Mitmachen",
-  description: "Zusammenarbeit in der Versorgung – auf einen Blick.",
+  description: "Deine Plattform für Austausch, Wissen und Vernetzung.",
   image: `${pagesBaseUrl}/public/media/social/mitmachen-share-v3.png`,
   imageAlt: "#Mitmachen Demo: Zusammenarbeit in der Versorgung auf einen Blick – zentriertes Banner auf dunkelblauem Hintergrund."
 };

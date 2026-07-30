@@ -130,7 +130,7 @@ const shareContracts = [
     documents: ["index.html", "versorgungs-kompass.html", "demo/index.html"],
     url: `${pagesBaseUrl}/`,
     title: "#Mitmachen",
-    description: "Zusammenarbeit in der Versorgung – auf einen Blick.",
+    description: "Deine Plattform für Austausch, Wissen und Vernetzung.",
     image: `${pagesBaseUrl}/public/media/social/mitmachen-share-v3.png`,
     imageAlt: "#Mitmachen Demo: Zusammenarbeit in der Versorgung auf einen Blick – zentriertes Banner auf dunkelblauem Hintergrund.",
     imagePath: "public/media/social/mitmachen-share-v3.png"

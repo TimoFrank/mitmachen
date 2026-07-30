@@ -112,7 +112,7 @@ try {
   assert.match(pagesRootHtml, /<meta\s+name="robots"\s+content="noindex,\s*nofollow"\s*\/?>/i);
   assert.match(pagesRootHtml, /<link rel="canonical" href="https:\/\/timofrank\.github\.io\/mitmachen\/" \/>/);
   assert.match(pagesRootHtml, /<meta property="og:title" content="#Mitmachen" \/>/);
-  assert.match(pagesRootHtml, /<meta property="og:description" content="Zusammenarbeit in der Versorgung – auf einen Blick\." \/>/);
+  assert.match(pagesRootHtml, /<meta property="og:description" content="Deine Plattform für Austausch, Wissen und Vernetzung\." \/>/);
   assert.match(pagesRootHtml, /<meta property="og:image" content="https:\/\/timofrank\.github\.io\/mitmachen\/public\/media\/social\/mitmachen-share-v3\.png" \/>/);
   assert.match(pagesRootHtml, /<meta name="twitter:card" content="summary_large_image" \/>/);
   assert.match(pagesRootHtml, /\.\/data\/demo-data\.js[\s\S]*\.\/data\/demo-api\.js[\s\S]*\.\/data\/data-service\.js/);
