@@ -6642,11 +6642,24 @@ async function listStakeholderPeople(request, url) {
 async function upsertStakeholderImport(request) {
   const body = await readValidatedJsonBody(request, STAKEHOLDER_IMPORT_INPUT_FIELDS, "Stakeholder-Import");
   const types = (Array.isArray(body.types) ? body.types : []).map(stakeholderTypeToDb);
-  const organizations = (Array.isArray(body.organizations) ? body.organizations : []).map(stakeholderOrganizationToDb).filter((row) => row.name);
+  const organizationInputs = Array.isArray(body.organizations) ? body.organizations : [];
+  const logoPreservingOrganizations = organizationInputs
+    .filter((organization) => organization?.preserveExistingLogo === true)
+    .map((organization) => stakeholderOrganizationToDb({
+      ...organization,
+      logoUrl: "",
+      logo_url: ""
+    }))
+    .filter((row) => row.name);
+  const logoUpdatingOrganizations = organizationInputs
+    .filter((organization) => organization?.preserveExistingLogo !== true)
+    .map(stakeholderOrganizationToDb)
+    .filter((row) => row.name);
+  const organizationCount = logoPreservingOrganizations.length + logoUpdatingOrganizations.length;
   const people = (Array.isArray(body.people) ? body.people : []).map(stakeholderPersonToDb).filter((row) => row.name);
   const userId = userIdFromToken(request);
   if (!userId) throw Object.assign(new Error("User-ID konnte nicht aus dem Token gelesen werden."), { status: 401 });
-  if (types.length > 500 || organizations.length > 5_000 || people.length > 5_000) {
+  if (types.length > 500 || organizationCount > 5_000 || people.length > 5_000) {
     throw Object.assign(new Error("Stakeholder-Import ueberschreitet das erlaubte Datensatzlimit."), { status: 400 });
   }
 
@@ -6659,11 +6672,20 @@ async function upsertStakeholderImport(request) {
         transaction
       });
     }
-    if (organizations.length) {
+    if (logoPreservingOrganizations.length) {
       await cloudSqlRest("stakeholder_organizations", request, new URLSearchParams({ on_conflict: "id" }), {
         method: "POST",
         headers: { prefer: "resolution=merge-duplicates,return=minimal" },
-        body: organizations,
+        body: logoPreservingOrganizations,
+        conflictPreserveFields: ["logo_url"],
+        transaction
+      });
+    }
+    if (logoUpdatingOrganizations.length) {
+      await cloudSqlRest("stakeholder_organizations", request, new URLSearchParams({ on_conflict: "id" }), {
+        method: "POST",
+        headers: { prefer: "resolution=merge-duplicates,return=minimal" },
+        body: logoUpdatingOrganizations,
         transaction
       });
     }
@@ -6681,7 +6703,7 @@ async function upsertStakeholderImport(request) {
       entityId: `stakeholder-import-${Date.now()}`,
       objectLabel: "Stakeholder-Import",
       originKey: "data_import",
-      details: { typeCount: types.length, organizationCount: organizations.length, peopleCount: people.length }
+      details: { typeCount: types.length, organizationCount, peopleCount: people.length }
     });
   });
 

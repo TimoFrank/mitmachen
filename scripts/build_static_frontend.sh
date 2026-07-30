@@ -646,16 +646,34 @@ NODE
 
 }
 
-if [ "$PROFILE" = "pages" ]; then
-  build_pages
-else
-  build_target
-fi
-
 REVISION="$(git -C "$ROOT_DIR" rev-parse --verify HEAD 2>/dev/null || true)"
 if ! printf '%s' "$REVISION" | grep -Eq '^[0-9a-fA-F]{7,64}$'; then
   REVISION="unknown"
 fi
+
+if [ "$PROFILE" = "pages" ]; then
+  build_pages
+else
+  build_target
+
+  # Die App-Shell wird nicht gecacht, ihre statischen Abhängigkeiten dagegen
+  # schon. Eine revisionsgebundene URL stellt sicher, dass nach einem Rollout
+  # keine inkompatible JS-/CSS-Version aus dem Browsercache weiterläuft.
+  node - "$STAGE_DIR/versorgungs-kompass.html" "$REVISION" <<'NODE'
+const fs = require("node:fs");
+
+const [documentPath, revision] = process.argv.slice(2);
+const html = fs.readFileSync(documentPath, "utf8");
+const versioned = html.replace(
+  /(\b(?:src|href)=["'])([^"'?#]+?\.(?:css|m?js))(["'])/gi,
+  (match, prefix, assetPath, suffix) => assetPath.endsWith("versorgungs-kompass-no-script.css")
+    ? match
+    : `${prefix}${assetPath}?v=${revision}${suffix}`
+);
+fs.writeFileSync(documentPath, versioned);
+NODE
+fi
+
 ARTIFACT_DIGEST="$(node - "$STAGE_DIR" <<'NODE'
 const crypto = require("node:crypto");
 const fs = require("node:fs");

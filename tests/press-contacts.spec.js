@@ -177,6 +177,53 @@ test("Presse unterstützt Seitengröße und Pagination wie die Kontaktlisten", a
   await expect(page.locator("#press-pagination [data-press-page]")).toHaveCount(1);
 });
 
+test("Stakeholder-CSV sendet nur importierte Presse-Datensätze an die geschützte API", async ({ page }, testInfo) => {
+  test.skip(isMobileProject(testInfo), "Der Dateiimport wird einmal im Desktop-Projekt geprüft.");
+  const fixture = createProtectedBackendFixture({ role: "admin" });
+  const unrelatedOrganization = fixture.stakeholderOrganizations.find(
+    (organization) => organization.stakeholderTypeId === "kv"
+  );
+  unrelatedOrganization.logoUrl = "https://legacy-logo.example.invalid/kv.svg";
+  let importPayload = null;
+  page.on("request", (request) => {
+    if (request.method() !== "POST" || !request.url().endsWith("/api/stakeholder-import")) return;
+    importPayload = request.postDataJSON();
+  });
+
+  await gotoAuthenticated(page, `${APP_PATH}#profile-imports:imports`, {
+    role: "admin",
+    backendFixture: fixture
+  });
+  await page.locator("#stakeholder-file-input").setInputFiles({
+    name: "presse-delta-import.csv",
+    mimeType: "text/csv",
+    buffer: Buffer.from([
+      "Stakeholder-Typ,Organisation,Person,Funktion,Themen,E-Mail,Telefon,Quelle",
+      "press,Demo-Pressemedium Delta,Demo-Pressekontakt Delta,Redakteur Digital Health,Digital Health,delta@presse.example.invalid,+49 30 123456,Delta-Import-Test"
+    ].join("\n"))
+  });
+
+  await expect.poll(() => importPayload).not.toBeNull();
+  expect(importPayload.types).toHaveLength(1);
+  expect(importPayload.types[0].id).toBe("press");
+  expect(importPayload.organizations).toHaveLength(1);
+  expect(importPayload.organizations[0]).toMatchObject({
+    stakeholderTypeId: "press",
+    name: "Demo-Pressemedium Delta",
+    preserveExistingLogo: true
+  });
+  expect(importPayload.people).toHaveLength(1);
+  expect(importPayload.people[0]).toMatchObject({
+    stakeholderTypeId: "press",
+    name: "Demo-Pressekontakt Delta",
+    organization: "Demo-Pressemedium Delta"
+  });
+  expect(importPayload.organizations.some((organization) => organization.id === unrelatedOrganization.id)).toBe(false);
+  await expect(page.locator("#global-status-message")).toContainText(
+    "1 Stakeholder-Organisationen und 1 Stakeholder-Kontakte importiert"
+  );
+});
+
 test("Pressezeilen öffnen Vorschau und Profil mit stabiler Zurückroute", async ({ page }, testInfo) => {
   test.skip(isMobileProject(testInfo), "Der Desktop-Drawer wird getrennt vom mobilen Vollprofil geprüft.");
   const { fixture, people } = protectedPressFixture();

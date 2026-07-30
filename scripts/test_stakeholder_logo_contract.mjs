@@ -13,6 +13,11 @@ const storageReaderSource = betweenSource(
   "async function boundedStorageResponseBuffer(",
   "async function loadProfiles("
 );
+const stakeholderImportSource = betweenSource(
+  source,
+  "async function upsertStakeholderImport(",
+  "async function deleteExpertEntityLink("
+);
 
 function betweenSource(value, startMarker, endMarker) {
   const start = value.indexOf(startMarker);
@@ -128,5 +133,9 @@ assert.match(storageReaderSource, /mediaUrl\.searchParams\.set\("generation", ge
 assert.match(storageReaderSource, /total > maximumBytes/u);
 assert.match(source, /readStorageObject\(STAKEHOLDER_LOGO_BUCKET, objectName, \{[\s\S]{0,240}maxBytes: 2 \* 1024 \* 1024/u,
   "Die Logo-Route muss Metadaten und Groesse vor dem generation-gepinnten Download pruefen.");
+assert.match(stakeholderImportSource, /preserveExistingLogo === true/u,
+  "Ein Import ohne explizite Logo-Spalte muss das vorhandene geschützte Logo markieren.");
+assert.match(stakeholderImportSource, /conflictPreserveFields:\s*\["logo_url"\]/u,
+  "Der Delta-Import muss ein bestehendes geschütztes Logo beim Konflikt erhalten.");
 
 console.log("Stakeholder logo contract OK: private routing, path validation and content checks are fail-closed.");

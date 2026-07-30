@@ -467,6 +467,21 @@ try {
   const targetHtml = fs.readFileSync(path.join(targetDir, "versorgungs-kompass.html"), "utf8");
   assert.doesNotMatch(targetHtml, /data\/(?:demo-data|versorgungs-kompass-data|expertenkreis-data|stakeholder-data|patienten-data)\.js/i);
   assert.doesNotMatch(targetHtml, /data-hospitation-(?:data-mode|documentation-data-mode|dashboard-preview-mode)="demo"/i);
+  const targetRevision = execFileSync("git", ["rev-parse", "--verify", "HEAD"], { cwd: root, encoding: "utf8" }).trim();
+  for (const assetPath of [
+    "/data/runtime-config.js",
+    "/versorgungs-kompass-routes.js",
+    "/versorgungs-kompass.css",
+    "/data/data-service.js",
+    "/versorgungs-kompass.js"
+  ]) {
+    const escapedAssetPath = assetPath.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    assert.match(
+      targetHtml,
+      new RegExp(`(?:src|href)="${escapedAssetPath}\\?v=${targetRevision}"`),
+      `Target-App-Shell muss ${assetPath} revisionsgebunden laden`
+    );
+  }
   assert.doesNotMatch(fs.readFileSync(path.join(targetDir, "login.html"), "utf8"), /vendor\/supabase|supabase-js/i);
 
   const targetThirdPartyManifest = JSON.parse(fs.readFileSync(path.join(targetDir, "vendor", "THIRD_PARTY_ASSETS.json"), "utf8"));

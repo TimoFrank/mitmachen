@@ -4324,11 +4324,15 @@
       function stakeholderColumnValue(row, aliases = []) {
         const normalizedAliases = aliases.map(normalizeImportKey);
         const values = row?.values || row || {};
-        const match = Object.entries(values).find(([column]) => {
-          const normalizedColumn = normalizeImportKey(column);
-          return normalizedAliases.some((alias) => normalizedColumn === alias || normalizedColumn.includes(alias));
-        });
-        return String(match?.[1] || "").trim();
+        const normalizedEntries = Object.entries(values).map(([column, value]) => ({
+          normalizedColumn: normalizeImportKey(column),
+          value
+        }));
+        const match = normalizedEntries.find(({ normalizedColumn }) => normalizedAliases.includes(normalizedColumn))
+          || normalizedEntries.find(({ normalizedColumn }) =>
+            normalizedAliases.some((alias) => normalizedColumn.includes(alias))
+          );
+        return String(match?.value || "").trim();
       }
 
       function stakeholderTypeStaticConfig(typeId = "kv") {
@@ -4512,6 +4516,10 @@
         const organizationById = new Map();
         const organizationByName = new Map();
         const peopleById = new Map();
+        const touchedOrganizationIds = new Set();
+        const touchedPersonIds = new Set();
+        const importedTypeIds = new Set();
+        const explicitLogoOrganizationIds = new Set();
         const duplicateOrganizationRows = [];
         const seenOrganizationOnlyRows = new Map();
         const errors = [];
@@ -4546,7 +4554,8 @@
           const website = stakeholderColumnValue(row, stakeholderImportAliases.website) || currentOrganization.website || "";
           const email = stakeholderColumnValue(row, stakeholderImportAliases.email) || currentOrganization.email || "";
           const phone = stakeholderColumnValue(row, stakeholderImportAliases.phone) || currentOrganization.phone || "";
-          const logoUrl = stakeholderColumnValue(row, stakeholderImportAliases.logoUrl) || currentOrganization.logoUrl || "";
+          const importedLogoUrl = stakeholderColumnValue(row, stakeholderImportAliases.logoUrl);
+          const logoUrl = importedLogoUrl || currentOrganization.logoUrl || "";
           const logoSourceUrl = stakeholderColumnValue(row, stakeholderImportAliases.logoSourceUrl) || currentOrganization.logoSourceUrl || "";
           const logoSourceLabel = stakeholderColumnValue(row, stakeholderImportAliases.logoSourceLabel) || currentOrganization.logoSourceLabel || "";
           const memberCountValue = stakeholderColumnValue(row, stakeholderImportAliases.memberCount);
@@ -4592,6 +4601,9 @@
           }, organizationById.size);
           organizationById.set(organizationId, organizationPatch);
           organizationByName.set(normalizedOrganizationKey, organizationId);
+          touchedOrganizationIds.add(organizationId);
+          importedTypeIds.add(typeId);
+          if (importedLogoUrl) explicitLogoOrganizationIds.add(organizationId);
 
           if (!personName) {
             const previousRow = seenOrganizationOnlyRows.get(normalizedOrganizationKey);
@@ -4638,17 +4650,23 @@
             updatedAt: now
           }, peopleById.size);
           peopleById.set(personId, personPatch);
+          touchedPersonIds.add(personId);
         });
 
         duplicateOrganizationRows.forEach((label) => warnings.push(`Doppelte Stakeholder-Organisationszeile: ${label}.`));
-        const activeOrganizations = [...organizationById.values()].filter((organization) => organization.status !== "archived");
-        const activePeople = [...peopleById.values()].filter((person) => person.status !== "archived");
-        const importedTypeIds = new Set([
-          ...activeOrganizations.map((organization) => organization.stakeholderTypeId || "kv"),
-          ...activePeople.map((person) => person.stakeholderTypeId || "kv")
-        ]);
+        const resultingActiveOrganizations = [...organizationById.values()].filter((organization) => organization.status !== "archived");
+        const activeOrganizations = [...touchedOrganizationIds]
+          .map((organizationId) => organizationById.get(organizationId))
+          .filter((organization) => organization?.status !== "archived")
+          .map((organization) => ({
+            ...organization,
+            preserveExistingLogo: !explicitLogoOrganizationIds.has(organization.id)
+          }));
+        const activePeople = [...touchedPersonIds]
+          .map((personId) => peopleById.get(personId))
+          .filter((person) => person?.status !== "archived");
         if (importedTypeIds.has("kv")) {
-          const activeKvOrganizations = activeOrganizations.filter((organization) => organization.stakeholderTypeId === "kv");
+          const activeKvOrganizations = resultingActiveOrganizations.filter((organization) => organization.stakeholderTypeId === "kv");
           const canonicalNames = kvCanonicalNameMap();
           const activeKvNames = new Set(activeKvOrganizations.map((organization) => normalizeOrganizationName(organization.name)));
           const missingKvNames = [...canonicalNames.entries()].filter(([key]) => !activeKvNames.has(key)).map(([, name]) => name);
