@@ -355,11 +355,12 @@ export function validateExecutionConfirmations(options, document, fingerprint) {
   }
   if (options.allowSubjectRemaps) {
     if (
-      !/^[1-9][0-9]*$/u.test(options.confirmSubjectRemapCount)
+      !/^(?:0|[1-9][0-9]*)$/u.test(options.confirmSubjectRemapCount)
       || Number(options.confirmSubjectRemapCount) > document.bindings.length
     ) {
       throw new SafeCliError(
-        "Subject-Remaps erfordern --confirm-subject-remap-count mit einer positiven bestaetigten Anzahl."
+        "Subject-Remaps und bestaetigte Remap-No-ops erfordern "
+        + "--confirm-subject-remap-count mit einer nicht-negativen bestaetigten Anzahl."
       );
     }
   } else if (options.confirmSubjectRemapCount) {
@@ -980,18 +981,27 @@ export async function executeIdentityBindingTransaction({
       existingResult.rows,
       { allowSubjectRemaps }
     );
+    const subjectRemapOnlyNoop = (
+      plan.remaps.length === 0
+      && plan.inserts.length === 0
+      && plan.updates.length === 0
+      && plan.unchanged.length === plan.requestedCount
+      && plan.currentStateFingerprint === plan.expectedStateFingerprint
+    );
 
     if (
       privilegeMode === "subject-remap-only"
       && (
         !allowSubjectRemaps
-        || plan.remaps.length === 0
         || plan.inserts.length > 0
         || plan.updates.length > 0
+        || (plan.remaps.length === 0 && !subjectRemapOnlyNoop)
       )
     ) {
       throw new SafeCliError(
-        "Der v2-Identity-Operator darf ausschliesslich einen bestaetigten Subject-Remap ohne weitere Zustandsaenderung ausfuehren."
+        "Der v2-Identity-Operator darf ausschliesslich einen bestaetigten Subject-Remap "
+        + "oder einen vollstaendig unveraenderten, explizit im Remap-Modus "
+        + "geprueften Vollzustand verarbeiten."
       );
     }
     if (

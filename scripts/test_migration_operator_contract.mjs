@@ -161,13 +161,23 @@ assert.deepEqual(
   identityRemapApply.arguments.slice(-3),
   ["--allow-subject-remaps", "--confirm-subject-remap-count", "1"]
 );
-assert.throws(
-  () => phaseExecution("identity-apply", {
+assert.deepEqual(
+  phaseExecution("identity-apply", {
     ...identityRemapEnvironment,
     CONFIRM_IDENTITY_SUBJECT_REMAP_COUNT: "0"
-  }),
-  (error) => error instanceof MigrationOperatorError
+  }).arguments.slice(-3),
+  ["--allow-subject-remaps", "--confirm-subject-remap-count", "0"],
+  "Der bestaetigte Post-Apply-Readback darf als schreibfreier Remap-No-op laufen."
 );
+for (const invalidRemapCount of ["", "-1"]) {
+  assert.throws(
+    () => phaseExecution("identity-apply", {
+      ...identityRemapEnvironment,
+      CONFIRM_IDENTITY_SUBJECT_REMAP_COUNT: invalidRemapCount
+    }),
+    (error) => error instanceof MigrationOperatorError
+  );
+}
 assert.throws(
   () => phaseExecution("identity-preview", {
     ...environment,

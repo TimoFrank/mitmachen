@@ -326,7 +326,20 @@ Verbindliche Reihenfolge nach aktivierter Quell-Schreibsperre:
    Ist- und Sollzustands-Fingerprint müssen jeweils identisch sein.
 6. `identity-apply` einmal mit dem unmittelbar bestätigten Preview-Fingerprint
    sowie der bestätigten Gesamtzahl und Zahl aktiver Bindungen. Für den
-   aktuellen persönlichen Pilot sind beide Werte exakt `1`.
+   aktuellen persönlichen Pilot werden beide Werte aus dem vollständigen,
+   geschützten Roster und nicht aus dieser Dokumentation übernommen.
+7. Nach dem Subject-Remap bestätigt `identity-preview` den vollständigen neuen
+   Zustand mit `remap_count=0`, ausschließlich unveränderten Zeilen und
+   identischem Ist-/Sollzustands-Fingerprint. Ein anschließend ausdrücklich
+   bestätigter `identity-apply` verwendet den neuen Ist-Fingerprint und
+   `CONFIRM_IDENTITY_SUBJECT_REMAP_COUNT=0`; er muss ohne `INSERT` oder `UPDATE`
+   denselben No-op melden. Ein letzter Preview bleibt unverändert.
+
+Der geschützte Rollback-Roster wird vor dem Forward-Remap als vollständig
+unveränderter Remap-No-op und nach dem Forward-Apply zweimal als tatsächlicher
+umgekehrter Subject-Remap previewt. Der Wert `0` darf nie einen Preview mit
+einem positiven `remap_count` bestätigen; der Operator gleicht den
+geschützten Zähler innerhalb derselben serialisierbaren Transaktion exakt ab.
 
 Zwischen 4 und 5 wird die statische `NOLOGIN`-Rolle kontrolliert gebootstrappt
 und der kurzlebige Login exakt dieser Custom-Rolle zugeordnet. Der Dienst bleibt

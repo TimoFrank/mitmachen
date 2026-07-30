@@ -710,6 +710,18 @@ und nicht im Repository festgeschrieben. Jede Änderung des vollständigen
 Sollzustands erfordert neue, ausdrücklich geprüfte Zähler und einen neuen
 Preview-Fingerprint.
 
+Für den Forward-Remap muss
+`CONFIRM_IDENTITY_SUBJECT_REMAP_COUNT` der positiven `remap_count` des
+unmittelbar geprüften Previews entsprechen. Nach dem Apply wird derselbe neue
+Voll-Sollzustand erneut previewt: Er muss ausschließlich unveränderte Zeilen,
+`remap_count=0` und identische Ist-/Sollzustands-Fingerprints melden. Nur für
+diesen vollständig unveränderten, weiterhin explizit mit
+`ALLOW_IDENTITY_SUBJECT_REMAPS=true` ausgeführten Readback darf ein bestätigter
+No-op-Apply `CONFIRM_IDENTITY_SUBJECT_REMAP_COUNT=0` verwenden. Der alte
+Rollback-Roster wird vorwärts als unveränderter Ausgangszustand und nach dem
+Forward-Apply erneut zweimal als tatsächlich geplanter Rückwärts-Remap
+previewt.
+
 Ohne die beiden ausdrücklichen Remap-Optionen gibt es keinen Delete- oder
 Remap-Pfad. Unbekannte bestehende Bindungen, ein fehlendes/inaktives Profil, ein
 zweites Subject für dasselbe Profil, ein vom Preview abweichender Istzustand
