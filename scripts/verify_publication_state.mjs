@@ -10,11 +10,13 @@ const defaultAssets = [
   "index.html",
   "build-manifest.json",
   "demo/index.html",
+  "politik-offline.html",
   "versorgungs-kompass.html",
   "versorgungs-kompass.css",
   "versorgungs-kompass.js",
   "hospitation/index.html",
   "data/runtime-config.js",
+  "data/public-politics-directory.js",
   "data/demo-data.js",
   "data/demo-api.js",
   "data/data-service.js",
@@ -112,4 +114,8 @@ if (failures.length) {
   process.exit(1);
 }
 
-console.log("\nPublication Verification OK: GitHub Pages liefert die gepruefte Voll-App-Shell mit lokaler Demo-Runtime; Login, Supabase und geschuetzte Datenpfade bleiben ausgeschlossen.");
+console.log(
+  "\nPublication Verification OK: GitHub Pages liefert die gepruefte Voll-App-Shell "
+  + "mit lokaler Demo-Runtime und kuratiertem Amtstraeger-Verzeichnis; Login, "
+  + "Supabase und geschuetzte Datenpfade bleiben ausgeschlossen."
+);

@@ -15,7 +15,7 @@
 </p>
 
 > [!IMPORTANT]
-> Die öffentliche Demo arbeitet ausschließlich mit fiktiven Beispieldaten. Verbindliche Informationen zu [#Mitmachen](https://www.gematik.de/mitmachen) und dem [Versorgungs-Netzwerk](https://www.gematik.de/mitmachen/versorgungs-netzwerk) stehen auf gematik.de.
+> Die öffentliche Demo arbeitet mit fiktiven CRM- und Fachdaten. Eine klar getrennte Ausnahme ist das kuratierte Verzeichnis der Mitglieder des Gesundheitsausschusses mit öffentlichen Angaben des Deutschen Bundestages. Verbindliche Informationen zu [#Mitmachen](https://www.gematik.de/mitmachen) und dem [Versorgungs-Netzwerk](https://www.gematik.de/mitmachen/versorgungs-netzwerk) stehen auf gematik.de.
 
 ## Vier Kompasse
 
@@ -67,7 +67,7 @@
 
 | Zugang | Status | Inhalt |
 | --- | --- | --- |
-| [Öffentliche GitHub-Pages-Demo](https://timofrank.github.io/mitmachen/) | Demo | Produkteinblick mit fiktiven Beispieldaten |
+| [Öffentliche GitHub-Pages-Demo](https://timofrank.github.io/mitmachen/) | Demo | Fiktive Beispieldaten plus kuratiertes öffentliches Amtsträger-Verzeichnis |
 | [GKE-Demo](https://versorgungs-kompass.de/) | Interner PoC | Bereits über GKE bereitgestellter Arbeitsstand |
 | Zielbetrieb | In Vorbereitung | Nächster PoC-Schritt in der gematik-Infrastruktur |
 

@@ -11,7 +11,7 @@ Referenz: [OWASP Top 10:2025](https://owasp.org/Top10/2025/0x00_2025-Introductio
 
 **Produktiv-/Go-live-Freigabe: noch gelb.** Die bestätigte Supabase-Reconciliation wurde am 19.07.2026 live angewendet und ihre eng abgegrenzten DB-/Storage-Wirkungen wurden geprüft. GKE, Cloud SQL, Gateway und externe Identity wurden nicht deployed oder verändert. Die weiterhin offenen Kästchen sind Plattform- und Betriebsabnahmen und dürfen nicht allein auf Grundlage der Repository- oder Supabase-Prüfung abgehakt werden.
 
-**Zwei-App-Grenze:** GitHub Pages bleibt als öffentliche, ausschließlich synthetische Produktdemo bestehen. Die geschützte Realanwendung ist ein getrenntes API-only-Artefakt mit OIDC beziehungsweise im GKE-Vorbereitungspfad IAP. Pages ist weder Datenquelle noch Fallback der Realanwendung.
+**Zwei-App-Grenze:** GitHub Pages bleibt als öffentliche Produktdemo mit synthetischen CRM-/Fachdaten und einem getrennt kuratierten Bundestags-Amtsträger-Verzeichnis bestehen. Die geschützte Realanwendung ist ein getrenntes API-only-Artefakt mit OIDC beziehungsweise im GKE-Vorbereitungspfad IAP. Pages ist weder Datenquelle noch Fallback der Realanwendung.
 
 Legende:
 
@@ -25,7 +25,7 @@ Der vorbereitende Arbeitsplan wurde unverändert unter [`archiv/OWASP_TOP_10_MIT
 
 | Pfad | Sicherheitsstatus nach dieser Arbeit | Aussagegrenze |
 | --- | --- | --- |
-| GitHub-Pages-Demo | Eigenes Pages-Artefakt mit ausschließlich synthetischen Demo-Daten und anonymer Demo-Sitzung; keine Fach-API, keine Supabase-Konfiguration und kein produktiver Registrierungs-Intake. | Pages bleibt aktiv, ist aber nicht für schützenswerte oder reale Daten freigegeben und erbt keine Target-Header oder Target-Identität. |
+| GitHub-Pages-Demo | Eigenes Pages-Artefakt mit synthetischen CRM-/Fachdaten, kuratiertem öffentlichem Bundestags-Snapshot und anonymer Demo-Sitzung; keine Fach-API, keine Supabase-Konfiguration und kein produktiver Registrierungs-Intake. | Pages bleibt aktiv, ist aber nicht für schützenswerte Daten freigegeben und erbt keine Target-Header oder Target-Identität. |
 | Supabase-Backend-Übergang | Die Sicherheits-Reconciliation ist live angewendet. Direkte produktive Supabase-Nutzung aus dem Browser und ein Supabase-Laufzeitfallback sind im Target gesperrt. | Auth-User-/Sessioninventar und die negative End-to-End-Rollenmatrix bleiben offen. Der Security Advisor ist bis auf den planabhängigen Leaked-Password-Schalter bereinigt. |
 | GKE-Autopilot-Pre-Integration | Container, Helm, NetworkPolicies, Workload Identity, IAP-JWT-Prüfung, Cloud-SQL-Proxy und resiliente Rollouts sind als überprüfte Artefakte vorhanden. | Der reale Cluster-, Ingress-, IAP-, Cloud-SQL- und Policyzustand wurde nicht verändert und nicht live attestiert. IAP gehört nur zu diesem getrennten Pre-Integrationspfad. |
 | gematik-Zielbetrieb | Die Anwendung besitzt eine providerneutrale OIDC-/JWT-Grenze, eine explizite Rollenmatrix, `(issuer, subject)`-Bindings und einen fail-closed Target-Preflight. | Die externe gematik-Identity selbst ist ausdrücklich nicht geprüft. Gateway, Netzwerk, Schlüsselrotation und reale Token werden gemeinsam mit der Plattform abgenommen. |
@@ -145,7 +145,7 @@ Diese Anwendungsrisiken wurden deshalb unabhängig von Autopilot mitigiert bezie
 - `[x]` Direct-Activity-Writer ist serverintern; Audit-Actors werden aus der verifizierten Identität abgeleitet.
 - `[x]` Lockfiles und Browser-Vendor-Dateien besitzen Integritätsnachweise.
 - `[x]` Target-Frontend und API sind same-origin; GitHub Pages und Target besitzen getrennte Artefakte und Deployments.
-- `[x]` Das Pages-Artefakt enthält ausschließlich synthetische Demo-Daten; es besitzt keine Fach-API-, Supabase- oder Target-Identity-Konfiguration.
+- `[x]` Das Pages-Artefakt enthält synthetische CRM-/Fachdaten und den allowlist-geprüften öffentlichen Bundestags-Snapshot; es besitzt keine Fach-API-, Supabase- oder Target-Identity-Konfiguration.
 - `[x]` Das Target greift fachlich nur über `/api/...` zu und besitzt keinen Browser-Supabase- oder LocalStorage-Datenfallback.
 - `[x]` Die #Mitmachen-Konzeptdemo ist technisch inert und baut keinen Request an `POST /api/network-registrations` auf; ein späterer Handler bleibt bis zur separaten Freigabe deaktiviert.
 - `[x]` Pods sind Non-Root, ohne Privilege Escalation, ohne Capabilities und ohne Kubernetes-API-Token.
@@ -169,7 +169,7 @@ Diese Punkte sind **keine offenen Codebefunde**, aber Release-Gates für reale U
 - [ ] **Logging/Alerting:** zentraler Sink, Zugriff/Retention/Manipulationsschutz; Alerts für AuthN/AuthZ-Denials, 429, 5xx, Fatal, Readiness und ungewöhnliche Exporte auslösen.
 - [ ] **Supply Chain:** Branch Protection, Pflichtreviews, Environment-Approvals, Runnerhärtung, Signatur-/Provenance-/SBOM-Aufbewahrung und Admission/Binary Authorization nachweisen.
 - [ ] **Uploads:** falls aktiviert, Quarantäne, Malware-Scan, Re-Encoding, Metadatenentfernung, sichere Auslieferung und Retention vollständig abnehmen.
-- [ ] **Pages-Scope:** bestätigen, dass GitHub Pages weiterhin ausschließlich synthetische Demo-Daten und keine Target-Konfiguration, echte Sitzung oder Registrierungsannahme ausliefert; keine Annahme machen, dass Target-Header dort gelten.
+- [ ] **Pages-Scope:** bestätigen, dass GitHub Pages weiterhin nur synthetische CRM-/Fachdaten und den kuratierten öffentlichen Bundestags-Snapshot, aber keine Target-Konfiguration, echte Sitzung oder Registrierungsannahme ausliefert; keine Annahme machen, dass Target-Header dort gelten.
 - [ ] **Registrierungsroute:** Einen realen Ersatz für die inerte Konzeptdemo und `POST /api/network-registrations` nur gemeinsam nach Route-Policy, OIDC-/IAP-Abnahme, Input-Allowlist, Idempotenz, Rate Limit, Datenschutz- und Backendausfalltests aktivieren.
 - [ ] **Cutover:** Staging-End-to-End, Rollen-/Archiv-/Audit-Negativmatrix, Canary, Monitoringfenster, Rollback und fachliches Go/No-Go protokollieren.
 - [ ] **Alt-Credentials:** verifizieren, dass historisch dokumentierte Passwortwerte nirgends wiederverwendet werden; bei Unsicherheit rotieren.

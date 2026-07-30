@@ -1493,6 +1493,9 @@
       };
       let politicsDisplayMode = "table";
       let activePoliticsMemberId = "";
+      let politicsProfileSavePending = false;
+      let politicsProfileReturnFocus = null;
+      let politicsProfileReturnFocusMemberId = "";
       let pressSort = { key: "name", direction: "asc" };
       let pressHeaderFilters = {
         name: "",
@@ -29556,11 +29559,16 @@
 
       function politicsMemberAvatarMarkup(member, size = "sm") {
         const sizeClass = size === "lg" ? "avatar-lg" : "avatar-sm";
+        const preserveOriginalFraming =
+          member.imageProvider === "Bilddatenbank des Deutschen Bundestages";
+        const framingClass = preserveOriginalFraming
+          ? " politics-member-avatar--no-crop"
+          : "";
         if (!politicsMemberPortraitIsApproved(member)) {
           return `<span class="avatar avatar-fallback ${sizeClass} avatar--policy" aria-hidden="true">${escapeHtml(member.initials)}</span>`;
         }
         return `
-          <span class="avatar contact-image contact-thumb ${sizeClass} avatar--policy politics-member-avatar" aria-hidden="true">
+          <span class="avatar contact-image contact-thumb ${sizeClass} avatar--policy politics-member-avatar${framingClass}" aria-hidden="true">
             <img
               src="${escapeHtml(member.imageUrl)}"
               alt=""
@@ -29892,7 +29900,7 @@
             <div class="politics-member-cell" data-politics-field="member">
               ${politicsMemberAvatarMarkup(member)}
               <span class="politics-member-copy">
-                <button class="politics-member-name" type="button" data-open-politics-profile="${escapeHtml(member.id)}" aria-haspopup="dialog" aria-controls="detail-panel">${escapeHtml(member.name)}</button>
+                <button class="politics-member-name" type="button" data-open-politics-profile="${escapeHtml(member.id)}" aria-controls="detail-panel">${escapeHtml(member.name)}</button>
                 <small>Mitglied des Deutschen Bundestages</small>
               </span>
             </div>
@@ -36008,17 +36016,281 @@
         return `<span class="politics-postal-code">${escapeHtml(member.representativePostalCode)}</span>`;
       }
 
+      function sanitizePoliticsProfileRecord(record = {}) {
+        const safeRecord = record && typeof record === "object" && !Array.isArray(record)
+          ? record
+          : {};
+        const themes = [];
+        const themeKeys = new Set();
+        for (const rawTheme of normalizeThemes(safeRecord.themes)) {
+          const theme = String(rawTheme || "").normalize("NFKC").replace(/\s+/g, " ").trim().slice(0, 80);
+          const key = theme.toLocaleLowerCase("de");
+          if (!theme || themeKeys.has(key)) continue;
+          themeKeys.add(key);
+          themes.push(theme);
+          if (themes.length >= 24) break;
+        }
+        const notes = (Array.isArray(safeRecord.notes) ? safeRecord.notes : [])
+          .map((note, index) => {
+            if (!note || typeof note !== "object" || Array.isArray(note)) return null;
+            const text = String(note.text || "").normalize("NFKC").trim().slice(0, 4000);
+            if (!text) return null;
+            const createdAt = new Date(note.createdAt || "");
+            const editedAt = new Date(note.editedAt || "");
+            return {
+              id: String(note.id || `politics-note-${index}`).slice(0, 100),
+              text,
+              authorId: String(note.authorId || "").slice(0, 160),
+              authorName: String(note.authorName || "Angemeldeter Nutzer").trim().slice(0, 160) || "Angemeldeter Nutzer",
+              authorRole: String(note.authorRole || "").trim().slice(0, 80),
+              createdAt: Number.isFinite(createdAt.getTime()) ? createdAt.toISOString() : new Date(0).toISOString(),
+              editedAt: Number.isFinite(editedAt.getTime()) ? editedAt.toISOString() : ""
+            };
+          })
+          .filter(Boolean)
+          .slice(-100);
+        return { themes, notes };
+      }
+
+      function politicsProfileRecords(settings = userSettings) {
+        const source = settings?.preferences?.politicsProfiles;
+        if (!source || typeof source !== "object" || Array.isArray(source)) return {};
+        const memberIds = new Set(politicsCommittee.members.map((member) => member.id));
+        return Object.fromEntries(
+          Object.entries(source)
+            .filter(([memberId]) => memberIds.has(memberId))
+            .map(([memberId, record]) => [memberId, sanitizePoliticsProfileRecord(record)])
+        );
+      }
+
+      function politicsProfileRecord(memberId) {
+        return politicsProfileRecords()[memberId] || { themes: [], notes: [] };
+      }
+
+      function politicsProfileStorageNote() {
+        return IS_PUBLIC_DEMO_PROFILE
+          ? "Persönliche Ergänzungen bleiben in der öffentlichen Demo nur für diese Browsersitzung erhalten."
+          : "Persönliche Ergänzungen werden in deinem geschützten Nutzerprofil gespeichert.";
+      }
+
+      function setPoliticsProfileSavingState(memberId, pending) {
+        if (
+          detailPanel.dataset.detailKind !== "politics"
+          || detailPanel.dataset.politicsMemberId !== memberId
+        ) return;
+        if (pending) detailPanel.setAttribute("aria-busy", "true");
+        else detailPanel.removeAttribute("aria-busy");
+        detailPanel.querySelectorAll([
+          "[data-detail-theme-toggle]",
+          "[data-detail-theme-remove]",
+          "#detail-theme-input",
+          "#detail-theme-add",
+          "[data-contact-note-edit-form] textarea",
+          "[data-contact-note-edit-form] button",
+          "#contact-notes-composer textarea",
+          "#contact-notes-composer button",
+          "[data-edit-contact-note]",
+          "[data-delete-contact-note]"
+        ].join(",")).forEach((control) => {
+          control.disabled = pending;
+        });
+      }
+
+      async function savePoliticsProfileRecord(member, nextRecord, storageMessage, options = {}) {
+        if (politicsProfileSavePending) {
+          setStorageStatus("Persönliche Ergänzung wird bereits gespeichert");
+          return false;
+        }
+        if (!canEditContacts()) {
+          showPermissionDenied(viewerCreateDisabledMessage("das Bearbeiten dieses Politikprofils"));
+          return false;
+        }
+        if (!window.dataService?.upsertUserSettings) {
+          window.alert("Persönliche Politikprofil-Daten können erst gespeichert werden, wenn der Nutzereinstellungsdienst verfügbar ist.");
+          return false;
+        }
+        const storedProfiles = userSettings?.preferences?.politicsProfiles;
+        const profiles = storedProfiles && typeof storedProfiles === "object" && !Array.isArray(storedProfiles)
+          ? storedProfiles
+          : {};
+        const nextPreferences = {
+          ...(userSettings?.preferences || {}),
+          politicsProfiles: {
+            ...profiles,
+            [member.id]: sanitizePoliticsProfileRecord(nextRecord)
+          }
+        };
+        const preferencesSize = new TextEncoder().encode(JSON.stringify(nextPreferences)).byteLength;
+        if (preferencesSize > 1_800_000) {
+          window.alert("Die persönlichen Politikprofil-Daten sind zu umfangreich. Bitte lösche ältere Notizen, bevor du weitere Ergänzungen speicherst.");
+          return false;
+        }
+        const fallbackSettings = {
+          ...(userSettings || {}),
+          preferences: nextPreferences
+        };
+        let savedSuccessfully = false;
+        politicsProfileSavePending = true;
+        setPoliticsProfileSavingState(member.id, true);
+        try {
+          const saved = await window.dataService.upsertUserSettings(userSettingsWritePayload(fallbackSettings));
+          userSettings = {
+            ...fallbackSettings,
+            ...(saved || {}),
+            preferences: {
+              ...nextPreferences,
+              ...(saved?.preferences || {})
+            }
+          };
+          setStorageStatus(storageMessage);
+          savedSuccessfully = true;
+          return true;
+        } catch (error) {
+          console.error("Politikprofil-Ergänzung konnte nicht gespeichert werden.", error);
+          window.alert("Die persönliche Ergänzung konnte nicht gespeichert werden. Bitte prüfe Anmeldung, Rolle und Verbindung.");
+          return false;
+        } finally {
+          politicsProfileSavePending = false;
+          setPoliticsProfileSavingState(member.id, false);
+          if (savedSuccessfully && typeof options.onSaved === "function") options.onSaved();
+          if (activePoliticsMemberId === member.id) renderPoliticsPersonProfile(member, detailPanel);
+        }
+      }
+
+      function politicsNotesContact(member, profileData) {
+        return {
+          id: `politics-${member.id}`,
+          name: member.name,
+          displayName: member.name,
+          note: serializeContactNotesThread(profileData.notes)
+        };
+      }
+
+      function renderPoliticsNotesThread(member, profileData) {
+        return `
+          ${renderLegacyContactNotesThread(politicsNotesContact(member, profileData))}
+          <p class="detail-permission-note politics-profile-personal-note">${escapeHtml(politicsProfileStorageNote())}</p>
+        `;
+      }
+
+      function bindPoliticsNotesThread(member, profileData, panel) {
+        panel.querySelectorAll(
+          "[data-contact-note-edit-form] textarea, #contact-notes-composer textarea"
+        ).forEach((textarea) => {
+          textarea.maxLength = 4000;
+        });
+        const refresh = () => renderPoliticsPersonProfile(member, panel);
+        panel.querySelectorAll("[data-edit-contact-note]").forEach((button) => {
+          button.addEventListener("click", () => {
+            contactEditingNoteId = button.dataset.editContactNote || null;
+            refresh();
+          });
+        });
+        panel.querySelectorAll("[data-cancel-contact-note-edit]").forEach((button) => {
+          button.addEventListener("click", () => {
+            if (contactEditingNoteId === button.dataset.cancelContactNoteEdit) {
+              contactEditingNoteId = null;
+              refresh();
+            }
+          });
+        });
+        panel.querySelectorAll("[data-contact-note-edit-form]").forEach((form) => {
+          form.addEventListener("submit", async (event) => {
+            event.preventDefault();
+            if (!canEditContacts()) {
+              showPermissionDenied(viewerCreateDisabledMessage("das Bearbeiten von Notizen"));
+              return;
+            }
+            const noteId = form.dataset.contactNoteEditForm;
+            const textarea = form.querySelector("textarea[name='message']");
+            const text = String(textarea?.value || "").normalize("NFKC").trim().slice(0, 4000);
+            if (!text) return textarea?.focus();
+            const note = profileData.notes.find((message) => message.id === noteId);
+            if (!note || !ownsContactNote(note)) {
+              showPermissionDenied("Du kannst nur eigene Notizen bearbeiten.");
+              return;
+            }
+            await savePoliticsProfileRecord(
+              member,
+              {
+                ...profileData,
+                notes: profileData.notes.map((message) => (
+                  message.id === noteId
+                    ? { ...message, text, editedAt: new Date().toISOString() }
+                    : message
+                ))
+              },
+              "Politiknotiz aktualisiert",
+              { onSaved: () => { contactEditingNoteId = null; } }
+            );
+          });
+        });
+        panel.querySelectorAll("[data-delete-contact-note]").forEach((button) => {
+          button.addEventListener("click", async () => {
+            if (!canEditContacts()) {
+              showPermissionDenied(viewerCreateDisabledMessage("das Löschen von Notizen"));
+              return;
+            }
+            const noteId = button.dataset.deleteContactNote;
+            const note = profileData.notes.find((message) => message.id === noteId);
+            if (!note || !ownsContactNote(note)) {
+              showPermissionDenied("Du kannst nur eigene Notizen löschen.");
+              return;
+            }
+            if (!window.confirm("Diese Notiz löschen?")) return;
+            await savePoliticsProfileRecord(
+              member,
+              {
+                ...profileData,
+                notes: profileData.notes.filter((message) => message.id !== noteId)
+              },
+              "Politiknotiz gelöscht",
+              {
+                onSaved: () => {
+                  if (contactEditingNoteId === noteId) contactEditingNoteId = null;
+                }
+              }
+            );
+          });
+        });
+        panel.querySelector("#contact-notes-composer")?.addEventListener("submit", async (event) => {
+          event.preventDefault();
+          if (!canEditContacts()) {
+            showPermissionDenied(viewerCreateDisabledMessage("das Schreiben von Notizen"));
+            return;
+          }
+          const textarea = event.currentTarget.querySelector("textarea[name='message']");
+          const text = String(textarea?.value || "").normalize("NFKC").trim().slice(0, 4000);
+          if (!text) return textarea?.focus();
+          const nextMessage = {
+            id: window.crypto?.randomUUID?.() || `politics-note-${Date.now()}`,
+            text,
+            authorId: currentProfile?.id || "",
+            authorName: contactNotesAuthorLabel(),
+            authorRole: currentProfile?.role || "",
+            createdAt: new Date().toISOString(),
+            editedAt: ""
+          };
+          contactEditingNoteId = null;
+          await savePoliticsProfileRecord(
+            member,
+            { ...profileData, notes: [...profileData.notes, nextMessage] },
+            "Politiknotiz gespeichert"
+          );
+        });
+      }
+
       function renderPoliticsPersonProfile(member, panel = detailPanel) {
         activePersonProfile.title = member.name || personKindLabel("politics");
         panel.classList.remove("detail-panel--organization", "detail-panel--registration", "detail-panel--politics");
         panel.classList.add("detail-panel--politics");
         panel.dataset.detailKind = "politics";
         panel.dataset.politicsMemberId = member.id;
-        panel.setAttribute("role", "dialog");
-        panel.setAttribute("aria-modal", "true");
-        panel.setAttribute("aria-labelledby", "politics-profile-title");
-        panel.setAttribute("tabindex", "-1");
-        panel.removeAttribute("aria-live");
+        panel.removeAttribute("role");
+        panel.removeAttribute("aria-modal");
+        panel.removeAttribute("aria-labelledby");
+        panel.removeAttribute("tabindex");
+        panel.setAttribute("aria-live", "polite");
         const portraitSourceMarkup = member.imageSourceUrl
           ? `<a href="${escapeHtml(member.imageSourceUrl || member.profileUrl)}" target="_blank" rel="noopener noreferrer">${escapeHtml(member.imageAttribution || "Bildquelle im Profil des Deutschen Bundestages")}</a>`
           : "Kein offizielles Portrait verfügbar";
@@ -36026,16 +36298,31 @@
         const portraitDatabaseApproved = portraitApproved
           && member.imageProvider === "Bilddatenbank des Deutschen Bundestages";
         const portraitFreelyLicensed = portraitApproved && !portraitDatabaseApproved;
+        const profileTabs = ["overview", "themes", "notes"];
+        const activeTab = normalizeDetailTab(detailActiveTab || activePersonProfile.tab || "overview", profileTabs);
+        const profileData = politicsProfileRecord(member.id);
+        const panelAttrs = (tab) => detailPanelAttrs(tab, activeTab, { ariaTab: true });
+        const visibleMembers = filteredPoliticsMembers();
+        const visibleIndex = visibleMembers.findIndex((item) => item.id === member.id);
+        const counterItems = visibleIndex >= 0 ? visibleMembers : politicsCommittee.members;
+        const currentIndex = counterItems.findIndex((item) => item.id === member.id);
+        detailActiveTab = activeTab;
+        activePersonProfile.tab = activeTab;
+        panel.dataset.detailTab = activeTab;
         panel.innerHTML = `
           <div class="detail-toolbar">
-            <div class="detail-counter">Kontaktprofil</div>
-            <button class="detail-close" type="button" id="detail-close" aria-label="Kontaktprofil schließen">&times;</button>
+            <div class="detail-counter">${currentIndex + 1} von ${counterItems.length} Kontakten</div>
+            <div class="detail-toolbar-actions">
+              <button class="detail-close" type="button" id="detail-close" aria-label="Kontaktprofil schließen">&times;</button>
+            </div>
           </div>
           <div class="detail-content">
-            <div class="detail-profile politics-person-profile">
-              <section class="detail-profile-top politics-person-profile__top">
+            <div class="detail-profile">
+              <section class="detail-profile-top">
                 <div class="detail-profile-main">
-                  ${politicsMemberAvatarMarkup(member, "lg")}
+                  <div class="contact-profile-image">
+                    ${politicsMemberAvatarMarkup(member, "lg")}
+                  </div>
                   <div class="detail-profile-copy">
                     <h3 id="politics-profile-title">${escapeHtml(member.name)}</h3>
                     <div class="detail-profile-role">${escapeHtml(politicsCommittee.committee)}</div>
@@ -36048,53 +36335,132 @@
                 </div>
               </section>
 
-              <div class="politics-person-profile__grid">
-                <section class="politics-person-profile__section" aria-labelledby="politics-profile-mandate">
-                  <h4 class="detail-section-title" id="politics-profile-mandate">Mandat und Ausschuss</h4>
-                  <div class="detail-line-list">
-                    ${detailLine("Fraktion", member.faction)}
-                    ${detailLine("Ausschussfunktion", member.role)}
-                    ${detailLine("Mandatsart", member.mandateType)}
-                    ${detailLine("Wahlkreis", politicsConstituencyLabel(member))}
-                    ${member.constituencyFederalState ? detailLine("Bundesland", member.constituencyFederalState) : ""}
-                    ${detailLineHtml("PLZ (Auswahl)", politicsPostalCodesProfileMarkup(member), { empty: !member.representativePostalCode })}
-                  </div>
-                  <p class="politics-profile-data-note">
-                    Gezeigt wird eine PLZ aus dem Wahlkreis; sie ist keine Wahlkreisbüro-Adresse.
-                    Der Kartenpunkt liegt innerhalb der offiziellen Wahlkreisfläche.
-                  </p>
-                </section>
+              <div class="detail-tabs" role="tablist" aria-label="Profilbereiche">
+                ${detailTabButton("overview", "Überblick", activeTab, { ariaTab: true })}
+                ${detailTabButton("themes", "Themen", activeTab, { ariaTab: true, count: profileData.themes.length })}
+                ${detailTabButton("notes", "Notizen", activeTab, { ariaTab: true, count: profileData.notes.length })}
+              </div>
 
-                <section class="politics-person-profile__section politics-person-profile__section--map" aria-labelledby="politics-profile-map">
+              <section ${panelAttrs("overview")} id="detail-overview">
+                <h4 class="detail-section-title" id="politics-profile-mandate">Mandat und Ausschuss</h4>
+                <div class="detail-line-list">
+                  ${detailLine("Fraktion", member.faction)}
+                  ${detailLine("Ausschussfunktion", member.role)}
+                  ${detailLine("Mandatsart", member.mandateType)}
+                  ${detailLine("Wahlkreis", politicsConstituencyLabel(member))}
+                  ${member.constituencyFederalState ? detailLine("Bundesland", member.constituencyFederalState) : ""}
+                  ${detailLineHtml("PLZ (Auswahl)", politicsPostalCodesProfileMarkup(member), { empty: !member.representativePostalCode })}
+                </div>
+                <p class="politics-profile-data-note">
+                  ${
+                    member.representativePostalCode
+                      ? `Gezeigt wird eine PLZ aus dem Wahlkreis; sie ist keine Wahlkreisbüro-Adresse.
+                        Der Kartenpunkt liegt innerhalb der offiziellen Wahlkreisfläche.`
+                      : `Für dieses Listenmandat ist keine repräsentative Wahlkreis-PLZ hinterlegt.
+                        Die Vorschau zeigt ausschließlich die bundeslandweite regionale Zuordnung.`
+                  }
+                </p>
+                <article class="detail-info-card detail-info-card--map politics-profile-map-card" aria-labelledby="politics-profile-map">
                   <h4 class="detail-section-title" id="politics-profile-map">Wahlkreis-Vorschau</h4>
                   ${politicsConstituencyMiniMapMarkup(member)}
                   <p class="politics-map-attribution">
                     © Die Bundeswahlleiterin, Statistisches Bundesamt, Wiesbaden 2024, Wahlkreiskarte für die Wahl zum
                     21. Deutschen Bundestag · Grundlage der Geoinformationen © Geobasis-DE / BKG 2024
                   </p>
-                </section>
-
-                <section class="politics-person-profile__section" aria-labelledby="politics-profile-sources">
-                  <h4 class="detail-section-title" id="politics-profile-sources">Offizielle Quellen</h4>
-                  <div class="detail-line-list">
-                    ${detailContactLine("Abgeordnetenprofil", "Deutscher Bundestag", member.profileUrl)}
-                    ${detailContactLine("Wahlkreisdaten", "Wahlkreissuche des Deutschen Bundestages", member.constituencySourceUrl)}
-                    ${detailLineHtml("Bildnachweis", portraitSourceMarkup, { empty: !member.imageSourceUrl })}
-                    ${detailContactLine("Bildlizenz", member.imageLicense || (portraitFreelyLicensed ? "Freie Lizenz" : "Nutzungsbedingungen prüfen"), member.imageUsageTermsUrl)}
+                </article>
+                <details class="detail-more">
+                  <summary id="politics-profile-sources">Quellen und Bildrechte</summary>
+                  <div class="detail-more__content">
+                    <div class="detail-line-list" aria-labelledby="politics-profile-sources">
+                      ${detailContactLine("Abgeordnetenprofil", "Deutscher Bundestag", member.profileUrl)}
+                      ${detailContactLine("Wahlkreisdaten", "Wahlkreissuche des Deutschen Bundestages", member.constituencySourceUrl)}
+                      ${detailLineHtml("Bildnachweis", portraitSourceMarkup, { empty: !member.imageSourceUrl })}
+                      ${detailContactLine("Bildlizenz", member.imageLicense || (portraitFreelyLicensed ? "Freie Lizenz" : "Nutzungsbedingungen prüfen"), member.imageUsageTermsUrl)}
+                    </div>
+                    <p class="politics-profile-rights-note">
+                      ${portraitFreelyLicensed
+                        ? "Dieses Portrait ist frei lizenziert. Bildnachweis und Lizenzbedingungen bleiben bei einer Weiterverwendung zu beachten."
+                        : portraitDatabaseApproved
+                          ? "Dieses Bild ist für private und kommerzielle nicht-werbliche Zwecke freigegeben. Werbe- und Wahlkampfnutzung sowie weitergehende Bildbearbeitungen sind ausgeschlossen; der Bildnachweis bleibt erforderlich."
+                          : "Das offizielle Portrait ist als Quelle dokumentiert, wird ohne nachgewiesene Weiterverwendungsfreigabe aber nicht eingebettet. Es gelten die verlinkten Rechtehinweise."}
+                    </p>
                   </div>
-                  <p class="politics-profile-rights-note">
-                    ${portraitFreelyLicensed
-                      ? "Dieses Portrait ist frei lizenziert. Bildnachweis und Lizenzbedingungen bleiben bei einer Weiterverwendung zu beachten."
-                      : portraitDatabaseApproved
-                        ? "Dieses Bild ist für private und kommerzielle nicht-werbliche Zwecke freigegeben. Werbe- und Wahlkampfnutzung sowie weitergehende Bildbearbeitungen sind ausgeschlossen; der Bildnachweis bleibt erforderlich."
-                      : "Das offizielle Portrait ist als Quelle dokumentiert, wird ohne nachgewiesene Weiterverwendungsfreigabe aber nicht eingebettet. Es gelten die verlinkten Rechtehinweise."}
-                  </p>
-                </section>
-              </div>
+                </details>
+              </section>
+
+              <section ${panelAttrs("themes")} id="detail-themes">
+                <h4 class="detail-section-title">Themen${profileData.themes.length ? ` (${profileData.themes.length})` : ""}</h4>
+                <div class="detail-line-list">
+                  ${canEditContacts()
+                    ? renderDetailThemeEditor(profileData.themes, { scope: "care" })
+                    : renderViewerThemePanel(profileData.themes, { scope: "care" })}
+                </div>
+                <p class="detail-permission-note politics-profile-personal-note">${escapeHtml(politicsProfileStorageNote())}</p>
+              </section>
+
+              <section ${panelAttrs("notes")} id="detail-notes">
+                <h4 class="detail-section-title">Notizen</h4>
+                ${renderPoliticsNotesThread(member, profileData)}
+              </section>
             </div>
           </div>
         `;
+        window.requestAnimationFrame(() => {
+          panel.querySelector('.detail-tabs [role="tab"].is-active')?.scrollIntoView({ block: "nearest", inline: "nearest" });
+        });
         panel.querySelector("#detail-close")?.addEventListener("click", closeDetail);
+        bindDetailTabNavigation(panel, (tab) => {
+          detailActiveTab = normalizeDetailTab(tab, profileTabs);
+          activePersonProfile.tab = detailActiveTab;
+          if (detailActiveTab !== "notes") contactEditingNoteId = null;
+          updateRouteHash(personProfileRoute("politics", member.id, {
+            returnTo: "politics",
+            tab: detailActiveTab === "overview" ? "" : detailActiveTab
+          }));
+          renderPoliticsPersonProfile(member, panel);
+        });
+        panel.querySelectorAll("[data-viewer-theme-blocked]").forEach((element) => {
+          element.addEventListener("click", () => showPermissionDenied(viewerCreateDisabledMessage("das Bearbeiten von Themen")));
+          element.addEventListener("focus", () => {
+            if (element.matches("input")) showPermissionDenied(viewerCreateDisabledMessage("das Bearbeiten von Themen"));
+          }, { once: true });
+        });
+        panel.querySelectorAll("[data-detail-theme-toggle]").forEach((button) => {
+          button.addEventListener("click", () => {
+            const themes = new Set(profileData.themes);
+            const tag = button.dataset.detailThemeToggle;
+            if (themes.has(tag)) themes.delete(tag);
+            else themes.add(tag);
+            savePoliticsProfileRecord(member, { ...profileData, themes: [...themes] }, "Politikthemen gespeichert");
+          });
+        });
+        panel.querySelectorAll("[data-detail-theme-remove]").forEach((button) => {
+          button.addEventListener("click", () => {
+            const tag = button.dataset.detailThemeRemove;
+            savePoliticsProfileRecord(
+              member,
+              { ...profileData, themes: profileData.themes.filter((theme) => theme !== tag) },
+              "Politikthemen gespeichert"
+            );
+          });
+        });
+        const addTheme = () => {
+          const input = panel.querySelector("#detail-theme-input");
+          const value = String(input?.value || "").normalize("NFKC").replace(/\s+/g, " ").trim().slice(0, 80);
+          if (!value) return input?.focus();
+          savePoliticsProfileRecord(
+            member,
+            { ...profileData, themes: [...profileData.themes, value] },
+            "Politikthemen gespeichert"
+          );
+        };
+        panel.querySelector("#detail-theme-add")?.addEventListener("click", addTheme);
+        panel.querySelector("#detail-theme-input")?.addEventListener("keydown", (event) => {
+          if (event.key !== "Enter") return;
+          event.preventDefault();
+          addTheme();
+        });
+        bindPoliticsNotesThread(member, profileData, panel);
       }
 
       function openPoliticsPersonDrawer(id, items = filteredPoliticsMembers(), options = {}) {
@@ -36102,13 +36468,23 @@
         const member = currentItems.find((entry) => entry.id === id)
           || politicsCommittee.members.find((entry) => entry.id === id);
         if (!member) return;
+        const drawerWasOpen = detailDrawer.classList.contains("is-open");
+        if (options.updateRoute !== false) {
+          detailActiveTab = "overview";
+          politicsProfileReturnFocus = document.activeElement instanceof HTMLElement
+            ? document.activeElement
+            : null;
+          politicsProfileReturnFocusMemberId =
+            politicsProfileReturnFocus?.dataset.openPoliticsProfile || "";
+        }
+        contactEditingNoteId = null;
         activePoliticsMemberId = member.id;
         activePersonProfile = {
           kind: "politics",
           id: member.id,
           returnTo: "politics",
           title: member.name,
-          tab: "",
+          tab: detailActiveTab,
           noteId: ""
         };
         renderPoliticsPersonProfile(member, detailPanel);
@@ -36116,7 +36492,15 @@
         detailDrawer.setAttribute("aria-hidden", "false");
         syncBodyScrollLock();
         if (options.updateRoute !== false) {
-          updateRouteHash(personProfileRoute("politics", member.id, { returnTo: "politics" }));
+          updateRouteHash(personProfileRoute("politics", member.id, {
+            returnTo: "politics",
+            tab: detailActiveTab === "overview" ? "" : detailActiveTab
+          }));
+        }
+        if (!drawerWasOpen) {
+          window.requestAnimationFrame(() => {
+            detailPanel.querySelector("#detail-close")?.focus({ preventScroll: true });
+          });
         }
       }
 
@@ -36140,6 +36524,10 @@
           detailDrawer.classList.contains("is-open")
           && detailPanel.dataset.detailKind === "politics"
           && detailPanel.dataset.politicsMemberId === activePoliticsMemberId
+          && detailPanel.dataset.detailTab === normalizeDetailTab(
+            detailActiveTab,
+            ["overview", "themes", "notes"]
+          )
         ) return;
         openPoliticsPersonDrawer(activePoliticsMemberId, politicsCommittee.members, { updateRoute: false });
       }
@@ -38764,6 +39152,10 @@
 
       function closeDetail(options = {}) {
         const closingPoliticsProfile = detailPanel.dataset.detailKind === "politics";
+        const politicsReturnFocus = closingPoliticsProfile ? politicsProfileReturnFocus : null;
+        const politicsReturnFocusMemberId = closingPoliticsProfile
+          ? politicsProfileReturnFocusMemberId
+          : "";
         closeAllCustomSelects();
         detailEditMode = false;
         detailOwnerPickerOpen = false;
@@ -38779,14 +39171,20 @@
         activeExpertOrganizationId = null;
         activeStakeholderPersonId = null;
         activeStakeholderOrganizationId = null;
-        if (closingPoliticsProfile) activePoliticsMemberId = "";
+        if (closingPoliticsProfile) {
+          activePoliticsMemberId = "";
+          politicsProfileReturnFocus = null;
+          politicsProfileReturnFocusMemberId = "";
+        }
         registrationDetailTab = "contact";
         detailPanel.classList.remove("detail-panel--organization", "detail-panel--registration", "detail-panel--politics");
         delete detailPanel.dataset.detailKind;
         delete detailPanel.dataset.politicsMemberId;
+        delete detailPanel.dataset.detailTab;
         detailPanel.removeAttribute("role");
         detailPanel.removeAttribute("aria-modal");
         detailPanel.removeAttribute("aria-labelledby");
+        detailPanel.removeAttribute("aria-busy");
         detailPanel.removeAttribute("tabindex");
         detailPanel.setAttribute("aria-live", "polite");
         detailDrawer.classList.remove("is-open");
@@ -38798,6 +39196,15 @@
           && parsePersonProfileRoute(routeTokenFromLocation())?.kind === "politics"
         ) {
           updateRouteHash("politics", { replace: true });
+        }
+        if (politicsReturnFocus || politicsReturnFocusMemberId) {
+          window.requestAnimationFrame(() => {
+            const focusTarget = politicsReturnFocus?.isConnected
+              ? politicsReturnFocus
+              : Array.from(document.querySelectorAll("[data-open-politics-profile]"))
+                .find((element) => element.dataset.openPoliticsProfile === politicsReturnFocusMemberId);
+            focusTarget?.focus({ preventScroll: true });
+          });
         }
       }
 

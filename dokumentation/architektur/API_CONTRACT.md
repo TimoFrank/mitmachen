@@ -8,7 +8,7 @@ Die technische Deployment-Doku für Jenkins, Kubernetes, Helm und gematik-Zielbe
 
 | Anwendung | Auslieferung und Daten | Authentisierung | Backendgrenze |
 | --- | --- | --- | --- |
-| Öffentliche Produktdemo | GitHub Pages unter dem Profil `pages-demo`; ausschließlich gebündelte, synthetische Demo-Daten | `anonymous-demo`, keine echte Benutzeridentität | Keine Verbindung zur Fach-API, zu Supabase oder zu einem Registrierungsbackend |
+| Öffentliche Produktdemo | GitHub Pages unter dem Profil `pages-demo`; gebündelte synthetische CRM-/Fachdaten plus kuratierter öffentlicher Bundestags-Snapshot | `anonymous-demo`, keine echte Benutzeridentität | Keine Verbindung zur Fach-API, zu Supabase oder zu einem Registrierungsbackend |
 | Geschützte Realanwendung | Eigenständiges Target-Artefakt für GKE-Pre-Integration beziehungsweise gematik-Zielbetrieb; nur freigegebene Fachdatenklassen | IAP im GKE-Vorbereitungspfad, OIDC im Zielbetrieb | Alle fachlichen Browserzugriffe ausschließlich über same-origin `/api/...` |
 
 GitHub Pages bleibt als öffentliche Demo bestehen. Es ist weder ein vorgeschaltetes Frontend der Realanwendung noch ein Ausweichbetrieb für deren Daten. Die beiden Buildprofile dürfen keine Laufzeitdaten, Konfigurationen oder Authentisierungssitzungen miteinander teilen.

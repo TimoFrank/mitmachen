@@ -63,7 +63,11 @@
     "route": { "type": ["string", "null"] },
     "dataMode": { "enum": ["demo", "api"] },
     "dataPolicy": {
-      "enum": ["synthetic-only", "approved-classes-only"]
+      "enum": [
+        "synthetic-only",
+        "synthetic-plus-public-directory",
+        "approved-classes-only"
+      ]
     },
     "authModes": {
       "type": "array",

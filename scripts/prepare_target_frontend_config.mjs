@@ -75,7 +75,7 @@ const artifactRoot = artifactRootFromConfig(configPath);
 for (const htmlPath of walkFiles(artifactRoot, new Set([".html"]))) {
   const html = fs.readFileSync(htmlPath, "utf8");
   const stripped = html.replace(
-    /\n?\s*<script\b[^>]*src=["'][^"']*(?:supabase-js|vendor\/supabase\/supabase\.js|data\/(?:demo-data|versorgungs-kompass-data|expertenkreis-data|stakeholder-data|patienten-data)\.js)[^"']*["'][^>]*><\/script>/gi,
+    /\n?\s*<script\b[^>]*src=["'][^"']*(?:supabase-js|vendor\/supabase\/supabase\.js|data\/(?:public-politics-directory|demo-data|versorgungs-kompass-data|expertenkreis-data|stakeholder-data|patienten-data)\.js)[^"']*["'][^>]*><\/script>/gi,
     ""
   );
   if (stripped !== html) fs.writeFileSync(htmlPath, stripped);
@@ -106,6 +106,8 @@ for (const surfacePath of walkFiles(artifactRoot, new Set([".html", ".js"]))) {
 if (artifactRoot) {
   for (const retiredPath of [
     path.join(artifactRoot, "demo"),
+    path.join(artifactRoot, "politik-offline.html"),
+    path.join(artifactRoot, "data", "public-politics-directory.js"),
     path.join(artifactRoot, "data", "demo-data.js"),
     path.join(artifactRoot, "data", "versorgungs-kompass-data.js"),
     path.join(artifactRoot, "data", "versorgungs-kompass-data.csv"),

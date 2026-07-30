@@ -9,7 +9,7 @@ Der fachliche Bestand von `mitmachen.timo-frank.de` wurde im persönlichen Pilot
 
 Für den gematik-PoC wird deshalb ein aktueller Snapshot aus Cloud SQL verwendet. Die frühere Supabase-Migration wird nicht erneut als aktuelle Quelle behandelt.
 
-GitHub Pages bleibt vollständig getrennt und veröffentlicht ausschließlich synthetische Demo-Daten.
+GitHub Pages bleibt vollständig getrennt und veröffentlicht synthetische CRM-/Fachdaten sowie ausschließlich im Politik-Modul den kuratierten öffentlichen Bundestags-Snapshot.
 
 ## Wiederverwendbarer Vertrag
 

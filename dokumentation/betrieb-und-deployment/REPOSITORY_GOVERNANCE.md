@@ -23,7 +23,7 @@ exakten Head-Commit automatisch gemergt. Ändert sich `main` währenddessen,
 bricht der Lauf ab und muss den Release neu planen.
 
 Öffentliche Produkt-Releases folgen dem Schema `vX.Y.Z`. Nach dem Merge werden
-der exakte Commit erneut geprüft, das synthetische Pages-Artefakt gebaut und
+der exakte Commit erneut geprüft, das öffentliche Pages-Demo-Artefakt gebaut und
 deployed und erst danach ein annotierter Einzel-Tag sowie ein GitHub Release
 veröffentlicht. Patch-Releases können manuell angestoßen werden; Wochen ohne
 Änderungen erzeugen keinen Release. GitHub benachrichtigt die Release-Abonnenten

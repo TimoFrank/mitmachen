@@ -1,6 +1,6 @@
 # Geschützter Datenbestand und Migrationen
 
-Dieser Ordner enthält das Datenbankschema, additive Migrationen und Betriebsanleitungen für den geschützten Backend-Datenbestand. Er ist keine Quelle für GitHub Pages. Die öffentliche Demo besitzt ausschließlich synthetische Daten; die Realanwendung greift nur über die authentifizierte API auf Fachdaten zu.
+Dieser Ordner enthält das Datenbankschema, additive Migrationen und Betriebsanleitungen für den geschützten Backend-Datenbestand. Er ist keine Quelle für GitHub Pages. Die öffentliche Demo besitzt synthetische CRM-/Fachdaten und als getrennte Ausnahme ein kuratiertes Verzeichnis öffentlicher Bundestags-Amtsträgerdaten; die Realanwendung greift nur über die authentifizierte API auf Fachdaten zu.
 
 ## Sicherheitsgrenze
 

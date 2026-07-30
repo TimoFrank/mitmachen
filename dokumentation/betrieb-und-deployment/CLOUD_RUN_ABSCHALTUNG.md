@@ -73,7 +73,7 @@ Die Live-Prüfung fand keine Cloud-Run-Jobs, Domain Mappings, serverlosen NEGs, 
 
 ## Nutzungsbefund und Entscheidung
 
-`versorgungs-kompass-gcp-demo` erhielt zuletzt am 19. Juli gegen 22:37–22:38 CEST App-/API-GETs und am 20. Juli gegen 07:09 CEST weitere GETs. In den geprüften 30 Tagen wurden keine schreibenden HTTP-Methoden gefunden. Die Abschaltung wird deshalb nicht mit „ungenutzt“ begründet, sondern mit der ausdrücklichen Ablösung durch die synthetische Pages-Demo und die getrennte GKE-Pre-Integration.
+`versorgungs-kompass-gcp-demo` erhielt zuletzt am 19. Juli gegen 22:37–22:38 CEST App-/API-GETs und am 20. Juli gegen 07:09 CEST weitere GETs. In den geprüften 30 Tagen wurden keine schreibenden HTTP-Methoden gefunden. Die Abschaltung wird deshalb nicht mit „ungenutzt“ begründet, sondern mit der ausdrücklichen Ablösung durch die öffentliche Pages-Demo und die getrennte GKE-Pre-Integration.
 
 ## Phase 1: Read-only-Plan
 

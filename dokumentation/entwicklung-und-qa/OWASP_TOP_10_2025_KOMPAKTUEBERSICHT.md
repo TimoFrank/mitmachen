@@ -72,7 +72,7 @@ Nicht durch Autopilot mitigiert werden insbesondere Authentisierung/RBAC, XSS/In
 
 ## Noch gemeinsam extern abzuhaken
 
-- [ ] **Zwei-App-Scope:** Pages weiterhin nur mit synthetischen Demo-Daten und ohne Target-Konfiguration, echte Sitzung, Supabase oder Registrierungsannahme verifizieren; Target ausschließlich API-only ausliefern.
+- [ ] **Zwei-App-Scope:** Pages weiterhin nur mit synthetischen CRM-/Fachdaten und dem kuratierten öffentlichen Bundestags-Snapshot sowie ohne Target-Konfiguration, echte Sitzung, Supabase oder Registrierungsannahme verifizieren; Target ausschließlich API-only ausliefern.
 - [ ] **Registrierungsroute:** Die Konzeptdemo ohne Intake-Aufruf belassen; einen realen Prozess und `POST /api/network-registrations` erst gemeinsam nach Route-Policy, OIDC/IAP, Idempotenz, Limits, Datenschutz und Backendausfalltests aktivieren.
 - [ ] **Supabase-Übergang:** Migration, Auth-Schalter, Nutzer/Sessions, RLS, Grants, Data-API-Exposition, Storage und Advisors zuerst in Staging, dann produktiv prüfen. RLS und API-/Rollen-Grants sind getrennte Kontrollschichten.
 - [ ] **Identity/Gateway:** fremde Identity- und Authorization-Header vor Auth entfernen; nur verifizierten Kontext neu etablieren; direkten API-Zugriff sperren; TLS auf jedem Hop.
@@ -81,7 +81,7 @@ Nicht durch Autopilot mitigiert werden insbesondere Authentisierung/RBAC, XSS/In
 - [ ] **Software Factory:** Branch Protection, Pflichtreviews, Runnerhärtung, Registry, Signatur/Attestation, SBOM/Provenance und Binary Authorization nachweisen.
 - [ ] **Monitoring/Resilienz:** zentralen Log-Sink und Alerts aktivieren; verteilte Rate Limits, Überlast, Pod-Abbruch, Rollback und Restore testen.
 - [ ] **Browser:** CSP, HSTS, Frame-, Cache-, Referrer-, Permissions-, COOP/CORP- und same-origin-Regeln am realen Ingress messen.
-- [ ] **Cutover:** Staging-End-to-End, Canary, Go/No-Go, Monitoringfenster, Rollback und Stilllegung des Browser-Supabase-/LocalStorage-Legacypfads protokollieren; die getrennte synthetische Pages-Demo bleibt bestehen.
+- [ ] **Cutover:** Staging-End-to-End, Canary, Go/No-Go, Monitoringfenster, Rollback und Stilllegung des Browser-Supabase-/LocalStorage-Legacypfads protokollieren; die getrennte Pages-Demo mit synthetischen CRM-/Fachdaten und kuratiertem Bundestags-Snapshot bleibt bestehen.
 
 Hinweis zum Supabase-Übergang: Laut [Supabase Changelog](https://supabase.com/changelog) werden neue öffentliche Tabellen inzwischen nicht mehr automatisch den Data APIs exponiert. Der Live-Nachweis prüft trotzdem ausdrücklich sowohl Data-API-/Rollen-Grants als auch RLS, weil diese Schutzschichten unabhängig voneinander konfiguriert werden.
 
