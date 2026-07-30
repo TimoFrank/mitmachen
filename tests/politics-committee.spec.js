@@ -328,6 +328,51 @@ test("Politik-Mitglieder öffnen im VK-paritätischen rechten Drawer mit Tabs, W
   await expect(page.locator(COMMITTEE_TABLE).locator(MEMBER_ROWS)).toHaveCount(38);
 });
 
+test("Listenmandate ohne Wahlkreis-PLZ erhalten einen eindeutigen Kartenhinweis", async ({ page }) => {
+  await gotoAuthenticated(page, `${APP_PATH}#politics`);
+  await page.locator("#search").fill("Landesliste Hessen");
+  const listMandateRow = page.locator(COMMITTEE_TABLE).locator(`${MEMBER_ROWS}:visible`);
+  await expect(listMandateRow).toHaveCount(1);
+  await listMandateRow.locator("[data-open-politics-profile]").click();
+
+  const profile = page.locator(POLITICS_PROFILE);
+  await expect(profile.locator(".politics-profile-data-note")).toContainText(
+    "keine repräsentative Wahlkreis-PLZ hinterlegt"
+  );
+  await expect(profile.locator(".politics-profile-data-note")).toContainText(
+    "bundeslandweite regionale Zuordnung"
+  );
+  await expect(profile.locator(".politics-profile-data-note")).not.toContainText(
+    "offiziellen Wahlkreisfläche"
+  );
+  await expect(profile.locator(".politics-constituency-preview")).toContainText("Landesliste");
+  await expect(profile.locator(".politics-constituency-preview")).not.toContainText("PLZ-Auswahl");
+});
+
+test("Offline-Politik hält den Tastaturfokus im rechten Kontakt-Drawer", async ({ page }) => {
+  await page.goto("/politik-offline.html");
+  await page.waitForFunction(() => window.__POLITIK_OFFLINE_READY__ === true);
+  const opener = page.locator("button[data-open-member]").first();
+  await opener.click();
+
+  const drawer = page.locator("#detail-drawer");
+  await expect(drawer).toBeVisible();
+  await expect(drawer).toHaveAttribute("role", "dialog");
+  await expect(drawer).toHaveAttribute("aria-modal", "true");
+  const closeButton = drawer.getByRole("button", { name: "Kontaktprofil schließen" });
+  await expect(closeButton).toBeFocused();
+  await closeButton.press("Shift+Tab");
+  await expect.poll(() => page.evaluate(() =>
+    document.querySelector("#detail-drawer")?.contains(document.activeElement)
+  )).toBe(true);
+  await page.keyboard.press("Tab");
+  await expect(closeButton).toBeFocused();
+
+  await closeButton.click();
+  await expect(drawer).toBeHidden();
+  await expect(opener).toBeFocused();
+});
+
 test("Persönliche Politik-Themen und -Notizen werden über die VK-Reiter gespeichert", async ({ page }, testInfo) => {
   test.skip(testInfo.project.name.includes("mobile"), "Persistenz und Bearbeitungsablauf werden im Desktop-Projekt geprüft.");
   const fixture = createProtectedBackendFixture({ role: "admin" });

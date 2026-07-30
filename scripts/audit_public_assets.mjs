@@ -70,6 +70,47 @@ function canonicalHref(html, label) {
   return matches[0]?.href;
 }
 
+function hasExactOfflineContentSecurityPolicy(html, label) {
+  const content = metadataContent(
+    html,
+    "http-equiv",
+    "Content-Security-Policy",
+    label
+  );
+  const expectedDirectives = new Map([
+    ["default-src", ["'none'"]],
+    ["img-src", ["data:"]],
+    ["style-src", ["'unsafe-inline'"]],
+    ["script-src", ["'unsafe-inline'"]],
+    ["connect-src", ["'none'"]],
+    ["font-src", ["'none'"]],
+    ["object-src", ["'none'"]],
+    ["base-uri", ["'none'"]],
+    ["form-action", ["'none'"]]
+  ]);
+  const directives = new Map();
+  let valid = typeof content === "string";
+  for (const rawDirective of String(content || "").split(";")) {
+    const tokens = rawDirective.trim().split(/\s+/u).filter(Boolean);
+    if (!tokens.length) continue;
+    const name = tokens.shift().toLowerCase();
+    if (directives.has(name)) valid = false;
+    directives.set(name, tokens);
+  }
+  if (directives.size !== expectedDirectives.size) valid = false;
+  for (const [name, expectedTokens] of expectedDirectives) {
+    const actualTokens = directives.get(name);
+    if (
+      !actualTokens
+      || actualTokens.length !== expectedTokens.length
+      || actualTokens.some((token, index) => token !== expectedTokens[index])
+    ) {
+      valid = false;
+    }
+  }
+  return valid;
+}
+
 function crc32(buffer) {
   let crc = 0xffffffff;
   for (const byte of buffer) {
@@ -392,7 +433,10 @@ if (existsSync(offlinePoliticsPath)) {
     /<script id="offline-data" type="application\/json">([\s\S]+?)<\/script>/u
   );
   assert(
-    /<meta\s+http-equiv="Content-Security-Policy"\s+content="default-src 'none';/u.test(offlinePolitics),
+    hasExactOfflineContentSecurityPolicy(
+      offlinePolitics,
+      `${artifactLabel}/politik-offline.html`
+    ),
     `${artifactLabel}/politik-offline.html besitzt keine fail-closed Offline-CSP`
   );
   assert(
@@ -400,7 +444,7 @@ if (existsSync(offlinePoliticsPath)) {
     `${artifactLabel}/politik-offline.html laedt externe Laufzeitressourcen`
   );
   assert(
-    !/\b(?:fetch|XMLHttpRequest|sendBeacon)\b/u.test(offlinePolitics),
+    !/\b(?:fetch|XMLHttpRequest|sendBeacon|WebSocket|EventSource)\b/u.test(offlinePolitics),
     `${artifactLabel}/politik-offline.html verwendet eine Netzwerk-Transport-API`
   );
   assert(

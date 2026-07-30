@@ -30,6 +30,7 @@ on:
       - scripts/build_static_frontend.sh
       - scripts/audit_public_assets.mjs
       - scripts/update_public_politics_directory.mjs
+      - scripts/update_politics_offline_snapshot.mjs
       - scripts/html_metadata_tags.cjs
       - scripts/check_deployment_governance.mjs
       - .github/workflows/deploy-pages.yml
@@ -313,10 +314,13 @@ jobs:
           const offlineDataMatch = offlinePolitics.match(
             /<script id="offline-data" type="application\/json">([\s\S]+?)<\/script>/u
           );
+          const expectedOfflineCsp = "default-src 'none'; img-src data:; style-src 'unsafe-inline'; script-src 'unsafe-inline'; connect-src 'none'; font-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'";
+          const offlineCspMarker = `content="${expectedOfflineCsp}"`;
           if (
-            !/<meta\s+http-equiv="Content-Security-Policy"\s+content="default-src 'none';/u.test(offlinePolitics)
+            (offlinePolitics.match(/http-equiv="Content-Security-Policy"/gu) || []).length !== 1
+            || !offlinePolitics.includes(offlineCspMarker)
             || /<(?:script|link|img|iframe)\b[^>]*(?:src|href)=["']https?:/iu.test(offlinePolitics)
-            || /\b(?:fetch|XMLHttpRequest|sendBeacon)\b/u.test(offlinePolitics)
+            || /\b(?:fetch|XMLHttpRequest|sendBeacon|WebSocket|EventSource)\b/u.test(offlinePolitics)
             || !/window\.__POLITIK_OFFLINE_READY__\s*=\s*true/u.test(offlinePolitics)
             || !offlineDataMatch
           ) {

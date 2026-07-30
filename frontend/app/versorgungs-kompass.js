@@ -36352,8 +36352,13 @@
                   ${detailLineHtml("PLZ (Auswahl)", politicsPostalCodesProfileMarkup(member), { empty: !member.representativePostalCode })}
                 </div>
                 <p class="politics-profile-data-note">
-                  Gezeigt wird eine PLZ aus dem Wahlkreis; sie ist keine Wahlkreisbüro-Adresse.
-                  Der Kartenpunkt liegt innerhalb der offiziellen Wahlkreisfläche.
+                  ${
+                    member.representativePostalCode
+                      ? `Gezeigt wird eine PLZ aus dem Wahlkreis; sie ist keine Wahlkreisbüro-Adresse.
+                        Der Kartenpunkt liegt innerhalb der offiziellen Wahlkreisfläche.`
+                      : `Für dieses Listenmandat ist keine repräsentative Wahlkreis-PLZ hinterlegt.
+                        Die Vorschau zeigt ausschließlich die bundeslandweite regionale Zuordnung.`
+                  }
                 </p>
                 <article class="detail-info-card detail-info-card--map politics-profile-map-card" aria-labelledby="politics-profile-map">
                   <h4 class="detail-section-title" id="politics-profile-map">Wahlkreis-Vorschau</h4>

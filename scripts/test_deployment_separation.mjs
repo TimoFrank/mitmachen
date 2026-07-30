@@ -16,6 +16,11 @@ const targetDir = path.join(fixtureRoot, "target");
 const builder = path.join(root, "scripts", "build_static_frontend.sh");
 const publicAudit = path.join(root, "scripts", "audit_public_assets.mjs");
 const targetAudit = path.join(root, "scripts", "audit_target_assets.mjs");
+const offlinePoliticsUpdater = path.join(
+  root,
+  "scripts",
+  "update_politics_offline_snapshot.mjs"
+);
 const apiBaseUrl = "https://gateway.pre-gematik.example";
 
 const quotedGreaterThanTag = scanHtmlStartTags(
@@ -331,6 +336,83 @@ try {
   );
   assert.ok(offlinePoliticsWrapper, "Das Offline-Modul muss einen eingebetteten Datenstand besitzen");
   const cleanOfflinePoliticsPayload = JSON.parse(offlinePoliticsWrapper[2]);
+  execFileSync(
+    process.execPath,
+    [
+      offlinePoliticsUpdater,
+      "--check",
+      "--directory-path",
+      pagesPoliticsPath,
+      "--offline-path",
+      pagesOfflinePoliticsPath
+    ],
+    { cwd: root, stdio: "pipe" }
+  );
+  const refreshableOfflinePoliticsPayload = structuredClone(cleanOfflinePoliticsPayload);
+  refreshableOfflinePoliticsPayload.snapshotAt =
+    new Date(Date.now() - 30 * 24 * 60 * 60 * 1_000).toISOString();
+  fs.writeFileSync(
+    pagesOfflinePoliticsPath,
+    cleanPagesOfflinePolitics.replace(
+      offlinePoliticsWrapper[0],
+      `${offlinePoliticsWrapper[1]}${JSON.stringify(refreshableOfflinePoliticsPayload)}${offlinePoliticsWrapper[3]}`
+    )
+  );
+  execFileSync(
+    process.execPath,
+    [
+      offlinePoliticsUpdater,
+      "--directory-path",
+      pagesPoliticsPath,
+      "--offline-path",
+      pagesOfflinePoliticsPath
+    ],
+    { cwd: root, stdio: "pipe" }
+  );
+  const refreshedOfflinePolitics = fs.readFileSync(pagesOfflinePoliticsPath, "utf8");
+  const refreshedOfflineData = JSON.parse(
+    refreshedOfflinePolitics.match(
+      /<script id="offline-data" type="application\/json">([\s\S]+?)<\/script>/u
+    )[1]
+  );
+  assert.equal(
+    refreshedOfflineData.snapshotAt,
+    cleanPoliticsPayload.fetchedAt,
+    "Der dokumentierte Generator muss das Offline-Modul auf denselben Bundestag-Snapshot aktualisieren"
+  );
+  fs.writeFileSync(pagesOfflinePoliticsPath, cleanPagesOfflinePolitics);
+
+  const incompatibleOfflinePoliticsPayload = structuredClone(cleanOfflinePoliticsPayload);
+  incompatibleOfflinePoliticsPayload.members[0].id = "999999999";
+  fs.writeFileSync(
+    pagesOfflinePoliticsPath,
+    cleanPagesOfflinePolitics.replace(
+      offlinePoliticsWrapper[0],
+      `${offlinePoliticsWrapper[1]}${JSON.stringify(incompatibleOfflinePoliticsPayload)}${offlinePoliticsWrapper[3]}`
+    )
+  );
+  const incompatibleOfflineUpdateResult = spawnSync(
+    process.execPath,
+    [
+      offlinePoliticsUpdater,
+      "--directory-path",
+      pagesPoliticsPath,
+      "--offline-path",
+      pagesOfflinePoliticsPath
+    ],
+    { cwd: root, encoding: "utf8" }
+  );
+  assert.notEqual(
+    incompatibleOfflineUpdateResult.status,
+    0,
+    "Der Offline-Generator muss eine geänderte Ausschussbesetzung fail-closed ablehnen"
+  );
+  assert.match(
+    `${incompatibleOfflineUpdateResult.stderr}\n${incompatibleOfflineUpdateResult.stdout}`,
+    /Ausschussbesetzung hat sich geändert/
+  );
+  fs.writeFileSync(pagesOfflinePoliticsPath, cleanPagesOfflinePolitics);
+
   for (const [label, mutateOfflinePolitics, expectedFailure] of [
     [
       "ein zusätzliches Mitgliedsfeld",
@@ -368,6 +450,55 @@ try {
     );
     assert.match(
       `${offlineAuditResult.stderr}\n${offlineAuditResult.stdout}`,
+      expectedFailure
+    );
+  }
+  fs.writeFileSync(pagesOfflinePoliticsPath, cleanPagesOfflinePolitics);
+
+  for (const [label, tamperedOfflinePolitics, expectedFailure] of [
+    [
+      "eine permissive connect-src-Direktive",
+      cleanPagesOfflinePolitics.replace(
+        "connect-src 'none'",
+        "connect-src https://evil.example wss://evil.example"
+      ),
+      /fail-closed Offline-CSP/
+    ],
+    [
+      "eine WebSocket-Transport-API",
+      cleanPagesOfflinePolitics.replace(
+        "window.__POLITIK_OFFLINE_READY__ = true",
+        "new WebSocket('wss://evil.example/socket'); window.__POLITIK_OFFLINE_READY__ = true"
+      ),
+      /Netzwerk-Transport-API/
+    ],
+    [
+      "eine EventSource-Transport-API",
+      cleanPagesOfflinePolitics.replace(
+        "window.__POLITIK_OFFLINE_READY__ = true",
+        "new EventSource('https://evil.example/events'); window.__POLITIK_OFFLINE_READY__ = true"
+      ),
+      /Netzwerk-Transport-API/
+    ]
+  ]) {
+    assert.notEqual(
+      tamperedOfflinePolitics,
+      cleanPagesOfflinePolitics,
+      `Der Negativtest für ${label} muss die Offline-Datei verändern`
+    );
+    fs.writeFileSync(pagesOfflinePoliticsPath, tamperedOfflinePolitics);
+    const offlineSecurityAuditResult = spawnSync(
+      process.execPath,
+      [publicAudit, "--artifact-root", pagesDir],
+      { cwd: root, encoding: "utf8" }
+    );
+    assert.notEqual(
+      offlineSecurityAuditResult.status,
+      0,
+      `Public Asset Audit muss ${label} im Offline-Modul fail-closed ablehnen`
+    );
+    assert.match(
+      `${offlineSecurityAuditResult.stderr}\n${offlineSecurityAuditResult.stdout}`,
       expectedFailure
     );
   }
