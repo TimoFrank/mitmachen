@@ -137,6 +137,7 @@ jobs:
             --set-string frontend.contentRevision="$IMAGE_TAG" \
             --set-string "frontend.hostRedirects[0].host=www.versorgungs-kompass.de" \
             --set-string "frontend.hostRedirects[0].targetOrigin=https://versorgungs-kompass.de" \
+            --set-string "frontend.publicEntry.rootAliasHosts[0]=www.versorgungs-kompass.de" \
             --set-string "frontend.hostRedirects[1].host=mitmachen.timo-frank.de" \
             --set-string "frontend.hostRedirects[1].targetOrigin=https://versorgungs-kompass.de" \
             --set-string "frontend.hostRedirects[2].host=pre-gematik.versorgungs-kompass.timo-frank.de" \
@@ -207,10 +208,21 @@ jobs:
             sleep 1
           done
           [[ "$(curl --path-as-is --silent --output /dev/null --write-out '%{http_code}' http://127.0.0.1:18084/)" == "200" ]]
+          public_share_image="${RUNNER_TEMP}/public-entry-share-image.png"
+          public_share_headers="${RUNNER_TEMP}/public-entry-share-image.headers"
+          curl --path-as-is --fail --silent --show-error \
+            --dump-header "$public_share_headers" \
+            --output "$public_share_image" \
+            http://127.0.0.1:18084/public/media/social/mitmachen-share-v3.png
+          grep --ignore-case --extended-regexp --quiet \
+            '^content-type:[[:space:]]*image/png' "$public_share_headers"
+          cmp --silent public/media/social/mitmachen-share-v3.png "$public_share_image"
           [[ "$(curl --path-as-is --silent --output /dev/null --write-out '%{http_code}' http://127.0.0.1:18084/anmelden)" == "308" ]]
           [[ "$(curl --path-as-is --silent --head http://127.0.0.1:18084/anmelden | tr -d '\r' | awk 'tolower($1) == "location:" { print $2 }')" == "/" ]]
           for denied_path in \
             /start /public-index.html /anmelden/ //anmelden \
+            /public/media/social/ /public/media/social/mitmachen-share-v3.png/ \
+            /public/media/social/mitmachen-share-v2.png \
             '/%61nmelden' '/anmel%64en' '/foo/../anmelden' \
             '/anmelden/../anmelden' '/./anmelden' '/%2fanmelden'; do
             [[ "$(curl --path-as-is --silent --output /dev/null --write-out '%{http_code}' \
@@ -218,6 +230,8 @@ jobs:
           done
           [[ "$(curl --path-as-is --silent --request POST --output /dev/null --write-out '%{http_code}' \
             http://127.0.0.1:18084/anmelden)" == "403" ]]
+          [[ "$(curl --path-as-is --silent --request POST --output /dev/null --write-out '%{http_code}' \
+            http://127.0.0.1:18084/public/media/social/mitmachen-share-v3.png)" == "403" ]]
         env:
           IMAGE_TAG: ${{ steps.metadata.outputs.image_tag }}
 
@@ -970,19 +984,34 @@ jobs:
             sleep 1
           done
           [[ "$(curl --path-as-is --silent --output /dev/null --write-out '%{http_code}' http://127.0.0.1:18084/)" == "200" ]]
+          public_share_image="${RUNNER_TEMP}/immutable-public-entry-share-image.png"
+          public_share_headers="${RUNNER_TEMP}/immutable-public-entry-share-image.headers"
+          curl --path-as-is --fail --silent --show-error \
+            --dump-header "$public_share_headers" \
+            --output "$public_share_image" \
+            http://127.0.0.1:18084/public/media/social/mitmachen-share-v3.png
+          grep --ignore-case --extended-regexp --quiet \
+            '^content-type:[[:space:]]*image/png' "$public_share_headers"
+          cmp --silent public/media/social/mitmachen-share-v3.png "$public_share_image"
           [[ "$(curl --path-as-is --silent --output /dev/null --write-out '%{http_code}' http://127.0.0.1:18084/anmelden)" == "308" ]]
           [[ "$(curl --path-as-is --silent --head http://127.0.0.1:18084/anmelden | tr -d '\r' | awk 'tolower($1) == "location:" { print $2 }')" == "/" ]]
           for denied_path in \
             /start /public-index.html /anmelden/ //anmelden \
+            /public/media/social/ /public/media/social/mitmachen-share-v3.png/ \
+            /public/media/social/mitmachen-share-v2.png \
             '/%61nmelden' '/anmel%64en' '/foo/../anmelden' '/./anmelden' '/%2fanmelden'; do
             [[ "$(curl --path-as-is --silent --output /dev/null --write-out '%{http_code}' \
               "http://127.0.0.1:18084${denied_path}")" == "404" ]]
           done
           [[ "$(curl --path-as-is --silent --request POST --output /dev/null --write-out '%{http_code}' \
             http://127.0.0.1:18084/anmelden)" == "403" ]]
+          [[ "$(curl --path-as-is --silent --request POST --output /dev/null --write-out '%{http_code}' \
+            http://127.0.0.1:18084/public/media/social/mitmachen-share-v3.png)" == "403" ]]
           docker exec "$public_container" sh -eu -c '
             test "$(find /usr/share/nginx/html -mindepth 1 -maxdepth 1 -type f | wc -l | tr -d " ")" = "1"
+            test "$(find /usr/share/nginx/html -type f | wc -l | tr -d " ")" = "2"
             test -f /usr/share/nginx/html/public-index.html
+            test -f /usr/share/nginx/html/public/media/social/mitmachen-share-v3.png
           '
 
       - name: Set up Helm
@@ -1030,6 +1059,7 @@ jobs:
               --set-string "gke.managedCertificate.additionalCertificates[0].domains[0]=mitmachen.timo-frank.de"
               --set-string "gke.managedCertificate.additionalCertificates[1].name=${HELM_RELEASE}-api"
               --set-string "gke.managedCertificate.additionalCertificates[1].domains[0]=pre-gematik.versorgungs-kompass.timo-frank.de"
+              --set-string "frontend.publicEntry.rootAliasHosts[0]=www.versorgungs-kompass.de"
             )
             case "$API_HOST" in
               "mitmachen.timo-frank.de")
@@ -1203,6 +1233,10 @@ jobs:
           public_url_map_is_isolated() {
             local url_map_name="$1"
             local public_backend="$2"
+            local contract="${3:-desired}"
+            if [[ "$contract" != "legacy" && "$contract" != "desired" ]]; then
+              return 1
+            fi
             local url_map_state
             url_map_state="$(gcloud compute url-maps describe "$url_map_name" \
               --project "$GCP_PROJECT_ID" \
@@ -1210,6 +1244,8 @@ jobs:
               --format=json)" || return 1
             jq --exit-status \
               --arg canonical_host "$API_HOST" \
+              --arg root_alias_host "www.versorgungs-kompass.de" \
+              --arg contract "$contract" \
               --arg public_suffix "/backendServices/${public_backend}" '
                 def service_refs($suffix):
                   [
@@ -1220,14 +1256,31 @@ jobs:
                         ((.service? // "") | endswith($suffix))
                       )
                   ];
-                (
+                def matcher_names_for($host):
                   [
                     .hostRules[]?
-                    | select((.hosts // []) | index($canonical_host))
+                    | select((.hosts // []) | index($host))
                     | .pathMatcher
                   ]
+                  | unique;
+                def exact_paths_for($matcher; $suffix):
+                  [
+                    $matcher
+                    | service_refs($suffix)[]
+                    | .paths[]?,
+                      .matchRules[]?.fullPathMatch?
+                    | select(type == "string")
+                  ]
                   | unique
-                ) as $canonical_matchers
+                  | sort;
+                def prefix_paths_for($matcher; $suffix):
+                  [
+                    $matcher
+                    | service_refs($suffix)[]
+                    | .matchRules[]?.prefixMatch?
+                    | select(type == "string")
+                  ];
+                matcher_names_for($canonical_host) as $canonical_matchers
                 | ($canonical_matchers | length) == 1
                 and (
                   [
@@ -1251,41 +1304,90 @@ jobs:
                   [.pathMatchers[]? | select(.name == $canonical_matchers[0])]
                 ) as $canonical
                 | ($canonical | length) == 1
-                and ($canonical[0] | service_refs($public_suffix)) as $public_refs
-                | (
-                    [
-                      $public_refs[]
-                      | .paths[]?,
-                        .matchRules[]?.fullPathMatch?
-                    ]
-                    | map(select(type == "string"))
-                    | unique
-                    | sort
-                  ) == ["/", "/anmelden"]
+                and exact_paths_for($canonical[0]; $public_suffix) == (
+                  if $contract == "legacy"
+                  then ["/", "/anmelden"]
+                  else ["/", "/anmelden", "/public/media/social/mitmachen-share-v3.png"]
+                  end
+                )
+                and (prefix_paths_for($canonical[0]; $public_suffix) | length) == 0
                 and (
-                  [
-                    $public_refs[]
-                    | .paths[]?
-                    | select(. != "/" and . != "/anmelden")
-                  ]
-                  | length
-                ) == 0
-                and (
-                  [
-                    $public_refs[]
-                    | .matchRules[]?.prefixMatch?
-                  ]
-                  | length
-                ) == 0
-                and (
-                  [
-                    .pathMatchers[]?
-                    | select(.name != $canonical_matchers[0])
-                    | service_refs($public_suffix)[]
-                  ]
-                  | length
-                ) == 0
+                  if $contract == "legacy" then
+                    (
+                      [
+                        .pathMatchers[]?
+                        | select(.name != $canonical_matchers[0])
+                        | service_refs($public_suffix)[]
+                      ]
+                      | length
+                    ) == 0
+                  else
+                    matcher_names_for($root_alias_host) as $alias_matchers
+                    | ($alias_matchers | length) == 1
+                    and ($alias_matchers[0] != $canonical_matchers[0])
+                    and (
+                      [.pathMatchers[]? | select(.name == $alias_matchers[0])]
+                    ) as $alias
+                    | ($alias | length) == 1
+                    and exact_paths_for($alias[0]; $public_suffix) == ["/"]
+                    and (prefix_paths_for($alias[0]; $public_suffix) | length) == 0
+                    and (
+                      [
+                        .pathMatchers[]?
+                        | select(
+                            .name != $canonical_matchers[0]
+                            and .name != $alias_matchers[0]
+                          )
+                        | service_refs($public_suffix)[]
+                      ]
+                      | length
+                    ) == 0
+                  end
+                )
               ' <<< "$url_map_state" >/dev/null
+          }
+
+          public_ingress_is_isolated() {
+            local ingress_json="$1"
+            local contract="${2:-desired}"
+            if [[ "$contract" != "legacy" && "$contract" != "desired" ]]; then
+              return 1
+            fi
+            jq --exit-status \
+              --arg canonical_host "$API_HOST" \
+              --arg root_alias_host "www.versorgungs-kompass.de" \
+              --arg public_service "$public_frontend_service_name" \
+              --arg contract "$contract" '
+                (
+                  [
+                    .spec.rules[]? as $rule
+                    | $rule.http.paths[]?
+                    | select(.backend.service.name == $public_service)
+                    | {host: $rule.host, path, pathType}
+                  ]
+                  | sort_by(.host, .path, .pathType)
+                ) == (
+                  if $contract == "legacy" then
+                    [
+                      {host: $canonical_host, path: "/", pathType: "Exact"},
+                      {host: $canonical_host, path: "/anmelden", pathType: "Exact"}
+                    ]
+                  else
+                    [
+                      {host: $canonical_host, path: "/", pathType: "Exact"},
+                      {host: $canonical_host, path: "/anmelden", pathType: "Exact"},
+                      {
+                        host: $canonical_host,
+                        path: "/public/media/social/mitmachen-share-v3.png",
+                        pathType: "Exact"
+                      },
+                      {host: $root_alias_host, path: "/", pathType: "Exact"}
+                    ]
+                  end
+                  | sort_by(.host, .path, .pathType)
+                )
+                and ((.spec.defaultBackend.service.name? // "") != $public_service)
+              ' <<< "$ingress_json" >/dev/null
           }
 
           # Prove the newly required URL-map read permission before Phase A changes
@@ -1347,8 +1449,9 @@ jobs:
               echo "Refusing to inspect or reconcile an existing public-entry route until its backend is fail-closed behind IAP." >&2
               exit 1
             fi
-            if [[ "$public_deployment_exists" != "1" || "$public_backend_config_exists" != "1" || \
-                  "$public_ingress_ref_count" != "2" ]]; then
+            if [[ "$public_deployment_exists" != "1" || "$public_backend_config_exists" != "1" ]] || \
+               { ! public_ingress_is_isolated "$preflight_ingress_state" desired && \
+                 ! public_ingress_is_isolated "$preflight_ingress_state" legacy; }; then
               echo "The now-IAP-protected public-entry resources are incomplete or have an unexpected Ingress scope." >&2
               exit 1
             fi
@@ -1362,8 +1465,9 @@ jobs:
                 ((.bindings // []) | length) == 0 and
                 ((.auditConfigs // []) | length) == 0
               ' <<< "$existing_public_policy" >/dev/null || \
-                 ! public_url_map_is_isolated "$preflight_url_map_name" "$existing_public_backend"; then
-                echo "The now-IAP-protected public-entry backend did not match the prior exact empty-policy and two-route contract." >&2
+                 { ! public_url_map_is_isolated "$preflight_url_map_name" "$existing_public_backend" desired && \
+                   ! public_url_map_is_isolated "$preflight_url_map_name" "$existing_public_backend" legacy; }; then
+                echo "The now-IAP-protected public-entry backend did not match an approved exact empty-policy route contract." >&2
                 exit 1
               fi
             fi
@@ -1426,6 +1530,7 @@ jobs:
           ingress_state="$(kubectl --namespace "$K8S_NAMESPACE" get ingress "$ingress_name" --output=json)"
           if ! jq --exit-status \
             --arg canonical_host "$API_HOST" \
+            --arg root_alias_host "www.versorgungs-kompass.de" \
             --arg api_service "$api_service_name" \
             --arg frontend_service "$frontend_service_name" \
             --arg public_service "$public_frontend_service_name" '
@@ -1439,8 +1544,15 @@ jobs:
                 ];
               services_for($canonical_host; "/"; "Exact") == [$public_service] and
               services_for($canonical_host; "/anmelden"; "Exact") == [$public_service] and
+              services_for(
+                $canonical_host;
+                "/public/media/social/mitmachen-share-v3.png";
+                "Exact"
+              ) == [$public_service] and
+              services_for($root_alias_host; "/"; "Exact") == [$public_service] and
               services_for($canonical_host; "/api"; "Prefix") == [$api_service] and
               services_for($canonical_host; "/"; "Prefix") == [$frontend_service] and
+              services_for($root_alias_host; "/"; "Prefix") == [$frontend_service] and
               (
                 [
                   .spec.rules[]? as $rule
@@ -1452,13 +1564,19 @@ jobs:
               ) == (
                 [
                   {host: $canonical_host, path: "/", pathType: "Exact"},
-                  {host: $canonical_host, path: "/anmelden", pathType: "Exact"}
+                  {host: $canonical_host, path: "/anmelden", pathType: "Exact"},
+                  {
+                    host: $canonical_host,
+                    path: "/public/media/social/mitmachen-share-v3.png",
+                    pathType: "Exact"
+                  },
+                  {host: $root_alias_host, path: "/", pathType: "Exact"}
                 ]
                 | sort_by(.host, .path)
               ) and
               ((.spec.defaultBackend.service.name? // "") != $public_service)
             ' <<< "$ingress_state" >/dev/null; then
-            echo "The rendered Ingress does not keep the public backend on exactly / and /anmelden of the canonical host." >&2
+            echo "The rendered Ingress does not keep the public backend on the exact approved canonical and www paths." >&2
             exit 1
           fi
 
@@ -1543,7 +1661,7 @@ jobs:
             sleep 10
           done
           if [[ "$url_map_ready" != "1" ]]; then
-            echo "The live GCE URL map does not isolate the public backend to the two canonical exact paths." >&2
+            echo "The live GCE URL map does not isolate the public backend to the approved exact preview paths." >&2
             exit 1
           fi
 
@@ -1937,7 +2055,7 @@ jobs:
           done
 
           # Phase B is the final Helm mutation: open only the already proven
-          # two-route public backend. BackendConfig must omit IAP here: GKE
+          # exact public HTML and share-image routes. BackendConfig must omit IAP here: GKE
           # cannot switch a backend
           # with custom OAuth credentials to its default OAuth client. Disable
           # IAP directly so Compute retains the existing custom OAuth fields.
@@ -2457,11 +2575,26 @@ jobs:
             "${RUNNER_TEMP}/pre-gematik-public-index.html"
           grep --fixed-strings --quiet 'data-google-sso-button' \
             "${RUNNER_TEMP}/pre-gematik-public-index.html"
+          grep --fixed-strings --quiet '<meta property="og:title" content="#Mitmachen" />' \
+            "${RUNNER_TEMP}/pre-gematik-public-index.html"
+          grep --fixed-strings --quiet \
+            '<meta property="og:description" content="Deine Plattform für Austausch, Wissen und Vernetzung." />' \
+            "${RUNNER_TEMP}/pre-gematik-public-index.html"
           if grep --fixed-strings --quiet 'Testzugang aktivieren' \
             "${RUNNER_TEMP}/pre-gematik-public-index.html"; then
             echo "The public entry unexpectedly exposes self-service enrollment." >&2
             exit 1
           fi
+          curl --path-as-is --fail --silent --show-error \
+            --dump-header "${RUNNER_TEMP}/pre-gematik-share-image.headers" \
+            --output "${RUNNER_TEMP}/pre-gematik-share-image.png" \
+            http://127.0.0.1:18083/public/media/social/mitmachen-share-v3.png
+          grep --ignore-case --extended-regexp --quiet \
+            '^content-type:[[:space:]]*image/png' \
+            "${RUNNER_TEMP}/pre-gematik-share-image.headers"
+          cmp --silent \
+            public/media/social/mitmachen-share-v3.png \
+            "${RUNNER_TEMP}/pre-gematik-share-image.png"
           [[ "$(curl --path-as-is --silent --output /dev/null --write-out '%{http_code}' \
             http://127.0.0.1:18083/anmelden)" == "308" ]]
           [[ "$(curl --path-as-is --silent --head http://127.0.0.1:18083/anmelden \
@@ -2475,6 +2608,9 @@ jobs:
             /data/runtime-config.js \
             /index.html \
             /public-index.html \
+            /public/media/social/ \
+            /public/media/social/mitmachen-share-v3.png/ \
+            /public/media/social/mitmachen-share-v2.png \
             /anmelden/; do
             public_status="$(curl --path-as-is --silent --show-error \
               --output /dev/null \
@@ -2605,10 +2741,104 @@ jobs:
           grep --fixed-strings --quiet 'data-public-entry="home"' "$public_body"
           grep --fixed-strings --quiet 'data-google-sso-button' "$public_body"
           grep --fixed-strings --quiet 'href="/api/auth/bootstrap?return=%2Fstart%3Fiap_authenticated%3D1"' "$public_body"
+          grep --fixed-strings --quiet \
+            "<link rel=\"canonical\" href=\"${FRONTEND_BASE_URL}/\" />" "$public_body"
+          grep --fixed-strings --quiet \
+            '<meta property="og:title" content="#Mitmachen" />' "$public_body"
+          grep --fixed-strings --quiet \
+            '<meta property="og:description" content="Deine Plattform für Austausch, Wissen und Vernetzung." />' \
+            "$public_body"
+          grep --fixed-strings --quiet \
+            "<meta property=\"og:image\" content=\"${FRONTEND_BASE_URL}/public/media/social/mitmachen-share-v3.png\" />" \
+            "$public_body"
           if grep --fixed-strings --quiet 'Testzugang aktivieren' "$public_body" || \
              grep --ignore-case --quiet '^x-goog-iap-generated-response:' "$public_headers" || \
              grep --ignore-case --quiet '^set-cookie:' "$public_headers"; then
             echo "The public entry exposes enrollment or an IAP-generated response." >&2
+            exit 1
+          fi
+
+          teams_share_headers="${RUNNER_TEMP}/teams-share-image.headers"
+          teams_share_image="${RUNNER_TEMP}/teams-share-image.png"
+          teams_share_status="$(curl --path-as-is --silent --show-error \
+            --user-agent 'Microsoft Office/16.0 (Microsoft Teams)' \
+            --dump-header "$teams_share_headers" \
+            --output "$teams_share_image" \
+            --write-out '%{http_code}' \
+            --max-time 30 \
+            "${FRONTEND_BASE_URL}/public/media/social/mitmachen-share-v3.png?teams_preview_probe=${GITHUB_RUN_ID}")"
+          if [[ "$teams_share_status" != "200" ]] || \
+             ! grep --ignore-case --extended-regexp --quiet \
+               '^content-type:[[:space:]]*image/png' "$teams_share_headers" || \
+             grep --ignore-case --quiet '^x-goog-iap-generated-response:' "$teams_share_headers" || \
+             grep --ignore-case --quiet '^set-cookie:' "$teams_share_headers" || \
+             ! cmp --silent public/media/social/mitmachen-share-v3.png "$teams_share_image"; then
+            echo "The canonical Teams share image is unavailable, stateful, or differs from the approved Pages image." >&2
+            exit 1
+          fi
+          teams_share_post_status="$(curl --path-as-is --silent --show-error \
+            --request POST \
+            --output /dev/null \
+            --write-out '%{http_code}' \
+            --max-time 30 \
+            "${FRONTEND_BASE_URL}/public/media/social/mitmachen-share-v3.png")"
+          if [[ "$teams_share_post_status" != "403" ]]; then
+            echo "The public Teams share image accepted POST with HTTP ${teams_share_post_status}." >&2
+            exit 1
+          fi
+
+          www_public_headers="${RUNNER_TEMP}/teams-www-root.headers"
+          www_public_body="${RUNNER_TEMP}/teams-www-root.html"
+          www_public_status="$(curl --path-as-is --silent --show-error \
+            --user-agent 'Microsoft Office/16.0 (Microsoft Teams)' \
+            --dump-header "$www_public_headers" \
+            --output "$www_public_body" \
+            --write-out '%{http_code}' \
+            --max-time 30 \
+            "https://www.versorgungs-kompass.de/?teams_preview_probe=${GITHUB_RUN_ID}")"
+          if [[ "$www_public_status" != "200" ]] || \
+             ! cmp --silent "$public_body" "$www_public_body" || \
+             grep --ignore-case --quiet '^x-goog-iap-generated-response:' "$www_public_headers" || \
+             grep --ignore-case --quiet '^set-cookie:' "$www_public_headers"; then
+            echo "The exact www root does not expose the same stateless Teams preview document as the canonical root." >&2
+            exit 1
+          fi
+
+          whatsapp_public_headers="${RUNNER_TEMP}/whatsapp-www-root.headers"
+          whatsapp_public_body="${RUNNER_TEMP}/whatsapp-www-root.html"
+          whatsapp_public_status="$(curl --path-as-is --silent --show-error \
+            --user-agent 'WhatsApp/2.24.7.75 A' \
+            --header 'Accept-Language: de' \
+            --dump-header "$whatsapp_public_headers" \
+            --output "$whatsapp_public_body" \
+            --write-out '%{http_code}' \
+            --max-time 30 \
+            "https://www.versorgungs-kompass.de/?whatsapp_preview_probe=${GITHUB_RUN_ID}")"
+          if [[ "$whatsapp_public_status" != "200" ]] || \
+             ! cmp --silent "$public_body" "$whatsapp_public_body" || \
+             grep --ignore-case --quiet '^x-goog-iap-generated-response:' "$whatsapp_public_headers" || \
+             grep --ignore-case --quiet '^set-cookie:' "$whatsapp_public_headers"; then
+            echo "The exact www root is not directly readable as the approved stateless Open Graph document by WhatsApp." >&2
+            exit 1
+          fi
+
+          whatsapp_share_headers="${RUNNER_TEMP}/whatsapp-share-image.headers"
+          whatsapp_share_image="${RUNNER_TEMP}/whatsapp-share-image.png"
+          whatsapp_share_status="$(curl --path-as-is --silent --show-error \
+            --user-agent 'WhatsApp/2.24.7.75 A' \
+            --header 'Accept-Language: de' \
+            --dump-header "$whatsapp_share_headers" \
+            --output "$whatsapp_share_image" \
+            --write-out '%{http_code}' \
+            --max-time 30 \
+            "${FRONTEND_BASE_URL}/public/media/social/mitmachen-share-v3.png?whatsapp_preview_probe=${GITHUB_RUN_ID}")"
+          if [[ "$whatsapp_share_status" != "200" ]] || \
+             ! grep --ignore-case --extended-regexp --quiet \
+               '^content-type:[[:space:]]*image/png' "$whatsapp_share_headers" || \
+             grep --ignore-case --quiet '^x-goog-iap-generated-response:' "$whatsapp_share_headers" || \
+             grep --ignore-case --quiet '^set-cookie:' "$whatsapp_share_headers" || \
+             ! cmp --silent public/media/social/mitmachen-share-v3.png "$whatsapp_share_image"; then
+            echo "WhatsApp cannot retrieve the exact approved share image as a public PNG." >&2
             exit 1
           fi
 
@@ -2673,6 +2903,9 @@ jobs:
             "/data/runtime-config.js"
             "/index.html"
             "/public-index.html"
+            "/public/media/social/"
+            "/public/media/social/mitmachen-share-v3.png/"
+            "/public/media/social/mitmachen-share-v2.png"
             "/anmelden/"
             "/Anmelden"
             "/anmelden/weiter"
@@ -2698,6 +2931,39 @@ jobs:
                 ;;
               *)
                 echo "Expected an unauthenticated IAP response for ${protected_path}, received HTTP ${status}." >&2
+                exit 1
+                ;;
+            esac
+          done
+
+          www_protected_paths=(
+            "/start"
+            "/anmelden"
+            "/api/healthz"
+            "/data/runtime-config.js"
+            "/public-index.html"
+            "/public/media/social/mitmachen-share-v3.png"
+          )
+          www_protected_index=0
+          for www_protected_path in "${www_protected_paths[@]}"; do
+            www_protected_index=$((www_protected_index + 1))
+            www_protected_headers="${RUNNER_TEMP}/www-protected-boundary-${www_protected_index}.headers"
+            status="$(curl --path-as-is --silent --show-error \
+              --dump-header "$www_protected_headers" \
+              --output /dev/null \
+              --write-out '%{http_code}' \
+              --max-time 30 \
+              "https://www.versorgungs-kompass.de${www_protected_path}")"
+            case "$status" in
+              302|401|403)
+                if ! grep --ignore-case --quiet \
+                  '^x-goog-iap-generated-response:' "$www_protected_headers"; then
+                  echo "Protected www path ${www_protected_path} did not return an IAP boundary marker." >&2
+                  exit 1
+                fi
+                ;;
+              *)
+                echo "Protected www path ${www_protected_path} bypassed IAP with HTTP ${status}." >&2
                 exit 1
                 ;;
             esac
@@ -2836,7 +3102,6 @@ jobs:
 
           for alias_origin in \
             https://versorgungs-kompass.de \
-            https://www.versorgungs-kompass.de \
             https://mitmachen.timo-frank.de \
             https://pre-gematik.versorgungs-kompass.timo-frank.de; do
             if [[ "$alias_origin" == "$FRONTEND_BASE_URL" ]]; then
@@ -2943,18 +3208,18 @@ jobs:
             echo "- Domain mode: \`${DOMAIN_MODE}\`"
             for host in \
               versorgungs-kompass.de \
-              www.versorgungs-kompass.de \
               mitmachen.timo-frank.de \
               pre-gematik.versorgungs-kompass.timo-frank.de; do
               if [[ "https://${host}" != "$FRONTEND_BASE_URL" ]]; then
                 echo "- Redirect origin: \`https://${host}\` -> \`${FRONTEND_BASE_URL}\`"
               fi
             done
+            echo "- Teams preview origin: \`https://www.versorgungs-kompass.de/\` (exact public root only)"
             echo "- API backend service: \`${API_BACKEND_SERVICE}\`"
             echo "- Protected frontend backend service: \`${FRONTEND_BACKEND_SERVICE}\`"
             echo "- Public-entry frontend backend service: \`${PUBLIC_FRONTEND_BACKEND_SERVICE}\`"
             echo "- GCP resource identities, private bucket policy and IAP bindings: verified (values redacted)"
-            echo "- Public entry: \`/\`; compatibility redirect: \`/anmelden\` -> \`/\`"
+            echo "- Public entry: \`/\`; compatibility redirect: \`/anmelden\` -> \`/\`; share image: exact approved PNG path"
             echo "- Internal API/protected/public frontend health and target frontend config: passed"
             echo "- Cloud SQL connection and required schema: passed"
             echo "- Unsigned-header rejection: passed"

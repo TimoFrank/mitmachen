@@ -26,13 +26,20 @@ scripts
 supabase
 tests
 
-# The dedicated public-entry image receives only the single audited, generated
-# document from the otherwise ignored target build.
+# The dedicated public-entry image receives only the audited generated document
+# and its single approved Teams share image from the otherwise ignored target build.
 !dist/
 dist/*
 !dist/target/
 dist/target/*
 !dist/target/public-index.html
+!dist/target/public/
+dist/target/public/*
+!dist/target/public/media/
+dist/target/public/media/*
+!dist/target/public/media/social/
+dist/target/public/media/social/*
+!dist/target/public/media/social/mitmachen-share-v3.png
 
 !deploy/
 deploy/*

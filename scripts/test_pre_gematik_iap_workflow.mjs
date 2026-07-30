@@ -364,7 +364,11 @@ const validUrlMap = {
       defaultService: "https://www.googleapis.com/compute/v1/projects/p/global/backendServices/controller-default",
       pathRules: [
         {
-          paths: ["/", "/anmelden"],
+          paths: [
+            "/",
+            "/anmelden",
+            "/public/media/social/mitmachen-share-v3.png"
+          ],
           service: "https://www.googleapis.com/compute/v1/projects/p/global/backendServices/public"
         },
         {
@@ -380,20 +384,35 @@ const validUrlMap = {
     {
       name: "alias",
       defaultService: "https://www.googleapis.com/compute/v1/projects/p/global/backendServices/controller-default",
-      pathRules: [{
-        paths: ["/*"],
-        service: "https://www.googleapis.com/compute/v1/projects/p/global/backendServices/protected"
-      }]
+      pathRules: [
+        {
+          paths: ["/"],
+          service: "https://www.googleapis.com/compute/v1/projects/p/global/backendServices/public"
+        },
+        {
+          paths: ["/*"],
+          service: "https://www.googleapis.com/compute/v1/projects/p/global/backendServices/protected"
+        }
+      ]
     }
   ]
 };
 
-function verifyUrlMap(value) {
+const legacyUrlMap = structuredClone(validUrlMap);
+legacyUrlMap.pathMatchers[0].pathRules[0].paths = ["/", "/anmelden"];
+legacyUrlMap.pathMatchers[1].pathRules =
+  legacyUrlMap.pathMatchers[1].pathRules.filter(
+    ({ service }) => !service.endsWith("/backendServices/public")
+  );
+
+function verifyUrlMap(value, contract = "desired") {
   return spawnSync(
     "jq",
     [
       "--exit-status",
       "--arg", "canonical_host", "versorgungs-kompass.de",
+      "--arg", "root_alias_host", "www.versorgungs-kompass.de",
+      "--arg", "contract", contract,
       "--arg", "public_suffix", "/backendServices/public",
       urlMapFilter
     ],
@@ -406,6 +425,21 @@ assert.equal(
   0,
   "Der URL-Map-Prueffilter muss die exakt getrennte Soll-Map akzeptieren."
 );
+assert.equal(
+  verifyUrlMap(legacyUrlMap, "legacy").status,
+  0,
+  "Der URL-Map-Prueffilter muss waehrend des Preflights den engen Legacy-Vertrag akzeptieren."
+);
+assert.notEqual(
+  verifyUrlMap(validUrlMap, "legacy").status,
+  0,
+  "Der Legacy-Vertrag darf die bereits erweiterte Soll-Map nicht als Legacy-Zustand akzeptieren."
+);
+assert.notEqual(
+  verifyUrlMap(legacyUrlMap).status,
+  0,
+  "Der Soll-Vertrag darf die noch nicht erweiterte Legacy-Map nicht akzeptieren."
+);
 const widenedPublicMap = structuredClone(validUrlMap);
 widenedPublicMap.pathMatchers[0].pathRules[0].paths.push("/public/*");
 assert.notEqual(
@@ -414,14 +448,11 @@ assert.notEqual(
   "Der URL-Map-Prueffilter muss einen verbreiterten Public-Pfad fail-closed ablehnen."
 );
 const aliasPublicMap = structuredClone(validUrlMap);
-aliasPublicMap.pathMatchers[1].pathRules = [{
-  paths: ["/"],
-  service: "https://www.googleapis.com/compute/v1/projects/p/global/backendServices/public"
-}];
+aliasPublicMap.pathMatchers[1].pathRules[0].paths.push("/anmelden");
 assert.notEqual(
   verifyUrlMap(aliasPublicMap).status,
   0,
-  "Der URL-Map-Prueffilter muss eine Public-Route auf einem Alias-Host ablehnen."
+  "Der URL-Map-Prueffilter muss jede zusaetzliche Public-Route auf dem www-Alias ablehnen."
 );
 const sharedMatcherMap = structuredClone(validUrlMap);
 sharedMatcherMap.hostRules[1].pathMatcher = "canonical";
@@ -544,7 +575,23 @@ for (const contract of [
 
 assert.match(
   ingressTemplate,
-  /if and \$\.Values\.frontend\.publicEntry\.enabled \(eq \$host \$\.Values\.ingress\.host\)[\s\S]*path: \/[\s\S]*pathType: Exact[\s\S]*path: \/anmelden[\s\S]*pathType: Exact/
+  /\$publicRootAliasHosts := \.Values\.frontend\.publicEntry\.rootAliasHosts \| default \(list\)/
+);
+assert.match(
+  ingressTemplate,
+  /if and \$\.Values\.frontend\.publicEntry\.enabled \(or \(eq \$host \$\.Values\.ingress\.host\) \(hasKey \$publicRootAliasHostSet \$host\)\)[\s\S]*path: \/\s+pathType: Exact/
+);
+assert.match(
+  ingressTemplate,
+  /if eq \$host \$\.Values\.ingress\.host[\s\S]*path: \/anmelden\s+pathType: Exact[\s\S]*path: \/public\/media\/social\/mitmachen-share-v3\.png\s+pathType: Exact/
+);
+assert.match(
+  ingressTemplate,
+  /frontend\.publicEntry\.rootAliasHosts host %q must also be listed in ingress\.aliasHosts/
+);
+assert.match(
+  ingressTemplate,
+  /frontend\.publicEntry\.rootAliasHosts host %q must also be listed in frontend\.hostRedirects/
 );
 assert.match(ingressTemplate, /path: \/api[\s\S]*pathType: Prefix/);
 assert.match(ingressTemplate, /path: \/\n\s+pathType: Prefix/);
@@ -587,6 +634,19 @@ assert.match(
   /frontendPublicSelectorLabels[\s\S]*policyTypes:[\s\S]*- Egress[\s\S]*egress: \[\]/
 );
 assert.match(publicDockerfile, /COPY --chown=101:101 dist\/target\/public-index\.html/);
+assert.match(
+  publicDockerfile,
+  /COPY --chown=101:101 dist\/target\/public\/media\/social\/mitmachen-share-v3\.png \/usr\/share\/nginx\/html\/public\/media\/social\/mitmachen-share-v3\.png/
+);
+assert.match(
+  publicDockerfile,
+  /find \/usr\/share\/nginx\/html -type f \| wc -l \| tr -d ' '\)" = "2"/
+);
+assert.match(
+  publicDockerfile,
+  /test -f \/usr\/share\/nginx\/html\/public\/media\/social\/mitmachen-share-v3\.png/
+);
+assert.match(publicDockerfile, /grep -Fq 'property="og:image"'/);
 assert.doesNotMatch(publicDockerfile, /public-login\.html/);
 assert.match(publicDockerfile, /COPY --chown=101:101 .*frontend-public\.conf/);
 assert.match(
@@ -596,12 +656,25 @@ assert.match(
 );
 assert.match(publicDockerfile, /USER 101:101/);
 assert.match(publicNginxConfig, /map \$request_uri \$public_entry_document/);
+assert.match(publicNginxConfig, /map \$request_uri \$public_share_image_document/);
+assert.match(
+  publicNginxConfig,
+  /~\^\/public\/media\/social\/mitmachen-share-v3\\\.png\(\?:\\\?\.\*\)\?\$ public\/media\/social\/mitmachen-share-v3\.png;/
+);
 assert.match(publicNginxConfig, /merge_slashes off/);
 assert.match(publicNginxConfig, /absolute_redirect off/);
 assert.match(publicNginxConfig, /if \(\$public_entry_document = ""\)/);
 assert.match(publicNginxConfig, /!\-f \$document_root\/public-index\.html/);
+assert.match(
+  publicNginxConfig,
+  /!\-f \$document_root\/public\/media\/social\/mitmachen-share-v3\.png/
+);
 assert.doesNotMatch(publicNginxConfig, /public-login\.html/);
 assert.match(publicNginxConfig, /location = \/anmelden[\s\S]*return 308 \//);
+assert.match(
+  publicNginxConfig,
+  /location = \/public\/media\/social\/mitmachen-share-v3\.png[\s\S]*if \(\$public_share_image_document = ""\)[\s\S]*limit_except GET HEAD[\s\S]*try_files \/\$public_share_image_document =404;/
+);
 assert.match(publicNginxConfig, /default-src 'none'/);
 assert.match(publicNginxConfig, /script-src 'none'/);
 assert.match(publicNginxConfig, /Cache-Control "no-store"/);
@@ -628,6 +701,18 @@ for (const publicContract of [
   assert.ok(
     externalBoundaryScript.includes(publicContract),
     `Der externe Boundary-Smoke prueft den Public-Vertrag nicht: ${publicContract}`
+  );
+}
+for (const whatsappContract of [
+  "WhatsApp/2.24.7.75 A",
+  "whatsapp_public_status",
+  "whatsapp_share_status",
+  "whatsapp_preview_probe",
+  "WhatsApp cannot retrieve the exact approved share image as a public PNG"
+]) {
+  assert.ok(
+    externalBoundaryScript.includes(whatsappContract),
+    `Der externe Boundary-Smoke prueft den WhatsApp-Crawler-Vertrag nicht: ${whatsappContract}`
   );
 }
 for (const protectedPath of [

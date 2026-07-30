@@ -17,6 +17,9 @@ die 1200 × 630 Pixel großen Open-Graph-Bilder der öffentlichen `#Mitmachen`-D
   und 160 × 84 Pixeln.
 - `share-card-teams-crop-check.html` simuliert den mittigen 1,25:1-Ausschnitt
   einer kompakten Microsoft-Teams-Linkkarte.
+- `versorgungs-kompass-teams-preview.html` zeigt die vollständige
+  Microsoft-Teams-Linkvorschau für `www.versorgungs-kompass.de` mit demselben
+  Motiv, Titel und Beschreibungstext wie Pages.
 
 Die Grafiken verwenden ausschließlich projektinterne Markenassets,
 synthetische Demo-Inhalte und kein gematik-Unternehmenslogo. Bei einer

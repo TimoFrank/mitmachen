@@ -439,6 +439,7 @@ build_target() {
     "$STAGE_DIR/public/brand/modules" \
     "$STAGE_DIR/public/brand/versorgungs-kompass/icons" \
     "$STAGE_DIR/public/media/demo/mitmachen" \
+    "$STAGE_DIR/public/media/social" \
     "$STAGE_DIR/deutschlandkarte-project/data" \
     "$STAGE_DIR/state-flags" \
     "$STAGE_DIR/mitmachen" \
@@ -503,6 +504,7 @@ build_target() {
     cp "$ROOT_DIR/public/brand/versorgungs-kompass/icons/$asset" "$STAGE_DIR/public/brand/versorgungs-kompass/icons/$asset"
   done
   cp "$ROOT_DIR/public/media/demo/mitmachen/versorgungs-netzwerk-concept.svg" "$STAGE_DIR/public/media/demo/mitmachen/versorgungs-netzwerk-concept.svg"
+  cp "$ROOT_DIR/public/media/social/mitmachen-share-v3.png" "$STAGE_DIR/public/media/social/mitmachen-share-v3.png"
   cp "$ROOT_DIR/public/manifest.webmanifest" "$STAGE_DIR/manifest.webmanifest"
   for asset in mitmachen-hospitations-framework.docx mitmachen-hospitations-framework.pdf; do
     if [ -f "$ROOT_DIR/public/hospitation/$asset" ]; then
@@ -541,6 +543,84 @@ for (const documentPath of documentPaths) {
   );
   fs.writeFileSync(documentPath, rendered);
 }
+NODE
+
+  node - \
+    "$STAGE_DIR/public-index.html" \
+    "$API_BASE_URL" \
+    "$ROOT_DIR" <<'NODE'
+const fs = require("node:fs");
+const path = require("node:path");
+
+const [documentPath, targetBaseUrl, repositoryRoot] = process.argv.slice(2);
+const {
+  parseHtmlAttributes,
+  scanHtmlStartTags
+} = require(path.join(repositoryRoot, "scripts", "html_metadata_tags.cjs"));
+
+function escapeAttribute(value) {
+  return String(value)
+    .replaceAll("&", "&amp;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;");
+}
+
+function injectShareMetadata(html, metadata) {
+  const existingTags = scanHtmlStartTags(html, ["link", "meta"])
+    .map((tag) => parseHtmlAttributes(tag));
+  const unsafeTag = existingTags.find((parsed) =>
+    parsed.duplicateNames.length > 0 || parsed.structuralCharacterReferenceNames.length > 0
+  );
+  if (unsafeTag) {
+    throw new Error(`Target-Build fand mehrdeutige Share-Metadaten fuer ${metadata.url}.`);
+  }
+  const alreadyHasShareMetadata = existingTags.some((attributes) => {
+    attributes = attributes.values;
+    const rel = String(attributes.rel || "").toLowerCase().split(/\s+/);
+    const property = String(attributes.property || "").toLowerCase();
+    const name = String(attributes.name || "").toLowerCase();
+    return rel.includes("canonical") || property.startsWith("og:") || name.startsWith("twitter:");
+  });
+  if (alreadyHasShareMetadata) {
+    throw new Error(`Target-Build fand bereits Share-Metadaten fuer ${metadata.url}.`);
+  }
+
+  const tags = [
+    `<link rel="canonical" href="${escapeAttribute(metadata.url)}" />`,
+    '<meta property="og:type" content="website" />',
+    '<meta property="og:locale" content="de_DE" />',
+    '<meta property="og:site_name" content="#Mitmachen" />',
+    `<meta property="og:title" content="${escapeAttribute(metadata.title)}" />`,
+    `<meta property="og:description" content="${escapeAttribute(metadata.description)}" />`,
+    `<meta property="og:url" content="${escapeAttribute(metadata.url)}" />`,
+    `<meta property="og:image" content="${escapeAttribute(metadata.image)}" />`,
+    `<meta property="og:image:secure_url" content="${escapeAttribute(metadata.image)}" />`,
+    '<meta property="og:image:type" content="image/png" />',
+    '<meta property="og:image:width" content="1200" />',
+    '<meta property="og:image:height" content="630" />',
+    `<meta property="og:image:alt" content="${escapeAttribute(metadata.imageAlt)}" />`,
+    '<meta name="twitter:card" content="summary_large_image" />',
+    `<meta name="twitter:title" content="${escapeAttribute(metadata.title)}" />`,
+    `<meta name="twitter:description" content="${escapeAttribute(metadata.description)}" />`,
+    `<meta name="twitter:image" content="${escapeAttribute(metadata.image)}" />`,
+    `<meta name="twitter:image:alt" content="${escapeAttribute(metadata.imageAlt)}" />`
+  ];
+
+  return html.replace(/\s*<\/head>/, `\n    ${tags.join("\n    ")}\n  </head>`);
+}
+
+const shareUrl = `${targetBaseUrl}/`;
+const shareImage = `${targetBaseUrl}/public/media/social/mitmachen-share-v3.png`;
+const metadata = {
+  url: shareUrl,
+  title: "#Mitmachen",
+  description: "Deine Plattform für Austausch, Wissen und Vernetzung.",
+  image: shareImage,
+  imageAlt: "#Mitmachen Demo: Zusammenarbeit in der Versorgung auf einen Blick – zentriertes Banner auf dunkelblauem Hintergrund."
+};
+const source = fs.readFileSync(documentPath, "utf8");
+fs.writeFileSync(documentPath, injectShareMetadata(source, metadata));
 NODE
 
   perl -0pi -e 's#\.\./login/auth-#./auth-#g; s#\.\./map/versorgungs-kompass-#./versorgungs-kompass-#g; s#\.\./map/data/#./deutschlandkarte-project/data/#g; s#\.\./data/#./data/#g; s#\.\./vendor/#./vendor/#g; s#\.\./login/login\.html#./login.html#g' "$STAGE_DIR/versorgungs-kompass.html" "$STAGE_DIR/versorgungs-kompass.js"

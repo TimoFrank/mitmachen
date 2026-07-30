@@ -2,6 +2,7 @@
 {{- $annotations := deepCopy (.Values.ingress.annotations | default dict) -}}
 {{- $aliasHosts := .Values.ingress.aliasHosts | default (list) -}}
 {{- $hostRedirects := .Values.frontend.hostRedirects | default (list) -}}
+{{- $publicRootAliasHosts := .Values.frontend.publicEntry.rootAliasHosts | default (list) -}}
 {{- if has .Values.ingress.host $aliasHosts -}}
 {{- fail "ingress.aliasHosts must not contain ingress.host" -}}
 {{- end -}}
@@ -23,6 +24,22 @@
 {{- fail (printf "duplicate frontend.hostRedirects host %q" .host) -}}
 {{- end -}}
 {{- $_ := set $redirectHosts .host true -}}
+{{- end -}}
+{{- $publicRootAliasHostSet := dict -}}
+{{- range $publicRootAliasHosts -}}
+{{- if eq . $.Values.ingress.host -}}
+{{- fail "frontend.publicEntry.rootAliasHosts must not contain ingress.host" -}}
+{{- end -}}
+{{- if not (has . $aliasHosts) -}}
+{{- fail (printf "frontend.publicEntry.rootAliasHosts host %q must also be listed in ingress.aliasHosts" .) -}}
+{{- end -}}
+{{- if not (hasKey $redirectHosts .) -}}
+{{- fail (printf "frontend.publicEntry.rootAliasHosts host %q must also be listed in frontend.hostRedirects" .) -}}
+{{- end -}}
+{{- if hasKey $publicRootAliasHostSet . -}}
+{{- fail (printf "duplicate frontend.publicEntry.rootAliasHosts host %q" .) -}}
+{{- end -}}
+{{- $_ := set $publicRootAliasHostSet . true -}}
 {{- end -}}
 {{- $ingressHosts := list .Values.ingress.host -}}
 {{- range $aliasHosts -}}
@@ -66,7 +83,7 @@ spec:
     - host: {{ $host | quote }}
       http:
         paths:
-          {{- if and $.Values.frontend.publicEntry.enabled (eq $host $.Values.ingress.host) }}
+          {{- if and $.Values.frontend.publicEntry.enabled (or (eq $host $.Values.ingress.host) (hasKey $publicRootAliasHostSet $host)) }}
           - path: /
             pathType: Exact
             backend:
@@ -74,6 +91,7 @@ spec:
                 name: {{ include "versorgungs-kompass.frontendPublicFullname" $ }}
                 port:
                   name: http
+          {{- if eq $host $.Values.ingress.host }}
           - path: /anmelden
             pathType: Exact
             backend:
@@ -81,6 +99,14 @@ spec:
                 name: {{ include "versorgungs-kompass.frontendPublicFullname" $ }}
                 port:
                   name: http
+          - path: /public/media/social/mitmachen-share-v3.png
+            pathType: Exact
+            backend:
+              service:
+                name: {{ include "versorgungs-kompass.frontendPublicFullname" $ }}
+                port:
+                  name: http
+          {{- end }}
           {{- end }}
           {{- if and $.Values.frontend.enabled (hasKey $redirectHosts $host) }}
           - path: /
