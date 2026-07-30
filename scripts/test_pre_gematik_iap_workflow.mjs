@@ -1222,6 +1222,15 @@ assert.doesNotMatch(
   /"\/anmelden;probe"/,
   "Der vom Load Balancer zum Minimal-Backend geroutete Semikolon-Pfad darf nicht zwingend einen IAP-Header erwarten."
 );
+assert.doesNotMatch(
+  protectedPathsBlock,
+  /"\/public\/auth\/assets\/%61pp\.js"/,
+  "Der vom Load Balancer zum Minimal-Backend geroutete percent-kodierte Asset-Pfad darf nicht zwingend einen IAP-Header erwarten."
+);
+assert.ok(
+  normalizedAliasesBlock.includes('"/public/auth/assets/%61pp.js"'),
+  "Der percent-kodierte Asset-Near-Miss muss als gehaerteter 404 oder als IAP-Antwort geprueft werden."
+);
 for (const matrixAlias of [
   "/;",
   "/;;probe",

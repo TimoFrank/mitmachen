@@ -3656,7 +3656,6 @@ jobs:
             "/public/auth/assets/"
             "/public/auth/assets/unknown.js"
             "/public/auth/assets/app.js/"
-            "/public/auth/assets/%61pp.js"
             "/public/auth/brand/unknown.svg"
           )
           protected_index=0
@@ -3726,6 +3725,7 @@ jobs:
             "/%2fanmelden"
             "//konto/passwort-festlegen"
             "/konto/%70asswort-festlegen"
+            "/public/auth/assets/%61pp.js"
           )
           normalized_index=0
           for normalized_alias in "${normalized_aliases[@]}"; do
