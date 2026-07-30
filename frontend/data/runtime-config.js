@@ -1,5 +1,8 @@
 window.VERSORGUNGS_COMPASS_CONFIG = {
   dataMode: "api",
+  iapIdentityMode: "iam",
+  iapExternalLoginPageUri: "",
+  iapExternalAuthApiKey: "",
   // Im ausgelieferten Target wird hier ein freigegebener HTTPS-Origin eingesetzt.
   // Leer bedeutet fuer die lokale Quellansicht: gleiche Origin; Routen beginnen mit /api.
   apiBaseUrl: "",

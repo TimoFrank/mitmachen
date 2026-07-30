@@ -42,3 +42,12 @@ IAP_ACCESS_MEMBERS = [
 
 # The workflow binds this group only after it has identified the two generated IAP backend services.
 IAP_RESOURCE_ACCESS_PRINCIPAL = "group:pre-gematik-access@example.invalid"
+
+# IAM remains the default and rollback mode. For the temporary project-level
+# Identity Platform cutover set external, pin the same project ID, keep the
+# tenant null, and provide the separately approved hard expiry.
+IAP_IDENTITY_MODE               = "iam"
+IAP_GCIP_PROJECT_ID             = null
+IAP_GCIP_TENANT_ID              = null
+IAP_EXTERNAL_ACCESS_EXPIRES_AT  = null
+IDENTITY_PLATFORM_AUTHORIZED_DOMAINS = []

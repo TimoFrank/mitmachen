@@ -588,7 +588,7 @@ export function validateAccessAdministrationPrivileges(state) {
   }
 }
 
-async function checkAccessPrivileges(client) {
+export async function checkAccessPrivileges(client) {
   const result = await client.query(
     `select
        current_user = 'vk_access_enrollment_admin' as expected_role,

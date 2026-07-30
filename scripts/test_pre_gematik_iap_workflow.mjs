@@ -51,6 +51,18 @@ const publicDockerfile = readFileSync(
   new URL("deploy/frontend-public/Dockerfile", projectRoot),
   "utf8"
 );
+const identityPlatformTerraform = readFileSync(
+  new URL("deploy/terraform/gcp-autopilot/identity-platform.tf", projectRoot),
+  "utf8"
+);
+const terraformVariables = readFileSync(
+  new URL("deploy/terraform/gcp-autopilot/variables.tf", projectRoot),
+  "utf8"
+);
+const projectCheckSource = readFileSync(
+  new URL("scripts/check_project.mjs", projectRoot),
+  "utf8"
+);
 const authConfig = readFileSync(
   new URL("frontend/login/auth-config.js", projectRoot),
   "utf8"
@@ -86,7 +98,14 @@ function assertBashSyntax(script, label) {
 }
 
 const validationScript = stepScript("Validate pre-gematik environment variables");
+const repositoryCheckScript = stepScript("Run repository checks");
 const immutableTagScript = stepScript("Refuse mutable image tag reuse");
+const identityPlatformPreflightScript = stepScript(
+  "Preflight locked Identity Platform providers without mutation"
+);
+const liveHospitationContractScript = stepScript(
+  "Require live Hospitations-Kompass database contract before rollout"
+);
 const iapScript = stepScript("Deploy API and bind the signed IAP JWT audience");
 const rolloutVerificationScript = stepScript(
   "Verify rollout, Secret Sync, and fail-closed authentication"
@@ -96,11 +115,182 @@ const failClosedRestoreScript = stepScript(
   "Restore fail-closed public boundary after failed cutover"
 );
 assertBashSyntax(validationScript, "Environment-Validierung");
+assertBashSyntax(repositoryCheckScript, "Repository-Pruefungen");
 assertBashSyntax(immutableTagScript, "Unveraenderliche-Tag-Pruefung");
+assertBashSyntax(identityPlatformPreflightScript, "Identity-Platform-Preflight");
+assertBashSyntax(liveHospitationContractScript, "Live-Hospitations-Kompass-Datenbankvertrag");
 assertBashSyntax(iapScript, "IAP-Deployment");
 assertBashSyntax(rolloutVerificationScript, "Rollout-Verifikation");
 assertBashSyntax(externalBoundaryScript, "Externer Public-/IAP-Grenztest");
 assertBashSyntax(failClosedRestoreScript, "Fail-closed-Wiederherstellung");
+assert.match(repositoryCheckScript, /^npm run check$/mu);
+assert.match(
+  repositoryCheckScript,
+  /^npm --prefix frontend\/identity-portal test$/mu,
+  "Der Deployment-Workflow muss die Portal-Vertraege vor jeder Mutation explizit ausfuehren."
+);
+assert.match(
+  projectCheckSource,
+  /\["npm", \["--prefix", "frontend\/identity-portal", "test"\]\]/u,
+  "Auch npm run check muss die Portal-Vertraege enthalten."
+);
+
+const identityProjectConfigFilter = identityPlatformPreflightScript.match(
+  /--arg auth_api_key "\$IAP_EXTERNAL_AUTH_API_KEY" '\n([\s\S]*?)\n\s*' "\$project_config"/
+)?.[1];
+assert.ok(
+  identityProjectConfigFilter,
+  "Der Identity-Platform-Projektkonfigurationsfilter fehlt oder ist nicht eindeutig begrenzt."
+);
+const identityProject = "steam-capsule-341212";
+const identityApiHost = "versorgungs-kompass.de";
+const identityApiKey = `AIza${"A".repeat(35)}`;
+const lockedIdentityProjectConfig = {
+  name: `projects/${identityProject}/config`,
+  signIn: {
+    email: { enabled: true, passwordRequired: true },
+    allowDuplicateEmails: false,
+    phoneNumber: { enabled: false },
+    anonymous: { enabled: false }
+  },
+  client: {
+    permissions: {
+      disabledUserSignup: true,
+      disabledUserDeletion: true
+    },
+    apiKey: identityApiKey
+  },
+  emailPrivacyConfig: { enableImprovedEmailPrivacy: true },
+  mfa: { state: "DISABLED" },
+  multiTenant: { allowTenants: false },
+  passwordPolicyConfig: {
+    passwordPolicyEnforcementState: "ENFORCE",
+    forceUpgradeOnSignin: true,
+    passwordPolicyVersions: [{
+      customStrengthOptions: {
+        minPasswordLength: 14,
+        maxPasswordLength: 128,
+        containsLowercaseCharacter: true,
+        containsUppercaseCharacter: true,
+        containsNumericCharacter: true,
+        containsNonAlphanumericCharacter: true
+      }
+    }]
+  },
+  authorizedDomains: [
+    `${identityProject}.firebaseapp.com`,
+    identityApiHost
+  ]
+};
+function verifyIdentityProjectConfig(config, loginPageHost = identityApiHost) {
+  return spawnSync(
+    "jq",
+    [
+      "--exit-status",
+      "--arg", "project", identityProject,
+      "--arg", "api_host", identityApiHost,
+      "--arg", "login_page_host", loginPageHost,
+      "--arg", "auth_api_key", identityApiKey,
+      identityProjectConfigFilter
+    ],
+    { input: JSON.stringify(config), encoding: "utf8" }
+  );
+}
+assert.equal(
+  verifyIdentityProjectConfig(lockedIdentityProjectConfig).status,
+  0,
+  "Die exakt gepinnten Versorgungs-Kompass-/Firebase-Auth-Domains muessen akzeptiert werden."
+);
+assert.notEqual(
+  verifyIdentityProjectConfig({
+    ...lockedIdentityProjectConfig,
+    authorizedDomains: [
+      ...lockedIdentityProjectConfig.authorizedDomains,
+      "legacy-login.example.invalid"
+    ]
+  }).status,
+  0,
+  "Eine zusaetzliche alte oder fremde autorisierte Domain muss fail-closed stoppen."
+);
+assert.notEqual(
+  verifyIdentityProjectConfig(lockedIdentityProjectConfig, "login.example.invalid").status,
+  0,
+  "Der Custom-Login-Host muss exakt dem kanonischen API-/Frontend-Host entsprechen."
+);
+assert.match(
+  identityPlatformTerraform,
+  /identity_platform_authorized_domains = sort\(\[\s*var\.IDENTITY_PLATFORM_AUTHORIZED_HOSTNAME,\s*"\$\{var\.GCP_PROJECT_ID\}\.firebaseapp\.com",\s*\]\)/u
+);
+assert.doesNotMatch(identityPlatformTerraform, /setunion/u);
+assert.doesNotMatch(identityPlatformTerraform, /var\.PUBLIC_HOSTNAME/u);
+assert.match(
+  terraformVariables,
+  /variable "IDENTITY_PLATFORM_AUTHORIZED_DOMAINS"[\s\S]*length\(var\.IDENTITY_PLATFORM_AUTHORIZED_DOMAINS\) == 0/u
+);
+assert.match(
+  terraformVariables,
+  /variable "IDENTITY_PLATFORM_AUTHORIZED_HOSTNAME"[\s\S]*default\s*=\s*"versorgungs-kompass\.de"[\s\S]*var\.IDENTITY_PLATFORM_AUTHORIZED_HOSTNAME == "versorgungs-kompass\.de"/u
+);
+const terraformIdentityHostname = terraformVariables.match(
+  /variable "IDENTITY_PLATFORM_AUTHORIZED_HOSTNAME"[\s\S]*?default\s*=\s*"([^"]+)"/u
+)?.[1];
+assert.equal(
+  terraformIdentityHostname,
+  identityApiHost,
+  "Terraform und Runtime-Preflight muessen denselben kanonischen Identity-Auth-Host pinnen."
+);
+
+const connectStepPosition = workflow.indexOf(
+  "      - name: Connect to GKE through the DNS endpoint\n"
+);
+const liveHospitationContractStepPosition = workflow.indexOf(
+  "      - name: Require live Hospitations-Kompass database contract before rollout\n"
+);
+const nextStepAfterConnect = workflow.indexOf(
+  "\n      - name: ",
+  connectStepPosition + 1
+) + 1;
+assert.notEqual(connectStepPosition, -1, "Der GKE-Verbindungsschritt fehlt.");
+assert.notEqual(
+  liveHospitationContractStepPosition,
+  -1,
+  "Der Live-Hospitations-Kompass-Datenbankvertrag fehlt."
+);
+assert.equal(
+  nextStepAfterConnect,
+  liveHospitationContractStepPosition,
+  "Der Live-Datenbankvertrag muss unmittelbar nach der GKE-Verbindung und vor jeder Rollout-Mutation laufen."
+);
+assert.match(liveHospitationContractScript, /deployment\/\$\{deployment_name\}/);
+assert.match(liveHospitationContractScript, /--container api/);
+assert.match(liveHospitationContractScript, /begin read only/);
+assert.match(liveHospitationContractScript, /public\.hospitations/);
+assert.match(liveHospitationContractScript, /scheduled_on/);
+assert.match(liveHospitationContractScript, /data_type !== "date"/);
+assert.equal(
+  liveHospitationContractScript.match(/has_column_privilege\(/gu)?.length,
+  3,
+  "Der Live-Datenbankvertrag muss SELECT, INSERT und UPDATE einzeln und vollständig prüfen."
+);
+for (const privilege of ["SELECT", "INSERT", "UPDATE"]) {
+  assert.ok(
+    liveHospitationContractScript.includes(`'${privilege}'`),
+    `Der scheduled_on-Spaltenvertrag prüft ${privilege} nicht.`
+  );
+}
+assert.match(liveHospitationContractScript, /hospitations_status_date_idx/);
+assert.match(liveHospitationContractScript, /hospitations_schedule_idx/);
+assert.match(liveHospitationContractScript, /pg_get_indexdef/);
+assert.match(liveHospitationContractScript, /indisvalid/);
+assert.match(liveHospitationContractScript, /indisready/);
+assert.match(liveHospitationContractScript, /indislive/);
+assert.match(liveHospitationContractScript, /indisunique/);
+assert.match(liveHospitationContractScript, /indpred is null as unpredicated/);
+assert.match(liveHospitationContractScript, /amname !== "btree"/);
+assert.match(
+  liveHospitationContractScript,
+  /order by scheduled_on desc nulls last,\s+starts_at desc nulls last,\s+updated_at desc nulls last\s+limit 0/
+);
 assert.doesNotMatch(
   workflow.match(/- name: Require external IAP boundary smoke test[\s\S]*?(?=\n      - name:)/)?.[0] ?? "",
   /\n\s+if:/,
@@ -157,7 +347,20 @@ assert.match(
   /printf '%s\\n' "\$existing_public_backend" > "\$restore_marker"[\s\S]*force_public_iap_enabled "\$existing_public_backend"[\s\S]*deploy_release "\$current_iap_audience" true/,
   "Ein bestehendes Public-Backend muss vor jeder Helm-/Ingress-Aenderung mit bewaffnetem Restore hinter IAP konvergieren."
 );
-assert.match(iapScript, /The public-entry backend did not become IAP-protected before the release reconcile/);
+assert.match(
+  iapScript,
+  /The public-entry backend did not become IAP-protected with load-balancer logging disabled before the release reconcile/
+);
+assert.match(
+  iapScript,
+  /public_backend_logging_is_disabled\(\)[\s\S]*\.name == \$expected_backend and[\s\S]*\.logConfig\.enable == false/,
+  "Der Workflow muss den tatsaechlich aufgeloesten Public-BackendService fail-closed auf logConfig.enable=false lesen."
+);
+assert.match(
+  iapScript,
+  /wait_for_boundary\(\)[\s\S]*public_backend_logging_is_disabled "\$public_frontend_backend_service"/,
+  "Jeder Boundary-Wait muss deaktiviertes Load-Balancer-Logging am Public-Backend mitpruefen."
+);
 assert.match(iapScript, /public_ingress_ref_count/);
 assert.match(iapScript, /preflight_url_map_name=/);
 assert.match(
@@ -176,6 +379,63 @@ assert.match(iapScript, /wait_for_boundary/);
 assert.match(iapScript, /backend-services get-health/);
 assert.match(iapScript, /restore_public_iap/);
 assert.match(iapScript, /public-entry-restore-armed/);
+const protectedPublicBackendConfigPatch =
+  "{spec:{logging:{enable:false},iap:{enabled:true,oauthclientCredentials:{secretName:$secret}}}}";
+assert.equal(
+  iapScript.split(protectedPublicBackendConfigPatch).length - 1,
+  2,
+  "Sowohl Force- als auch interner Restore-Patch muessen IAP aktivieren und Public-Load-Balancer-Logging deaktivieren."
+);
+assert.equal(
+  failClosedRestoreScript.split(protectedPublicBackendConfigPatch).length - 1,
+  1,
+  "Auch der jobweite Fail-closed-Restore muss Load-Balancer-Logging explizit deaktivieren."
+);
+assert.match(
+  failClosedRestoreScript,
+  /\.iap\.enabled == true and\s+\.logConfig\.enable == false/,
+  "Der jobweite Restore darf erst nach Readback von IAP=true und logConfig.enable=false erfolgreich sein."
+);
+
+const publicLoggingFilter = iapScript.match(
+  /public_backend_logging_is_disabled\(\) \{[\s\S]*?--arg expected_backend "\$public_backend" '\n([\s\S]*?)\n\s*' <<< "\$public_backend_state"/
+)?.[1];
+assert.ok(
+  publicLoggingFilter,
+  "Der Compute-Readback fuer deaktiviertes Public-Load-Balancer-Logging fehlt oder ist nicht eindeutig begrenzt."
+);
+function verifyPublicLogging(backendState) {
+  return spawnSync(
+    "jq",
+    [
+      "--exit-status",
+      "--arg",
+      "expected_backend",
+      "release-frontend-public",
+      publicLoggingFilter
+    ],
+    { input: JSON.stringify(backendState), encoding: "utf8" }
+  );
+}
+assert.equal(
+  verifyPublicLogging({
+    name: "release-frontend-public",
+    logConfig: { enable: false }
+  }).status,
+  0,
+  "Nur der exakt aufgeloeste BackendService mit explizitem logConfig.enable=false darf freigegeben werden."
+);
+for (const unsafeBackendState of [
+  { name: "release-frontend-public" },
+  { name: "release-frontend-public", logConfig: { enable: true } },
+  { name: "unexpected-public-backend", logConfig: { enable: false } }
+]) {
+  assert.notEqual(
+    verifyPublicLogging(unsafeBackendState).status,
+    0,
+    "Fehlendes, aktiviertes oder vom aufgeloesten Backend abweichendes Logging muss fail-closed stoppen."
+  );
+}
 assert.match(iapScript, /\.ports\.http/);
 assert.doesNotMatch(
   iapScript,
@@ -367,6 +627,13 @@ const validUrlMap = {
           paths: [
             "/",
             "/anmelden",
+            "/konto/passwort-festlegen",
+            "/public/auth/assets/action.css",
+            "/public/auth/assets/action.js",
+            "/public/auth/assets/app.css",
+            "/public/auth/assets/app.js",
+            "/public/auth/brand/versorgungs-kompass.svg",
+            "/public/auth/portal-config.js",
             "/public/media/social/mitmachen-share-v3.png"
           ],
           service: "https://www.googleapis.com/compute/v1/projects/p/global/backendServices/public"
@@ -398,7 +665,13 @@ const validUrlMap = {
   ]
 };
 
-const legacyUrlMap = structuredClone(validUrlMap);
+const prePortalUrlMap = structuredClone(validUrlMap);
+prePortalUrlMap.pathMatchers[0].pathRules[0].paths = [
+  "/",
+  "/anmelden",
+  "/public/media/social/mitmachen-share-v3.png"
+];
+const legacyUrlMap = structuredClone(prePortalUrlMap);
 legacyUrlMap.pathMatchers[0].pathRules[0].paths = ["/", "/anmelden"];
 legacyUrlMap.pathMatchers[1].pathRules =
   legacyUrlMap.pathMatchers[1].pathRules.filter(
@@ -426,9 +699,24 @@ assert.equal(
   "Der URL-Map-Prueffilter muss die exakt getrennte Soll-Map akzeptieren."
 );
 assert.equal(
+  verifyUrlMap(prePortalUrlMap, "pre_portal").status,
+  0,
+  "Der URL-Map-Prueffilter muss waehrend des Preflights den bisherigen Public-Entry-Vertrag akzeptieren."
+);
+assert.equal(
   verifyUrlMap(legacyUrlMap, "legacy").status,
   0,
   "Der URL-Map-Prueffilter muss waehrend des Preflights den engen Legacy-Vertrag akzeptieren."
+);
+assert.notEqual(
+  verifyUrlMap(validUrlMap, "pre_portal").status,
+  0,
+  "Der Pre-Portal-Vertrag darf die bereits erweiterte Soll-Map nicht akzeptieren."
+);
+assert.notEqual(
+  verifyUrlMap(prePortalUrlMap).status,
+  0,
+  "Der Soll-Vertrag darf die bisherige Public-Entry-Map nicht akzeptieren."
 );
 assert.notEqual(
   verifyUrlMap(validUrlMap, "legacy").status,
@@ -507,6 +795,22 @@ const audienceProtected = iapScript.indexOf('deploy_release "$iap_audience" true
 const publicIapDisabled = iapScript.indexOf(
   'deploy_release "$iap_audience" false'
 );
+const finalPublicLoggingConfigRead = iapScript.indexOf(
+  'rendered_public_logging=',
+  publicIapDisabled
+);
+const finalPublicBackendResolution = iapScript.indexOf(
+  'resolved_public_backend_after_logging_reconcile=',
+  finalPublicLoggingConfigRead
+);
+const finalPublicLoggingWait = iapScript.indexOf(
+  'if ! wait_for_public_backend_logging_disabled "$resolved_public_backend_after_logging_reconcile"',
+  finalPublicBackendResolution
+);
+const computePublicIapDisable = iapScript.indexOf(
+  'gcloud compute backend-services update "$public_frontend_backend_service"',
+  finalPublicLoggingWait
+);
 for (const [label, position] of [
   ["Policy-Read", policyRead],
   ["Desired-Render", desiredRender],
@@ -522,7 +826,11 @@ for (const [label, position] of [
   ["Initiales Boundary-Reconcile", initialBoundaryReconcile],
   ["URL-Map-Berechtigungs-Preflight", urlMapPermissionPreflight],
   ["Audience-Reconcile hinter Public-IAP", audienceProtected],
-  ["Verifizierte Oeffnung des Public-Backends", publicIapDisabled]
+  ["Finaler Public-BackendConfig-Reconcile", publicIapDisabled],
+  ["Finaler Logging-Sollzustand", finalPublicLoggingConfigRead],
+  ["Erneute Public-Backend-Aufloesung", finalPublicBackendResolution],
+  ["Logging-Readback vor Freigabe", finalPublicLoggingWait],
+  ["Verifizierte Oeffnung des Public-Backends", computePublicIapDisable]
 ]) {
   assert.notEqual(position, -1, `${label} fehlt im IAP-Workflow.`);
 }
@@ -541,6 +849,13 @@ assert.ok(
     audienceProtected < policyRead &&
     policyVerify < publicIapDisabled,
   "Geschuetzte Policies muessen vor der abschliessenden Public-Oeffnung verifiziert werden."
+);
+assert.ok(
+  publicIapDisabled < finalPublicLoggingConfigRead &&
+    finalPublicLoggingConfigRead < finalPublicBackendResolution &&
+    finalPublicBackendResolution < finalPublicLoggingWait &&
+    finalPublicLoggingWait < computePublicIapDisable,
+  "Der aufgeloeste Public-BackendService darf erst nach BackendConfig- und Compute-Readback von deaktiviertem Logging geoeffnet werden."
 );
 assert.doesNotMatch(
   iapScript,
@@ -581,9 +896,27 @@ assert.match(
   ingressTemplate,
   /if and \$\.Values\.frontend\.publicEntry\.enabled \(or \(eq \$host \$\.Values\.ingress\.host\) \(hasKey \$publicRootAliasHostSet \$host\)\)[\s\S]*path: \/\s+pathType: Exact/
 );
-assert.match(
+for (const publicPath of [
+  "/anmelden",
+  "/konto/passwort-festlegen",
+  "/public/auth/portal-config.js",
+  "/public/auth/assets/app.css",
+  "/public/auth/assets/app.js",
+  "/public/auth/assets/action.css",
+  "/public/auth/assets/action.js",
+  "/public/auth/brand/versorgungs-kompass.svg",
+  "/public/media/social/mitmachen-share-v3.png"
+]) {
+  assert.match(
+    ingressTemplate,
+    new RegExp(`path: ${publicPath.replaceAll("/", "\\/").replaceAll(".", "\\.")}\\s+pathType: Exact`),
+    `Der Ingress pinnt den oeffentlichen Portalpfad nicht exakt: ${publicPath}`
+  );
+}
+assert.doesNotMatch(
   ingressTemplate,
-  /if eq \$host \$\.Values\.ingress\.host[\s\S]*path: \/anmelden\s+pathType: Exact[\s\S]*path: \/public\/media\/social\/mitmachen-share-v3\.png\s+pathType: Exact/
+  /path:\s*\/(?:public\/auth|konto\/passwort-festlegen)\s+pathType:\s*Prefix/,
+  "Die Public-Ingress-Allowlist darf weder Identity-Assets noch Passwortaktion per Prefix verbreitern."
 );
 assert.match(
   ingressTemplate,
@@ -595,6 +928,11 @@ assert.match(
 );
 assert.match(ingressTemplate, /path: \/api[\s\S]*pathType: Prefix/);
 assert.match(ingressTemplate, /path: \/\n\s+pathType: Prefix/);
+assert.match(
+  publicBackendConfigTemplate,
+  /spec:\s+timeoutSec:[^\n]*\s+logging:\s+enable: false\s+healthCheck:/,
+  "Der Public-BackendConfig-Vertrag muss Load-Balancer-Request-Logging explizit deaktivieren."
+);
 assert.match(
   publicBackendConfigTemplate,
   /if \.Values\.frontend\.publicEntry\.backendConfig\.iap\.enabled[\s\S]*iap:[\s\S]*enabled: true/
@@ -640,13 +978,36 @@ assert.match(
 );
 assert.match(
   publicDockerfile,
-  /find \/usr\/share\/nginx\/html -type f \| wc -l \| tr -d ' '\)" = "2"/
+  /find \/usr\/share\/nginx\/html -type f \| wc -l \| tr -d ' '\)" = "10"/
 );
+assert.match(
+  publicDockerfile,
+  /find \/usr\/share\/nginx\/html\/public\/auth -type f \| wc -l \| tr -d ' '\)" = "8"/
+);
+for (const portalArtifact of [
+  "index.html",
+  "konto/passwort-festlegen/index.html",
+  "portal-config.js",
+  "assets/app.js",
+  "assets/app.css",
+  "assets/action.js",
+  "assets/action.css",
+  "brand/versorgungs-kompass.svg"
+]) {
+  assert.match(
+    publicDockerfile,
+    new RegExp(`dist\\/target\\/public\\/auth\\/${portalArtifact.replaceAll("/", "\\/").replaceAll(".", "\\.")}`),
+    `Das Public-Image kopiert das freigegebene Portal-Artefakt nicht: ${portalArtifact}`
+  );
+}
 assert.match(
   publicDockerfile,
   /test -f \/usr\/share\/nginx\/html\/public\/media\/social\/mitmachen-share-v3\.png/
 );
 assert.match(publicDockerfile, /grep -Fq 'property="og:image"'/);
+assert.match(publicDockerfile, /grep -Fq 'data-public-login-button'/);
+assert.match(publicDockerfile, /grep -Fq 'data-identity-portal="signin"'/);
+assert.match(publicDockerfile, /grep -Fq 'data-identity-portal="password"'/);
 assert.doesNotMatch(publicDockerfile, /public-login\.html/);
 assert.match(publicDockerfile, /COPY --chown=101:101 .*frontend-public\.conf/);
 assert.match(
@@ -657,10 +1018,27 @@ assert.match(
 assert.match(publicDockerfile, /USER 101:101/);
 assert.match(publicNginxConfig, /map \$request_uri \$public_entry_document/);
 assert.match(publicNginxConfig, /map \$request_uri \$public_share_image_document/);
+assert.match(publicNginxConfig, /map \$request_uri \$public_auth_document/);
 assert.match(
   publicNginxConfig,
-  /~\^\/public\/media\/social\/mitmachen-share-v3\\\.png\(\?:\\\?\.\*\)\?\$ public\/media\/social\/mitmachen-share-v3\.png;/
+  /~\^\/public\/media\/social\/mitmachen-share-v3\\\.png\(\?:\\\?\[\^#\]\*\)\?\$ public\/media\/social\/mitmachen-share-v3\.png;/
 );
+for (const publicAuthAsset of [
+  "portal-config.js",
+  "assets/app.js",
+  "assets/app.css",
+  "assets/action.js",
+  "assets/action.css",
+  "brand/versorgungs-kompass.svg"
+]) {
+  assert.match(
+    publicNginxConfig,
+    new RegExp(
+      `public\\/auth\\/${publicAuthAsset.replaceAll("/", "\\/").replaceAll(".", "\\.")}`
+    ),
+    `nginx erlaubt das freigegebene Portal-Artefakt nicht: ${publicAuthAsset}`
+  );
+}
 assert.match(publicNginxConfig, /merge_slashes off/);
 assert.match(publicNginxConfig, /absolute_redirect off/);
 assert.match(publicNginxConfig, /if \(\$public_entry_document = ""\)/);
@@ -670,13 +1048,31 @@ assert.match(
   /!\-f \$document_root\/public\/media\/social\/mitmachen-share-v3\.png/
 );
 assert.doesNotMatch(publicNginxConfig, /public-login\.html/);
-assert.match(publicNginxConfig, /location = \/anmelden[\s\S]*return 308 \//);
+assert.match(
+  publicNginxConfig,
+  /location = \/anmelden[\s\S]*limit_except GET HEAD[\s\S]*try_files \/public\/auth\/index\.html =404;/
+);
+assert.match(
+  publicNginxConfig,
+  /location = \/konto\/passwort-festlegen[\s\S]*limit_except GET HEAD[\s\S]*try_files \/public\/auth\/konto\/passwort-festlegen\/index\.html =404;/
+);
+assert.doesNotMatch(
+  publicNginxConfig,
+  /~\^\/public\/auth\/(?:index|konto\/passwort-festlegen\/index)\\\.html/,
+  "Die internen Portal-HTML-Dateien duerfen nicht direkt oeffentlich geroutet werden."
+);
+assert.match(
+  publicNginxConfig,
+  /location \^~ \/public\/auth\/[\s\S]*if \(\$public_auth_document = ""\)[\s\S]*limit_except GET HEAD[\s\S]*try_files \/\$public_auth_document =404;/
+);
 assert.match(
   publicNginxConfig,
   /location = \/public\/media\/social\/mitmachen-share-v3\.png[\s\S]*if \(\$public_share_image_document = ""\)[\s\S]*limit_except GET HEAD[\s\S]*try_files \/\$public_share_image_document =404;/
 );
 assert.match(publicNginxConfig, /default-src 'none'/);
 assert.match(publicNginxConfig, /script-src 'none'/);
+assert.match(publicNginxConfig, /~\^\/anmelden[\s\S]*"default-src 'none'[\s\S]*script-src 'self'/);
+assert.match(publicNginxConfig, /~\^\/konto\/passwort-festlegen[\s\S]*"default-src 'none'[\s\S]*script-src 'self'/);
 assert.match(publicNginxConfig, /Cache-Control "no-store"/);
 assert.match(authConfig, /loginPath:\s*"\.\.\/login\/login\.html"/);
 assert.doesNotMatch(
@@ -687,14 +1083,76 @@ assert.doesNotMatch(
 assert.match(workflow, /Build and push immutable public-entry image/);
 assert.match(workflow, /PUBLIC_IMAGE_DIGEST/);
 assert.match(workflow, /deploy\/frontend-public\/Dockerfile/);
+assert.equal(
+  workflow.split("npm ci --prefix frontend/identity-portal").length - 1,
+  2,
+  "Validierung und Deployment muessen die gepinnten Portal-Abhaengigkeiten separat installieren."
+);
+assert.match(
+  workflow,
+  /Build target frontend artifact[\s\S]*--identity-platform-api-key AIzaA{35}[\s\S]*--identity-platform-project-id steam-capsule-341212/
+);
+assert.match(
+  workflow,
+  /Build and publish target frontend artifact[\s\S]*--identity-platform-api-key "\$IDENTITY_PLATFORM_API_KEY"[\s\S]*--identity-platform-project-id "\$GCP_PROJECT_ID"/
+);
+assert.match(
+  validationScript,
+  /IDENTITY_PLATFORM_API_KEY must provide the browser-visible Identity Platform Web API key in every identity mode/
+);
+assert.match(
+  validationScript,
+  /\[\[ "\$IDENTITY_PLATFORM_API_KEY" != "\$IAP_EXTERNAL_AUTH_API_KEY" \]\]/
+);
+assert.match(
+  validationScript,
+  /\[\[ "\$IAP_EXTERNAL_LOGIN_PAGE_URI" != "\$\{FRONTEND_BASE_URL\}\/anmelden" \]\]/
+);
+const externalCanonicalGate = validationScript.match(
+  /(if \[\[ "\$IAP_IDENTITY_MODE" == "external" && "\$domain_mode" != "canonical" \]\]; then[\s\S]*?\nfi)/
+)?.[1];
+assert.ok(
+  externalCanonicalGate,
+  "External Identity Platform muss bereits in der Env-Validierung auf den kanonischen Host begrenzt sein."
+);
+function verifyExternalCanonicalGate(identityMode, domainMode) {
+  return spawnSync(
+    "bash",
+    ["-c", `${externalCanonicalGate}\nprintf 'accepted\\n'`],
+    {
+      env: {
+        ...process.env,
+        IAP_IDENTITY_MODE: identityMode,
+        domain_mode: domainMode
+      },
+      encoding: "utf8"
+    }
+  );
+}
+assert.equal(verifyExternalCanonicalGate("external", "canonical").status, 0);
+assert.notEqual(
+  verifyExternalCanonicalGate("external", "prepare").status,
+  0,
+  "External Identity darf den Legacy-Vorbereitungs-Origin nicht scheinbar akzeptieren."
+);
+assert.equal(
+  verifyExternalCanonicalGate("iam", "prepare").status,
+  0,
+  "Der weiterhin freigegebene IAM-Zertifikatsvorbereitungsmodus darf bestehen bleiben."
+);
 assert.match(workflow, /\/\/anmelden/);
 
 for (const publicContract of [
   'data-public-entry="home"',
-  "data-google-sso-button",
-  'href="/api/auth/bootstrap?return=%2Fstart%3Fiap_authenticated%3D1"',
-  'redirect_status" != "308"',
-  'redirect_location" != "/"',
+  "data-public-login-button",
+  'href="/start"',
+  'data-identity-portal="signin"',
+  'data-identity-portal="password"',
+  "/konto/passwort-festlegen",
+  "/public/auth/portal-config.js",
+  "/public/auth/assets/app.js",
+  'signin_status" != "200"',
+  'password_status" != "200"',
   "post_status",
   "public_probe=must-not-reflect"
 ]) {
@@ -721,7 +1179,12 @@ for (const protectedPath of [
   "/login.html",
   "/api/healthz",
   "/data/runtime-config.js",
-  "/anmelden/"
+  "/anmelden/",
+  "/konto/passwort-festlegen/",
+  "/public/auth/index.html",
+  "/public/auth/konto/passwort-festlegen/index.html",
+  "/public/auth/assets/unknown.js",
+  "/public/auth/assets/app.js/"
 ]) {
   assert.ok(
     externalBoundaryScript.includes(`"${protectedPath}"`),
@@ -764,7 +1227,10 @@ for (const matrixAlias of [
   "/anmelden;probe=1",
   "/anmelden;probe/weiter",
   "/anmelden;%2Fprobe",
-  "/anmelden;;probe"
+  "/anmelden;;probe",
+  "/konto/passwort-festlegen;",
+  "/konto/passwort-festlegen;probe",
+  "/public/auth/assets/app.js;probe"
 ]) {
   assert.ok(
     matrixAliasesBlock.includes(`"${matrixAlias}"`),
@@ -773,8 +1239,8 @@ for (const matrixAlias of [
 }
 assert.match(
   normalizedBoundaryBlock,
-  /404\)[\s\S]*data-public-entry=/,
-  "Ein Near-Miss-404 darf keinen Public-Entry-Inhalt ausliefern."
+  /404\)[\s\S]*data-public-entry=[\s\S]*data-identity-portal=/,
+  "Ein Near-Miss-404 darf weder Public-Entry- noch Identity-Portal-Inhalt ausliefern."
 );
 assert.match(
   normalizedBoundaryBlock,
@@ -783,8 +1249,8 @@ assert.match(
 );
 assert.match(
   matrixBoundaryBlock,
-  /404\)[\s\S]*data-public-entry=[\s\S]*set-cookie:[\s\S]*location:[\s\S]*x-goog-iap-generated-response:/,
-  "Ein Matrix-404 muss ohne Public-Entry-Inhalt, zustandslos und ohne Redirect oder IAP-Mischzustand bleiben."
+  /404\)[\s\S]*data-public-entry=[\s\S]*data-identity-portal=[\s\S]*set-cookie:[\s\S]*location:[\s\S]*x-goog-iap-generated-response:/,
+  "Ein Matrix-404 muss ohne Public-/Portal-Inhalt, zustandslos und ohne Redirect oder IAP-Mischzustand bleiben."
 );
 for (const hardenedHeader of [
   "cache-control: no-store",
@@ -815,7 +1281,7 @@ assert.doesNotMatch(
 );
 assert.match(
   externalBoundaryScript,
-  /edge_ready=0[\s\S]*edge_consecutive_successes=0[\s\S]*required_edge_successes=6[\s\S]*for attempt in \{1\.\.60\}[\s\S]*data-public-entry="home"[\s\S]*data-google-sso-button[\s\S]*href="\/api\/auth\/bootstrap\?return=%2Fstart%3Fiap_authenticated%3D1"[\s\S]*Testzugang aktivieren[\s\S]*edge_consecutive_successes=\$\(\(edge_consecutive_successes \+ 1\)\)[\s\S]*edge_ready=1[\s\S]*edge_consecutive_successes=0/,
+  /edge_ready=0[\s\S]*edge_consecutive_successes=0[\s\S]*required_edge_successes=6[\s\S]*for attempt in \{1\.\.60\}[\s\S]*data-public-entry="home"[\s\S]*data-public-login-button[\s\S]*href="\/start"[\s\S]*Testzugang aktivieren[\s\S]*edge_consecutive_successes=\$\(\(edge_consecutive_successes \+ 1\)\)[\s\S]*edge_ready=1[\s\S]*edge_consecutive_successes=0/,
   "Der externe Smoke muss mehrere konsistente Edge-Antworten abwarten und bei einem Mischzustand neu zaehlen."
 );
 assert.match(
@@ -826,18 +1292,19 @@ assert.match(
 for (const dotSegmentAlias of [
   "/foo/../anmelden",
   "/anmelden/../anmelden",
-  "/./anmelden"
+  "/./anmelden",
+  "/foo/../konto/passwort-festlegen",
+  "/konto/./passwort-festlegen"
 ]) {
   assert.ok(
     externalBoundaryScript.includes(`"${dotSegmentAlias}"`),
     `Der externe Boundary-Smoke prueft den vom Load Balancer normalisierten Pfad nicht: ${dotSegmentAlias}`
   );
 }
-assert.match(externalBoundaryScript, /redirect_location" != "\/anmelden"/);
 assert.match(
   externalBoundaryScript,
-  /redirect_location" != "\$\{FRONTEND_BASE_URL\}\/anmelden"/,
-  "Ein Load-Balancer-302 darf nur auf den kanonischen Public-Pfad desselben Origins zeigen."
+  /canonical_redirect_path="\/anmelden"[\s\S]*canonical_redirect_path="\/konto\/passwort-festlegen"[\s\S]*redirect_location" != "\$canonical_redirect_path"[\s\S]*redirect_location" != "\$\{FRONTEND_BASE_URL\}\$\{canonical_redirect_path\}"/,
+  "Ein Load-Balancer-302 darf nur auf den kanonischen Portalpfad desselben Origins zeigen."
 );
 assert.match(
   externalBoundaryScript,

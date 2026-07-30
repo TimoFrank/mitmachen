@@ -2,6 +2,16 @@
 
 Stand: 25. Juli 2026
 
+> **Noch nicht live aktivierter Übergang:** Der geplante, höchstens
+> 62-tägige Wechsel auf IAP External Identities mit bestehenden Google-Konten
+> und zwei oder drei administrativ provisionierten Passwortkonten ist im
+> [External-Identities-Pilotvertrag](PRE_GEMATIK_EXTERNAL_IDENTITIES_PILOT.md)
+> beschrieben. Er weicht insbesondere bei IAM-Gruppenautorisierung,
+> Reauthentication und MFA von G-03 ab und wird erst nach einer separaten
+> geschützten Bestätigung der Sicherheitsausnahme samt konkretem UTC-Ablauf,
+> vollständiger Abnahme und geprüftem IAM-Rollback wirksam. Bis dahin bleibt
+> G-03 unverändert der aktive Vertrag.
+
 ## Einordnung
 
 Für diesen persönlich verantworteten Pilot nimmt der Auftraggeber vorläufig fachliche und technische Owner-Aufgaben sowie die Go/No-Go-Aufgabe selbst wahr. Er hat die Grundsatzentscheidung für Pilot, Deployment und Eigenprüfung getroffen. Der Cutover wurde am 20. Juli 2026 nach den dynamischen Live-Nachweisen als `GO MIT DOKUMENTIERTEN PILOTAUFLAGEN` abgeschlossen. Am 24. Juli 2026 wurde die Entscheidung um einen kleinen, namentlich genehmigten Testnutzerkreis erweitert. Diese Erweiterung wird erst wirksam, wenn die zusätzlichen Nachweise aus G-03 und G-04 vorliegen; bis dahin bleibt nur der bisherige Pilot-Owner aktiv. Eine davon unabhängige rechtliche Rolle als Daten-Owner wird hier nicht unterstellt; G-01 hält stattdessen die persönliche Bestätigung der Verarbeitungsbefugnis transparent fest.

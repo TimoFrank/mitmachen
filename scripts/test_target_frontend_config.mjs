@@ -14,6 +14,8 @@ const demoDataPath = path.join(dataDir, "demo-data.js");
 const expertDataPath = path.join(dataDir, "expertenkreis-data.js");
 const demoDirectory = path.join(fixtureRoot, "demo");
 const offlinePoliticsPath = path.join(fixtureRoot, "politik-offline.html");
+const externalLoginPageUri = "https://versorgungs-kompass-login.example.run.app/";
+const externalAuthApiKey = `AIza${"A".repeat(35)}`;
 
 fs.mkdirSync(dataDir, { recursive: true });
 fs.writeFileSync(configPath, `window.VERSORGUNGS_COMPASS_CONFIG = {
@@ -56,7 +58,7 @@ try {
   const prepareScript = path.join(root, "scripts", "prepare_target_frontend_config.mjs");
   const auditScript = path.join(root, "scripts", "audit_api_gateway.mjs");
 
-  execFileSync(process.execPath, [prepareScript, configPath, "https://api.pre-gematik.example", "api", "iap"], {
+  execFileSync(process.execPath, [prepareScript, configPath, "https://api.pre-gematik.example", "api", "iap", "iam", "", ""], {
     cwd: root,
     stdio: "pipe"
   });
@@ -64,6 +66,9 @@ try {
   let source = fs.readFileSync(configPath, "utf8");
   assert.match(source, /dataMode:\s*"api"/);
   assert.match(source, /authMode:\s*"iap"/);
+  assert.match(source, /iapIdentityMode:\s*"iam"/);
+  assert.match(source, /iapExternalLoginPageUri:\s*""/);
+  assert.match(source, /iapExternalAuthApiKey:\s*""/);
   assert.match(source, /apiBaseUrl:\s*"https:\/\/api\.pre-gematik\.example"/);
   assert.match(source, /apiCredentials:\s*"include"/);
   assert.match(source, /requireApiGateway:\s*true/);
@@ -81,12 +86,32 @@ try {
   assert.equal(fs.existsSync(demoDirectory), false, "Die Demo-Route muss aus dem Zielartefakt entfernt werden");
   assert.equal(fs.existsSync(offlinePoliticsPath), false, "Das eigenstaendige Pages-Politik-Offline-Modul muss aus dem Zielartefakt entfernt werden");
 
-  execFileSync(process.execPath, [prepareScript, configPath, "https://api.pre-gematik.example", "api", "oidc"], {
+  execFileSync(process.execPath, [
+    prepareScript,
+    configPath,
+    "https://api.pre-gematik.example",
+    "api",
+    "iap",
+    "external",
+    externalLoginPageUri,
+    externalAuthApiKey
+  ], {
+    cwd: root,
+    stdio: "pipe"
+  });
+  source = fs.readFileSync(configPath, "utf8");
+  assert.match(source, /authMode:\s*"iap"/);
+  assert.match(source, /iapIdentityMode:\s*"external"/);
+  assert.match(source, /iapExternalLoginPageUri:\s*"https:\/\/versorgungs-kompass-login\.example\.run\.app\/"/);
+  assert.match(source, new RegExp(`iapExternalAuthApiKey:\\s*"${externalAuthApiKey}"`));
+
+  execFileSync(process.execPath, [prepareScript, configPath, "https://api.pre-gematik.example", "api", "oidc", "iam", "", ""], {
     cwd: root,
     stdio: "pipe"
   });
   source = fs.readFileSync(configPath, "utf8");
   assert.match(source, /authMode:\s*"oidc"/);
+  assert.match(source, /iapIdentityMode:\s*"iam"/);
   assert.equal((source.match(/apiCredentials:/g) || []).length, 1, "apiCredentials muss idempotent bleiben");
 
   execFileSync(process.execPath, [auditScript, "--production-config", configPath], {
@@ -106,7 +131,37 @@ try {
   });
   assert.notEqual(unsignedHeaderMode.status, 0, "Unsignierte Identity-Header duerfen kein Ziel-Auth-Modus sein");
 
-  console.log("Target frontend config test OK: IAP-Cookies, Zielmodus, Audit und Idempotenz sind abgesichert.");
+  const externalOidc = spawnSync(process.execPath, [
+    prepareScript,
+    configPath,
+    "https://api.pre-gematik.example",
+    "api",
+    "oidc",
+    "external",
+    externalLoginPageUri,
+    externalAuthApiKey
+  ], {
+    cwd: root,
+    encoding: "utf8"
+  });
+  assert.notEqual(externalOidc.status, 0, "External IAP darf nicht mit direktem OIDC-Frontend kombiniert werden");
+
+  const externalWithoutFullLogout = spawnSync(process.execPath, [
+    prepareScript,
+    configPath,
+    "https://api.pre-gematik.example",
+    "api",
+    "iap",
+    "external",
+    externalLoginPageUri,
+    ""
+  ], {
+    cwd: root,
+    encoding: "utf8"
+  });
+  assert.notEqual(externalWithoutFullLogout.status, 0, "External IAP muss einen gepinnten Full-Logout-API-Key ausliefern");
+
+  console.log("Target frontend config test OK: IAM-/External-IAP, Zielmodus, Audit und Idempotenz sind abgesichert.");
 } finally {
   fs.rmSync(fixtureRoot, { recursive: true, force: true });
 }

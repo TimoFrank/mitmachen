@@ -99,6 +99,55 @@ spec:
                 name: {{ include "versorgungs-kompass.frontendPublicFullname" $ }}
                 port:
                   name: http
+          - path: /konto/passwort-festlegen
+            pathType: Exact
+            backend:
+              service:
+                name: {{ include "versorgungs-kompass.frontendPublicFullname" $ }}
+                port:
+                  name: http
+          - path: /public/auth/portal-config.js
+            pathType: Exact
+            backend:
+              service:
+                name: {{ include "versorgungs-kompass.frontendPublicFullname" $ }}
+                port:
+                  name: http
+          - path: /public/auth/assets/app.js
+            pathType: Exact
+            backend:
+              service:
+                name: {{ include "versorgungs-kompass.frontendPublicFullname" $ }}
+                port:
+                  name: http
+          - path: /public/auth/assets/app.css
+            pathType: Exact
+            backend:
+              service:
+                name: {{ include "versorgungs-kompass.frontendPublicFullname" $ }}
+                port:
+                  name: http
+          - path: /public/auth/assets/action.js
+            pathType: Exact
+            backend:
+              service:
+                name: {{ include "versorgungs-kompass.frontendPublicFullname" $ }}
+                port:
+                  name: http
+          - path: /public/auth/assets/action.css
+            pathType: Exact
+            backend:
+              service:
+                name: {{ include "versorgungs-kompass.frontendPublicFullname" $ }}
+                port:
+                  name: http
+          - path: /public/auth/brand/versorgungs-kompass.svg
+            pathType: Exact
+            backend:
+              service:
+                name: {{ include "versorgungs-kompass.frontendPublicFullname" $ }}
+                port:
+                  name: http
           - path: /public/media/social/mitmachen-share-v3.png
             pathType: Exact
             backend:

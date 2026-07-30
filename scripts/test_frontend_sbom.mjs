@@ -22,7 +22,9 @@ try {
     "--profile", "target",
     "--output", targetRoot,
     "--api-base-url", "https://target.example.invalid",
-    "--auth-mode", "oidc"
+    "--auth-mode", "oidc",
+    "--identity-platform-api-key", `AIza${"A".repeat(35)}`,
+    "--identity-platform-project-id", "steam-capsule-341212"
   ]);
 
   const bom = generateFrontendSbom({ output: sbomPath, artifactRoot: targetRoot });

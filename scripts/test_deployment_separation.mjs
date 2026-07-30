@@ -22,6 +22,8 @@ const offlinePoliticsUpdater = path.join(
   "update_politics_offline_snapshot.mjs"
 );
 const apiBaseUrl = "https://gateway.pre-gematik.example";
+const identityPlatformApiKey = `AIza${"A".repeat(35)}`;
+const identityPlatformProjectId = "steam-capsule-341212";
 
 const quotedGreaterThanTag = scanHtmlStartTags(
   '<head><meta content="Wrong>Preview" property=og:title></head>',
@@ -612,7 +614,9 @@ try {
     "--profile", "target",
     "--output", targetDir,
     "--api-base-url", apiBaseUrl,
-    "--auth-mode", "oidc"
+    "--auth-mode", "oidc",
+    "--identity-platform-api-key", identityPlatformApiKey,
+    "--identity-platform-project-id", identityPlatformProjectId
   );
   execFileSync(process.execPath, [targetAudit, "--artifact-root", targetDir], { cwd: root, stdio: "pipe" });
 
@@ -686,6 +690,12 @@ try {
   assert.equal(fs.existsSync(path.join(targetDir, "login.html")), true, "Target muss die geschuetzte Anmeldung enthalten");
   assert.equal(fs.existsSync(path.join(targetDir, "index.html")), true, "Target muss den zentralen #Mitmachen-Einstieg enthalten");
   assert.equal(fs.existsSync(path.join(targetDir, "public-index.html")), true, "Target muss die eigenstaendige oeffentliche Startseite enthalten");
+  assert.equal(fs.existsSync(path.join(targetDir, "public", "auth", "index.html")), true, "Target muss die eigene Identity-Platform-Anmeldeseite enthalten");
+  assert.equal(
+    fs.existsSync(path.join(targetDir, "public", "auth", "konto", "passwort-festlegen", "index.html")),
+    true,
+    "Target muss den eigenen Passwortaktions-Handler enthalten"
+  );
   assert.equal(fs.existsSync(path.join(targetDir, "versorgungs-kompass.html")), true, "Target muss die Realanwendung enthalten");
   assert.equal(fs.existsSync(path.join(targetDir, "data", "data-service.js")), true, "Target muss den API-Datenservice enthalten");
   assert.equal(fs.existsSync(path.join(targetDir, "manifest.webmanifest")), true, "Target muss das PWA-Manifest am referenzierten Root-Pfad enthalten");
@@ -734,12 +744,13 @@ try {
   assert.doesNotMatch(targetPublicIndexHtml, /href="\.\/public-entry\.css"/);
   assert.match(targetPublicIndexHtml, /data-public-entry="home"/);
   assert.equal(
-    (targetPublicIndexHtml.match(/href="\/api\/auth\/bootstrap\?return=%2Fstart%3Fiap_authenticated%3D1"/gi) || []).length,
+    (targetPublicIndexHtml.match(/href="\/start"/gi) || []).length,
     1
   );
-  assert.equal((targetPublicIndexHtml.match(/\/api\//g) || []).length, 1);
-  assert.match(targetPublicIndexHtml, /data-google-sso-button/);
-  assert.match(targetPublicIndexHtml, /Mit Google anmelden/);
+  assert.equal((targetPublicIndexHtml.match(/\/api\//g) || []).length, 0);
+  assert.match(targetPublicIndexHtml, /data-public-login-button/);
+  assert.match(targetPublicIndexHtml, /Google oder einem persönlich freigeschalteten E-Mail-Konto/);
+  assert.doesNotMatch(targetPublicIndexHtml, /data-google-sso-button/);
   assert.match(targetPublicIndexHtml, /Willkommen im Versorgungs-Kompass/);
   assert.match(targetPublicIndexHtml, /id="zugriff-verweigert"/);
   assert.ok(targetPublicIndexHtml.includes(`<link rel="canonical" href="${apiBaseUrl}/" />`));
@@ -753,6 +764,68 @@ try {
   assert.match(targetPublicIndexHtml, /<meta name="twitter:card" content="summary_large_image" \/>/);
   assert.match(targetPublicIndexHtml, /<meta name="twitter:description" content="Deine Plattform für Austausch, Wissen und Vernetzung\." \/>/);
   assert.doesNotMatch(targetPublicIndexHtml, /Testzugang aktivieren|enrollment\.html|\b(?:IAP|OIDC|Runtime|API-Gateway)\b/i);
+
+  const targetIdentityFiles = relativeFiles(path.join(targetDir, "public", "auth"))
+    .map((relativePath) => relativePath.split(path.sep).join("/"))
+    .sort();
+  assert.deepEqual(
+    targetIdentityFiles,
+    [
+      "assets/action.css",
+      "assets/action.js",
+      "assets/app.css",
+      "assets/app.js",
+      "brand/versorgungs-kompass.svg",
+      "index.html",
+      "konto/passwort-festlegen/index.html",
+      "portal-config.js"
+    ],
+    "Target/public/auth darf exakt die acht freigegebenen Portaldateien enthalten"
+  );
+  const targetIdentitySigninHtml = fs.readFileSync(
+    path.join(targetDir, "public", "auth", "index.html"),
+    "utf8"
+  );
+  const targetIdentityPasswordHtml = fs.readFileSync(
+    path.join(targetDir, "public", "auth", "konto", "passwort-festlegen", "index.html"),
+    "utf8"
+  );
+  const targetIdentityConfig = fs.readFileSync(
+    path.join(targetDir, "public", "auth", "portal-config.js"),
+    "utf8"
+  );
+  const targetIdentityApp = fs.readFileSync(
+    path.join(targetDir, "public", "auth", "assets", "app.js"),
+    "utf8"
+  );
+  assert.match(targetIdentitySigninHtml, /data-identity-portal="signin"/);
+  assert.match(targetIdentityPasswordHtml, /data-identity-portal="password"/);
+  assert.match(targetIdentityConfig, new RegExp(`apiKey:\\s*"${identityPlatformApiKey}"`));
+  assert.match(targetIdentityConfig, /authDomain:\s*"steam-capsule-341212\.firebaseapp\.com"/);
+  assert.match(targetIdentityConfig, /projectId:\s*"steam-capsule-341212"/);
+  assert.match(
+    targetIdentityConfig,
+    new RegExp(`allowedContinueOrigins:\\s*Object\\.freeze\\(\\[\\s*"${apiBaseUrl}"\\s*\\]\\)`)
+  );
+  assert.match(targetIdentityConfig, /enableLocalPreview:\s*false/);
+  assert.doesNotMatch(targetIdentityConfig, /REPLACE_/);
+  assert.match(targetIdentityApp, /Mit Google anmelden/);
+  assert.match(targetIdentityApp, /E-Mail-Adresse/);
+  assert.doesNotMatch(targetIdentityApp, /createUserWithEmailAndPassword/);
+  assert.match(targetIdentityApp, /\/public\/auth\/brand\/versorgungs-kompass\.svg/);
+
+  const targetIdentitySigninPath = path.join(targetDir, "public", "auth", "index.html");
+  fs.writeFileSync(
+    targetIdentitySigninPath,
+    targetIdentitySigninHtml.replace('data-identity-portal="signin"', 'data-identity-portal="signup"')
+  );
+  auditResult = spawnSync(process.execPath, [targetAudit, "--artifact-root", targetDir], {
+    cwd: root,
+    encoding: "utf8"
+  });
+  assert.notEqual(auditResult.status, 0, "Target Asset Audit muss einen manipulierten Portal-Marker fail-closed ablehnen");
+  assert.match(`${auditResult.stderr}\n${auditResult.stdout}`, /erwarteten Identity-Portal-Marker signin/);
+  fs.writeFileSync(targetIdentitySigninPath, targetIdentitySigninHtml);
 
   const targetShareImagePath = path.join(targetDir, "public", "media", "social", "mitmachen-share-v3.png");
   const cleanTargetShareImage = fs.readFileSync(targetShareImagePath);
@@ -892,7 +965,9 @@ try {
     "--profile", "target",
     "--output", path.join(fixtureRoot, "api-url-with-path"),
     "--api-base-url", `${apiBaseUrl}/api`,
-    "--auth-mode", "oidc"
+    "--auth-mode", "oidc",
+    "--identity-platform-api-key", identityPlatformApiKey,
+    "--identity-platform-project-id", identityPlatformProjectId
   );
   assert.notEqual(apiUrlWithPath.status, 0, "--api-base-url muss Pfade ausser / ablehnen");
   assert.match(`${apiUrlWithPath.stderr}\n${apiUrlWithPath.stdout}`, /HTTPS-Origin ohne Pfad/);

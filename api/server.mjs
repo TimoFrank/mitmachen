@@ -29,9 +29,13 @@ import {
   accessScopeForProfile,
   accessScopeRefForProfile,
   assertAccessScopePermission,
+  assertIapExternalAccessWindow,
+  assertIapExternalIdentityClaims,
+  assertIapNativeIdentityClaims,
   assertIapJwtClaims,
   assertSensitiveQueryPermission,
   policyForRequest,
+  requireSingleActiveIdentityProfile,
   roleRank,
   sessionCapabilities,
   validateAllowedOriginConfiguration,
@@ -541,6 +545,7 @@ if (!["disabled", "validated-original"].includes(IMAGE_UPLOAD_MODE) || (process.
 }
 const IDENTITY_CONFIGURATION = validateIdentityConfiguration(process.env);
 const API_AUTH_MODE = IDENTITY_CONFIGURATION.mode;
+const IAP_IDENTITY_MODE = IDENTITY_CONFIGURATION.iapIdentityMode;
 const API_AUTH_ALLOW_DEV_PROFILE = process.env.API_AUTH_ALLOW_DEV_PROFILE === "1";
 const API_AUTH_ALLOW_BEARER_DEV = process.env.API_AUTH_ALLOW_BEARER_DEV === "1";
 const API_DEV_PROFILE_ID = process.env.API_DEV_PROFILE_ID || process.env.GCP_DEMO_PROFILE_ID || "";
@@ -3307,7 +3312,7 @@ function trustedHeaderSubject(request) {
 
 function authModeLabel() {
   return {
-    iap: "IAP/SSO",
+    iap: IAP_IDENTITY_MODE === "external" ? "IAP/Identity Platform" : "IAP/SSO",
     oidc: "OIDC/SSO",
     "trusted-header": "Gateway-SSO"
   }[API_AUTH_MODE] || "Backend-Identitaet";
@@ -3442,8 +3447,11 @@ function verifyJwtSignature(header, signedData, encodedSignature, publicKey) {
 }
 
 async function verifyIapJwt(request) {
-  if (request.iapPayload) return request.iapPayload;
   if (API_AUTH_MODE !== "iap") return null;
+  if (IAP_IDENTITY_MODE === "external") {
+    assertIapExternalAccessWindow(IDENTITY_CONFIGURATION);
+  }
+  if (request.iapPayload) return request.iapPayload;
   const token = String(request.headers["x-goog-iap-jwt-assertion"] || "").trim();
   if (!token) {
     const error = new Error("Signiertes IAP-JWT fehlt.");
@@ -3487,6 +3495,11 @@ async function verifyIapJwt(request) {
     const error = new Error("IAP-JWT enthaelt keine Nutzeridentitaet.");
     error.status = 401;
     throw error;
+  }
+  if (IAP_IDENTITY_MODE === "external") {
+    request.iapExternalIdentity = assertIapExternalIdentityClaims(payload, IDENTITY_CONFIGURATION);
+  } else {
+    assertIapNativeIdentityClaims(payload);
   }
   request.iapPayload = payload;
   return payload;
@@ -3592,11 +3605,17 @@ async function resolveRequestProfile(request) {
   const oidcPayload = await verifyOidcJwt(request);
   const unsignedHeaderMode = !IDENTITY_CONFIGURATION.production && API_AUTH_MODE === "trusted-header";
   const subject = String(iapPayload
-    ? canonicalIapSubject(iapPayload.sub)
+    ? (IAP_IDENTITY_MODE === "external"
+      ? request.iapExternalIdentity?.subject
+      : canonicalIapSubject(iapPayload.sub))
     : oidcPayload?.sub || (unsignedHeaderMode ? trustedHeaderSubject(request) || iapSubject(request) : "")
   ).trim();
   const email = String(
-    iapPayload?.email || oidcPayload?.email || (unsignedHeaderMode ? trustedHeaderEmail(request) || iapEmail(request) : "")
+    (iapPayload && IAP_IDENTITY_MODE === "external"
+      ? request.iapExternalIdentity?.email
+      : iapPayload?.email)
+    || oidcPayload?.email
+    || (unsignedHeaderMode ? trustedHeaderEmail(request) || iapEmail(request) : "")
   ).trim().toLowerCase();
   if (!subject && unsignedHeaderMode) {
     const profile = await loadDevelopmentHeaderProfile(email);
@@ -3635,12 +3654,7 @@ async function resolveRequestProfile(request) {
     error.status = 503;
     throw error;
   }
-  if (rows?.length !== 1) {
-    const error = new Error("Anmeldung nicht möglich.");
-    error.status = 403;
-    throw error;
-  }
-  return rows[0];
+  return requireSingleActiveIdentityProfile(rows);
 }
 
 async function loadDevelopmentHeaderProfile(email = "", subject = "") {
@@ -5312,6 +5326,8 @@ async function getSession(request) {
   return {
     authMode: API_AUTH_MODE,
     authModeLabel: authModeLabel(),
+    iapIdentityMode: IAP_IDENTITY_MODE,
+    identityProvider: request.iapExternalIdentity?.provider || null,
     identitySource: trustedHeaderEmail(request) || trustedHeaderSubject(request) || iapEmail(request) || iapSubject(request) || (API_AUTH_ALLOW_DEV_PROFILE ? "lokales Dev-Profil" : ""),
     enforcement: "server-side",
     enforcementLabel: "Rollen werden in der API serverseitig geprueft.",
@@ -9243,7 +9259,9 @@ function runtimeMetadata() {
     configuration: process.env.K_CONFIGURATION || "local",
     database: process.env.DB_NAME || process.env.PGDATABASE || DEFAULT_DB_NAME,
     authMode: API_AUTH_MODE,
+    iapIdentityMode: IAP_IDENTITY_MODE,
     iapJwtAudienceConfigured: Boolean(IAP_JWT_AUDIENCE),
+    iapExternalAccessExpiresAt: IDENTITY_CONFIGURATION.iapExternalAccessExpiresAt || null,
     authEmailHeader: AUTH_EMAIL_HEADER,
     authSubjectHeader: AUTH_SUBJECT_HEADER,
     profileImageBucket: PROFILE_IMAGE_BUCKET || null,
@@ -9329,8 +9347,10 @@ async function getOpsChecks() {
     checks.push(opsCheck("postgres", "Postgres", "error", dbError));
   }
   const counts = summary?.counts || {};
+  const externalIapReady = IAP_IDENTITY_MODE !== "external"
+    || Date.now() < IDENTITY_CONFIGURATION.iapExternalAccessExpiresAtMs;
   const signedIdentityReady = API_AUTH_MODE === "iap"
-    ? Boolean(IAP_JWT_AUDIENCE)
+    ? Boolean(IAP_JWT_AUDIENCE) && externalIapReady
     : API_AUTH_MODE === "oidc"
       ? Boolean(OIDC_ISSUER && OIDC_AUDIENCE && OIDC_JWKS_URL)
       : false;
@@ -9344,7 +9364,9 @@ async function getOpsChecks() {
       : "API erwartet eine signierte Gateway-/SSO-Identitaet; Auth-Konfiguration ist unvollstaendig.",
     {
       authMode: API_AUTH_MODE,
+      iapIdentityMode: IAP_IDENTITY_MODE,
       iapJwtAudienceConfigured: Boolean(IAP_JWT_AUDIENCE),
+      iapExternalAccessExpiresAt: IDENTITY_CONFIGURATION.iapExternalAccessExpiresAt || null,
       oidcIssuerConfigured: Boolean(OIDC_ISSUER),
       oidcAudienceConfigured: Boolean(OIDC_AUDIENCE),
       oidcJwksConfigured: Boolean(OIDC_JWKS_URL)
@@ -9692,6 +9714,9 @@ async function handle(request, response) {
       return jsonResponse(response, 200, { ok: true });
     }
     if (request.method === "GET" && ["/readyz", "/api/readyz"].includes(url.pathname)) {
+      if (IAP_IDENTITY_MODE === "external") {
+        assertIapExternalAccessWindow(IDENTITY_CONFIGURATION);
+      }
       await getPool().query("select 1");
       await getPool().query("select access_scope, scope_ref from public.identity_bindings limit 0");
       await getPool().query("select entity_type, entity_id, scope_ref from public.test_access_objects limit 0");

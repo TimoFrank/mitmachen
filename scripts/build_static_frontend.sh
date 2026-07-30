@@ -10,13 +10,17 @@ PROFILE=""
 OUTPUT_ARG=""
 API_BASE_URL=""
 AUTH_MODE=""
+IDENTITY_PLATFORM_API_KEY="${IDENTITY_PLATFORM_API_KEY:-${IAP_EXTERNAL_AUTH_API_KEY:-}}"
+IDENTITY_PLATFORM_PROJECT_ID="${IDENTITY_PLATFORM_PROJECT_ID:-${IAP_GCIP_PROJECT_ID:-}}"
 
 usage() {
   cat <<'EOF'
 Usage:
   bash scripts/build_static_frontend.sh --profile pages --output dist/pages
   bash scripts/build_static_frontend.sh --profile target --output dist/target \
-    --api-base-url https://example.invalid --auth-mode oidc|iap
+    --api-base-url https://example.invalid --auth-mode oidc|iap \
+    --identity-platform-api-key "$IDENTITY_PLATFORM_API_KEY" \
+    --identity-platform-project-id example-project
 
 Profiles:
   pages   Oeffentliche, anonyme Demo mit synthetischen Fachdaten und
@@ -52,6 +56,16 @@ while [ "$#" -gt 0 ]; do
       AUTH_MODE="$2"
       shift 2
       ;;
+    --identity-platform-api-key)
+      [ "$#" -ge 2 ] || fail "--identity-platform-api-key benoetigt einen Wert."
+      IDENTITY_PLATFORM_API_KEY="$2"
+      shift 2
+      ;;
+    --identity-platform-project-id)
+      [ "$#" -ge 2 ] || fail "--identity-platform-project-id benoetigt einen Wert."
+      IDENTITY_PLATFORM_PROJECT_ID="$2"
+      shift 2
+      ;;
     -h|--help)
       usage
       exit 0
@@ -70,11 +84,15 @@ if [ "$PROFILE" = "pages" ]; then
   [ -z "$AUTH_MODE" ] || fail "--auth-mode ist nur fuer das target-Profil zulaessig."
 else
   [ -n "$API_BASE_URL" ] || fail "--api-base-url fehlt fuer das target-Profil."
+  [ -n "$IDENTITY_PLATFORM_API_KEY" ] || fail "--identity-platform-api-key/IDENTITY_PLATFORM_API_KEY fehlt fuer das target-Profil."
+  [ -n "$IDENTITY_PLATFORM_PROJECT_ID" ] || fail "--identity-platform-project-id/IDENTITY_PLATFORM_PROJECT_ID fehlt fuer das target-Profil."
   case "$AUTH_MODE" in
     oidc|iap) ;;
     *) fail "--auth-mode muss fuer das target-Profil oidc oder iap sein." ;;
   esac
 
+  IDENTITY_PLATFORM_API_KEY="$IDENTITY_PLATFORM_API_KEY" \
+  IDENTITY_PLATFORM_PROJECT_ID="$IDENTITY_PLATFORM_PROJECT_ID" \
   node - "$API_BASE_URL" <<'NODE'
 const raw = process.argv[2] || "";
 if (/[\u0000-\u001f\u007f"'\\]/.test(raw)) {
@@ -99,6 +117,21 @@ if (
   /^(localhost|127\.0\.0\.1|\[::1\])$/i.test(url.hostname)
 ) {
   console.error("Static frontend build FAILED: --api-base-url muss ein externer HTTPS-Origin ohne Pfad, Zugangsdaten, Query oder Fragment sein.");
+  process.exit(1);
+}
+
+const identityPlatformApiKey = process.env.IDENTITY_PLATFORM_API_KEY || "";
+if (!/^AIza[0-9A-Za-z_-]{35}$/.test(identityPlatformApiKey)) {
+  console.error("Static frontend build FAILED: --identity-platform-api-key muss ein gueltiger Identity-Platform-Web-API-Key sein.");
+  process.exit(1);
+}
+
+const identityPlatformProjectId = process.env.IDENTITY_PLATFORM_PROJECT_ID || "";
+if (
+  !/^[a-z][a-z0-9-]{4,28}[a-z0-9]$/.test(identityPlatformProjectId) ||
+  identityPlatformProjectId.includes("--")
+) {
+  console.error("Static frontend build FAILED: --identity-platform-project-id muss eine kanonische Google-Cloud-Projekt-ID sein.");
   process.exit(1);
 }
 NODE
@@ -440,6 +473,144 @@ fs.writeFileSync(file, source);
 NODE
 }
 
+build_identity_portal() {
+  local portal_dir="$FRONTEND_DIR/identity-portal"
+  local portal_dist_dir="$portal_dir/dist"
+
+  [ -f "$portal_dir/package-lock.json" ] || fail "Identity-Portal-Lockfile fehlt."
+  [ -d "$portal_dir/node_modules" ] || fail "Identity-Portal-Abhaengigkeiten fehlen; zuerst npm ci --prefix frontend/identity-portal ausfuehren."
+
+  npm --prefix "$portal_dir" run build
+
+  node - "$portal_dist_dir" <<'NODE'
+const fs = require("node:fs");
+const path = require("node:path");
+
+const portalRoot = process.argv[2];
+const expected = [
+  "assets/action.css",
+  "assets/action.js",
+  "assets/app.css",
+  "assets/app.js",
+  "brand/versorgungs-kompass.svg",
+  "index.html",
+  "konto/passwort-festlegen/index.html",
+  "portal-config.js"
+];
+
+function walk(directory) {
+  return fs.readdirSync(directory, { withFileTypes: true }).flatMap((entry) => {
+    const fullPath = path.join(directory, entry.name);
+    if (entry.isSymbolicLink()) {
+      throw new Error(`Identity-Portal darf keine Symlinks enthalten: ${fullPath}`);
+    }
+    if (entry.isDirectory()) return walk(fullPath);
+    return entry.isFile()
+      ? [path.relative(portalRoot, fullPath).split(path.sep).join("/")]
+      : [];
+  });
+}
+
+const actual = walk(portalRoot).sort();
+if (JSON.stringify(actual) !== JSON.stringify(expected)) {
+  throw new Error(
+    `Identity-Portal-Artefakt weicht von der expliziten Acht-Dateien-Allowlist ab: ${actual.join(", ")}`
+  );
+}
+NODE
+
+  mkdir -p "$STAGE_DIR/public/auth"
+  cp -R "$portal_dist_dir/." "$STAGE_DIR/public/auth/"
+
+  IDENTITY_PLATFORM_API_KEY="$IDENTITY_PLATFORM_API_KEY" \
+  IDENTITY_PLATFORM_PROJECT_ID="$IDENTITY_PLATFORM_PROJECT_ID" \
+  IDENTITY_PORTAL_PROTECTED_ORIGIN="$API_BASE_URL" \
+  node - "$STAGE_DIR/public/auth/portal-config.js" <<'NODE'
+const fs = require("node:fs");
+
+const configPath = process.argv[2];
+const apiKey = process.env.IDENTITY_PLATFORM_API_KEY;
+const projectId = process.env.IDENTITY_PLATFORM_PROJECT_ID;
+const protectedOrigin = process.env.IDENTITY_PORTAL_PROTECTED_ORIGIN;
+
+const rendered = `/*
+ * Browser-visible Identity-Platform-Konfiguration. Die Werte werden fuer jedes
+ * Target-Artefakt validiert und explizit injiziert.
+ */
+window.IDENTITY_PORTAL_CONFIG = Object.freeze({
+  firebase: Object.freeze({
+    apiKey: ${JSON.stringify(apiKey)},
+    authDomain: ${JSON.stringify(`${projectId}.firebaseapp.com`)},
+    projectId: ${JSON.stringify(projectId)}
+  }),
+  allowedContinueOrigins: Object.freeze([
+    ${JSON.stringify(protectedOrigin)}
+  ]),
+  privacyPolicyUrl: "https://www.gematik.de/datenschutz",
+  legalNoticeUrl: "https://www.gematik.de/impressum",
+  supportUrl: "https://www.gematik.de/kontakt",
+  enableLocalPreview: false
+});
+`;
+
+fs.writeFileSync(configPath, rendered, { encoding: "utf8", mode: 0o644 });
+NODE
+
+  node - "$STAGE_DIR/public/auth" <<'NODE'
+const fs = require("node:fs");
+const path = require("node:path");
+
+const portalRoot = process.argv[2];
+const expected = [
+  "assets/action.css",
+  "assets/action.js",
+  "assets/app.css",
+  "assets/app.js",
+  "brand/versorgungs-kompass.svg",
+  "index.html",
+  "konto/passwort-festlegen/index.html",
+  "portal-config.js"
+];
+
+function walk(directory) {
+  return fs.readdirSync(directory, { withFileTypes: true }).flatMap((entry) => {
+    const fullPath = path.join(directory, entry.name);
+    if (entry.isSymbolicLink()) throw new Error(`Unerwarteter Symlink im Portal: ${fullPath}`);
+    if (entry.isDirectory()) return walk(fullPath);
+    return entry.isFile()
+      ? [path.relative(portalRoot, fullPath).split(path.sep).join("/")]
+      : [];
+  });
+}
+
+const actual = walk(portalRoot).sort();
+if (JSON.stringify(actual) !== JSON.stringify(expected)) {
+  throw new Error(`Target enthaelt nicht exakt die acht freigegebenen Portaldateien: ${actual.join(", ")}`);
+}
+
+const allSources = actual.map((relative) =>
+  fs.readFileSync(path.join(portalRoot, relative), "utf8")
+).join("\n");
+if (/REPLACE_WITH_|enableLocalPreview:\s*true/.test(allSources)) {
+  throw new Error("Target-Portal enthaelt Platzhalter oder aktivierte lokale Vorschau.");
+}
+
+const signIn = fs.readFileSync(path.join(portalRoot, "index.html"), "utf8");
+const password = fs.readFileSync(
+  path.join(portalRoot, "konto", "passwort-festlegen", "index.html"),
+  "utf8"
+);
+if (
+  !signIn.includes('data-identity-portal="signin"') ||
+  !password.includes('data-identity-portal="password"') ||
+  !signIn.includes('src="/public/auth/assets/app.js?v=20260730-1"') ||
+  !password.includes('src="/public/auth/assets/action.js?v=20260730-1"')
+) {
+  throw new Error("Identity-Portal-Dokumente erfuellen den statischen Routingvertrag nicht.");
+}
+NODE
+}
+
 build_target() {
   mkdir -p \
     "$STAGE_DIR/data" \
@@ -448,6 +619,7 @@ build_target() {
     "$STAGE_DIR/public/brand/mitmachen" \
     "$STAGE_DIR/public/brand/modules" \
     "$STAGE_DIR/public/brand/versorgungs-kompass/icons" \
+    "$STAGE_DIR/public/auth" \
     "$STAGE_DIR/public/media/demo/mitmachen" \
     "$STAGE_DIR/public/media/social" \
     "$STAGE_DIR/deutschlandkarte-project/data" \
@@ -457,6 +629,7 @@ build_target() {
     "$STAGE_DIR/vendor"
 
   touch "$STAGE_DIR/.nojekyll"
+  build_identity_portal
   cp "$FRONTEND_DIR/public-entry/index.html" "$STAGE_DIR/public-index.html"
   cp "$FRONTEND_DIR/pages/mitmachen/index.html" "$STAGE_DIR/index.html"
   cp "$FRONTEND_DIR/login/login.html" "$STAGE_DIR/login.html"

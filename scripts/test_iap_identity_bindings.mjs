@@ -13,6 +13,7 @@ import {
   SafeCliError,
   assertFreshGcpMigrationGate,
   bindingDocumentFingerprint,
+  bindingStateFingerprint,
   buildIdentityBindingPlan,
   executeIdentityBindingTransaction,
   formatPlanSummary,
@@ -66,6 +67,16 @@ assert.match(identityAdminRoleSql, /grant select on table public\.profiles to vk
 assert.match(
   identityAdminRoleSql,
   /grant select, insert, update on table public\.identity_bindings to vk_identity_admin/iu
+);
+assert.match(
+  identityAdminRoleSql,
+  /grant update \(subject\) on table public\.identity_bindings to vk_identity_admin/iu,
+  "Im v2-Vertrag darf die Legacy-Rolle ausschließlich Subjects remappen."
+);
+assert.match(
+  identityAdminRoleSql,
+  /attribute\.attname <> 'subject'[\s\S]*has_column_privilege\([\s\S]*'UPDATE'/iu,
+  "Jede UPDATE-Berechtigung außerhalb der Subject-Spalte muss fail-closed geprüft werden."
 );
 assert.doesNotMatch(identityAdminRoleSql, /grant[^;]*(?:delete|truncate|create|alter|drop)[^;]*vk_identity_admin/iu,
   "Die Identity-Admin-Rolle darf keine destruktiven oder DDL-Rechte erhalten.");
@@ -202,6 +213,10 @@ const safeIdentityAdminPrivileges = Object.freeze({
   binding_select: true,
   binding_insert: true,
   binding_update: true,
+  v2_access_contract_active: false,
+  binding_column_insert_count: 0,
+  binding_subject_update: true,
+  binding_non_subject_update_count: 0,
   binding_delete: false,
   binding_truncate: false,
   binding_references: false,
@@ -224,9 +239,31 @@ assertSafeFailure(
   () => validateIdentityAdministrationPrivileges({
     ...safeIdentityAdminPrivileges,
     binding_insert: false,
-    binding_update: false
+    binding_update: false,
+    v2_access_contract_active: true,
+    binding_subject_update: false
   }),
-  /provision_pre_gematik_test_access\.mjs/u
+  /keine freigegebene Subject-Remap-Berechtigung/u
+);
+const safeSubjectRemapPrivileges = Object.freeze({
+  ...safeIdentityAdminPrivileges,
+  binding_insert: false,
+  binding_update: false,
+  v2_access_contract_active: true,
+  binding_column_insert_count: 0,
+  binding_subject_update: true,
+  binding_non_subject_update_count: 0
+});
+assert.equal(
+  validateIdentityAdministrationPrivileges(safeSubjectRemapPrivileges),
+  "subject-remap-only"
+);
+assertSafeFailure(
+  () => validateIdentityAdministrationPrivileges({
+    ...safeSubjectRemapPrivileges,
+    binding_non_subject_update_count: 1
+  }),
+  /Minimalrechte/u
 );
 assertSafeFailure(
   () => validateIdentityAdministrationSession({
@@ -299,6 +336,20 @@ const ordered = document([
 ]);
 assert.equal(bindingDocumentFingerprint(unordered), bindingDocumentFingerprint(ordered));
 assert.match(bindingDocumentFingerprint(ordered), /^sha256:[a-f0-9]{64}$/u);
+const scopedBindingState = [{
+  ...binding("subject-a", "profile-a", true),
+  access_scope: "test_only",
+  scope_ref: "scope-a",
+  profile_role: "editor"
+}];
+assert.notEqual(
+  bindingStateFingerprint(scopedBindingState),
+  bindingStateFingerprint([{ ...scopedBindingState[0], scope_ref: "scope-b" }])
+);
+assert.notEqual(
+  bindingStateFingerprint(scopedBindingState),
+  bindingStateFingerprint([{ ...scopedBindingState[0], profile_role: "viewer" }])
+);
 
 assertSafeFailure(() => validateBindingDocument({
   version: 1,
@@ -327,6 +378,12 @@ assertSafeFailure(() => validateBindingDocument({
 
 const previewOptions = parseArguments(["--input", "/protected/bindings.json"]);
 validateExecutionConfirmations(previewOptions, ordered, bindingDocumentFingerprint(ordered));
+const remapPreviewOptions = parseArguments([
+  "--input", "/protected/bindings.json",
+  "--allow-subject-remaps"
+]);
+assert.equal(remapPreviewOptions.allowSubjectRemaps, true);
+validateExecutionConfirmations(remapPreviewOptions, ordered, bindingDocumentFingerprint(ordered));
 assert.equal(identityManagedProxyRequired(previewOptions, {}), false);
 assert.equal(
   identityManagedProxyRequired(previewOptions, { CLOUD_SQL_AUTH_PROXY_CONNECT_MODE: "private-ip" }),
@@ -350,6 +407,14 @@ assertSafeFailure(() => validateExecutionConfirmations(
 assertSafeFailure(() => validateExecutionConfirmations(
   parseArguments([
     "--input", "/protected/bindings.json",
+    "--confirm-subject-remap-count", "1"
+  ]),
+  ordered,
+  bindingDocumentFingerprint(ordered)
+), /nur zusammen mit --apply/u);
+assertSafeFailure(() => validateExecutionConfirmations(
+  parseArguments([
+    "--input", "/protected/bindings.json",
     "--confirm-binding-count", "2",
     "--confirm-active-binding-count", "1"
   ]),
@@ -358,6 +423,7 @@ assertSafeFailure(() => validateExecutionConfirmations(
 ), /nur zusammen mit --apply/u);
 
 const fingerprint = bindingDocumentFingerprint(ordered);
+const confirmedCurrentStateFingerprint = `sha256:${"c".repeat(64)}`;
 const completeApplyOptions = parseArguments([
   "--input", "/protected/bindings.json",
   "--apply",
@@ -365,11 +431,39 @@ const completeApplyOptions = parseArguments([
   "--confirm-database", "versorgungs_kompass",
   "--confirm-operation", "UPSERT_IAP_IDENTITY_BINDINGS",
   "--confirm-fingerprint", fingerprint,
+  "--confirm-current-state-fingerprint", confirmedCurrentStateFingerprint,
   "--confirm-binding-count", "2",
   "--confirm-active-binding-count", "1",
   "--allow-active-bindings"
 ]);
 validateExecutionConfirmations(completeApplyOptions, ordered, fingerprint);
+const remapApplyOptions = parseArguments([
+  ...[
+    "--input", "/protected/bindings.json",
+    "--apply",
+    "--confirm-environment", "pre-gematik",
+    "--confirm-database", "versorgungs_kompass",
+    "--confirm-operation", "UPSERT_IAP_IDENTITY_BINDINGS",
+    "--confirm-fingerprint", fingerprint,
+    "--confirm-current-state-fingerprint", confirmedCurrentStateFingerprint,
+    "--confirm-binding-count", "2",
+    "--confirm-active-binding-count", "1",
+    "--allow-active-bindings"
+  ],
+  "--allow-subject-remaps",
+  "--confirm-subject-remap-count", "1"
+]);
+validateExecutionConfirmations(remapApplyOptions, ordered, fingerprint);
+assertSafeFailure(() => validateExecutionConfirmations(
+  { ...remapApplyOptions, confirmSubjectRemapCount: "0" },
+  ordered,
+  fingerprint
+), /positive.*Anzahl/u);
+assertSafeFailure(() => validateExecutionConfirmations(
+  { ...completeApplyOptions, confirmSubjectRemapCount: "1" },
+  ordered,
+  fingerprint
+), /nur zusammen mit --allow-subject-remaps/u);
 assertSafeFailure(() => validateExecutionConfirmations(
   { ...completeApplyOptions, allowActiveBindings: false },
   ordered,
@@ -442,6 +536,7 @@ const planned = buildIdentityBindingPlan(ordered, [
 ], existingRows);
 assert.equal(planned.inserts.length, 1);
 assert.equal(planned.updates.length, 1);
+assert.equal(planned.remaps.length, 0);
 assert.equal(planned.unchanged.length, 0);
 assert.equal(planned.unknownExistingCount, 0);
 assert.equal(planned.activeRequestedCount, 1);
@@ -449,6 +544,7 @@ assert.equal(planned.activeRequestedCount, 1);
 const summary = formatPlanSummary(planned, fingerprint, false);
 assert.match(summary, /mode=PREVIEW/u);
 assert.match(summary, /unknown_existing_count=0/u);
+assert.match(summary, /remap_count=0/u);
 assert.match(summary, new RegExp(fingerprint));
 assert.doesNotMatch(summary, /subject-a|unknown-person|example\.invalid|profile-a/u);
 
@@ -470,6 +566,34 @@ assertSafeFailure(() => buildIdentityBindingPlan(
   [{ id: "profile-a", active: true }],
   [binding("subject-old", "profile-a")]
 ), /vollstaendigen Sollzustand/u);
+const remapPlan = buildIdentityBindingPlan(
+  document([binding("securetoken.google.com/example-project:external-subject", "profile-a", true)]),
+  [{ id: "profile-a", active: true }],
+  [binding("native-google-subject", "profile-a", true)],
+  { allowSubjectRemaps: true }
+);
+assert.equal(remapPlan.inserts.length, 0);
+assert.equal(remapPlan.updates.length, 0);
+assert.equal(remapPlan.remaps.length, 1);
+assert.deepEqual(remapPlan.remaps[0], {
+  issuer,
+  profile_id: "profile-a",
+  from_subject: "native-google-subject",
+  from_active: true,
+  from_access_scope: "standard",
+  from_scope_ref: null,
+  profile_role: "",
+  profile_active: true,
+  to_subject: "securetoken.google.com/example-project:external-subject",
+  to_active: true
+});
+assert.match(formatPlanSummary(remapPlan, fingerprint, false), /remap_count=1/u);
+assertSafeFailure(() => buildIdentityBindingPlan(
+  document([binding("securetoken.google.com/example-project:external-subject", "profile-a", false)]),
+  [{ id: "profile-a", active: true }],
+  [binding("native-google-subject", "profile-a", true)],
+  { allowSubjectRemaps: true }
+), /weder Aktivitaet, Rolle noch Scope/u);
 assertSafeFailure(() => buildIdentityBindingPlan(
   document([binding("subject-a", "profile-missing")]),
   [],
@@ -490,8 +614,20 @@ class MockClient {
     sessionState = safeIdentityAdminSession,
     privilegeState = safeIdentityAdminPrivileges
   }) {
-    this.profiles = profiles.map((row) => ({ ...row }));
-    this.existing = existing.map((row) => ({ ...row }));
+    this.profiles = profiles.map((row) => ({
+      role: row.role ?? "viewer",
+      ...row
+    }));
+    this.existing = existing.map((row) => {
+      const profile = this.profiles.find((candidate) => candidate.id === row.profile_id);
+      return {
+        ...row,
+        access_scope: row.access_scope ?? "standard",
+        scope_ref: row.scope_ref ?? null,
+        profile_role: row.profile_role ?? profile?.role ?? "",
+        profile_active: row.profile_active ?? profile?.active ?? null
+      };
+    });
     this.queries = [];
     this.failCommit = failCommit;
     this.tamperFinalState = tamperFinalState;
@@ -522,12 +658,12 @@ class MockClient {
         rowCount: 1
       };
     }
-    if (sql.startsWith("select id, active from public.profiles")) {
+    if (sql.startsWith("select id, active, role from public.profiles")) {
       const requested = new Set(parameters[0]);
       const rows = this.profiles.filter((profile) => requested.has(profile.id));
       return { rows, rowCount: rows.length };
     }
-    if (sql.startsWith("select issuer, subject, profile_id, active from public.identity_bindings")) {
+    if (sql.startsWith("select binding.issuer")) {
       this.bindingStateReads += 1;
       const rows = this.existing.map((row) => ({ ...row }));
       if (this.tamperFinalState && this.bindingStateReads > 1 && rows.length > 0) {
@@ -536,15 +672,33 @@ class MockClient {
       return { rows, rowCount: rows.length };
     }
     if (sql.startsWith("insert into public.identity_bindings")) {
+      const profile = this.profiles.find((candidate) => candidate.id === parameters[2]);
       this.existing.push({
         issuer: parameters[0],
         subject: parameters[1],
         profile_id: parameters[2],
-        active: parameters[3]
+        active: parameters[3],
+        access_scope: "standard",
+        scope_ref: null,
+        profile_role: profile?.role ?? "",
+        profile_active: profile?.active ?? null
       });
       return { rows: [], rowCount: 1 };
     }
     if (sql.startsWith("update public.identity_bindings")) {
+      if (parameters.length === 7) {
+        const found = this.existing.find((row) => (
+          row.issuer === parameters[0]
+          && row.subject === parameters[2]
+          && row.profile_id === parameters[3]
+          && row.active === parameters[4]
+          && (row.access_scope ?? "standard") === parameters[5]
+          && (row.scope_ref ?? null) === parameters[6]
+        ));
+        if (!found) return { rows: [], rowCount: 0 };
+        found.subject = parameters[1];
+        return { rows: [], rowCount: 1 };
+      }
       const found = this.existing.find((row) => (
         row.issuer === parameters[0]
         && row.subject === parameters[1]
@@ -658,6 +812,7 @@ await executeIdentityBindingTransaction({
   document: transactionDocument,
   fingerprint: transactionFingerprint,
   apply: true,
+  confirmedCurrentStateFingerprint: bindingStateFingerprint(applyClient.existing),
   expectedDatabase: "versorgungs_kompass",
   log: (line) => applyLogs.push(line)
 });
@@ -671,6 +826,99 @@ assert.ok(!applyClient.queries.some(({ sql }) => sql.startsWith("delete ")),
 assert.equal(applyLogs.length, 1);
 assert.match(applyLogs[0], /mode=APPLY/u);
 assert.doesNotMatch(applyLogs[0], /private\.person|new-subject|preserved-secret|profile-/u);
+
+const remapDocument = document([
+  binding("securetoken.google.com/example-project:external-subject", "profile-a", true)
+]);
+const remapFingerprint = bindingDocumentFingerprint(remapDocument);
+const scopedRemapBinding = {
+  ...binding("native-google-subject", "profile-a", true),
+  access_scope: "test_only",
+  scope_ref: "pre-gematik-external-test",
+  profile_role: "editor",
+  profile_active: true
+};
+const remapClient = new MockClient({
+  profiles: [{ id: "profile-a", active: true, role: "editor" }],
+  existing: [scopedRemapBinding],
+  privilegeState: safeSubjectRemapPrivileges
+});
+const remapLogs = [];
+await executeIdentityBindingTransaction({
+  client: remapClient,
+  document: remapDocument,
+  fingerprint: remapFingerprint,
+  apply: true,
+  allowSubjectRemaps: true,
+  confirmedCurrentStateFingerprint: bindingStateFingerprint(remapClient.existing),
+  confirmedSubjectRemapCount: "1",
+  expectedDatabase: "versorgungs_kompass",
+  log: (line) => remapLogs.push(line)
+});
+assert.deepEqual(remapClient.existing, [
+  {
+    ...scopedRemapBinding,
+    subject: "securetoken.google.com/example-project:external-subject"
+  }
+]);
+assert.match(remapLogs[0], /remap_count=1/u);
+assert.doesNotMatch(remapLogs[0], /native-google-subject|external-subject|profile-a/u);
+assert.ok(remapClient.queries.some(({ sql }) => (
+  sql.startsWith("update public.identity_bindings")
+  && sql.includes("set subject = $2")
+)));
+assert.ok(remapClient.queries.some(({ sql }) => (
+  sql.includes("from public.profiles")
+  && sql.endsWith("for share")
+)));
+
+const driftedRemapClient = new MockClient({
+  profiles: [{ id: "profile-a", active: true, role: "editor" }],
+  existing: [scopedRemapBinding],
+  privilegeState: safeSubjectRemapPrivileges
+});
+await assert.rejects(
+  executeIdentityBindingTransaction({
+    client: driftedRemapClient,
+    document: remapDocument,
+    fingerprint: remapFingerprint,
+    apply: true,
+    allowSubjectRemaps: true,
+    confirmedCurrentStateFingerprint: `sha256:${"0".repeat(64)}`,
+    confirmedSubjectRemapCount: "1",
+    expectedDatabase: "versorgungs_kompass",
+    log: () => {}
+  }),
+  (error) => error instanceof SafeCliError && /current_state_fingerprint/u.test(error.message)
+);
+assert.ok(driftedRemapClient.queries.some(({ sql }) => sql === "rollback"));
+assert.ok(!driftedRemapClient.queries.some(({ sql }) => (
+  sql.startsWith("update public.identity_bindings")
+)));
+
+const mismatchedRemapCountClient = new MockClient({
+  profiles: [{ id: "profile-a", active: true, role: "editor" }],
+  existing: [scopedRemapBinding],
+  privilegeState: safeSubjectRemapPrivileges
+});
+await assert.rejects(
+  executeIdentityBindingTransaction({
+    client: mismatchedRemapCountClient,
+    document: remapDocument,
+    fingerprint: remapFingerprint,
+    apply: true,
+    allowSubjectRemaps: true,
+    confirmedCurrentStateFingerprint: bindingStateFingerprint(
+      mismatchedRemapCountClient.existing
+    ),
+    confirmedSubjectRemapCount: "2",
+    expectedDatabase: "versorgungs_kompass",
+    log: () => {}
+  }),
+  (error) => error instanceof SafeCliError && /bestaetigten Anzahl/u.test(error.message)
+);
+assert.ok(mismatchedRemapCountClient.queries.some(({ sql }) => sql === "rollback"));
+assert.ok(!mismatchedRemapCountClient.queries.some(({ sql }) => sql === "commit"));
 
 const unknownCommitClient = new MockClient({
   profiles: [
@@ -690,6 +938,7 @@ await assert.rejects(
     document: transactionDocument,
     fingerprint: transactionFingerprint,
     apply: true,
+    confirmedCurrentStateFingerprint: bindingStateFingerprint(unknownCommitClient.existing),
     expectedDatabase: "versorgungs_kompass",
     log: () => {}
   }),
@@ -725,6 +974,9 @@ await assert.rejects(
     document: transactionDocument,
     fingerprint: transactionFingerprint,
     apply: true,
+    confirmedCurrentStateFingerprint: bindingStateFingerprint(
+      tamperedFinalStateClient.existing
+    ),
     expectedDatabase: "versorgungs_kompass",
     log: () => {}
   }),

@@ -157,12 +157,14 @@ grant select, insert, update on table public.identity_bindings to vk_identity_ad
 grant execute on function public.pre_gematik_touch_updated_at() to vk_identity_admin;
 
 -- A v1 document has no access_scope or enrollment references. As soon as the
--- v2 schema exists, keep the legacy role read-only so it cannot activate or
--- alter a test binding outside the v2 full-state operator.
+-- v2 schema exists, reduce the legacy role to the single column needed for a
+-- reviewed native-IAP <-> Identity-Platform subject remap. Active state,
+-- profile, role and scope remain under the v2 full-state operator.
 do $pre_gematik_identity_admin_v2_guard$
 begin
   if to_regclass('public.identity_enrollment_requests') is not null then
     execute 'revoke insert, update on table public.identity_bindings from vk_identity_admin';
+    execute 'grant update (subject) on table public.identity_bindings to vk_identity_admin';
   end if;
 end
 $pre_gematik_identity_admin_v2_guard$;
@@ -219,7 +221,26 @@ begin
          has_table_privilege('vk_identity_admin', 'public.identity_bindings', 'INSERT')
          or has_table_privilege('vk_identity_admin', 'public.identity_bindings', 'UPDATE')
          or has_any_column_privilege('vk_identity_admin', 'public.identity_bindings', 'INSERT')
-         or has_any_column_privilege('vk_identity_admin', 'public.identity_bindings', 'UPDATE')
+         or not has_column_privilege(
+           'vk_identity_admin',
+           'public.identity_bindings',
+           'subject',
+           'UPDATE'
+         )
+         or exists (
+           select 1
+             from pg_catalog.pg_attribute attribute
+            where attribute.attrelid = 'public.identity_bindings'::pg_catalog.regclass
+              and attribute.attnum > 0
+              and not attribute.attisdropped
+              and attribute.attname <> 'subject'
+              and has_column_privilege(
+                'vk_identity_admin',
+                'public.identity_bindings',
+                attribute.attname,
+                'UPDATE'
+              )
+         )
        )
      )
      or (

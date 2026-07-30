@@ -1,0 +1,30 @@
+{
+  "name": "@versorgungs-kompass/identity-portal",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "node scripts/build.mjs",
+    "serve": "node scripts/serve.mjs",
+    "test": "node --test test/*.test.mjs",
+    "audit:runtime": "npm audit --omit=dev --audit-level=moderate",
+    "check": "npm run test && npm run build"
+  },
+  "dependencies": {
+    "firebase": "12.17.0",
+    "gcip-iap": "2.0.1",
+    "promise-polyfill": "8.3.0",
+    "react": "19.2.8",
+    "react-dom": "19.2.8",
+    "url-polyfill": "1.1.14",
+    "whatwg-fetch": "3.6.20"
+  },
+  "devDependencies": {
+    "esbuild": "0.28.1"
+  },
+  "overrides": {
+    "gcip-iap": {
+      "firebase": "12.17.0"
+    }
+  }
+}

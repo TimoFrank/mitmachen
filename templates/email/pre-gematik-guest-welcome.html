@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="de">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="color-scheme" content="light">
+    <title>Willkommen beim Versorgungs-Kompass</title>
+  </head>
+  <body style="margin:0;background:#f3f6f8;color:#17212b;font-family:Arial,Helvetica,sans-serif;">
+    <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="background:#f3f6f8;">
+      <tr>
+        <td align="center" style="padding:32px 16px;">
+          <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="max-width:620px;background:#ffffff;border:1px solid #dce4e8;border-radius:18px;overflow:hidden;">
+            <tr>
+              <td style="height:8px;background:#005eb8;font-size:0;line-height:0;">&nbsp;</td>
+            </tr>
+            <tr>
+              <td style="padding:30px 36px 10px;">
+                <div style="font-size:13px;line-height:18px;letter-spacing:1.5px;font-weight:700;color:#005eb8;">VERSORGUNGS-KOMPASS</div>
+                <h1 style="margin:16px 0 0;font-size:28px;line-height:36px;color:#17212b;">Willkommen zu deinem Testzugang</h1>
+              </td>
+            </tr>
+            <tr>
+              <td style="padding:10px 36px 34px;font-size:16px;line-height:25px;color:#344451;">
+                <p style="margin:0 0 18px;">Hallo {{DISPLAY_NAME}},</p>
+                <p style="margin:0 0 18px;">wir haben für <strong>{{RECIPIENT_EMAIL}}</strong> einen persönlichen, zeitlich begrenzten Testzugang vorbereitet. Du brauchst dafür kein Google-Konto.</p>
+                <p style="margin:26px 0;text-align:center;">
+                  <a href="{{ACTION_URL}}" style="display:inline-block;padding:14px 24px;border-radius:9px;background:#005eb8;color:#ffffff;text-decoration:none;font-weight:700;line-height:20px;">Persönliches Passwort einrichten</a>
+                </p>
+                <p style="margin:0 0 8px;font-size:14px;line-height:21px;color:#5b6b76;">Falls der Button nicht funktioniert, kopiere diese Adresse vollständig in deinen Browser:</p>
+                <p style="margin:0 0 22px;padding:12px 14px;border-radius:8px;background:#f3f6f8;overflow-wrap:anywhere;word-break:break-word;font-size:13px;line-height:20px;color:#23415b;">{{ACTION_URL}}</p>
+                <p style="margin:0 0 18px;">Öffne die Einladung bitte zeitnah. Ist sie nicht mehr gültig, antworte einfach auf diese E-Mail – wir senden dir dann einen neuen Link.</p>
+                <p style="margin:0 0 18px;">Nach dem Einrichten erreichst du den Versorgungs-Kompass über <strong>versorgungs-kompass.de/start</strong> und wählst dort „Mit E-Mail und Passwort anmelden“.</p>
+                <div style="margin:24px 0;padding:15px 17px;border-left:4px solid #12a594;background:#eef9f7;color:#244b47;">
+                  Der Testzugang endet spätestens am <strong>{{PILOT_END}}</strong>.
+                </div>
+                <p style="margin:0 0 22px;font-size:14px;line-height:21px;color:#5b6b76;">Wenn du diese Einladung nicht erwartet hast, kannst du sie ignorieren.</p>
+                <p style="margin:0;">Viele Grüße<br><strong>{{SENDER_NAME}}</strong><br>Versorgungs-Kompass</p>
+              </td>
+            </tr>
+            <tr>
+              <td style="padding:18px 36px;background:#f7f9fa;border-top:1px solid #e3e9ec;font-size:12px;line-height:19px;color:#687985;">
+                Persönliche Einladung für {{RECIPIENT_EMAIL}}<br>
+                Antwortadresse: {{SENDER_EMAIL}}
+              </td>
+            </tr>
+          </table>
+        </td>
+      </tr>
+    </table>
+  </body>
+</html>

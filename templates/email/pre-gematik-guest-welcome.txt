@@ -1,0 +1,23 @@
+Hallo {{DISPLAY_NAME}},
+
+willkommen beim Versorgungs-Kompass.
+
+Wir haben für {{RECIPIENT_EMAIL}} einen persönlichen, zeitlich begrenzten Testzugang vorbereitet. Du brauchst dafür kein Google-Konto.
+
+Richte jetzt dein persönliches Passwort ein:
+{{ACTION_URL}}
+
+Öffne den Link bitte zeitnah. Falls er nicht mehr gültig ist, antworte einfach auf diese E-Mail – wir senden dir dann eine neue Einladung.
+
+Nach dem Einrichten erreichst du den Versorgungs-Kompass über:
+https://versorgungs-kompass.de/start
+
+Wähle dort „Mit E-Mail und Passwort anmelden“.
+
+Der Testzugang endet spätestens am {{PILOT_END}}. Wenn du diese Einladung nicht erwartet hast, kannst du sie ignorieren.
+
+Viele Grüße
+{{SENDER_NAME}}
+Versorgungs-Kompass
+
+Antwortadresse: {{SENDER_EMAIL}}

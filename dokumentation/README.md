@@ -9,6 +9,10 @@ Die Dokumentation ist nach Zweck gegliedert. Führende Frontend-Quellen liegen u
 - [Deployment-Artefakte](../deploy/README.md): Jenkins-, Helm- und Datenbankpfade
 - [Sicherheitsrichtlinie](../SECURITY.md)
 
+## Befristete Pre-gematik-Identität
+
+- [Identity-Platform-Übergang](betrieb-und-deployment/PRE_GEMATIK_EXTERNAL_IDENTITIES_PILOT.md): Google- und administrativ provisionierte Passwortkonten, Sicherheitsausnahme, Subject-Remap, Abnahme, Ablauf und IAM-Rollback
+
 ## Produkt und Architektur
 
 - [Markenarchitektur](produkt-und-design/MARKENARCHITEKTUR.md)

@@ -252,3 +252,76 @@ variable "IAP_RESOURCE_ACCESS_PRINCIPAL" {
     error_message = "IAP_RESOURCE_ACCESS_PRINCIPAL must use group:name@example.org or user:name@example.org syntax."
   }
 }
+
+variable "IAP_IDENTITY_MODE" {
+  description = "IAP identity source prepared by this scaffold. IAM remains the safe default; external enables the temporary Identity Platform contract."
+  type        = string
+  default     = "iam"
+
+  validation {
+    condition     = contains(["iam", "external"], var.IAP_IDENTITY_MODE)
+    error_message = "IAP_IDENTITY_MODE must be iam or external."
+  }
+}
+
+variable "IAP_GCIP_PROJECT_ID" {
+  description = "Identity Platform agent project used by IAP external identities. Null is valid in IAM mode; external mode must use GCP_PROJECT_ID."
+  type        = string
+  default     = null
+  nullable    = true
+
+  validation {
+    condition     = var.IAP_GCIP_PROJECT_ID == null ? true : can(regex("^[a-z][a-z0-9-]{4,28}[a-z0-9]$", var.IAP_GCIP_PROJECT_ID))
+    error_message = "IAP_GCIP_PROJECT_ID must be null or a valid Google Cloud project ID."
+  }
+}
+
+variable "IAP_GCIP_TENANT_ID" {
+  description = "Reserved for a future tenant-specific Identity Platform design. The temporary pre-gematik external mode uses project-level providers and therefore requires null."
+  type        = string
+  default     = null
+  nullable    = true
+
+  validation {
+    condition     = var.IAP_GCIP_TENANT_ID == null ? true : can(regex("^[A-Za-z0-9][A-Za-z0-9-]{1,98}[A-Za-z0-9]$", var.IAP_GCIP_TENANT_ID))
+    error_message = "IAP_GCIP_TENANT_ID must be null or a valid Identity Platform tenant ID."
+  }
+}
+
+variable "IAP_EXTERNAL_ACCESS_EXPIRES_AT" {
+  description = "Canonical UTC RFC3339 hard expiry passed to the application in external mode. The deployment workflow also requires it to be in the near future."
+  type        = string
+  default     = null
+  nullable    = true
+
+  validation {
+    condition = var.IAP_EXTERNAL_ACCESS_EXPIRES_AT == null ? true : (
+      can(regex("^[0-9]{4}-(0[1-9]|1[0-2])-([0-2][0-9]|3[01])T([01][0-9]|2[0-3]):[0-5][0-9]:[0-5][0-9]Z$", var.IAP_EXTERNAL_ACCESS_EXPIRES_AT)) &&
+      can(formatdate("YYYY-MM-DD'T'hh:mm:ss'Z'", var.IAP_EXTERNAL_ACCESS_EXPIRES_AT)) &&
+      formatdate("YYYY-MM-DD'T'hh:mm:ss'Z'", var.IAP_EXTERNAL_ACCESS_EXPIRES_AT) == var.IAP_EXTERNAL_ACCESS_EXPIRES_AT
+    )
+    error_message = "IAP_EXTERNAL_ACCESS_EXPIRES_AT must be null or a canonical UTC RFC3339 timestamp."
+  }
+}
+
+variable "IDENTITY_PLATFORM_AUTHORIZED_DOMAINS" {
+  description = "Deprecated compatibility input. The temporary pilot pins authorized domains exactly to IDENTITY_PLATFORM_AUTHORIZED_HOSTNAME and the project Firebase auth domain, so this set must stay empty."
+  type        = set(string)
+  default     = []
+
+  validation {
+    condition     = length(var.IDENTITY_PLATFORM_AUTHORIZED_DOMAINS) == 0
+    error_message = "IDENTITY_PLATFORM_AUTHORIZED_DOMAINS must remain empty; the pilot authorizes exactly IDENTITY_PLATFORM_AUTHORIZED_HOSTNAME and the project Firebase auth domain."
+  }
+}
+
+variable "IDENTITY_PLATFORM_AUTHORIZED_HOSTNAME" {
+  description = "Canonical custom Identity Platform auth/login hostname. It is deliberately independent from the legacy Cloud DNS PUBLIC_HOSTNAME."
+  type        = string
+  default     = "versorgungs-kompass.de"
+
+  validation {
+    condition     = var.IDENTITY_PLATFORM_AUTHORIZED_HOSTNAME == "versorgungs-kompass.de"
+    error_message = "The temporary external-identity pilot pins IDENTITY_PLATFORM_AUTHORIZED_HOSTNAME to versorgungs-kompass.de."
+  }
+}

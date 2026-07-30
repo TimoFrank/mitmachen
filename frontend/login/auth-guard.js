@@ -1,5 +1,6 @@
 (function () {
   const config = window.VK_AUTH_CONFIG || {};
+  let iapReauthenticationStarted = false;
 
   function runtimeConfig() {
     return window.VERSORGUNGS_COMPASS_CONFIG || {};
@@ -49,6 +50,30 @@
   function buildLogoutUrl() {
     const runtime = runtimeConfig();
     if (runtime.authMode !== "iap") return buildLoginUrl() + "#signed-out";
+    if (runtime.iapIdentityMode === "external") {
+      const configuredLoginPageUri = String(runtime.iapExternalLoginPageUri || "");
+      const apiKey = String(runtime.iapExternalAuthApiKey || "");
+      let loginPageUrl;
+      try {
+        loginPageUrl = new URL(configuredLoginPageUri);
+      } catch {
+        throw new Error("Der vollständige Identity-Platform-Logout ist nicht sicher konfiguriert.");
+      }
+      if (
+        loginPageUrl.protocol !== "https:"
+        || loginPageUrl.username
+        || loginPageUrl.password
+        || loginPageUrl.search
+        || loginPageUrl.hash
+        || loginPageUrl.href !== configuredLoginPageUri
+        || !/^AIza[0-9A-Za-z_-]{35}$/.test(apiKey)
+      ) {
+        throw new Error("Der vollständige Identity-Platform-Logout ist nicht sicher konfiguriert.");
+      }
+      loginPageUrl.searchParams.set("apiKey", apiKey);
+      loginPageUrl.searchParams.set("mode", "signout");
+      return loginPageUrl.href;
+    }
     const loginPath = config.loginPath || "./" + (config.loginFile || "login.html");
     const logoutUrl = new URL(loginPath, window.location.href);
     logoutUrl.search = "";
@@ -95,6 +120,28 @@
     return true;
   }
 
+  function reauthenticateIapSession() {
+    const runtime = runtimeConfig();
+    if (runtime.authMode !== "iap" || runtime.dataMode !== "api") return false;
+    const apiBaseUrl = String(runtime.apiBaseUrl || "").replace(/\/+$/, "");
+    if (!/^https:\/\//i.test(apiBaseUrl)) return false;
+    if (iapReauthenticationStarted) return true;
+    iapReauthenticationStarted = true;
+
+    const storageKey = iapBootstrapStorageKey();
+    try {
+      if (storageKey) window.sessionStorage.removeItem(storageKey);
+    } catch {
+      // Der explizite Redirect funktioniert auch ohne Session Storage.
+    }
+    const returnUrl = new URL(window.location.href);
+    returnUrl.searchParams.set("iap_authenticated", "1");
+    const bootstrapUrl = new URL(`${apiBaseUrl}/api/auth/bootstrap`);
+    bootstrapUrl.searchParams.set("return", returnUrl.href);
+    window.location.replace(bootstrapUrl.href);
+    return true;
+  }
+
   window.VKAuth = {
     config,
     isAuthenticated: usesExternalIdentityProvider,
@@ -102,6 +149,7 @@
     clearAuthenticated,
     buildLoginUrl,
     buildLogoutUrl,
+    reauthenticateIapSession,
     getDefaultUrl: function () {
       return config.defaultPath || "./" + (config.defaultFile || "versorgungs-kompass.html");
     }
