@@ -120,6 +120,9 @@ function syntheticHealthCommittee() {
     Array.from({ length: count }, () => {
       memberNumber += 1;
       const number = String(memberNumber).padStart(2, "0");
+      const hasConstituency = memberNumber < 38;
+      const constituencyNumber = hasConstituency ? String(90 + memberNumber).padStart(3, "0") : "";
+      const firstPostalCode = String(10000 + (memberNumber * 100)).padStart(5, "0");
       return {
         id: `demo-health-committee-member-${number}`,
         name: `Demo-Ausschussmitglied ${number}`,
@@ -135,7 +138,27 @@ function syntheticHealthCommittee() {
           : memberNumber === 2
             ? "Stellvertretender Vorsitz"
             : "Ordentliches Mitglied",
-        profileUrl: `https://www.bundestag.de/abgeordnete/biografien/demo-ausschussmitglied-${number}`
+        profileUrl: `https://www.bundestag.de/abgeordnete/biografien/D/demo-ausschussmitglied-${number}`,
+        imageUrl: `https://www.bundestag.de/resource/image/90000${number}/3x4/316/421/demo-ausschussmitglied-${number}.jpg`,
+        imageSourceUrl: `https://www.bundestag.de/abgeordnete/biografien/D/demo-ausschussmitglied-${number}`,
+        imageAttribution: `Deutscher Bundestag / Demo-Fotografie ${number}`,
+        imageUsageTermsUrl: "https://www.bundestag.de/services/impressum",
+        imageRightsStatus: "review_required",
+        constituency: hasConstituency
+          ? `Wahlkreis ${constituencyNumber}: Demo-Wahlkreis ${number}`
+          : "",
+        constituencyNumber,
+        constituencyName: hasConstituency ? `Demo-Wahlkreis ${number}` : "",
+        constituencyFederalState: hasConstituency ? "Demo-Bundesland" : "Hessen",
+        mandateType: hasConstituency ? "Wahlkreismandat" : "Landesliste",
+        constituencyPostalCodes: hasConstituency
+          ? [firstPostalCode, String(Number(firstPostalCode) + 1).padStart(5, "0")]
+          : [],
+        postalCodes: hasConstituency
+          ? [firstPostalCode, String(Number(firstPostalCode) + 1).padStart(5, "0")]
+          : [],
+        postalCodeCoverage: hasConstituency ? "complete" : "not_applicable",
+        constituencySourceUrl: "https://www.bundestag.de/static/appdata/filter/wks.json"
       };
     })
   );

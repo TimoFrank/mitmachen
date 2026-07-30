@@ -40133,7 +40133,7 @@
         }
       }
 
-      /* Stakeholder-Kompass · Politik: neutrale, quellengestützte Ausschussübersicht. */
+      /* Stakeholder-Kompass · Politik: quellengestützte Ausschussübersicht und Profile. */
       .politics-workspace {
         overflow: hidden;
       }
@@ -40223,6 +40223,42 @@
         color: var(--module-stakeholders-strong);
       }
 
+      .politics-party-chip {
+        border-color: var(--politics-party-border, var(--border));
+        background: var(--politics-party-background, var(--surface-muted));
+        color: var(--politics-party-color, var(--text-secondary));
+      }
+
+      .politics-party-chip--cdu-csu {
+        --politics-party-background: #262b33;
+        --politics-party-border: #15181d;
+        --politics-party-color: #ffffff;
+      }
+
+      .politics-party-chip--afd {
+        --politics-party-background: #087bb8;
+        --politics-party-border: #05618f;
+        --politics-party-color: #ffffff;
+      }
+
+      .politics-party-chip--spd {
+        --politics-party-background: #d71920;
+        --politics-party-border: #ab1117;
+        --politics-party-color: #ffffff;
+      }
+
+      .politics-party-chip--greens {
+        --politics-party-background: #13833b;
+        --politics-party-border: #0d672d;
+        --politics-party-color: #ffffff;
+      }
+
+      .politics-party-chip--left {
+        --politics-party-background: #a52b68;
+        --politics-party-border: #832252;
+        --politics-party-color: #ffffff;
+      }
+
       .politics-source-link,
       .politics-profile-link {
         display: inline-flex;
@@ -40277,13 +40313,51 @@
         overflow: auto;
       }
 
-      .politics-table {
-        min-width: 760px;
+      .table-wrap > .politics-table {
+        width: 100%;
+        min-width: 1050px;
       }
 
       .politics-table .thead,
       .politics-table .politics-member-row {
-        grid-template-columns: minmax(270px, 1.35fr) minmax(170px, 0.72fr) minmax(210px, 1fr) minmax(110px, 0.42fr);
+        grid-template-columns:
+          minmax(230px, 1.25fr)
+          minmax(145px, 0.64fr)
+          minmax(170px, 0.8fr)
+          minmax(135px, 0.58fr)
+          minmax(220px, 0.98fr)
+          minmax(90px, 0.44fr);
+      }
+
+      .politics-table .thead:has([data-politics-header-filter-button][aria-expanded="true"]) {
+        z-index: 48;
+      }
+
+      .politics-column-head .column-sort-button {
+        flex: 1 1 auto;
+      }
+
+      .politics-filter-search {
+        display: block;
+        padding: 0 2px 7px;
+      }
+
+      .politics-filter-search input {
+        width: 100%;
+        min-height: 34px;
+        padding: 6px 9px;
+        border: 1px solid var(--border);
+        border-radius: var(--radius-sm);
+        background: var(--surface);
+        color: var(--text-primary);
+        font: inherit;
+        font-size: var(--font-size-xs);
+        text-transform: none;
+      }
+
+      .politics-filter-search input:focus {
+        border-color: var(--primary);
+        outline: 3px solid rgba(21, 95, 228, 0.14);
       }
 
       .politics-member-row {
@@ -40300,6 +40374,12 @@
         background: var(--surface-muted);
       }
 
+      .politics-member-row:focus-visible {
+        z-index: 1;
+        outline: 3px solid rgba(21, 95, 228, 0.24);
+        outline-offset: -3px;
+      }
+
       .politics-member-cell {
         display: flex;
         align-items: center;
@@ -40313,13 +40393,21 @@
         color: var(--module-stakeholders-strong);
       }
 
+      .politics-member-avatar img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        object-position: center 24%;
+      }
+
       .politics-member-copy {
         display: grid;
         gap: 2px;
         min-width: 0;
       }
 
-      .politics-member-copy strong {
+      .politics-member-copy strong,
+      .politics-member-name {
         overflow: hidden;
         color: var(--text-primary);
         font-size: var(--font-size-md);
@@ -40327,6 +40415,25 @@
         line-height: 1.25;
         text-overflow: ellipsis;
         white-space: nowrap;
+      }
+
+      .politics-member-name {
+        max-width: 100%;
+        padding: 0;
+        border: 0;
+        border-radius: var(--radius-sm);
+        background: transparent;
+        cursor: pointer;
+        font-family: inherit;
+        text-align: left;
+      }
+
+      .politics-member-name:hover,
+      .politics-member-name:focus-visible {
+        color: var(--primary);
+        text-decoration: underline;
+        text-underline-offset: 3px;
+        outline: none;
       }
 
       .politics-member-copy small {
@@ -40343,6 +40450,32 @@
         font-size: var(--font-size-sm);
         font-weight: 700;
         line-height: 1.35;
+      }
+
+      .politics-postal-summary,
+      .politics-constituency {
+        color: var(--text-secondary);
+        font-size: var(--font-size-sm);
+        font-weight: 720;
+        line-height: 1.35;
+      }
+
+      .politics-postal-summary small {
+        display: inline-flex;
+        min-height: 21px;
+        align-items: center;
+        padding: 1px 6px;
+        border-radius: 999px;
+        background: var(--surface-muted);
+        color: var(--text-muted);
+        font-size: var(--font-size-xs);
+        font-weight: 850;
+      }
+
+      .politics-postal-summary--empty,
+      .politics-constituency:empty {
+        color: var(--text-muted);
+        font-weight: 650;
       }
 
       .politics-loading-state {
@@ -40363,6 +40496,91 @@
         color: var(--text-muted);
         font-size: var(--font-size-xs);
         font-weight: 700;
+      }
+
+      .detail-panel--politics .detail-content {
+        padding: clamp(18px, 3vw, 32px);
+      }
+
+      .politics-person-profile {
+        gap: 24px;
+      }
+
+      .politics-person-profile__top {
+        padding-bottom: 22px;
+        border-bottom: 1px solid var(--border);
+      }
+
+      .politics-person-profile__actions .action-button {
+        width: auto;
+        min-width: 190px;
+        justify-content: center;
+        text-decoration: none;
+      }
+
+      .politics-person-profile__grid {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) minmax(0, 0.86fr);
+        gap: 16px;
+        align-items: start;
+      }
+
+      .politics-person-profile__section {
+        min-width: 0;
+        padding: 18px;
+        border: 1px solid var(--border);
+        border-radius: var(--radius-lg);
+        background: linear-gradient(180deg, var(--surface) 0%, var(--surface-muted) 100%);
+      }
+
+      .politics-person-profile__section .detail-section-title {
+        margin-top: 0;
+      }
+
+      .politics-person-profile__section .detail-line__label {
+        min-width: 126px;
+        overflow-wrap: normal;
+        hyphens: auto;
+      }
+
+      .politics-postal-code-list {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 5px;
+        max-height: 180px;
+        overflow: auto;
+        padding: 2px 2px 2px 0;
+      }
+
+      .politics-postal-code {
+        display: inline-flex;
+        min-height: 25px;
+        align-items: center;
+        padding: 2px 7px;
+        border: 1px solid rgba(var(--module-stakeholders-rgb), 0.24);
+        border-radius: 999px;
+        background: rgba(var(--module-stakeholders-rgb), 0.08);
+        color: var(--module-stakeholders-strong);
+        font-size: var(--font-size-xs);
+        font-weight: 820;
+        font-variant-numeric: tabular-nums;
+      }
+
+      .politics-profile-data-note,
+      .politics-profile-rights-note {
+        margin: 14px 0 0;
+        padding: 11px 12px;
+        border-radius: var(--radius-md);
+        background: var(--surface);
+        color: var(--text-muted);
+        font-size: var(--font-size-xs);
+        line-height: 1.5;
+      }
+
+      .politics-profile-rights-note {
+        border-left: 3px solid var(--warning);
+        background: var(--warning-soft);
+        color: var(--text-secondary);
       }
 
       @media (max-width: 760px) {
@@ -40415,7 +40633,7 @@
           border-left-color: var(--danger);
         }
 
-        .politics-table,
+        .table-wrap > .politics-table,
         .politics-table-wrap {
           min-width: 0;
           width: 100%;
@@ -40423,7 +40641,47 @@
         }
 
         .politics-table .thead {
+          position: relative;
+          top: auto;
+          z-index: 20;
+          display: flex;
+          flex-wrap: wrap;
+          gap: 6px;
+          min-height: 0;
+          margin-bottom: 10px;
+          padding: 8px;
+          border: 1px solid var(--border);
+          border-radius: var(--radius-lg);
+          background: var(--surface);
+          box-shadow: var(--shadow-sm);
+        }
+
+        .politics-table .thead > div {
+          flex: 1 1 calc(50% - 3px);
+          min-width: 142px;
+          min-height: 38px;
+          padding: 0;
+          border: 0;
+        }
+
+        .politics-table .thead > div[data-politics-column="profile"] {
           display: none;
+        }
+
+        .politics-table .thead .politics-column-head {
+          min-height: 38px;
+          padding: 0 6px 0 9px;
+          border: 1px solid var(--border);
+          border-radius: var(--radius-md);
+          background: var(--surface-muted);
+        }
+
+        .politics-table .thead .column-sort-button {
+          font-size: 0.7rem;
+        }
+
+        .politics-table .thead .politics-filter-menu {
+          z-index: 120;
         }
 
         .politics-table .politics-member-row {
@@ -40453,14 +40711,39 @@
         }
 
         .politics-table .politics-member-row [data-politics-field="faction"],
-        .politics-table .politics-member-row [data-politics-field="role"] {
+        .politics-table .politics-member-row [data-politics-field="role"],
+        .politics-table .politics-member-row [data-politics-field="postalCodes"],
+        .politics-table .politics-member-row [data-politics-field="constituency"] {
           grid-column: 1;
           justify-content: flex-start;
         }
 
+        .politics-table .politics-member-row [data-politics-field="postalCodes"],
+        .politics-table .politics-member-row [data-politics-field="constituency"] {
+          display: grid;
+          gap: 2px;
+        }
+
+        .politics-table .politics-member-row [data-politics-field="postalCodes"]::before,
+        .politics-table .politics-member-row [data-politics-field="constituency"]::before {
+          color: var(--text-muted);
+          font-size: 0.68rem;
+          font-weight: 850;
+          letter-spacing: 0.04em;
+          text-transform: uppercase;
+        }
+
+        .politics-table .politics-member-row [data-politics-field="postalCodes"]::before {
+          content: "PLZ im Wahlkreis";
+        }
+
+        .politics-table .politics-member-row [data-politics-field="constituency"]::before {
+          content: "Wahlkreis";
+        }
+
         .politics-table .politics-member-row [data-politics-field="profile"] {
           grid-column: 2;
-          grid-row: 2 / span 2;
+          grid-row: 2 / span 4;
           align-self: stretch;
           justify-content: flex-end;
         }
@@ -40471,8 +40754,30 @@
         }
 
         .politics-member-copy strong,
+        .politics-member-name,
         .politics-member-copy small {
           white-space: normal;
+        }
+
+        .politics-person-profile__top,
+        .politics-person-profile__grid {
+          grid-template-columns: minmax(0, 1fr);
+        }
+
+        .politics-person-profile__actions {
+          width: 100%;
+        }
+
+        .politics-person-profile__actions .action-button {
+          width: 100%;
+        }
+
+        .politics-person-profile__section {
+          padding: 14px;
+        }
+
+        .politics-person-profile__section .detail-line__label {
+          min-width: 124px;
         }
 
         .politics-loading-state {

@@ -59,7 +59,8 @@
     ["contact", "versorgung"],
     ["expert", "expertenkreis"],
     ["stakeholder", "stakeholder"],
-    ["patient", "patienten"]
+    ["patient", "patienten"],
+    ["politics", "politik"]
   ]);
   const personTokenKind = new Map([...personPathKind].map(([token, path]) => [path, token]));
   const organizationPathKind = new Map([
@@ -108,7 +109,7 @@
       };
     }
 
-    const personMatch = /^person\/(contact|expert|stakeholder|patient)\/([^/]+)$/.exec(token);
+    const personMatch = /^person\/(contact|expert|stakeholder|patient|politics)\/([^/]+)$/.exec(token);
     if (personMatch) {
       return {
         path: `personen/${personPathKind.get(personMatch[1])}/${personMatch[2]}`,
@@ -144,7 +145,7 @@
     const importTab = importTabByPath.get(relativePath);
     if (importTab) return `profile-imports:${importTab}`;
 
-    const personMatch = /^personen\/(versorgung|expertenkreis|stakeholder|patienten)\/([^/]+)$/.exec(relativePath);
+    const personMatch = /^personen\/(versorgung|expertenkreis|stakeholder|patienten|politik)\/([^/]+)$/.exec(relativePath);
     if (personMatch) {
       const query = new URLSearchParams(search);
       query.delete("iap_authenticated");
@@ -195,7 +196,7 @@
     const relativePath = relativeAppPath(pathname);
     if (relativePath === "versorgungs-kompass.html") return true;
     if (routeTokenByPath.has(relativePath) || importTabByPath.has(relativePath)) return true;
-    if (/^personen\/(?:versorgung|expertenkreis|stakeholder|patienten)\/[^/]+$/.test(relativePath)) return true;
+    if (/^personen\/(?:versorgung|expertenkreis|stakeholder|patienten|politik)\/[^/]+$/.test(relativePath)) return true;
     return /^organisationen\/(?:versorgung|expertenkreis|patienten|stakeholder)\/[^/]+$/.test(relativePath);
   }
 

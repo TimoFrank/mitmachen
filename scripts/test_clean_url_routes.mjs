@@ -98,6 +98,14 @@ assert.equal(
   "person/patient/demo-patient"
 );
 assert.equal(
+  routes.urlForRouteToken("person/politics/demo-politik"),
+  "/personen/politik/demo-politik"
+);
+assert.equal(
+  routes.routeTokenForPath("/personen/politik/demo-politik"),
+  "person/politics/demo-politik"
+);
+assert.equal(
   routes.urlForRouteToken("organization/expert/demo-org"),
   "/organisationen/expertenkreis/demo-org"
 );
