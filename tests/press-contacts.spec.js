@@ -74,6 +74,7 @@ test("Presse ist über den Stakeholder-Kompass erreichbar und lädt den geschüt
     "../../public/brand/modules/stakeholder/lockup-horizontal.svg"
   );
   await expect(page.locator(".press-page-header__brand")).toHaveAttribute("alt", "Stakeholder-Kompass");
+  expect((await page.locator(".press-page-header__brand").boundingBox()).height).toBeGreaterThanOrEqual(32);
   await expect(page.locator("#press-contact-count")).toHaveText(`${people.length} Pressekontakte`);
   await expect(page.locator(PRESS_TABLE)).toBeVisible();
   await expect(page.locator("#press-table-head > [data-press-column]")).toHaveCount(PRESS_COLUMN_KEYS.length);
@@ -275,6 +276,7 @@ test("Presse bleibt mobil ohne horizontalen Seitenoverflow und öffnet das Vollp
   await expect(page.locator("#workspace-view-title")).not.toBeVisible();
   await expect(page.locator("#press-page-header")).toBeVisible();
   await expect(page.locator(".press-page-header__brand")).toBeVisible();
+  expect((await page.locator(".press-page-header__brand").boundingBox()).height).toBeGreaterThanOrEqual(32);
   await expectNoHorizontalPageOverflow(page);
 
   const firstRow = page.locator(PRESS_ROWS).first();
@@ -288,11 +290,16 @@ test("Presse bleibt mobil ohne horizontalen Seitenoverflow und öffnet das Vollp
   expect(mobileGeometry.gridColumns).toBe(1);
 
   const headerBox = await page.locator("#press-page-header").boundingBox();
+  const logoBox = await page.locator(".press-page-header__brand").boundingBox();
+  const titleBox = await page.locator("#press-page-title").boundingBox();
   const searchBox = await page.locator("#search").boundingBox();
   const tableBox = await page.locator(PRESS_TABLE).boundingBox();
   expect(headerBox).not.toBeNull();
+  expect(logoBox).not.toBeNull();
+  expect(titleBox).not.toBeNull();
   expect(searchBox).not.toBeNull();
   expect(tableBox).not.toBeNull();
+  expect(logoBox.y + logoBox.height).toBeLessThanOrEqual(titleBox.y + 1);
   expect(headerBox.y + headerBox.height).toBeLessThanOrEqual(searchBox.y + 1);
   expect(searchBox.y + searchBox.height).toBeLessThanOrEqual(tableBox.y + 1);
 
@@ -309,6 +316,7 @@ test("Presse bleibt mobil ohne horizontalen Seitenoverflow und öffnet das Vollp
     scrollWidth: header.scrollWidth
   }));
   expect(compactMobileGeometry.scrollWidth).toBeLessThanOrEqual(compactMobileGeometry.clientWidth + 1);
+  expect((await page.locator(".press-page-header__brand").boundingBox()).height).toBeGreaterThanOrEqual(32);
   expect(await page.locator(
     '#press-table-head [data-press-column="contactType"] .column-head__label'
   ).evaluate((label) => getComputedStyle(label, "::after").content)).toBe('"Typ"');
