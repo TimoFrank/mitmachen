@@ -8,6 +8,9 @@
 !scripts/migrate_supabase_storage_to_gcs.mjs
 !scripts/migrate_supabase_to_pre_gematik.mjs
 !scripts/provision_iap_identity_bindings.mjs
+!scripts/provision_pre_gematik_identity_platform_account.mjs
+!scripts/provision_pre_gematik_identity_platform_guest_access.mjs
+!scripts/provision_pre_gematik_test_access.mjs
 !scripts/lib/
 !scripts/lib/cloud-sql-managed-proxy.mjs
 !scripts/lib/pre-gematik-database-migration.mjs

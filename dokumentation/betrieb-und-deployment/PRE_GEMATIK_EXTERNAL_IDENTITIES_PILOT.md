@@ -465,6 +465,12 @@ Der External-Cutover besitzt zwei getrennte, fail-closed Verwaltungswege:
    genau diesem Profil angelegt. Das Binding ist aktiv, besitzt
    `access_scope=test_only` und den genehmigten `scope_ref`.
 
+   Wenn bei einem Bestandsprofil ausschließlich der Anzeigename in den vom
+   Gastzugriffsvertrag geprüften Kernfeldern abweicht, darf er weder im
+   Standardmodus stillschweigend akzeptiert noch allgemein aktualisiert werden.
+   Nur der getrennte atomare Anzeigename-Reconcile-plus-Prebinding-Modus ist für
+   diesen exakt gepinnten Sonderfall zulässig.
+
 Der Standardmodus `PREBIND_IDENTITY_PLATFORM_PASSWORD_GUEST` darf kein Profil
 neu anlegen. Für eine Person ohne passendes Bestandsprofil gibt es ausschließlich
 den separaten Modus
@@ -496,6 +502,15 @@ Mit der in
 [PRE_GEMATIK_IDENTITY_ADMIN.md](PRE_GEMATIK_IDENTITY_ADMIN.md)
 beschriebenen kurzlebigen, least-privilege Operatorverbindung werden zuerst
 zwei getrennte read-only Previews ausgeführt:
+
+Für die private Cloud-SQL-Zielinstanz laufen Standard-Prebinding und der
+Anzeigename-Sonderfall produktiv ausschließlich als `guest-preview` und
+`guest-apply` im
+[GKE-Migrationsoperator](../../deploy/migration-operator/README.md). Die
+folgenden direkten Script-Aufrufe beschreiben den zugrundeliegenden
+Bestätigungsvertrag, nicht einen alternativen produktiven Netzpfad. Die
+GKE-Phasen exponieren absichtlich weder `--create-profile-and-prebind` noch
+`--revoke`.
 
 ```bash
 node scripts/provision_pre_gematik_identity_platform_guest_access.mjs \
@@ -534,6 +549,28 @@ Ein ausdrücklich wiederholter Apply mit diesem neuen
 `current_state_fingerprint` muss ebenfalls `result=unchanged` liefern; dieser
 No-op-Nachweis und ein abschließender read-only Preview gehören zum
 geschützten Abnahmeprotokoll.
+
+Für genau ein ansonsten passendes aktives Bestandsprofil mit abweichendem
+Anzeigenamen, ohne Binding und ohne kollidierende Pending-Anfrage wird
+`guest-access.json` zunächst auf den doppelt verifizierten
+Identity-Platform-Soll-Anzeigenamen korrigiert. In beiden GKE-Phasen muss dann
+`GUEST_ACCESS_RECONCILE_PROFILE_DISPLAY_NAME_AND_PREBIND=true` gesetzt bleiben.
+Der Preview meldet ausschließlich die Operation
+`RECONCILE_PROFILE_DISPLAY_NAME_AND_PREBIND_IDENTITY_PLATFORM_PASSWORD_GUEST`
+und `result=reconcile_profile_display_name_and_create_binding`. Der bestätigte
+Apply übernimmt denselben Namen als `CONFIRM_GUEST_ACCESS_OPERATION`, ändert nur
+`profiles.display_name` und legt das `test_only`-Binding in derselben
+serialisierbaren Transaktion an. Ein Moduswechsel kann dadurch auch bei
+identischen No-op-Fingerprints nicht unbemerkt bestätigt werden.
+
+Ein exaktes Profil ohne Binding, ein Binding bei altem Anzeigenamen, jede
+weitere Profilabweichung, ein unsauberer Alt-Anzeigename oder eine Kollision ist
+auch hier `NO-GO`. Nach dem Apply muss `guest-preview`
+`profile_display_name_matches_identity=true` und `result=unchanged` melden.
+Danach wird dieselbe `guest-apply`-Phase mit dem **neuen**
+`current_state_fingerprint` aus diesem Post-Apply-Preview als No-op bestätigt
+und ein letzter Preview gesichert. Ein unbekannter COMMIT-Ausgang ist kein
+Grund für einen blinden Job-Neustart; zuerst folgt ein neuer Preview.
 
 Für einen echten Neunutzer ohne App-Profil werden stattdessen zwei identische
 Previews mit `--create-profile-and-prebind` ausgeführt. Nur ein vollständig
@@ -612,8 +649,11 @@ werden.
    owner-only geschriebenen Set-password-Link nicht versenden. Anschließend
    den passenden Gastzugriffsmodus zweimal mit stabilen Eingabe- und
    Istzustands-Fingerprints previewen: für ein Bestandsprofil
-   `PREBIND_IDENTITY_PLATFORM_PASSWORD_GUEST`, für einen vollständig neuen
-   Gast ausdrücklich
+   `PREBIND_IDENTITY_PLATFORM_PASSWORD_GUEST`; bei der isolierten,
+   ansonsten exakt gepinnten Anzeigename-Abweichung ausschließlich
+   `RECONCILE_PROFILE_DISPLAY_NAME_AND_PREBIND_IDENTITY_PLATFORM_PASSWORD_GUEST`
+   über `guest-preview`/`guest-apply`; für einen vollständig neuen Gast
+   ausdrücklich
    `CREATE_PROFILE_AND_PREBIND_IDENTITY_PLATFORM_PASSWORD_GUEST` mit
    `--create-profile-and-prebind`. Anschließend per `unchanged`-Readback sowie
    bestätigt ausgeführtem No-op abnehmen. Ein unerwarteter Teilzustand oder
@@ -905,9 +945,10 @@ kein sicherer Rückbau.
   Google-Login-Nachweis und die sichtbare Provider-/UI-Prüfung bestanden sind,
 - der atomare Subject-Remap und sein Rückweg geprüft sind,
 - jedes Passwortkonto vor der Einladung entweder auf sein vorhandenes aktives
-  Profil vorgebunden oder im expliziten Neunutzer-Modus atomar samt Profil
-  angelegt wurde, exakt eine aktive `test_only`-Bindung besitzt und der
-  `unchanged`-/No-op-Nachweis vorliegt,
+  Profil vorgebunden, im isolierten Anzeigename-Sonderfall atomar abgeglichen
+  oder im expliziten Neunutzer-Modus atomar samt Profil angelegt wurde, exakt
+  eine aktive `test_only`-Bindung besitzt und der `unchanged`-/No-op-Nachweis
+  vorliegt,
 - der `--revoke`-Widerruf mit
   `REVOKE_IDENTITY_PLATFORM_PASSWORD_GUEST_ACCESS`, beiden Fingerprints und
   anschließendem `unchanged`-No-op nachgewiesen ist,

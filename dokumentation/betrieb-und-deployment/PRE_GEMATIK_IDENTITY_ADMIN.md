@@ -83,7 +83,12 @@ gesetzt, aber kein App-Zugang“:
    den genehmigten Zustand zweimal mit stabilen `input_fingerprint`- und
    `current_state_fingerprint`-Werten previewen. Bei einem vorhandenen aktiven
    Profil ausdrücklich mit `PREBIND_IDENTITY_PLATFORM_PASSWORD_GUEST`
-   anwenden. Nur bei einem vollständig neuen Gast
+   anwenden. Weicht bei ansonsten identischen geprüften Kernfeldern nur der
+   Profil-Anzeigename vom doppelt verifizierten Identity-Platform-Anzeigenamen
+   ab und fehlt das Binding vollständig, ist ausschließlich die separate
+   Operation
+   `RECONCILE_PROFILE_DISPLAY_NAME_AND_PREBIND_IDENTITY_PLATFORM_PASSWORD_GUEST`
+   zulässig. Nur bei einem vollständig neuen Gast
    `--create-profile-and-prebind` und
    `CREATE_PROFILE_AND_PREBIND_IDENTITY_PLATFORM_PASSWORD_GUEST` verwenden;
    dabei werden Profil und `test_only`-Bindung atomar angelegt. Jeden Modus als
@@ -124,7 +129,9 @@ Im IAM- und External-Modus erzeugt die Anwendung selbst weder Profile noch
 Bindings. Für Passwortgäste werden keine Pending-Anfragen erzeugt oder
 konsumiert. Das vollständige App-Binding liegt vor der Einladung
 administrativ vor: entweder über den bestandsprofil-only Standardmodus oder
-über den ausdrücklich getrennten atomaren Neunutzer-Modus. Eine fehlende oder
+über den ausdrücklich getrennten atomaren Neunutzer-Modus. Der eng begrenzte
+Anzeigename-Reconcile ist ausschließlich der unten beschriebene atomare
+Sonderfall; er ist kein allgemeiner Profil-Update-Pfad. Eine fehlende oder
 abweichende Bindung sperrt den Linkversand.
 
 ### Verbindlicher Gast-Prebinding-Nachweis
@@ -137,6 +144,18 @@ die kurzlebige, exklusive Datenbankrolle `vk_access_enrollment_admin`, prüft
 den Identity-Platform-Nutzer unabhängig anhand UID und E-Mail als aktiven,
 verifizierten, tenantlosen password-only Account und leitet das vollständige
 External-IAP-Subject selbst ab.
+
+Da die Zielinstanz nur eine private IP besitzt, werden Standard-Prebinding und
+der Anzeigename-Sonderfall produktiv ausschließlich über die Phasen
+`guest-preview` und `guest-apply` des
+[GKE-Migrationsoperators](../../deploy/migration-operator/README.md)
+ausgeführt. Beide Phasen erzwingen `private-ip`, einen frischen
+GCP-/Cloud-SQL-/Backup-Gate, den gepinnten Proxy, den festen owner-only Input
+`/protected-input/run/guest-access.json` und Bestätigungen aus der geschützten
+Env-Datei. Die folgenden direkten Script-Aufrufe dokumentieren den
+zugrundeliegenden fachlichen Vertrag; sie sind kein alternativer produktiver
+Netzpfad. Die GKE-Phasen exponieren absichtlich weder Neunutzeranlage noch
+Widerruf.
 
 Vor dem Apply werden zwei getrennte Previews ausgeführt:
 
@@ -173,6 +192,34 @@ zweiter ausdrücklich bestätigter Apply gegen diesen aktuellen Fingerprint
 muss ebenfalls `result=unchanged` bleiben; danach bestätigt ein letzter
 read-only Preview erneut den vollständigen Zustand. Erst dieser
 Readback-/No-op-Nachweis öffnet das Mail-Gate.
+
+Wenn genau ein vorhandenes aktives Profil in ID, E-Mail und Rolle passt, sein
+Anzeigename aber vom exakt verifizierten Identity-Platform-Konto abweicht und
+noch weder Binding noch kollidierender Enrollment-Request existiert, bleibt der
+Standardmodus fail-closed. Für diesen einen Fall wird `guest-access.json` zuerst
+auf den verifizierten Soll-Anzeigenamen korrigiert und anschließend in beiden
+GKE-Phasen
+`GUEST_ACCESS_RECONCILE_PROFILE_DISPLAY_NAME_AND_PREBIND=true` gesetzt. Der
+Preview muss die eigene Operation
+`RECONCILE_PROFILE_DISPLAY_NAME_AND_PREBIND_IDENTITY_PLATFORM_PASSWORD_GUEST`
+und `result=reconcile_profile_display_name_and_create_binding` melden.
+`guest-apply` erhält genau diesen Operationsnamen zusätzlich als
+`CONFIRM_GUEST_ACCESS_OPERATION`; ein Moduswechsel bei gleich gebliebenen
+No-op-Fingerprints wird damit fail-closed abgewiesen.
+`guest-apply` aktualisiert ausschließlich `public.profiles.display_name` mit
+dem preview-gepinnten alten Wert in der `WHERE`-Klausel und legt in derselben
+serialisierbaren Transaktion die aktive `test_only`-Bindung an.
+
+Ein exaktes Profil ohne Binding, ein bereits vorhandenes Binding bei altem
+Anzeigenamen, eine weitere Profilabweichung, unsauberer Alt-Anzeigename,
+Kollision oder Pending-Anfrage ist in diesem Sondermodus ebenfalls `NO-GO`.
+Nach dem COMMIT muss `guest-preview` `result=unchanged`,
+`profile_display_name_matches_identity=true` und identische Ist-/Soll-
+Fingerprints liefern. Derselbe `guest-apply` wird danach mit dem **neuen**
+`current_state_fingerprint` dieses Post-Apply-Previews als bestätigter No-op
+ausgeführt; der Modus bleibt `true`. Ein letzter Preview bestätigt den Zustand.
+Bei unbekanntem COMMIT-Ausgang wird niemals blind wiederholt, sondern zuerst
+ein neuer Preview gesichert.
 
 Fehlt für einen echten Neunutzer das App-Profil vollständig, ist statt des
 Standardmodus ausschließlich der getrennte Preview mit
@@ -325,7 +372,9 @@ dump files](https://docs.cloud.google.com/sql/docs/postgres/import-export/import
   owner-only Konto-, Gastzugriffs- und Linkdateien; ein Bestandsprofil wird
   ausschließlich per Standard-Prebinding gebunden, ein vollständig neuer Gast
   ausschließlich mit dem expliziten atomaren
-  `--create-profile-and-prebind`-Modus angelegt,
+  `--create-profile-and-prebind`-Modus angelegt. Nur eine isolierte
+  Anzeigename-Abweichung in den geprüften Kernfeldern darf über den separat
+  bestätigten Reconcile-plus-Prebinding-Modus korrigiert werden,
 - dediziertes GKE-Migrationsoperator-Image per Digest,
 - Operatorverzeichnis lokal `0700`, Eingaben und Ergebnisse `0600`,
 - zwei getrennte identische Eigenprüfungs-Previews durch den Pilot-Owner; dies
@@ -465,6 +514,135 @@ er Mitglied von `postgres` oder `cloudsqlsuperuser` ist, wenn ein drittes oder
 abweichendes Mitglied existiert oder ein gefährliches Rollenattribut vorhanden
 ist.
 
+## 2a. Passwortgast-Access-Rolle und Login create-only
+
+`guest-preview` und `guest-apply` verwenden niemals den Identity-Admin-Login.
+Vor dem ersten Gastlauf wird stattdessen die statische
+`access-enrollment-admin-role.sql` nach demselben Bucket-/Cloud-SQL-Importvertrag
+wie in Abschnitt 1 angewendet. Bucket, Objekt und Variablen werden neu und
+getrennt angelegt; die Identity-Admin-Datei oder deren Bucket werden nicht
+wiederverwendet:
+
+```bash
+ACCESS_BOOTSTRAP_RUN="YYYYMMDD-RUN"
+ACCESS_BOOTSTRAP_BUCKET="${GCP_PROJECT_ID}-vk-access-bootstrap-${ACCESS_BOOTSTRAP_RUN}"
+ACCESS_BOOTSTRAP_OBJECT="access-enrollment-admin-role.sql"
+ACCESS_BOOTSTRAP_SQL="deploy/postgres/pre-gematik/access-enrollment-admin-role.sql"
+
+shasum -a 256 "$ACCESS_BOOTSTRAP_SQL"
+
+gcloud storage buckets create "gs://${ACCESS_BOOTSTRAP_BUCKET}" \
+  --project="$GCP_PROJECT_ID" \
+  --location="$GCP_REGION" \
+  --uniform-bucket-level-access \
+  --public-access-prevention \
+  --soft-delete-duration=0s
+
+gcloud storage cp "$ACCESS_BOOTSTRAP_SQL" \
+  "gs://${ACCESS_BOOTSTRAP_BUCKET}/${ACCESS_BOOTSTRAP_OBJECT}" \
+  --if-generation-match=0
+
+ACCESS_CLOUD_SQL_SERVICE_ACCOUNT="$(gcloud sql instances describe \
+  "$CLOUD_SQL_INSTANCE" \
+  --project="$GCP_PROJECT_ID" \
+  --format='value(serviceAccountEmailAddress)')"
+test -n "$ACCESS_CLOUD_SQL_SERVICE_ACCOUNT"
+
+gcloud storage buckets add-iam-policy-binding \
+  "gs://${ACCESS_BOOTSTRAP_BUCKET}" \
+  --member="serviceAccount:${ACCESS_CLOUD_SQL_SERVICE_ACCOUNT}" \
+  --role=roles/storage.objectViewer
+
+gcloud sql import sql "$CLOUD_SQL_INSTANCE" \
+  "gs://${ACCESS_BOOTSTRAP_BUCKET}/${ACCESS_BOOTSTRAP_OBJECT}" \
+  --project="$GCP_PROJECT_ID" \
+  --database=versorgungs_kompass \
+  --user=postgres
+```
+
+Nur eine erfolgreich beendete Cloud-SQL-Operation gilt als angewendet. Danach
+muss eine bestehende read-only Verbindung genau eine `NOLOGIN`-/`NOINHERIT`-
+Rolle ohne Verwaltungsattribute oder Elternrolle und ausschließlich die sichere
+Creator-Administration des verifizierten Objekt-Owners zeigen:
+
+```sql
+select rolcanlogin, rolinherit, rolsuper, rolcreatedb, rolcreaterole,
+       rolreplication, rolbypassrls
+  from pg_catalog.pg_roles
+ where rolname = 'vk_access_enrollment_admin';
+
+select granted_role.rolname
+  from pg_catalog.pg_auth_members membership
+  join pg_catalog.pg_roles granted_role on granted_role.oid = membership.roleid
+  join pg_catalog.pg_roles member_role on member_role.oid = membership.member
+ where member_role.rolname = 'vk_access_enrollment_admin';
+
+select member_role.rolname, membership.admin_option,
+       membership.inherit_option, membership.set_option
+  from pg_catalog.pg_auth_members membership
+  join pg_catalog.pg_roles granted_role on granted_role.oid = membership.roleid
+  join pg_catalog.pg_roles member_role on member_role.oid = membership.member
+ where granted_role.rolname = 'vk_access_enrollment_admin';
+```
+
+Anschließend den Bootstrap-Bucket erst nach erneuter Prüfung seines exakten
+Namens und einzigen Objekts einschließlich der temporären
+`roles/storage.objectViewer`-Bindung gezielt entfernen.
+
+Für den kurzlebigen Gastoperator wird ein neues, bereits vorhandenes
+owner-only Verzeichnis außerhalb des Repositories verwendet. Das Hilfswerkzeug
+schreibt vier create-only Dateien mit Modus `0600` und gibt weder Loginname noch
+Passwort aus:
+
+```bash
+ACCESS_OPERATOR_DIRECTORY='/ABSOLUT/GESCHUETZT/access-run'
+
+node scripts/prepare_pre_gematik_test_access_operator.mjs \
+  --output-directory "$ACCESS_OPERATOR_DIRECTORY" \
+  --project "$GCP_PROJECT_ID" \
+  --instance "$CLOUD_SQL_INSTANCE" \
+  --database versorgungs_kompass
+
+ACCESS_OPERATOR_LOGIN="$(tr -d '\n' \
+  < "${ACCESS_OPERATOR_DIRECTORY}/test-access-operator-name.txt")"
+
+gcloud sql users create "$ACCESS_OPERATOR_LOGIN" \
+  --flags-file="${ACCESS_OPERATOR_DIRECTORY}/test-access-operator-create-user-flags.json"
+
+gcloud sql users assign-roles "$ACCESS_OPERATOR_LOGIN" \
+  --project="$GCP_PROJECT_ID" \
+  --instance="$CLOUD_SQL_INSTANCE" \
+  --type=BUILT_IN \
+  --database-roles=vk_access_enrollment_admin \
+  --revoke-existing-roles \
+  --quiet
+```
+
+Die Cloud-SQL-API muss genau diesen einen `BUILT_IN`-User mit ausschließlich
+`vk_access_enrollment_admin` liefern. Zusätzlich ist ein erfolgreicher
+`guest-preview` verpflichtend: Er prüft in der Datenbank erneut Loginattribute,
+genau eine Mitgliedschaft, die beiden erlaubten Mitglieder der `NOLOGIN`-Rolle
+und deren exakten Minimalrechte, bevor er Identity Platform oder Fachdaten
+verknüpft.
+
+Nach dem letzten Gast-Readback wird zuerst der exakt aus der owner-only Namensdatei
+gelesene User gelöscht. `--type` wird bei `gcloud sql users delete` nicht
+verwendet. Erst wenn eine gefilterte read-only User-Liste keinen Treffer mehr
+liefert, dürfen Flags-Datei, Env-Datei, Namensdatei und Manifest entfernt werden:
+
+```bash
+gcloud sql users delete "$ACCESS_OPERATOR_LOGIN" \
+  --project="$GCP_PROJECT_ID" \
+  --instance="$CLOUD_SQL_INSTANCE" \
+  --quiet
+
+test -z "$(gcloud sql users list \
+  --project="$GCP_PROJECT_ID" \
+  --instance="$CLOUD_SQL_INSTANCE" \
+  --filter="name=${ACCESS_OPERATOR_LOGIN} AND type=BUILT_IN" \
+  --format='value(name)')"
+```
+
 ## 3. Preview und Apply im GKE-Migrationsoperator
 
 Die geschützte Operator-Env wird aus der allgemeinen Operator-Datei und der
@@ -512,8 +690,12 @@ v2-Testzugangsschema aktiv ist, besitzt `vk_identity_admin` dafür ausschließli
 `UPDATE (subject)`: Ein Remap darf keine Zeile anlegen und weder `active`,
 Profilrolle, `access_scope` noch `scope_ref` ändern. Passwortgäste werden nicht
 über diesen Remap und nicht über den Pending-v2-Weg angelegt. Ihr separat
-bestätigter Gastzugriffsoperator bindet entweder das vorhandene Profil oder
-legt im expliziten Neunutzer-Modus Profil und `test_only`-Bindung atomar an.
+bestätigter Gastzugriffsoperator bindet entweder das vorhandene Profil, gleicht
+im expliziten Sondermodus ausschließlich dessen abweichenden Anzeigenamen plus
+Binding atomar ab oder legt im expliziten Neunutzer-Modus Profil und
+`test_only`-Bindung atomar an. Standard und Anzeigename-Sonderfall laufen über
+`guest-preview`/`guest-apply` des privaten GKE-Operators; Neunutzeranlage und
+Widerruf sind dort bewusst nicht exponiert.
 
 Der bestätigte `current_state_fingerprint` umfasst Issuer, aktuelles Subject,
 Profil-ID, Binding-Aktivität, `access_scope`, `scope_ref`, Profilrolle und
@@ -547,8 +729,10 @@ Vor Öffnung des Dienstes sind alle Punkte erforderlich:
    IAP-Identitätsmodus und erhält exakt die genehmigte Viewer- beziehungsweise
    `test_only`-Editorrolle. Im External-Pilot wurde das password-only Konto
    vor Linkversand entweder auf das vorhandene aktive Profil vorgebunden oder
-   mit dem expliziten Neunutzer-Modus atomar samt Profil angelegt; Readback und
-   bestätigter Wiederholungslauf melden `result=unchanged`.
+   mit dem expliziten Neunutzer-Modus atomar samt Profil angelegt. Beim
+   isolierten Anzeigename-Sonderfall wurden Name plus Binding atomar
+   abgeglichen; Readback und bestätigter Wiederholungslauf derselben
+   `guest-apply`-Phase melden `result=unchanged`.
 5. Eine gültig signierte, aber ungebundene IAP-Identität erhält `403`; dasselbe
    gilt nach Deaktivierung einer Bindung.
 6. `vk_app` kann die Bindung lesen, aber `INSERT`, `UPDATE` und `DELETE` werden
@@ -578,15 +762,22 @@ erst danach über Fortsetzung oder Restore entscheiden.
 
 Nach bestandener Abnahme:
 
-1. exakt den kurzlebigen Cloud-SQL-Login löschen,
+1. exakt den kurzlebigen Cloud-SQL-Identity-Login und den für Gastphasen
+   erzeugten, in `test-access-operator-name.txt` gepinnten
+   `vk_access_operator_*`-Login löschen,
 2. read-only bestätigen, dass nur noch die sichere Creator-Mitgliedschaft des
-   verifizierten Objekt-Owners an `vk_identity_admin` besteht,
+   verifizierten Objekt-Owners an `vk_identity_admin` beziehungsweise
+   `vk_access_enrollment_admin` besteht,
 3. exakt den Operator-Job und die beiden Operator-Secrets löschen,
 4. temporäre Workload-IAM-Bindungen und ServiceAccount/NetworkPolicy gemäß dem
    Migrationsoperator-Runbook entfernen,
-5. die vier lokalen Credential-Dateien erst nach bestätigter User-Löschung
-   exakt entfernen; ein eventuell verbleibender Dateiblock ist durch die
-   gelöschte Datenbankidentität wertlos,
+5. alle lokalen Credential-Dateien einschließlich der Access-Operator-Flags,
+   Env-Datei, Loginname, Manifest und Identity-Platform-Readback-Env erst nach
+   bestätigter User-Löschung exakt entfernen. Die DB-Credentials werden durch
+   die User-Löschung unbrauchbar; der eingeschränkte
+   `IAP_EXTERNAL_AUTH_API_KEY` in `identity-platform-readback.env` bleibt davon
+   jedoch unberührt. Solange diese Datei noch besteht, ist der Cleanup nicht
+   abgeschlossen,
 6. Fingerprints, Cloud-SQL-Operation, Backup-ID und Abnahmenachweis geschützt
    gemäß Aufbewahrungsentscheidung behalten.
 

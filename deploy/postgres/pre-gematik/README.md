@@ -101,6 +101,9 @@ Danach erzeugt
 `scripts/prepare_pre_gematik_test_access_operator.mjs` create-only und mit
 Dateimodus `0600` die Zugangsdaten für einen kurzlebigen Login, dessen einzige
 Mitgliedschaft `vk_access_enrollment_admin` ist.
+Die vollständigen ausführbaren Befehle für Rollenimport, Credential-Erzeugung,
+Cloud-SQL-User-Anlage, exakten Rollenabgleich und User-Cleanup stehen im
+[Identity-Admin-Runbook](../../../dokumentation/betrieb-und-deployment/PRE_GEMATIK_IDENTITY_ADMIN.md#2a-passwortgast-access-rolle-und-login-create-only).
 
 Das geschützte JSON-Vollzustandsdokument liegt außerhalb des Git-Worktrees und
 verwendet Version 2:

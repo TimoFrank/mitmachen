@@ -31,6 +31,10 @@ const dockerfile = readFileSync(new URL("deploy/migration-operator/Dockerfile", 
 const dockerignore = readFileSync(new URL("deploy/migration-operator/Dockerfile.dockerignore", root), "utf8");
 const jobTemplate = readFileSync(new URL("deploy/migration-operator/job.template.yaml", root), "utf8");
 const operatorRunbook = readFileSync(new URL("deploy/migration-operator/README.md", root), "utf8");
+const operatorSource = readFileSync(
+  new URL("deploy/migration-operator/operator-entrypoint.mjs", root),
+  "utf8"
+);
 const serviceAccount = readFileSync(new URL("deploy/migration-operator/serviceaccount.yaml", root), "utf8");
 const networkPolicy = readFileSync(new URL("deploy/migration-operator/networkpolicy.yaml", root), "utf8");
 
@@ -38,16 +42,21 @@ const fingerprint = `sha256:${"a".repeat(64)}`;
 const environment = {
   EXPECTED_SOURCE_PROJECT_ID: "source-project-ref",
   EXPECTED_TARGET_PROJECT_ID: "target-project-123",
+  GCP_PROJECT_ID: "target-project-123",
   PRE_IMPORT_BACKUP_ID: "backup-20260720",
   CONFIRM_STORAGE_PREVIEW_FINGERPRINT: fingerprint,
   CONFIRM_STORAGE_MANIFEST_FINGERPRINT: fingerprint,
   CONFIRM_SOURCE_SNAPSHOT_FINGERPRINT: fingerprint,
   CONFIRM_IDENTITY_PREVIEW_FINGERPRINT: fingerprint,
   CONFIRM_IDENTITY_CURRENT_STATE_FINGERPRINT: fingerprint,
+  CONFIRM_GUEST_ACCESS_INPUT_FINGERPRINT: fingerprint,
+  CONFIRM_GUEST_ACCESS_CURRENT_STATE_FINGERPRINT: fingerprint,
+  CONFIRM_GUEST_ACCESS_OPERATION: "PREBIND_IDENTITY_PLATFORM_PASSWORD_GUEST",
   CONFIRM_QUARANTINED_OBJECT_COUNT: "0",
   CONFIRM_BOOTSTRAP_PROFILE_FINGERPRINT: fingerprint,
   CONFIRM_IDENTITY_BINDING_COUNT: "1",
-  CONFIRM_IDENTITY_ACTIVE_BINDING_COUNT: "1"
+  CONFIRM_IDENTITY_ACTIVE_BINDING_COUNT: "1",
+  GUEST_ACCESS_RECONCILE_PROFILE_DISPLAY_NAME_AND_PREBIND: "false"
 };
 
 assert.deepEqual(
@@ -186,6 +195,139 @@ assert.throws(
   (error) => error instanceof MigrationOperatorError
 );
 
+const guestPreview = phaseExecution("guest-preview", environment);
+assert.equal(guestPreview.managedTarget, true);
+assert.equal(guestPreview.requiresSourceCa, false);
+assert.deepEqual(guestPreview.arguments, [
+  "--input", "/protected-input/run/guest-access.json"
+]);
+assert.deepEqual(guestPreview.protectedInputs, ["guest-access.json"]);
+assert.equal(guestPreview.guestAccessTargetProject, environment.EXPECTED_TARGET_PROJECT_ID);
+
+const guestApply = phaseExecution("guest-apply", environment);
+assert.equal(guestApply.managedTarget, true);
+assert.equal(guestApply.requiresSourceCa, false);
+assert.deepEqual(guestApply.protectedInputs, ["guest-access.json"]);
+assert.deepEqual(guestApply.arguments, [
+  "--input", "/protected-input/run/guest-access.json",
+  "--apply",
+  "--confirm-environment", "pre-gematik",
+  "--confirm-project", environment.EXPECTED_TARGET_PROJECT_ID,
+  "--confirm-database", "versorgungs_kompass",
+  "--confirm-operation", "PREBIND_IDENTITY_PLATFORM_PASSWORD_GUEST",
+  "--confirm-fingerprint", fingerprint,
+  "--confirm-current-state-fingerprint", fingerprint
+]);
+assert.equal(guestApply.arguments.includes("--create-profile-and-prebind"), false);
+assert.equal(guestApply.arguments.includes("--revoke"), false);
+
+const guestReconcileEnvironment = {
+  ...environment,
+  GUEST_ACCESS_RECONCILE_PROFILE_DISPLAY_NAME_AND_PREBIND: "true",
+  CONFIRM_GUEST_ACCESS_OPERATION:
+    "RECONCILE_PROFILE_DISPLAY_NAME_AND_PREBIND_IDENTITY_PLATFORM_PASSWORD_GUEST"
+};
+const guestReconcilePreview = phaseExecution(
+  "guest-preview",
+  guestReconcileEnvironment
+);
+assert.deepEqual(guestReconcilePreview.arguments, [
+  "--input", "/protected-input/run/guest-access.json",
+  "--reconcile-profile-display-name-and-prebind"
+]);
+const guestReconcileApply = phaseExecution(
+  "guest-apply",
+  guestReconcileEnvironment
+);
+assert.equal(
+  guestReconcileApply.arguments.includes(
+    "RECONCILE_PROFILE_DISPLAY_NAME_AND_PREBIND_IDENTITY_PLATFORM_PASSWORD_GUEST"
+  ),
+  true
+);
+assert.equal(
+  guestReconcileApply.arguments.includes(
+    "--reconcile-profile-display-name-and-prebind"
+  ),
+  true
+);
+
+const noopStateFingerprint = `sha256:${"b".repeat(64)}`;
+const guestNoopApply = phaseExecution("guest-apply", {
+  ...guestReconcileEnvironment,
+  CONFIRM_GUEST_ACCESS_CURRENT_STATE_FINGERPRINT: noopStateFingerprint
+});
+assert.equal(
+  guestNoopApply.arguments[
+    guestNoopApply.arguments.indexOf("--confirm-current-state-fingerprint") + 1
+  ],
+  noopStateFingerprint,
+  "The same guest-apply phase must accept the freshly previewed unchanged state."
+);
+
+for (const invalidMode of [undefined, "", "yes", "TRUE", "1"]) {
+  const invalidEnvironment = {
+    ...environment,
+    GUEST_ACCESS_RECONCILE_PROFILE_DISPLAY_NAME_AND_PREBIND: invalidMode
+  };
+  assert.throws(
+    () => phaseExecution("guest-preview", invalidEnvironment),
+    (error) => error instanceof MigrationOperatorError
+      && /must be exactly true or false/u.test(error.message)
+  );
+}
+assert.throws(
+  () => phaseExecution("guest-apply", {
+    ...environment,
+    CONFIRM_GUEST_ACCESS_INPUT_FINGERPRINT: ""
+  }),
+  (error) => error instanceof MigrationOperatorError
+);
+assert.throws(
+  () => phaseExecution("guest-apply", {
+    ...environment,
+    CONFIRM_GUEST_ACCESS_CURRENT_STATE_FINGERPRINT: ""
+  }),
+  (error) => error instanceof MigrationOperatorError
+);
+assert.throws(
+  () => phaseExecution("guest-apply", {
+    ...environment,
+    GUEST_ACCESS_RECONCILE_PROFILE_DISPLAY_NAME_AND_PREBIND: "true"
+  }),
+  (error) => error instanceof MigrationOperatorError
+    && /CONFIRM_GUEST_ACCESS_OPERATION must exactly match/u.test(error.message)
+);
+assert.throws(
+  () => phaseExecution("guest-apply", {
+    ...environment,
+    CONFIRM_GUEST_ACCESS_OPERATION: ""
+  }),
+  (error) => error instanceof MigrationOperatorError
+);
+assert.throws(
+  () => phaseExecution("guest-preview", {
+    ...environment,
+    EXPECTED_TARGET_PROJECT_ID: "FOREIGN"
+  }),
+  (error) => error instanceof MigrationOperatorError
+);
+assert.throws(
+  () => phaseExecution("guest-preview", {
+    ...environment,
+    GCP_PROJECT_ID: "different-project-456"
+  }),
+  (error) => error instanceof MigrationOperatorError
+    && /EXPECTED_TARGET_PROJECT_ID and GCP_PROJECT_ID to match exactly/u.test(error.message)
+);
+assert.throws(
+  () => phaseExecution("guest-apply", {
+    ...environment,
+    GCP_PROJECT_ID: ""
+  }),
+  (error) => error instanceof MigrationOperatorError
+);
+
 assert.throws(
   () => phaseExecution("shell", environment),
   (error) => error instanceof MigrationOperatorError
@@ -321,9 +463,38 @@ assert.match(dockerfile, /^FROM gcr\.io\/google\.com\/cloudsdktool\/google-cloud
 assert.match(dockerfile, /^USER 65532:65532$/mu);
 assert.match(dockerfile, /^ENTRYPOINT \["node", "\/opt\/operator\/operator-entrypoint\.mjs"\]$/mu);
 assert.match(dockerfile, /COPY scripts\/provision_iap_identity_bindings\.mjs/u);
+assert.match(
+  dockerfile,
+  /COPY scripts\/provision_pre_gematik_identity_platform_account\.mjs/u
+);
+assert.match(
+  dockerfile,
+  /COPY scripts\/provision_pre_gematik_identity_platform_guest_access\.mjs/u
+);
+assert.match(dockerfile, /COPY scripts\/provision_pre_gematik_test_access\.mjs/u);
 assert.doesNotMatch(dockerfile, /SUPABASE_SERVICE_ROLE_KEY|SOURCE_DATABASE_URL|TARGET_DATABASE_URL/u);
 assert.match(dockerignore, /^\*\*$/mu);
+assert.match(
+  dockerignore,
+  /^!scripts\/provision_pre_gematik_identity_platform_account\.mjs$/mu
+);
+assert.match(
+  dockerignore,
+  /^!scripts\/provision_pre_gematik_identity_platform_guest_access\.mjs$/mu
+);
+assert.match(
+  dockerignore,
+  /^!scripts\/provision_pre_gematik_test_access\.mjs$/mu
+);
 assert.doesNotMatch(dockerignore, /^!\.env/mu);
+assert.match(
+  operatorSource,
+  /childEnvironment\.PRE_GEMATIK_ACCESS_REPOSITORY_ROOT = WORKSPACE/u
+);
+assert.match(
+  operatorSource,
+  /childEnvironment\.PRE_GEMATIK_ACCESS_EXPECTED_PROJECT_ID\s*=\s*\n\s*execution\.guestAccessTargetProject/u
+);
 
 assert.match(jobTemplate, /backoffLimit: 0/u);
 assert.match(jobTemplate, /activeDeadlineSeconds: 3600/u);
@@ -352,6 +523,20 @@ assert.match(operatorRunbook, /\/protected-input\/run\/logo-remediation-preview\
 assert.match(operatorRunbook, /demselben\s+unveränderten Logo-Remediation-Bundle/u);
 assert.match(operatorRunbook, /identity-preview/u);
 assert.match(operatorRunbook, /identity-apply/u);
+assert.match(operatorRunbook, /guest-preview/u);
+assert.match(operatorRunbook, /guest-apply/u);
+assert.match(operatorRunbook, /\/protected-input\/run\/guest-access\.json/u);
+assert.match(
+  operatorRunbook,
+  /GUEST_ACCESS_RECONCILE_PROFILE_DISPLAY_NAME_AND_PREBIND/u
+);
+assert.match(operatorRunbook, /ausschließlich\s+`true`\s+oder\s+`false`/u);
+assert.match(
+  operatorRunbook,
+  /neuen[\s\S]*`current_state_fingerprint`[\s\S]*No-op/u
+);
+assert.match(operatorRunbook, /roles\/identitytoolkit\.viewer/u);
+assert.match(operatorRunbook, /ohne Klartext-PII/u);
 
 const image = `europe-west3-docker.pkg.dev/target-project-123/migrations/operator@sha256:${"b".repeat(64)}`;
 const rendered = renderJob({
