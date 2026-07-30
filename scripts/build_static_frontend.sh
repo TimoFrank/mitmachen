@@ -244,9 +244,11 @@ EOF
     cp "$ROOT_DIR/public/brand/mitmachen/icons/$asset" "$STAGE_DIR/public/brand/mitmachen/icons/$asset"
   done
   for module in stakeholder hospitation formate; do
-    cp "$ROOT_DIR/public/brand/modules/$module/mark.svg" "$STAGE_DIR/public/brand/modules/$module/mark.svg"
-    cp "$ROOT_DIR/public/brand/modules/$module/mark-on-dark.svg" "$STAGE_DIR/public/brand/modules/$module/mark-on-dark.svg"
+    for asset in mark.svg mark-on-dark.svg; do
+      cp "$ROOT_DIR/public/brand/modules/$module/$asset" "$STAGE_DIR/public/brand/modules/$module/$asset"
+    done
   done
+  cp "$ROOT_DIR/public/brand/modules/stakeholder/lockup-horizontal.svg" "$STAGE_DIR/public/brand/modules/stakeholder/lockup-horizontal.svg"
   cp "$ROOT_DIR/public/brand/versorgungs-kompass/mark.svg" "$STAGE_DIR/public/brand/versorgungs-kompass/mark.svg"
   cp "$ROOT_DIR/public/brand/versorgungs-kompass/mark-on-dark.svg" "$STAGE_DIR/public/brand/versorgungs-kompass/mark-on-dark.svg"
   cp "$ROOT_DIR/public/media/demo/mitmachen/versorgungs-netzwerk-concept.svg" "$STAGE_DIR/public/media/demo/mitmachen/versorgungs-netzwerk-concept.svg"
