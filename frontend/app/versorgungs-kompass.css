@@ -40973,17 +40973,66 @@
       }
 
       /* Stakeholder-Kompass · Presse: kuratierte berufliche Pressekontakte. */
-      .press-context__mark {
+      .press-page-header {
+        display: none;
+      }
+
+      .app-shell[data-active-view="press"] .workspace-header {
+        grid-template-columns: minmax(0, 1fr);
+        padding-bottom: 10px;
+      }
+
+      .app-shell[data-active-view="press"] .workspace-header > :not(.press-page-header) {
+        display: none !important;
+      }
+
+      .app-shell[data-active-view="press"] .press-page-header {
+        display: grid;
+        grid-template-columns: 46px minmax(0, 1fr) auto minmax(190px, 250px);
+        align-items: center;
+        gap: 14px;
+        min-width: 0;
+        padding: 14px 16px;
+        border: 1px solid rgba(var(--module-stakeholders-rgb), 0.26);
+        border-radius: var(--radius-lg);
+        background:
+          linear-gradient(135deg, rgba(var(--module-stakeholders-rgb), 0.13), transparent 58%),
+          var(--surface);
+        box-shadow: var(--shadow-sm);
+      }
+
+      .press-page-header__mark {
+        grid-column: 1;
+        grid-row: 1;
         color: var(--module-stakeholders-strong);
       }
 
-      .press-context__source {
-        max-width: 250px;
-        color: var(--text-muted);
-        font-size: var(--font-size-xs);
-        font-weight: 700;
-        line-height: 1.4;
-        text-align: right;
+      .press-page-header__title {
+        grid-column: 2;
+        grid-row: 1;
+        min-width: 0;
+        margin: 0;
+        color: var(--text-primary);
+        font-size: clamp(1.15rem, 1.8vw, 1.45rem);
+        font-weight: 900;
+        line-height: var(--line-height-tight);
+        letter-spacing: -0.025em;
+      }
+
+      .press-page-header__count {
+        grid-column: 3;
+        grid-row: 1;
+        justify-self: end;
+      }
+
+      .press-page-header__brand {
+        display: block;
+        grid-column: 4;
+        grid-row: 1;
+        width: 100%;
+        max-width: 230px;
+        height: auto;
+        justify-self: end;
       }
 
       .table-wrap > .press-table {
@@ -41117,11 +41166,45 @@
       @media (max-width: 760px) {
         .app-shell[data-active-view="press"] .workspace-header {
           align-items: flex-start;
+          padding-bottom: 8px;
         }
 
-        .press-context__source {
-          max-width: 190px;
-          text-align: right;
+        .app-shell[data-active-view="press"] .press-page-header {
+          grid-template-columns: 38px minmax(0, 1fr) minmax(105px, 34vw);
+          gap: 8px;
+          width: 100%;
+          padding: 10px 12px;
+          border-radius: var(--radius-md);
+        }
+
+        .press-page-header__mark {
+          width: 38px;
+          height: 38px;
+          flex-basis: 38px;
+          border-radius: var(--radius-md);
+        }
+
+        .press-page-header__mark svg {
+          width: 20px;
+          height: 20px;
+        }
+
+        .press-page-header__title {
+          font-size: 1.05rem;
+        }
+
+        .press-page-header__brand {
+          grid-column: 3;
+          grid-row: 1;
+          width: min(100%, 150px);
+        }
+
+        .press-page-header__count {
+          grid-column: 2 / -1;
+          grid-row: 2;
+          justify-self: start;
+          min-height: 24px;
+          padding-block: 2px;
         }
 
         .table-wrap > .press-table,
@@ -41129,6 +41212,23 @@
           width: 100%;
           min-width: 0;
           overflow: visible;
+        }
+
+        .press-table .thead {
+          gap: 5px;
+          margin-bottom: 8px;
+          padding: 6px;
+        }
+
+        .press-table .thead > div {
+          flex: 1 1 calc(50% - 3px);
+          min-width: 0;
+          min-height: 36px;
+        }
+
+        .press-table .thead .press-column-head {
+          min-height: 36px;
+          padding-inline: 8px 5px;
         }
 
         .press-table .thead > div[data-press-column="organization"] .column-head__label {
@@ -41142,7 +41242,9 @@
 
         .press-table .press-contact-row {
           grid-template-columns: minmax(0, 1fr);
-          gap: 11px;
+          gap: 9px;
+          margin-bottom: 8px;
+          padding: 12px;
           cursor: default;
         }
 
@@ -41155,7 +41257,7 @@
 
         .press-table .press-contact-row [data-press-field="name"] {
           display: flex;
-          padding-bottom: 10px;
+          padding-bottom: 8px;
           border-bottom: 1px solid var(--border);
         }
 
@@ -41192,7 +41294,7 @@
         }
 
         .press-table .press-contact-row [data-press-field="source"] {
-          padding-top: 10px;
+          padding-top: 8px;
           border-top: 1px solid var(--border);
         }
 
@@ -41211,5 +41313,59 @@
           width: 100%;
           margin-left: 0;
           justify-content: space-between;
+        }
+      }
+
+      @media (min-width: 480px) and (max-width: 760px) {
+        .press-table .thead > div {
+          flex-basis: calc(33.333% - 4px);
+        }
+
+        .press-table .press-contact-row {
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+          column-gap: 16px;
+        }
+
+        .press-table .press-contact-row [data-press-field] {
+          grid-column: auto;
+        }
+
+        .press-table .press-contact-row [data-press-field="name"],
+        .press-table .press-contact-row [data-press-field="source"] {
+          grid-column: 1 / -1;
+        }
+      }
+
+      @media (max-width: 520px) {
+        .press-table .thead > div[data-press-column="contactType"] .column-head__label {
+          font-size: 0;
+        }
+
+        .press-table .thead > div[data-press-column="contactType"] .column-head__label::after {
+          content: "Typ";
+          font-size: 0.7rem;
+        }
+      }
+
+      @media (max-width: 360px) {
+        .app-shell[data-active-view="press"] .press-page-header {
+          grid-template-columns: minmax(0, 1fr) minmax(120px, 40vw);
+        }
+
+        .press-page-header__mark {
+          display: none;
+        }
+
+        .press-page-header__title {
+          grid-column: 1;
+          font-size: 1rem;
+        }
+
+        .press-page-header__brand {
+          grid-column: 2;
+        }
+
+        .press-page-header__count {
+          grid-column: 1 / -1;
         }
       }

@@ -407,6 +407,22 @@
             <h2 id="workspace-view-title">Kontakte</h2>
             <p id="workspace-view-subtitle">Willkommen im Versorgungs-Kompass</p>
           </div>
+          <header class="press-page-header" id="press-page-header" aria-labelledby="press-page-title">
+            <div class="politics-context__mark press-page-header__mark" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9">
+                <path d="M4 5h14a2 2 0 0 1 2 2v12H6a2 2 0 0 1-2-2V5Z"></path>
+                <path d="M8 9h4M8 13h8M8 17h6"></path>
+                <path d="M20 9h-2v8a2 2 0 0 0 2 2"></path>
+              </svg>
+            </div>
+            <h2 class="press-page-header__title" id="press-page-title">Pressekontakte</h2>
+            <span class="politics-status-pill press-page-header__count" id="press-contact-count">Kontakte werden geladen</span>
+            <img
+              class="press-page-header__brand"
+              src="../../public/brand/modules/stakeholder/lockup-horizontal.svg"
+              alt="Stakeholder-Kompass"
+            />
+          </header>
           <div class="workspace-expert-switcher" id="analytics-mode-actions" hidden>
             <div class="settings-tab-nav experts-mode-nav experts-mode-nav--header" role="tablist" aria-label="Auswertung">
               <button class="settings-tab-button is-active" type="button" role="tab" data-analytics-mode="analytics" aria-selected="true" aria-controls="view-analytics">
@@ -1043,25 +1059,6 @@
 
           <section class="view-panel" id="view-press" data-view-panel="press">
             <div class="view-card politics-workspace press-workspace">
-              <header class="politics-context press-context">
-                <div class="politics-context__mark press-context__mark" aria-hidden="true">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9">
-                    <path d="M4 5h14a2 2 0 0 1 2 2v12H6a2 2 0 0 1-2-2V5Z"></path>
-                    <path d="M8 9h4M8 13h8M8 17h6"></path>
-                    <path d="M20 9h-2v8a2 2 0 0 0 2 2"></path>
-                  </svg>
-                </div>
-                <div class="politics-context__copy">
-                  <span class="politics-context__eyebrow">Gesundheitswesen</span>
-                  <h3>Pressekontakte</h3>
-                  <p>Pressesprecher:innen, Redaktionsleitungen und Fachredakteur:innen für Digital Health, Gesundheitssystem und gematik.</p>
-                </div>
-                <div class="politics-context__meta">
-                  <span class="politics-status-pill" id="press-contact-count">Kontakte werden geladen</span>
-                  <span class="press-context__source">Berufliche Kontaktdaten aus öffentlich ausgewiesenen Quellen</span>
-                </div>
-              </header>
-
               <div class="politics-data-notice press-data-notice" id="press-data-notice" role="status" aria-live="polite" hidden></div>
 
               <div class="table-wrap politics-table-wrap press-table-wrap" id="press-table-wrap">

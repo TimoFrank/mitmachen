@@ -146,6 +146,7 @@ for (const required of [
   "public/brand/modules/formate/mark.svg",
   "public/brand/modules/hospitation/mark-on-dark.svg",
   "public/brand/modules/hospitation/mark.svg",
+  "public/brand/modules/stakeholder/lockup-horizontal.svg",
   "public/brand/modules/stakeholder/mark-on-dark.svg",
   "public/brand/modules/stakeholder/mark.svg",
   "public/brand/versorgungs-kompass/mark-on-dark.svg",
