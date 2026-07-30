@@ -32,6 +32,7 @@ assert.equal(roleRank("unknown"), 0);
 for (const [method, pathname, expectedRole, expectedId] of [
   ["GET", "/healthz", "public", "health"],
   ["GET", "/api/contacts", "viewer", "collection.read"],
+  ["GET", "/api/politics/health-committee", "viewer", "politics.health-committee.read"],
   ["POST", "/api/contacts", "editor", "test-object.create"],
   ["GET", "/api/export", "admin", "data.export"],
   ["POST", "/api/stakeholder-import", "admin", "bulk.import"],
@@ -54,6 +55,7 @@ for (const [method, pathname, expectedRole] of [
   ["GET", "/api/contact-content-search", "viewer"],
   ["GET", "/api/contact-notes", "viewer"],
   ["GET", "/api/contact-note-attachments", "viewer"],
+  ["GET", "/api/politics/health-committee", "viewer"],
   ["GET", "/api/contact-note-attachments/attachment-1/content", "viewer"],
   ["GET", "/api/organizations/organization-1", "viewer"],
   ["GET", "/api/formats/format-1", "viewer"],

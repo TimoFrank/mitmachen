@@ -62,6 +62,7 @@ Alle Antworten sind JSON. Listen liefern `{ "items": [...] }`.
 | `DELETE` | `/api/profile/avatar` | Profilbild-Dateien entfernen und `avatar_url` leeren |
 | `GET` | `/api/profile-avatar/:id` | Profilbild über API aus privatem Object Storage ausliefern |
 | `GET` | `/api/stakeholder-logos/:id` | Stakeholder-Logo nach IAP-, Rollen-, Pfad-, MIME- und Inhaltsprüfung aus privatem Object Storage ausliefern |
+| `GET` | `/api/politics/health-committee` | Aktuelle ordentliche Mitglieder des Gesundheitsausschusses aus der festen offiziellen Bundestag-Quelle laden; mindestens Rolle `viewer` |
 | `GET` | `/api/saved-views` | Gespeicherte Ansichten laden |
 | `POST` | `/api/saved-views` | Gespeicherte Ansicht anlegen |
 | `PATCH` | `/api/saved-views/:id` | Gespeicherte Ansicht aktualisieren |
@@ -92,6 +93,12 @@ Alle Antworten sind JSON. Listen liefern `{ "items": [...] }`.
 | `PUT` | `/api/hospitations/:id/observations/sync` | Beobachtungen eines Quellformulars per stabiler ID upserten und entfernte Objekte archivieren |
 | `POST` | `/api/admin/hospitation-import/preview` | Schreibfreie Vorschau eines lokalen Hospitations-Staging-Manifests; nur `admin` |
 | `POST` | `/api/admin/hospitation-import/apply` | Exakt bestätigte und erneut geprüfte Vorschau transaktional übernehmen; nur `admin` |
+
+### Politik und Bundestag-Quelle
+
+`GET /api/politics/health-committee` ruft ausschließlich den fest konfigurierten HTTPS-Endpunkt des Deutschen Bundestages auf. Der Browser kann keine Zieladresse vorgeben. Die API akzeptiert nur ordentliche Mitglieder, erlaubte Fraktionswerte, numerische Bundestag-IDs und kanonische Profil-URLs unter `www.bundestag.de`. Der offizielle Mitgliederzähler muss exakt mit den gelesenen Karten übereinstimmen; abweichende oder zu große Antworten, Redirects, ungültige Inhalte und Zeitüberschreitungen werden fail-closed abgewiesen.
+
+Ein erfolgreicher Stand wird sechs Stunden im API-Prozess zwischengespeichert. Bei einem späteren Ausfall darf der letzte validierte Stand höchstens 24 Stunden nach seinem Abruf mit `stale: true` ausgeliefert werden; danach endet der Abruf fail-closed. Die Antwort enthält Ausschuss, Wahlperiode, Mitgliedschaftsart, offizielle Quellen-URL, Abrufzeit, Mitgliederzahl und die validierten Felder `id`, `name`, `party`, `role` und `profileUrl`. Die öffentliche Pages-Demo ersetzt diesen Abruf durch `{ "available": false, "demo": true, "members": [] }` und enthält damit keine realen Personendaten.
 
 ### Schreibvertrag für Formate und Teilnehmer
 

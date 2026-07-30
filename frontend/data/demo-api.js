@@ -812,6 +812,19 @@
       state.userSettings = { ...state.userSettings, ...body, userId: state.currentProfileId, updatedAt: new Date().toISOString() };
       return json(state.userSettings);
     }
+    if (method === "GET" && path === "/api/politics/health-committee") {
+      return json({
+        available: false,
+        demo: true,
+        committee: "Ausschuss für Gesundheit",
+        parliamentaryTerm: "21. Wahlperiode",
+        membership: "Ordentliche Mitglieder",
+        sourceUrl: "https://www.bundestag.de/ausschuesse/gesundheit",
+        fetchedAt: null,
+        memberCount: 0,
+        members: []
+      });
+    }
 
     if (path === "/api/network-registrations" && method === "GET") {
       const status = url.searchParams.get("status") || "";

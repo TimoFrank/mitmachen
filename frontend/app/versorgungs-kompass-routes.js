@@ -15,6 +15,7 @@
     ["quality", "versorgung/datenqualitaet"],
     ["activities", "versorgung/aktivitaeten"],
     ["patients", "stakeholder/patienten"],
+    ["politics", "stakeholder/politik"],
     ["stakeholders", "stakeholder"],
     ["stakeholders/kv", "stakeholder/kassenaerztliche-vereinigungen"],
     ["stakeholders/krankenkassen", "stakeholder/krankenkassen"],

@@ -32,6 +32,7 @@ const STATIC_API_PATHS = new Set([
   "/api/profile",
   "/api/profile/avatar",
   "/api/profiles",
+  "/api/politics/health-committee",
   "/api/roadmap-items",
   "/api/saved-views",
   "/api/session",

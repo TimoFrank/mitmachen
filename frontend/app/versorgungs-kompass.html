@@ -127,6 +127,14 @@
                 </svg>
                 <span>Patienten</span>
               </button>
+              <button class="primary-tab" type="button" data-view-tab="politics" title="Politik">
+                <svg viewBox="0 0 24 24" fill="none" stroke-width="2" aria-hidden="true">
+                  <path d="M3 9h18"></path>
+                  <path d="M5 9v9M9.5 9v9M14.5 9v9M19 9v9"></path>
+                  <path d="M2 21h20M12 3 3 7v2h18V7l-9-4Z"></path>
+                </svg>
+                <span>Politik</span>
+              </button>
               <div class="sidebar-subnav" role="group" aria-label="Stakeholder-Organisationen">
                 <span class="sidebar-subnav__label">Organisationen</span>
                 <button class="primary-tab primary-tab--nested" type="button" data-view-tab="stakeholders" data-stakeholder-type-route="kv" title="Kassenärztliche Vereinigungen">
@@ -934,6 +942,64 @@
                     </select>
                   </label>
                 </div>
+              </div>
+            </div>
+          </section>
+
+          <section class="view-panel" id="view-politics" data-view-panel="politics">
+            <div class="view-card politics-workspace">
+              <header class="politics-context">
+                <div class="politics-context__mark" aria-hidden="true">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9">
+                    <path d="M3 9h18"></path>
+                    <path d="M5 9v9M9.5 9v9M14.5 9v9M19 9v9"></path>
+                    <path d="M2 21h20M12 3 3 7v2h18V7l-9-4Z"></path>
+                  </svg>
+                </div>
+                <div class="politics-context__copy">
+                  <span class="politics-context__eyebrow">Deutscher Bundestag</span>
+                  <h3>Ausschuss für Gesundheit</h3>
+                  <p>Ordentliche Mitglieder der 21. Wahlperiode, direkt aus der offiziellen Ausschussübersicht.</p>
+                </div>
+                <div class="politics-context__meta">
+                  <span class="politics-status-pill" id="politics-member-count">Mitglieder werden geladen</span>
+                  <a
+                    class="politics-source-link"
+                    id="politics-committee-source"
+                    href="https://www.bundestag.de/ausschuesse/gesundheit/"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    Quelle öffnen
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                      <path d="M14 5h5v5M10 14 19 5"></path>
+                      <path d="M19 13v6H5V5h6"></path>
+                    </svg>
+                  </a>
+                </div>
+              </header>
+
+              <div class="politics-data-notice" id="politics-data-notice" role="status" aria-live="polite" hidden></div>
+
+              <div class="table-wrap politics-table-wrap" id="politics-table-wrap">
+                <section class="table politics-table">
+                  <div class="semantic-table" data-semantic-table aria-label="Mitglieder des Ausschusses für Gesundheit">
+                    <div class="thead">
+                      <div>Mitglied</div>
+                      <div>Fraktion</div>
+                      <div>Funktion</div>
+                      <div>Bundestag</div>
+                    </div>
+                    <div id="politics-member-list" aria-live="polite">
+                      <div class="politics-loading-state">Ausschussmitglieder werden geladen …</div>
+                    </div>
+                  </div>
+                </section>
+              </div>
+
+              <div class="table-footer politics-table-footer">
+                <div class="table-footer__meta" id="politics-results-meta">Mitglieder werden geladen</div>
+                <div class="politics-source-meta" id="politics-source-meta">Offizielle Quelle: Deutscher Bundestag</div>
               </div>
             </div>
           </section>

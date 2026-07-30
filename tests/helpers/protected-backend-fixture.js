@@ -107,6 +107,53 @@ function syntheticRegistrations() {
   ];
 }
 
+function syntheticHealthCommittee() {
+  const factionCounts = [
+    ["CDU/CSU", 13],
+    ["AfD", 9],
+    ["SPD", 7],
+    ["Bündnis 90/Die Grünen", 5],
+    ["Die Linke", 4]
+  ];
+  let memberNumber = 0;
+  const members = factionCounts.flatMap(([party, count]) =>
+    Array.from({ length: count }, () => {
+      memberNumber += 1;
+      const number = String(memberNumber).padStart(2, "0");
+      return {
+        id: `demo-health-committee-member-${number}`,
+        name: `Demo-Ausschussmitglied ${number}`,
+        party,
+        faction: party,
+        role: memberNumber === 1
+          ? "Vorsitz"
+          : memberNumber === 2
+            ? "Stellvertretender Vorsitz"
+            : "Ordentliches Mitglied",
+        function: memberNumber === 1
+          ? "Vorsitz"
+          : memberNumber === 2
+            ? "Stellvertretender Vorsitz"
+            : "Ordentliches Mitglied",
+        profileUrl: `https://www.bundestag.de/abgeordnete/biografien/demo-ausschussmitglied-${number}`
+      };
+    })
+  );
+  return {
+    available: true,
+    demo: false,
+    synthetic: true,
+    committee: "Ausschuss für Gesundheit",
+    parliamentaryTerm: "21. Wahlperiode",
+    membership: "Ordentliche Mitglieder",
+    sourceUrl: "https://www.bundestag.de/ausschuesse/gesundheit",
+    sourceEndpoint: "https://www.bundestag.de/ajax/member/de/ausschuesse/gesundheit/1065646-1065646",
+    fetchedAt: NOW,
+    memberCount: members.length,
+    members
+  };
+}
+
 function protectedDomainFixture() {
   const stakeholderTypes = [
     ["kv", "Kassenärztliche Vereinigungen"],
@@ -250,6 +297,7 @@ export function createProtectedBackendFixture({ role = "admin", fixtureScript = 
     stakeholderTypes: clone(window.VERSORGUNGS_COMPASS_STAKEHOLDER_TYPES || demo.stakeholderTypes || protectedDomain.stakeholderTypes || []),
     stakeholderOrganizations,
     stakeholderPeople,
+    healthCommittee: syntheticHealthCommittee(),
     savedViews: clone(demo.savedViews || []),
     userSettings: clone(demo.userSettings || {
       userId: currentProfile.id,
@@ -543,6 +591,10 @@ export async function installProtectedBackend(page, fixture) {
     if (method === "PUT" && path === "/api/user-settings") {
       fixture.userSettings = { ...(fixture.userSettings || {}), ...body, userId: fixture.currentProfileId, updatedAt: NOW };
       await fulfillJson(route, fixture.userSettings);
+      return;
+    }
+    if (method === "GET" && path === "/api/politics/health-committee") {
+      await fulfillJson(route, clone(fixture.healthCommittee));
       return;
     }
     if (method === "GET" && path === "/api/notifications") {

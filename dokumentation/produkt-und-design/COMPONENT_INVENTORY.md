@@ -1,6 +1,6 @@
 # Component Inventory
 
-Stand: 2026-07-21. Analysebasis sind die aktuellen HTML-Einstiegspunkte mit ihren externen CSS-/JS-Assets unter `frontend/app/`, `frontend/map/`, `frontend/login/` und `frontend/pages/mitmachen/`. Generierte `dist/`-Artefakte dürfen nicht als führende Quelle für neue UI-Entscheidungen dienen.
+Stand: 2026-07-30. Analysebasis sind die aktuellen HTML-Einstiegspunkte mit ihren externen CSS-/JS-Assets unter `frontend/app/`, `frontend/map/`, `frontend/login/` und `frontend/pages/mitmachen/`. Generierte `dist/`-Artefakte dürfen nicht als führende Quelle für neue UI-Entscheidungen dienen.
 
 ## Buttons
 
@@ -38,6 +38,7 @@ Stand: 2026-07-21. Analysebasis sind die aktuellen HTML-Einstiegspunkte mit ihre
 
 - Kontaktliste: `.contacts-table`, `.thead`, `.row`, dynamisches Grid via `--contacts-grid-template`.
 - Organisationen: `.organizations-table`, ähnlicher Tabellenaufbau.
+- Politik: `.politics-table` nutzt dasselbe semantische Grid-Muster für die quellengestützte Leseliste des Gesundheitsausschusses. `.politics-party-chip` bleibt parteipolitisch neutral; auf kleinen Viewports werden Zeilen zu kompakten Lesekarten ohne horizontales Scrollen.
 - Import: `.import-preview-table`, `.import-review-table`, `.import-map-table`, `.import-entry-table`.
 - Care Workbench: `.care-workbench-table`.
 - Befund: Kontakt-/Organisationstabellen sind div-basierte Grids, Import/Care echte Tabellen. Beide Muster sind legitim, brauchen aber gleiche Headerhöhe, Zellpadding, Hover, Active-State, Checkbox- und Aktionsspalte.

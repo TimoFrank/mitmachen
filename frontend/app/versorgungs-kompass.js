@@ -1055,6 +1055,13 @@
       const stakeholderPageSizeSelect = document.getElementById("stakeholders-page-size-select");
       const stakeholderTypeActions = document.getElementById("stakeholder-type-actions");
       const stakeholderTables = [...document.querySelectorAll("[data-stakeholder-table]")];
+      const politicsMemberList = document.getElementById("politics-member-list");
+      const politicsMemberCount = document.getElementById("politics-member-count");
+      const politicsDataNotice = document.getElementById("politics-data-notice");
+      const politicsTableWrap = document.getElementById("politics-table-wrap");
+      const politicsResultsMeta = document.getElementById("politics-results-meta");
+      const politicsSourceMeta = document.getElementById("politics-source-meta");
+      const politicsCommitteeSource = document.getElementById("politics-committee-source");
       const contactsTable = document.querySelector(".contacts-table");
       const contactsTableHead = document.getElementById("contacts-table-head");
       const bulkToolbar = document.getElementById("bulk-toolbar");
@@ -2022,7 +2029,7 @@
             ? organizationProfileParentView()
             : view;
         if (["map", "contacts", "organizations", "activities", "analytics", "quality", "onboarding"].includes(normalizedView)) return "care";
-        if (["patients", "experts", "stakeholders"].includes(normalizedView)) return "stakeholders";
+        if (["patients", "politics", "experts", "stakeholders"].includes(normalizedView)) return "stakeholders";
         if (["framework", "hospitations", "questionnaire"].includes(normalizedView)) return "planning";
         if (normalizedView === "formats") return "formats";
         return "";
@@ -5319,6 +5326,18 @@
       let stakeholderTypes = [];
       let stakeholderOrganizations = [];
       let stakeholderPeople = [];
+      let politicsCommittee = {
+        available: true,
+        committee: "Ausschuss für Gesundheit",
+        parliamentaryTerm: "21. Wahlperiode",
+        membership: "Ordentliche Mitglieder",
+        sourceUrl: "https://www.bundestag.de/ausschuesse/gesundheit/",
+        fetchedAt: "",
+        memberCount: 0,
+        members: []
+      };
+      let politicsDataState = "loading";
+      let politicsDataErrorMessage = "";
       let isInitialDataLoading = true;
       let initialDataLoadingSlow = false;
       let organizationLogoMapCache = null;
@@ -5335,6 +5354,7 @@
         notifications: { title: "Benachrichtigungen", subtitle: "Persönliche Änderungen und neue Produktinformationen." },
         experts: { title: "Expertenkreis", subtitle: "Interoperabilitätskontakte und Organisationen getrennt vom Versorgungsdatenbestand." },
         patients: { title: "Patienten", subtitle: "Personen und Organisationen nach Indikation." },
+        politics: { title: "Politik", subtitle: "Mitglieder des Ausschusses für Gesundheit im Deutschen Bundestag." },
         stakeholders: { title: "Stakeholder", subtitle: "Stakeholder-Organisationen, Kontakte und Kartenbezug." },
         framework: { title: "Framework", subtitle: "Überblick über Beobachtungen, Muster, Hypothesen und nächste Schritte." },
         formats: { title: "Formate", subtitle: "Einladungslisten für Roundtables, Fachgespräche und Veranstaltungen planen." },
@@ -12739,6 +12759,7 @@
 
       function hitCountLabel(items) {
         if (isDuplicateMode()) return `${items.length} von ${expertMatchCandidatesByType(activeDuplicateLinkType()).length} Dubletten`;
+        if (activeView === "politics") return `${items.length} von ${politicsCommittee.members.length} Mitgliedern`;
         if (activeView === "organizations") return `${items.length} von ${organizations.length} Organisationen`;
         if (activeView === "experts") {
           if (activeExpertMode === "organizations") return `${items.length} von ${expertOrganizations.length} Organisationen`;
@@ -14369,6 +14390,11 @@
         }
 
         if (activeView === "patients") {
+          if (summaryGrid) summaryGrid.innerHTML = "";
+          return;
+        }
+
+        if (activeView === "politics") {
           if (summaryGrid) summaryGrid.innerHTML = "";
           return;
         }
@@ -29042,6 +29068,203 @@
           .replace(/'/g, "&#039;");
       }
 
+      const politicsAllowedFactions = new Set([
+        "CDU/CSU",
+        "AfD",
+        "SPD",
+        "Bündnis 90/Die Grünen",
+        "Die Linke"
+      ]);
+
+      function officialBundestagUrl(value, kind = "source") {
+        const candidate = String(value || "").trim();
+        if (!candidate || /[\u0000-\u001f\u007f]/.test(candidate)) return "";
+        try {
+          const parsed = new URL(candidate);
+          if (parsed.protocol !== "https:" || parsed.hostname !== "www.bundestag.de" || parsed.username || parsed.password) return "";
+          const allowedPath = kind === "profile"
+            ? /^\/abgeordnete\/biografien\/[^?#]+$/i.test(parsed.pathname)
+            : /^\/ausschuesse\/gesundheit(?:\/|$)/i.test(parsed.pathname);
+          if (!allowedPath) return "";
+          parsed.hash = "";
+          return parsed.href;
+        } catch (_error) {
+          return "";
+        }
+      }
+
+      function sanitizePoliticsMember(entry = {}, index = 0) {
+        const name = String(entry.name || "").trim().replace(/\s+/g, " ").slice(0, 160);
+        const faction = String(entry.faction || entry.party || "").trim();
+        const idCandidate = String(entry.id || "").trim();
+        const profileUrl = officialBundestagUrl(entry.profileUrl || entry.profile_url || entry.url, "profile");
+        if (!name || !politicsAllowedFactions.has(faction) || !profileUrl) return null;
+        return {
+          id: /^[A-Za-z0-9][A-Za-z0-9._:-]{0,79}$/.test(idCandidate)
+            ? idCandidate
+            : `bundestag-member-${String(index + 1).padStart(2, "0")}`,
+          name,
+          faction,
+          role: String(entry.role || entry.function || "Ordentliches Mitglied").trim().replace(/\s+/g, " ").slice(0, 180) || "Ordentliches Mitglied",
+          profileUrl
+        };
+      }
+
+      function sanitizePoliticsCommitteePayload(payload = {}) {
+        const available = payload.available !== false;
+        const sourceUrl = officialBundestagUrl(payload.sourceUrl || payload.source_url || "https://www.bundestag.de/ausschuesse/gesundheit/")
+          || "https://www.bundestag.de/ausschuesse/gesundheit/";
+        const memberIds = new Set();
+        const members = (Array.isArray(payload.members) ? payload.members : [])
+          .map((entry, index) => sanitizePoliticsMember(entry, index))
+          .filter((member) => {
+            if (!member || memberIds.has(member.id)) return false;
+            memberIds.add(member.id);
+            return true;
+          });
+        return {
+          available,
+          demo: payload.demo === true,
+          committee: String(payload.committee || "Ausschuss für Gesundheit").trim().slice(0, 160) || "Ausschuss für Gesundheit",
+          parliamentaryTerm: String(payload.parliamentaryTerm || payload.parliamentary_term || "21. Wahlperiode").trim().slice(0, 80) || "21. Wahlperiode",
+          membership: String(payload.membership || "Ordentliche Mitglieder").trim().slice(0, 100) || "Ordentliche Mitglieder",
+          sourceUrl,
+          fetchedAt: String(payload.fetchedAt || payload.fetched_at || "").trim(),
+          memberCount: members.length,
+          stale: payload.stale === true,
+          members
+        };
+      }
+
+      function politicsSearchValue(value) {
+        return String(value || "")
+          .normalize("NFD")
+          .replace(/[\u0300-\u036f]/g, "")
+          .toLowerCase()
+          .replace(/\s+/g, " ")
+          .trim();
+      }
+
+      function filteredPoliticsMembers() {
+        if (politicsDataState !== "ready" || !politicsCommittee.available) return [];
+        const query = politicsSearchValue(searchInput?.value);
+        if (!query) return politicsCommittee.members;
+        return politicsCommittee.members.filter((member) =>
+          politicsSearchValue([member.name, member.faction, member.role].join(" ")).includes(query)
+        );
+      }
+
+      function politicsMemberInitials(name = "") {
+        const parts = String(name || "")
+          .replace(/\b(?:Dr|Prof|med|rer|nat|phil|jur|Dipl)\b\.?/gi, " ")
+          .split(/\s+/)
+          .map((part) => part.replace(/[^\p{L}\p{N}-]/gu, ""))
+          .filter(Boolean);
+        return (parts.length > 1 ? `${parts[0][0]}${parts.at(-1)[0]}` : parts[0]?.slice(0, 2) || "BT").toUpperCase();
+      }
+
+      function politicsFetchedAtLabel(value = "") {
+        const parsed = new Date(value);
+        if (!value || Number.isNaN(parsed.getTime())) return "";
+        return new Intl.DateTimeFormat("de-DE", {
+          dateStyle: "medium",
+          timeStyle: "short",
+          timeZone: "Europe/Berlin"
+        }).format(parsed);
+      }
+
+      function setPoliticsNotice(message = "", tone = "info") {
+        if (!politicsDataNotice) return;
+        politicsDataNotice.hidden = !message;
+        politicsDataNotice.dataset.tone = tone;
+        politicsDataNotice.textContent = message;
+      }
+
+      function renderPoliticsView(items = filteredPoliticsMembers()) {
+        if (!politicsMemberList || !politicsTableWrap || !politicsResultsMeta || !politicsMemberCount) return;
+        if (politicsCommitteeSource) politicsCommitteeSource.href = politicsCommittee.sourceUrl;
+
+        if (politicsDataState === "loading") {
+          politicsTableWrap.hidden = false;
+          setPoliticsNotice();
+          politicsMemberCount.textContent = "Mitglieder werden geladen";
+          politicsMemberList.innerHTML = `<div class="politics-loading-state">Ausschussmitglieder werden geladen …</div>`;
+          politicsResultsMeta.textContent = "Mitglieder werden geladen";
+          if (politicsSourceMeta) politicsSourceMeta.textContent = "Offizielle Quelle: Deutscher Bundestag";
+          return;
+        }
+
+        if (politicsDataState === "unavailable") {
+          politicsTableWrap.hidden = true;
+          politicsMemberCount.textContent = "Geschützte Ansicht";
+          politicsResultsMeta.textContent = "Keine realen Personendaten in der öffentlichen Demo";
+          if (politicsSourceMeta) politicsSourceMeta.textContent = "Offizielle Quelle: Deutscher Bundestag";
+          setPoliticsNotice(
+            "In der öffentlichen Demo werden keine realen Personendaten angezeigt. Die aktuelle Ausschussbesetzung steht in der geschützten Anwendung zur Verfügung.",
+            "info"
+          );
+          return;
+        }
+
+        if (politicsDataState === "error") {
+          politicsTableWrap.hidden = true;
+          politicsMemberCount.textContent = "Quelle nicht erreichbar";
+          politicsResultsMeta.textContent = "Ausschussliste derzeit nicht verfügbar";
+          if (politicsSourceMeta) politicsSourceMeta.textContent = "Offizielle Quelle: Deutscher Bundestag";
+          setPoliticsNotice(
+            politicsDataErrorMessage || "Die offizielle Ausschussliste konnte gerade nicht geladen werden. Bitte versuche es später erneut.",
+            "error"
+          );
+          return;
+        }
+
+        politicsTableWrap.hidden = false;
+        setPoliticsNotice();
+        const total = politicsCommittee.members.length;
+        politicsMemberCount.textContent = `${total} ordentliche Mitglieder`;
+        politicsResultsMeta.textContent = items.length === total
+          ? `${total} ordentliche Mitglieder`
+          : `${items.length} von ${total} Mitgliedern`;
+        const fetchedAt = politicsFetchedAtLabel(politicsCommittee.fetchedAt);
+        if (politicsSourceMeta) {
+          politicsSourceMeta.textContent = politicsCommittee.stale
+            ? `Zwischengespeicherter Stand${fetchedAt ? ` vom ${fetchedAt}` : ""}`
+            : `Offizielle Quelle${fetchedAt ? ` · abgerufen am ${fetchedAt}` : ": Deutscher Bundestag"}`;
+        }
+
+        if (!items.length) {
+          politicsMemberList.innerHTML = `<div class="empty">Keine Ausschussmitglieder passen zur aktuellen Suche.</div>`;
+          return;
+        }
+
+        politicsMemberList.innerHTML = items.map((member) => `
+          <article class="row politics-member-row" data-politics-member-id="${escapeHtml(member.id)}">
+            <div class="politics-member-cell" data-politics-field="member">
+              <span class="avatar avatar-sm avatar-fallback avatar--policy" aria-hidden="true">${escapeHtml(politicsMemberInitials(member.name))}</span>
+              <span class="politics-member-copy">
+                <strong>${escapeHtml(member.name)}</strong>
+                <small>Mitglied des Deutschen Bundestages</small>
+              </span>
+            </div>
+            <div data-politics-field="faction">
+              <span class="politics-party-chip">${escapeHtml(member.faction)}</span>
+            </div>
+            <div data-politics-field="role">
+              <span class="politics-role">${escapeHtml(member.role)}</span>
+            </div>
+            <div data-politics-field="profile">
+              <a class="politics-profile-link" href="${escapeHtml(member.profileUrl)}" target="_blank" rel="noopener noreferrer">
+                Profil
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                  <path d="M14 5h5v5M10 14 19 5"></path>
+                  <path d="M19 13v6H5V5h6"></path>
+                </svg>
+              </a>
+            </div>
+          </article>
+        `).join("");
+      }
+
       function safeImageUrl(value) {
         const candidate = String(value || "").trim();
         if (!candidate || /[\u0000-\u001f\u007f]/.test(candidate)) return "";
@@ -37510,6 +37733,7 @@
         const isNotificationsView = isNotificationsWorkspaceActive();
         const isExpertsView = activeView === "experts";
         const isPatientsView = activeView === "patients";
+        const isPoliticsView = activeView === "politics";
         if (isPatientsView && !["people", "organizations", "indications"].includes(activePatientMode)) activePatientMode = "indications";
         const isPatientOrganizationsMode = isPatientsView && activePatientMode === "organizations";
         const isPatientPeopleMode = isPatientsView && activePatientMode === "people";
@@ -37556,6 +37780,8 @@
             ? activities
           : isNotificationsView
             ? notifications
+          : isPoliticsView
+            ? filteredPoliticsMembers()
           : isProfileRecordView
             ? []
           : isOrganizationsView
@@ -37588,6 +37814,8 @@
             ? "Expertenkreis suchen..."
           : isStakeholdersView
             ? stakeholderTypeConfig().organizationSearchPlaceholder
+          : isPoliticsView
+            ? "Ausschussmitglieder nach Name, Fraktion oder Funktion suchen..."
           : isFormatsView
             ? "Formate suchen..."
           : isFrameworkView
@@ -37608,7 +37836,7 @@
         const isHospitationDashboardTab = isHospitationsView && activeHospitationTab === "dashboard";
         const isHospitationCommandHiddenTab = isHospitationsView && ["dashboard", "observations", "patterns"].includes(activeHospitationTab);
         const isHospitationHeaderSearchVisible = hospitationHeaderSearchVisible(activeHospitationTab);
-        const searchHidden = isHomeView || activeView === "analytics" || activeView === "quality" || isNotificationsView || isProfileRecordView || isFrameworkView || isQuestionnaireView || (isHospitationsView ? !isHospitationHeaderSearchVisible : false);
+        const searchHidden = isHomeView || activeView === "analytics" || activeView === "quality" || isNotificationsView || isProfileRecordView || isFrameworkView || isQuestionnaireView || (isPoliticsView && politicsDataState !== "ready") || (isHospitationsView ? !isHospitationHeaderSearchVisible : false);
         if (searchShell) {
           if (expertHeaderSearch) expertHeaderSearch.hidden = true;
           if (stakeholderHeaderSearch) stakeholderHeaderSearch.hidden = true;
@@ -37630,7 +37858,7 @@
           hospitationHeaderSearchToggle.setAttribute("aria-expanded", isHospitationHeaderSearchVisible ? "true" : "false");
         }
         syncSearchClearButton();
-        if (controlsRoot) controlsRoot.hidden = isHomeView || isHospitationsView || isFrameworkView || isQuestionnaireView;
+        if (controlsRoot) controlsRoot.hidden = isHomeView || isHospitationsView || isFrameworkView || isQuestionnaireView || (isPoliticsView && politicsDataState !== "ready");
         newContactButton.hidden = !isContactsView;
         newOrganizationButton.hidden = !isOrganizationsView;
         if (contactMatchingWorklistButton) contactMatchingWorklistButton.hidden = !isContactsView;
@@ -37669,11 +37897,11 @@
         if (organizationsTable) organizationsTable.hidden = isOrganizationsDuplicatesMode;
         if (organizationDuplicatesWorkspace) organizationDuplicatesWorkspace.hidden = !isOrganizationsDuplicatesMode;
         columnMenuShell.hidden = !(isContactsView || isOrganizationsView || isExpertsView || isPatientsView) || isAnyDuplicateMode || isPatientIndicationsMode;
-        if (viewSelectShell) viewSelectShell.hidden = isHomeView || isExpertsView || isPatientsView || isHospitationsView || isFrameworkView || isQuestionnaireView || isStakeholdersView || isActivitiesView || isNotificationsView || isCareDuplicatesMode || isProfileRecordView;
+        if (viewSelectShell) viewSelectShell.hidden = isHomeView || isExpertsView || isPatientsView || isPoliticsView || isHospitationsView || isFrameworkView || isQuestionnaireView || isStakeholdersView || isActivitiesView || isNotificationsView || isCareDuplicatesMode || isProfileRecordView;
         filterPanel.querySelector('[data-filter-field="category"] summary').textContent = isPatientsView ? "Indikation" : isExpertsView ? "Gruppe" : "Sektor";
-        if (filterToolbar) filterToolbar.hidden = isHomeView || isFormatsView || isHospitationsView || isFrameworkView || isQuestionnaireView || isStakeholdersView || isActivitiesView || isNotificationsView || isAnyDuplicateMode || isProfileRecordView || isPatientIndicationsMode;
+        if (filterToolbar) filterToolbar.hidden = isHomeView || isPoliticsView || isFormatsView || isHospitationsView || isFrameworkView || isQuestionnaireView || isStakeholdersView || isActivitiesView || isNotificationsView || isAnyDuplicateMode || isProfileRecordView || isPatientIndicationsMode;
         patientPageSizeSelect?.closest(".page-size-shell")?.toggleAttribute("hidden", isPatientIndicationsMode);
-        if (isHomeView || isHospitationsView || isFrameworkView || isQuestionnaireView || isStakeholdersView || isActivitiesView || isNotificationsView || isAnyDuplicateMode || isProfileRecordView || isPatientIndicationsMode) setFilterPanelOpen(false);
+        if (isHomeView || isPoliticsView || isHospitationsView || isFrameworkView || isQuestionnaireView || isStakeholdersView || isActivitiesView || isNotificationsView || isAnyDuplicateMode || isProfileRecordView || isPatientIndicationsMode) setFilterPanelOpen(false);
         if (columnMenuShell) {
           if (isOrganizationsView) organizationColumnActions?.append(filterToolbar, viewSelectShell, columnMenuShell);
           else if (isPatientsView) patientColumnActions?.append(filterToolbar, viewSelectShell, columnMenuShell);
@@ -37705,6 +37933,8 @@
           else renderPatientPeopleTable(items);
         } else if (isStakeholdersView) {
           renderStakeholderCurrent();
+        } else if (isPoliticsView) {
+          renderPoliticsView(items);
         } else if (isContactsDuplicatesMode) {
           renderCareDuplicateTable("contacts", items);
         } else if (isContactsView) {
@@ -37723,7 +37953,7 @@
           renderOrganizationProfilePage();
         }
         renderDashboard(filteredContacts());
-        if (!isHomeView && !isFormatsView && !isHospitationsView && !isFrameworkView && !isQuestionnaireView && !isStakeholdersView && !isActivitiesView && !isNotificationsView && !isAnyDuplicateMode && !isProfileRecordView) {
+        if (!isHomeView && !isPoliticsView && !isFormatsView && !isHospitationsView && !isFrameworkView && !isQuestionnaireView && !isStakeholdersView && !isActivitiesView && !isNotificationsView && !isAnyDuplicateMode && !isProfileRecordView) {
           renderActiveFilters();
           renderFilterPanel();
         }
@@ -37734,7 +37964,7 @@
         renderAboutApp();
         renderNotificationCounts();
 
-        if (!isOrganizationsView && !isFormatsView && !isHospitationsView && !isFrameworkView && !isQuestionnaireView && !isExpertsView && !isProfileRecordView && activeId && !items.some((item) => item.id === activeId)) {
+        if (!isOrganizationsView && !isPoliticsView && !isFormatsView && !isHospitationsView && !isFrameworkView && !isQuestionnaireView && !isExpertsView && !isProfileRecordView && activeId && !items.some((item) => item.id === activeId)) {
           closeDetail();
           activeId = null;
         }
@@ -39829,6 +40059,37 @@
         }
       }
 
+      async function loadPoliticsData() {
+        politicsDataState = "loading";
+        politicsDataErrorMessage = "";
+        try {
+          const service = window.dataService;
+          if (!service?.loadHealthCommitteeMembers) {
+            throw new Error("Der geschützte Politik-Datendienst ist nicht verfügbar.");
+          }
+          politicsCommittee = sanitizePoliticsCommitteePayload(await service.loadHealthCommitteeMembers());
+          if (!politicsCommittee.available) {
+            politicsDataState = "unavailable";
+            return;
+          }
+          if (!politicsCommittee.members.length) {
+            throw new Error("Die offizielle Ausschussliste enthält keine verwertbaren ordentlichen Mitglieder.");
+          }
+          politicsDataState = "ready";
+        } catch (error) {
+          console.error("Die Ausschussbesetzung konnte nicht aus der offiziellen Bundestagsquelle geladen werden.", error);
+          politicsCommittee = {
+            ...politicsCommittee,
+            available: true,
+            memberCount: 0,
+            members: []
+          };
+          politicsDataErrorMessage = String(error?.message || "").trim();
+          politicsDataState = "error";
+          throw error;
+        }
+      }
+
       async function loadPatientData({ includeArchived = false } = {}) {
         try {
           const service = window.dataService;
@@ -39994,6 +40255,7 @@
               || (activeView === "personProfile" && activePersonProfile.returnTo === "patients")
               || (activeView === "organizationProfile" && activeOrganizationProfile.kind === "patient");
           }
+          if (dataKind === "politics") return activeView === "politics";
           return false;
         };
         const refreshActiveViewAfter = async (dataKind, task) => {
@@ -40010,6 +40272,7 @@
           refreshActiveViewAfter("experts", loadExpertData({ includeArchived })),
           refreshActiveViewAfter("stakeholders", loadStakeholderData({ includeArchived })),
           refreshActiveViewAfter("patients", loadPatientData({ includeArchived })),
+          refreshActiveViewAfter("politics", loadPoliticsData()),
           loadSavedViews(),
           refreshNotificationSummary()
         ]);
