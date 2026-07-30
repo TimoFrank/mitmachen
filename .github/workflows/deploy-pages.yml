@@ -227,7 +227,7 @@ jobs:
             ["Startseite", html, {
               canonical: "https://timofrank.github.io/mitmachen/",
               title: "#Mitmachen",
-              description: "Zusammenarbeit in der Versorgung – auf einen Blick.",
+              description: "Deine Plattform für Austausch, Wissen und Vernetzung.",
               image: "https://timofrank.github.io/mitmachen/public/media/social/mitmachen-share-v3.png"
             }],
             ["Versorgungs-Netzwerk", registrationHtml, {
