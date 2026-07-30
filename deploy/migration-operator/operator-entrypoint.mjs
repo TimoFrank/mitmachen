@@ -112,7 +112,7 @@ function identitySubjectRemapArguments(environment, { apply = false } = {}) {
       required(
         environment,
         "CONFIRM_IDENTITY_SUBJECT_REMAP_COUNT",
-        POSITIVE_INTEGER_PATTERN
+        NON_NEGATIVE_INTEGER_PATTERN
       )
     );
   }

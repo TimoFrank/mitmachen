@@ -454,11 +454,16 @@ const remapApplyOptions = parseArguments([
   "--confirm-subject-remap-count", "1"
 ]);
 validateExecutionConfirmations(remapApplyOptions, ordered, fingerprint);
-assertSafeFailure(() => validateExecutionConfirmations(
+validateExecutionConfirmations(
   { ...remapApplyOptions, confirmSubjectRemapCount: "0" },
   ordered,
   fingerprint
-), /positive.*Anzahl/u);
+);
+assertSafeFailure(() => validateExecutionConfirmations(
+  { ...remapApplyOptions, confirmSubjectRemapCount: "-1" },
+  ordered,
+  fingerprint
+), /nicht-negativen.*Anzahl/u);
 assertSafeFailure(() => validateExecutionConfirmations(
   { ...completeApplyOptions, confirmSubjectRemapCount: "1" },
   ordered,
@@ -870,6 +875,156 @@ assert.ok(remapClient.queries.some(({ sql }) => (
 assert.ok(remapClient.queries.some(({ sql }) => (
   sql.includes("from public.profiles")
   && sql.endsWith("for share")
+)));
+
+const remapNoopDocument = document([
+  binding("securetoken.google.com/example-project:external-subject", "profile-a", true),
+  binding("securetoken.google.com/example-project:password-guest", "profile-guest", true)
+]);
+const remapNoopFingerprint = bindingDocumentFingerprint(remapNoopDocument);
+const settledExternalBindings = [
+  {
+    ...binding("securetoken.google.com/example-project:external-subject", "profile-a", true),
+    access_scope: "standard",
+    scope_ref: null,
+    profile_role: "editor",
+    profile_active: true
+  },
+  {
+    ...binding("securetoken.google.com/example-project:password-guest", "profile-guest", true),
+    access_scope: "test_only",
+    scope_ref: "pre-gematik-external-test",
+    profile_role: "editor",
+    profile_active: true
+  }
+];
+const remapNoopProfiles = [
+  { id: "profile-a", active: true, role: "editor" },
+  { id: "profile-guest", active: true, role: "editor" }
+];
+const remapNoopPreviewClient = new MockClient({
+  profiles: remapNoopProfiles,
+  existing: settledExternalBindings,
+  privilegeState: safeSubjectRemapPrivileges
+});
+const remapNoopPreviewLogs = [];
+await executeIdentityBindingTransaction({
+  client: remapNoopPreviewClient,
+  document: remapNoopDocument,
+  fingerprint: remapNoopFingerprint,
+  apply: false,
+  allowSubjectRemaps: true,
+  expectedDatabase: "",
+  log: (line) => remapNoopPreviewLogs.push(line)
+});
+assert.ok(remapNoopPreviewClient.queries.some(({ sql }) => sql === "rollback"));
+assert.ok(!remapNoopPreviewClient.queries.some(({ sql }) => (
+  sql.startsWith("insert into public.identity_bindings")
+  || sql.startsWith("update public.identity_bindings")
+)));
+assert.match(remapNoopPreviewLogs[0], /remap_count=0/u);
+assert.match(remapNoopPreviewLogs[0], /unchanged_count=2/u);
+assert.match(
+  remapNoopPreviewLogs[0],
+  /current_state_fingerprint=(sha256:[a-f0-9]{64}) expected_state_fingerprint=\1/u
+);
+
+const remapNoopApplyClient = new MockClient({
+  profiles: remapNoopProfiles,
+  existing: settledExternalBindings,
+  privilegeState: safeSubjectRemapPrivileges
+});
+const remapNoopCurrentStateFingerprint = bindingStateFingerprint(remapNoopApplyClient.existing);
+const remapNoopApplyLogs = [];
+await executeIdentityBindingTransaction({
+  client: remapNoopApplyClient,
+  document: remapNoopDocument,
+  fingerprint: remapNoopFingerprint,
+  apply: true,
+  allowSubjectRemaps: true,
+  confirmedCurrentStateFingerprint: remapNoopCurrentStateFingerprint,
+  confirmedSubjectRemapCount: "0",
+  expectedDatabase: "versorgungs_kompass",
+  log: (line) => remapNoopApplyLogs.push(line)
+});
+assert.ok(remapNoopApplyClient.queries.some(({ sql }) => sql === "commit"));
+assert.equal(remapNoopApplyClient.bindingStateReads, 2);
+assert.ok(!remapNoopApplyClient.queries.some(({ sql }) => (
+  sql.startsWith("insert into public.identity_bindings")
+  || sql.startsWith("update public.identity_bindings")
+)));
+assert.match(remapNoopApplyLogs[0], /mode=APPLY/u);
+assert.match(remapNoopApplyLogs[0], /remap_count=0/u);
+assert.match(remapNoopApplyLogs[0], /unchanged_count=2/u);
+
+const mismatchedRemapNoopCountClient = new MockClient({
+  profiles: remapNoopProfiles,
+  existing: settledExternalBindings,
+  privilegeState: safeSubjectRemapPrivileges
+});
+await assert.rejects(
+  executeIdentityBindingTransaction({
+    client: mismatchedRemapNoopCountClient,
+    document: remapNoopDocument,
+    fingerprint: remapNoopFingerprint,
+    apply: true,
+    allowSubjectRemaps: true,
+    confirmedCurrentStateFingerprint: bindingStateFingerprint(
+      mismatchedRemapNoopCountClient.existing
+    ),
+    confirmedSubjectRemapCount: "1",
+    expectedDatabase: "versorgungs_kompass",
+    log: () => {}
+  }),
+  (error) => error instanceof SafeCliError && /bestaetigten Anzahl/u.test(error.message)
+);
+assert.ok(mismatchedRemapNoopCountClient.queries.some(({ sql }) => sql === "rollback"));
+assert.ok(!mismatchedRemapNoopCountClient.queries.some(({ sql }) => sql === "commit"));
+
+const unconfirmedRemapNoopClient = new MockClient({
+  profiles: remapNoopProfiles,
+  existing: settledExternalBindings,
+  privilegeState: safeSubjectRemapPrivileges
+});
+await assert.rejects(
+  executeIdentityBindingTransaction({
+    client: unconfirmedRemapNoopClient,
+    document: remapNoopDocument,
+    fingerprint: remapNoopFingerprint,
+    apply: false,
+    allowSubjectRemaps: false,
+    expectedDatabase: "",
+    log: () => {}
+  }),
+  (error) => error instanceof SafeCliError && /explizit im Remap-Modus/u.test(error.message)
+);
+assert.ok(unconfirmedRemapNoopClient.queries.some(({ sql }) => sql === "rollback"));
+
+const zeroConfirmedRealRemapClient = new MockClient({
+  profiles: [{ id: "profile-a", active: true, role: "editor" }],
+  existing: [scopedRemapBinding],
+  privilegeState: safeSubjectRemapPrivileges
+});
+await assert.rejects(
+  executeIdentityBindingTransaction({
+    client: zeroConfirmedRealRemapClient,
+    document: remapDocument,
+    fingerprint: remapFingerprint,
+    apply: true,
+    allowSubjectRemaps: true,
+    confirmedCurrentStateFingerprint: bindingStateFingerprint(
+      zeroConfirmedRealRemapClient.existing
+    ),
+    confirmedSubjectRemapCount: "0",
+    expectedDatabase: "versorgungs_kompass",
+    log: () => {}
+  }),
+  (error) => error instanceof SafeCliError && /bestaetigten Anzahl/u.test(error.message)
+);
+assert.ok(zeroConfirmedRealRemapClient.queries.some(({ sql }) => sql === "rollback"));
+assert.ok(!zeroConfirmedRealRemapClient.queries.some(({ sql }) => (
+  sql.startsWith("update public.identity_bindings")
+  || sql === "commit"
 )));
 
 const driftedRemapClient = new MockClient({
