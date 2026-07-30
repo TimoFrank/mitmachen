@@ -17,5 +17,11 @@
   "dataMode": "api",
   "dataPolicy": "approved-classes-only",
   "authModes": ["iap"],
-  "forbiddenInputs": ["dist/pages", "frontend/demo", "frontend/data/demo-data.js"]
+  "forbiddenInputs": [
+    "dist/pages",
+    "politik-offline.html",
+    "frontend/demo",
+    "frontend/data/public-politics-directory.js",
+    "frontend/data/demo-data.js"
+  ]
 }

@@ -89,7 +89,9 @@ try {
   const firstPagesFingerprint = fingerprint(pagesDir);
 
   assert.equal(fs.existsSync(path.join(pagesDir, "demo", "index.html")), true, "Pages muss die oeffentliche Demo enthalten");
+  assert.equal(fs.existsSync(path.join(pagesDir, "politik-offline.html")), true, "Pages muss das eigenstaendige Politik-Offline-Modul enthalten");
   assert.equal(fs.existsSync(path.join(pagesDir, "versorgungs-kompass.html")), true, "Pages muss dieselbe Voll-App-Shell wie das Target enthalten");
+  assert.equal(fs.existsSync(path.join(pagesDir, "data", "public-politics-directory.js")), true, "Pages muss den kuratierten öffentlichen Amtsträger-Datensatz enthalten");
   assert.equal(fs.existsSync(path.join(pagesDir, "data", "demo-data.js")), true, "Pages muss den synthetischen Demo-Datensatz enthalten");
   assert.equal(fs.existsSync(path.join(pagesDir, "data", "demo-api.js")), true, "Pages muss den lokalen Demo-API-Adapter enthalten");
   assert.equal(fs.existsSync(path.join(pagesDir, "data", "data-service.js")), true, "Pages muss denselben API-Vertrag wie das Target enthalten");
@@ -115,7 +117,10 @@ try {
   assert.match(pagesRootHtml, /<meta property="og:description" content="Deine Plattform für Austausch, Wissen und Vernetzung\." \/>/);
   assert.match(pagesRootHtml, /<meta property="og:image" content="https:\/\/timofrank\.github\.io\/mitmachen\/public\/media\/social\/mitmachen-share-v3\.png" \/>/);
   assert.match(pagesRootHtml, /<meta name="twitter:card" content="summary_large_image" \/>/);
-  assert.match(pagesRootHtml, /\.\/data\/demo-data\.js[\s\S]*\.\/data\/demo-api\.js[\s\S]*\.\/data\/data-service\.js/);
+  assert.match(
+    pagesRootHtml,
+    /\.\/data\/public-politics-directory\.js[\s\S]*\.\/data\/demo-data\.js[\s\S]*\.\/data\/demo-api\.js[\s\S]*\.\/data\/data-service\.js/
+  );
   assert.doesNotMatch(pagesRootHtml, /data-public-entry="home"|data-public-entry-styles|>\s*Demo öffnen(?:\s|<)/i);
   assert.doesNotMatch(pagesRootHtml, /<meta\s+http-equiv="refresh"/i);
   const pagesDemoAliasHtml = fs.readFileSync(path.join(pagesDir, "demo", "index.html"), "utf8");
@@ -195,10 +200,17 @@ try {
   assert.match(pagesConfig, /allDemoContactsInvitable:\s*true/);
 
   const pagesHtml = fs.readFileSync(path.join(pagesDir, "versorgungs-kompass.html"), "utf8");
+  const publicPoliticsPosition = pagesHtml.indexOf("./data/public-politics-directory.js");
   const demoDataPosition = pagesHtml.indexOf("./data/demo-data.js");
   const demoApiPosition = pagesHtml.indexOf("./data/demo-api.js");
   const dataServicePosition = pagesHtml.indexOf("./data/data-service.js");
-  assert.ok(demoDataPosition >= 0 && demoDataPosition < demoApiPosition && demoApiPosition < dataServicePosition, "Pages muss Datensatz, Demo-Adapter und API-Vertrag in sicherer Reihenfolge laden");
+  assert.ok(
+    publicPoliticsPosition >= 0
+      && publicPoliticsPosition < demoDataPosition
+      && demoDataPosition < demoApiPosition
+      && demoApiPosition < dataServicePosition,
+    "Pages muss Amtsträger-Datensatz, Demo-Daten, Demo-Adapter und API-Vertrag in sicherer Reihenfolge laden"
+  );
   assert.doesNotMatch(pagesHtml, /auth-(?:config|guard|login)\.js/i);
   for (const label of ["Versorgung", "Auswertung", "Aktivitäten", "Stakeholder", "Expertenkreis", "Hospitationen", "Beobachtungen", "Fragebogen", "Dashboard", "Formate", "Teams"]) {
     assert.match(pagesHtml, new RegExp(label), `Pages muss den Voll-App-Bereich ${label} enthalten`);
@@ -212,7 +224,7 @@ try {
   assert.match(pagesRegistrationHtml, /<meta name="twitter:card" content="summary_large_image" \/>/);
   assert.doesNotMatch(
     pagesRegistrationHtml,
-    /data\/(?:runtime-config|demo-data|demo-api)\.js/,
+    /data\/(?:runtime-config|public-politics-directory|demo-data|demo-api)\.js/,
     "Die Konzeptdemo darf keinen Daten- oder API-Adapter laden"
   );
   assert.doesNotMatch(
@@ -240,6 +252,126 @@ try {
     /dataMode\s*!==\s*"demo"[\s\S]*L\.tileLayer/,
     "Die Kontakt-Minikarte darf externe Kacheln nur ausserhalb des Demo-Modus laden"
   );
+
+  const pagesPoliticsPath = path.join(
+    pagesDir,
+    "data",
+    "public-politics-directory.js"
+  );
+  const cleanPagesPolitics = fs.readFileSync(pagesPoliticsPath, "utf8");
+  const politicsWrapper = cleanPagesPolitics.match(
+    /^([\s\S]*Object\.freeze\()([\s\S]+)(\);\n)$/u
+  );
+  assert.ok(politicsWrapper, "Der Politik-Snapshot muss einen datenhaltenden Wrapper besitzen");
+  const cleanPoliticsPayload = JSON.parse(politicsWrapper[2]);
+  for (const [label, mutatePolitics, expectedFailure] of [
+    [
+      "ein zusätzliches CRM-Feld",
+      (payload) => {
+        payload.members[0].email = "nicht-freigegeben@example.invalid";
+      },
+      /nicht freigegebene Felder/
+    ],
+    [
+      "mehr als eine PLZ",
+      (payload) => {
+        payload.members[0].postalCodes.push("99999");
+      },
+      /mehr als eine PLZ/
+    ],
+    [
+      "eine Bild-URL bei ausstehender Rechteprüfung",
+      (payload) => {
+        const reviewRequiredMember = payload.members.find(
+          (member) => member.imageRightsStatus === "review_required"
+        );
+        reviewRequiredMember.imageUrl = "https://www.bundestag.de/not-approved.jpg";
+      },
+      /ausstehender Rechteprüfung/
+    ],
+    [
+      "einen mehr als 14 Tage alten Abrufzeitpunkt",
+      (payload) => {
+        payload.fetchedAt = new Date(Date.now() - 30 * 24 * 60 * 60 * 1_000).toISOString();
+      },
+      /älter als 14 Tage/
+    ],
+    [
+      "einen unzulässig zukünftigen Abrufzeitpunkt",
+      (payload) => {
+        payload.fetchedAt = new Date(Date.now() + 24 * 60 * 60 * 1_000).toISOString();
+      },
+      /unzulässig in der Zukunft/
+    ]
+  ]) {
+    const tamperedPoliticsPayload = structuredClone(cleanPoliticsPayload);
+    mutatePolitics(tamperedPoliticsPayload);
+    fs.writeFileSync(
+      pagesPoliticsPath,
+      `${politicsWrapper[1]}${JSON.stringify(tamperedPoliticsPayload, null, 2)}${politicsWrapper[3]}`
+    );
+    const auditResult = spawnSync(
+      process.execPath,
+      [publicAudit, "--artifact-root", pagesDir],
+      { cwd: root, encoding: "utf8" }
+    );
+    assert.notEqual(
+      auditResult.status,
+      0,
+      `Public Asset Audit muss ${label} fail-closed ablehnen`
+    );
+    assert.match(`${auditResult.stderr}\n${auditResult.stdout}`, expectedFailure);
+  }
+  fs.writeFileSync(pagesPoliticsPath, cleanPagesPolitics);
+
+  const pagesOfflinePoliticsPath = path.join(pagesDir, "politik-offline.html");
+  const cleanPagesOfflinePolitics = fs.readFileSync(pagesOfflinePoliticsPath, "utf8");
+  const offlinePoliticsWrapper = cleanPagesOfflinePolitics.match(
+    /(<script id="offline-data" type="application\/json">)([\s\S]+?)(<\/script>)/u
+  );
+  assert.ok(offlinePoliticsWrapper, "Das Offline-Modul muss einen eingebetteten Datenstand besitzen");
+  const cleanOfflinePoliticsPayload = JSON.parse(offlinePoliticsWrapper[2]);
+  for (const [label, mutateOfflinePolitics, expectedFailure] of [
+    [
+      "ein zusätzliches Mitgliedsfeld",
+      (payload) => {
+        payload.members[0].email = "nicht-freigegeben@example.invalid";
+      },
+      /Feld-, PLZ-, Karten- oder Bildrechte-Positivliste/
+    ],
+    [
+      "einen mehr als 14 Tage alten Snapshot",
+      (payload) => {
+        payload.snapshotAt = new Date(Date.now() - 30 * 24 * 60 * 60 * 1_000).toISOString();
+      },
+      /veralteten oder unzulaessig zukuenftigen Snapshot/
+    ]
+  ]) {
+    const tamperedOfflinePoliticsPayload = structuredClone(cleanOfflinePoliticsPayload);
+    mutateOfflinePolitics(tamperedOfflinePoliticsPayload);
+    fs.writeFileSync(
+      pagesOfflinePoliticsPath,
+      cleanPagesOfflinePolitics.replace(
+        offlinePoliticsWrapper[0],
+        `${offlinePoliticsWrapper[1]}${JSON.stringify(tamperedOfflinePoliticsPayload)}${offlinePoliticsWrapper[3]}`
+      )
+    );
+    const offlineAuditResult = spawnSync(
+      process.execPath,
+      [publicAudit, "--artifact-root", pagesDir],
+      { cwd: root, encoding: "utf8" }
+    );
+    assert.notEqual(
+      offlineAuditResult.status,
+      0,
+      `Public Asset Audit muss ${label} im Offline-Modul fail-closed ablehnen`
+    );
+    assert.match(
+      `${offlineAuditResult.stderr}\n${offlineAuditResult.stdout}`,
+      expectedFailure
+    );
+  }
+  fs.writeFileSync(pagesOfflinePoliticsPath, cleanPagesOfflinePolitics);
 
   const pagesDemoApiPath = path.join(pagesDir, "data", "demo-api.js");
   const cleanPagesDemoApi = fs.readFileSync(pagesDemoApiPath, "utf8");
@@ -320,7 +452,12 @@ try {
 
   for (const [relativePath, marker, label] of [
     ["data/demo-api.js", 'window.VK_DEMO_BACKEND = "api";', "umschaltbaren Backendmodus"],
-    ["versorgungs-kompass.html", '<script src="./auth-guard.js"></script>', "Auth-Skript"]
+    ["versorgungs-kompass.html", '<script src="./auth-guard.js"></script>', "Auth-Skript"],
+    [
+      "mitmachen/versorgungs-netzwerk.html",
+      '<script src="../data/public-politics-directory.js"></script>',
+      "Politik-Snapshot in der Konzeptdemo"
+    ]
   ]) {
     const filePath = path.join(pagesDir, relativePath);
     const cleanContent = fs.readFileSync(filePath, "utf8");
@@ -347,6 +484,56 @@ try {
     "--auth-mode", "oidc"
   );
   execFileSync(process.execPath, [targetAudit, "--artifact-root", targetDir], { cwd: root, stdio: "pipe" });
+
+  const nestedOfflineDirectory = path.join(targetDir, "nested");
+  fs.mkdirSync(nestedOfflineDirectory, { recursive: true });
+  fs.writeFileSync(
+    path.join(nestedOfflineDirectory, "politik-offline.html"),
+    "<!doctype html><title>Nicht zulässige Offline-Kopie</title>\n"
+  );
+  try {
+    const nestedOfflineAuditResult = spawnSync(
+      process.execPath,
+      [targetAudit, "--artifact-root", targetDir],
+      { cwd: root, encoding: "utf8" }
+    );
+    assert.notEqual(
+      nestedOfflineAuditResult.status,
+      0,
+      "Target Asset Audit muss auch eine verschachtelte Kopie des Offline-Moduls fail-closed ablehnen"
+    );
+    assert.match(
+      `${nestedOfflineAuditResult.stderr}\n${nestedOfflineAuditResult.stdout}`,
+      /verschachtelte Kopie von politik-offline\.html/
+    );
+  } finally {
+    fs.rmSync(nestedOfflineDirectory, { recursive: true, force: true });
+  }
+
+  const targetAppHtmlPath = path.join(targetDir, "versorgungs-kompass.html");
+  const cleanTargetAppHtml = fs.readFileSync(targetAppHtmlPath, "utf8");
+  try {
+    fs.writeFileSync(
+      targetAppHtmlPath,
+      `${cleanTargetAppHtml}\n<script src="/data/public-politics-directory.js"></script>\n`
+    );
+    const targetPoliticsAuditResult = spawnSync(
+      process.execPath,
+      [targetAudit, "--artifact-root", targetDir],
+      { cwd: root, encoding: "utf8" }
+    );
+    assert.notEqual(
+      targetPoliticsAuditResult.status,
+      0,
+      "Target Asset Audit muss eine Referenz auf den Pages-Politik-Snapshot fail-closed ablehnen"
+    );
+    assert.match(
+      `${targetPoliticsAuditResult.stderr}\n${targetPoliticsAuditResult.stdout}`,
+      /referenziert statische Demo- oder Realbestandsdaten/
+    );
+  } finally {
+    fs.writeFileSync(targetAppHtmlPath, cleanTargetAppHtml);
+  }
 
   const targetConfig = fs.readFileSync(path.join(targetDir, "data", "runtime-config.js"), "utf8");
   assert.match(targetConfig, /dataMode:\s*"api"/);
@@ -389,6 +576,8 @@ try {
   assertMissing(
     targetDir,
     "demo",
+    "politik-offline.html",
+    "data/public-politics-directory.js",
     "data/demo-data.js",
     "data/demo-api.js",
     "data/versorgungs-kompass-data.js",
@@ -465,7 +654,7 @@ try {
   }
 
   const targetHtml = fs.readFileSync(path.join(targetDir, "versorgungs-kompass.html"), "utf8");
-  assert.doesNotMatch(targetHtml, /data\/(?:demo-data|versorgungs-kompass-data|expertenkreis-data|stakeholder-data|patienten-data)\.js/i);
+  assert.doesNotMatch(targetHtml, /data\/(?:public-politics-directory|demo-data|versorgungs-kompass-data|expertenkreis-data|stakeholder-data|patienten-data)\.js/i);
   assert.doesNotMatch(targetHtml, /data-hospitation-(?:data-mode|documentation-data-mode|dashboard-preview-mode)="demo"/i);
   const targetRevision = execFileSync("git", ["rev-parse", "--verify", "HEAD"], { cwd: root, encoding: "utf8" }).trim();
   for (const assetPath of [
@@ -488,6 +677,11 @@ try {
   assert.equal(targetThirdPartyManifest.assets.some((asset) => String(asset.path || "").includes("vendor/supabase/")), false);
 
   const targetText = textArtifact(targetDir);
+  assert.doesNotMatch(
+    targetText,
+    /VERSORGUNGS_COMPASS_PUBLIC_POLITICS_DIRECTORY/,
+    "Target darf den statischen Pages-Amtsträger-Datensatz nicht enthalten"
+  );
   assert.doesNotMatch(targetText, /https:\/\/[a-z0-9-]+\.supabase\.co/i, "Target darf keine direkte Supabase-Projekt-URL enthalten");
   assert.doesNotMatch(targetText, /https:\/\/timofrank\.github\.io\/mitmachen\/public\/media\/social\//i, "Target darf keine Pages-spezifischen Share-URLs enthalten");
   assert.doesNotMatch(targetText, /@supabase\/supabase-js|supabase-js@/i, "Target darf kein Supabase Browser-SDK laden");

@@ -2,9 +2,11 @@
  * Öffentliche Demo-API für GitHub Pages.
  *
  * Sie stellt der unveränderten Anwendung dieselben /api-Endpunkte wie der
- * geschützte Zielbetrieb bereit. Alle Daten stammen aus demo-data.js und
+ * geschützte Zielbetrieb bereit. CRM- und Fachdaten stammen ausschließlich
+ * aus demo-data.js. Ein getrennt kuratierter, rein öffentlicher
+ * Amtsträger-Datensatz stellt den Gesundheitsausschuss bereit. Änderungen
  * bleiben ausschließlich im Arbeitsspeicher des aktuellen Browser-Tabs.
- * Es werden weder fachliche Daten versendet noch dauerhaft gespeichert.
+ * Es werden keine Daten versendet oder dauerhaft gespeichert.
  */
 (function () {
   "use strict";
@@ -30,6 +32,8 @@
   const FORMAT_IDEMPOTENCY_UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/u;
   const DIRECTLY_INVITABLE_MITMACHEN_SOURCES = new Set(["online_form", "email", "written"]);
   const baseline = window.VERSORGUNGS_COMPASS_DEMO_DATA || {};
+  const publicPoliticsDirectory =
+    window.VERSORGUNGS_COMPASS_PUBLIC_POLITICS_DIRECTORY || null;
   const originalFetch = window.fetch.bind(window);
   let idCounter = 0;
 
@@ -813,6 +817,14 @@
       return json(state.userSettings);
     }
     if (method === "GET" && path === "/api/politics/health-committee") {
+      if (
+        publicPoliticsDirectory?.available === true
+        && publicPoliticsDirectory.publicDirectory === true
+        && publicPoliticsDirectory.memberCount === 38
+        && publicPoliticsDirectory.members?.length === 38
+      ) {
+        return json(clone(publicPoliticsDirectory));
+      }
       return json({
         available: false,
         demo: true,

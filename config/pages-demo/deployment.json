@@ -1,13 +1,15 @@
 {
   "$schema": "../deployment-profile.schema.json",
   "id": "pages-demo",
-  "purpose": "Öffentliche Produktdemo mit ausschließlich fiktiven Daten",
+  "purpose": "Öffentliche Produktdemo mit fiktiven Fachdaten und kuratiertem Amtsträger-Verzeichnis",
   "status": "active",
   "buildProfile": "pages",
   "sourceRoots": [
+    "politik-offline.html",
     "frontend/app",
     "frontend/map",
     "frontend/pages/mitmachen",
+    "frontend/data/public-politics-directory.js",
     "frontend/data/demo-data.js",
     "frontend/data/demo-api.js",
     "frontend/data/data-service.js",
@@ -29,7 +31,7 @@
   },
   "route": "/",
   "dataMode": "demo",
-  "dataPolicy": "synthetic-only",
+  "dataPolicy": "synthetic-plus-public-directory",
   "authModes": ["anonymous-demo"],
   "forbiddenInputs": [
     "dist/target",

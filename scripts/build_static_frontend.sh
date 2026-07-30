@@ -19,7 +19,8 @@ Usage:
     --api-base-url https://example.invalid --auth-mode oidc|iap
 
 Profiles:
-  pages   Oeffentliche, anonyme Demo mit ausschliesslich synthetischen Daten
+  pages   Oeffentliche, anonyme Demo mit synthetischen Fachdaten und
+          kuratiertem Amtstraeger-Verzeichnis
   target  Geschuetzte Realanwendung mit ausschliesslichem API-/Gateway-Zugriff
 EOF
 }
@@ -164,6 +165,7 @@ build_pages() {
     "$STAGE_DIR/vendor"
 
   touch "$STAGE_DIR/.nojekyll"
+  cp "$ROOT_DIR/politik-offline.html" "$STAGE_DIR/politik-offline.html"
   cp "$FRONTEND_DIR/app/versorgungs-kompass.html" "$STAGE_DIR/versorgungs-kompass.html"
   cp "$FRONTEND_DIR/app/versorgungs-kompass.css" "$STAGE_DIR/versorgungs-kompass.css"
   cp "$FRONTEND_DIR/app/versorgungs-kompass-no-script.css" "$STAGE_DIR/versorgungs-kompass-no-script.css"
@@ -190,6 +192,9 @@ build_pages() {
 
   # Pages verwendet dieselbe App-Shell wie das Target. Ausschliesslich der
   # Runtime- und Datenadapter wird durch eine anonyme, lokale Demo-API ersetzt.
+  # Das Amtstraeger-Verzeichnis ist ein getrennter, feldminimierter
+  # Pages-Snapshot und gelangt niemals in das Target-Artefakt.
+  cp "$FRONTEND_DIR/data/public-politics-directory.js" "$STAGE_DIR/data/public-politics-directory.js"
   cp "$FRONTEND_DIR/data/demo-data.js" "$STAGE_DIR/data/demo-data.js"
   cp "$FRONTEND_DIR/data/demo-api.js" "$STAGE_DIR/data/demo-api.js"
   cp "$FRONTEND_DIR/data/data-service.js" "$STAGE_DIR/data/data-service.js"
@@ -370,7 +375,10 @@ if (!appHtml.includes(dataServiceScript)) {
 }
 appHtml = appHtml.replace(
   dataServiceScript,
-  '<script src="./data/demo-data.js"></script>\n    <script src="./data/demo-api.js"></script>\n    ' + dataServiceScript
+  '<script src="./data/public-politics-directory.js"></script>\n'
+    + '    <script src="./data/demo-data.js"></script>\n'
+    + '    <script src="./data/demo-api.js"></script>\n    '
+    + dataServiceScript
 );
 const pagesBaseUrl = "https://timofrank.github.io/mitmachen";
 const rootShareMetadata = {

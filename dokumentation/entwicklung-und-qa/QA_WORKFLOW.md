@@ -8,7 +8,7 @@ Dieses Dokument legt fest, wie Änderungen am Versorgungs-Kompass geprüft werde
 
 | Prüfobjekt | Zulässige Daten und Authentisierung | Verbotener Fallback |
 | --- | --- | --- |
-| `pages-demo` / `dist/pages` | ausschließlich synthetische Demo-Daten, `anonymous-demo` | Fach-API, Supabase, Target-Konfiguration, echte Sitzungen oder echte Registrierungen |
+| `pages-demo` / `dist/pages` | synthetische CRM-/Fachdaten plus kuratierter öffentlicher Bundestags-Snapshot, `anonymous-demo` | Fach-API, Supabase, Target-Konfiguration, echte Sitzungen oder echte Registrierungen |
 | `target` / `dist/target` | Daten ausschließlich über `/api/...`; OIDC im gematik-PoC und einem späteren Zielpfad, IAP nur im GKE-Pre-Integrationspfad | Demo-Daten, direkter Browser-Supabase-Zugriff, LocalStorage-Fachdaten oder LocalStorage-Ersatzsitzung |
 
 Pages bleibt als öffentliche Demo aktiv. Eine erfolgreiche Pages-Prüfung ist kein Nachweis für die Realanwendung; umgekehrt darf ein Target-Test nie das Pages-Artefakt mit echter Konfiguration nachrüsten.
@@ -81,7 +81,7 @@ npm run qa:full
 
 Bei sichtbaren UI-Änderungen zusätzlich die relevanten Punkte aus `../produkt-und-design/VISUAL_QA_CHECKLIST.md` abgleichen. Bei GitHub-Pages-Aufträgen vorher `npm run build:pages` ausführen und `dist/pages/` mitprüfen; das Artefakt bleibt unversioniert.
 
-Wenn Deploymenttrennung, Auth, Data-Service oder API-Grenze betroffen sind, müssen beide Buildprofile getrennt geprüft werden. Das Pages-Artefakt darf nur synthetische Demo-Quellen enthalten. Das Target-Artefakt muss mit `dataMode: "api"`, `requireApiGateway: true` und `authMode: "oidc"` beziehungsweise im GKE-Vorbereitungspfad `"iap"` gebaut werden. Ein API-, Session- oder Gatewayfehler muss fachliche Funktionen sperren; er darf keinen Demo-, Supabase- oder LocalStorage-Datenpfad aktivieren.
+Wenn Deploymenttrennung, Auth, Data-Service oder API-Grenze betroffen sind, müssen beide Buildprofile getrennt geprüft werden. Das Pages-Artefakt darf nur synthetische Demo-Quellen und den allowlist-geprüften öffentlichen Bundestags-Snapshot enthalten. Das Target-Artefakt muss mit `dataMode: "api"`, `requireApiGateway: true` und `authMode: "oidc"` beziehungsweise im GKE-Vorbereitungspfad `"iap"` gebaut werden. Ein API-, Session- oder Gatewayfehler muss fachliche Funktionen sperren; er darf keinen Demo-, Supabase- oder LocalStorage-Datenpfad aktivieren.
 
 ### Stufe 4: Publication-/Live-Verifikation
 
@@ -93,7 +93,7 @@ Pflicht:
 npm run verify:publication
 ```
 
-`npm run verify:publication` prüft ausschließlich den öffentlichen Pages-Demo-Vertrag: Pages bleibt erreichbar, enthält aber nur synthetische Daten und keine Target-Konfiguration. Da die Realanwendung mit `dataMode: "api"` und geschützter Kubernetes-API läuft, muss ihr Backend-Status separat im Abnahmeprotokoll stehen:
+`npm run verify:publication` prüft ausschließlich den öffentlichen Pages-Demo-Vertrag: Pages bleibt erreichbar, enthält synthetische CRM-/Fachdaten und den kuratierten öffentlichen Bundestags-Snapshot, aber keine Target-Konfiguration. Da die Realanwendung mit `dataMode: "api"` und geschützter Kubernetes-API läuft, muss ihr Backend-Status separat im Abnahmeprotokoll stehen:
 
 - `verified`: betroffene Migration/Datenoperation angewendet und die relevante Tabelle oder API autorisiert geprüft,
 - `not_affected`: reine Static-/UI-Änderung ohne Backendwirkung,

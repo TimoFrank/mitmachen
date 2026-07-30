@@ -3,6 +3,7 @@ import { execFileSync } from "node:child_process";
 import { dirname, extname, join, relative, resolve, sep } from "node:path";
 import { fileURLToPath } from "node:url";
 import htmlMetadataTags from "./html_metadata_tags.cjs";
+import { parsePublicPoliticsDirectoryScript } from "./update_public_politics_directory.mjs";
 
 const { parseHtmlAttributes, scanHtmlStartTags } = htmlMetadataTags;
 
@@ -157,6 +158,7 @@ const requiredFiles = new Set([
   "build-manifest.json",
   "index.html",
   "demo/index.html",
+  "politik-offline.html",
   "versorgungs-kompass.html",
   "versorgungs-kompass.css",
   "versorgungs-kompass-no-script.css",
@@ -170,6 +172,7 @@ const requiredFiles = new Set([
   "mitmachen/versorgungs-netzwerk.js",
   "manifest.webmanifest",
   "data/runtime-config.js",
+  "data/public-politics-directory.js",
   "data/demo-data.js",
   "data/demo-api.js",
   "data/data-service.js",
@@ -319,6 +322,12 @@ for (const htmlFile of actualFiles.filter((file) => extname(file) === ".html")) 
   const html = readFileSync(htmlPath, "utf8");
   for (const match of html.matchAll(/(?:src|href)=["']([^"']+)["']/gi)) {
     const reference = match[1];
+    if (
+      htmlFile === "politik-offline.html"
+      && ["${member.imageDataUri}", "${escapeHtml(safeUrl)}"].includes(reference)
+    ) {
+      continue;
+    }
     if (/^(?:https?:|mailto:|tel:|#|data:|javascript:)/i.test(reference)) continue;
     const cleanReference = reference.split(/[?#]/)[0];
     if (!cleanReference) continue;
@@ -357,12 +366,221 @@ if (existsSync(runtimeConfigPath)) {
   assert(!/apiBaseUrl:\s*["']https?:/i.test(runtimeConfig), `${artifactLabel}/data/runtime-config.js konfiguriert einen externen API-Zugriff`);
 }
 
+const publicPoliticsDirectoryPath = join(
+  artifactRoot,
+  "data",
+  "public-politics-directory.js"
+);
+let publicPoliticsDirectory = null;
+if (existsSync(publicPoliticsDirectoryPath)) {
+  try {
+    publicPoliticsDirectory = parsePublicPoliticsDirectoryScript(
+      readFileSync(publicPoliticsDirectoryPath, "utf8")
+    );
+  } catch (error) {
+    assert(
+      false,
+      `${artifactLabel}/data/public-politics-directory.js verletzt den öffentlichen Amtsträger-Vertrag: ${error.message}`
+    );
+  }
+}
+
+const offlinePoliticsPath = join(artifactRoot, "politik-offline.html");
+if (existsSync(offlinePoliticsPath)) {
+  const offlinePolitics = readFileSync(offlinePoliticsPath, "utf8");
+  const offlineDataMatch = offlinePolitics.match(
+    /<script id="offline-data" type="application\/json">([\s\S]+?)<\/script>/u
+  );
+  assert(
+    /<meta\s+http-equiv="Content-Security-Policy"\s+content="default-src 'none';/u.test(offlinePolitics),
+    `${artifactLabel}/politik-offline.html besitzt keine fail-closed Offline-CSP`
+  );
+  assert(
+    !/<(?:script|link|img|iframe)\b[^>]*(?:src|href)=["']https?:/iu.test(offlinePolitics),
+    `${artifactLabel}/politik-offline.html laedt externe Laufzeitressourcen`
+  );
+  assert(
+    !/\b(?:fetch|XMLHttpRequest|sendBeacon)\b/u.test(offlinePolitics),
+    `${artifactLabel}/politik-offline.html verwendet eine Netzwerk-Transport-API`
+  );
+  assert(
+    /window\.__POLITIK_OFFLINE_READY__\s*=\s*true/u.test(offlinePolitics),
+    `${artifactLabel}/politik-offline.html besitzt keinen testbaren Offline-Bereitschaftsmarker`
+  );
+  if (!offlineDataMatch) {
+    assert(false, `${artifactLabel}/politik-offline.html enthaelt keinen eingebetteten Datenstand`);
+  } else {
+    try {
+      const offlineData = JSON.parse(offlineDataMatch[1]);
+      const expectedTopLevelFields = new Set([
+        "schemaVersion",
+        "snapshotAt",
+        "generatedAt",
+        "sourceUrl",
+        "constituencySourceUrl",
+        "counts",
+        "map",
+        "members"
+      ]);
+      const expectedCountFields = new Set([
+        "members",
+        "approvedPortraits",
+        "initialFallbacks",
+        "representativePostalCodes",
+        "constituencies"
+      ]);
+      const expectedMapFields = new Set(["width", "height", "statePaths", "constituencyPaths"]);
+      const expectedStatePathFields = new Set(["id", "name", "path"]);
+      const expectedMemberFields = new Set([
+        "id",
+        "name",
+        "faction",
+        "role",
+        "profileUrl",
+        "constituency",
+        "constituencyNumber",
+        "constituencyName",
+        "constituencyFederalState",
+        "mandateType",
+        "representativePostalCode",
+        "postalCodeCoverage",
+        "constituencySourceUrl",
+        "imageDataUri",
+        "imageTitle",
+        "imageSourceUrl",
+        "imageAttribution",
+        "imageLicense",
+        "imageProvider",
+        "imageRightsStatus",
+        "imageUsageTermsUrl",
+        "mapX",
+        "mapY",
+        "mapLon",
+        "mapLat",
+        "mapPositionSource",
+        "markerX",
+        "markerY"
+      ]);
+      const objectUsesExactFields = (value, expectedFields) => (
+        value
+        && typeof value === "object"
+        && !Array.isArray(value)
+        && Object.keys(value).length === expectedFields.size
+        && Object.keys(value).every((field) => expectedFields.has(field))
+      );
+      const checkedAt = Date.now();
+      const snapshotAt = new Date(offlineData.snapshotAt).getTime();
+      const generatedAt = new Date(offlineData.generatedAt).getTime();
+      const maxAgeMs = 14 * 24 * 60 * 60 * 1000;
+      const maxFutureSkewMs = 5 * 60 * 1000;
+      assert(objectUsesExactFields(offlineData, expectedTopLevelFields), `${artifactLabel}/politik-offline.html verletzt die Top-Level-Feld-Positivliste`);
+      assert(objectUsesExactFields(offlineData.counts, expectedCountFields), `${artifactLabel}/politik-offline.html verletzt die Zaehler-Feld-Positivliste`);
+      assert(objectUsesExactFields(offlineData.map, expectedMapFields), `${artifactLabel}/politik-offline.html verletzt die Karten-Feld-Positivliste`);
+      assert(
+        Number.isFinite(snapshotAt)
+          && new Date(snapshotAt).toISOString() === offlineData.snapshotAt
+          && snapshotAt <= checkedAt + maxFutureSkewMs
+          && checkedAt - snapshotAt <= maxAgeMs,
+        `${artifactLabel}/politik-offline.html besitzt einen veralteten oder unzulaessig zukuenftigen Snapshot`
+      );
+      assert(
+        Number.isFinite(generatedAt)
+          && new Date(generatedAt).toISOString() === offlineData.generatedAt
+          && generatedAt >= snapshotAt
+          && generatedAt <= checkedAt + maxFutureSkewMs,
+        `${artifactLabel}/politik-offline.html besitzt einen ungueltigen Erstellungszeitpunkt`
+      );
+      assert(offlineData.counts?.members === 38, `${artifactLabel}/politik-offline.html enthaelt nicht 38 Ausschussmitglieder`);
+      assert(offlineData.members?.length === 38, `${artifactLabel}/politik-offline.html enthaelt keinen vollstaendigen Mitglieder-Datensatz`);
+      assert(offlineData.counts?.approvedPortraits === 28, `${artifactLabel}/politik-offline.html enthaelt nicht 28 freigegebene Portraets`);
+      assert(offlineData.counts?.representativePostalCodes === 37, `${artifactLabel}/politik-offline.html enthaelt nicht 37 repraesentative PLZ-Punkte`);
+      assert(offlineData.counts?.initialFallbacks === 10, `${artifactLabel}/politik-offline.html enthaelt nicht 10 gepruefte Initialen-Fallbacks`);
+      assert(offlineData.counts?.constituencies === 35, `${artifactLabel}/politik-offline.html enthaelt nicht 35 Wahlkreisflaechen`);
+      assert(
+        offlineData.map?.width === 640
+          && offlineData.map?.height === 760
+          && offlineData.map?.statePaths?.length === 16
+          && offlineData.map.statePaths.every((entry) => (
+            objectUsesExactFields(entry, expectedStatePathFields)
+            && /^DE-[A-Z]{2}$/u.test(entry.id)
+            && entry.name
+            && entry.path
+          ))
+          && Object.keys(offlineData.map?.constituencyPaths || {}).length === 35
+          && Object.entries(offlineData.map?.constituencyPaths || {}).every(
+            ([number, path]) => /^\d{3}$/u.test(number) && typeof path === "string" && path.startsWith("M")
+          ),
+        `${artifactLabel}/politik-offline.html verletzt den eingebetteten Kartenvertrag`
+      );
+      const offlineMemberIds = new Set();
+      let approvedPortraits = 0;
+      let initialFallbacks = 0;
+      let representativePostalCodes = 0;
+      for (const member of offlineData.members || []) {
+        const approvedPortrait = member.imageRightsStatus === "approved";
+        assert(
+          objectUsesExactFields(member, expectedMemberFields)
+            && /^\d{5,12}$/u.test(member.id)
+            && !offlineMemberIds.has(member.id)
+            && ["CDU/CSU", "AfD", "SPD", "Bündnis 90/Die Grünen", "Die Linke"].includes(member.faction)
+            && ["approved", "review_required"].includes(member.imageRightsStatus)
+            && (!member.representativePostalCode || /^\d{5}$/u.test(member.representativePostalCode))
+            && Number.isFinite(member.mapX)
+            && Number.isFinite(member.mapY)
+            && Number.isFinite(member.markerX)
+            && Number.isFinite(member.markerY)
+            && (
+              approvedPortrait
+                ? /^data:image\/jpeg;base64,[A-Za-z0-9+/]+=*$/u.test(member.imageDataUri)
+                : member.imageDataUri === ""
+            ),
+          `${artifactLabel}/politik-offline.html verletzt fuer Mitglied ${member.id || "<ohne ID>"} die Feld-, PLZ-, Karten- oder Bildrechte-Positivliste`
+        );
+        offlineMemberIds.add(member.id);
+        approvedPortraits += approvedPortrait ? 1 : 0;
+        initialFallbacks += approvedPortrait ? 0 : 1;
+        representativePostalCodes += member.representativePostalCode ? 1 : 0;
+      }
+      assert(approvedPortraits === 28, `${artifactLabel}/politik-offline.html besitzt nicht genau 28 eingebettete freigegebene Portraets`);
+      assert(initialFallbacks === 10, `${artifactLabel}/politik-offline.html besitzt nicht genau 10 Initialen-Fallbacks`);
+      assert(representativePostalCodes === 37, `${artifactLabel}/politik-offline.html besitzt nicht genau 37 repraesentative Einzel-PLZ`);
+      if (publicPoliticsDirectory) {
+        const publicMembersById = new Map(
+          publicPoliticsDirectory.members.map((member) => [member.id, member])
+        );
+        assert(publicMembersById.size === offlineMemberIds.size, `${artifactLabel}/politik-offline.html weicht im Mitgliederumfang vom Pages-Verzeichnis ab`);
+        for (const member of offlineData.members || []) {
+          const publicMember = publicMembersById.get(member.id);
+          assert(
+            publicMember
+              && publicMember.name === member.name
+              && publicMember.party === member.faction
+              && publicMember.role === member.role
+              && publicMember.profileUrl === member.profileUrl
+              && publicMember.constituencyNumber === member.constituencyNumber
+              && publicMember.representativePostalCode === member.representativePostalCode
+              && publicMember.imageRightsStatus === member.imageRightsStatus,
+            `${artifactLabel}/politik-offline.html weicht fuer Mitglied ${member.id} vom kuratierten Pages-Verzeichnis ab`
+          );
+        }
+      }
+    } catch (error) {
+      assert(false, `${artifactLabel}/politik-offline.html enthaelt ungueltige eingebettete Daten: ${error.message}`);
+    }
+  }
+}
+
 const appHtmlPath = join(artifactRoot, "versorgungs-kompass.html");
 if (existsSync(appHtmlPath)) {
   const appHtml = readFileSync(appHtmlPath, "utf8");
+  const publicPoliticsPosition = appHtml.indexOf("./data/public-politics-directory.js");
   const demoDataPosition = appHtml.indexOf("./data/demo-data.js");
   const demoApiPosition = appHtml.indexOf("./data/demo-api.js");
   const dataServicePosition = appHtml.indexOf("./data/data-service.js");
+  assert(
+    publicPoliticsPosition >= 0 && publicPoliticsPosition < demoDataPosition,
+    `${artifactLabel}/versorgungs-kompass.html laedt das öffentliche Amtsträger-Verzeichnis nicht vor den Demo-Adaptern`
+  );
   assert(demoDataPosition >= 0, `${artifactLabel}/versorgungs-kompass.html laedt den synthetischen Datensatz nicht`);
   assert(demoApiPosition > demoDataPosition, `${artifactLabel}/versorgungs-kompass.html laedt die Demo-API nicht nach dem Datensatz`);
   assert(dataServicePosition > demoApiPosition, `${artifactLabel}/versorgungs-kompass.html laedt den API-Vertrag nicht nach der Demo-API`);
@@ -445,7 +663,7 @@ if (existsSync(registrationHtmlPath)) {
   const registrationHtml = readFileSync(registrationHtmlPath, "utf8");
   const registrationAppPosition = registrationHtml.indexOf("./versorgungs-netzwerk.js");
   assert(registrationAppPosition >= 0, `${artifactLabel}/mitmachen/versorgungs-netzwerk.html laedt die Formularlogik nicht`);
-  assert(!/data\/(?:runtime-config|demo-data|demo-api)\.js/.test(registrationHtml), `${artifactLabel}/mitmachen/versorgungs-netzwerk.html bindet die Konzeptdemo an einen Daten- oder API-Adapter`);
+  assert(!/data\/(?:runtime-config|public-politics-directory|demo-data|demo-api)\.js/.test(registrationHtml), `${artifactLabel}/mitmachen/versorgungs-netzwerk.html bindet die Konzeptdemo an einen Daten- oder API-Adapter`);
   assert(!/(?:auth-config|auth-guard|auth-login)\.js/i.test(registrationHtml), `${artifactLabel}/mitmachen/versorgungs-netzwerk.html referenziert Authentisierungscode`);
 
   const registrationAppPath = join(artifactRoot, "mitmachen", "versorgungs-netzwerk.js");
@@ -510,4 +728,8 @@ if (failures.length) {
   process.exit(1);
 }
 
-console.log(`Public Asset Audit OK: ${artifactLabel} enthaelt die gemeinsame Voll-App-Shell mit lokaler synthetischer Demo-Runtime, ohne Login, Supabase oder geschuetzte Fachdaten.`);
+console.log(
+  `Public Asset Audit OK: ${artifactLabel} enthaelt die gemeinsame Voll-App-Shell `
+  + "mit synthetischer Demo-Runtime und kuratiertem Amtstraeger-Verzeichnis, "
+  + "ohne Login, Supabase oder geschuetzte Fachdaten."
+);

@@ -94,9 +94,11 @@ const profileExpectations = [
     status: "active",
     buildProfile: "pages",
     sourceRoots: [
+      "politik-offline.html",
       "frontend/app",
       "frontend/map",
       "frontend/pages/mitmachen",
+      "frontend/data/public-politics-directory.js",
       "frontend/data/demo-data.js",
       "frontend/data/demo-api.js",
       "frontend/data/data-service.js",
@@ -118,7 +120,7 @@ const profileExpectations = [
     },
     route: "/",
     dataMode: "demo",
-    dataPolicy: "synthetic-only",
+    dataPolicy: "synthetic-plus-public-directory",
     authModes: ["anonymous-demo"],
     forbiddenInputs: [
       "dist/target",
@@ -148,7 +150,13 @@ const profileExpectations = [
     dataMode: "api",
     dataPolicy: "approved-classes-only",
     authModes: ["iap"],
-    forbiddenInputs: ["dist/pages", "frontend/demo", "frontend/data/demo-data.js"]
+    forbiddenInputs: [
+      "dist/pages",
+      "politik-offline.html",
+      "frontend/demo",
+      "frontend/data/public-politics-directory.js",
+      "frontend/data/demo-data.js"
+    ]
   },
   {
     id: "target",
@@ -167,7 +175,13 @@ const profileExpectations = [
     dataMode: "api",
     dataPolicy: "approved-classes-only",
     authModes: ["oidc"],
-    forbiddenInputs: ["dist/pages", "frontend/demo", "frontend/data/demo-data.js"]
+    forbiddenInputs: [
+      "dist/pages",
+      "politik-offline.html",
+      "frontend/demo",
+      "frontend/data/public-politics-directory.js",
+      "frontend/data/demo-data.js"
+    ]
   }
 ];
 
@@ -237,7 +251,18 @@ requirePattern(pagesFile, pages, /audit_public_assets\.mjs/, "Pages muss vor dem
 requirePattern(pagesFile, pages, /Verify deployed revision belongs to main[\s\S]*git merge-base --is-ancestor HEAD refs\/remotes\/origin\/main/, "Pages darf manuell nur Commits deployen, die zu main gehoeren.");
 forbidPattern(pagesFile, pages, /dist\/target|pre-gematik|FRONTEND_BUCKET|pages-legacy/, "Pages darf keine Legacy-, Target- oder GCP-Deploymentwerte verwenden.");
 requirePattern(pagesFile, pages, /data\/runtime-config\.js[\s\S]*dataMode:[^\n]*demo[\s\S]*authMode:[^\n]*anonymous-demo/, "Pages muss die veroeffentlichte Runtime als anonyme Demo-Konfiguration abnehmen.");
-requirePattern(pagesFile, pages, /versorgungs-kompass\.html[\s\S]*demo-data\.js[\s\S]*demo-api\.js[\s\S]*data-service\.js/, "Pages muss Voll-App-Shell und Demo-Adapter nach dem Deployment abnehmen.");
+requirePattern(
+  pagesFile,
+  pages,
+  /versorgungs-kompass\.html[\s\S]*public-politics-directory\.js[\s\S]*demo-data\.js[\s\S]*demo-api\.js[\s\S]*data-service\.js/,
+  "Pages muss Voll-App-Shell, öffentlichen Amtsträger-Datensatz und Demo-Adapter nach dem Deployment abnehmen."
+);
+requirePattern(
+  pagesFile,
+  pages,
+  /politik-offline\.html[\s\S]*offlinePolitics[\s\S]*__POLITIK_OFFLINE_READY__/,
+  "Pages muss das eigenständige Politik-Offline-Modul ausliefern und nach dem Deployment abnehmen."
+);
 requirePattern(pagesFile, pages, /root_app_path[\s\S]*class="app-shell[\s\S]*data-view-panel="home"[\s\S]*manifest\.start_url\s*!==\s*"\.\/#home"/, "Pages muss die direkte App-Startseite nach dem Deployment abnehmen.");
 requirePattern(pagesFile, pages, /forbidden_path[\s\S]*data\/supabase-config\.js/, "Pages muss den historischen Supabase-Konfigurationspfad mit HTTP 404 abnehmen.");
 

@@ -40425,6 +40425,21 @@
         object-position: center;
       }
 
+      .detail-panel--politics
+        .politics-member-avatar:not(.politics-member-avatar--no-crop)
+        img {
+        object-fit: cover;
+      }
+
+      .detail-panel--politics .politics-member-avatar--no-crop {
+        padding: 4px;
+        border-radius: 12px;
+      }
+
+      .detail-panel--politics .politics-member-avatar--no-crop img {
+        border-radius: 8px;
+      }
+
       .politics-member-copy {
         display: grid;
         gap: 2px;
@@ -40571,64 +40586,24 @@
         font-weight: 700;
       }
 
-      .detail-panel--politics .detail-content {
-        padding: clamp(18px, 3vw, 32px);
-      }
-
-      @media (min-width: 1024px) {
-        body.politics-detail-open {
-          --detail-panel-width: clamp(520px, 43vw, 640px);
-        }
-      }
-
-      .politics-person-profile {
-        gap: 24px;
-      }
-
-      .politics-person-profile__top {
-        padding-bottom: 22px;
-        border-bottom: 1px solid var(--border);
-      }
-
       .politics-person-profile__actions .action-button {
-        width: auto;
-        min-width: 190px;
+        width: 190px;
+        max-width: 100%;
         justify-content: center;
         text-decoration: none;
       }
 
-      .politics-person-profile__grid {
-        display: grid;
-        grid-template-columns: minmax(0, 1fr);
-        gap: 16px;
-        align-items: start;
+      .politics-profile-map-card {
+        gap: 10px;
+        margin-top: 14px;
       }
 
-      .politics-person-profile__section {
-        min-width: 0;
-        padding: 18px;
-        border: 1px solid var(--border);
-        border-radius: var(--radius-lg);
-        background: linear-gradient(180deg, var(--surface) 0%, var(--surface-muted) 100%);
+      .politics-profile-map-card .detail-section-title {
+        margin: 0;
       }
 
-      .politics-person-profile__section .detail-section-title {
-        margin-top: 0;
-      }
-
-      .politics-person-profile__section .detail-line__label {
-        min-width: 126px;
-        overflow-wrap: normal;
-        hyphens: auto;
-      }
-
-      .politics-postal-code-list {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 5px;
-        max-height: 180px;
-        overflow: auto;
-        padding: 2px 2px 2px 0;
+      .politics-profile-personal-note {
+        margin-top: 12px;
       }
 
       .politics-constituency-preview {
@@ -40935,23 +40910,6 @@
           white-space: normal;
         }
 
-        .politics-person-profile__top,
-        .politics-person-profile__grid {
-          grid-template-columns: minmax(0, 1fr);
-        }
-
-        .politics-person-profile__actions {
-          width: 100%;
-        }
-
-        .politics-person-profile__actions .action-button {
-          width: 100%;
-        }
-
-        .politics-person-profile__section {
-          padding: 14px;
-        }
-
         .politics-constituency-preview {
           grid-template-columns: minmax(0, 1fr);
         }
@@ -40960,8 +40918,13 @@
           max-height: 190px;
         }
 
-        .politics-person-profile__section .detail-line__label {
-          min-width: 124px;
+        .politics-profile-map-card {
+          margin-inline: 0;
+        }
+
+        .politics-person-profile__actions,
+        .politics-person-profile__actions .action-button {
+          width: 100%;
         }
 
         .politics-loading-state {

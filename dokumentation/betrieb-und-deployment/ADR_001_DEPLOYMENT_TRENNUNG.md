@@ -18,7 +18,7 @@ GitHub Pages und der Kubernetes-Pfad haben unterschiedliche Sicherheitsgrenzen, 
 3. Der Pages-Build schreibt ausschließlich nach `dist/pages/`.
 4. Der Target-Build schreibt ausschließlich nach `dist/target/`.
 5. GitHub Actions veröffentlicht `dist/pages/` direkt. Die frühere versionierte `docs/`-Publish-Kopie wird nicht fortgeführt.
-6. GitHub Pages ist ausschließlich eine synthetische Demo. Es ist weder Realanwendung noch Staging für GKE.
+6. GitHub Pages ist eine synthetische CRM-/Fachdaten-Demo mit genau einer kuratierten Ausnahme: einem feldminimierten Verzeichnis öffentlicher Bundestags-Amtsträgerdaten. Es ist weder Realanwendung noch Staging für GKE.
 7. `pre-gematik` ist eine temporäre Pre-Integration. Die dort dokumentierte [persönliche Pilotentscheidung](PRE_GEMATIK_ECHTDATEN_PILOT_ENTSCHEIDUNG.md) gilt nur für diese Umgebung. GCP Autopilot, Cloud SQL, IAP, persönliche Projektwerte und persönliche Break-glass-Werte sind nicht auf den gematik-PoC übertragbar.
 8. Der gematik-PoC und ein möglicher späterer Zielpfad verwenden `dist/target/`, ein unveränderliches API-Image und getrennte, kontrollierte Deployments.
 9. Target-Frontend und API werden über eine gemeinsame Release-ID gekoppelt. Promotion verwendet geprüfte Artefakte, keinen erneuten Build aus einer Umgebungsbranch.
@@ -71,7 +71,7 @@ Vorerst verworfen, weil gemeinsame Frontend- und API-Änderungen dann aufwendig 
 
 ### GitHub Pages als Staging bezeichnen
 
-Verworfen, weil Hosting-, Auth-, Daten- und Netzwerkvertrag nicht dem Zielbetrieb entsprechen. Pages ist nur die synthetische Demo und kann keine Zielbetriebsabnahme ersetzen.
+Verworfen, weil Hosting-, Auth-, Daten- und Netzwerkvertrag nicht dem Zielbetrieb entsprechen. Pages bleibt trotz des eng begrenzten öffentlichen Amtsträger-Verzeichnisses eine anonyme Demo und kann keine Zielbetriebsabnahme ersetzen.
 
 ## Durchsetzung und Verifikation
 

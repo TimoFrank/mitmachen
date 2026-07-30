@@ -39,7 +39,7 @@ Die Verzeichnisse enthalten zusätzliche Architektur-, Migrations-, Betriebs- un
 ## Umgebungen
 
 - **Lokale Entwicklung:** bewegliche Arbeitsstände und lokale Varianten
-- **GitHub Pages:** öffentliche Demo mit fiktiven Daten aus `dist/pages/`
+- **GitHub Pages:** öffentliche Demo mit fiktiven CRM-/Fachdaten und kuratiertem Amtsträger-Verzeichnis aus `dist/pages/`
 - **`pre-gematik`:** getrennte GCP-Pre-Integration
 - **Gematik-PoC:** interner Durchstich aus einem unveränderlichen RC und `dist/target/`
 

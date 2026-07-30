@@ -162,6 +162,8 @@ for (const forbidden of [
   "enrollment.css",
   "enrollment.js",
   "demo/index.html",
+  "politik-offline.html",
+  "data/public-politics-directory.js",
   "data/demo-data.js",
   "data/demo-api.js",
   "data/versorgungs-kompass-data.csv",
@@ -172,6 +174,10 @@ for (const forbidden of [
 ]) {
   assert(!actualFiles.includes(forbidden), `${artifactLabel}/${forbidden} ist im Target-Artefakt nicht zulaessig`);
 }
+assert(
+  !actualFiles.some((file) => file === "politik-offline.html" || file.endsWith("/politik-offline.html")),
+  `${artifactLabel} darf keine verschachtelte Kopie von politik-offline.html enthalten`
+);
 
 for (const forbiddenPrefix of [
   "demo/",
@@ -255,7 +261,7 @@ const targetHtmlPath = join(artifactRoot, "versorgungs-kompass.html");
 if (existsSync(targetHtmlPath)) {
   const html = readFileSync(targetHtmlPath, "utf8");
   const noScriptCss = readFileSync(join(artifactRoot, "versorgungs-kompass-no-script.css"), "utf8");
-  assert(!/data\/(?:demo-data|versorgungs-kompass-data|expertenkreis-data|stakeholder-data|patienten-data)\.js/i.test(html), `${artifactLabel}/versorgungs-kompass.html referenziert statische Demo- oder Realbestandsdaten`);
+  assert(!/data\/(?:public-politics-directory|demo-data|versorgungs-kompass-data|expertenkreis-data|stakeholder-data|patienten-data)\.js/i.test(html), `${artifactLabel}/versorgungs-kompass.html referenziert statische Demo- oder Realbestandsdaten`);
   assert(/<noscript>[\s\S]*href=["']\/versorgungs-kompass-no-script\.css["'][^>]*data-no-script-home[^>]*>[\s\S]*<\/noscript>/i.test(html), `${artifactLabel}/versorgungs-kompass.html bindet den statischen Startseiten-Fallback nicht ein`);
   assert(/\.view-panel\[data-view-panel=["']home["']\]\s*\{[\s\S]*display:\s*block\s*!important/i.test(noScriptCss), `${artifactLabel}/versorgungs-kompass-no-script.css haelt die Startseite nicht sichtbar`);
   assert(!/data-hospitation-(?:data-mode|documentation-data-mode|dashboard-preview-mode)=["']demo["']/i.test(html), `${artifactLabel}/versorgungs-kompass.html enthaelt einen Demo-/Echt-Umschalter`);
@@ -422,6 +428,8 @@ for (const [pattern, reason] of [
   [/https:\/\/[a-z0-9-]+\.supabase\.co/i, "eine direkte Supabase-Projekt-URL"],
   [/@supabase\/supabase-js|supabase-js@/i, "das Supabase Browser-SDK"],
   [/service[_-]?role/i, "einen Service-Role-Hinweis"],
+  [/VERSORGUNGS_COMPASS_PUBLIC_POLITICS_DIRECTORY/, "den statischen Pages-Amtsträger-Datensatz"],
+  [/(?:__POLITIK_OFFLINE_READY__|id=["']offline-data["']|politik-offline\.html)/i, "das eigenstaendige Pages-Politik-Offline-Modul"],
   [/storage\/v1\/object\/public\/(?:profile-images|stakeholder-logos|protected-source-assets)/i, "einen oeffentlichen Pfad zu geschuetzten Assets"]
 ]) {
   assert(!pattern.test(targetText), `${artifactLabel} enthaelt ${reason}`);

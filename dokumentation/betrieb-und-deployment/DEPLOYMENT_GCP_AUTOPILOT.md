@@ -2,7 +2,7 @@
 
 Status: 18. Juli 2026 - temporäre Pre-Integration, ausdrücklich kein Zielbetriebs-Runbook
 
-Dieses Runbook bereitet eine zeitlich begrenzte Umgebung `pre-gematik` vor. Sie erprobt den Anwendungsvertrag mit statischem Frontend, Kubernetes-API, PostgreSQL, Object Storage, Registry und vorgelagerter Identität. Das GitHub-Pages-Deployment bleibt als rein synthetische öffentliche Demo getrennt. GitHub Pages ist kein Staging für diese Umgebung.
+Dieses Runbook bereitet eine zeitlich begrenzte Umgebung `pre-gematik` vor. Sie erprobt den Anwendungsvertrag mit statischem Frontend, Kubernetes-API, PostgreSQL, Object Storage, Registry und vorgelagerter Identität. Das GitHub-Pages-Deployment bleibt als öffentliche Demo mit synthetischen CRM-/Fachdaten und kuratiertem Bundestags-Snapshot getrennt. GitHub Pages ist kein Staging für diese Umgebung.
 
 > **Übergabehinweis:** GKE Autopilot, Cloud SQL, GCP IAP, die persönliche Domain, das persönliche GCP-Projekt und persönliche Break-glass-/OAuth-Testnutzer sind ausschließlich Adapter der Pre-Integration. Sie sind weder Zielarchitektur noch freigegebene Produktivwerte. Die gematik IT ersetzt sie durch institutionelle Plattformdienste, Konten, Domains und Betriebsverfahren.
 

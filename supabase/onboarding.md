@@ -6,7 +6,8 @@ melden sich über den freigegebenen Identity Provider der jeweiligen Umgebung an
 - GCP-Pre-Integration: IAP,
 - gematik-Zielbetrieb: OIDC/SSO.
 
-GitHub Pages ist eine anonyme Demo mit ausschließlich synthetischen Daten und
+GitHub Pages ist eine anonyme Demo mit synthetischen CRM-/Fachdaten und einem
+getrennt kuratierten Verzeichnis öffentlicher Bundestags-Amtsträgerdaten; es
 hat keine Benutzerkonten.
 
 ## Verantwortlichkeiten

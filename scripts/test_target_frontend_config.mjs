@@ -9,9 +9,11 @@ const fixtureRoot = fs.mkdtempSync(path.join(os.tmpdir(), "versorgungs-target-co
 const dataDir = path.join(fixtureRoot, "data");
 const configPath = path.join(dataDir, "runtime-config.js");
 const htmlPath = path.join(fixtureRoot, "index.html");
+const publicPoliticsDirectoryPath = path.join(dataDir, "public-politics-directory.js");
 const demoDataPath = path.join(dataDir, "demo-data.js");
 const expertDataPath = path.join(dataDir, "expertenkreis-data.js");
 const demoDirectory = path.join(fixtureRoot, "demo");
+const offlinePoliticsPath = path.join(fixtureRoot, "politik-offline.html");
 
 fs.mkdirSync(dataDir, { recursive: true });
 fs.writeFileSync(configPath, `window.VERSORGUNGS_COMPASS_CONFIG = {
@@ -24,6 +26,7 @@ fs.writeFileSync(configPath, `window.VERSORGUNGS_COMPASS_CONFIG = {
 };
 `);
 fs.writeFileSync(htmlPath, `<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="./data/public-politics-directory.js"></script>
 <script src="./data/demo-data.js"></script>
 <script src="./data/expertenkreis-data.js"></script>
 <div class="hospitation-dashboard-preview-toggle" role="group">
@@ -32,6 +35,10 @@ fs.writeFileSync(htmlPath, `<script src="https://cdn.jsdelivr.net/npm/@supabase/
 </div>
 <button id="registrations-reset-demo">Demo zuruecksetzen</button>
 `);
+fs.writeFileSync(
+  publicPoliticsDirectoryPath,
+  "window.VERSORGUNGS_COMPASS_PUBLIC_POLITICS_DIRECTORY = {};\n"
+);
 fs.writeFileSync(demoDataPath, `(function () {
   const legacyProfileImageAlpha = "https://example.supabase.co/storage/v1/object/public/profile-images/alpha/avatar.png";
   const legacyProfileImageBeta = "https://example.supabase.co/storage/v1/object/public/profile-images/beta/avatar.webp";
@@ -40,6 +47,10 @@ fs.writeFileSync(demoDataPath, `(function () {
 fs.writeFileSync(expertDataPath, "window.VERSORGUNGS_COMPASS_EXPERT_CONTACTS = [];\n");
 fs.mkdirSync(demoDirectory);
 fs.writeFileSync(path.join(demoDirectory, "index.html"), "<!doctype html><title>Demo</title>\n");
+fs.writeFileSync(
+  offlinePoliticsPath,
+  '<!doctype html><script id="offline-data" type="application/json">{"members":[]}</script>\n'
+);
 
 try {
   const prepareScript = path.join(root, "scripts", "prepare_target_frontend_config.mjs");
@@ -58,11 +69,17 @@ try {
   assert.match(source, /requireApiGateway:\s*true/);
   assert.doesNotMatch(source, /supabaseUrl|supabaseAnonKey|registrationEndpoint/);
   const targetHtml = fs.readFileSync(htmlPath, "utf8");
-  assert.doesNotMatch(targetHtml, /supabase-js|demo-data|expertenkreis-data/i);
+  assert.doesNotMatch(targetHtml, /supabase-js|public-politics-directory|demo-data|expertenkreis-data/i);
   assert.doesNotMatch(targetHtml, /data-hospitation-data-mode="demo"|registrations-reset-demo/i);
+  assert.equal(
+    fs.existsSync(publicPoliticsDirectoryPath),
+    false,
+    "Der statische Pages-Politik-Snapshot muss aus dem Zielartefakt entfernt werden"
+  );
   assert.equal(fs.existsSync(demoDataPath), false, "Demo-Daten muessen aus dem Zielartefakt entfernt werden");
   assert.equal(fs.existsSync(expertDataPath), false, "Statische Experten-Fallbacks muessen aus dem Zielartefakt entfernt werden");
   assert.equal(fs.existsSync(demoDirectory), false, "Die Demo-Route muss aus dem Zielartefakt entfernt werden");
+  assert.equal(fs.existsSync(offlinePoliticsPath), false, "Das eigenstaendige Pages-Politik-Offline-Modul muss aus dem Zielartefakt entfernt werden");
 
   execFileSync(process.execPath, [prepareScript, configPath, "https://api.pre-gematik.example", "api", "oidc"], {
     cwd: root,

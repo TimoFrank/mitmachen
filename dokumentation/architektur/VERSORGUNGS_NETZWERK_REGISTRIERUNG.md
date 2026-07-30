@@ -8,7 +8,7 @@ Der nachfolgende Vertrag dokumentiert nur eine mögliche spätere Kopplung der g
 
 ## Zwei-App-Abgrenzung
 
-- Die öffentliche GitHub-Pages-Anwendung ist eine dauerhaft bestehende Produktdemo. Sie verwendet ausschließlich synthetische, im Demo-Artefakt gebündelte Daten und sendet keine Registrierung.
+- Die öffentliche GitHub-Pages-Anwendung ist eine dauerhaft bestehende Produktdemo. CRM-/Fachdaten sind synthetisch und im Demo-Artefakt gebündelt; nur das Politik-Modul enthält einen getrennt kuratierten öffentlichen Bundestags-Snapshot. Die Anwendung sendet keine Registrierung.
 - Die #Mitmachen- und Versorgungs-Netzwerk-Seiten im Repo sind davon getrennte Konzeptdemos. Auch im Target-Artefakt bleiben ihre Formulare inert, bis ein realer Prozess fachlich ersetzt und ausdrücklich freigegeben wurde.
 - Die Realanwendung ist ein separates Target-Artefakt. Sie authentisiert im GKE-Vorbereitungspfad über IAP und im gematik-Zielbetrieb über OIDC. Jeder fachliche Browserzugriff läuft ausschließlich über `/api/...`.
 - Pages und Realanwendung teilen weder Laufzeitkonfiguration noch Sitzung, Supabase-Client, Backend-Key oder persistente Browserdaten.

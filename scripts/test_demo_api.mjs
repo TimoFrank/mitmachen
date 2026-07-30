@@ -4,6 +4,10 @@ import vm from "node:vm";
 
 const demoDataSource = fs.readFileSync("frontend/data/demo-data.js", "utf8");
 const demoApiSource = fs.readFileSync("frontend/data/demo-api.js", "utf8");
+const publicPoliticsDirectorySource = fs.readFileSync(
+  "frontend/data/public-politics-directory.js",
+  "utf8"
+);
 const dataServiceSource = fs.readFileSync("frontend/data/data-service.js", "utf8");
 const registrationSource = fs.readFileSync("frontend/pages/mitmachen/versorgungs-netzwerk.js", "utf8");
 const targetAuditSource = fs.readFileSync("scripts/audit_target_assets.mjs", "utf8");
@@ -35,7 +39,11 @@ assert.match(dataServiceSource, /VersorgungsCompassDemoApi[\s\S]*?active\s*===\s
 assert.match(registrationSource, /function\s+completeDemo\s*\(/, "Die Konzeptdemo muss ihren rein lokalen Abschluss explizit benennen.");
 assert.doesNotMatch(registrationSource, /VersorgungsCompassDemoApi|\b(?:fetch|XMLHttpRequest|sendBeacon)\b/, "Die Konzeptdemo darf weder den Demo-Adapter noch eine Transport-API verwenden.");
 
-for (const forbiddenDemoAsset of ["data/demo-data.js", "data/demo-api.js"]) {
+for (const forbiddenDemoAsset of [
+  "data/public-politics-directory.js",
+  "data/demo-data.js",
+  "data/demo-api.js"
+]) {
   assert.match(
     targetAuditSource,
     new RegExp(`["']${forbiddenDemoAsset.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}["']`),
@@ -50,6 +58,7 @@ function createRuntime({
   demoProfile = "",
   ownerOnlyContactChannels = true,
   allDemoContactsInvitable = true,
+  includePublicPoliticsDirectory = true,
   mutateDemoData
 } = {}) {
   const originalFetchCalls = [];
@@ -116,6 +125,15 @@ function createRuntime({
     clearTimeout
   };
   vm.createContext(context);
+  if (includePublicPoliticsDirectory) {
+    document.currentScript = {
+      src: "https://demo.example.invalid/data/public-politics-directory.js"
+    };
+    vm.runInContext(publicPoliticsDirectorySource, context, {
+      filename: "frontend/data/public-politics-directory.js"
+    });
+  }
+  document.currentScript = { src: "https://demo.example.invalid/data/demo-data.js" };
   vm.runInContext(demoDataSource, context, { filename: "frontend/data/demo-data.js" });
   if (typeof mutateDemoData === "function") mutateDemoData(window.VERSORGUNGS_COMPASS_DEMO_DATA);
   document.currentScript = { src: "https://demo.example.invalid/data/demo-api.js" };
@@ -177,6 +195,37 @@ assert.equal(
 );
 
 const legacyDemoRuntime = createRuntime({ ownerOnlyContactChannels: false });
+const politicsDirectory = await (
+  await legacyDemoRuntime.window.fetch("/api/politics/health-committee")
+).json();
+assert.equal(politicsDirectory.available, true);
+assert.equal(politicsDirectory.publicDirectory, true);
+assert.equal(politicsDirectory.memberCount, 38);
+assert.equal(politicsDirectory.members.length, 38);
+assert.equal(
+  politicsDirectory.members.every((member) => member.postalCodes.length <= 1),
+  true,
+  "Der Pages-Politikvertrag darf höchstens eine repräsentative PLZ pro Person ausliefern."
+);
+assert.equal(
+  politicsDirectory.members
+    .filter((member) => member.imageRightsStatus === "review_required")
+    .every((member) => !Object.hasOwn(member, "imageUrl")),
+  true,
+  "Politikporträts mit ausstehender Rechteprüfung dürfen keine Bild-URL erhalten."
+);
+const politicsUnavailableRuntime = createRuntime({
+  ownerOnlyContactChannels: false,
+  includePublicPoliticsDirectory: false
+});
+const unavailablePoliticsDirectory = await (
+  await politicsUnavailableRuntime.window.fetch("/api/politics/health-committee")
+).json();
+assert.equal(
+  unavailablePoliticsDirectory.available,
+  false,
+  "Ohne den expliziten Pages-Snapshot muss die Demo-API fail-closed bleiben."
+);
 const legacyContactResponse = await legacyDemoRuntime.window.fetch("/api/contacts/demo-contact-02");
 const legacyContact = await legacyContactResponse.json();
 assert.equal(legacyContact.email, "kontakt-002@versorgung.example.invalid", "Ohne Pages-Capability muss der bisherige Demo-Vertrag unverändert bleiben.");
