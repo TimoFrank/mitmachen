@@ -16,6 +16,7 @@
     ["activities", "versorgung/aktivitaeten"],
     ["patients", "stakeholder/patienten"],
     ["politics", "stakeholder/politik"],
+    ["press", "stakeholder/presse"],
     ["stakeholders", "stakeholder"],
     ["stakeholders/kv", "stakeholder/kassenaerztliche-vereinigungen"],
     ["stakeholders/krankenkassen", "stakeholder/krankenkassen"],
@@ -60,14 +61,16 @@
     ["expert", "expertenkreis"],
     ["stakeholder", "stakeholder"],
     ["patient", "patienten"],
-    ["politics", "politik"]
+    ["politics", "politik"],
+    ["press", "presse"]
   ]);
   const personTokenKind = new Map([...personPathKind].map(([token, path]) => [path, token]));
   const organizationPathKind = new Map([
     ["care", "versorgung"],
     ["expert", "expertenkreis"],
     ["patient", "patienten"],
-    ["stakeholder", "stakeholder"]
+    ["stakeholder", "stakeholder"],
+    ["press", "presse"]
   ]);
   const organizationTokenKind = new Map([...organizationPathKind].map(([token, path]) => [path, token]));
 
@@ -109,7 +112,7 @@
       };
     }
 
-    const personMatch = /^person\/(contact|expert|stakeholder|patient|politics)\/([^/]+)$/.exec(token);
+    const personMatch = /^person\/(contact|expert|stakeholder|patient|politics|press)\/([^/]+)$/.exec(token);
     if (personMatch) {
       return {
         path: `personen/${personPathKind.get(personMatch[1])}/${personMatch[2]}`,
@@ -117,7 +120,7 @@
       };
     }
 
-    const organizationMatch = /^organization\/(care|expert|patient|stakeholder)\/([^/]+)$/.exec(token);
+    const organizationMatch = /^organization\/(care|expert|patient|stakeholder|press)\/([^/]+)$/.exec(token);
     if (organizationMatch) {
       return {
         path: `organisationen/${organizationPathKind.get(organizationMatch[1])}/${organizationMatch[2]}`,
@@ -145,7 +148,7 @@
     const importTab = importTabByPath.get(relativePath);
     if (importTab) return `profile-imports:${importTab}`;
 
-    const personMatch = /^personen\/(versorgung|expertenkreis|stakeholder|patienten|politik)\/([^/]+)$/.exec(relativePath);
+    const personMatch = /^personen\/(versorgung|expertenkreis|stakeholder|patienten|politik|presse)\/([^/]+)$/.exec(relativePath);
     if (personMatch) {
       const query = new URLSearchParams(search);
       query.delete("iap_authenticated");
@@ -154,7 +157,7 @@
       return `person/${personTokenKind.get(personMatch[1])}/${personMatch[2]}${queryString ? `?${queryString}` : ""}`;
     }
 
-    const organizationMatch = /^organisationen\/(versorgung|expertenkreis|patienten|stakeholder)\/([^/]+)$/.exec(relativePath);
+    const organizationMatch = /^organisationen\/(versorgung|expertenkreis|patienten|stakeholder|presse)\/([^/]+)$/.exec(relativePath);
     if (organizationMatch) {
       return `organization/${organizationTokenKind.get(organizationMatch[1])}/${organizationMatch[2]}`;
     }
@@ -196,8 +199,8 @@
     const relativePath = relativeAppPath(pathname);
     if (relativePath === "versorgungs-kompass.html") return true;
     if (routeTokenByPath.has(relativePath) || importTabByPath.has(relativePath)) return true;
-    if (/^personen\/(?:versorgung|expertenkreis|stakeholder|patienten|politik)\/[^/]+$/.test(relativePath)) return true;
-    return /^organisationen\/(?:versorgung|expertenkreis|patienten|stakeholder)\/[^/]+$/.test(relativePath);
+    if (/^personen\/(?:versorgung|expertenkreis|stakeholder|patienten|politik|presse)\/[^/]+$/.test(relativePath)) return true;
+    return /^organisationen\/(?:versorgung|expertenkreis|patienten|stakeholder|presse)\/[^/]+$/.test(relativePath);
   }
 
   window.VKAppRoutes = Object.freeze({

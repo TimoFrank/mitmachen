@@ -28,9 +28,9 @@ const expectedCounts = {
   expertOrganizations: 18,
   expertContacts: 36,
   expertEntityLinks: 8,
-  stakeholderTypes: 5,
-  stakeholderOrganizations: 30,
-  stakeholderPeople: 45,
+  stakeholderTypes: 6,
+  stakeholderOrganizations: 42,
+  stakeholderPeople: 71,
   activityEvents: 72,
   changes: 40,
   notifications: 12,
@@ -89,7 +89,8 @@ const stakeholderTypeIds = new Set([
   "health-insurance",
   "patient-associations",
   "hospital-associations",
-  "physician-associations"
+  "physician-associations",
+  "press"
 ]);
 
 function unique(values) {
@@ -527,6 +528,35 @@ for (const person of data.stakeholderPeople) {
     person.stakeholderTypeId,
     `${person.id}: Person und Organisation verwenden unterschiedliche Stakeholdertypen.`
   );
+}
+const pressStakeholderOrganizations = data.stakeholderOrganizations.filter((row) => row.stakeholderTypeId === "press");
+const pressStakeholderPeople = data.stakeholderPeople.filter((row) => row.stakeholderTypeId === "press");
+assert.equal(pressStakeholderOrganizations.length, 12, "Die Presse-Demo benötigt zwölf synthetische Medien- und Pressestellen.");
+assert.equal(pressStakeholderPeople.length, 26, "Die Presse-Demo benötigt 26 synthetische Pressekontakte.");
+assert.equal(
+  new Set(pressStakeholderOrganizations.map((row) => row.organizationType)).size,
+  11,
+  "Die Presse-Demo muss unterschiedliche Medien- und Pressestellentypen abdecken."
+);
+for (const organization of pressStakeholderOrganizations) {
+  assert.equal(organization.memberCount, null, `${organization.id}: Presseorganisationen dürfen keine fingierte Mitgliederzahl erhalten.`);
+  assert.match(organization.website || "", /^https:\/\/[a-z0-9-]+\.example\.invalid\/?$/i, `${organization.id}: Website muss eine reservierte Demo-URL sein.`);
+  assert.match(organization.email || "", /@presse\.example\.invalid$/i, `${organization.id}: E-Mail muss eine reservierte Demo-Adresse sein.`);
+  assert.match(organization.source || "", /synthetisch/i, `${organization.id}: synthetische Herkunft fehlt.`);
+}
+for (const person of pressStakeholderPeople) {
+  assert.match(person.email || "", /@presse\.example\.invalid$/i, `${person.id}: E-Mail muss eine reservierte Demo-Adresse sein.`);
+  assert.match(person.url || "", /^https:\/\/[a-z0-9-]+\.example\.invalid\/profil$/i, `${person.id}: Profil muss eine reservierte Demo-URL sein.`);
+  assert.ok(Array.isArray(person.themes) && person.themes.length >= 3, `${person.id}: realistische Pressethemen fehlen.`);
+  assert.match(person.source || "", /synthetisch/i, `${person.id}: synthetische Herkunft fehlt.`);
+}
+const pressRolePortfolio = pressStakeholderPeople.map((person) => person.role).join(" ");
+for (const rolePattern of [/Pressesprecher/i, /Redaktionsleitung|Chefredakteur/i, /Redakteur|Korrespondent|Datenjournalist/i]) {
+  assert.match(pressRolePortfolio, rolePattern, `Rollenprofil fehlt: ${rolePattern}`);
+}
+const pressTopicPortfolio = pressStakeholderPeople.flatMap((person) => person.themes).join(" ");
+for (const topic of ["Digital Health", "Gesundheitssystem", "Gesundheitspolitik", "gematik", "Telematikinfrastruktur"]) {
+  assert.ok(pressTopicPortfolio.includes(topic), `Presse-Schwerpunktthema fehlt: ${topic}`);
 }
 
 for (const organization of data.expertOrganizations) {

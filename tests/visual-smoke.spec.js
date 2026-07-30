@@ -799,6 +799,8 @@ test("Kontakte: Liste und Filtertoolbar rendern", async ({ page }, testInfo) => 
   const stakeholderTabOrder = await page.locator('[data-sidebar-section="stakeholders"] [data-view-tab]').evaluateAll((nodes) => nodes.map((node) => node.querySelector("span:not(.notification-count-indicator)")?.textContent.trim()));
   expect(stakeholderTabOrder).toEqual([
     "Patienten",
+    "Politik",
+    "Presse",
     "Kassenärztliche Vereinigungen",
     "Krankenkassen",
     "Patientenverbände",

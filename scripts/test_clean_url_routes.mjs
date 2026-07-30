@@ -44,6 +44,7 @@ const routeMatrix = new Map([
   ["activities", "/versorgung/aktivitaeten"],
   ["patients", "/stakeholder/patienten"],
   ["politics", "/stakeholder/politik"],
+  ["press", "/stakeholder/presse"],
   ["stakeholders", "/stakeholder"],
   ["stakeholders/kv", "/stakeholder/kassenaerztliche-vereinigungen"],
   ["stakeholders/krankenkassen", "/stakeholder/krankenkassen"],
@@ -106,12 +107,28 @@ assert.equal(
   "person/politics/demo-politik"
 );
 assert.equal(
+  routes.urlForRouteToken("person/press/demo-presse"),
+  "/personen/presse/demo-presse"
+);
+assert.equal(
+  routes.routeTokenForPath("/personen/presse/demo-presse"),
+  "person/press/demo-presse"
+);
+assert.equal(
   routes.urlForRouteToken("organization/expert/demo-org"),
   "/organisationen/expertenkreis/demo-org"
 );
 assert.equal(
   routes.routeTokenForPath("/organisationen/expertenkreis/demo-org"),
   "organization/expert/demo-org"
+);
+assert.equal(
+  routes.urlForRouteToken("organization/press/demo-medium"),
+  "/organisationen/presse/demo-medium"
+);
+assert.equal(
+  routes.routeTokenForPath("/organisationen/presse/demo-medium"),
+  "organization/press/demo-medium"
 );
 assert.equal(routes.isApplicationPath("/organisationen/stakeholder/demo-org/nested"), false);
 assert.equal(routes.assetUrl("data/runtime-config.js"), "/data/runtime-config.js");
@@ -155,5 +172,21 @@ const stakeholderLocationRegex = new RegExp(stakeholderLocationPattern[1]);
 for (const expectedPath of [...routeMatrix.values()].filter((routePath) => routePath.startsWith("/stakeholder"))) {
   assert.ok(stakeholderLocationRegex.test(expectedPath), `${expectedPath} fehlt im Nginx-Stakeholder-Routenvertrag`);
 }
+
+const personLocationPattern = nginxSource.match(/location ~ (\^\/personen[^\n]+) \{/);
+assert.ok(personLocationPattern, "Nginx-Personen-Routenvertrag fehlt.");
+const personLocationRegex = new RegExp(personLocationPattern[1]);
+assert.ok(
+  personLocationRegex.test("/personen/presse/demo-presse"),
+  "/personen/presse/:id fehlt im Nginx-Personen-Routenvertrag"
+);
+
+const organizationLocationPattern = nginxSource.match(/location ~ (\^\/organisationen[^\n]+) \{/);
+assert.ok(organizationLocationPattern, "Nginx-Organisations-Routenvertrag fehlt.");
+const organizationLocationRegex = new RegExp(organizationLocationPattern[1]);
+assert.ok(
+  organizationLocationRegex.test("/organisationen/presse/demo-medium"),
+  "/organisationen/presse/:id fehlt im Nginx-Organisations-Routenvertrag"
+);
 
 console.log(`Clean URL routes OK: ${routeMatrix.size} statische Routen, Detailpfade, Auth-Allowlist und Nginx-App-Shell-Fallback.`);

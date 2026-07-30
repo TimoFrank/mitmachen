@@ -135,6 +135,14 @@
                 </svg>
                 <span>Politik</span>
               </button>
+              <button class="primary-tab" type="button" data-view-tab="press" title="Presse">
+                <svg viewBox="0 0 24 24" fill="none" stroke-width="2" aria-hidden="true">
+                  <path d="M4 5h14a2 2 0 0 1 2 2v12H6a2 2 0 0 1-2-2V5Z"></path>
+                  <path d="M8 9h4M8 13h8M8 17h6"></path>
+                  <path d="M20 9h-2v8a2 2 0 0 0 2 2"></path>
+                </svg>
+                <span>Presse</span>
+              </button>
               <div class="sidebar-subnav" role="group" aria-label="Stakeholder-Organisationen">
                 <span class="sidebar-subnav__label">Organisationen</span>
                 <button class="primary-tab primary-tab--nested" type="button" data-view-tab="stakeholders" data-stakeholder-type-route="kv" title="Kassenärztliche Vereinigungen">
@@ -1029,6 +1037,57 @@
               <div class="table-footer politics-table-footer" id="politics-table-footer">
                 <div class="table-footer__meta" id="politics-results-meta">Mitglieder werden geladen</div>
                 <div class="politics-source-meta" id="politics-source-meta">Offizielle Quelle: Deutscher Bundestag</div>
+              </div>
+            </div>
+          </section>
+
+          <section class="view-panel" id="view-press" data-view-panel="press">
+            <div class="view-card politics-workspace press-workspace">
+              <header class="politics-context press-context">
+                <div class="politics-context__mark press-context__mark" aria-hidden="true">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9">
+                    <path d="M4 5h14a2 2 0 0 1 2 2v12H6a2 2 0 0 1-2-2V5Z"></path>
+                    <path d="M8 9h4M8 13h8M8 17h6"></path>
+                    <path d="M20 9h-2v8a2 2 0 0 0 2 2"></path>
+                  </svg>
+                </div>
+                <div class="politics-context__copy">
+                  <span class="politics-context__eyebrow">Gesundheitswesen</span>
+                  <h3>Pressekontakte</h3>
+                  <p>Pressesprecher:innen, Redaktionsleitungen und Fachredakteur:innen für Digital Health, Gesundheitssystem und gematik.</p>
+                </div>
+                <div class="politics-context__meta">
+                  <span class="politics-status-pill" id="press-contact-count">Kontakte werden geladen</span>
+                  <span class="press-context__source">Berufliche Kontaktdaten aus öffentlich ausgewiesenen Quellen</span>
+                </div>
+              </header>
+
+              <div class="politics-data-notice press-data-notice" id="press-data-notice" role="status" aria-live="polite" hidden></div>
+
+              <div class="table-wrap politics-table-wrap press-table-wrap" id="press-table-wrap">
+                <section class="table politics-table press-table">
+                  <div class="semantic-table" data-semantic-table role="table" aria-label="Pressekontakte im Gesundheitswesen">
+                    <div class="thead" id="press-table-head"></div>
+                    <div id="press-contact-list" aria-live="polite">
+                      <div class="politics-loading-state">Pressekontakte werden geladen …</div>
+                    </div>
+                  </div>
+                </section>
+              </div>
+
+              <div class="table-footer politics-table-footer press-table-footer" id="press-table-footer">
+                <div class="table-footer__meta" id="press-results-meta">Kontakte werden geladen</div>
+                <div class="table-footer__controls">
+                  <div class="pagination" id="press-pagination"></div>
+                  <label class="select-shell page-size-shell" data-custom-select data-select-variant="compact">
+                    <select id="press-page-size-select" aria-label="Pressekontakte pro Seite anzeigen">
+                      <option value="10">10 pro Seite</option>
+                      <option value="20" selected>20 pro Seite</option>
+                      <option value="50">50 pro Seite</option>
+                      <option value="100">100 pro Seite</option>
+                    </select>
+                  </label>
+                </div>
               </div>
             </div>
           </section>
