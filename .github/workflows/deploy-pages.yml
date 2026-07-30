@@ -86,7 +86,9 @@ jobs:
           cache: npm
 
       - name: Install dependencies
-        run: npm ci
+        run: |
+          npm ci
+          npm ci --prefix frontend/identity-portal
 
       - name: Run repository checks
         run: npm run check
