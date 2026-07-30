@@ -1063,6 +1063,12 @@
       const politicsResultsMeta = document.getElementById("politics-results-meta");
       const politicsSourceMeta = document.getElementById("politics-source-meta");
       const politicsCommitteeSource = document.getElementById("politics-committee-source");
+      const politicsTableFooter = document.getElementById("politics-table-footer");
+      const politicsMapOpenButton = document.getElementById("politics-map-open");
+      const politicsMapCloseButton = document.getElementById("politics-map-close");
+      const politicsMapPanel = document.getElementById("politics-map-panel");
+      const politicsMapFrame = document.getElementById("politics-map-frame");
+      const politicsMapMeta = document.getElementById("politics-map-meta");
       const contactsTable = document.querySelector(".contacts-table");
       const contactsTableHead = document.getElementById("contacts-table-head");
       const bulkToolbar = document.getElementById("bulk-toolbar");
@@ -1127,7 +1133,7 @@
       const sourceFilterMeta = document.getElementById("source-filter-meta");
       const mapViewFrame = document.getElementById("map-view-frame");
       const MAP_MESSAGE_VERSION = 1;
-      const MAP_MESSAGE_CHANNELS = new Set(["contacts", "stakeholders"]);
+      const MAP_MESSAGE_CHANNELS = new Set(["contacts", "stakeholders", "politics"]);
       const appShell = document.querySelector(".app-shell");
       appShell?.classList.toggle("is-public-demo-profile", IS_PUBLIC_DEMO_PROFILE);
       const skipLink = document.querySelector(".skip-link");
@@ -1449,6 +1455,8 @@
         postalCodes: "",
         constituency: ""
       };
+      let politicsDisplayMode = "table";
+      let activePoliticsMemberId = "";
       let formats = [];
       let hospitations = [];
       let hospitationSlots = [];
@@ -29109,6 +29117,98 @@
         }
       }
 
+      function politicsPortraitUrl(value) {
+        const official = officialBundestagUrl(value, "image");
+        if (official) return official;
+        try {
+          const parsed = new URL(String(value || "").trim());
+          if (
+            parsed.protocol === "https:"
+            && parsed.hostname === "bilddatenbank.bundestag.de"
+            && !parsed.username
+            && !parsed.password
+            && !parsed.search
+            && !parsed.hash
+            && /^\/fotos\/file[a-z0-9]+\.jpg$/iu.test(parsed.pathname)
+          ) return parsed.href;
+          const queryKeys = [...parsed.searchParams.keys()];
+          if (
+            parsed.protocol !== "https:"
+            || parsed.hostname !== "commons.wikimedia.org"
+            || parsed.username
+            || parsed.password
+            || parsed.hash
+            || !/^\/wiki\/Special:Redirect\/file\/[^/]+$/iu.test(parsed.pathname)
+            || queryKeys.some((key) => key !== "width")
+            || !/^\d{2,4}$/u.test(parsed.searchParams.get("width") || "")
+          ) return "";
+          return parsed.href;
+        } catch (_error) {
+          return "";
+        }
+      }
+
+      function politicsPortraitSourceUrl(value) {
+        const official = officialBundestagUrl(value, "profile");
+        if (official) return official;
+        try {
+          const parsed = new URL(String(value || "").trim());
+          const databaseQueryKeys = [...parsed.searchParams.keys()];
+          if (
+            parsed.protocol === "https:"
+            && parsed.hostname === "bilddatenbank.bundestag.de"
+            && !parsed.username
+            && !parsed.password
+            && !parsed.hash
+            && parsed.pathname === "/site/picture-detail"
+            && databaseQueryKeys.length === 1
+            && databaseQueryKeys[0] === "id"
+            && /^\d{5,12}$/u.test(parsed.searchParams.get("id") || "")
+          ) return parsed.href;
+          if (
+            parsed.protocol !== "https:"
+            || parsed.hostname !== "commons.wikimedia.org"
+            || parsed.username
+            || parsed.password
+            || parsed.search
+            || parsed.hash
+            || !/^\/wiki\/File:[^/]+$/iu.test(parsed.pathname)
+          ) return "";
+          return parsed.href;
+        } catch (_error) {
+          return "";
+        }
+      }
+
+      function politicsImageUsageTermsUrl(value) {
+        const official = officialBundestagUrl(value, "terms");
+        if (official) return official;
+        try {
+          const parsed = new URL(String(value || "").trim());
+          if (
+            parsed.protocol === "https:"
+            && parsed.hostname === "bilddatenbank.bundestag.de"
+            && !parsed.username
+            && !parsed.password
+            && !parsed.search
+            && !parsed.hash
+            && parsed.pathname === "/site/nutzungsbedingungen"
+          ) return parsed.href;
+          if (
+            parsed.protocol !== "https:"
+            || parsed.hostname !== "creativecommons.org"
+            || parsed.username
+            || parsed.password
+            || parsed.search
+            || parsed.hash
+            || !/^\/(?:licenses\/(?:by|by-sa)\/\d(?:\.\d)?(?:\/de)?|publicdomain\/zero\/1\.0)\/$/iu.test(parsed.pathname)
+          ) return "";
+          return parsed.href;
+        } catch (_error) {
+          return "";
+        }
+      }
+
       function sanitizePoliticsPostalCodes(value) {
         const source = Array.isArray(value)
           ? value
@@ -29125,17 +29225,20 @@
         const faction = String(entry.faction || entry.party || "").trim();
         const idCandidate = String(entry.id || "").trim();
         const profileUrl = officialBundestagUrl(entry.profileUrl || entry.profile_url || entry.url, "profile");
-        const imageUrl = officialBundestagUrl(entry.imageUrl || entry.image_url || entry.portrait?.url, "image");
-        const imageSourceUrl = officialBundestagUrl(
+        const imageUrl = politicsPortraitUrl(entry.imageUrl || entry.image_url || entry.portrait?.url);
+        const imageSourceUrl = politicsPortraitSourceUrl(
           entry.imageSourceUrl || entry.image_source_url || entry.portrait?.sourceUrl || profileUrl,
-          "profile"
         ) || profileUrl;
-        const imageUsageTermsUrl = officialBundestagUrl(
+        const imageUsageTermsUrl = politicsImageUsageTermsUrl(
           entry.imageUsageTermsUrl || entry.image_usage_terms_url || entry.portrait?.usageTermsUrl || "https://www.bundestag.de/services/impressum",
-          "terms"
         ) || "https://www.bundestag.de/services/impressum";
         const constituencyNumberRaw = String(entry.constituencyNumber || entry.constituency_number || entry.constituency?.number || "").trim();
-        const constituencyNumber = /^\d{1,3}$/.test(constituencyNumberRaw) ? constituencyNumberRaw.padStart(3, "0") : "";
+        const constituencyNumberValue = /^\d{1,3}$/.test(constituencyNumberRaw)
+          ? Number.parseInt(constituencyNumberRaw, 10)
+          : 0;
+        const constituencyNumber = constituencyNumberValue >= 1 && constituencyNumberValue <= 299
+          ? String(constituencyNumberValue).padStart(3, "0")
+          : "";
         const constituencyName = String(entry.constituencyName || entry.constituency_name || entry.constituency?.name || "")
           .trim().replace(/\s+/g, " ").slice(0, 160);
         const constituencyLabelSource = typeof entry.constituency === "string"
@@ -29153,6 +29256,17 @@
           || entry.postal_codes
           || entry.constituency?.postalCodes
         );
+        const representativePostalCodeCandidate = String(
+          entry.representativePostalCode
+          || entry.representative_postal_code
+          || entry.mapPostalCode
+          || entry.map_postal_code
+          || postalCodes[0]
+          || ""
+        ).trim();
+        const representativePostalCode = postalCodes.includes(representativePostalCodeCandidate)
+          ? representativePostalCodeCandidate
+          : postalCodes[0] || "";
         const postalCodeCoverageCandidate = String(
           entry.postalCodeCoverage || entry.postal_code_coverage || entry.constituency?.postalCodeCoverage || ""
         ).trim();
@@ -29182,9 +29296,16 @@
           imageSourceUrl,
           imageAttribution: String(entry.imageAttribution || entry.image_attribution || entry.portrait?.credit || "")
             .trim().replace(/\s+/g, " ").slice(0, 260),
+          imageLicense: String(entry.imageLicense || entry.image_license || "")
+            .trim().replace(/\s+/g, " ").slice(0, 100),
+          imageProvider: String(entry.imageProvider || entry.image_provider || "")
+            .trim().replace(/\s+/g, " ").slice(0, 100),
           imageUsageTermsUrl,
-          imageRightsStatus: String(entry.imageRightsStatus || entry.image_rights_status || entry.portrait?.rightsStatus || "review_required")
-            .trim().slice(0, 40),
+          imageRightsStatus: ["approved", "review_required", "official_public_review_required"].includes(
+            String(entry.imageRightsStatus || entry.image_rights_status || entry.portrait?.rightsStatus || "review_required").trim()
+          )
+            ? String(entry.imageRightsStatus || entry.image_rights_status || entry.portrait?.rightsStatus || "review_required").trim()
+            : "review_required",
           constituency,
           constituencyNumber,
           constituencyName,
@@ -29195,6 +29316,8 @@
             .trim().replace(/\s+/g, " ").slice(0, 100),
           postalCodes,
           constituencyPostalCodes: postalCodes,
+          representativePostalCode,
+          mapPostalCode: representativePostalCode,
           postalCodeCoverage,
           constituencySourceUrl
         };
@@ -29246,7 +29369,7 @@
       const politicsMissingFilterValue = "__missing__";
 
       function politicsColumnValues(member, key) {
-        if (key === "postalCodes") return member.postalCodes;
+        if (key === "postalCodes") return member.representativePostalCode ? [member.representativePostalCode] : [];
         if (key === "constituency") return [politicsConstituencyLabel(member)];
         const value = String(member[key] || "").trim();
         return value ? [value] : [];
@@ -29271,7 +29394,7 @@
       }
 
       function politicsSortValue(member, key) {
-        if (key === "postalCodes") return member.postalCodes[0] || "";
+        if (key === "postalCodes") return member.representativePostalCode || "";
         if (key === "constituency") return politicsConstituencyLabel(member);
         return String(member[key] || "");
       }
@@ -29289,7 +29412,7 @@
             politicsConstituencyLabel(member),
             member.mandateType,
             member.constituencyFederalState,
-            member.postalCodes.join(" ")
+            member.representativePostalCode
           ].join(" ")).includes(query))
           .map((member, index) => ({ member, index, value: politicsSortValue(member, politicsSort.key) }))
           .sort((left, right) => {
@@ -29346,7 +29469,10 @@
       }
 
       function politicsMemberPortraitIsApproved(member) {
-        return Boolean(member.imageUrl && member.imageRightsStatus === "approved");
+        return Boolean(
+          member.imageUrl
+          && member.imageRightsStatus === "approved"
+        );
       }
 
       function politicsMemberAvatarMarkup(member, size = "sm") {
@@ -29521,15 +29647,13 @@
       }
 
       function politicsPostalCodesMarkup(member) {
-        if (!member.postalCodes.length) {
+        if (!member.representativePostalCode) {
           const label = member.postalCodeCoverage === "not_applicable" ? "Nicht zutreffend" : "Nicht ausgewiesen";
           return `<span class="politics-postal-summary politics-postal-summary--empty">${escapeHtml(label)}</span>`;
         }
-        const visible = member.postalCodes.slice(0, 2);
-        const remaining = member.postalCodes.length - visible.length;
         return `
-          <span class="politics-postal-summary" title="${escapeHtml(member.postalCodes.join(", "))}">
-            ${escapeHtml(visible.join(", "))}${remaining > 0 ? ` <small>+${remaining}</small>` : ""}
+          <span class="politics-postal-summary" title="Eine PLZ aus dem Wahlkreis">
+            ${escapeHtml(member.representativePostalCode)}
           </span>
         `;
       }
@@ -29539,7 +29663,7 @@
           const openProfile = () => {
             const member = politicsCommittee.members.find((entry) => entry.id === row.dataset.politicsMemberId);
             if (!member) return;
-            openPersonProfile("politics", member.id, { returnTo: "politics", title: member.name });
+            openPoliticsPersonDrawer(member.id, filteredPoliticsMembers());
           };
           row.addEventListener("click", (event) => {
             if (event.target.closest("a, button, input, select, textarea")) return;
@@ -29549,6 +29673,74 @@
         });
       }
 
+      function syncPoliticsMapFrame(items = filteredPoliticsMembers()) {
+        if (!politicsMapFrame?.contentWindow || politicsDataState !== "ready") return;
+        const positionedMembers = politicsMapMembers(items);
+        if (politicsMapMeta) {
+          politicsMapMeta.textContent = `${positionedMembers.length} von ${politicsCommittee.members.length} Mitgliedern kartiert`;
+        }
+        politicsMapFrame.contentWindow.postMessage(
+          {
+            type: "versorgungs-kompass-map-data",
+            version: MAP_MESSAGE_VERSION,
+            channel: "politics",
+            context: "politics",
+            labels: {
+              itemSingular: "Politiker",
+              itemPlural: "Politiker",
+              listTitle: "Gesundheitsausschuss",
+              searchPlaceholder: "Name, Fraktion oder Wahlkreis suchen",
+              categoryLabel: "Fraktion",
+              categoryAllLabel: "Alle Fraktionen",
+              openDetailLabel: "Kontaktprofil öffnen",
+              previewKicker: "Politikprofil",
+              emptyTitle: "Keine Politiker im aktuellen Kartenfilter.",
+              descriptionFallback: "Mitglied des Gesundheitsausschusses"
+            },
+            showOwnerFilter: false,
+            contacts: positionedMembers.map((member) => ({
+              id: member.id,
+              name: member.name,
+              specialty: member.role,
+              contactRole: member.mandateType,
+              category: member.faction,
+              organization: "Deutscher Bundestag",
+              topic: politicsConstituencyLabel(member),
+              priority: member.mandateType,
+              location: [member.representativePostalCode, member.constituencyName].filter(Boolean).join(" "),
+              city: member.constituencyName,
+              state: member.constituencyFederalState,
+              postalCode: member.representativePostalCode,
+              url: member.profileUrl,
+              description: politicsConstituencyLabel(member),
+              lat: member.lat,
+              lon: member.lon,
+              image: politicsMemberPortraitIsApproved(member) ? member.imageUrl : "",
+              sources: member.profileUrl,
+              mapPositionSource: member.mapPositionSource
+            })),
+            totalContacts: politicsCommittee.members.length,
+            filteredContacts: positionedMembers.length
+          },
+          window.location.origin
+        );
+      }
+
+      function setPoliticsDisplayMode(mode = "table") {
+        politicsDisplayMode = mode === "map" ? "map" : "table";
+        const mapActive = politicsDisplayMode === "map";
+        if (politicsMapPanel) politicsMapPanel.hidden = !mapActive;
+        if (politicsTableWrap) politicsTableWrap.hidden = mapActive || politicsDataState !== "ready";
+        if (politicsTableFooter) politicsTableFooter.hidden = mapActive;
+        if (politicsMapOpenButton) {
+          politicsMapOpenButton.hidden = mapActive || politicsDataState !== "ready";
+          politicsMapOpenButton.setAttribute("aria-expanded", String(mapActive));
+        }
+        if (mapActive) {
+          window.requestAnimationFrame(() => syncPoliticsMapFrame(filteredPoliticsMembers()));
+        }
+      }
+
       function renderPoliticsView(items = filteredPoliticsMembers()) {
         if (!politicsMemberList || !politicsTableWrap || !politicsResultsMeta || !politicsMemberCount) return;
         if (politicsCommitteeSource) politicsCommitteeSource.href = politicsCommittee.sourceUrl;
@@ -29556,6 +29748,8 @@
 
         if (politicsDataState === "loading") {
           politicsTableWrap.hidden = false;
+          if (politicsMapPanel) politicsMapPanel.hidden = true;
+          if (politicsMapOpenButton) politicsMapOpenButton.hidden = true;
           setPoliticsNotice();
           politicsMemberCount.textContent = "Mitglieder werden geladen";
           politicsMemberList.innerHTML = `<div class="politics-loading-state">Ausschussmitglieder werden geladen …</div>`;
@@ -29565,6 +29759,7 @@
         }
 
         if (politicsDataState === "unavailable") {
+          setPoliticsDisplayMode("table");
           politicsTableWrap.hidden = true;
           politicsMemberCount.textContent = "Geschützte Ansicht";
           politicsResultsMeta.textContent = "Keine realen Personendaten in der öffentlichen Demo";
@@ -29577,6 +29772,7 @@
         }
 
         if (politicsDataState === "error") {
+          setPoliticsDisplayMode("table");
           politicsTableWrap.hidden = true;
           politicsMemberCount.textContent = "Quelle nicht erreichbar";
           politicsResultsMeta.textContent = "Ausschussliste derzeit nicht verfügbar";
@@ -29601,6 +29797,8 @@
             ? `Zwischengespeicherter Stand${fetchedAt ? ` vom ${fetchedAt}` : ""}`
             : `Offizielle Quelle${fetchedAt ? ` · abgerufen am ${fetchedAt}` : ": Deutscher Bundestag"}`;
         }
+        setPoliticsDisplayMode(politicsDisplayMode);
+        ensurePoliticsPersonDrawer();
 
         if (!items.length) {
           politicsMemberList.innerHTML = `<div class="empty">Keine Ausschussmitglieder passen zur aktuellen Suche oder den Spaltenfiltern.</div>`;
@@ -29615,7 +29813,7 @@
             <div class="politics-member-cell" data-politics-field="member">
               ${politicsMemberAvatarMarkup(member)}
               <span class="politics-member-copy">
-                <button class="politics-member-name" type="button" data-open-politics-profile>${escapeHtml(member.name)}</button>
+                <button class="politics-member-name" type="button" data-open-politics-profile="${escapeHtml(member.id)}" aria-haspopup="dialog" aria-controls="detail-panel">${escapeHtml(member.name)}</button>
                 <small>Mitglied des Deutschen Bundestages</small>
               </span>
             </div>
@@ -35079,33 +35277,233 @@
         return "Nicht offiziell ausgewiesen";
       }
 
+      function politicsConstituencyFeature(member) {
+        const constituencyNumber = Number.parseInt(member?.constituencyNumber || "", 10);
+        if (!Number.isInteger(constituencyNumber) || constituencyNumber < 1 || constituencyNumber > 299) return null;
+        const feature = window.MAP_CONSTITUENCY_POLYGONS?.features?.find(
+          (feature) => Number(feature?.properties?.WKR_NR) === constituencyNumber
+        ) || null;
+        return feature;
+      }
+
+      function politicsRingCentroid(ring = []) {
+        let twiceArea = 0;
+        let centroidX = 0;
+        let centroidY = 0;
+        for (let index = 0; index < ring.length - 1; index += 1) {
+          const [x1, y1] = ring[index] || [];
+          const [x2, y2] = ring[index + 1] || [];
+          if (![x1, y1, x2, y2].every(Number.isFinite)) continue;
+          const cross = (x1 * y2) - (x2 * y1);
+          twiceArea += cross;
+          centroidX += (x1 + x2) * cross;
+          centroidY += (y1 + y2) * cross;
+        }
+        if (Math.abs(twiceArea) < 1e-9) return null;
+        return {
+          lon: centroidX / (3 * twiceArea),
+          lat: centroidY / (3 * twiceArea),
+          area: Math.abs(twiceArea / 2)
+        };
+      }
+
+      function politicsPointInRing(point, ring = []) {
+        if (!point || ring.length < 4) return false;
+        let inside = false;
+        for (let current = 0, previous = ring.length - 1; current < ring.length; previous = current, current += 1) {
+          const [currentX, currentY] = ring[current] || [];
+          const [previousX, previousY] = ring[previous] || [];
+          if (![currentX, currentY, previousX, previousY].every(Number.isFinite)) continue;
+          const crossesLatitude = (currentY > point.lat) !== (previousY > point.lat);
+          const crossingLongitude = ((previousX - currentX) * (point.lat - currentY))
+            / ((previousY - currentY) || Number.EPSILON)
+            + currentX;
+          if (crossesLatitude && point.lon < crossingLongitude) inside = !inside;
+        }
+        return inside;
+      }
+
+      function politicsPointInPolygon(point, polygon = []) {
+        if (!politicsPointInRing(point, polygon[0] || [])) return false;
+        return !polygon.slice(1).some((ring) => politicsPointInRing(point, ring));
+      }
+
+      function politicsRingBounds(ring = []) {
+        return ring.reduce((bounds, point) => {
+          const [lon, lat] = point || [];
+          if (!Number.isFinite(lon) || !Number.isFinite(lat)) return bounds;
+          return {
+            minX: Math.min(bounds.minX, lon),
+            maxX: Math.max(bounds.maxX, lon),
+            minY: Math.min(bounds.minY, lat),
+            maxY: Math.max(bounds.maxY, lat)
+          };
+        }, {
+          minX: Number.POSITIVE_INFINITY,
+          maxX: Number.NEGATIVE_INFINITY,
+          minY: Number.POSITIVE_INFINITY,
+          maxY: Number.NEGATIVE_INFINITY
+        });
+      }
+
+      function politicsScanlineIntersections(rings = [], latitude) {
+        return rings.flatMap((ring) => {
+          const intersections = [];
+          for (let index = 0; index < ring.length - 1; index += 1) {
+            const [x1, y1] = ring[index] || [];
+            const [x2, y2] = ring[index + 1] || [];
+            if (![x1, y1, x2, y2].every(Number.isFinite) || (y1 > latitude) === (y2 > latitude)) continue;
+            intersections.push(x1 + (((latitude - y1) * (x2 - x1)) / (y2 - y1)));
+          }
+          return intersections;
+        }).sort((left, right) => left - right);
+      }
+
+      function politicsPolygonInteriorPoint(polygon = []) {
+        const exteriorRing = polygon[0] || [];
+        const centroid = politicsRingCentroid(exteriorRing);
+        if (centroid && politicsPointInPolygon(centroid, polygon)) return centroid;
+        const bounds = politicsRingBounds(exteriorRing);
+        if (![bounds.minX, bounds.maxX, bounds.minY, bounds.maxY].every(Number.isFinite)) return null;
+        const scanlineFractions = [0.5, 0.42, 0.58, 0.34, 0.66, 0.26, 0.74, 0.18, 0.82];
+        let bestCandidate = null;
+        scanlineFractions.forEach((fraction) => {
+          const latitude = bounds.minY + ((bounds.maxY - bounds.minY) * fraction);
+          const intersections = politicsScanlineIntersections(polygon, latitude);
+          for (let index = 0; index < intersections.length - 1; index += 1) {
+            const left = intersections[index];
+            const right = intersections[index + 1];
+            const candidate = {
+              lon: (left + right) / 2,
+              lat: latitude,
+              width: right - left
+            };
+            if (
+              candidate.width > 0
+              && politicsPointInPolygon(candidate, polygon)
+              && (!bestCandidate || candidate.width > bestCandidate.width)
+            ) {
+              bestCandidate = candidate;
+            }
+          }
+        });
+        return bestCandidate
+          ? { lon: bestCandidate.lon, lat: bestCandidate.lat, area: centroid?.area || 0 }
+          : null;
+      }
+
+      const politicsFeatureCenterCache = new WeakMap();
+
+      function politicsFeatureCenter(feature) {
+        if (!feature || typeof feature !== "object") return null;
+        if (politicsFeatureCenterCache.has(feature)) return politicsFeatureCenterCache.get(feature);
+        const candidates = polygonPoints(feature)
+          .map((polygon) => politicsPolygonInteriorPoint(polygon))
+          .filter(Boolean)
+          .sort((left, right) => right.area - left.area);
+        if (candidates.length) {
+          const center = { lat: candidates[0].lat, lon: candidates[0].lon };
+          politicsFeatureCenterCache.set(feature, center);
+          return center;
+        }
+        politicsFeatureCenterCache.set(feature, null);
+        return null;
+      }
+
+      function politicsMapPosition(member) {
+        const feature = politicsConstituencyFeature(member);
+        const constituencyCenter = politicsFeatureCenter(feature);
+        if (constituencyCenter) {
+          return { ...constituencyCenter, source: "constituency_interior_point" };
+        }
+        const stateCenter = stakeholderStateCenters[member.constituencyFederalState];
+        if (!stateCenter) return null;
+        const statePeers = politicsCommittee.members.filter(
+          (entry) => !politicsConstituencyFeature(entry)
+            && entry.constituencyFederalState === member.constituencyFederalState
+        );
+        const peerIndex = Math.max(0, statePeers.findIndex((entry) => entry.id === member.id));
+        const angle = peerIndex * 2.3999632297;
+        const radius = peerIndex ? 0.08 + (Math.floor(peerIndex / 7) * 0.045) : 0;
+        return {
+          lat: stateCenter.lat + (Math.sin(angle) * radius),
+          lon: stateCenter.lon + (Math.cos(angle) * radius),
+          source: "state"
+        };
+      }
+
+      function politicsMapMembers(items = politicsCommittee.members) {
+        return items.map((member) => {
+          const position = politicsMapPosition(member);
+          return position ? { ...member, ...position, mapPositionSource: position.source } : null;
+        }).filter(Boolean);
+      }
+
+      function politicsConstituencyMiniMapMarkup(member) {
+        const stateFeatures = window.MAP_STATE_POLYGONS?.features || [];
+        const bounds = statePolygonBounds(stateFeatures);
+        if (!stateFeatures.length || !Number.isFinite(bounds.minX)) {
+          return `<div class="detail-mini-map"><div class="detail-mini-map-empty">Kartengeometrie nicht verfügbar.</div></div>`;
+        }
+        const constituencyFeature = politicsConstituencyFeature(member);
+        const federalStateFeature = stateFeatures.find(
+          (feature) => feature?.properties?.name === member.constituencyFederalState
+        );
+        const position = politicsMapPosition(member);
+        const point = position
+          ? formatMapPoint(position.lon, position.lat, bounds)
+          : null;
+        const highlightedArea = constituencyFeature || federalStateFeature;
+        const previewLabel = constituencyFeature
+          ? `${politicsConstituencyLabel(member)} auf der Deutschlandkarte`
+          : `${member.constituencyFederalState || "Deutschland"} als regionale Zuordnung des Listenmandats`;
+        return `
+          <figure class="politics-constituency-preview">
+            <svg class="politics-constituency-preview__map" viewBox="0 0 240 292" role="img" aria-label="${escapeHtml(previewLabel)}">
+              ${stateFeatures.map((feature) => `<path class="politics-constituency-preview__state" d="${statePolygonPath(feature, bounds)}"></path>`).join("")}
+              ${highlightedArea ? `<path class="politics-constituency-preview__highlight ${constituencyFeature ? "" : "is-state"}" d="${statePolygonPath(highlightedArea, bounds)}"></path>` : ""}
+              ${point ? `<circle class="politics-constituency-preview__point" cx="${point.x.toFixed(1)}" cy="${point.y.toFixed(1)}" r="5.5"><title>${escapeHtml(previewLabel)}</title></circle>` : ""}
+            </svg>
+            <figcaption>
+              <strong>${escapeHtml(constituencyFeature ? politicsConstituencyLabel(member) : member.mandateType || "Regionale Zuordnung")}</strong>
+              <span>${member.representativePostalCode ? `PLZ-Auswahl ${escapeHtml(member.representativePostalCode)} · ` : ""}${escapeHtml(member.constituencyFederalState || "Bundesland nicht ausgewiesen")}</span>
+            </figcaption>
+          </figure>
+        `;
+      }
+
       function politicsPostalCodesProfileMarkup(member) {
-        if (!member.postalCodes.length) {
+        if (!member.representativePostalCode) {
           const label = member.postalCodeCoverage === "not_applicable"
             ? "Nicht zutreffend, da kein Wahlkreis zugeordnet ist."
             : "Im offiziellen Wahlkreisdatensatz nicht ausgewiesen.";
           return `<span class="detail-secondary">${escapeHtml(label)}</span>`;
         }
-        return `
-          <div class="politics-postal-code-list" aria-label="${member.postalCodes.length} Postleitzahlen im Wahlkreis">
-            ${member.postalCodes.map((postalCode) => `<span class="politics-postal-code">${escapeHtml(postalCode)}</span>`).join("")}
-          </div>
-        `;
+        return `<span class="politics-postal-code">${escapeHtml(member.representativePostalCode)}</span>`;
       }
 
-      function renderPoliticsPersonProfile(member) {
-        const panel = personProfileDetailPanel();
+      function renderPoliticsPersonProfile(member, panel = detailPanel) {
         activePersonProfile.title = member.name || personKindLabel("politics");
-        renderViewChrome();
         panel.classList.remove("detail-panel--organization", "detail-panel--registration", "detail-panel--politics");
         panel.classList.add("detail-panel--politics");
+        panel.dataset.detailKind = "politics";
+        panel.dataset.politicsMemberId = member.id;
+        panel.setAttribute("role", "dialog");
+        panel.setAttribute("aria-modal", "true");
+        panel.setAttribute("aria-labelledby", "politics-profile-title");
+        panel.setAttribute("tabindex", "-1");
+        panel.removeAttribute("aria-live");
         const portraitSourceMarkup = member.imageSourceUrl
           ? `<a href="${escapeHtml(member.imageSourceUrl || member.profileUrl)}" target="_blank" rel="noopener noreferrer">${escapeHtml(member.imageAttribution || "Bildquelle im Profil des Deutschen Bundestages")}</a>`
           : "Kein offizielles Portrait verfügbar";
-        const portraitApproved = politicsMemberPortraitIsApproved(member);
+        const portraitApproved = member.imageRightsStatus === "approved";
+        const portraitDatabaseApproved = portraitApproved
+          && member.imageProvider === "Bilddatenbank des Deutschen Bundestages";
+        const portraitFreelyLicensed = portraitApproved && !portraitDatabaseApproved;
         panel.innerHTML = `
           <div class="detail-toolbar">
-            ${personProfileBackButtonMarkup()}
+            <div class="detail-counter">Kontaktprofil</div>
+            <button class="detail-close" type="button" id="detail-close" aria-label="Kontaktprofil schließen">&times;</button>
           </div>
           <div class="detail-content">
             <div class="detail-profile politics-person-profile">
@@ -35113,7 +35511,7 @@
                 <div class="detail-profile-main">
                   ${politicsMemberAvatarMarkup(member, "lg")}
                   <div class="detail-profile-copy">
-                    <h3>${escapeHtml(member.name)}</h3>
+                    <h3 id="politics-profile-title">${escapeHtml(member.name)}</h3>
                     <div class="detail-profile-role">${escapeHtml(politicsCommittee.committee)}</div>
                     <div class="detail-profile-subline">${escapeHtml(member.role)}</div>
                     <div class="detail-profile-status">${politicsFactionBadgeMarkup(member.faction)}</div>
@@ -35133,10 +35531,20 @@
                     ${detailLine("Mandatsart", member.mandateType)}
                     ${detailLine("Wahlkreis", politicsConstituencyLabel(member))}
                     ${member.constituencyFederalState ? detailLine("Bundesland", member.constituencyFederalState) : ""}
-                    ${detailLineHtml("PLZ im Wahlkreis", politicsPostalCodesProfileMarkup(member), { empty: !member.postalCodes.length })}
+                    ${detailLineHtml("PLZ (Auswahl)", politicsPostalCodesProfileMarkup(member), { empty: !member.representativePostalCode })}
                   </div>
                   <p class="politics-profile-data-note">
-                    Die PLZ bilden die vom Deutschen Bundestag veröffentlichten Postleitzahlen des Wahlkreises ab. Sie sind keine Wahlkreisbüro-Adresse.
+                    Gezeigt wird eine PLZ aus dem Wahlkreis; sie ist keine Wahlkreisbüro-Adresse.
+                    Der Kartenpunkt liegt innerhalb der offiziellen Wahlkreisfläche.
+                  </p>
+                </section>
+
+                <section class="politics-person-profile__section politics-person-profile__section--map" aria-labelledby="politics-profile-map">
+                  <h4 class="detail-section-title" id="politics-profile-map">Wahlkreis-Vorschau</h4>
+                  ${politicsConstituencyMiniMapMarkup(member)}
+                  <p class="politics-map-attribution">
+                    © Die Bundeswahlleiterin, Statistisches Bundesamt, Wiesbaden 2024, Wahlkreiskarte für die Wahl zum
+                    21. Deutschen Bundestag · Grundlage der Geoinformationen © Geobasis-DE / BKG 2024
                   </p>
                 </section>
 
@@ -35146,19 +35554,68 @@
                     ${detailContactLine("Abgeordnetenprofil", "Deutscher Bundestag", member.profileUrl)}
                     ${detailContactLine("Wahlkreisdaten", "Wahlkreissuche des Deutschen Bundestages", member.constituencySourceUrl)}
                     ${detailLineHtml("Bildnachweis", portraitSourceMarkup, { empty: !member.imageSourceUrl })}
-                    ${detailContactLine("Bildrechte", "Rechtehinweise des Deutschen Bundestages", member.imageUsageTermsUrl)}
+                    ${detailContactLine("Bildlizenz", member.imageLicense || (portraitFreelyLicensed ? "Freie Lizenz" : "Nutzungsbedingungen prüfen"), member.imageUsageTermsUrl)}
                   </div>
                   <p class="politics-profile-rights-note">
-                    ${portraitApproved
-                      ? "Das Portrait ist für die Einbindung freigegeben. Bildnachweis und Nutzungsbedingungen bleiben bei einer Weiterverwendung zu beachten."
-                      : "Eine offizielle Bildquelle ist recherchiert. Bis zu einer dokumentierten Nutzungsfreigabe wird das Portrait nicht eingebettet; Initialen dienen als Platzhalter."}
+                    ${portraitFreelyLicensed
+                      ? "Dieses Portrait ist frei lizenziert. Bildnachweis und Lizenzbedingungen bleiben bei einer Weiterverwendung zu beachten."
+                      : portraitDatabaseApproved
+                        ? "Dieses Bild ist für private und kommerzielle nicht-werbliche Zwecke freigegeben. Werbe- und Wahlkampfnutzung sowie weitergehende Bildbearbeitungen sind ausgeschlossen; der Bildnachweis bleibt erforderlich."
+                      : "Das offizielle Portrait ist als Quelle dokumentiert, wird ohne nachgewiesene Weiterverwendungsfreigabe aber nicht eingebettet. Es gelten die verlinkten Rechtehinweise."}
                   </p>
                 </section>
               </div>
             </div>
           </div>
         `;
-        bindPersonProfileBack(panel);
+        panel.querySelector("#detail-close")?.addEventListener("click", closeDetail);
+      }
+
+      function openPoliticsPersonDrawer(id, items = filteredPoliticsMembers(), options = {}) {
+        const currentItems = items.length ? items : politicsCommittee.members;
+        const member = currentItems.find((entry) => entry.id === id)
+          || politicsCommittee.members.find((entry) => entry.id === id);
+        if (!member) return;
+        activePoliticsMemberId = member.id;
+        activePersonProfile = {
+          kind: "politics",
+          id: member.id,
+          returnTo: "politics",
+          title: member.name,
+          tab: "",
+          noteId: ""
+        };
+        renderPoliticsPersonProfile(member, detailPanel);
+        detailDrawer.classList.add("is-open");
+        detailDrawer.setAttribute("aria-hidden", "false");
+        syncBodyScrollLock();
+        if (options.updateRoute !== false) {
+          updateRouteHash(personProfileRoute("politics", member.id, { returnTo: "politics" }));
+        }
+      }
+
+      function ensurePoliticsPersonDrawer() {
+        if (!activePoliticsMemberId) {
+          if (detailPanel.dataset.detailKind === "politics" && detailDrawer.classList.contains("is-open")) {
+            closeDetail({ updateRoute: false });
+          }
+          return;
+        }
+        if (politicsDataState !== "ready") return;
+        if (!politicsCommittee.members.some((member) => member.id === activePoliticsMemberId)) {
+          activePoliticsMemberId = "";
+          if (parsePersonProfileRoute(routeTokenFromLocation())?.kind === "politics") {
+            updateRouteHash("politics", { replace: true });
+          }
+          setPoliticsNotice("Das verlinkte Politikprofil ist im aktuellen Ausschussstand nicht vorhanden.", "error");
+          return;
+        }
+        if (
+          detailDrawer.classList.contains("is-open")
+          && detailPanel.dataset.detailKind === "politics"
+          && detailPanel.dataset.politicsMemberId === activePoliticsMemberId
+        ) return;
+        openPoliticsPersonDrawer(activePoliticsMemberId, politicsCommittee.members, { updateRoute: false });
       }
 
       function renderStakeholderPersonProfile(person) {
@@ -35310,6 +35767,13 @@
       function openPersonProfile(kind, id, options = {}) {
         const normalizedKind = normalizePersonProfileKind(kind);
         if (!normalizedKind || !id) return;
+        if (normalizedKind === "politics") {
+          if (activeView !== "politics") setActiveView("politics");
+          openPoliticsPersonDrawer(id, politicsCommittee.members, {
+            updateRoute: options.updateRoute !== false
+          });
+          return;
+        }
         const sameProfile = isPersonProfileActive(normalizedKind, id);
         if (!sameProfile) {
           detailActiveTab = options.tab || "overview";
@@ -36318,6 +36782,10 @@
       function syncBodyScrollLock() {
         const detailOpen = detailDrawer.classList.contains("is-open");
         document.body.classList.toggle("detail-open", detailOpen);
+        document.body.classList.toggle(
+          "politics-detail-open",
+          detailOpen && detailPanel.dataset.detailKind === "politics"
+        );
         const overlayOpen =
           detailOpen ||
           editorDrawer.classList.contains("is-open") ||
@@ -37761,7 +38229,8 @@
         }
       }
 
-      function closeDetail() {
+      function closeDetail(options = {}) {
+        const closingPoliticsProfile = detailPanel.dataset.detailKind === "politics";
         closeAllCustomSelects();
         detailEditMode = false;
         detailOwnerPickerOpen = false;
@@ -37777,12 +38246,26 @@
         activeExpertOrganizationId = null;
         activeStakeholderPersonId = null;
         activeStakeholderOrganizationId = null;
+        if (closingPoliticsProfile) activePoliticsMemberId = "";
         registrationDetailTab = "contact";
-        detailPanel.classList.remove("detail-panel--organization");
-        detailPanel.classList.remove("detail-panel--registration");
+        detailPanel.classList.remove("detail-panel--organization", "detail-panel--registration", "detail-panel--politics");
+        delete detailPanel.dataset.detailKind;
+        delete detailPanel.dataset.politicsMemberId;
+        detailPanel.removeAttribute("role");
+        detailPanel.removeAttribute("aria-modal");
+        detailPanel.removeAttribute("aria-labelledby");
+        detailPanel.removeAttribute("tabindex");
+        detailPanel.setAttribute("aria-live", "polite");
         detailDrawer.classList.remove("is-open");
         detailDrawer.setAttribute("aria-hidden", "true");
         syncBodyScrollLock();
+        if (
+          closingPoliticsProfile
+          && options.updateRoute !== false
+          && parsePersonProfileRoute(routeTokenFromLocation())?.kind === "politics"
+        ) {
+          updateRouteHash("politics", { replace: true });
+        }
       }
 
       function configureEditorContactChannelAccess(contact = null) {
@@ -38822,6 +39305,17 @@
       stakeholderMapFrame?.addEventListener("load", () => {
         syncStakeholderMapFrame(stakeholderMapPeople());
       });
+      politicsMapFrame?.addEventListener("load", () => {
+        syncPoliticsMapFrame(filteredPoliticsMembers());
+      });
+      politicsMapOpenButton?.addEventListener("click", () => {
+        setPoliticsDisplayMode("map");
+        politicsMapCloseButton?.focus({ preventScroll: true });
+      });
+      politicsMapCloseButton?.addEventListener("click", () => {
+        setPoliticsDisplayMode("table");
+        politicsMapOpenButton?.focus({ preventScroll: true });
+      });
       questionnaireForm?.setAttribute("novalidate", "");
       questionnaireContainerSelect?.addEventListener("change", applyQuestionnaireContainerSelection);
       questionnaireOrganizationSelect?.addEventListener("change", applyQuestionnaireOrganizationSelection);
@@ -39752,9 +40246,13 @@
 
       window.addEventListener("message", (event) => {
         if (event.origin !== window.location.origin || !event.data || typeof event.data !== "object" || Array.isArray(event.data)) return;
-        const sourceFrame = [mapViewFrame, stakeholderMapFrame].find((frame) => frame?.contentWindow === event.source);
+        const sourceFrame = [mapViewFrame, stakeholderMapFrame, politicsMapFrame].find((frame) => frame?.contentWindow === event.source);
         if (!sourceFrame) return;
-        const expectedChannel = sourceFrame === mapViewFrame ? "contacts" : "stakeholders";
+        const expectedChannel = sourceFrame === mapViewFrame
+          ? "contacts"
+          : sourceFrame === politicsMapFrame
+            ? "politics"
+            : "stakeholders";
         const message = event.data;
         const messageId = typeof message.id === "string" ? message.id.trim() : "";
         if (
@@ -39770,6 +40268,10 @@
             currentPage = 1;
             openPersonProfile("stakeholder", messageId, { returnTo: "stakeholders" });
             return;
+        }
+        if (message.realm === "politics") {
+          openPoliticsPersonDrawer(messageId, politicsCommittee.members);
+          return;
         }
         openDetail(messageId, mapContacts(), { scope: "care", mode: "preview", returnTo: "map" });
       });
@@ -40344,6 +40846,7 @@
 
       function routeViewFromToken(routeToken = "") {
         const hashView = String(routeToken || "").replace(/^#/, "");
+        activePoliticsMemberId = "";
         if (!hashView && isHospitationDocumentationStandalone) {
           activeHospitationTab = "appointments";
           return "hospitations";
@@ -40375,6 +40878,10 @@
             tab: personRoute.tab || "",
             noteId: personRoute.noteId || ""
           };
+          if (personRoute.kind === "politics") {
+            activePoliticsMemberId = personRoute.id;
+            return "politics";
+          }
           return "personProfile";
         }
         const organizationRoute = parseOrganizationProfileRoute(hashView);
@@ -40444,7 +40951,12 @@
           return;
         }
         if (canonicalizeLegacy && CLEAN_URLS_ENABLED) {
-          updateRouteHash(nextView, { replace: true });
+          updateRouteHash(
+            activePoliticsMemberId
+              ? personProfileRoute("politics", activePoliticsMemberId, { returnTo: "politics" })
+              : nextView,
+            { replace: true }
+          );
         }
         updateView();
       }
@@ -40801,7 +41313,12 @@
         initialDataLoadingSlow = false;
         try {
           if (CLEAN_URLS_ENABLED || initialTargetView === "stakeholders") {
-            updateRouteHash(initialTargetView, { replace: true });
+            updateRouteHash(
+              activePoliticsMemberId
+                ? personProfileRoute("politics", activePoliticsMemberId, { returnTo: "politics" })
+                : initialTargetView,
+              { replace: true }
+            );
           }
           if (initialTargetView) activeView = initialTargetView;
           setActiveView(activeView);

@@ -1,7 +1,7 @@
   const MAP_PARAMS = new URLSearchParams(window.location.search);
   const MAP_MESSAGE_VERSION = 1;
   const MAP_MESSAGE_CHANNEL = String(MAP_PARAMS.get("channel") || "").trim();
-  const ALLOWED_MAP_MESSAGE_CHANNELS = new Set(["contacts", "stakeholders"]);
+  const ALLOWED_MAP_MESSAGE_CHANNELS = new Set(["contacts", "stakeholders", "politics"]);
   const sectorRegistry = window.VersorgungsCompassSectors || {
     normalizeSector: (value, fallback = "") => String(value || "").trim() || fallback,
     colorFor: () => "#64748b",
@@ -120,7 +120,10 @@
 
   const BASE_DATA = loadCompassContacts().map(toMapEntry).filter(Boolean);
   let currentEntries = BASE_DATA.slice();
-  let activeMapContext = MAP_PARAMS.get("context") === "stakeholders" ? "stakeholders" : "contacts";
+  let activeMapContext = ALLOWED_MAP_MESSAGE_CHANNELS.has(MAP_MESSAGE_CHANNEL)
+    ? MAP_MESSAGE_CHANNEL
+    : "contacts";
+  document.body.classList.toggle("politics-map-context", activeMapContext === "politics");
   let activeMapLabels = {};
   let activeCurrentOwner = null;
   let showOwnerFilter = true;
@@ -129,6 +132,21 @@
   const STATE_POLYGONS = window.MAP_STATE_POLYGONS;
   const DE_GEOJSON = window.MAP_DE_GEOJSON;
   const AVATARS = {"Praxis": "data:image/svg+xml;utf8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2264%22%20height%3D%2264%22%20viewBox%3D%220%200%2064%2064%22%3E%0A%3Crect%20width%3D%2264%22%20height%3D%2264%22%20rx%3D%2232%22%20fill%3D%22%231f77b4%22%20opacity%3D%220.18%22%2F%3E%0A%3Ccircle%20cx%3D%2232%22%20cy%3D%2226%22%20r%3D%2210%22%20fill%3D%22%231f77b4%22%20opacity%3D%220.52%22%2F%3E%0A%3Cpath%20d%3D%22M14%2054c3-10%2011-16%2018-16s15%206%2018%2016%22%20fill%3D%22none%22%20stroke%3D%22%231f77b4%22%20stroke-width%3D%226%22%20stroke-linecap%3D%22round%22%20opacity%3D%220.52%22%2F%3E%0A%3Cpath%20d%3D%22M42%2018h6v6h-6zM44%2012h2v18h-2z%22%20fill%3D%22%231f77b4%22%20opacity%3D%220.48%22%2F%3E%0A%3C%2Fsvg%3E", "Krankenhaus": "data:image/svg+xml;utf8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2264%22%20height%3D%2264%22%20viewBox%3D%220%200%2064%2064%22%3E%0A%3Crect%20width%3D%2264%22%20height%3D%2264%22%20rx%3D%2232%22%20fill%3D%22%23d62728%22%20opacity%3D%220.16%22%2F%3E%0A%3Cpath%20d%3D%22M20%2050V18c0-2%202-4%204-4h16c2%200%204%202%204%204v32%22%20fill%3D%22none%22%20stroke%3D%22%23d62728%22%20stroke-width%3D%225%22%20opacity%3D%220.52%22%2F%3E%0A%3Cpath%20d%3D%22M26%2024h6v6h-6zm0%2010h6v6h-6zm12-10h6v6h-6zm0%2010h6v6h-6z%22%20fill%3D%22%23d62728%22%20opacity%3D%220.45%22%2F%3E%0A%3Cpath%20d%3D%22M30%2018h4v6h6v4h-6v6h-4v-6h-6v-4h6z%22%20fill%3D%22%23d62728%22%20opacity%3D%220.50%22%2F%3E%0A%3C%2Fsvg%3E", "Apotheke": "data:image/svg+xml;utf8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2264%22%20height%3D%2264%22%20viewBox%3D%220%200%2064%2064%22%3E%0A%3Crect%20width%3D%2264%22%20height%3D%2264%22%20rx%3D%2232%22%20fill%3D%22%232ca02c%22%20opacity%3D%220.16%22%2F%3E%0A%3Cpath%20d%3D%22M22%2022h20v20H22z%22%20fill%3D%22none%22%20stroke%3D%22%232ca02c%22%20stroke-width%3D%225%22%20opacity%3D%220.52%22%2F%3E%0A%3Cpath%20d%3D%22M30%2024h4v6h6v4h-6v6h-4v-6h-6v-4h6z%22%20fill%3D%22%232ca02c%22%20opacity%3D%220.50%22%2F%3E%0A%3Cpath%20d%3D%22M44%2022h2c2%200%204%202%204%204v16c0%202-2%204-4%204h-2%22%20fill%3D%22none%22%20stroke%3D%22%232ca02c%22%20stroke-width%3D%225%22%20opacity%3D%220.35%22%20stroke-linecap%3D%22round%22%2F%3E%0A%3C%2Fsvg%3E", "Pflege": "data:image/svg+xml;utf8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2264%22%20height%3D%2264%22%20viewBox%3D%220%200%2064%2064%22%3E%0A%3Crect%20width%3D%2264%22%20height%3D%2264%22%20rx%3D%2232%22%20fill%3D%22%239467bd%22%20opacity%3D%220.16%22%2F%3E%0A%3Ccircle%20cx%3D%2226%22%20cy%3D%2226%22%20r%3D%228%22%20fill%3D%22%239467bd%22%20opacity%3D%220.52%22%2F%3E%0A%3Ccircle%20cx%3D%2240%22%20cy%3D%2228%22%20r%3D%226%22%20fill%3D%22%239467bd%22%20opacity%3D%220.36%22%2F%3E%0A%3Cpath%20d%3D%22M14%2052c2-9%208-14%2012-14s10%205%2012%2014%22%20fill%3D%22none%22%20stroke%3D%22%239467bd%22%20stroke-width%3D%225%22%20stroke-linecap%3D%22round%22%20opacity%3D%220.52%22%2F%3E%0A%3Cpath%20d%3D%22M34%2052c1-7%205-11%208-11s7%204%208%2011%22%20fill%3D%22none%22%20stroke%3D%22%239467bd%22%20stroke-width%3D%225%22%20stroke-linecap%3D%22round%22%20opacity%3D%220.36%22%2F%3E%0A%3C%2Fsvg%3E"};
+
+  const POLITICS_CATEGORY_COLORS = Object.freeze({
+    "CDU/CSU": "#262b33",
+    "AfD": "#087bb8",
+    "SPD": "#d71920",
+    "Bündnis 90/Die Grünen": "#13833b",
+    "Die Linke": "#a52b68"
+  });
+
+  function mapCategoryColor(category) {
+    if (activeMapContext === "politics" && POLITICS_CATEGORY_COLORS[category]) {
+      return POLITICS_CATEGORY_COLORS[category];
+    }
+    return sectorRegistry.colorFor(category);
+  }
 
   // Minimal basemap WITHOUT labels; the CRM overlays carry the important information.
   const MAP_MIN_ZOOM = 6;
@@ -611,7 +629,7 @@
 
   function availableCategories(){
     const present = new Set(mapSourceEntries().map((entry) => entry.category).filter(Boolean));
-    if (MAP_MESSAGE_CHANNEL === "stakeholders") return uniqueSorted([...present]);
+    if (MAP_MESSAGE_CHANNEL !== "contacts") return uniqueSorted([...present]);
     const canonical = sectorRegistry.labels();
     const extras = uniqueSorted([...present]
       .map((label) => sectorRegistry.normalizeSector(label, ""))
@@ -653,7 +671,7 @@
     const label = ownerObject?.displayName || ownerObject?.label || ownerObject?.name || owner;
     const avatarUrl = safeImageUrl(ownerObject?.avatarUrl || ownerObject?.avatar_url || entry?.ownerAvatar);
     if (avatarUrl) {
-      return `<img src="${escapeHtml(avatarUrl)}" alt="" loading="lazy">`;
+      return `<img src="${escapeHtml(avatarUrl)}" alt="" loading="lazy" referrerpolicy="no-referrer">`;
     }
     return escapeHtml(initialsFromLabel(label));
   }
@@ -665,7 +683,7 @@
   function sectorFilterIcon(value) {
     const sector = String(value || "").trim();
     if (!sector) return '<span class="map-filter-sector-dot is-all" aria-hidden="true"></span>';
-    return `<span class="map-filter-sector-dot" style="--filter-sector-color:${escapeHtml(sectorRegistry.colorFor(sector))}" aria-hidden="true"></span>`;
+    return `<span class="map-filter-sector-dot" style="--filter-sector-color:${escapeHtml(mapCategoryColor(sector))}" aria-hidden="true"></span>`;
   }
 
   function stateFlagIcon(value) {
@@ -673,7 +691,7 @@
     const resolvedState = (STATE_FLAG_ASSET_URLS[state] || STATE_FLAG_MARKUP[state]) ? state : "Deutschland";
     const flagAssetUrl = STATE_FLAG_ASSET_URLS[resolvedState];
     const flagMarkup = flagAssetUrl
-      ? `<img src="${escapeHtml(flagAssetUrl)}" alt="">`
+      ? `<img src="${escapeHtml(flagAssetUrl)}" alt="" referrerpolicy="no-referrer">`
       : `<svg viewBox="0 0 18 12" xmlns="http://www.w3.org/2000/svg" focusable="false">${STATE_FLAG_MARKUP[resolvedState]}</svg>`;
     return `<span class="map-filter-state-flag" data-state-flag="${escapeHtml(resolvedState)}" aria-hidden="true">${flagMarkup}</span>`;
   }
@@ -713,7 +731,7 @@
   function ownerFilterAvatarContent(owner) {
     if (isCurrentOwnerValue(owner)) {
       const avatarUrl = safeImageUrl(activeCurrentOwner?.avatarUrl || activeCurrentOwner?.avatar_url);
-      if (avatarUrl) return `<img src="${escapeHtml(avatarUrl)}" alt="" loading="lazy">`;
+      if (avatarUrl) return `<img src="${escapeHtml(avatarUrl)}" alt="" loading="lazy" referrerpolicy="no-referrer">`;
       return escapeHtml(initialsFromLabel(activeCurrentOwner?.displayName || activeCurrentOwner?.label || owner));
     }
     return ownerAvatarContent(owner);
@@ -724,7 +742,7 @@
     separator.className = "filter-list-separator";
     separator.setAttribute("aria-hidden", "true");
     const dots = categories.slice(0, 5).map((category) => (
-      `<span class="filter-list-separator__dot" style="--filter-sector-color:${escapeHtml(sectorRegistry.colorFor(category))}"></span>`
+      `<span class="filter-list-separator__dot" style="--filter-sector-color:${escapeHtml(mapCategoryColor(category))}"></span>`
     )).join("");
     separator.innerHTML = `<span class="filter-list-separator__dots">${dots}</span>`;
     return separator;
@@ -963,7 +981,7 @@
     if (!ALLOWED_MAP_MESSAGE_CHANNELS.has(MAP_MESSAGE_CHANNEL)) return null;
     const data = event.data;
     if (!isPlainRecord(data) || data.type !== "versorgungs-kompass-map-data" || data.version !== MAP_MESSAGE_VERSION || data.channel !== MAP_MESSAGE_CHANNEL) return null;
-    const expectedContext = MAP_MESSAGE_CHANNEL === "stakeholders" ? "stakeholders" : "contacts";
+    const expectedContext = MAP_MESSAGE_CHANNEL;
     if ((data.context || "contacts") !== expectedContext || !Array.isArray(data.contacts) || data.contacts.length > 5_000) return null;
     const allowedLabelKeys = new Set(["itemSingular", "itemPlural", "listTitle", "searchPlaceholder", "categoryLabel", "categoryAllLabel", "openDetailLabel", "previewKicker", "emptyTitle", "descriptionFallback"]);
     const labels = {};
@@ -1217,9 +1235,9 @@
     const imageUrl = safeImageUrl(entry.image);
     const avatarFallback = escapeHtml(initials(entry.name));
     const avatar = imageUrl
-      ? `<span class="map-point-tooltip__avatar"><img src="${escapeHtml(imageUrl)}" alt="" loading="eager" decoding="async"></span>`
+      ? `<span class="map-point-tooltip__avatar"><img src="${escapeHtml(imageUrl)}" alt="" loading="eager" decoding="async" referrerpolicy="no-referrer"></span>`
       : `<span class="map-point-tooltip__avatar">${avatarFallback}</span>`;
-    const sectorColor = sectorRegistry.colorFor(entry.category || "");
+    const sectorColor = mapCategoryColor(entry.category || "");
     const sectorBadge = entry.category
       ? `<span class="map-point-tooltip__sector" style="--sector-color:${escapeHtml(sectorColor)};--sector-bg:${escapeHtml(sectorTint(sectorColor))}"><span class="map-point-tooltip__sector-icon" aria-hidden="true">${sectorIconSvg(entry.category)}</span><span>${escapeHtml(entry.category)}</span></span>`
       : "";
@@ -1264,7 +1282,7 @@
         channel: MAP_MESSAGE_CHANNEL,
         id: boundedMapText(entry.id, 160),
         realm: activeMapContext,
-        entity: activeMapContext === "stakeholders" ? "person" : "contact"
+        entity: activeMapContext === "contacts" ? "contact" : "person"
       }, window.location.origin);
       renderMapDetail(null);
       return;
@@ -1301,9 +1319,9 @@
 
   function avatarHtml(entry){
     const imageUrl = safeImageUrl(entry.image);
-    const sectorColor = sectorRegistry.colorFor(entry.category || "");
+    const sectorColor = mapCategoryColor(entry.category || "");
     if (imageUrl) {
-      return `<span class="item-avatar item-avatar--sector-ring" style="--avatar-sector-color:${escapeHtml(sectorColor)}"><img src="${escapeHtml(imageUrl)}" alt="" loading="eager" decoding="async" data-image-fallback="${escapeHtml(initials(entry.name))}"></span>`;
+      return `<span class="item-avatar item-avatar--sector-ring" style="--avatar-sector-color:${escapeHtml(sectorColor)}"><img src="${escapeHtml(imageUrl)}" alt="" loading="eager" decoding="async" referrerpolicy="no-referrer" data-image-fallback="${escapeHtml(initials(entry.name))}"></span>`;
     }
     return `<span class="item-avatar item-avatar--sector-ring" style="--avatar-sector-color:${escapeHtml(sectorColor)}">${escapeHtml(initials(entry.name))}</span>`;
   }
@@ -1465,7 +1483,7 @@
     const location = entryLocation(entry);
     const missing = missingEntryFields(entry);
     const themeTags = Array.isArray(entry.themes) ? entry.themes : [];
-    const sectorColor = sectorRegistry.colorFor(entry.category);
+    const sectorColor = mapCategoryColor(entry.category);
     const activeTab = mapDetailActiveTab || "overview";
     const entries = filteredEntries();
     const currentIndex = entries.findIndex((item) => item.id === entry.id);
@@ -1474,7 +1492,7 @@
     const roleText = hasValue(entry.contact_role) ? entry.contact_role : "";
     const imageUrl = safeImageUrl(entry.image);
     const avatar = imageUrl
-      ? `<span class="avatar"><img src="${escapeHtml(imageUrl)}" alt="${escapeHtml(entry.name)}" loading="lazy" decoding="async" data-image-fallback="${escapeHtml(initials(entry.name))}" /></span>`
+      ? `<span class="avatar"><img src="${escapeHtml(imageUrl)}" alt="${escapeHtml(entry.name)}" loading="lazy" decoding="async" referrerpolicy="no-referrer" data-image-fallback="${escapeHtml(initials(entry.name))}" /></span>`
       : escapeHtml(initials(entry.name));
     elWorkspace?.classList.add('has-map-detail');
     document.body.classList.add('has-map-detail');
@@ -1623,7 +1641,7 @@
     const cityLine = [entry.city, entry.state].filter(Boolean).join(", ");
     const imageUrl = safeImageUrl(entry.image);
     const previewAvatar = imageUrl
-      ? `<span class="mobile-map-preview-avatar"><img src="${escapeHtml(imageUrl)}" alt="" loading="eager" decoding="async" data-image-fallback="${escapeHtml(initials(entry.name))}"></span>`
+      ? `<span class="mobile-map-preview-avatar"><img src="${escapeHtml(imageUrl)}" alt="" loading="eager" decoding="async" referrerpolicy="no-referrer" data-image-fallback="${escapeHtml(initials(entry.name))}"></span>`
       : `<span class="mobile-map-preview-avatar">${escapeHtml(initials(entry.name))}</span>`;
     elMobileMapPreview.hidden = false;
     elMobileMapPreview.innerHTML = `
@@ -1683,7 +1701,7 @@
   }
 
   function sectorPointFor(d){
-    const color = sectorRegistry.colorFor(d.category);
+    const color = mapCategoryColor(d.category);
     const size = isMobileLayout() ? 10 : 12;
     const icon = L.divIcon({
       className: '',
@@ -2255,15 +2273,17 @@
         ? mapLabel("itemSingular", "Kontakt")
         : mapLabel("itemPlural", "Kontakte");
       const maximumStateCount = Math.max(0, stateCountMax);
-      const densityLabel = maximumStateCount === 1 ? "Kontakt" : "Kontakte";
+      const densityLabel = maximumStateCount === 1
+        ? mapLabel("itemSingular", "Kontakt")
+        : mapLabel("itemPlural", "Kontakte");
       elMapLegendList.innerHTML = `
         <div class="map-legend-item map-legend-item--contact">
           <span class="map-legend-pin">${gematikMarkerMarkup(false, "map-legend-marker")}</span>
           <span><strong>${entries.length}</strong> ${escapeHtml(itemLabel)}</span>
         </div>
         <div class="map-density-legend">
-          <span class="map-density-legend__label">Kontakte je Bundesland</span>
-          <div class="map-distribution-legend" aria-label="Kontaktdichte je Bundesland: 0 bis ${maximumStateCount} ${densityLabel}">
+          <span class="map-density-legend__label">${escapeHtml(mapLabel("itemPlural", "Kontakte"))} je Bundesland</span>
+          <div class="map-distribution-legend" aria-label="Verteilung je Bundesland: 0 bis ${maximumStateCount} ${escapeHtml(densityLabel)}">
             <span>0</span>
             <span class="map-distribution-legend__scale" aria-hidden="true"></span>
             <span>${maximumStateCount}</span>
@@ -2286,7 +2306,7 @@
     const visibleRows = rows.slice(0, 8);
     const remainingCount = rows.slice(8).reduce((sum, [, count]) => sum + count, 0);
     elMapLegendList.innerHTML = [
-      ...visibleRows.map(([label]) => `<div class="map-legend-item"><span class="map-legend-swatch" style="background:${sectorRegistry.colorFor(label)};"></span><span>${escapeHtml(label)}</span></div>`),
+      ...visibleRows.map(([label]) => `<div class="map-legend-item"><span class="map-legend-swatch" style="background:${mapCategoryColor(label)};"></span><span>${escapeHtml(label)}</span></div>`),
       remainingCount ? `<div class="map-legend-item"><span class="map-legend-swatch" style="background:${sectorRegistry.fallbackColor};"></span><span>Weitere</span></div>` : ""
     ].join("");
   }
@@ -2358,7 +2378,7 @@
       item.className = `item${isActive ? " item-active" : ""}`;
       item.dataset.mapContactId = d.id;
       if (isActive) item.setAttribute("aria-current", "true");
-      const color = sectorRegistry.colorFor(d.category);
+      const color = mapCategoryColor(d.category);
       const meta = d.organization || "Organisation nicht dokumentiert";
       const location = entryListLocation(d);
       item.setAttribute(
@@ -2674,6 +2694,7 @@
     const message = sanitizeMapDataMessage(event);
     if (!message) return;
     activeMapContext = message.context;
+    document.body.classList.toggle("politics-map-context", activeMapContext === "politics");
     activeMapLabels = message.labels;
     activeCurrentOwner = message.currentOwner;
     showOwnerFilter = message.showOwnerFilter;

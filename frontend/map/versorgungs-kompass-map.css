@@ -3161,11 +3161,11 @@
         font-weight: 900;
       }
 
-      .mobile-map-preview-avatar img {
-        width: 100%;
-        height: 100%;
-        object-fit: cover;
-      }
+    .mobile-map-preview-avatar img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
 
       .mobile-map-preview-close {
         flex: 0 0 32px;
@@ -3729,4 +3729,12 @@
       border: 2px solid var(--avatar-sector-color, #64748b);
       border-radius: 999px;
       background-clip: padding-box;
+    }
+
+    body.politics-map-context .map-point-tooltip__avatar img,
+    body.politics-map-context .item-avatar img,
+    body.politics-map-context .map-detail-panel .avatar img,
+    body.politics-map-context .mobile-map-preview-avatar img {
+      object-fit: contain;
+      object-position: center;
     }
