@@ -13,8 +13,15 @@ const requiredFiles = [
   "scripts/generate_pre_gematik_synthetic_seed.mjs",
   "scripts/build_static_frontend.sh",
   "scripts/test_deployment_separation.mjs",
+  "scripts/reconcile_pre_gematik_iap_identity_mode.sh",
+  "scripts/test_iap_identity_mode_reconcile.mjs",
   "frontend/public-entry/index.html",
   "frontend/public-entry/public-entry.css",
+  "frontend/identity-portal/package-lock.json",
+  "frontend/identity-portal/public/index.html",
+  "frontend/identity-portal/public/konto/passwort-festlegen/index.html",
+  "frontend/identity-portal/src/app.jsx",
+  "frontend/identity-portal/src/action.jsx",
   "dokumentation/betrieb-und-deployment/DEPLOYMENT_GCP_AUTOPILOT.md",
   "deploy/postgres/pre-gematik/README.md",
   "deploy/postgres/pre-gematik/schema.sql",
@@ -50,6 +57,7 @@ const requiredFiles = [
   "deploy/terraform/gcp-autopilot/backend.tf",
   "deploy/terraform/gcp-autopilot/dns.tf",
   "deploy/terraform/gcp-autopilot/identities.tf",
+  "deploy/terraform/gcp-autopilot/identity-platform.tf",
   "deploy/terraform/gcp-autopilot/outputs.tf",
   "deploy/terraform/gcp-autopilot/secrets.tf",
   "deploy/terraform/gcp-autopilot/sql.tf",
@@ -71,6 +79,10 @@ const contentChecks = [
       /iapJwtAudience/,
       /IAP_OAUTH_BOOTSTRAP_SECRET_NAME/,
       /IAP_OAUTH_CLIENT_CREDENTIALS_SECRET_NAME/,
+      /IDENTITY_PLATFORM_API_KEY:\s*\$\{\{\s*vars\.IDENTITY_PLATFORM_API_KEY\s*\}\}/,
+      /IDENTITY_PLATFORM_API_KEY must provide the browser-visible Identity Platform Web API key in every identity mode/,
+      /\[\[ "\$IDENTITY_PLATFORM_API_KEY" != "\$IAP_EXTERNAL_AUTH_API_KEY" \]\]/,
+      /\[\[ "\$IAP_EXTERNAL_LOGIN_PAGE_URI" != "\$\{FRONTEND_BASE_URL\}\/anmelden" \]\]/,
       /gcloud secrets versions access latest/,
       /--out-file "\$oauth_source_file"/,
       /create secret generic "\$IAP_OAUTH_CLIENT_CREDENTIALS_SECRET_NAME"/,
@@ -129,7 +141,14 @@ const contentChecks = [
       /whatsapp_share_status/,
       /public_ingress_is_isolated/,
       /public_url_map_is_isolated/,
-      /data-google-sso-button/,
+      /data-public-login-button/,
+      /data-identity-portal="signin"/,
+      /data-identity-portal="password"/,
+      /\/konto\/passwort-festlegen/,
+      /\/public\/auth\/assets\/app\.js/,
+      /\.emailPrivacyConfig\.enableImprovedEmailPrivacy == true/,
+      /https:\/\/steam-capsule-341212\.firebaseapp\.com\/__\/auth\/handler/,
+      /customUi: true/,
       /Protected path \$\{protected_path\} did not return an IAP-generated boundary response/,
       /matrix_aliases=\([\s\S]*\/;probe[\s\S]*\/anmelden;probe/,
       /Matrix alias \$\{matrix_alias\} returned a stateful, redirected, IAP-mixed, or public-entry 404/,
@@ -145,6 +164,8 @@ const contentChecks = [
       /vk_app_runtime/,
       /vk_deployment_ddl_must_be_denied/,
       /build_static_frontend\.sh[\s\S]*--profile target[\s\S]*--output dist\/target/,
+      /--identity-platform-api-key "\$IDENTITY_PLATFORM_API_KEY"/,
+      /--identity-platform-project-id "\$GCP_PROJECT_ID"/,
       /dist\/target\/data\/runtime-config\.js/,
       /steps\.build\.outputs\.digest/,
       /image\.digest/,
@@ -199,8 +220,56 @@ const contentChecks = [
   },
   {
     file: "scripts/build_static_frontend.sh",
-    patterns: [/demo-profile-admin\.svg/, /demo-profile-editor\.svg/, /demo-profile-viewer\.svg/, /mitmachen-share-v3\.png/],
-    reason: "Die neutralen Demo-Avatare und das freigegebene Teams-Vorschaubild werden in die vorgesehenen getrennten Frontend-Artefakte uebernommen."
+    patterns: [
+      /demo-profile-admin\.svg/,
+      /demo-profile-editor\.svg/,
+      /demo-profile-viewer\.svg/,
+      /mitmachen-share-v3\.png/,
+      /build_identity_portal/,
+      /--identity-platform-api-key/,
+      /--identity-platform-project-id/,
+      /Target enthaelt nicht exakt die acht freigegebenen Portaldateien/
+    ],
+    reason: "Die getrennten Artefakte enthalten nur ihre freigegebenen Demo-, Share- und acht exakt allowgelisteten Identity-Portal-Dateien."
+  },
+  {
+    file: "frontend/public-entry/index.html",
+    patterns: [
+      /data-public-entry="home"/,
+      /data-public-login-button/,
+      /href="\/start"/
+    ],
+    reason: "Der oeffentliche Root-CTA verweist providerneutral auf das eigene Identity-Portal."
+  },
+  {
+    file: "frontend/identity-portal/public/index.html",
+    patterns: [
+      /data-identity-portal="signin"/,
+      /\/public\/auth\/assets\/app\.css/,
+      /\/public\/auth\/assets\/app\.js/,
+      /\/public\/auth\/portal-config\.js/
+    ],
+    reason: "Die statische Anmeldeseite besitzt den gepinnten Marker und laedt nur lokale Portal-Artefakte."
+  },
+  {
+    file: "frontend/identity-portal/public/konto/passwort-festlegen/index.html",
+    patterns: [
+      /data-identity-portal="password"/,
+      /\/public\/auth\/assets\/action\.css/,
+      /\/public\/auth\/assets\/action\.js/,
+      /\/public\/auth\/portal-config\.js/
+    ],
+    reason: "Der statische Passwortaktions-Handler besitzt einen eigenen Marker und nur lokale Portal-Artefakte."
+  },
+  {
+    file: "frontend/identity-portal/src/app.jsx",
+    patterns: [
+      /GoogleAuthProvider/,
+      /signInWithEmailAndPassword/,
+      /Mit Google anmelden/,
+      /E-Mail-Adresse/
+    ],
+    reason: "Das Custom UI bietet ausschliesslich die vorgesehenen Google- und E-Mail/Passwort-Anmeldewege."
   },
   {
     file: "deploy/helm/versorgungs-kompass/templates/networkpolicy.yaml",
@@ -215,6 +284,17 @@ const contentChecks = [
     file: "deploy/helm/versorgungs-kompass/values-gcp-autopilot.yaml",
     patterns: [/apiAuthMode:\s*iap/, /cloudSqlProxy:/, /secretSync:/, /frontend:/, /contentRevision:/, /publicEntry:[\s\S]*enabled:\s*true[\s\S]*image:[\s\S]*digest:\s*sha256:[a-f0-9]{64}[\s\S]*iap:[\s\S]*enabled:\s*true/, /managedCertificate:/, /automountServiceAccountToken:\s*false/, /readOnlyRootFilesystem:\s*true/, /cloud-sql-proxy:[^\s]+@sha256:[a-f0-9]{64}/, /google-cloud-cli:[^\s]+@sha256:[a-f0-9]{64}/],
     reason: "GCP-Overlay aktiviert IAP für App/API und den fail-closed Public-Bootstrap sowie Cloud-SQL-Proxy, SecretSync, Managed Certificate und gehaertete Pods."
+  },
+  {
+    file: "deploy/helm/versorgungs-kompass/templates/configmap.yaml",
+    patterns: [
+      /IAP_IDENTITY_MODE/,
+      /IAP_GCIP_PROJECT_ID/,
+      /IAP_EXTERNAL_LOGIN_PAGE_URI/,
+      /IAP_EXTERNAL_AUTH_API_KEY/,
+      /IAP_EXTERNAL_ACCESS_EXPIRES_AT/
+    ],
+    reason: "Helm verdrahtet den expliziten IAM-/External-Modus und die gepinnten External-Loginwerte in die API-Laufzeit."
   },
   {
     file: "deploy/helm/versorgungs-kompass/templates/frontend-deployment.yaml",
@@ -238,39 +318,63 @@ const contentChecks = [
       /or \(eq \$host \$\.Values\.ingress\.host\) \(hasKey \$publicRootAliasHostSet \$host\)/,
       /path:\s*\/[\s\S]*pathType:\s*Exact[\s\S]*frontendPublicFullname/,
       /if eq \$host \$\.Values\.ingress\.host[\s\S]*path:\s*\/anmelden[\s\S]*pathType:\s*Exact[\s\S]*frontendPublicFullname/,
+      /path:\s*\/konto\/passwort-festlegen\s+pathType:\s*Exact[\s\S]*frontendPublicFullname/,
+      /path:\s*\/public\/auth\/portal-config\.js\s+pathType:\s*Exact[\s\S]*frontendPublicFullname/,
+      /path:\s*\/public\/auth\/assets\/app\.js\s+pathType:\s*Exact[\s\S]*frontendPublicFullname/,
+      /path:\s*\/public\/auth\/assets\/action\.js\s+pathType:\s*Exact[\s\S]*frontendPublicFullname/,
+      /path:\s*\/public\/auth\/brand\/versorgungs-kompass\.svg\s+pathType:\s*Exact[\s\S]*frontendPublicFullname/,
       /path:\s*\/public\/media\/social\/mitmachen-share-v3\.png[\s\S]*pathType:\s*Exact[\s\S]*frontendPublicFullname/,
       /if and \$\.Values\.frontend\.enabled \(hasKey \$redirectHosts \$host\)[\s\S]*path:\s*\/[\s\S]*pathType:\s*Prefix[\s\S]*frontendFullname/
     ],
-    reason: "Das Public-Backend erhaelt am Apex nur die drei freigegebenen Exact-Pfade und am explizit erlaubten www-Alias nur Exact /; alle Alias-Catch-alls bleiben beim IAP-geschuetzten Frontend."
+    reason: "Das Public-Backend erhaelt am Apex nur die exakt freigegebenen Portal-, Asset-, Root- und Share-Pfade und am www-Alias nur Exact /."
   },
   {
     file: "deploy/helm/versorgungs-kompass/files/frontend-public.conf",
     patterns: [
       /map \$request_uri \$public_entry_document/,
       /map \$request_uri \$public_share_image_document/,
+      /map \$request_uri \$public_auth_document/,
       /merge_slashes off/,
       /if \(\$public_entry_document = ""\)/,
+      /location = \/anmelden[\s\S]*try_files \/public\/auth\/index\.html =404/,
+      /location = \/konto\/passwort-festlegen[\s\S]*try_files \/public\/auth\/konto\/passwort-festlegen\/index\.html =404/,
+      /location \^~ \/public\/auth\/[\s\S]*if \(\$public_auth_document = ""\)/,
+      /public\/auth\/portal-config\.js/,
+      /public\/auth\/assets\/app\.js/,
+      /public\/auth\/assets\/action\.js/,
+      /public\/auth\/brand\/versorgungs-kompass\.svg/,
       /location = \/public\/media\/social\/mitmachen-share-v3\.png/,
       /try_files \/\$public_share_image_document =404/,
       /default-src 'none'/,
       /script-src 'none'/,
+      /~\^\/anmelden[\s\S]*"default-src 'none'[\s\S]*script-src 'self'/,
       /Cache-Control "no-store"/
     ],
-    reason: "Der Public-nginx erlaubt nur die rohen Einstiegs-URIs und das eine freigegebene PNG; normalisierte, codierte oder weitere Datei-Aliase werden mit strikten Browser-Headern abgelehnt."
+    reason: "Der Public-nginx serviert beide Portal-Aliase und nur die expliziten lokalen Identity-/Share-Artefakte; Near-Misses und Mutationen bleiben gesperrt."
   },
   {
     file: "deploy/frontend-public/Dockerfile",
     patterns: [
       /nginx-unprivileged:[^\s]+@sha256:[a-f0-9]{64}/,
       /COPY --chown=101:101 dist\/target\/public-index\.html/,
+      /COPY --chown=101:101 dist\/target\/public\/auth\/index\.html/,
+      /COPY --chown=101:101 dist\/target\/public\/auth\/konto\/passwort-festlegen\/index\.html/,
+      /COPY --chown=101:101 dist\/target\/public\/auth\/portal-config\.js/,
+      /COPY --chown=101:101 dist\/target\/public\/auth\/assets\/app\.js/,
+      /COPY --chown=101:101 dist\/target\/public\/auth\/assets\/action\.js/,
+      /COPY --chown=101:101 dist\/target\/public\/auth\/brand\/versorgungs-kompass\.svg/,
       /COPY --chown=101:101 dist\/target\/public\/media\/social\/mitmachen-share-v3\.png/,
-      /find \/usr\/share\/nginx\/html -type f[\s\S]*= "2"/,
+      /find \/usr\/share\/nginx\/html -type f[\s\S]*= "10"/,
+      /find \/usr\/share\/nginx\/html\/public\/auth -type f[\s\S]*= "8"/,
       /test -f \/usr\/share\/nginx\/html\/public\/media\/social\/mitmachen-share-v3\.png/,
+      /data-public-login-button/,
+      /data-identity-portal="signin"/,
+      /data-identity-portal="password"/,
       /frontend-public\.conf/,
       /USER 101:101/,
       /nginx -t/
     ],
-    reason: "Das Public-Image enthaelt im Webroot exakt das auditierte HTML und ein freigegebenes PNG sowie die getestete nginx-Konfiguration auf einem gepinnten Non-Root-Basisimage."
+    reason: "Das Public-Image enthaelt exakt Root, Share-Bild und acht allowgelistete Portaldateien auf einem gepinnten Non-Root-Basisimage."
   },
   {
     file: "deploy/helm/versorgungs-kompass/templates/deployment.yaml",
@@ -307,6 +411,30 @@ const contentChecks = [
     file: "deploy/terraform/gcp-autopilot/identities.tf",
     patterns: [/assertion\.environment/, /attribute_condition\s*=\s*[^\n]*assertion\.ref/, /roles\/iam\.workloadIdentityUser/, /roles\/cloudsql\.client/, /workload_cloudsql_client[\s\S]*depends_on\s*=\s*\[google_container_cluster\.autopilot\]/, /iap\.webServices\.getIamPolicy/, /iap\.webServices\.setIamPolicy/, /compute\.urlMaps\.get/, /preGematikPublicBackendCutover[\s\S]*compute\.backendServices\.update[\s\S]*compute\.healthChecks\.useReadOnly/, /preGematikDeploymentVerifier/, /cloudsql\.instances\.get/, /storage\.buckets\.get/],
     reason: "Workload Identity ist auf Repository, Environment und Git-Ref begrenzt; Cloud-SQL-, Bucket-, URL-Map-, Public-Cutover- und granulare IAP-Policy-Rechte sind explizit."
+  },
+  {
+    file: "deploy/terraform/gcp-autopilot/identity-platform.tf",
+    patterns: [
+      /google_identity_platform_config/,
+      /allow_duplicate_emails\s*=\s*false/,
+      /disabled_user_signup\s*=\s*true/,
+      /disabled_user_deletion\s*=\s*true/,
+      /state\s*=\s*"DISABLED"/,
+      /allow_tenants\s*=\s*false/,
+      /prevent_destroy\s*=\s*true/
+    ],
+    reason: "Identity Platform ist auf admin-angelegte E-Mail-Konten ohne MFA, Duplikate, Self-Signup oder Tenants begrenzt und loeschgeschuetzt."
+  },
+  {
+    file: "scripts/reconcile_pre_gematik_iap_identity_mode.sh",
+    patterns: [
+      /gcipSettings/,
+      /ENROLLED_SECOND_FACTORS/,
+      /workforceIdentitySettings/,
+      /restore_original_settings/,
+      /Compensating rollback/
+    ],
+    reason: "Die IAP-Umschaltung ist auf zwei geschuetzte Backends, exakte Identity Sources und einen verifizierten compensating rollback begrenzt."
   },
   {
     file: "deploy/terraform/gcp-autopilot/storage.tf",
@@ -484,6 +612,37 @@ if (strictEnvironment) {
     const value = process.env[name]?.trim();
     if (value) ok(`Environment-Variable gesetzt: ${name}`);
     else fail(`Environment-Variable fehlt: ${name}`);
+  }
+
+  const iapIdentityMode = process.env.IAP_IDENTITY_MODE?.trim() || "iam";
+  if (!["iam", "external"].includes(iapIdentityMode)) {
+    fail("IAP_IDENTITY_MODE muss iam oder external sein.");
+  } else {
+    ok(`IAP-Identity-Modus gueltig: ${iapIdentityMode}`);
+  }
+  if (iapIdentityMode === "external") {
+    for (const name of [
+      "IAP_GCIP_PROJECT_ID",
+      "IAP_EXTERNAL_LOGIN_PAGE_URI",
+      "IAP_EXTERNAL_AUTH_API_KEY",
+      "IAP_EXTERNAL_ACCESS_EXPIRES_AT",
+      "IDENTITY_PLATFORM_PASSWORD_POLICY_SHA256",
+      "IDENTITY_PLATFORM_GOOGLE_LOGIN_VERIFIED_AT",
+      "IDENTITY_PLATFORM_GOOGLE_LOGIN_EVIDENCE_SHA256"
+    ]) {
+      const value = process.env[name]?.trim();
+      if (value) ok(`External-IAP-Variable gesetzt: ${name}`);
+      else fail(`External-IAP-Variable fehlt: ${name}`);
+    }
+    if (process.env.IAP_GCIP_TENANT_ID?.trim()) {
+      fail("IAP_GCIP_TENANT_ID muss fuer den project-level Pilot leer bleiben.");
+    }
+    if (
+      process.env.IAP_GCIP_PROJECT_ID?.trim()
+      && process.env.IAP_GCIP_PROJECT_ID.trim() !== process.env.GCP_PROJECT_ID?.trim()
+    ) {
+      fail("IAP_GCIP_PROJECT_ID muss exakt GCP_PROJECT_ID entsprechen.");
+    }
   }
 
   const apiBaseUrl = process.env.API_BASE_URL?.trim();

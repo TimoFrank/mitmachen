@@ -8,6 +8,7 @@ locals {
     "iam.googleapis.com",
     "iamcredentials.googleapis.com",
     "iap.googleapis.com",
+    "identitytoolkit.googleapis.com",
     "logging.googleapis.com",
     "monitoring.googleapis.com",
     "secretmanager.googleapis.com",

@@ -14,7 +14,9 @@ import {
 const projectRoot = new URL("../", import.meta.url);
 const projectPath = fileURLToPath(projectRoot);
 const read = (relativePath) => fs.readFileSync(new URL(relativePath, projectRoot), "utf8");
+const ignoredWalkDirectories = new Set(["node_modules"]);
 const walk = (directory) => fs.readdirSync(directory, { withFileTypes: true }).flatMap((entry) => {
+  if (entry.isDirectory() && ignoredWalkDirectories.has(entry.name)) return [];
   const fullPath = path.join(directory, entry.name);
   return entry.isDirectory() ? walk(fullPath) : entry.isFile() ? [fullPath] : [];
 });
@@ -206,7 +208,7 @@ for (const contract of [
   "and binding.subject = $2",
   "and binding.active = true",
   "and p.active = true",
-  "if (rows?.length !== 1)",
+  "requireSingleActiveIdentityProfile(rows)",
   "const issuer = String(payload.iss || \"\");"
 ]) {
   assert.ok(apiSource.includes(contract), `Signierter Identity-Bindungsvertrag fehlt: ${contract}`);

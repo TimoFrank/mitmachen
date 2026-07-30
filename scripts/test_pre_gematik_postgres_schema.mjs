@@ -1094,6 +1094,22 @@ async function assertIdentityAdminRoleContract(adminPool, connectionString) {
   const identityAdminRole = "vk_identity_admin";
   const identityOperator = "vk_identity_operator_contract";
   const identityOperatorPassword = `vk-identity-operator-contract-${process.pid}`;
+  const remapProfileId = `identity-remap-profile-${process.pid}`;
+  const remapIssuer = "https://cloud.google.com/iap";
+  const remapSubject = `identity-remap-native-${process.pid}`;
+  const remapTargetSubject = `securetoken.google.com/contract-project:identity-remap-${process.pid}`;
+
+  await adminPool.query(
+    `insert into public.profiles (id, email, display_name, role, active)
+     values ($1, $2, 'Identity Remap Contract', 'viewer', true)`,
+    [remapProfileId, `identity-remap-${process.pid}@example.invalid`]
+  );
+  await adminPool.query(
+    `insert into public.identity_bindings
+       (issuer, subject, profile_id, active, access_scope, scope_ref)
+     values ($1, $2, $3, true, 'test_only', 'identity-remap-contract')`,
+    [remapIssuer, remapSubject, remapProfileId]
+  );
 
   const roleState = await adminPool.query(`
     select rolcanlogin, rolinherit, rolsuper, rolcreatedb, rolcreaterole,
@@ -1161,15 +1177,22 @@ async function assertIdentityAdminRoleContract(adminPool, connectionString) {
       const inherited = await client.query(`
         select current_user = session_user as unassumed_session,
                has_table_privilege(current_user, 'public.identity_bindings', 'INSERT') as binding_insert,
+               has_column_privilege(
+                 current_user,
+                 'public.identity_bindings',
+                 'subject',
+                 'UPDATE'
+               ) as binding_subject_update,
                has_table_privilege(current_user, 'public.identity_bindings', 'DELETE') as binding_delete,
                has_table_privilege(current_user, 'public.contacts', 'SELECT') as contacts_select
       `);
       assert.deepEqual(inherited.rows, [{
         unassumed_session: true,
         binding_insert: false,
+        binding_subject_update: true,
         binding_delete: false,
         contacts_select: false
-      }], "Der v1-Login muss nach Aktivierung des v2-Vertrags read-only bleiben.");
+      }], "Der v1-Login darf im v2-Vertrag ausschließlich Subjects remappen.");
       await client.query("savepoint inherited_insert_denied");
       await assert.rejects(
         client.query(`
@@ -1208,6 +1231,26 @@ async function assertIdentityAdminRoleContract(adminPool, connectionString) {
           has_table_privilege(current_user, 'public.identity_bindings', 'SELECT') as binding_select,
           has_table_privilege(current_user, 'public.identity_bindings', 'INSERT') as binding_insert,
           has_table_privilege(current_user, 'public.identity_bindings', 'UPDATE') as binding_update,
+          has_column_privilege(
+            current_user,
+            'public.identity_bindings',
+            'subject',
+            'UPDATE'
+          ) as binding_subject_update,
+          (
+            select count(*)::int
+              from pg_catalog.pg_attribute attribute
+             where attribute.attrelid = 'public.identity_bindings'::pg_catalog.regclass
+               and attribute.attnum > 0
+               and not attribute.attisdropped
+               and attribute.attname <> 'subject'
+               and has_column_privilege(
+                 current_user,
+                 'public.identity_bindings',
+                 attribute.attname,
+                 'UPDATE'
+               )
+          ) as binding_non_subject_update_count,
           has_table_privilege(current_user, 'public.identity_bindings', 'DELETE') as binding_delete,
           has_any_column_privilege(
             current_user,
@@ -1244,13 +1287,15 @@ async function assertIdentityAdminRoleContract(adminPool, connectionString) {
         binding_select: true,
         binding_insert: false,
         binding_update: false,
+        binding_subject_update: true,
+        binding_non_subject_update_count: 0,
         binding_delete: false,
         binding_column_references: false,
         contacts_select: false,
         sequence_usage: false,
         touch_function_execute: true,
         unsafe_other_function_privilege_count: 0
-      }, "Die v1-Identity-Admin-Rolle muss nach Aktivierung des v2-Vertrags read-only sein.");
+      }, "Die v1-Identity-Admin-Rolle muss nach Aktivierung des v2-Vertrags subject-remap-only sein.");
 
       await client.query("savepoint v2_insert_denied");
       await assert.rejects(
@@ -1274,6 +1319,22 @@ async function assertIdentityAdminRoleContract(adminPool, connectionString) {
         "Die v1-Identity-Admin-Rolle darf im v2-Vertrag keine Bindung aktualisieren."
       );
       await client.query("rollback to savepoint v2_update_denied");
+      const subjectRemap = await client.query(
+        `update public.identity_bindings
+            set subject = $2
+          where issuer = $1
+            and subject = $3
+            and profile_id = $4
+            and active = true
+            and access_scope = 'test_only'
+            and scope_ref = 'identity-remap-contract'`,
+        [remapIssuer, remapTargetSubject, remapSubject, remapProfileId]
+      );
+      assert.equal(
+        subjectRemap.rowCount,
+        1,
+        "Die v2-Identity-Admin-Rolle muss genau den kontrollierten Subject-Remap ausführen dürfen."
+      );
       await client.query("savepoint v2_delete_denied");
       await assert.rejects(
         client.query(`
@@ -1293,6 +1354,11 @@ async function assertIdentityAdminRoleContract(adminPool, connectionString) {
   } finally {
     await operatorPool.end();
     await adminPool.query(`drop role if exists ${identityOperator}`);
+    await adminPool.query(
+      "delete from public.identity_bindings where profile_id = $1",
+      [remapProfileId]
+    );
+    await adminPool.query("delete from public.profiles where id = $1", [remapProfileId]);
   }
 
   const membersAfter = await adminPool.query(`

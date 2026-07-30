@@ -3,6 +3,10 @@ const ACCESS_SCOPES = new Set(["standard", "test_only"]);
 const IAP_ISSUER = "https://cloud.google.com/iap";
 const IAP_CLOCK_SKEW_SECONDS = 30;
 const IAP_MAX_TOKEN_LIFETIME_SECONDS = 10 * 60;
+const IAP_IDENTITY_MODES = new Set(["iam", "external"]);
+const IAP_EXTERNAL_SIGN_IN_PROVIDERS = new Set(["google.com", "password"]);
+const IAP_GCIP_CLAIM_MAX_BYTES = 12 * 1024;
+const IAP_EXTERNAL_MAX_DURATION_MS = 62 * 24 * 60 * 60 * 1000;
 
 export const WRITE_CLASSES = Object.freeze({
   READ: "read",
@@ -153,14 +157,44 @@ export function assertIapJwtClaims(payload, expectedAudience, options = {}) {
   return Object.freeze({ exp, iat, nbf: nbf ?? null });
 }
 
-export function validateIdentityConfiguration(env = process.env) {
+function canonicalUtcTimestamp(value, label) {
+  const timestamp = String(value || "").trim();
+  if (!/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{3})?Z$/u.test(timestamp)) {
+    throw new Error(`${label} muss ein kanonischer UTC-Zeitstempel sein.`);
+  }
+  const parsed = new Date(timestamp);
+  if (!Number.isFinite(parsed.getTime())) {
+    throw new Error(`${label} muss ein gueltiger UTC-Zeitstempel sein.`);
+  }
+  const milliseconds = parsed.toISOString();
+  const seconds = milliseconds.replace(/\.000Z$/u, "Z");
+  if (timestamp !== milliseconds && timestamp !== seconds) {
+    throw new Error(`${label} muss ein kanonischer UTC-Zeitstempel sein.`);
+  }
+  return Object.freeze({ value: timestamp, milliseconds: parsed.getTime() });
+}
+
+export function validateIdentityConfiguration(env = process.env, options = {}) {
   const mode = String(env.API_AUTH_MODE || "").trim().toLowerCase();
   const production = env.NODE_ENV === "production";
   const devBypass = env.API_AUTH_ALLOW_DEV_PROFILE === "1" || env.API_AUTH_ALLOW_BEARER_DEV === "1";
   const supported = new Set(["iap", "oidc", "trusted-header"]);
+  const iapIdentityMode = String(env.IAP_IDENTITY_MODE || "iam").trim().toLowerCase();
+  let iapGcipProjectId = "";
+  let iapGcipTenantId = "";
+  let iapExternalAccessExpiresAt = "";
+  let iapExternalAccessExpiresAtMs = 0;
+  let iapExternalLoginPageUri = "";
+  let iapExternalAuthApiKey = "";
 
   if (!supported.has(mode)) {
     throw new Error("API_AUTH_MODE muss explizit auf iap oder oidc gesetzt sein.");
+  }
+  if (!IAP_IDENTITY_MODES.has(iapIdentityMode)) {
+    throw new Error("IAP_IDENTITY_MODE muss iam oder external sein.");
+  }
+  if (iapIdentityMode === "external" && mode !== "iap") {
+    throw new Error("IAP_IDENTITY_MODE=external setzt API_AUTH_MODE=iap voraus.");
   }
   if (production && devBypass) {
     throw new Error("Entwicklungs-Authentifizierung darf in Produktion nicht aktiviert sein.");
@@ -170,6 +204,50 @@ export function validateIdentityConfiguration(env = process.env) {
   }
   if (mode === "iap" && !String(env.IAP_JWT_AUDIENCE || "").trim()) {
     throw new Error("IAP_JWT_AUDIENCE ist fuer API_AUTH_MODE=iap zwingend erforderlich.");
+  }
+  if (mode === "iap" && iapIdentityMode === "external") {
+    iapGcipProjectId = String(env.IAP_GCIP_PROJECT_ID || "").trim();
+    iapGcipTenantId = String(env.IAP_GCIP_TENANT_ID || "").trim();
+    if (!/^[a-z][a-z0-9-]{4,28}[a-z0-9]$/u.test(iapGcipProjectId)) {
+      throw new Error("IAP_GCIP_PROJECT_ID muss eine kanonische Google-Cloud-Projekt-ID sein.");
+    }
+    if (iapGcipTenantId && !/^[A-Za-z0-9_-]{1,128}$/u.test(iapGcipTenantId)) {
+      throw new Error("IAP_GCIP_TENANT_ID enthaelt unzulaessige Zeichen.");
+    }
+    iapExternalLoginPageUri = String(env.IAP_EXTERNAL_LOGIN_PAGE_URI || "").trim();
+    let loginPageUrl;
+    try {
+      loginPageUrl = new URL(iapExternalLoginPageUri);
+    } catch {
+      throw new Error("IAP_EXTERNAL_LOGIN_PAGE_URI muss eine gueltige HTTPS-URL sein.");
+    }
+    if (
+      loginPageUrl.protocol !== "https:"
+      || loginPageUrl.username
+      || loginPageUrl.password
+      || loginPageUrl.search
+      || loginPageUrl.hash
+      || loginPageUrl.href !== iapExternalLoginPageUri
+    ) {
+      throw new Error("IAP_EXTERNAL_LOGIN_PAGE_URI muss eine kanonische HTTPS-URL ohne Zugangsdaten, Query oder Fragment sein.");
+    }
+    iapExternalAuthApiKey = String(env.IAP_EXTERNAL_AUTH_API_KEY || "").trim();
+    if (!/^AIza[0-9A-Za-z_-]{35}$/u.test(iapExternalAuthApiKey)) {
+      throw new Error("IAP_EXTERNAL_AUTH_API_KEY muss der gepinnte Identity-Platform-Web-API-Key sein.");
+    }
+    const expiry = canonicalUtcTimestamp(
+      env.IAP_EXTERNAL_ACCESS_EXPIRES_AT,
+      "IAP_EXTERNAL_ACCESS_EXPIRES_AT"
+    );
+    const nowMs = Number.isFinite(options.nowMs) ? Number(options.nowMs) : Date.now();
+    if (expiry.milliseconds <= nowMs) {
+      throw new Error("IAP_EXTERNAL_ACCESS_EXPIRES_AT muss beim Start in der Zukunft liegen.");
+    }
+    if (expiry.milliseconds - nowMs > IAP_EXTERNAL_MAX_DURATION_MS) {
+      throw new Error("IAP_EXTERNAL_ACCESS_EXPIRES_AT darf hoechstens 62 Tage in der Zukunft liegen.");
+    }
+    iapExternalAccessExpiresAt = expiry.value;
+    iapExternalAccessExpiresAtMs = expiry.milliseconds;
   }
   if (mode === "oidc") {
     const issuer = String(env.OIDC_ISSUER || "").trim();
@@ -189,8 +267,127 @@ export function validateIdentityConfiguration(env = process.env) {
   return Object.freeze({
     mode,
     production,
-    devBypass
+    devBypass,
+    iapIdentityMode,
+    iapGcipProjectId,
+    iapGcipTenantId,
+    iapExternalAccessExpiresAt,
+    iapExternalAccessExpiresAtMs,
+    iapExternalLoginPageUri,
+    iapExternalAuthApiKey
   });
+}
+
+function externalIdentityError(status, message) {
+  return Object.assign(new Error(message), { status });
+}
+
+function parsedGcipClaim(value) {
+  if (typeof value !== "string" || !value || Buffer.byteLength(value, "utf8") > IAP_GCIP_CLAIM_MAX_BYTES) {
+    throw externalIdentityError(401, "IAP-JWT enthaelt keinen gueltigen GCIP-Claim.");
+  }
+  try {
+    const parsed = JSON.parse(value);
+    if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
+      throw new Error("GCIP-Claim ist kein Objekt.");
+    }
+    return parsed;
+  } catch (cause) {
+    if (cause?.status) throw cause;
+    throw externalIdentityError(401, "IAP-JWT enthaelt keinen gueltigen GCIP-Claim.");
+  }
+}
+
+function verifiedExternalEmail(value) {
+  const email = typeof value === "string" ? value.trim() : "";
+  const firstAt = email.indexOf("@");
+  if (
+    !email
+    || value !== email
+    || email.length > 320
+    || !/^[!-~]+$/u.test(email)
+    || firstAt <= 0
+    || firstAt !== email.lastIndexOf("@")
+    || firstAt === email.length - 1
+  ) {
+    throw externalIdentityError(401, "GCIP-Claim enthaelt keine gueltige verifizierte E-Mail-Adresse.");
+  }
+  return email;
+}
+
+export function assertIapExternalIdentityClaims(payload, identityConfiguration, options = {}) {
+  if (identityConfiguration?.iapIdentityMode !== "external") {
+    throw new TypeError("External-Identity-Pruefung setzt IAP_IDENTITY_MODE=external voraus.");
+  }
+  assertIapExternalAccessWindow(identityConfiguration, options);
+
+  const gcip = parsedGcipClaim(payload?.gcip);
+  const firebase = gcip.firebase;
+  if (!firebase || typeof firebase !== "object" || Array.isArray(firebase)) {
+    throw externalIdentityError(401, "GCIP-Claim enthaelt keine Provider-Information.");
+  }
+  const provider = String(firebase.sign_in_provider || "");
+  if (!IAP_EXTERNAL_SIGN_IN_PROVIDERS.has(provider)) {
+    throw externalIdentityError(401, "GCIP-Provider ist fuer diesen Zugang nicht freigegeben.");
+  }
+  if (gcip.email_verified !== true) {
+    throw externalIdentityError(401, "GCIP-E-Mail-Adresse ist nicht verifiziert.");
+  }
+
+  const innerEmail = verifiedExternalEmail(gcip.email);
+  const innerSubject = typeof gcip.sub === "string" ? gcip.sub : "";
+  if (
+    !innerSubject
+    || innerSubject !== innerSubject.trim()
+    || innerSubject.length > 128
+    || /[\u0000-\u001f\u007f]/u.test(innerSubject)
+  ) {
+    throw externalIdentityError(401, "GCIP-Claim enthaelt keinen stabilen Subject-Identifier.");
+  }
+
+  const projectId = String(identityConfiguration.iapGcipProjectId || "");
+  const tenantId = String(identityConfiguration.iapGcipTenantId || "");
+  const claimTenantId = firebase.tenant == null ? "" : String(firebase.tenant);
+  if (claimTenantId !== tenantId) {
+    throw externalIdentityError(401, "GCIP-Tenant passt nicht zur freigegebenen IAP-Konfiguration.");
+  }
+  const namespace = `securetoken.google.com/${projectId}${tenantId ? `/${tenantId}` : ""}`;
+  const subject = `${namespace}:${innerSubject}`;
+  const namespacedEmail = `${namespace}:${innerEmail}`;
+  if (payload?.sub !== subject || payload?.email !== namespacedEmail) {
+    throw externalIdentityError(401, "IAP- und GCIP-Identitaetsclaims sind nicht konsistent.");
+  }
+
+  return Object.freeze({
+    subject,
+    email: innerEmail.toLowerCase(),
+    provider,
+    tenantId
+  });
+}
+
+export function assertIapExternalAccessWindow(identityConfiguration, options = {}) {
+  if (identityConfiguration?.iapIdentityMode !== "external") {
+    throw new TypeError("External-Identity-Ablaufpruefung setzt IAP_IDENTITY_MODE=external voraus.");
+  }
+  const nowMs = Number.isFinite(options.nowMs) ? Number(options.nowMs) : Date.now();
+  const expiresAtMs = Number(identityConfiguration.iapExternalAccessExpiresAtMs);
+  if (!Number.isFinite(expiresAtMs) || expiresAtMs <= 0 || nowMs >= expiresAtMs) {
+    throw externalIdentityError(403, "Der befristete External-Identity-Zugang ist abgelaufen.");
+  }
+}
+
+export function assertIapNativeIdentityClaims(payload) {
+  if (payload?.gcip != null) {
+    throw externalIdentityError(401, "GCIP-Claim ist im nativen IAP/IAM-Modus nicht zulaessig.");
+  }
+}
+
+export function requireSingleActiveIdentityProfile(rows) {
+  if (!Array.isArray(rows) || rows.length !== 1 || !rows[0] || typeof rows[0] !== "object") {
+    throw externalIdentityError(403, "Anmeldung nicht möglich.");
+  }
+  return rows[0];
 }
 
 export function validateAllowedOriginConfiguration(env = process.env) {

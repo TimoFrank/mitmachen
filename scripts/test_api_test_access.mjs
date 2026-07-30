@@ -8,6 +8,7 @@ import {
   assertAccessScopePermission,
   assertIapJwtClaims,
   policyForRequest,
+  requireSingleActiveIdentityProfile,
   sessionCapabilities,
   validateIdentityConfiguration
 } from "../api/security-policy.mjs";
@@ -737,9 +738,9 @@ assert.match(
   /url\.pathname === "\/api\/auth\/bootstrap"[\s\S]*API_AUTH_MODE === "iap"[\s\S]*resolveRequestProfile\(request\)[\s\S]*status\) === 403[\s\S]*redirectResponse\(response, "\/#zugriff-verweigert"\)/u,
   "Der IAP-Bootstrap muss eine bestehende aktive Bindung prüfen und unbekannte Konten neutral zur Hauptseite zurückführen."
 );
-assert.match(
-  apiSource,
-  /const error = new Error\("Anmeldung nicht möglich\."\);\s*error\.status = 403;/u,
+assert.throws(
+  () => requireSingleActiveIdentityProfile([]),
+  (error) => error?.status === 403 && error.message === "Anmeldung nicht möglich.",
   "Die öffentliche 403-Antwort darf keine internen Binding-Details offenlegen."
 );
 assert.match(

@@ -98,6 +98,31 @@ output "IAP_RESOURCE_ACCESS_PRINCIPAL" {
   value       = var.IAP_RESOURCE_ACCESS_PRINCIPAL
 }
 
+output "IAP_IDENTITY_MODE" {
+  description = "Configured IAP identity-source mode. IAM is the default and rollback path."
+  value       = var.IAP_IDENTITY_MODE
+}
+
+output "IAP_GCIP_PROJECT_ID" {
+  description = "Identity Platform project expected in external mode; null in the default IAM mode."
+  value       = var.IAP_GCIP_PROJECT_ID
+}
+
+output "IAP_GCIP_TENANT_ID" {
+  description = "Identity Platform tenant ID; null for the project-level pre-gematik pilot."
+  value       = var.IAP_GCIP_TENANT_ID
+}
+
+output "IAP_EXTERNAL_ACCESS_EXPIRES_AT" {
+  description = "Application-enforced hard expiry for temporary external access; null in IAM mode."
+  value       = var.IAP_EXTERNAL_ACCESS_EXPIRES_AT
+}
+
+output "IDENTITY_PLATFORM_AUTHORIZED_DOMAINS" {
+  description = "Exact non-wildcard domains authorized by the locked Identity Platform configuration."
+  value       = local.identity_platform_authorized_domains
+}
+
 output "K8S_NAMESPACE" {
   description = "Kubernetes namespace for the pre-gematik deployment."
   value       = var.K8S_NAMESPACE

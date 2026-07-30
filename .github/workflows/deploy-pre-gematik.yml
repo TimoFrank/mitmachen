@@ -84,10 +84,14 @@ jobs:
           cache: npm
 
       - name: Install dependencies
-        run: npm ci
+        run: |
+          npm ci
+          npm ci --prefix frontend/identity-portal
 
       - name: Run repository checks
-        run: npm run check
+        run: |
+          npm run check
+          npm --prefix frontend/identity-portal test
 
       - name: Install Chromium
         run: npx playwright install --with-deps chromium
@@ -166,7 +170,9 @@ jobs:
             --profile target \
             --output dist/target \
             --api-base-url https://pre-gematik.example.invalid \
-            --auth-mode iap
+            --auth-mode iap \
+            --identity-platform-api-key AIzaAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA \
+            --identity-platform-project-id steam-capsule-341212
           node scripts/audit_target_assets.mjs --artifact-root dist/target
           node scripts/audit_api_gateway.mjs \
             --production-config dist/target/data/runtime-config.js
@@ -217,10 +223,32 @@ jobs:
           grep --ignore-case --extended-regexp --quiet \
             '^content-type:[[:space:]]*image/png' "$public_share_headers"
           cmp --silent public/media/social/mitmachen-share-v3.png "$public_share_image"
-          [[ "$(curl --path-as-is --silent --output /dev/null --write-out '%{http_code}' http://127.0.0.1:18084/anmelden)" == "308" ]]
-          [[ "$(curl --path-as-is --silent --head http://127.0.0.1:18084/anmelden | tr -d '\r' | awk 'tolower($1) == "location:" { print $2 }')" == "/" ]]
+          curl --path-as-is --fail --silent --show-error \
+            --output "${RUNNER_TEMP}/public-entry-signin.html" \
+            http://127.0.0.1:18084/anmelden
+          grep --fixed-strings --quiet 'data-identity-portal="signin"' \
+            "${RUNNER_TEMP}/public-entry-signin.html"
+          curl --path-as-is --fail --silent --show-error \
+            --output "${RUNNER_TEMP}/public-entry-password.html" \
+            http://127.0.0.1:18084/konto/passwort-festlegen
+          grep --fixed-strings --quiet 'data-identity-portal="password"' \
+            "${RUNNER_TEMP}/public-entry-password.html"
+          for allowed_auth_asset in \
+            /public/auth/portal-config.js \
+            /public/auth/assets/app.css \
+            /public/auth/assets/app.js \
+            /public/auth/assets/action.css \
+            /public/auth/assets/action.js \
+            /public/auth/brand/versorgungs-kompass.svg; do
+            [[ "$(curl --path-as-is --silent --output /dev/null --write-out '%{http_code}' \
+              "http://127.0.0.1:18084${allowed_auth_asset}")" == "200" ]]
+          done
           for denied_path in \
             /start /public-index.html /anmelden/ //anmelden \
+            /konto/passwort-festlegen/ /Konto/passwort-festlegen \
+            /public/auth/index.html /public/auth/konto/passwort-festlegen/index.html \
+            /public/auth/assets/ /public/auth/assets/unknown.js \
+            /public/auth/assets/app.js/ '/public/auth/assets/%61pp.js' \
             /public/media/social/ /public/media/social/mitmachen-share-v3.png/ \
             /public/media/social/mitmachen-share-v2.png \
             '/%61nmelden' '/anmel%64en' '/foo/../anmelden' \
@@ -230,6 +258,10 @@ jobs:
           done
           [[ "$(curl --path-as-is --silent --request POST --output /dev/null --write-out '%{http_code}' \
             http://127.0.0.1:18084/anmelden)" == "403" ]]
+          [[ "$(curl --path-as-is --silent --request POST --output /dev/null --write-out '%{http_code}' \
+            http://127.0.0.1:18084/konto/passwort-festlegen)" == "403" ]]
+          [[ "$(curl --path-as-is --silent --request POST --output /dev/null --write-out '%{http_code}' \
+            http://127.0.0.1:18084/public/auth/assets/app.js)" == "403" ]]
           [[ "$(curl --path-as-is --silent --request POST --output /dev/null --write-out '%{http_code}' \
             http://127.0.0.1:18084/public/media/social/mitmachen-share-v3.png)" == "403" ]]
         env:
@@ -312,6 +344,16 @@ jobs:
       IAP_OAUTH_CLIENT_CREDENTIALS_SECRET_NAME: ${{ vars.IAP_OAUTH_CLIENT_CREDENTIALS_SECRET_NAME }}
       IAP_RESOURCE_ACCESS_PRINCIPAL: ${{ vars.IAP_RESOURCE_ACCESS_PRINCIPAL }}
       IAP_RESOURCE_ACCESS_EXPIRES_AT: ${{ vars.IAP_RESOURCE_ACCESS_EXPIRES_AT }}
+      IAP_IDENTITY_MODE: ${{ vars.IAP_IDENTITY_MODE || 'iam' }}
+      IAP_GCIP_PROJECT_ID: ${{ vars.IAP_GCIP_PROJECT_ID }}
+      IAP_GCIP_TENANT_ID: ${{ vars.IAP_GCIP_TENANT_ID }}
+      IAP_EXTERNAL_LOGIN_PAGE_URI: ${{ vars.IAP_EXTERNAL_LOGIN_PAGE_URI }}
+      IAP_EXTERNAL_AUTH_API_KEY: ${{ vars.IAP_EXTERNAL_AUTH_API_KEY }}
+      IDENTITY_PLATFORM_API_KEY: ${{ vars.IDENTITY_PLATFORM_API_KEY }}
+      IAP_EXTERNAL_ACCESS_EXPIRES_AT: ${{ vars.IAP_EXTERNAL_ACCESS_EXPIRES_AT }}
+      IDENTITY_PLATFORM_PASSWORD_POLICY_SHA256: ${{ vars.IDENTITY_PLATFORM_PASSWORD_POLICY_SHA256 }}
+      IDENTITY_PLATFORM_GOOGLE_LOGIN_VERIFIED_AT: ${{ vars.IDENTITY_PLATFORM_GOOGLE_LOGIN_VERIFIED_AT }}
+      IDENTITY_PLATFORM_GOOGLE_LOGIN_EVIDENCE_SHA256: ${{ vars.IDENTITY_PLATFORM_GOOGLE_LOGIN_EVIDENCE_SHA256 }}
       IAP_PROJECT_BREAK_GLASS_SHA256: ${{ secrets.IAP_PROJECT_BREAK_GLASS_SHA256 }}
       HOSPITATION_IMPORT_OWNER_PROFILE_ID: ${{ secrets.HOSPITATION_IMPORT_OWNER_PROFILE_ID }}
 
@@ -384,6 +426,93 @@ jobs:
           if [[ ! "$IAP_OAUTH_BOOTSTRAP_SECRET_NAME" =~ ^[A-Za-z0-9_-]{1,255}$ ]]; then
             echo "IAP_OAUTH_BOOTSTRAP_SECRET_NAME is not a valid Secret Manager secret ID." >&2
             exit 1
+          fi
+          if [[ "$IAP_IDENTITY_MODE" != "iam" && "$IAP_IDENTITY_MODE" != "external" ]]; then
+            echo "IAP_IDENTITY_MODE must be exactly iam or external." >&2
+            exit 1
+          fi
+          if [[ -n "${IAP_GCIP_PROJECT_ID:-}" && "$IAP_GCIP_PROJECT_ID" != "$GCP_PROJECT_ID" ]]; then
+            echo "IAP_GCIP_PROJECT_ID must be empty or exactly match GCP_PROJECT_ID." >&2
+            exit 1
+          fi
+          if [[ -n "${IAP_GCIP_TENANT_ID:-}" ]]; then
+            echo "IAP_GCIP_TENANT_ID must be empty; the temporary pilot uses project-level providers only." >&2
+            exit 1
+          fi
+          if [[ -n "${IAP_EXTERNAL_LOGIN_PAGE_URI:-}" ]] && \
+             [[ ! "$IAP_EXTERNAL_LOGIN_PAGE_URI" =~ ^https://[a-z0-9]([a-z0-9.-]*[a-z0-9])?(/[A-Za-z0-9._~%:@+/-]*)?$ ]]; then
+            echo "IAP_EXTERNAL_LOGIN_PAGE_URI must be an exact HTTPS URI without credentials, query, or fragment." >&2
+            exit 1
+          fi
+          if [[ -n "${IAP_EXTERNAL_AUTH_API_KEY:-}" ]] && \
+             [[ ! "$IAP_EXTERNAL_AUTH_API_KEY" =~ ^AIza[0-9A-Za-z_-]{35}$ ]]; then
+            echo "IAP_EXTERNAL_AUTH_API_KEY must be a plain Identity Platform Web API key." >&2
+            exit 1
+          fi
+          if [[ ! "${IDENTITY_PLATFORM_API_KEY:-}" =~ ^AIza[0-9A-Za-z_-]{35}$ ]]; then
+            echo "IDENTITY_PLATFORM_API_KEY must provide the browser-visible Identity Platform Web API key in every identity mode." >&2
+            exit 1
+          fi
+          if [[ -n "${IAP_EXTERNAL_ACCESS_EXPIRES_AT:-}" ]]; then
+            if [[ ! "$IAP_EXTERNAL_ACCESS_EXPIRES_AT" =~ ^[0-9]{4}-(0[1-9]|1[0-2])-([0-2][0-9]|3[01])T([01][0-9]|2[0-3]):[0-5][0-9]:[0-5][0-9]Z$ ]] || \
+               ! canonical_external_expiry="$(date --utc --date="$IAP_EXTERNAL_ACCESS_EXPIRES_AT" '+%Y-%m-%dT%H:%M:%SZ' 2>/dev/null)" || \
+               [[ "$canonical_external_expiry" != "$IAP_EXTERNAL_ACCESS_EXPIRES_AT" ]]; then
+              echo "IAP_EXTERNAL_ACCESS_EXPIRES_AT must be a canonical UTC RFC3339 timestamp." >&2
+              exit 1
+            fi
+          fi
+          if [[ -n "${IDENTITY_PLATFORM_GOOGLE_LOGIN_VERIFIED_AT:-}" ]]; then
+            if [[ ! "$IDENTITY_PLATFORM_GOOGLE_LOGIN_VERIFIED_AT" =~ ^[0-9]{4}-(0[1-9]|1[0-2])-([0-2][0-9]|3[01])T([01][0-9]|2[0-3]):[0-5][0-9]:[0-5][0-9]Z$ ]] || \
+               ! canonical_google_login_verified_at="$(date --utc --date="$IDENTITY_PLATFORM_GOOGLE_LOGIN_VERIFIED_AT" '+%Y-%m-%dT%H:%M:%SZ' 2>/dev/null)" || \
+               [[ "$canonical_google_login_verified_at" != "$IDENTITY_PLATFORM_GOOGLE_LOGIN_VERIFIED_AT" ]]; then
+              echo "IDENTITY_PLATFORM_GOOGLE_LOGIN_VERIFIED_AT must be a canonical UTC RFC3339 timestamp." >&2
+              exit 1
+            fi
+          fi
+          if [[ "$IAP_IDENTITY_MODE" == "external" ]]; then
+            if [[ "$IAP_GCIP_PROJECT_ID" != "$GCP_PROJECT_ID" ]] || \
+               [[ -z "${IAP_EXTERNAL_LOGIN_PAGE_URI:-}" ]] || \
+               [[ -z "${IAP_EXTERNAL_AUTH_API_KEY:-}" ]] || \
+               [[ -z "${IAP_EXTERNAL_ACCESS_EXPIRES_AT:-}" ]] || \
+               [[ ! "${IDENTITY_PLATFORM_PASSWORD_POLICY_SHA256:-}" =~ ^sha256:[a-f0-9]{64}$ ]] || \
+               [[ -z "${IDENTITY_PLATFORM_GOOGLE_LOGIN_VERIFIED_AT:-}" ]] || \
+               [[ ! "${IDENTITY_PLATFORM_GOOGLE_LOGIN_EVIDENCE_SHA256:-}" =~ ^sha256:[a-f0-9]{64}$ ]]; then
+              echo "External IAP requires the same GCIP project, custom login URI, Web API key, hard expiry, password-policy pin, and recent protected Google-login evidence." >&2
+              exit 1
+            fi
+            if [[ "$IDENTITY_PLATFORM_API_KEY" != "$IAP_EXTERNAL_AUTH_API_KEY" ]]; then
+              echo "The custom portal and External IAP must use the same pinned Identity Platform Web API key." >&2
+              exit 1
+            fi
+            if [[ "$IAP_EXTERNAL_LOGIN_PAGE_URI" != "${FRONTEND_BASE_URL}/anmelden" ]]; then
+              echo "IAP_EXTERNAL_LOGIN_PAGE_URI must be the canonical custom portal path FRONTEND_BASE_URL/anmelden." >&2
+              exit 1
+            fi
+            external_expiry_epoch="$(date --utc --date="$IAP_EXTERNAL_ACCESS_EXPIRES_AT" '+%s')"
+            now_epoch="$(date --utc '+%s')"
+            max_external_expiry_epoch=$((now_epoch + 62 * 24 * 60 * 60))
+            approved_pilot_end_epoch="$(date --utc --date='2026-08-17T16:00:00Z' '+%s')"
+            if (( external_expiry_epoch <= now_epoch || external_expiry_epoch > max_external_expiry_epoch )); then
+              echo "IAP_EXTERNAL_ACCESS_EXPIRES_AT must be in the future and no more than 62 days away." >&2
+              exit 1
+            fi
+            if (( external_expiry_epoch > approved_pilot_end_epoch )); then
+              echo "IAP_EXTERNAL_ACCESS_EXPIRES_AT must not exceed the approved pre-gematik pilot end." >&2
+              exit 1
+            fi
+            if [[ -n "${IAP_RESOURCE_ACCESS_EXPIRES_AT:-}" ]]; then
+              resource_access_expiry_epoch="$(date --utc --date="$IAP_RESOURCE_ACCESS_EXPIRES_AT" '+%s' 2>/dev/null || true)"
+              if [[ -z "$resource_access_expiry_epoch" ]] || \
+                 (( external_expiry_epoch > resource_access_expiry_epoch )); then
+                echo "External identity access must not outlive the protected resource-access approval." >&2
+                exit 1
+              fi
+            fi
+            google_login_verified_epoch="$(date --utc --date="$IDENTITY_PLATFORM_GOOGLE_LOGIN_VERIFIED_AT" '+%s')"
+            if (( google_login_verified_epoch > now_epoch || now_epoch - google_login_verified_epoch > 24 * 60 * 60 )); then
+              echo "The protected Google-login evidence must come from a real custom-portal test in the last 24 hours." >&2
+              exit 1
+            fi
           fi
           if [[ ! "$IAP_RESOURCE_ACCESS_PRINCIPAL" =~ ^(group|user):[^@[:space:]]+@[^@[:space:]]+$ ]]; then
             echo "IAP_RESOURCE_ACCESS_PRINCIPAL must use group:name@example.org or user:name@example.org syntax." >&2
@@ -472,11 +601,16 @@ jobs:
               exit 1
               ;;
           esac
+          if [[ "$IAP_IDENTITY_MODE" == "external" && "$domain_mode" != "canonical" ]]; then
+            echo "External Identity Platform login is allowed only on the canonical versorgungs-kompass.de origin." >&2
+            exit 1
+          fi
 
           image_repository="${GAR_REPOSITORY}/${IMAGE_NAME}"
           public_image_repository="${GAR_REPOSITORY}/versorgungs-kompass-public-entry"
           echo "api_host=$api_host" >> "$GITHUB_OUTPUT"
           echo "domain_mode=$domain_mode" >> "$GITHUB_OUTPUT"
+          echo "identity_mode=$IAP_IDENTITY_MODE" >> "$GITHUB_OUTPUT"
           echo "registry_host=$registry_host" >> "$GITHUB_OUTPUT"
           echo "image_repository=$image_repository" >> "$GITHUB_OUTPUT"
           echo "public_image_repository=$public_image_repository" >> "$GITHUB_OUTPUT"
@@ -494,6 +628,187 @@ jobs:
         uses: google-github-actions/setup-gcloud@aa5489c8933f4cc7a4f7d45035b3b1440c9c10db # v3
         with:
           install_components: gke-gcloud-auth-plugin
+
+      - name: Preflight locked Identity Platform providers without mutation
+        if: ${{ env.IAP_IDENTITY_MODE == 'external' }}
+        shell: bash
+        env:
+          API_HOST: ${{ steps.config.outputs.api_host }}
+        run: |
+          set -euo pipefail
+          identity_preflight_dir="$(mktemp -d)"
+          curl_config="${identity_preflight_dir}/curl.config"
+          project_config="${identity_preflight_dir}/project-config.json"
+          google_provider="${identity_preflight_dir}/google-provider.json"
+          default_providers="${identity_preflight_dir}/default-providers.json"
+          oidc_providers="${identity_preflight_dir}/oidc-providers.json"
+          saml_providers="${identity_preflight_dir}/saml-providers.json"
+          cleanup() {
+            rm -f \
+              "$curl_config" \
+              "$project_config" \
+              "$google_provider" \
+              "$default_providers" \
+              "$oidc_providers" \
+              "$saml_providers"
+            rmdir "$identity_preflight_dir" 2>/dev/null || true
+          }
+          trap cleanup EXIT
+          umask 077
+
+          access_token="$(gcloud auth print-access-token --quiet)"
+          if [[ -z "$access_token" ]]; then
+            echo "Could not obtain a short-lived access token for Identity Platform preflight." >&2
+            exit 1
+          fi
+          printf 'header = "Authorization: Bearer %s"\n' "$access_token" > "$curl_config"
+          unset access_token
+
+          identity_api="https://identitytoolkit.googleapis.com"
+          curl --config "$curl_config" --fail --silent --show-error \
+            --output "$project_config" \
+            "${identity_api}/admin/v2/projects/${GCP_PROJECT_ID}/config"
+          curl --config "$curl_config" --fail --silent --show-error \
+            --output "$google_provider" \
+            "${identity_api}/admin/v2/projects/${GCP_PROJECT_ID}/defaultSupportedIdpConfigs/google.com"
+          curl --config "$curl_config" --fail --silent --show-error \
+            --output "$default_providers" \
+            "${identity_api}/admin/v2/projects/${GCP_PROJECT_ID}/defaultSupportedIdpConfigs?pageSize=100"
+          curl --config "$curl_config" --fail --silent --show-error \
+            --output "$oidc_providers" \
+            "${identity_api}/admin/v2/projects/${GCP_PROJECT_ID}/oauthIdpConfigs?pageSize=100"
+          curl --config "$curl_config" --fail --silent --show-error \
+            --output "$saml_providers" \
+            "${identity_api}/admin/v2/projects/${GCP_PROJECT_ID}/inboundSamlConfigs?pageSize=100"
+
+          login_page_host="${IAP_EXTERNAL_LOGIN_PAGE_URI#https://}"
+          login_page_host="${login_page_host%%/*}"
+          if ! jq --exit-status \
+            --arg project "$GCP_PROJECT_ID" \
+            --arg api_host "$API_HOST" \
+            --arg login_page_host "$login_page_host" \
+            --arg auth_api_key "$IAP_EXTERNAL_AUTH_API_KEY" '
+              .name == "projects/\($project)/config" and
+              .signIn.email.enabled == true and
+              .signIn.email.passwordRequired == true and
+              (.signIn.allowDuplicateEmails != true) and
+              (.signIn.phoneNumber.enabled != true) and
+              (.signIn.anonymous.enabled != true) and
+              .client.permissions.disabledUserSignup == true and
+              .client.permissions.disabledUserDeletion == true and
+              .client.apiKey == $auth_api_key and
+              .emailPrivacyConfig.enableImprovedEmailPrivacy == true and
+              ((.mfa.state // "DISABLED") == "DISABLED") and
+              (.multiTenant.allowTenants != true) and
+              .passwordPolicyConfig.passwordPolicyEnforcementState == "ENFORCE" and
+              .passwordPolicyConfig.forceUpgradeOnSignin == true and
+              (.passwordPolicyConfig.passwordPolicyVersions | length) == 1 and
+              .passwordPolicyConfig.passwordPolicyVersions[0].customStrengthOptions == {
+                minPasswordLength: 14,
+                maxPasswordLength: 128,
+                containsLowercaseCharacter: true,
+                containsUppercaseCharacter: true,
+                containsNumericCharacter: true,
+                containsNonAlphanumericCharacter: true
+              } and
+              ($login_page_host == $api_host) and
+              (
+                (.authorizedDomains // [] | sort)
+                == ([$api_host, ($project + ".firebaseapp.com")] | unique | sort)
+              )
+            ' "$project_config" >/dev/null; then
+            echo "Identity Platform is not locked to the exact Versorgungs-Kompass/Firebase auth domains, improved email privacy, the pinned Web API key, and admin-created email/password users without MFA, phone, anonymous, duplicates, deletion, or tenants." >&2
+            exit 1
+          fi
+          canonical_password_policy="$(jq --compact-output --sort-keys '
+            .passwordPolicyConfig
+            | {
+                passwordPolicyEnforcementState,
+                forceUpgradeOnSignin,
+                passwordPolicyVersions: [
+                  {
+                    customStrengthOptions: {
+                      minPasswordLength: .passwordPolicyVersions[0].customStrengthOptions.minPasswordLength,
+                      maxPasswordLength: .passwordPolicyVersions[0].customStrengthOptions.maxPasswordLength,
+                      containsLowercaseCharacter: .passwordPolicyVersions[0].customStrengthOptions.containsLowercaseCharacter,
+                      containsUppercaseCharacter: .passwordPolicyVersions[0].customStrengthOptions.containsUppercaseCharacter,
+                      containsNumericCharacter: .passwordPolicyVersions[0].customStrengthOptions.containsNumericCharacter,
+                      containsNonAlphanumericCharacter: .passwordPolicyVersions[0].customStrengthOptions.containsNonAlphanumericCharacter
+                    }
+                  }
+                ]
+              }
+          ' "$project_config")"
+          actual_password_policy_sha256="sha256:$(printf '%s' "$canonical_password_policy" | sha256sum | awk '{print $1}')"
+          unset canonical_password_policy
+          if [[ "$actual_password_policy_sha256" != "$IDENTITY_PLATFORM_PASSWORD_POLICY_SHA256" ]]; then
+            echo "Identity Platform password policy differs from the protected reviewed policy pin." >&2
+            exit 1
+          fi
+
+          if ! jq --exit-status \
+            --arg project "$GCP_PROJECT_ID" '
+              .name == "projects/\($project)/defaultSupportedIdpConfigs/google.com" and
+              .enabled == true and
+              (.clientId | type == "string" and length > 0)
+            ' "$google_provider" >/dev/null; then
+            echo "The preconfigured Identity Platform Google provider is missing, disabled, or lacks its pinned Web client ID." >&2
+            exit 1
+          fi
+          google_client_id="$(jq --exit-status --raw-output '.clientId | select(type == "string" and length > 0)' "$google_provider")"
+          google_redirect_uri="https://steam-capsule-341212.firebaseapp.com/__/auth/handler"
+          canonical_google_login_evidence="$(jq --compact-output --null-input --sort-keys \
+            --arg client_id "$google_client_id" \
+            --arg redirect_uri "$google_redirect_uri" \
+            --arg verified_at "$IDENTITY_PLATFORM_GOOGLE_LOGIN_VERIFIED_AT" '{
+              approvedPasswordResetSucceeded: true,
+              clientId: $client_id,
+              customUi: true,
+              googleLoginSucceeded: true,
+              loginPath: "/anmelden",
+              loginPortalMarker: "signin",
+              passwordActionPath: "/konto/passwort-festlegen",
+              passwordPortalMarker: "password",
+              redirectUri: $redirect_uri,
+              selfSignupVisible: false,
+              visibleOptions: ["google.com", "password"],
+              verifiedAt: $verified_at
+            }')"
+          actual_google_login_evidence_sha256="sha256:$(printf '%s' "$canonical_google_login_evidence" | sha256sum | awk '{print $1}')"
+          unset google_client_id google_redirect_uri canonical_google_login_evidence
+          if [[ "$actual_google_login_evidence_sha256" != "$IDENTITY_PLATFORM_GOOGLE_LOGIN_EVIDENCE_SHA256" ]]; then
+            echo "The protected custom-UI evidence does not pin this provider client, Firebase handler redirect, both portal paths and markers, visible Google/password-only options, hidden self-signup, approved-account password reset, and recent successful Google login." >&2
+            exit 1
+          fi
+
+          if ! jq --exit-status \
+            --arg project "$GCP_PROJECT_ID" '
+              (.nextPageToken // "") == "" and
+              [
+                (.defaultSupportedIdpConfigs // [])[]
+                | select(.enabled == true)
+                | .name
+              ] == ["projects/\($project)/defaultSupportedIdpConfigs/google.com"]
+            ' "$default_providers" >/dev/null; then
+            echo "Exactly the Google default provider must be enabled for the temporary Identity Platform pilot." >&2
+            exit 1
+          fi
+          for provider_inventory in "$oidc_providers" "$saml_providers"; do
+            if ! jq --exit-status '
+              (.nextPageToken // "") == "" and
+              (
+                [
+                  (.oauthIdpConfigs // [])[],
+                  (.inboundSamlConfigs // [])[]
+                  | select(.enabled == true)
+                ]
+                | length
+              ) == 0
+            ' "$provider_inventory" >/dev/null; then
+              echo "Custom OIDC or SAML providers are not approved for the temporary Identity Platform pilot." >&2
+              exit 1
+            fi
+          done
 
       - name: Verify approved GCP resource identities and storage hardening
         shell: bash
@@ -568,6 +883,148 @@ jobs:
             --dns-endpoint
           kubectl version --client
           kubectl auth can-i get deployments --namespace "$K8S_NAMESPACE"
+
+      - name: Require live Hospitations-Kompass database contract before rollout
+        shell: bash
+        run: |
+          set -euo pipefail
+          deployment_name="${HELM_RELEASE}-api"
+
+          kubectl --namespace "$K8S_NAMESPACE" rollout status \
+            "deployment/${deployment_name}" \
+            --timeout=2m
+          kubectl --namespace "$K8S_NAMESPACE" exec \
+            --stdin \
+            "deployment/${deployment_name}" \
+            --container api \
+            -- node --input-type=module <<'NODE'
+              import { Pool } from "pg";
+
+              const required = ["DB_HOST", "DB_PORT", "DB_NAME", "DB_USER", "DB_PASSWORD"];
+              if (required.some((name) => !String(process.env[name] || "").trim())) {
+                throw new Error("Required database environment is missing in the API container.");
+              }
+
+              const pool = new Pool({
+                host: process.env.DB_HOST,
+                port: Number(process.env.DB_PORT),
+                database: process.env.DB_NAME,
+                user: process.env.DB_USER,
+                password: process.env.DB_PASSWORD,
+                ssl: false,
+                max: 1,
+                connectionTimeoutMillis: 15000,
+                statement_timeout: 15000
+              });
+              let transactionOpen = false;
+
+              try {
+                await pool.query("begin read only");
+                transactionOpen = true;
+
+                const columnResult = await pool.query(`
+                  select pg_catalog.format_type(attribute.atttypid, attribute.atttypmod) as data_type,
+                         attribute.attnotnull as not_null,
+                         has_column_privilege(
+                           current_user,
+                           'public.hospitations',
+                           'scheduled_on',
+                           'SELECT'
+                         )
+                         and has_column_privilege(
+                           current_user,
+                           'public.hospitations',
+                           'scheduled_on',
+                           'INSERT'
+                         )
+                         and has_column_privilege(
+                           current_user,
+                           'public.hospitations',
+                           'scheduled_on',
+                           'UPDATE'
+                         ) as runtime_ready
+                    from pg_catalog.pg_attribute attribute
+                   where attribute.attrelid = 'public.hospitations'::pg_catalog.regclass
+                     and attribute.attname = 'scheduled_on'
+                     and attribute.attnum > 0
+                     and not attribute.attisdropped
+                `);
+                const column = columnResult.rows[0];
+                if (columnResult.rows.length !== 1 || column.data_type !== "date"
+                    || column.not_null || !column.runtime_ready) {
+                  throw new Error(
+                    "public.hospitations.scheduled_on must be a nullable date with runtime SELECT/INSERT/UPDATE privileges."
+                  );
+                }
+
+                const expectedIndexes = new Map([
+                  [
+                    "hospitations_status_date_idx",
+                    "CREATE INDEX hospitations_status_date_idx ON public.hospitations USING btree (status, scheduled_on DESC, updated_at DESC)"
+                  ],
+                  [
+                    "hospitations_schedule_idx",
+                    "CREATE INDEX hospitations_schedule_idx ON public.hospitations USING btree (scheduled_on DESC NULLS LAST, starts_at DESC NULLS LAST, updated_at DESC)"
+                  ]
+                ]);
+                const indexResult = await pool.query(`
+                  select index_relation.relname as name,
+                         pg_catalog.pg_get_indexdef(index_state.indexrelid) as definition,
+                         index_state.indisvalid,
+                         index_state.indisready,
+                         index_state.indislive,
+                         index_state.indisunique,
+                         index_state.indpred is null as unpredicated,
+                         access_method.amname
+                    from pg_catalog.pg_index index_state
+                    join pg_catalog.pg_class index_relation
+                      on index_relation.oid = index_state.indexrelid
+                    join pg_catalog.pg_namespace index_namespace
+                      on index_namespace.oid = index_relation.relnamespace
+                    join pg_catalog.pg_class table_relation
+                      on table_relation.oid = index_state.indrelid
+                    join pg_catalog.pg_namespace table_namespace
+                      on table_namespace.oid = table_relation.relnamespace
+                    join pg_catalog.pg_am access_method
+                      on access_method.oid = index_relation.relam
+                   where index_namespace.nspname = 'public'
+                     and table_namespace.nspname = 'public'
+                     and table_relation.relname = 'hospitations'
+                     and index_relation.relname = any($1::text[])
+                   order by index_relation.relname
+                `, [[...expectedIndexes.keys()]]);
+                const normalizeSql = (value) => String(value || "").replace(/\s+/gu, " ").trim();
+                for (const [name, expectedDefinition] of expectedIndexes) {
+                  const index = indexResult.rows.find((row) => row.name === name);
+                  if (!index || !index.indisvalid || !index.indisready || !index.indislive
+                      || index.indisunique || !index.unpredicated || index.amname !== "btree"
+                      || normalizeSql(index.definition) !== normalizeSql(expectedDefinition)) {
+                    throw new Error(`Required Hospitations-Kompass index is missing or invalid: ${name}`);
+                  }
+                }
+                if (indexResult.rows.length !== expectedIndexes.size) {
+                  throw new Error("Unexpected Hospitations-Kompass index contract result.");
+                }
+
+                await pool.query(`
+                  select *
+                    from public.hospitations
+                   order by scheduled_on desc nulls last,
+                            starts_at desc nulls last,
+                            updated_at desc nulls last
+                   limit 0
+                `);
+
+                await pool.query("rollback");
+                transactionOpen = false;
+                console.log("Live Hospitations-Kompass database contract OK.");
+              } finally {
+                if (transactionOpen) {
+                  await pool.query("rollback").catch(() => {});
+                }
+                await pool.end();
+              }
+            NODE
 
       - name: Require DNS and active certificates before canonical cutover
         if: ${{ steps.config.outputs.domain_mode == 'canonical' }}
@@ -845,11 +1302,14 @@ jobs:
           API_IMAGE_DIGEST: ${{ steps.build.outputs.digest }}
         run: |
           set -euo pipefail
+          npm ci --prefix frontend/identity-portal
           bash scripts/build_static_frontend.sh \
             --profile target \
             --output dist/target \
             --api-base-url "$API_BASE_URL" \
-            --auth-mode iap
+            --auth-mode iap \
+            --identity-platform-api-key "$IDENTITY_PLATFORM_API_KEY" \
+            --identity-platform-project-id "$GCP_PROJECT_ID"
           node scripts/audit_target_assets.mjs --artifact-root dist/target
           node scripts/audit_api_gateway.mjs \
             --production-config dist/target/data/runtime-config.js
@@ -993,10 +1453,32 @@ jobs:
           grep --ignore-case --extended-regexp --quiet \
             '^content-type:[[:space:]]*image/png' "$public_share_headers"
           cmp --silent public/media/social/mitmachen-share-v3.png "$public_share_image"
-          [[ "$(curl --path-as-is --silent --output /dev/null --write-out '%{http_code}' http://127.0.0.1:18084/anmelden)" == "308" ]]
-          [[ "$(curl --path-as-is --silent --head http://127.0.0.1:18084/anmelden | tr -d '\r' | awk 'tolower($1) == "location:" { print $2 }')" == "/" ]]
+          curl --path-as-is --fail --silent --show-error \
+            --output "${RUNNER_TEMP}/immutable-public-entry-signin.html" \
+            http://127.0.0.1:18084/anmelden
+          grep --fixed-strings --quiet 'data-identity-portal="signin"' \
+            "${RUNNER_TEMP}/immutable-public-entry-signin.html"
+          curl --path-as-is --fail --silent --show-error \
+            --output "${RUNNER_TEMP}/immutable-public-entry-password.html" \
+            http://127.0.0.1:18084/konto/passwort-festlegen
+          grep --fixed-strings --quiet 'data-identity-portal="password"' \
+            "${RUNNER_TEMP}/immutable-public-entry-password.html"
+          for allowed_auth_asset in \
+            /public/auth/portal-config.js \
+            /public/auth/assets/app.css \
+            /public/auth/assets/app.js \
+            /public/auth/assets/action.css \
+            /public/auth/assets/action.js \
+            /public/auth/brand/versorgungs-kompass.svg; do
+            [[ "$(curl --path-as-is --silent --output /dev/null --write-out '%{http_code}' \
+              "http://127.0.0.1:18084${allowed_auth_asset}")" == "200" ]]
+          done
           for denied_path in \
             /start /public-index.html /anmelden/ //anmelden \
+            /konto/passwort-festlegen/ /Konto/passwort-festlegen \
+            /public/auth/index.html /public/auth/konto/passwort-festlegen/index.html \
+            /public/auth/assets/ /public/auth/assets/unknown.js \
+            /public/auth/assets/app.js/ '/public/auth/assets/%61pp.js' \
             /public/media/social/ /public/media/social/mitmachen-share-v3.png/ \
             /public/media/social/mitmachen-share-v2.png \
             '/%61nmelden' '/anmel%64en' '/foo/../anmelden' '/./anmelden' '/%2fanmelden'; do
@@ -1006,12 +1488,24 @@ jobs:
           [[ "$(curl --path-as-is --silent --request POST --output /dev/null --write-out '%{http_code}' \
             http://127.0.0.1:18084/anmelden)" == "403" ]]
           [[ "$(curl --path-as-is --silent --request POST --output /dev/null --write-out '%{http_code}' \
+            http://127.0.0.1:18084/konto/passwort-festlegen)" == "403" ]]
+          [[ "$(curl --path-as-is --silent --request POST --output /dev/null --write-out '%{http_code}' \
+            http://127.0.0.1:18084/public/auth/assets/app.js)" == "403" ]]
+          [[ "$(curl --path-as-is --silent --request POST --output /dev/null --write-out '%{http_code}' \
             http://127.0.0.1:18084/public/media/social/mitmachen-share-v3.png)" == "403" ]]
           docker exec "$public_container" sh -eu -c '
             test "$(find /usr/share/nginx/html -mindepth 1 -maxdepth 1 -type f | wc -l | tr -d " ")" = "1"
-            test "$(find /usr/share/nginx/html -type f | wc -l | tr -d " ")" = "2"
+            test "$(find /usr/share/nginx/html -type f | wc -l | tr -d " ")" = "10"
             test -f /usr/share/nginx/html/public-index.html
             test -f /usr/share/nginx/html/public/media/social/mitmachen-share-v3.png
+            test -f /usr/share/nginx/html/public/auth/index.html
+            test -f /usr/share/nginx/html/public/auth/konto/passwort-festlegen/index.html
+            test -f /usr/share/nginx/html/public/auth/portal-config.js
+            test -f /usr/share/nginx/html/public/auth/assets/app.js
+            test -f /usr/share/nginx/html/public/auth/assets/app.css
+            test -f /usr/share/nginx/html/public/auth/assets/action.js
+            test -f /usr/share/nginx/html/public/auth/assets/action.css
+            test -f /usr/share/nginx/html/public/auth/brand/versorgungs-kompass.svg
           '
 
       - name: Set up Helm
@@ -1047,9 +1541,19 @@ jobs:
           deploy_release() {
             local iap_audience="$1"
             local public_entry_iap_enabled="${2:-true}"
+            local runtime_gcip_project_id=""
+            local runtime_external_login_page_uri=""
+            local runtime_external_auth_api_key=""
+            local runtime_external_access_expires_at=""
             if [[ "$public_entry_iap_enabled" != "true" && "$public_entry_iap_enabled" != "false" ]]; then
               echo "Public-entry IAP bootstrap state must be an explicit boolean." >&2
               return 1
+            fi
+            if [[ "$IAP_IDENTITY_MODE" == "external" ]]; then
+              runtime_gcip_project_id="$IAP_GCIP_PROJECT_ID"
+              runtime_external_login_page_uri="$IAP_EXTERNAL_LOGIN_PAGE_URI"
+              runtime_external_auth_api_key="$IAP_EXTERNAL_AUTH_API_KEY"
+              runtime_external_access_expires_at="$IAP_EXTERNAL_ACCESS_EXPIRES_AT"
             fi
             local -a domain_migration_args=(
               --set-string "gke.managedCertificate.name=${HELM_RELEASE}-domain"
@@ -1108,7 +1612,13 @@ jobs:
               --set-string "ingress.annotations.kubernetes\\.io/ingress\\.global-static-ip-name=${GKE_INGRESS_IP_NAME}" \
               --set-string config.allowedOrigin="$FRONTEND_BASE_URL" \
               --set-string config.apiAuthMode=iap \
+              --set-string config.iapIdentityMode="$IAP_IDENTITY_MODE" \
               --set-string config.iapJwtAudience="$iap_audience" \
+              --set-string config.iapGcipProjectId="$runtime_gcip_project_id" \
+              --set-string config.iapGcipTenantId="" \
+              --set-string config.iapExternalLoginPageUri="$runtime_external_login_page_uri" \
+              --set-string config.iapExternalAuthApiKey="$runtime_external_auth_api_key" \
+              --set-string config.iapExternalAccessExpiresAt="$runtime_external_access_expires_at" \
               --set-string config.hospitationImportOwnerProfileId="$HOSPITATION_IMPORT_OWNER_PROFILE_ID" \
               --set-string frontend.backendConfig.iap.oauthClientCredentialsSecretName="$IAP_OAUTH_CLIENT_CREDENTIALS_SECRET_NAME" \
               --set-string frontend.publicEntry.image.repository="$PUBLIC_IMAGE_REPOSITORY" \
@@ -1161,6 +1671,31 @@ jobs:
             printf '%s\n' "$backend_config_name"
           }
 
+          public_backend_logging_is_disabled() {
+            local public_backend="$1"
+            local public_backend_state
+            public_backend_state="$(gcloud compute backend-services describe "$public_backend" \
+              --project "$GCP_PROJECT_ID" \
+              --global \
+              --format=json 2>/dev/null || true)"
+            [[ -n "$public_backend_state" ]] && jq --exit-status \
+              --arg expected_backend "$public_backend" '
+                .name == $expected_backend and
+                .logConfig.enable == false
+              ' <<< "$public_backend_state" >/dev/null 2>&1
+          }
+
+          wait_for_public_backend_logging_disabled() {
+            local public_backend="$1"
+            for attempt in {1..60}; do
+              if public_backend_logging_is_disabled "$public_backend"; then
+                return 0
+              fi
+              sleep 10
+            done
+            return 1
+          }
+
           force_public_iap_enabled() {
             local public_backend="$1"
             local backend_config_name
@@ -1169,7 +1704,7 @@ jobs:
             backend_config_name="$(resolve_public_backend_config_name)" || return 1
             protection_patch="$(jq --null-input --compact-output \
               --arg secret "$IAP_OAUTH_CLIENT_CREDENTIALS_SECRET_NAME" \
-              '{spec:{iap:{enabled:true,oauthclientCredentials:{secretName:$secret}}}}')"
+              '{spec:{logging:{enable:false},iap:{enabled:true,oauthclientCredentials:{secretName:$secret}}}}')"
             kubectl --namespace "$K8S_NAMESPACE" patch backendconfig.cloud.google.com "$backend_config_name" \
               --type merge \
               --patch "$protection_patch" >/dev/null
@@ -1178,12 +1713,13 @@ jobs:
                 --project "$GCP_PROJECT_ID" \
                 --global \
                 --format='value(iap.enabled)' 2>/dev/null || true)"
-              if [[ "${protected_iap,,}" == "true" ]]; then
+              if [[ "${protected_iap,,}" == "true" ]] && \
+                 public_backend_logging_is_disabled "$public_backend"; then
                 return 0
               fi
               sleep 10
             done
-            echo "The public-entry backend did not become IAP-protected before the release reconcile." >&2
+            echo "The public-entry backend did not become IAP-protected with load-balancer logging disabled before the release reconcile." >&2
             return 1
           }
 
@@ -1234,7 +1770,7 @@ jobs:
             local url_map_name="$1"
             local public_backend="$2"
             local contract="${3:-desired}"
-            if [[ "$contract" != "legacy" && "$contract" != "desired" ]]; then
+            if [[ "$contract" != "legacy" && "$contract" != "pre_portal" && "$contract" != "desired" ]]; then
               return 1
             fi
             local url_map_state
@@ -1307,7 +1843,20 @@ jobs:
                 and exact_paths_for($canonical[0]; $public_suffix) == (
                   if $contract == "legacy"
                   then ["/", "/anmelden"]
-                  else ["/", "/anmelden", "/public/media/social/mitmachen-share-v3.png"]
+                  elif $contract == "pre_portal"
+                  then ["/", "/anmelden", "/public/media/social/mitmachen-share-v3.png"]
+                  else [
+                    "/",
+                    "/anmelden",
+                    "/konto/passwort-festlegen",
+                    "/public/auth/assets/action.css",
+                    "/public/auth/assets/action.js",
+                    "/public/auth/assets/app.css",
+                    "/public/auth/assets/app.js",
+                    "/public/auth/brand/versorgungs-kompass.svg",
+                    "/public/auth/portal-config.js",
+                    "/public/media/social/mitmachen-share-v3.png"
+                  ]
                   end
                 )
                 and (prefix_paths_for($canonical[0]; $public_suffix) | length) == 0
@@ -1350,7 +1899,7 @@ jobs:
           public_ingress_is_isolated() {
             local ingress_json="$1"
             local contract="${2:-desired}"
-            if [[ "$contract" != "legacy" && "$contract" != "desired" ]]; then
+            if [[ "$contract" != "legacy" && "$contract" != "pre_portal" && "$contract" != "desired" ]]; then
               return 1
             fi
             jq --exit-status \
@@ -1372,10 +1921,28 @@ jobs:
                       {host: $canonical_host, path: "/", pathType: "Exact"},
                       {host: $canonical_host, path: "/anmelden", pathType: "Exact"}
                     ]
+                  elif $contract == "pre_portal" then
+                    [
+                      {host: $canonical_host, path: "/", pathType: "Exact"},
+                      {host: $canonical_host, path: "/anmelden", pathType: "Exact"},
+                      {
+                        host: $canonical_host,
+                        path: "/public/media/social/mitmachen-share-v3.png",
+                        pathType: "Exact"
+                      },
+                      {host: $root_alias_host, path: "/", pathType: "Exact"}
+                    ]
                   else
                     [
                       {host: $canonical_host, path: "/", pathType: "Exact"},
                       {host: $canonical_host, path: "/anmelden", pathType: "Exact"},
+                      {host: $canonical_host, path: "/konto/passwort-festlegen", pathType: "Exact"},
+                      {host: $canonical_host, path: "/public/auth/assets/action.css", pathType: "Exact"},
+                      {host: $canonical_host, path: "/public/auth/assets/action.js", pathType: "Exact"},
+                      {host: $canonical_host, path: "/public/auth/assets/app.css", pathType: "Exact"},
+                      {host: $canonical_host, path: "/public/auth/assets/app.js", pathType: "Exact"},
+                      {host: $canonical_host, path: "/public/auth/brand/versorgungs-kompass.svg", pathType: "Exact"},
+                      {host: $canonical_host, path: "/public/auth/portal-config.js", pathType: "Exact"},
                       {
                         host: $canonical_host,
                         path: "/public/media/social/mitmachen-share-v3.png",
@@ -1451,6 +2018,7 @@ jobs:
             fi
             if [[ "$public_deployment_exists" != "1" || "$public_backend_config_exists" != "1" ]] || \
                { ! public_ingress_is_isolated "$preflight_ingress_state" desired && \
+                 ! public_ingress_is_isolated "$preflight_ingress_state" pre_portal && \
                  ! public_ingress_is_isolated "$preflight_ingress_state" legacy; }; then
               echo "The now-IAP-protected public-entry resources are incomplete or have an unexpected Ingress scope." >&2
               exit 1
@@ -1466,6 +2034,7 @@ jobs:
                 ((.auditConfigs // []) | length) == 0
               ' <<< "$existing_public_policy" >/dev/null || \
                  { ! public_url_map_is_isolated "$preflight_url_map_name" "$existing_public_backend" desired && \
+                   ! public_url_map_is_isolated "$preflight_url_map_name" "$existing_public_backend" pre_portal && \
                    ! public_url_map_is_isolated "$preflight_url_map_name" "$existing_public_backend" legacy; }; then
                 echo "The now-IAP-protected public-entry backend did not match an approved exact empty-policy route contract." >&2
                 exit 1
@@ -1544,6 +2113,13 @@ jobs:
                 ];
               services_for($canonical_host; "/"; "Exact") == [$public_service] and
               services_for($canonical_host; "/anmelden"; "Exact") == [$public_service] and
+              services_for($canonical_host; "/konto/passwort-festlegen"; "Exact") == [$public_service] and
+              services_for($canonical_host; "/public/auth/assets/action.css"; "Exact") == [$public_service] and
+              services_for($canonical_host; "/public/auth/assets/action.js"; "Exact") == [$public_service] and
+              services_for($canonical_host; "/public/auth/assets/app.css"; "Exact") == [$public_service] and
+              services_for($canonical_host; "/public/auth/assets/app.js"; "Exact") == [$public_service] and
+              services_for($canonical_host; "/public/auth/brand/versorgungs-kompass.svg"; "Exact") == [$public_service] and
+              services_for($canonical_host; "/public/auth/portal-config.js"; "Exact") == [$public_service] and
               services_for(
                 $canonical_host;
                 "/public/media/social/mitmachen-share-v3.png";
@@ -1565,6 +2141,13 @@ jobs:
                 [
                   {host: $canonical_host, path: "/", pathType: "Exact"},
                   {host: $canonical_host, path: "/anmelden", pathType: "Exact"},
+                  {host: $canonical_host, path: "/konto/passwort-festlegen", pathType: "Exact"},
+                  {host: $canonical_host, path: "/public/auth/assets/action.css", pathType: "Exact"},
+                  {host: $canonical_host, path: "/public/auth/assets/action.js", pathType: "Exact"},
+                  {host: $canonical_host, path: "/public/auth/assets/app.css", pathType: "Exact"},
+                  {host: $canonical_host, path: "/public/auth/assets/app.js", pathType: "Exact"},
+                  {host: $canonical_host, path: "/public/auth/brand/versorgungs-kompass.svg", pathType: "Exact"},
+                  {host: $canonical_host, path: "/public/auth/portal-config.js", pathType: "Exact"},
                   {
                     host: $canonical_host,
                     path: "/public/media/social/mitmachen-share-v3.png",
@@ -1710,7 +2293,8 @@ jobs:
                      .[$api] == "HEALTHY" and
                      .[$frontend] == "HEALTHY" and
                      .[$public] == "HEALTHY"
-                   ' <<< "$boundary_backends" >/dev/null 2>&1 && \
+                 ' <<< "$boundary_backends" >/dev/null 2>&1 && \
+                 public_backend_logging_is_disabled "$public_frontend_backend_service" && \
                  backend_health_ok "$backend_service" && \
                  backend_health_ok "$frontend_backend_service" && \
                  backend_health_ok "$public_frontend_backend_service" && \
@@ -1770,7 +2354,7 @@ jobs:
             backend_config_name="$(resolve_public_backend_config_name)" || return 1
             restore_patch="$(jq --null-input --compact-output \
               --arg secret "$IAP_OAUTH_CLIENT_CREDENTIALS_SECRET_NAME" \
-              '{spec:{iap:{enabled:true,oauthclientCredentials:{secretName:$secret}}}}')"
+              '{spec:{logging:{enable:false},iap:{enabled:true,oauthclientCredentials:{secretName:$secret}}}}')"
             kubectl --namespace "$K8S_NAMESPACE" patch backendconfig.cloud.google.com "$backend_config_name" \
               --type merge \
               --patch "$restore_patch" >/dev/null
@@ -1779,7 +2363,8 @@ jobs:
                 --project "$GCP_PROJECT_ID" \
                 --global \
                 --format='value(iap.enabled)' 2>/dev/null || true)"
-              if [[ "${restored_iap,,}" == "true" ]]; then
+              if [[ "${restored_iap,,}" == "true" ]] && \
+                 public_backend_logging_is_disabled "$public_frontend_backend_service"; then
                 return 0
               fi
               sleep 10
@@ -1832,17 +2417,43 @@ jobs:
             sleep 1
           done
           [[ "$(curl --path-as-is --silent --output /dev/null --write-out '%{http_code}' http://127.0.0.1:18083/)" == "200" ]]
-          [[ "$(curl --path-as-is --silent --output /dev/null --write-out '%{http_code}' http://127.0.0.1:18083/anmelden)" == "308" ]]
-          [[ "$(curl --path-as-is --silent --head http://127.0.0.1:18083/anmelden | tr -d '\r' | awk 'tolower($1) == "location:" { print $2 }')" == "/" ]]
+          curl --path-as-is --fail --silent --show-error \
+            --output "${RUNNER_TEMP}/public-entry-preopen-signin.html" \
+            http://127.0.0.1:18083/anmelden
+          grep --fixed-strings --quiet 'data-identity-portal="signin"' \
+            "${RUNNER_TEMP}/public-entry-preopen-signin.html"
+          curl --path-as-is --fail --silent --show-error \
+            --output "${RUNNER_TEMP}/public-entry-preopen-password.html" \
+            http://127.0.0.1:18083/konto/passwort-festlegen
+          grep --fixed-strings --quiet 'data-identity-portal="password"' \
+            "${RUNNER_TEMP}/public-entry-preopen-password.html"
+          for allowed_auth_asset in \
+            /public/auth/portal-config.js \
+            /public/auth/assets/app.css \
+            /public/auth/assets/app.js \
+            /public/auth/assets/action.css \
+            /public/auth/assets/action.js \
+            /public/auth/brand/versorgungs-kompass.svg; do
+            [[ "$(curl --path-as-is --silent --output /dev/null --write-out '%{http_code}' \
+              "http://127.0.0.1:18083${allowed_auth_asset}")" == "200" ]]
+          done
           for denied_path in \
             /start /enrollment.html /login.html /api/healthz /public-index.html \
             /anmelden/ //anmelden '/%61nmelden' '/anmel%64en' \
+            /konto/passwort-festlegen/ /Konto/passwort-festlegen \
+            /public/auth/index.html /public/auth/konto/passwort-festlegen/index.html \
+            /public/auth/assets/ /public/auth/assets/unknown.js \
+            /public/auth/assets/app.js/ '/public/auth/assets/%61pp.js' \
             '/foo/../anmelden' '/anmelden/../anmelden' '/./anmelden' '/%2fanmelden'; do
             [[ "$(curl --path-as-is --silent --output /dev/null --write-out '%{http_code}' \
               "http://127.0.0.1:18083${denied_path}")" == "404" ]]
           done
           [[ "$(curl --path-as-is --silent --request POST --output /dev/null --write-out '%{http_code}' \
             http://127.0.0.1:18083/anmelden)" == "403" ]]
+          [[ "$(curl --path-as-is --silent --request POST --output /dev/null --write-out '%{http_code}' \
+            http://127.0.0.1:18083/konto/passwort-festlegen)" == "403" ]]
+          [[ "$(curl --path-as-is --silent --request POST --output /dev/null --write-out '%{http_code}' \
+            http://127.0.0.1:18083/public/auth/assets/app.js)" == "403" ]]
 
           public_policy="${iap_policy_dir}/${public_frontend_backend_service}-public.json"
           gcloud iap web get-iam-policy \
@@ -1858,201 +2469,209 @@ jobs:
             exit 1
           fi
 
-          # Read and validate both protected resource policies before any mutation.
-          # Project-level IAP access remains the separately managed break-glass path.
-          backend_services=("$backend_service" "$frontend_backend_service")
-          principal_type="${IAP_RESOURCE_ACCESS_PRINCIPAL%%:*}"
-          condition_expression=""
-          if [[ "$principal_type" == "group" ]]; then
-            condition_expression="request.time < timestamp(\"${IAP_RESOURCE_ACCESS_EXPIRES_AT}\")"
-          fi
+          IAP_PROJECT_NUMBER="$project_number" \
+          IAP_API_BACKEND_SERVICE="$backend_service" \
+          IAP_FRONTEND_BACKEND_SERVICE="$frontend_backend_service" \
+          IAP_WORK_DIR="$iap_policy_dir" \
+            bash scripts/reconcile_pre_gematik_iap_identity_mode.sh
 
-          for candidate in "${backend_services[@]}"; do
-            current_policy="${iap_policy_dir}/${candidate}-current.json"
-            desired_policy="${iap_policy_dir}/${candidate}-desired.json"
-            gcloud iap web get-iam-policy \
-              --project "$GCP_PROJECT_ID" \
-              --resource-type=backend-services \
-              --service "$candidate" \
-              --format=json > "$current_policy"
-            jq \
-              --arg member "$IAP_RESOURCE_ACCESS_PRINCIPAL" \
-              --arg principal_type "$principal_type" \
-              --arg condition_expression "$condition_expression" '
-              {
-                version: (if $principal_type == "group" then 3 else 1 end),
-                etag: .etag,
-                bindings: [
-                  {
-                    role: "roles/iap.httpsResourceAccessor",
-                    members: [$member]
-                  }
-                  + if $principal_type == "group" then {
-                      condition: {
-                        title: "pre-gematik-pilot-expiry",
-                        description: "Automatische Sperre zum dokumentierten Ende des pre-gematik-Piloten.",
-                        expression: $condition_expression
-                      }
-                    } else {} end
-                ]
-              }
-              | with_entries(select(.value != null))
+          if [[ "$IAP_IDENTITY_MODE" == "iam" ]]; then
+            # Read and validate both protected resource policies before any mutation.
+            # Project-level IAP access remains the separately managed break-glass path.
+            backend_services=("$backend_service" "$frontend_backend_service")
+            principal_type="${IAP_RESOURCE_ACCESS_PRINCIPAL%%:*}"
+            condition_expression=""
+            if [[ "$principal_type" == "group" ]]; then
+              condition_expression="request.time < timestamp(\"${IAP_RESOURCE_ACCESS_EXPIRES_AT}\")"
+            fi
+
+            for candidate in "${backend_services[@]}"; do
+              current_policy="${iap_policy_dir}/${candidate}-current.json"
+              desired_policy="${iap_policy_dir}/${candidate}-desired.json"
+              gcloud iap web get-iam-policy \
+                --project "$GCP_PROJECT_ID" \
+                --resource-type=backend-services \
+                --service "$candidate" \
+                --format=json > "$current_policy"
+              jq \
+                --arg member "$IAP_RESOURCE_ACCESS_PRINCIPAL" \
+                --arg principal_type "$principal_type" \
+                --arg condition_expression "$condition_expression" '
+                {
+                  version: (if $principal_type == "group" then 3 else 1 end),
+                  etag: .etag,
+                  bindings: [
+                    {
+                      role: "roles/iap.httpsResourceAccessor",
+                      members: [$member]
+                    }
+                    + if $principal_type == "group" then {
+                        condition: {
+                          title: "pre-gematik-pilot-expiry",
+                          description: "Automatische Sperre zum dokumentierten Ende des pre-gematik-Piloten.",
+                          expression: $condition_expression
+                        }
+                      } else {} end
+                  ]
+                }
+                | with_entries(select(.value != null))
             ' "$current_policy" > "$desired_policy"
 
-            if jq --exit-status '
-              (.etag | type == "string") and
-              (.etag | length) > 0 and
-              ((.bindings // []) | length) == 0 and
-              ((.auditConfigs // []) | length) == 0 and
-              ([
-                keys_unsorted[]
-                | select(
-                    . != "bindings" and
-                    . != "etag" and
-                    . != "version" and
-                    . != "auditConfigs"
-                  )
-              ] | length) == 0
-            ' "$current_policy" >/dev/null; then
-              : > "${iap_policy_dir}/${candidate}.update"
-              continue
-            fi
+              if jq --exit-status '
+                (.etag | type == "string") and
+                (.etag | length) > 0 and
+                ((.bindings // []) | length) == 0 and
+                ((.auditConfigs // []) | length) == 0 and
+                ([
+                  keys_unsorted[]
+                  | select(
+                      . != "bindings" and
+                      . != "etag" and
+                      . != "version" and
+                      . != "auditConfigs"
+                    )
+                ] | length) == 0
+              ' "$current_policy" >/dev/null; then
+                : > "${iap_policy_dir}/${candidate}.update"
+                continue
+              fi
 
-            if ! jq --exit-status --slurpfile desired "$desired_policy" '
-              (.etag | type == "string") and
-              (.etag | length) > 0 and
-              ([
-                keys_unsorted[]
-                | select(
-                    . != "bindings" and
-                    . != "etag" and
-                    . != "version" and
-                    . != "auditConfigs"
-                  )
-              ] | length) == 0 and
-              {
-                version: (.version // 1),
-                bindings: (.bindings // []),
-                auditConfigs: (.auditConfigs // [])
-              }
-              ==
-              {
-                version: ($desired[0].version // 1),
-                bindings: ($desired[0].bindings // []),
-                auditConfigs: ($desired[0].auditConfigs // [])
-              }
-            ' "$current_policy" >/dev/null; then
-              echo "A backend-specific IAP policy differs from the exact approved state; clear both resource policies in the controlled cutover before retrying." >&2
+              if ! jq --exit-status --slurpfile desired "$desired_policy" '
+                (.etag | type == "string") and
+                (.etag | length) > 0 and
+                ([
+                  keys_unsorted[]
+                  | select(
+                      . != "bindings" and
+                      . != "etag" and
+                      . != "version" and
+                      . != "auditConfigs"
+                    )
+                ] | length) == 0 and
+                {
+                  version: (.version // 1),
+                  bindings: (.bindings // []),
+                  auditConfigs: (.auditConfigs // [])
+                }
+                ==
+                {
+                  version: ($desired[0].version // 1),
+                  bindings: ($desired[0].bindings // []),
+                  auditConfigs: ($desired[0].auditConfigs // [])
+                }
+              ' "$current_policy" >/dev/null; then
+                echo "A backend-specific IAP policy differs from the exact approved state; clear both resource policies in the controlled cutover before retrying." >&2
+                exit 1
+              fi
+            done
+
+            pending_policy_updates=0
+            for candidate in "${backend_services[@]}"; do
+              if [[ -f "${iap_policy_dir}/${candidate}.update" ]]; then
+                pending_policy_updates=$((pending_policy_updates + 1))
+              fi
+            done
+            if (( pending_policy_updates != 0 && pending_policy_updates != ${#backend_services[@]} )); then
+              echo "The backend-specific IAP policies are in a partial cutover state; both must be empty or both must already match the exact approved state." >&2
               exit 1
             fi
-          done
 
-          pending_policy_updates=0
-          for candidate in "${backend_services[@]}"; do
-            if [[ -f "${iap_policy_dir}/${candidate}.update" ]]; then
-              pending_policy_updates=$((pending_policy_updates + 1))
-            fi
-          done
-          if (( pending_policy_updates != 0 && pending_policy_updates != ${#backend_services[@]} )); then
-            echo "The backend-specific IAP policies are in a partial cutover state; both must be empty or both must already match the exact approved state." >&2
-            exit 1
+            # Require an enrolled second factor at least every eight hours on both
+            # services. Both current settings are read before either setting changes.
+            desired_reauth_settings="${iap_policy_dir}/desired-reauth-settings.json"
+            jq --null-input '{
+              accessSettings: {
+                reauthSettings: {
+                  method: "ENROLLED_SECOND_FACTORS",
+                  maxAge: "28800s",
+                  policyType: "MINIMUM"
+                }
+              }
+            }' > "$desired_reauth_settings"
+            for candidate in "${backend_services[@]}"; do
+              gcloud iap settings get \
+                --project "$GCP_PROJECT_ID" \
+                --resource-type=backend-services \
+                --service "$candidate" \
+                --format=json > "${iap_policy_dir}/${candidate}-settings-current.json"
+            done
+            for candidate in "${backend_services[@]}"; do
+              gcloud iap settings set "$desired_reauth_settings" \
+                --project "$GCP_PROJECT_ID" \
+                --resource-type=backend-services \
+                --service "$candidate" \
+                --quiet >/dev/null
+            done
+            for candidate in "${backend_services[@]}"; do
+              verified_settings="${iap_policy_dir}/${candidate}-settings-verified.json"
+              gcloud iap settings get \
+                --project "$GCP_PROJECT_ID" \
+                --resource-type=backend-services \
+                --service "$candidate" \
+                --format=json > "$verified_settings"
+              if ! jq --exit-status '
+                .accessSettings.reauthSettings == {
+                  method: "ENROLLED_SECOND_FACTORS",
+                  maxAge: "28800s",
+                  policyType: "MINIMUM"
+                }
+              ' "$verified_settings" >/dev/null; then
+                echo "IAP reauthentication is not fail-closed on every backend service." >&2
+                exit 1
+              fi
+            done
+
+            # Only after both policies and both reauthentication settings passed
+            # validation may either resource policy be changed.
+            for candidate in "${backend_services[@]}"; do
+              desired_policy="${iap_policy_dir}/${candidate}-desired.json"
+              if [[ ! -f "${iap_policy_dir}/${candidate}.update" ]]; then
+                continue
+              fi
+              gcloud iap web set-iam-policy "$desired_policy" \
+                --project "$GCP_PROJECT_ID" \
+                --resource-type=backend-services \
+                --service "$candidate" \
+                --quiet >/dev/null
+            done
+
+            for candidate in "${backend_services[@]}"; do
+              desired_policy="${iap_policy_dir}/${candidate}-desired.json"
+              verified_policy="${iap_policy_dir}/${candidate}-verified.json"
+              gcloud iap web get-iam-policy \
+                --project "$GCP_PROJECT_ID" \
+                --resource-type=backend-services \
+                --service "$candidate" \
+                --format=json > "$verified_policy"
+              if ! jq --exit-status --slurpfile desired "$desired_policy" '
+                (.etag | type == "string") and
+                (.etag | length) > 0 and
+                ([
+                  keys_unsorted[]
+                  | select(
+                      . != "bindings" and
+                      . != "etag" and
+                      . != "version" and
+                      . != "auditConfigs"
+                    )
+                ] | length) == 0 and
+                {
+                  version: (.version // 1),
+                  bindings: (.bindings // []),
+                  auditConfigs: (.auditConfigs // [])
+                }
+                ==
+                {
+                  version: ($desired[0].version // 1),
+                  bindings: ($desired[0].bindings // []),
+                  auditConfigs: ($desired[0].auditConfigs // [])
+                }
+              ' "$verified_policy" >/dev/null; then
+                echo "A backend-specific IAP policy does not match the exact approved principal policy." >&2
+                exit 1
+              fi
+            done
           fi
-
-          # Require an enrolled second factor at least every eight hours on both
-          # services. Both current settings are read before either setting changes.
-          desired_reauth_settings="${iap_policy_dir}/desired-reauth-settings.json"
-          jq --null-input '{
-            accessSettings: {
-              reauthSettings: {
-                method: "ENROLLED_SECOND_FACTORS",
-                maxAge: "28800s",
-                policyType: "MINIMUM"
-              }
-            }
-          }' > "$desired_reauth_settings"
-          for candidate in "${backend_services[@]}"; do
-            gcloud iap settings get \
-              --project "$GCP_PROJECT_ID" \
-              --resource-type=backend-services \
-              --service "$candidate" \
-              --format=json > "${iap_policy_dir}/${candidate}-settings-current.json"
-          done
-          for candidate in "${backend_services[@]}"; do
-            gcloud iap settings set "$desired_reauth_settings" \
-              --project "$GCP_PROJECT_ID" \
-              --resource-type=backend-services \
-              --service "$candidate" \
-              --quiet >/dev/null
-          done
-          for candidate in "${backend_services[@]}"; do
-            verified_settings="${iap_policy_dir}/${candidate}-settings-verified.json"
-            gcloud iap settings get \
-              --project "$GCP_PROJECT_ID" \
-              --resource-type=backend-services \
-              --service "$candidate" \
-              --format=json > "$verified_settings"
-            if ! jq --exit-status '
-              .accessSettings.reauthSettings == {
-                method: "ENROLLED_SECOND_FACTORS",
-                maxAge: "28800s",
-                policyType: "MINIMUM"
-              }
-            ' "$verified_settings" >/dev/null; then
-              echo "IAP reauthentication is not fail-closed on every backend service." >&2
-              exit 1
-            fi
-          done
-
-          # Only after both policies and both reauthentication settings passed
-          # validation may either resource policy be changed.
-          for candidate in "${backend_services[@]}"; do
-            desired_policy="${iap_policy_dir}/${candidate}-desired.json"
-            if [[ ! -f "${iap_policy_dir}/${candidate}.update" ]]; then
-              continue
-            fi
-            gcloud iap web set-iam-policy "$desired_policy" \
-              --project "$GCP_PROJECT_ID" \
-              --resource-type=backend-services \
-              --service "$candidate" \
-              --quiet >/dev/null
-          done
-
-          for candidate in "${backend_services[@]}"; do
-            desired_policy="${iap_policy_dir}/${candidate}-desired.json"
-            verified_policy="${iap_policy_dir}/${candidate}-verified.json"
-            gcloud iap web get-iam-policy \
-              --project "$GCP_PROJECT_ID" \
-              --resource-type=backend-services \
-              --service "$candidate" \
-              --format=json > "$verified_policy"
-            if ! jq --exit-status --slurpfile desired "$desired_policy" '
-              (.etag | type == "string") and
-              (.etag | length) > 0 and
-              ([
-                keys_unsorted[]
-                | select(
-                    . != "bindings" and
-                    . != "etag" and
-                    . != "version" and
-                    . != "auditConfigs"
-                  )
-              ] | length) == 0 and
-              {
-                version: (.version // 1),
-                bindings: (.bindings // []),
-                auditConfigs: (.auditConfigs // [])
-              }
-              ==
-              {
-                version: ($desired[0].version // 1),
-                bindings: ($desired[0].bindings // []),
-                auditConfigs: ($desired[0].auditConfigs // [])
-              }
-            ' "$verified_policy" >/dev/null; then
-              echo "A backend-specific IAP policy does not match the exact approved principal policy." >&2
-              exit 1
-            fi
-          done
 
           # Phase B is the final Helm mutation: open only the already proven
           # exact public HTML and share-image routes. BackendConfig must omit IAP here: GKE
@@ -2061,6 +2680,13 @@ jobs:
           # IAP directly so Compute retains the existing custom OAuth fields.
           deploy_release "$iap_audience" false
           public_backend_config_name="$(resolve_public_backend_config_name)"
+          rendered_public_logging="$(kubectl --namespace "$K8S_NAMESPACE" get \
+            backendconfig.cloud.google.com "$public_backend_config_name" \
+            --output jsonpath='{.spec.logging.enable}' 2>/dev/null || true)"
+          if [[ "$rendered_public_logging" != "false" ]]; then
+            echo "The final public BackendConfig must explicitly disable load-balancer request logging." >&2
+            exit 1
+          fi
           rendered_public_iap="$(kubectl --namespace "$K8S_NAMESPACE" get \
             backendconfig.cloud.google.com "$public_backend_config_name" \
             --output jsonpath='{.spec.iap}' 2>/dev/null || true)"
@@ -2078,6 +2704,17 @@ jobs:
             --output jsonpath='{.spec.iap}' 2>/dev/null || true)"
           if [[ -n "$rendered_public_iap" ]]; then
             echo "The final public BackendConfig must leave IAP unmanaged before the custom-OAuth backend is opened." >&2
+            exit 1
+          fi
+          resolved_public_backend_after_logging_reconcile="$(
+            resolve_backend_for_service "$public_frontend_service_name" || true
+          )"
+          if [[ "$resolved_public_backend_after_logging_reconcile" != "$public_frontend_backend_service" ]]; then
+            echo "The public-entry backend identity changed before its logging state could be verified." >&2
+            exit 1
+          fi
+          if ! wait_for_public_backend_logging_disabled "$resolved_public_backend_after_logging_reconcile"; then
+            echo "The resolved public-entry BackendService did not converge to logConfig.enable=false before release." >&2
             exit 1
           fi
           gcloud compute backend-services update "$public_frontend_backend_service" \
@@ -2571,9 +3208,9 @@ jobs:
             --output "${RUNNER_TEMP}/pre-gematik-public-index.html"
           grep --fixed-strings --quiet 'data-public-entry="home"' \
             "${RUNNER_TEMP}/pre-gematik-public-index.html"
-          grep --fixed-strings --quiet 'href="/api/auth/bootstrap?return=%2Fstart%3Fiap_authenticated%3D1"' \
+          grep --fixed-strings --quiet 'href="/start"' \
             "${RUNNER_TEMP}/pre-gematik-public-index.html"
-          grep --fixed-strings --quiet 'data-google-sso-button' \
+          grep --fixed-strings --quiet 'data-public-login-button' \
             "${RUNNER_TEMP}/pre-gematik-public-index.html"
           grep --fixed-strings --quiet '<meta property="og:title" content="#Mitmachen" />' \
             "${RUNNER_TEMP}/pre-gematik-public-index.html"
@@ -2595,10 +3232,26 @@ jobs:
           cmp --silent \
             public/media/social/mitmachen-share-v3.png \
             "${RUNNER_TEMP}/pre-gematik-share-image.png"
-          [[ "$(curl --path-as-is --silent --output /dev/null --write-out '%{http_code}' \
-            http://127.0.0.1:18083/anmelden)" == "308" ]]
-          [[ "$(curl --path-as-is --silent --head http://127.0.0.1:18083/anmelden \
-            | tr -d '\r' | awk 'tolower($1) == "location:" { print $2 }')" == "/" ]]
+          curl --path-as-is --fail --silent --show-error \
+            --output "${RUNNER_TEMP}/pre-gematik-identity-signin.html" \
+            http://127.0.0.1:18083/anmelden
+          grep --fixed-strings --quiet 'data-identity-portal="signin"' \
+            "${RUNNER_TEMP}/pre-gematik-identity-signin.html"
+          curl --path-as-is --fail --silent --show-error \
+            --output "${RUNNER_TEMP}/pre-gematik-identity-password.html" \
+            http://127.0.0.1:18083/konto/passwort-festlegen
+          grep --fixed-strings --quiet 'data-identity-portal="password"' \
+            "${RUNNER_TEMP}/pre-gematik-identity-password.html"
+          for allowed_auth_asset in \
+            /public/auth/portal-config.js \
+            /public/auth/assets/app.css \
+            /public/auth/assets/app.js \
+            /public/auth/assets/action.css \
+            /public/auth/assets/action.js \
+            /public/auth/brand/versorgungs-kompass.svg; do
+            [[ "$(curl --path-as-is --silent --output /dev/null --write-out '%{http_code}' \
+              "http://127.0.0.1:18083${allowed_auth_asset}")" == "200" ]]
+          done
 
           for forbidden_public_path in \
             /start \
@@ -2611,7 +3264,14 @@ jobs:
             /public/media/social/ \
             /public/media/social/mitmachen-share-v3.png/ \
             /public/media/social/mitmachen-share-v2.png \
-            /anmelden/; do
+            /anmelden/ \
+            /konto/passwort-festlegen/ \
+            /public/auth/index.html \
+            /public/auth/konto/passwort-festlegen/index.html \
+            /public/auth/assets/ \
+            /public/auth/assets/unknown.js \
+            /public/auth/assets/app.js/ \
+            '/public/auth/assets/%61pp.js'; do
             public_status="$(curl --path-as-is --silent --show-error \
               --output /dev/null \
               --write-out '%{http_code}' \
@@ -2621,12 +3281,33 @@ jobs:
               exit 1
             fi
           done
+          for post_path in \
+            /anmelden \
+            /konto/passwort-festlegen \
+            /public/auth/assets/app.js; do
+            [[ "$(curl --path-as-is --silent --request POST --output /dev/null --write-out '%{http_code}' \
+              "http://127.0.0.1:18083${post_path}")" == "403" ]]
+          done
 
           curl --fail --silent --show-error \
             http://127.0.0.1:18082/data/runtime-config.js \
             --output "${RUNNER_TEMP}/pre-gematik-frontend-config.js"
           grep --fixed-strings --quiet 'dataMode: "api"' "${RUNNER_TEMP}/pre-gematik-frontend-config.js"
           grep --fixed-strings --quiet 'authMode: "iap"' "${RUNNER_TEMP}/pre-gematik-frontend-config.js"
+          grep --fixed-strings --quiet "iapIdentityMode: \"${IAP_IDENTITY_MODE}\"" "${RUNNER_TEMP}/pre-gematik-frontend-config.js"
+          if [[ "$IAP_IDENTITY_MODE" == "external" ]]; then
+            expected_external_login_page_uri="$IAP_EXTERNAL_LOGIN_PAGE_URI"
+            expected_external_auth_api_key="$IAP_EXTERNAL_AUTH_API_KEY"
+          else
+            expected_external_login_page_uri=""
+            expected_external_auth_api_key=""
+          fi
+          grep --fixed-strings --quiet \
+            "iapExternalLoginPageUri: \"${expected_external_login_page_uri}\"" \
+            "${RUNNER_TEMP}/pre-gematik-frontend-config.js"
+          grep --fixed-strings --quiet \
+            "iapExternalAuthApiKey: \"${expected_external_auth_api_key}\"" \
+            "${RUNNER_TEMP}/pre-gematik-frontend-config.js"
           grep --fixed-strings --quiet 'requireApiGateway: true' "${RUNNER_TEMP}/pre-gematik-frontend-config.js"
           grep --fixed-strings --quiet 'cleanUrls: true' "${RUNNER_TEMP}/pre-gematik-frontend-config.js"
 
@@ -2708,8 +3389,8 @@ jobs:
               "${FRONTEND_BASE_URL}/" || true)"
             if [[ "$edge_status" == "200" ]] && \
                grep --fixed-strings --quiet 'data-public-entry="home"' "$edge_probe_body" && \
-               grep --fixed-strings --quiet 'data-google-sso-button' "$edge_probe_body" && \
-               grep --fixed-strings --quiet 'href="/api/auth/bootstrap?return=%2Fstart%3Fiap_authenticated%3D1"' "$edge_probe_body" && \
+               grep --fixed-strings --quiet 'data-public-login-button' "$edge_probe_body" && \
+               grep --fixed-strings --quiet 'href="/start"' "$edge_probe_body" && \
                ! grep --fixed-strings --quiet 'Testzugang aktivieren' "$edge_probe_body" && \
                ! grep --ignore-case --quiet '^x-goog-iap-generated-response:' "$edge_probe_headers"; then
               edge_consecutive_successes=$((edge_consecutive_successes + 1))
@@ -2739,8 +3420,8 @@ jobs:
           grep --ignore-case --fixed-strings --quiet 'content-security-policy:' "$public_headers"
           grep --ignore-case --fixed-strings --quiet 'x-content-type-options: nosniff' "$public_headers"
           grep --fixed-strings --quiet 'data-public-entry="home"' "$public_body"
-          grep --fixed-strings --quiet 'data-google-sso-button' "$public_body"
-          grep --fixed-strings --quiet 'href="/api/auth/bootstrap?return=%2Fstart%3Fiap_authenticated%3D1"' "$public_body"
+          grep --fixed-strings --quiet 'data-public-login-button' "$public_body"
+          grep --fixed-strings --quiet 'href="/start"' "$public_body"
           grep --fixed-strings --quiet \
             "<link rel=\"canonical\" href=\"${FRONTEND_BASE_URL}/\" />" "$public_body"
           grep --fixed-strings --quiet \
@@ -2842,32 +3523,29 @@ jobs:
             exit 1
           fi
 
-          for redirect_path in "/anmelden" "/anmelden?public_probe=must-not-reflect"; do
-            redirect_headers="${RUNNER_TEMP}/public-entry-redirect.headers"
-            redirect_body="${RUNNER_TEMP}/public-entry-redirect.body"
-            redirect_status="$(curl --path-as-is --silent --show-error \
-              --dump-header "$redirect_headers" \
-              --output "$redirect_body" \
+          for signin_path in "/anmelden" "/anmelden?public_probe=must-not-reflect"; do
+            signin_headers="${RUNNER_TEMP}/identity-signin.headers"
+            signin_body="${RUNNER_TEMP}/identity-signin.html"
+            signin_status="$(curl --path-as-is --silent --show-error \
+              --dump-header "$signin_headers" \
+              --output "$signin_body" \
               --write-out '%{http_code}' \
               --max-time 30 \
-              "${FRONTEND_BASE_URL}${redirect_path}")"
-            redirect_location="$(awk '
-              BEGIN { IGNORECASE = 1 }
-              /^location:/ {
-                sub(/^[^:]+:[[:space:]]*/, "")
-                sub(/\r$/, "")
-                print
-                exit
-              }
-            ' "$redirect_headers")"
-            if [[ "$redirect_status" != "308" ]] || [[ "$redirect_location" != "/" ]] || \
-               grep --fixed-strings --quiet 'data-public-entry=' "$redirect_body" || \
-               grep --fixed-strings --quiet 'must-not-reflect' "$redirect_body" || \
-               grep --ignore-case --quiet '^x-goog-iap-generated-response:' "$redirect_headers" || \
-               grep --ignore-case --quiet '^set-cookie:' "$redirect_headers"; then
-              echo "The compatibility login path must return only 308 Location: /." >&2
+              "${FRONTEND_BASE_URL}${signin_path}")"
+            if [[ "$signin_status" != "200" ]] || \
+               ! grep --fixed-strings --quiet 'data-identity-portal="signin"' "$signin_body" || \
+               grep --fixed-strings --quiet 'must-not-reflect' "$signin_body" || \
+               grep --ignore-case --quiet '^location:' "$signin_headers" || \
+               grep --ignore-case --quiet '^x-goog-iap-generated-response:' "$signin_headers" || \
+               grep --ignore-case --quiet '^set-cookie:' "$signin_headers"; then
+              echo "The custom sign-in portal is unavailable, stateful, redirected, or reflected its probe." >&2
               exit 1
             fi
+            grep --ignore-case --extended-regexp --quiet \
+              '^content-type:[[:space:]]*text/html' "$signin_headers"
+            grep --ignore-case --fixed-strings --quiet 'cache-control: no-store' "$signin_headers"
+            grep --ignore-case --fixed-strings --quiet 'content-security-policy:' "$signin_headers"
+            grep --ignore-case --fixed-strings --quiet 'x-content-type-options: nosniff' "$signin_headers"
           done
 
           head_status="$(curl --path-as-is --silent --show-error --head \
@@ -2875,10 +3553,55 @@ jobs:
             --write-out '%{http_code}' \
             --max-time 30 \
             "${FRONTEND_BASE_URL}/anmelden")"
-          if [[ "$head_status" != "308" ]]; then
-            echo "Expected HEAD /anmelden to redirect to the public root, received HTTP ${head_status}." >&2
+          if [[ "$head_status" != "200" ]]; then
+            echo "Expected HEAD /anmelden to expose the custom sign-in portal, received HTTP ${head_status}." >&2
             exit 1
           fi
+
+          password_headers="${RUNNER_TEMP}/identity-password.headers"
+          password_body="${RUNNER_TEMP}/identity-password.html"
+          password_status="$(curl --path-as-is --silent --show-error \
+            --dump-header "$password_headers" \
+            --output "$password_body" \
+            --write-out '%{http_code}' \
+            --max-time 30 \
+            "${FRONTEND_BASE_URL}/konto/passwort-festlegen?mode=resetPassword")"
+          if [[ "$password_status" != "200" ]] || \
+             ! grep --fixed-strings --quiet 'data-identity-portal="password"' "$password_body" || \
+             grep --ignore-case --quiet '^location:' "$password_headers" || \
+             grep --ignore-case --quiet '^x-goog-iap-generated-response:' "$password_headers" || \
+             grep --ignore-case --quiet '^set-cookie:' "$password_headers"; then
+            echo "The custom password-action portal is unavailable, stateful, or redirected." >&2
+            exit 1
+          fi
+          grep --ignore-case --extended-regexp --quiet \
+            '^content-type:[[:space:]]*text/html' "$password_headers"
+          grep --ignore-case --fixed-strings --quiet 'cache-control: no-store' "$password_headers"
+          grep --ignore-case --fixed-strings --quiet 'content-security-policy:' "$password_headers"
+          grep --ignore-case --fixed-strings --quiet 'x-content-type-options: nosniff' "$password_headers"
+
+          for allowed_auth_asset in \
+            /public/auth/portal-config.js \
+            /public/auth/assets/app.css \
+            /public/auth/assets/app.js \
+            /public/auth/assets/action.css \
+            /public/auth/assets/action.js \
+            /public/auth/brand/versorgungs-kompass.svg; do
+            auth_asset_headers="${RUNNER_TEMP}/identity-asset.headers"
+            auth_asset_status="$(curl --path-as-is --silent --show-error \
+              --dump-header "$auth_asset_headers" \
+              --output /dev/null \
+              --write-out '%{http_code}' \
+              --max-time 30 \
+              "${FRONTEND_BASE_URL}${allowed_auth_asset}")"
+            if [[ "$auth_asset_status" != "200" ]] || \
+               grep --ignore-case --quiet '^location:' "$auth_asset_headers" || \
+               grep --ignore-case --quiet '^x-goog-iap-generated-response:' "$auth_asset_headers" || \
+               grep --ignore-case --quiet '^set-cookie:' "$auth_asset_headers"; then
+              echo "Approved identity asset ${allowed_auth_asset} is unavailable, stateful, or redirected." >&2
+              exit 1
+            fi
+          done
 
           post_headers="${RUNNER_TEMP}/public-entry-post.headers"
           post_status="$(curl --path-as-is --silent --show-error \
@@ -2893,6 +3616,20 @@ jobs:
             echo "The public login endpoint must reject POST without involving IAP; received HTTP ${post_status}." >&2
             exit 1
           fi
+          for post_path in \
+            /konto/passwort-festlegen \
+            /public/auth/assets/app.js; do
+            post_status="$(curl --path-as-is --silent --show-error \
+              --request POST \
+              --output /dev/null \
+              --write-out '%{http_code}' \
+              --max-time 30 \
+              "${FRONTEND_BASE_URL}${post_path}")"
+            if [[ "$post_status" != "403" ]]; then
+              echo "Public identity path ${post_path} accepted POST with HTTP ${post_status}." >&2
+              exit 1
+            fi
+          done
 
           protected_paths=(
             "/start"
@@ -2911,6 +3648,16 @@ jobs:
             "/anmelden/weiter"
             "/anmelden,probe"
             "/anmelden%3Bprobe"
+            "/konto/passwort-festlegen/"
+            "/Konto/passwort-festlegen"
+            "/konto/passwort-festlegen/weiter"
+            "/public/auth/index.html"
+            "/public/auth/konto/passwort-festlegen/index.html"
+            "/public/auth/assets/"
+            "/public/auth/assets/unknown.js"
+            "/public/auth/assets/app.js/"
+            "/public/auth/assets/%61pp.js"
+            "/public/auth/brand/unknown.svg"
           )
           protected_index=0
           for protected_path in "${protected_paths[@]}"; do
@@ -2939,9 +3686,12 @@ jobs:
           www_protected_paths=(
             "/start"
             "/anmelden"
+            "/konto/passwort-festlegen"
             "/api/healthz"
             "/data/runtime-config.js"
             "/public-index.html"
+            "/public/auth/portal-config.js"
+            "/public/auth/assets/app.js"
             "/public/media/social/mitmachen-share-v3.png"
           )
           www_protected_index=0
@@ -2974,6 +3724,8 @@ jobs:
             "/%61nmelden"
             "/anmel%64en"
             "/%2fanmelden"
+            "//konto/passwort-festlegen"
+            "/konto/%70asswort-festlegen"
           )
           normalized_index=0
           for normalized_alias in "${normalized_aliases[@]}"; do
@@ -2988,8 +3740,9 @@ jobs:
               "${FRONTEND_BASE_URL}${normalized_alias}")"
             case "$status" in
               404)
-                if grep --fixed-strings --quiet 'data-public-entry=' "$normalized_body"; then
-                  echo "Normalized alias ${normalized_alias} exposed public-entry content." >&2
+                if grep --fixed-strings --quiet 'data-public-entry=' "$normalized_body" || \
+                   grep --fixed-strings --quiet 'data-identity-portal=' "$normalized_body"; then
+                  echo "Normalized alias ${normalized_alias} exposed public entry or identity-portal content." >&2
                   exit 1
                 fi
                 ;;
@@ -3022,6 +3775,9 @@ jobs:
             "/anmelden;probe/weiter"
             "/anmelden;%2Fprobe"
             "/anmelden;;probe"
+            "/konto/passwort-festlegen;"
+            "/konto/passwort-festlegen;probe"
+            "/public/auth/assets/app.js;probe"
           )
           matrix_index=0
           for matrix_alias in "${matrix_aliases[@]}"; do
@@ -3037,6 +3793,7 @@ jobs:
             case "$status" in
               404)
                 if grep --fixed-strings --quiet 'data-public-entry=' "$matrix_body" || \
+                   grep --fixed-strings --quiet 'data-identity-portal=' "$matrix_body" || \
                    grep --ignore-case --quiet '^set-cookie:' "$matrix_headers" || \
                    grep --ignore-case --quiet '^location:' "$matrix_headers" || \
                    grep --ignore-case --quiet '^x-goog-iap-generated-response:' "$matrix_headers"; then
@@ -3070,6 +3827,8 @@ jobs:
             "/foo/../anmelden"
             "/anmelden/../anmelden"
             "/./anmelden"
+            "/foo/../konto/passwort-festlegen"
+            "/konto/./passwort-festlegen"
           )
           redirect_index=0
           for redirect_alias in "${load_balancer_redirect_aliases[@]}"; do
@@ -3091,11 +3850,15 @@ jobs:
                 exit
               }
             ' "$redirect_headers")"
+            canonical_redirect_path="/anmelden"
+            if [[ "$redirect_alias" == *"passwort-festlegen"* ]]; then
+              canonical_redirect_path="/konto/passwort-festlegen"
+            fi
             if [[ "$status" != "302" ]] || \
-               { [[ "$redirect_location" != "/anmelden" ]] && \
-                 [[ "$redirect_location" != "${FRONTEND_BASE_URL}/anmelden" ]]; } || \
+               { [[ "$redirect_location" != "$canonical_redirect_path" ]] && \
+                 [[ "$redirect_location" != "${FRONTEND_BASE_URL}${canonical_redirect_path}" ]]; } || \
                grep --fixed-strings --quiet 'data-public-entry=' "$redirect_body"; then
-              echo "Load-balancer-normalized alias ${redirect_alias} did not return only the exact canonical /anmelden redirect." >&2
+              echo "Load-balancer-normalized alias ${redirect_alias} did not return only its exact canonical portal redirect." >&2
               exit 1
             fi
           done
@@ -3167,22 +3930,27 @@ jobs:
             }
           restore_patch="$(jq --null-input --compact-output \
             --arg secret "$IAP_OAUTH_CLIENT_CREDENTIALS_SECRET_NAME" \
-            '{spec:{iap:{enabled:true,oauthclientCredentials:{secretName:$secret}}}}')"
+            '{spec:{logging:{enable:false},iap:{enabled:true,oauthclientCredentials:{secretName:$secret}}}}')"
           kubectl --namespace "$K8S_NAMESPACE" patch backendconfig.cloud.google.com "$backend_config_name" \
             --type merge \
             --patch "$restore_patch" >/dev/null
           for attempt in {1..60}; do
-            public_iap="$(gcloud compute backend-services describe "$public_backend" \
+            public_backend_state="$(gcloud compute backend-services describe "$public_backend" \
               --project "$GCP_PROJECT_ID" \
               --global \
-              --format='value(iap.enabled)' 2>/dev/null || true)"
-            if [[ "${public_iap,,}" == "true" ]]; then
-              echo "Restored fail-closed IAP on the public-entry backend after the failed cutover."
+              --format=json 2>/dev/null || true)"
+            if [[ -n "$public_backend_state" ]] && jq --exit-status \
+              --arg expected_backend "$public_backend" '
+                .name == $expected_backend and
+                .iap.enabled == true and
+                .logConfig.enable == false
+              ' <<< "$public_backend_state" >/dev/null 2>&1; then
+              echo "Restored fail-closed IAP with load-balancer logging disabled on the public-entry backend after the failed cutover."
               exit 0
             fi
             sleep 10
           done
-          echo "::error::The public-entry backend did not return to IAP-enabled after the failed cutover." >&2
+          echo "::error::The public-entry backend did not return to IAP-enabled with load-balancer logging disabled after the failed cutover." >&2
           exit 1
 
       - name: Summarize deployment
@@ -3219,7 +3987,7 @@ jobs:
             echo "- Protected frontend backend service: \`${FRONTEND_BACKEND_SERVICE}\`"
             echo "- Public-entry frontend backend service: \`${PUBLIC_FRONTEND_BACKEND_SERVICE}\`"
             echo "- GCP resource identities, private bucket policy and IAP bindings: verified (values redacted)"
-            echo "- Public entry: \`/\`; compatibility redirect: \`/anmelden\` -> \`/\`; share image: exact approved PNG path"
+            echo "- Public entry: \`/\`; custom sign-in: \`/anmelden\`; password action: \`/konto/passwort-festlegen\`; identity assets and share image: exact allowlisted paths"
             echo "- Internal API/protected/public frontend health and target frontend config: passed"
             echo "- Cloud SQL connection and required schema: passed"
             echo "- Unsigned-header rejection: passed"

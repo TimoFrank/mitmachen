@@ -32,6 +32,10 @@
     return ["iap", "oidc"].includes(runtimeConfig.authMode) && runtimeConfig.dataMode === "api";
   }
 
+  function usesIapExternalIdentities() {
+    return runtimeConfig.authMode === "iap" && runtimeConfig.iapIdentityMode === "external";
+  }
+
   window.addEventListener("DOMContentLoaded", function () {
     const copy = document.getElementById("login-copy");
     const externalLoginButton = document.getElementById("external-login-submit");
@@ -42,7 +46,11 @@
     }
 
     if (isExplicitSignOutReturn()) {
-      if (copy) copy.textContent = "Du bist aus dem Versorgungs-Kompass abgemeldet. Das Konto des Identity Providers bleibt gegebenenfalls im Browser angemeldet.";
+      if (copy) {
+        copy.textContent = usesIapExternalIdentities()
+          ? "Du bist aus dem Versorgungs-Kompass abgemeldet. Du kannst dich erneut mit Google oder deinem freigeschalteten E-Mail-Testkonto anmelden."
+          : "Du bist aus dem Versorgungs-Kompass abgemeldet. Das Konto des Identity Providers bleibt gegebenenfalls im Browser angemeldet.";
+      }
       if (externalLoginButton) {
         externalLoginButton.hidden = false;
         externalLoginButton.addEventListener("click", function () {
@@ -52,7 +60,11 @@
       return;
     }
 
-    if (copy) copy.textContent = "Die Anmeldung erfolgt über den organisationsweiten SSO-Zugang.";
+    if (copy) {
+      copy.textContent = usesIapExternalIdentities()
+        ? "Die geschützte Anmeldung bietet Google sowie freigeschaltete E-Mail-Testkonten. Eine Selbstregistrierung ist nicht möglich."
+        : "Die Anmeldung erfolgt über den organisationsweiten SSO-Zugang.";
+    }
     window.location.replace(getReturnUrl());
   });
 })();

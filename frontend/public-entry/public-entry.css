@@ -250,6 +250,16 @@ main {
   box-shadow: 0 16px 32px rgba(21, 95, 228, 0.28);
 }
 
+.entry-login-button__icon {
+  width: 19px;
+  height: 19px;
+  fill: none;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 1.8;
+}
+
 .access-notice {
   width: min(100%, 600px);
   display: none;

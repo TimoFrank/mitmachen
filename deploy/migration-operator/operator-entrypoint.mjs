@@ -91,6 +91,28 @@ function logoRemediationExecution(environment) {
   });
 }
 
+function identitySubjectRemapArguments(environment, { apply = false } = {}) {
+  const mode = environment.ALLOW_IDENTITY_SUBJECT_REMAPS;
+  if (mode === undefined || mode === "" || mode === "false") return Object.freeze([]);
+  if (mode !== "true") {
+    throw new MigrationOperatorError(
+      "ALLOW_IDENTITY_SUBJECT_REMAPS must be exactly true or false."
+    );
+  }
+  const argumentsList = ["--allow-subject-remaps"];
+  if (apply) {
+    argumentsList.push(
+      "--confirm-subject-remap-count",
+      required(
+        environment,
+        "CONFIRM_IDENTITY_SUBJECT_REMAP_COUNT",
+        POSITIVE_INTEGER_PATTERN
+      )
+    );
+  }
+  return Object.freeze(argumentsList);
+}
+
 export function phaseExecution(phase, environment = process.env) {
   if (phase === "storage-preview") {
     const logoRemediation = logoRemediationExecution(environment);
@@ -179,10 +201,12 @@ export function phaseExecution(phase, environment = process.env) {
   }
 
   if (phase === "identity-preview") {
+    const remapArguments = identitySubjectRemapArguments(environment);
     return Object.freeze({
       script: "scripts/provision_iap_identity_bindings.mjs",
       arguments: Object.freeze([
-        "--input", `${PROTECTED_INPUT}/iap-bindings.json`
+        "--input", `${PROTECTED_INPUT}/iap-bindings.json`,
+        ...remapArguments
       ]),
       protectedInputs: Object.freeze(["iap-bindings.json"]),
       logoRemediationBundle: false,
@@ -197,6 +221,11 @@ export function phaseExecution(phase, environment = process.env) {
       "CONFIRM_IDENTITY_PREVIEW_FINGERPRINT",
       SHA256_PATTERN
     );
+    const currentStateFingerprint = required(
+      environment,
+      "CONFIRM_IDENTITY_CURRENT_STATE_FINGERPRINT",
+      SHA256_PATTERN
+    );
     const bindingCount = required(
       environment,
       "CONFIRM_IDENTITY_BINDING_COUNT",
@@ -207,6 +236,7 @@ export function phaseExecution(phase, environment = process.env) {
       "CONFIRM_IDENTITY_ACTIVE_BINDING_COUNT",
       NON_NEGATIVE_INTEGER_PATTERN
     );
+    const remapArguments = identitySubjectRemapArguments(environment, { apply: true });
     return Object.freeze({
       script: "scripts/provision_iap_identity_bindings.mjs",
       arguments: Object.freeze([
@@ -216,9 +246,11 @@ export function phaseExecution(phase, environment = process.env) {
         "--confirm-database", TARGET_DATABASE_NAME,
         "--confirm-operation", IDENTITY_OPERATION,
         "--confirm-fingerprint", previewFingerprint,
+        "--confirm-current-state-fingerprint", currentStateFingerprint,
         "--confirm-binding-count", bindingCount,
         "--confirm-active-binding-count", activeBindingCount,
-        "--allow-active-bindings"
+        "--allow-active-bindings",
+        ...remapArguments
       ]),
       protectedInputs: Object.freeze(["iap-bindings.json"]),
       logoRemediationBundle: false,

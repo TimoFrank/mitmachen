@@ -80,6 +80,7 @@
   async function apiRequest(path, options = {}) {
     const config = runtimeConfig();
     const headers = { Accept: "application/json" };
+    if (config.authMode === "iap") headers["X-Requested-With"] = "XMLHttpRequest";
     if (options.body !== undefined) headers["Content-Type"] = "application/json";
     const response = await fetch(sameOriginApiUrl(path), {
       method: options.method || "GET",
@@ -89,6 +90,7 @@
     });
     const payload = await response.json().catch(() => ({}));
     if (!response.ok) {
+      if (response.status === 401) window.VKAuth?.reauthenticateIapSession?.();
       const error = new Error(messageForStatus(response.status));
       error.status = response.status;
       throw error;

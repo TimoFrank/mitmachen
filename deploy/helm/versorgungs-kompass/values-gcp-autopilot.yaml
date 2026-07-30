@@ -35,7 +35,13 @@ ingress:
 config:
   allowedOrigin: https://pre-gematik.example.invalid
   apiAuthMode: iap
+  iapIdentityMode: iam
   iapJwtAudience: REPLACE_AFTER_FIRST_INGRESS_RECONCILIATION
+  iapGcipProjectId: ""
+  iapGcipTenantId: ""
+  iapExternalLoginPageUri: ""
+  iapExternalAuthApiKey: ""
+  iapExternalAccessExpiresAt: ""
   hospitationImportOwnerProfileId: ""
   logRequests: "0"
 

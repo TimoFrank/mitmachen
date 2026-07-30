@@ -43,8 +43,8 @@ function assertIapSubjectContract() {
   }
   assert.match(
     source,
-    /iapPayload\s*\?\s*canonicalIapSubject\(iapPayload\.sub\)\s*:\s*oidcPayload\?\.sub/u,
-    "Nur das verifizierte IAP-Subject darf der Google-IAP-Namespace-Abbildung folgen."
+    /IAP_IDENTITY_MODE === "external"[\s\S]*request\.iapExternalIdentity\?\.subject[\s\S]*canonicalIapSubject\(iapPayload\.sub\)/u,
+    "External-IAP muss das vollstaendige GCIP-Subject behalten; nur natives Google-IAP darf kanonisiert werden."
   );
   assert.doesNotMatch(source, /canonicalIapSubject\(oidcPayload\?*\.sub\)/u,
     "Ein allgemeines OIDC-Subject darf nicht als Google-IAP-Subject normalisiert werden.");
@@ -74,13 +74,19 @@ function assertIapLogoutContract() {
     [authStorageKey]: JSON.stringify({ authenticated: true, expiresAt: Date.now() + 60_000 })
   });
   const sessionStorage = createStorage({ [bootstrapKey]: "1" });
+  let allowReauthenticationRedirect = false;
+  let reauthenticationRedirect = "";
   const location = {
     href: appUrl.href,
     origin: appUrl.origin,
     pathname: appUrl.pathname,
     search: appUrl.search,
     hash: appUrl.hash,
-    replace() {
+    replace(value) {
+      if (allowReauthenticationRedirect) {
+        reauthenticationRedirect = String(value);
+        return;
+      }
       throw new Error("Ein vorhandener IAP-Bootstrap-Marker darf keine Weiterleitung ausloesen.");
     }
   };
@@ -119,6 +125,37 @@ function assertIapLogoutContract() {
   assert.equal(logoutUrl.searchParams.get("gcp-iap-mode"), "CLEAR_LOGIN_COOKIE");
   assert.deepEqual([...logoutUrl.searchParams.keys()], ["gcp-iap-mode"], "Alte App-Parameter duerfen nicht in die Logout-URL gelangen.");
   assert.equal(logoutUrl.hash, "#signed-out", "Die Login-Seite muss den expliziten Abmeldezustand erkennen koennen.");
+
+  window.VERSORGUNGS_COMPASS_CONFIG.iapIdentityMode = "external";
+  window.VERSORGUNGS_COMPASS_CONFIG.iapExternalLoginPageUri = "https://versorgungs-kompass-login.example.run.app/";
+  window.VERSORGUNGS_COMPASS_CONFIG.iapExternalAuthApiKey =
+    `AIza${"A".repeat(35)}`;
+  const externalLogoutUrl = new URL(window.VKAuth.buildLogoutUrl());
+  assert.equal(externalLogoutUrl.origin, "https://versorgungs-kompass-login.example.run.app");
+  assert.equal(
+    externalLogoutUrl.searchParams.get("apiKey"),
+    window.VERSORGUNGS_COMPASS_CONFIG.iapExternalAuthApiKey
+  );
+  assert.equal(externalLogoutUrl.searchParams.get("mode"), "signout");
+  assert.equal(externalLogoutUrl.searchParams.has("gcp-iap-mode"), false);
+  window.VERSORGUNGS_COMPASS_CONFIG.iapExternalAuthApiKey = "";
+  assert.throws(
+    () => window.VKAuth.buildLogoutUrl(),
+    /vollständige Identity-Platform-Logout/u,
+    "External-IAP darf bei fehlender Full-Logout-Konfiguration nicht auf einen Teil-Logout zurueckfallen."
+  );
+  window.VERSORGUNGS_COMPASS_CONFIG.iapIdentityMode = "iam";
+  window.VERSORGUNGS_COMPASS_CONFIG.iapExternalLoginPageUri = "";
+
+  allowReauthenticationRedirect = true;
+  assert.equal(window.VKAuth.reauthenticateIapSession(), true);
+  const reauthenticationUrl = new URL(reauthenticationRedirect);
+  assert.equal(reauthenticationUrl.origin, "https://versorgungs-kompass.example");
+  assert.equal(reauthenticationUrl.pathname, "/api/auth/bootstrap");
+  const reauthenticationReturn = new URL(reauthenticationUrl.searchParams.get("return"));
+  assert.equal(reauthenticationReturn.pathname, appUrl.pathname);
+  assert.equal(reauthenticationReturn.searchParams.get("iap_authenticated"), "1");
+  assert.equal(sessionStorage.getItem(bootstrapKey), null);
 
   window.VKAuth.clearAuthenticated();
   assert.equal(localStorage.getItem(authStorageKey), null, "Der lokale App-Login muss geloescht werden.");

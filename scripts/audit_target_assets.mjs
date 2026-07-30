@@ -151,6 +151,14 @@ for (const required of [
   "public/brand/modules/stakeholder/mark.svg",
   "public/brand/versorgungs-kompass/mark-on-dark.svg",
   "public/brand/versorgungs-kompass/mark.svg",
+  "public/auth/assets/action.css",
+  "public/auth/assets/action.js",
+  "public/auth/assets/app.css",
+  "public/auth/assets/app.js",
+  "public/auth/brand/versorgungs-kompass.svg",
+  "public/auth/index.html",
+  "public/auth/konto/passwort-festlegen/index.html",
+  "public/auth/portal-config.js",
   "public/media/social/mitmachen-share-v3.png"
 ]) {
   assert(actualFiles.includes(required), `${artifactLabel}/${required} fehlt im geschuetzten Target-Artefakt`);
@@ -187,6 +195,24 @@ for (const forbiddenPrefix of [
 ]) {
   assert(!actualFiles.some((file) => file.startsWith(forbiddenPrefix)), `${artifactLabel}/${forbiddenPrefix} darf nicht in das Target-Artefakt gelangen`);
 }
+
+const approvedPublicAuthFiles = [
+  "public/auth/assets/action.css",
+  "public/auth/assets/action.js",
+  "public/auth/assets/app.css",
+  "public/auth/assets/app.js",
+  "public/auth/brand/versorgungs-kompass.svg",
+  "public/auth/index.html",
+  "public/auth/konto/passwort-festlegen/index.html",
+  "public/auth/portal-config.js"
+].sort();
+const actualPublicAuthFiles = actualFiles
+  .filter((file) => file.startsWith("public/auth/"))
+  .sort();
+assert(
+  JSON.stringify(actualPublicAuthFiles) === JSON.stringify(approvedPublicAuthFiles),
+  `${artifactLabel}/public/auth darf ausschliesslich die acht freigegebenen Identity-Portal-Dateien enthalten`
+);
 
 const configPath = join(artifactRoot, "data", "runtime-config.js");
 let targetBaseUrl = "";
@@ -309,9 +335,17 @@ for (const relativePath of ["public-index.html"]) {
   );
   const apiReferences = html.match(/\/api\//gi) || [];
   assert(
-    apiReferences.length === 1
-      && /href=[\"']\/api\/auth\/bootstrap\?return=%2Fstart%3Fiap_authenticated%3D1[\"']/i.test(html),
+    apiReferences.length === 0,
     `${artifactLabel}/${relativePath} enthaelt einen nicht freigegebenen API-Pfad`
+  );
+  assert(
+    (html.match(/href=[\"']\/start[\"']/gi) || []).length === 1
+      && /data-public-login-button/.test(html),
+    `${artifactLabel}/${relativePath} muss exakt einmal den IAP-geschuetzten Einstieg zum eigenen Identity-Portal ausloesen`
+  );
+  assert(
+    !/data-google-sso-button|Mit Google anmelden/i.test(html),
+    `${artifactLabel}/${relativePath} darf keinen Google-only-CTA mehr enthalten`
   );
 }
 
@@ -360,16 +394,10 @@ if (existsSync(publicIndexPath)) {
     );
   }
   assert(
-    (html.match(/href=[\"']\/api\/auth\/bootstrap\?return=%2Fstart%3Fiap_authenticated%3D1[\"']/gi) || []).length === 1,
-    `${artifactLabel}/public-index.html muss genau einmal den realen Google-/IAP-Bootstrap starten`
-  );
-  assert(
-    /data-google-sso-button/.test(html)
-      && /Mit Google anmelden/.test(html)
-      && /#747775/i.test(html)
-      && /#1f1f1f/i.test(html)
-      && /Roboto/.test(html),
-    `${artifactLabel}/public-index.html muss den Google-konformen SSO-Button enthalten`
+    (html.match(/href=[\"']\/start[\"']/gi) || []).length === 1
+      && /data-public-login-button/.test(html)
+      && /Google oder einem persönlich freigeschalteten E-Mail-Konto/.test(html),
+    `${artifactLabel}/public-index.html muss den providerneutralen CTA ueber den geschuetzten IAP-Einstieg enthalten`
   );
   assert(
     /Willkommen im Versorgungs-Kompass/.test(html)
@@ -386,8 +414,89 @@ if (existsSync(publicIndexPath)) {
     `${artifactLabel}/public-index.html enthaelt keinen neutralen, scriptfreien 403-Zustand`
   );
   assert(
-    !/data-target-enrollment|Testzugang aktivieren|href=[\"']\/(?:start|anmelden|enrollment\.html)[\"']/i.test(html),
-    `${artifactLabel}/public-index.html darf keinen separaten Login- oder Enrollment-Einstieg enthalten`
+    !/data-target-enrollment|Testzugang aktivieren|href=[\"']\/enrollment\.html[\"']/i.test(html),
+    `${artifactLabel}/public-index.html darf keinen Self-Service-Einstieg enthalten`
+  );
+}
+
+const identityPortalDocuments = [
+  {
+    relativePath: "public/auth/index.html",
+    marker: "signin",
+    stylesheet: "/public/auth/assets/app.css?v=20260730-1",
+    script: "/public/auth/assets/app.js?v=20260730-1"
+  },
+  {
+    relativePath: "public/auth/konto/passwort-festlegen/index.html",
+    marker: "password",
+    stylesheet: "/public/auth/assets/action.css?v=20260730-1",
+    script: "/public/auth/assets/action.js?v=20260730-1"
+  }
+];
+for (const { relativePath, marker, stylesheet, script } of identityPortalDocuments) {
+  const documentPath = join(artifactRoot, relativePath);
+  if (!existsSync(documentPath)) continue;
+  const html = readFileSync(documentPath, "utf8");
+  assert(
+    new RegExp(`data-identity-portal=[\"']${marker}[\"']`).test(html),
+    `${artifactLabel}/${relativePath} besitzt nicht den erwarteten Identity-Portal-Marker ${marker}`
+  );
+  assert(
+    (html.match(new RegExp(`href=[\"']${stylesheet.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}[\"']`, "g")) || []).length === 1
+      && (html.match(new RegExp(`src=[\"']${script.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}[\"']`, "g")) || []).length === 1
+      && (html.match(/src=[\"']\/public\/auth\/portal-config\.js[\"']/g) || []).length === 1
+      && (html.match(/href=[\"']\/public\/auth\/brand\/versorgungs-kompass\.svg[\"']/g) || []).length === 1,
+    `${artifactLabel}/${relativePath} referenziert nicht exakt seine freigegebenen lokalen Portal-Artefakte`
+  );
+  assert(
+    !/<script\b[^>]*\bsrc=[\"']https?:|<link\b[^>]*\bhref=[\"']https?:|@import|url\s*\(\s*[\"']?https?:/i.test(html),
+    `${artifactLabel}/${relativePath} darf keine externe Browser-Runtime nachladen`
+  );
+  assert(
+    !/Konto erstellen|Jetzt registrieren|Selbst registrieren|Sign[\s-]?up/i.test(html),
+    `${artifactLabel}/${relativePath} darf keine Selbstregistrierung anbieten`
+  );
+}
+
+const identityPortalConfigPath = join(artifactRoot, "public", "auth", "portal-config.js");
+if (existsSync(identityPortalConfigPath)) {
+  const config = readFileSync(identityPortalConfigPath, "utf8");
+  assert(!/REPLACE_/.test(config), `${artifactLabel}/public/auth/portal-config.js enthaelt einen nicht ersetzten Platzhalter`);
+  assert(
+    /apiKey:\s*"AIza[0-9A-Za-z_-]{35}"/.test(config),
+    `${artifactLabel}/public/auth/portal-config.js enthaelt keinen gueltigen Identity-Platform-Web-API-Key`
+  );
+  assert(
+    /authDomain:\s*"steam-capsule-341212\.firebaseapp\.com"/.test(config)
+      && /projectId:\s*"steam-capsule-341212"/.test(config),
+    `${artifactLabel}/public/auth/portal-config.js ist nicht auf das freigegebene Identity-Platform-Projekt gepinnt`
+  );
+  assert(
+    new RegExp(`allowedContinueOrigins:\\s*Object\\.freeze\\(\\[\\s*["']${targetBaseUrl.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}["']\\s*\\]\\)`).test(config),
+    `${artifactLabel}/public/auth/portal-config.js erlaubt nicht exakt den geschuetzten Target-Origin`
+  );
+  assert(
+    /enableLocalPreview:\s*false/.test(config),
+    `${artifactLabel}/public/auth/portal-config.js darf den lokalen Vorschau-Modus im Target nicht aktivieren`
+  );
+}
+
+const identityPortalAppPath = join(artifactRoot, "public", "auth", "assets", "app.js");
+if (existsSync(identityPortalAppPath)) {
+  const app = readFileSync(identityPortalAppPath, "utf8");
+  assert(
+    /Mit Google anmelden/.test(app)
+      && /E-Mail-Adresse/.test(app),
+    `${artifactLabel}/public/auth/assets/app.js muss Google und E-Mail/Passwort anbieten`
+  );
+  assert(
+    /\/public\/auth\/brand\/versorgungs-kompass\.svg/.test(app)
+      && !/[\"']\/brand\/versorgungs-kompass\.svg[\"']/.test(app),
+    `${artifactLabel}/public/auth/assets/app.js darf das Markenasset nur ueber den freigegebenen Public-Auth-Pfad laden`
+  );
+  assert(
+    !/Konto erstellen|Jetzt registrieren|Selbst registrieren|createUserWithEmailAndPassword/i.test(app),
+    `${artifactLabel}/public/auth/assets/app.js enthaelt eine nicht freigegebene Selbstregistrierung`
   );
 }
 

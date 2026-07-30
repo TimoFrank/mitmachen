@@ -83,6 +83,10 @@ assert.match(
   legacyIdentityRoleSql,
   /revoke insert, update on table public\.identity_bindings from vk_identity_admin/u
 );
+assert.match(
+  legacyIdentityRoleSql,
+  /grant update \(subject\) on table public\.identity_bindings to vk_identity_admin/u
+);
 
 const issuer = EXPECTED_IAP_ISSUER;
 const requestId = "5de9a765-2b17-4f1f-89a9-2edc6eb0c7f8";

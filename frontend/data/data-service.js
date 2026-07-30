@@ -58,6 +58,7 @@
     const headers = {
       Accept: "application/json"
     };
+    if (CONFIG.authMode === "iap") headers["X-Requested-With"] = "XMLHttpRequest";
     void 0 !== body && (headers["Content-Type"] = "application/json");
     const controller = new AbortController, timeoutId = setTimeout(() => controller.abort(), API_REQUEST_TIMEOUT_MS);
     try {
@@ -77,6 +78,7 @@
         if (controller.signal.aborted) throw error;
       }
       if (!response.ok) {
+        if (response.status === 401) window.VKAuth?.reauthenticateIapSession?.();
         const requestError = new Error(payload.error || `API-Anfrage fehlgeschlagen (${response.status}).`);
         requestError.status = response.status;
         requestError.code = payload.code || `API_HTTP_${response.status}`;

@@ -155,7 +155,11 @@ export function bindingStateFingerprint(bindings) {
     issuer: binding.issuer,
     subject: binding.subject,
     profile_id: binding.profile_id,
-    active: binding.active
+    active: binding.active,
+    access_scope: binding.access_scope ?? "standard",
+    scope_ref: binding.scope_ref ?? null,
+    profile_role: binding.profile_role ?? "",
+    profile_active: binding.profile_active ?? null
   })).sort((left, right) => (
     left.issuer.localeCompare(right.issuer)
     || left.subject.localeCompare(right.subject)
@@ -225,14 +229,17 @@ export function parseArguments(argv) {
   const options = {
     apply: false,
     allowActiveBindings: false,
+    allowSubjectRemaps: false,
     help: false,
     input: "",
     confirmEnvironment: "",
     confirmDatabase: "",
     confirmOperation: "",
     confirmFingerprint: "",
+    confirmCurrentStateFingerprint: "",
     confirmBindingCount: "",
-    confirmActiveBindingCount: ""
+    confirmActiveBindingCount: "",
+    confirmSubjectRemapCount: ""
   };
   const valueOptions = new Map([
     ["--input", "input"],
@@ -240,8 +247,10 @@ export function parseArguments(argv) {
     ["--confirm-database", "confirmDatabase"],
     ["--confirm-operation", "confirmOperation"],
     ["--confirm-fingerprint", "confirmFingerprint"],
+    ["--confirm-current-state-fingerprint", "confirmCurrentStateFingerprint"],
     ["--confirm-binding-count", "confirmBindingCount"],
-    ["--confirm-active-binding-count", "confirmActiveBindingCount"]
+    ["--confirm-active-binding-count", "confirmActiveBindingCount"],
+    ["--confirm-subject-remap-count", "confirmSubjectRemapCount"]
   ]);
 
   for (let index = 0; index < argv.length; index += 1) {
@@ -250,6 +259,8 @@ export function parseArguments(argv) {
       options.apply = true;
     } else if (argument === "--allow-active-bindings") {
       options.allowActiveBindings = true;
+    } else if (argument === "--allow-subject-remaps") {
+      options.allowSubjectRemaps = true;
     } else if (argument === "--help" || argument === "-h") {
       options.help = true;
     } else if (valueOptions.has(argument)) {
@@ -300,7 +311,12 @@ export function validateExecutionConfirmations(options, document, fingerprint) {
     if (options.allowActiveBindings) {
       throw new SafeCliError("--allow-active-bindings ist nur zusammen mit --apply erlaubt.");
     }
-    if (options.confirmBindingCount || options.confirmActiveBindingCount) {
+    if (
+      options.confirmBindingCount
+      || options.confirmActiveBindingCount
+      || options.confirmCurrentStateFingerprint
+      || options.confirmSubjectRemapCount
+    ) {
       throw new SafeCliError("Binding-Zaehlerbestaetigungen sind nur zusammen mit --apply erlaubt.");
     }
     return;
@@ -317,6 +333,11 @@ export function validateExecutionConfirmations(options, document, fingerprint) {
   if (options.confirmFingerprint !== fingerprint) {
     throw new SafeCliError("Apply erfordert den exakten Fingerprint aus dem unmittelbar zuvor geprueften Preview.");
   }
+  if (!/^sha256:[a-f0-9]{64}$/u.test(options.confirmCurrentStateFingerprint)) {
+    throw new SafeCliError(
+      "Apply erfordert den exakten current_state_fingerprint aus dem unmittelbar zuvor geprueften Preview."
+    );
+  }
   if (
     !/^[1-9][0-9]*$/u.test(options.confirmBindingCount)
     || Number(options.confirmBindingCount) !== document.bindings.length
@@ -332,6 +353,20 @@ export function validateExecutionConfirmations(options, document, fingerprint) {
   if (activeRequestedCount > 0 && !options.allowActiveBindings) {
     throw new SafeCliError("Aktive Bindungen erfordern zusaetzlich --allow-active-bindings.");
   }
+  if (options.allowSubjectRemaps) {
+    if (
+      !/^[1-9][0-9]*$/u.test(options.confirmSubjectRemapCount)
+      || Number(options.confirmSubjectRemapCount) > document.bindings.length
+    ) {
+      throw new SafeCliError(
+        "Subject-Remaps erfordern --confirm-subject-remap-count mit einer positiven bestaetigten Anzahl."
+      );
+    }
+  } else if (options.confirmSubjectRemapCount) {
+    throw new SafeCliError(
+      "--confirm-subject-remap-count ist nur zusammen mit --allow-subject-remaps erlaubt."
+    );
+  }
 }
 
 function bindingKey(binding) {
@@ -342,12 +377,89 @@ function profileBindingKey(binding) {
   return `${binding.issuer}\u0000${binding.profile_id}`;
 }
 
-export function buildIdentityBindingPlan(document, profileRows, existingRows) {
+function persistedBinding(binding, profiles) {
+  const profile = profiles.get(binding.profile_id);
+  const accessScope = binding.access_scope ?? "standard";
+  const scopeRef = binding.scope_ref ?? null;
+  const profileRole = binding.profile_role ?? profile?.role ?? "";
+  const profileActive = binding.profile_active ?? profile?.active ?? null;
+  if (
+    typeof binding.active !== "boolean"
+    || !["standard", "test_only"].includes(accessScope)
+    || (accessScope === "standard" && scopeRef !== null)
+    || (
+      accessScope === "test_only"
+      && (
+        typeof scopeRef !== "string"
+        || scopeRef.length === 0
+        || scopeRef !== scopeRef.trim()
+      )
+    )
+    || (
+      Object.hasOwn(binding, "profile_role")
+      && (typeof profileRole !== "string" || profileRole.length === 0)
+    )
+    || (
+      Object.hasOwn(binding, "profile_active")
+      && typeof profileActive !== "boolean"
+    )
+  ) {
+    throw new SafeCliError(
+      "Der bestehende Bindungszustand verletzt den Rollen-/Scope-Vertrag."
+    );
+  }
+  if (
+    profile
+    && Object.hasOwn(profile, "role")
+    && profileRole !== profile.role
+  ) {
+    throw new SafeCliError(
+      "Die gebundene Profilrolle stimmt nicht mit dem geprueften Profilbestand ueberein."
+    );
+  }
+  if (
+    profile
+    && Object.hasOwn(profile, "active")
+    && profileActive !== profile.active
+  ) {
+    throw new SafeCliError(
+      "Die gebundene Profilaktivitaet stimmt nicht mit dem geprueften Profilbestand ueberein."
+    );
+  }
+  return Object.freeze({
+    issuer: binding.issuer,
+    subject: binding.subject,
+    profile_id: binding.profile_id,
+    active: binding.active,
+    access_scope: accessScope,
+    scope_ref: scopeRef,
+    profile_role: profileRole,
+    profile_active: profileActive
+  });
+}
+
+export function buildIdentityBindingPlan(
+  document,
+  profileRows,
+  existingRows,
+  { allowSubjectRemaps = false } = {}
+) {
   const profiles = new Map(profileRows.map((profile) => [profile.id, profile]));
-  const existingByBinding = new Map(existingRows.map((binding) => [bindingKey(binding), binding]));
-  const existingByProfile = new Map(existingRows.map((binding) => [profileBindingKey(binding), binding]));
+  const persistedExistingRows = existingRows.map((binding) => persistedBinding(binding, profiles));
+  const existingByBinding = new Map(
+    persistedExistingRows.map((binding) => [bindingKey(binding), binding])
+  );
+  const existingByProfile = new Map(
+    persistedExistingRows.map((binding) => [profileBindingKey(binding), binding])
+  );
   const requestedKeys = new Set(document.bindings.map(bindingKey));
-  const unknownExistingCount = existingRows.filter((binding) => !requestedKeys.has(bindingKey(binding))).length;
+  const requestedByProfile = new Map(
+    document.bindings.map((binding) => [profileBindingKey(binding), binding])
+  );
+  const unknownExistingCount = persistedExistingRows.filter((binding) => (
+    !requestedKeys.has(bindingKey(binding))
+    && !(allowSubjectRemaps && requestedByProfile.has(profileBindingKey(binding)))
+  )).length;
   const missingProfiles = document.bindings.filter((binding) => !profiles.has(binding.profile_id));
   const inactiveProfileActivations = document.bindings.filter((binding) => (
     binding.active && profiles.has(binding.profile_id) && profiles.get(binding.profile_id).active !== true
@@ -366,6 +478,7 @@ export function buildIdentityBindingPlan(document, profileRows, existingRows) {
 
   const inserts = [];
   const updates = [];
+  const remaps = [];
   const unchanged = [];
   let remapConflicts = 0;
   let profileCollisions = 0;
@@ -383,7 +496,22 @@ export function buildIdentityBindingPlan(document, profileRows, existingRows) {
     }
     const existingProfileBinding = existingByProfile.get(profileBindingKey(requested));
     if (existingProfileBinding) {
-      profileCollisions += 1;
+      if (allowSubjectRemaps) {
+        remaps.push(Object.freeze({
+          issuer: requested.issuer,
+          profile_id: requested.profile_id,
+          from_subject: existingProfileBinding.subject,
+          from_active: existingProfileBinding.active,
+          from_access_scope: existingProfileBinding.access_scope,
+          from_scope_ref: existingProfileBinding.scope_ref,
+          profile_role: existingProfileBinding.profile_role,
+          profile_active: existingProfileBinding.profile_active,
+          to_subject: requested.subject,
+          to_active: requested.active
+        }));
+      } else {
+        profileCollisions += 1;
+      }
     } else {
       inserts.push(requested);
     }
@@ -394,18 +522,60 @@ export function buildIdentityBindingPlan(document, profileRows, existingRows) {
   if (profileCollisions > 0) {
     throw new SafeCliError(`${profileCollisions} Profile besitzen fuer denselben issuer bereits eine andere Bindung; der Vorgang wurde abgebrochen.`);
   }
+  if (
+    allowSubjectRemaps
+    && (
+      inserts.length > 0
+      || updates.length > 0
+      || remaps.some((binding) => binding.from_active !== binding.to_active)
+    )
+  ) {
+    throw new SafeCliError(
+      "Ein Subject-Remap darf keine Bindung anlegen und weder Aktivitaet, Rolle noch Scope veraendern."
+    );
+  }
+
+  const expectedByBinding = new Map(
+    persistedExistingRows.map((binding) => [bindingKey(binding), { ...binding }])
+  );
+  for (const binding of inserts) {
+    const profile = profiles.get(binding.profile_id);
+    const insertedState = {
+      ...binding,
+      access_scope: "standard",
+      scope_ref: null
+    };
+    if (profile?.role) insertedState.profile_role = profile.role;
+    if (typeof profile?.active === "boolean") insertedState.profile_active = profile.active;
+    const inserted = persistedBinding(insertedState, profiles);
+    expectedByBinding.set(bindingKey(inserted), { ...inserted });
+  }
+  for (const binding of updates) {
+    const expected = expectedByBinding.get(bindingKey(binding));
+    expected.active = binding.active;
+  }
+  for (const remap of remaps) {
+    const oldKey = `${remap.issuer}\u0000${remap.from_subject}`;
+    const expected = expectedByBinding.get(oldKey);
+    expectedByBinding.delete(oldKey);
+    expected.subject = remap.to_subject;
+    expectedByBinding.set(bindingKey(expected), expected);
+  }
+  const expectedState = [...expectedByBinding.values()];
 
   return Object.freeze({
     inserts: Object.freeze(inserts),
     updates: Object.freeze(updates),
+    remaps: Object.freeze(remaps),
     unchanged: Object.freeze(unchanged),
     requestedCount: document.bindings.length,
     activeRequestedCount: document.bindings.filter((binding) => binding.active).length,
-    deactivateCount: updates.filter((binding) => !binding.active).length,
-    existingCount: existingRows.length,
+    deactivateCount: updates.filter((binding) => !binding.active).length
+      + remaps.filter((binding) => binding.from_active && !binding.to_active).length,
+    existingCount: persistedExistingRows.length,
     unknownExistingCount,
-    currentStateFingerprint: bindingStateFingerprint(existingRows),
-    expectedStateFingerprint: bindingDocumentFingerprint(document)
+    currentStateFingerprint: bindingStateFingerprint(persistedExistingRows),
+    expectedStateFingerprint: bindingStateFingerprint(expectedState)
   });
 }
 
@@ -416,6 +586,7 @@ export function formatPlanSummary(plan, fingerprint, applied) {
     active_requested_count: plan.activeRequestedCount,
     insert_count: plan.inserts.length,
     update_count: plan.updates.length,
+    remap_count: plan.remaps.length,
     deactivate_count: plan.deactivateCount,
     unchanged_count: plan.unchanged.length,
     unknown_existing_count: plan.unknownExistingCount,
@@ -588,18 +759,21 @@ export async function assumeIdentityAdministrationRole(client) {
 }
 
 export function validateIdentityAdministrationPrivileges(privileges) {
-  if (
-    booleanPrivilege(privileges?.expected_admin_role)
-    && booleanPrivilege(privileges?.binding_select)
+  const fullWriter = (
+    !booleanPrivilege(privileges?.v2_access_contract_active)
+    &&
+    booleanPrivilege(privileges?.binding_insert)
+    && booleanPrivilege(privileges?.binding_update)
+  );
+  const remapOnlyWriter = (
+    booleanPrivilege(privileges?.v2_access_contract_active)
     && !booleanPrivilege(privileges?.binding_insert)
     && !booleanPrivilege(privileges?.binding_update)
-  ) {
-    throw new SafeCliError(
-      "Der Legacy-Operator besitzt nach Aktivierung des v2-Testzugangs absichtlich nur Leserechte. "
-      + "Verwende scripts/provision_pre_gematik_test_access.mjs; der alte Minimalrechte-Vertrag darf keine Bindungen mehr schreiben."
-    );
-  }
-  if (
+    && numericCount(privileges?.binding_column_insert_count) === 0
+    && booleanPrivilege(privileges?.binding_subject_update)
+    && numericCount(privileges?.binding_non_subject_update_count) === 0
+  );
+  const invalidBasePrivileges = (
     !booleanPrivilege(privileges?.expected_admin_role)
     || !booleanPrivilege(privileges?.schema_usage)
     || booleanPrivilege(privileges?.schema_create)
@@ -614,8 +788,6 @@ export function validateIdentityAdministrationPrivileges(privileges) {
     || booleanPrivilege(privileges?.profile_column_update)
     || booleanPrivilege(privileges?.profile_column_references)
     || !booleanPrivilege(privileges?.binding_select)
-    || !booleanPrivilege(privileges?.binding_insert)
-    || !booleanPrivilege(privileges?.binding_update)
     || booleanPrivilege(privileges?.binding_delete)
     || booleanPrivilege(privileges?.binding_truncate)
     || booleanPrivilege(privileges?.binding_references)
@@ -625,11 +797,23 @@ export function validateIdentityAdministrationPrivileges(privileges) {
     || numericCount(privileges?.unsafe_other_table_privilege_count) !== 0
     || numericCount(privileges?.unsafe_sequence_privilege_count) !== 0
     || numericCount(privileges?.unsafe_other_function_privilege_count) !== 0
-  ) {
+  );
+  if (invalidBasePrivileges || (!fullWriter && !remapOnlyWriter)) {
+    if (
+      !invalidBasePrivileges
+      && !fullWriter
+      && !booleanPrivilege(privileges?.binding_subject_update)
+    ) {
+      throw new SafeCliError(
+        "Der Legacy-Operator besitzt im v2-Vertrag keine freigegebene Subject-Remap-Berechtigung. "
+        + "Neue Testkonten werden mit scripts/provision_pre_gematik_test_access.mjs verwaltet."
+      );
+    }
     throw new SafeCliError(
       "Die dedizierte Identity-Administrationsrolle besitzt nicht exakt die freigegebenen Minimalrechte."
     );
   }
+  return remapOnlyWriter ? "subject-remap-only" : "full";
 }
 
 export async function executeIdentityBindingTransaction({
@@ -637,6 +821,9 @@ export async function executeIdentityBindingTransaction({
   document,
   fingerprint,
   apply,
+  allowSubjectRemaps = false,
+  confirmedCurrentStateFingerprint = "",
+  confirmedSubjectRemapCount = "",
   expectedDatabase,
   log = console.log
 }) {
@@ -673,6 +860,41 @@ export async function executeIdentityBindingTransaction({
          has_table_privilege(current_user, 'public.identity_bindings', 'SELECT') as binding_select,
          has_table_privilege(current_user, 'public.identity_bindings', 'INSERT') as binding_insert,
          has_table_privilege(current_user, 'public.identity_bindings', 'UPDATE') as binding_update,
+         to_regclass('public.identity_enrollment_requests') is not null
+           as v2_access_contract_active,
+         (
+           select count(*)::int
+             from pg_catalog.pg_attribute attribute
+            where attribute.attrelid = 'public.identity_bindings'::pg_catalog.regclass
+              and attribute.attnum > 0
+              and not attribute.attisdropped
+              and has_column_privilege(
+                current_user,
+                'public.identity_bindings',
+                attribute.attname,
+                'INSERT'
+              )
+         ) as binding_column_insert_count,
+         has_column_privilege(
+           current_user,
+           'public.identity_bindings',
+           'subject',
+           'UPDATE'
+         ) as binding_subject_update,
+         (
+           select count(*)::int
+             from pg_catalog.pg_attribute attribute
+            where attribute.attrelid = 'public.identity_bindings'::pg_catalog.regclass
+              and attribute.attnum > 0
+              and not attribute.attisdropped
+              and attribute.attname <> 'subject'
+              and has_column_privilege(
+                current_user,
+                'public.identity_bindings',
+                attribute.attname,
+                'UPDATE'
+              )
+         ) as binding_non_subject_update_count,
          has_table_privilege(current_user, 'public.identity_bindings', 'DELETE') as binding_delete,
          has_table_privilege(current_user, 'public.identity_bindings', 'TRUNCATE') as binding_truncate,
          has_table_privilege(current_user, 'public.identity_bindings', 'REFERENCES') as binding_references,
@@ -729,17 +951,66 @@ export async function executeIdentityBindingTransaction({
               and has_function_privilege(current_user, routine.oid, 'EXECUTE')
          ) as unsafe_other_function_privilege_count`
     );
-    validateIdentityAdministrationPrivileges(privilegeResult.rows[0]);
+    const privilegeMode = validateIdentityAdministrationPrivileges(privilegeResult.rows[0]);
 
     const profileIds = [...new Set(document.bindings.map((binding) => binding.profile_id))];
     const profileResult = await client.query(
-      "select id, active from public.profiles where id = any($1::text[])",
+      `select id, active, role
+         from public.profiles
+        where id = any($1::text[])
+        for share`,
       [profileIds]
     );
     const existingResult = await client.query(
-      "select issuer, subject, profile_id, active from public.identity_bindings order by issuer, subject"
+      `select binding.issuer,
+              binding.subject,
+              binding.profile_id,
+              binding.active,
+              binding.access_scope,
+              binding.scope_ref,
+              profile.role as profile_role,
+              profile.active as profile_active
+         from public.identity_bindings binding
+         join public.profiles profile on profile.id = binding.profile_id
+        order by binding.issuer, binding.subject`
     );
-    const plan = buildIdentityBindingPlan(document, profileResult.rows, existingResult.rows);
+    const plan = buildIdentityBindingPlan(
+      document,
+      profileResult.rows,
+      existingResult.rows,
+      { allowSubjectRemaps }
+    );
+
+    if (
+      privilegeMode === "subject-remap-only"
+      && (
+        !allowSubjectRemaps
+        || plan.remaps.length === 0
+        || plan.inserts.length > 0
+        || plan.updates.length > 0
+      )
+    ) {
+      throw new SafeCliError(
+        "Der v2-Identity-Operator darf ausschliesslich einen bestaetigten Subject-Remap ohne weitere Zustandsaenderung ausfuehren."
+      );
+    }
+    if (
+      apply
+      && confirmedCurrentStateFingerprint !== plan.currentStateFingerprint
+    ) {
+      throw new SafeCliError(
+        "Der aktuelle Bindungszustand entspricht nicht dem bestaetigten current_state_fingerprint aus dem Preview."
+      );
+    }
+    if (
+      apply
+      && allowSubjectRemaps
+      && Number(confirmedSubjectRemapCount) !== plan.remaps.length
+    ) {
+      throw new SafeCliError(
+        "Die tatsaechliche Zahl der Subject-Remaps entspricht nicht der bestaetigten Anzahl."
+      );
+    }
 
     if (!apply) {
       await client.query("rollback");
@@ -769,9 +1040,45 @@ export async function executeIdentityBindingTransaction({
         throw new SafeCliError("Eine bestehende Bindung wurde waehrend der Transaktion veraendert; Apply wurde abgebrochen.");
       }
     }
+    for (const remap of plan.remaps) {
+      const remapResult = await client.query(
+        `update public.identity_bindings
+            set subject = $2
+          where issuer = $1
+            and subject = $3
+            and profile_id = $4
+            and active = $5
+            and access_scope = $6
+            and scope_ref is not distinct from $7`,
+        [
+          remap.issuer,
+          remap.to_subject,
+          remap.from_subject,
+          remap.profile_id,
+          remap.from_active,
+          remap.from_access_scope,
+          remap.from_scope_ref
+        ]
+      );
+      if (remapResult.rowCount !== 1) {
+        throw new SafeCliError(
+          "Eine bestehende Subject-Bindung wurde waehrend der Transaktion veraendert; Apply wurde abgebrochen."
+        );
+      }
+    }
 
     const finalStateResult = await client.query(
-      "select issuer, subject, profile_id, active from public.identity_bindings order by issuer, subject"
+      `select binding.issuer,
+              binding.subject,
+              binding.profile_id,
+              binding.active,
+              binding.access_scope,
+              binding.scope_ref,
+              profile.role as profile_role,
+              profile.active as profile_active
+         from public.identity_bindings binding
+         join public.profiles profile on profile.id = binding.profile_id
+        order by binding.issuer, binding.subject`
     );
     const expectedFinalCount = plan.existingCount + plan.inserts.length;
     const finalStateFingerprint = bindingStateFingerprint(finalStateResult.rows);
@@ -850,9 +1157,11 @@ Apply nach geprueftem Preview:
     --confirm-database versorgungs_kompass \\
     --confirm-operation ${APPLY_OPERATION_CONFIRMATION} \\
     --confirm-fingerprint sha256:<fingerprint-aus-preview> \\
+    --confirm-current-state-fingerprint sha256:<current-state-aus-preview> \\
     --confirm-binding-count <bestaetigte-gesamtzahl> \\
     --confirm-active-binding-count <bestaetigte-aktive-anzahl> \\
-    [--allow-active-bindings]
+    [--allow-active-bindings] \\
+    [--allow-subject-remaps --confirm-subject-remap-count <bestaetigte-remap-anzahl>]
 
 Die Datenbankverbindung wird ausschliesslich aus ${DATABASE_URL_ENV} gelesen. Ein
 Preview darf ein Remote-Ziel nur mit sslmode=verify-full und absoluter CA-Datei
@@ -961,6 +1270,9 @@ export async function main(
       document,
       fingerprint,
       apply: options.apply,
+      allowSubjectRemaps: options.allowSubjectRemaps,
+      confirmedCurrentStateFingerprint: options.confirmCurrentStateFingerprint,
+      confirmedSubjectRemapCount: options.confirmSubjectRemapCount,
       expectedDatabase: options.confirmDatabase,
       log: console.log
     });

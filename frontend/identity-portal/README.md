@@ -1,0 +1,124 @@
+# Versorgungs-Kompass Identity Portal
+
+Statischer Prototyp einer gebrandeten Identity-Platform-/IAP-Anmeldeseite für
+Google und E-Mail/Passwort sowie eines eigenen Passwort-Reset-Handlers.
+
+Das Verzeichnis ist absichtlich eigenständig. Es verändert weder die bestehende
+Anwendung noch Cloud-Ressourcen und enthält keine Deployment-Automation.
+
+## Sicherheits- und Produktgrenzen
+
+- keine Selbstregistrierung und kein Account-Linking in der Oberfläche
+- projektweite Identity-Platform-Provider, keine Tenants
+- ausschließlich `google.com` und `password`
+- `emailVerified=true` vor Übergabe an IAP
+- klare deutsche, barrierearme eigene Formulare auf offiziellen Firebase-Auth-APIs
+- Improved Email Privacy: generische Anmelde- und Reset-Rückmeldungen
+- lokal gebündelte, gepinnte npm-Artefakte; keine CDN-Runtime
+- exakter API-Key-Abgleich zwischen IAP-Link und lokaler Konfiguration
+- Action-URL-Allowlist für Modus, Parameter, Codeformat und HTTPS-Continue-Origin
+- keine automatische Weiterleitung auf ungeprüfte `continueUrl`
+- Passwortregel: 14–128 Zeichen sowie Groß-/Kleinbuchstabe, Zahl und Sonderzeichen
+- einmal verwendbarer Action-Code wird nach dem Parsen aus der Browseradresse entfernt
+
+Die Oberfläche allein verhindert keine Kontoanlage. In Identity Platform müssen
+`account creation` und `account deletion` weiterhin serverseitig deaktiviert
+bleiben.
+
+## Lokaler Build und Vorschau
+
+```sh
+npm ci
+npm run check
+npm run audit:runtime
+npm run serve
+```
+
+Vorschau ohne Cloudzugriff:
+
+- Anmeldung: `http://127.0.0.1:4174/?preview=signin`
+- Passwortaktion: `http://127.0.0.1:4174/konto/passwort-festlegen/?preview=action`
+
+Der Preview-Modus funktioniert ausschließlich auf Loopback-Hosts und nur, wenn
+`enableLocalPreview` gesetzt ist. Er führt keine Authentifizierungsoperation aus.
+
+## Konfiguration
+
+Vor einem realen Build alle `REPLACE_*`-Werte in
+`public/portal-config.js` ersetzen:
+
+```js
+window.IDENTITY_PORTAL_CONFIG = Object.freeze({
+  firebase: Object.freeze({
+    apiKey: "AIza…",
+    authDomain: "PROJECT_ID.firebaseapp.com",
+    projectId: "PROJECT_ID"
+  }),
+  allowedContinueOrigins: Object.freeze([
+    "https://versorgungs-kompass.de"
+  ]),
+  privacyPolicyUrl: "https://www.gematik.de/datenschutz",
+  legalNoticeUrl: "https://www.gematik.de/impressum",
+  supportUrl: "https://www.gematik.de/kontakt",
+  enableLocalPreview: false
+});
+```
+
+Der Web-API-Key ist kein Servergeheimnis, wird hier aber als strikter
+Umgebungsbezeichner verwendet. Es dürfen keine Service-Account-Schlüssel,
+OAuth-Client-Secrets oder personenbezogenen Soll-Roster in diese Datei gelangen.
+
+## Zielkonfiguration (manuell, nicht von diesem Prototyp ausgeführt)
+
+1. Die statische Ausgabe aus `dist/` öffentlich unter `/public/auth/`
+   bereitstellen.
+2. In IAP `https://versorgungs-kompass.de/anmelden` als eigene
+   Authentication URL setzen.
+3. In Identity Platform Google und E-Mail/Passwort aktivieren; alle anderen
+   Provider und Selbstregistrierung deaktiviert lassen.
+4. Im Passwort-Reset-Template die benutzerdefinierte Action URL auf
+   `https://versorgungs-kompass.de/konto/passwort-festlegen` setzen.
+5. Auth-Origin und Firebase-Handler-URI in den erlaubten Domains/Redirect-URIs
+   korrekt hinterlegen.
+
+Die Auth-Origin darf nicht selbst von IAP geschützt sein, sonst entsteht eine
+Redirect-Schleife. API und Anwendung bleiben weiterhin hinter IAP.
+
+## Erforderliche HTTP-Header
+
+Die HTML-Dateien und `portal-config.js` sollten `Cache-Control: no-store`
+erhalten. Zusätzlich:
+
+```text
+Content-Security-Policy: default-src 'none'; base-uri 'none'; object-src 'none'; script-src 'self'; style-src 'self'; img-src 'self' data:; connect-src 'self' https://identitytoolkit.googleapis.com https://securetoken.googleapis.com https://www.googleapis.com; frame-src https://accounts.google.com https://PROJECT_ID.firebaseapp.com; frame-ancestors 'self'; form-action 'self'
+Cross-Origin-Opener-Policy: same-origin-allow-popups
+Permissions-Policy: camera=(), geolocation=(), microphone=(), payment=()
+Referrer-Policy: no-referrer
+X-Content-Type-Options: nosniff
+```
+
+Der Session-Refresher von IAP kann die Auth-Seite gleichursprünglich in einem
+Iframe laden; deshalb ist `frame-ancestors 'self'` vorgesehen. Die konkrete
+Produktions-CSP muss die exakte Firebase-Auth-Domain statt eines Wildcards
+enthalten.
+
+Proxy- und CDN-Zugriffslogs für `/konto/passwort-festlegen/` müssen
+Query-Strings ausblenden:
+`oobCode` ist ein kurzlebiges Authentifizierungsmerkmal. Fehler- und
+Analytics-Telemetrie darf weder Action-Codes noch vollständige URLs erfassen.
+
+## Produktions-Gates
+
+- `npm ci` und `npm run check`
+- visuelle Prüfung auf Desktop und Mobil
+- ausschließlich zwei sichtbare Provider; keine Registrierung
+- echter Google-Popup-Flow und E-Mail/Passwort-Flow
+- IAP-Rückleitung, stille Session-Erneuerung und vollständiger Logout
+- Reset mit gültigem, abgelaufenem und manipuliertem Link
+- CSP in Report-Only prüfen und anschließend erzwingen
+- Query-Redaktion in allen vorgeschalteten Logs nachweisen
+- `enableLocalPreview: false`
+
+Die begründete Paketentscheidung, die Peer-Metadatenabweichung sowie der
+reproduzierte grüne npm-Audit
+stehen in [DEPENDENCY_AUDIT.md](./DEPENDENCY_AUDIT.md).

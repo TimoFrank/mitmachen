@@ -38,7 +38,13 @@ ingress:
 config:
   allowedOrigin: "https://versorgungs-kompass.example.internal"
   apiAuthMode: "oidc"
+  iapIdentityMode: "iam"
   iapJwtAudience: ""
+  iapGcipProjectId: ""
+  iapGcipTenantId: ""
+  iapExternalLoginPageUri: ""
+  iapExternalAuthApiKey: ""
+  iapExternalAccessExpiresAt: ""
   hospitationImportOwnerProfileId: ""
   oidcIssuer: "https://identity.example.invalid"
   oidcAudience: "REPLACE_WITH_OIDC_AUDIENCE"

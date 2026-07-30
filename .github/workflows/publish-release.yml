@@ -137,7 +137,9 @@ jobs:
 
       - name: Install dependencies
         if: steps.existing.outputs.published != 'true'
-        run: npm ci
+        run: |
+          npm ci
+          npm ci --prefix frontend/identity-portal
 
       - name: Run release checks
         if: steps.existing.outputs.published != 'true'

@@ -5,11 +5,15 @@ const [
   configPath = "",
   apiBaseUrl = process.env.API_BASE_URL || "",
   dataMode = process.env.TARGET_DATA_MODE || "api",
-  authMode = process.env.TARGET_AUTH_MODE || process.env.API_AUTH_MODE || "oidc"
+  authMode = process.env.TARGET_AUTH_MODE || process.env.API_AUTH_MODE || "oidc",
+  iapIdentityMode = process.env.IAP_IDENTITY_MODE || "iam",
+  iapExternalLoginPageUri = process.env.IAP_EXTERNAL_LOGIN_PAGE_URI || "",
+  iapExternalAuthApiKey = process.env.IAP_EXTERNAL_AUTH_API_KEY || ""
 ] = process.argv.slice(2);
 
 const allowedDataModes = new Set(["api"]);
 const allowedAuthModes = new Set(["iap", "oidc"]);
+const allowedIapIdentityModes = new Set(["iam", "external"]);
 
 if (!configPath) {
   throw new Error("Pfad zur Ziel-Frontend-Konfiguration fehlt.");
@@ -25,6 +29,38 @@ if (!allowedDataModes.has(dataMode)) {
 
 if (!allowedAuthModes.has(authMode)) {
   throw new Error(`TARGET_AUTH_MODE/API_AUTH_MODE muss ${[...allowedAuthModes].join(" oder ")} sein.`);
+}
+
+if (!allowedIapIdentityModes.has(iapIdentityMode)) {
+  throw new Error(`IAP_IDENTITY_MODE muss ${[...allowedIapIdentityModes].join(" oder ")} sein.`);
+}
+
+if (authMode !== "iap" && iapIdentityMode !== "iam") {
+  throw new Error("IAP_IDENTITY_MODE=external setzt TARGET_AUTH_MODE/API_AUTH_MODE=iap voraus.");
+}
+
+if (iapIdentityMode === "external") {
+  let loginPageUrl;
+  try {
+    loginPageUrl = new URL(iapExternalLoginPageUri);
+  } catch {
+    throw new Error("IAP_EXTERNAL_LOGIN_PAGE_URI muss eine gueltige HTTPS-URL sein.");
+  }
+  if (
+    loginPageUrl.protocol !== "https:"
+    || loginPageUrl.username
+    || loginPageUrl.password
+    || loginPageUrl.search
+    || loginPageUrl.hash
+    || loginPageUrl.href !== iapExternalLoginPageUri
+  ) {
+    throw new Error("IAP_EXTERNAL_LOGIN_PAGE_URI muss eine kanonische HTTPS-URL ohne Zugangsdaten, Query oder Fragment sein.");
+  }
+  if (!/^AIza[0-9A-Za-z_-]{35}$/.test(iapExternalAuthApiKey)) {
+    throw new Error("IAP_EXTERNAL_AUTH_API_KEY muss der gepinnte Identity-Platform-Web-API-Key sein.");
+  }
+} else if (iapExternalLoginPageUri || iapExternalAuthApiKey) {
+  throw new Error("IAP-External-Loginwerte duerfen im IAM-Frontend nicht ausgeliefert werden.");
 }
 
 function upsertStringProperty(source, key, value, anchorKey = "dataMode") {
@@ -47,6 +83,9 @@ source = source.replace(/\n\s*supabaseAnonKey:\s*"[^"]*",?/g, "");
 source = source.replace(/\n\s*registrationEndpoint:\s*"[^"]*",?/g, "");
 source = upsertStringProperty(source, "dataMode", dataMode);
 source = upsertStringProperty(source, "authMode", authMode);
+source = upsertStringProperty(source, "iapIdentityMode", iapIdentityMode, "authMode");
+source = upsertStringProperty(source, "iapExternalLoginPageUri", iapExternalLoginPageUri, "iapIdentityMode");
+source = upsertStringProperty(source, "iapExternalAuthApiKey", iapExternalAuthApiKey, "iapExternalLoginPageUri");
 source = upsertStringProperty(source, "apiBaseUrl", apiBaseUrl);
 source = upsertStringProperty(source, "apiCredentials", "include", "apiBaseUrl");
 source = upsertBooleanProperty(source, "requireApiGateway", true);
@@ -122,9 +161,15 @@ if (artifactRoot) {
 const result = fs.readFileSync(configPath, "utf8");
 const expectedDataMode = new RegExp(`dataMode:\\s*"${dataMode}"`);
 const expectedAuthMode = new RegExp(`authMode:\\s*"${authMode}"`);
+const expectedIapIdentityMode = new RegExp(`iapIdentityMode:\\s*"${iapIdentityMode}"`);
+const expectedExternalLoginPageUri = new RegExp(`iapExternalLoginPageUri:\\s*"${iapExternalLoginPageUri.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}"`);
+const expectedExternalAuthApiKey = new RegExp(`iapExternalAuthApiKey:\\s*"${iapExternalAuthApiKey.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}"`);
 if (
   !expectedDataMode.test(result) ||
   !expectedAuthMode.test(result) ||
+  !expectedIapIdentityMode.test(result) ||
+  !expectedExternalLoginPageUri.test(result) ||
+  !expectedExternalAuthApiKey.test(result) ||
   !/apiBaseUrl:\s*"https:\/\//.test(result) ||
   !/apiCredentials:\s*"include"/.test(result) ||
   !/requireApiGateway:\s*true/.test(result) ||
@@ -134,4 +179,4 @@ if (
   throw new Error("Ziel-Frontend-Artefakt muss API-Modus, Auth-Modus, Clean URLs, apiBaseUrl, apiCredentials=include und requireApiGateway=true ohne Supabase-Keys oder -Registrierungsendpunkt setzen.");
 }
 
-console.log(`Target Frontend Config OK: ${configPath} (${dataMode}/${authMode})`);
+console.log(`Target Frontend Config OK: ${configPath} (${dataMode}/${authMode}/${iapIdentityMode})`);

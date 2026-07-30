@@ -40,7 +40,7 @@ async function withDeadline(promise, message, timeoutMs = 500) {
   }
 }
 
-function loadDataService(fetchImplementation, timeoutMs = 25) {
+function loadDataService(fetchImplementation, timeoutMs = 25, reauthenticateIapSession = () => false) {
   const window = {
     VERSORGUNGS_COMPASS_CONFIG: {
       apiBaseUrl: "https://versorgungs-kompass.example",
@@ -51,7 +51,8 @@ function loadDataService(fetchImplementation, timeoutMs = 25) {
     },
     location: {
       origin: "https://versorgungs-kompass.example"
-    }
+    },
+    VKAuth: { reauthenticateIapSession }
   };
   const sandbox = {
     AbortController,
@@ -76,14 +77,22 @@ async function assertApiRequestErrorContract() {
     "Der produktive API-Timeout muss standardmaessig etwa 15 Sekunden betragen."
   );
 
-  const unauthorizedService = loadDataService(async () => ({
-    ok: false,
-    status: 401,
-    json: async () => ({
-      code: "AUTH_REQUIRED",
-      error: "Anmeldung erforderlich."
-    })
-  }));
+  let unauthorizedOptions;
+  let reauthenticationCalls = 0;
+  const unauthorizedService = loadDataService(async (_url, options) => {
+    unauthorizedOptions = options;
+    return {
+      ok: false,
+      status: 401,
+      json: async () => ({
+        code: "AUTH_REQUIRED",
+        error: "Anmeldung erforderlich."
+      })
+    };
+  }, 25, () => {
+    reauthenticationCalls += 1;
+    return true;
+  });
   await assert.rejects(
     unauthorizedService.getCurrentProfile(),
     (error) => {
@@ -93,6 +102,12 @@ async function assertApiRequestErrorContract() {
     },
     "HTTP-Status und API-Code muessen fuer die Authentifizierungsentscheidung erhalten bleiben."
   );
+  assert.equal(
+    unauthorizedOptions.headers["X-Requested-With"],
+    "XMLHttpRequest",
+    "IAP muss abgelaufene AJAX-Sitzungen als 401 statt als Login-HTML-Redirect beantworten."
+  );
+  assert.equal(reauthenticationCalls, 1, "Ein IAP-401 muss genau einen expliziten Reauthentifizierungs-Redirect anstossen.");
 
   const timedOutService = loadDataService(async (_url, options) => ({
     ok: true,
@@ -309,13 +324,18 @@ async function assertStructuredForbiddenRedirects() {
 }
 
 function assertPublicLoginBootstrapContract() {
-  const expectedHref = 'href="/api/auth/bootstrap?return=%2Fstart%3Fiap_authenticated%3D1"';
+  const expectedHref = 'href="/start"';
   assert.equal(
     publicEntrySource.split(expectedHref).length - 1,
     1,
-    "Die oeffentliche Hauptseite muss exakt einmal ueber den API-Bootstrap in Google SSO fuehren."
+    "Die oeffentliche Hauptseite muss exakt einmal den parametrisierten IAP-Login ueber die geschuetzte Ressource ausloesen."
   );
-  assert.match(publicEntrySource, /data-google-sso-button/);
+  assert.match(publicEntrySource, /data-public-login-button/);
+  assert.doesNotMatch(
+    publicEntrySource,
+    /data-google-sso-button|\/api\/auth\/bootstrap/,
+    "Der Root-CTA darf weder den alten Google-only-Marker noch den direkten IAP-Bootstrap verwenden."
+  );
   assert.match(publicEntrySource, /id="zugriff-verweigert"[\s\S]*role="alert"/);
   assert.doesNotMatch(publicEntrySource, /Testzugang aktivieren|enrollment\.html/);
 }

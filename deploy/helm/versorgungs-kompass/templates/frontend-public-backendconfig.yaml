@@ -7,6 +7,8 @@ metadata:
     {{- include "versorgungs-kompass.labels" . | nindent 4 }}
 spec:
   timeoutSec: {{ .Values.frontend.publicEntry.backendConfig.timeoutSec }}
+  logging:
+    enable: false
   healthCheck:
     type: "HTTP"
     requestPath: {{ .Values.frontend.publicEntry.backendConfig.healthCheck.requestPath | quote }}

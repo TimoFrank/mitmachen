@@ -43,6 +43,7 @@ const environment = {
   CONFIRM_STORAGE_MANIFEST_FINGERPRINT: fingerprint,
   CONFIRM_SOURCE_SNAPSHOT_FINGERPRINT: fingerprint,
   CONFIRM_IDENTITY_PREVIEW_FINGERPRINT: fingerprint,
+  CONFIRM_IDENTITY_CURRENT_STATE_FINGERPRINT: fingerprint,
   CONFIRM_QUARANTINED_OBJECT_COUNT: "0",
   CONFIRM_BOOTSTRAP_PROFILE_FINGERPRINT: fingerprint,
   CONFIRM_IDENTITY_BINDING_COUNT: "1",
@@ -121,14 +122,59 @@ assert.equal(identityApply.arguments.includes("--allow-active-bindings"), true);
 assert.equal(identityApply.arguments.includes(fingerprint), true);
 assert.deepEqual(
   identityApply.arguments.slice(
+    identityApply.arguments.indexOf("--confirm-current-state-fingerprint"),
+    identityApply.arguments.indexOf("--confirm-current-state-fingerprint") + 2
+  ),
+  ["--confirm-current-state-fingerprint", fingerprint]
+);
+assert.deepEqual(
+  identityApply.arguments.slice(
     identityApply.arguments.indexOf("--confirm-binding-count"),
     identityApply.arguments.indexOf("--confirm-binding-count") + 4
   ),
   ["--confirm-binding-count", "1", "--confirm-active-binding-count", "1"]
 );
 assert.deepEqual(identityApply.protectedInputs, ["iap-bindings.json"]);
+const identityRemapEnvironment = {
+  ...environment,
+  ALLOW_IDENTITY_SUBJECT_REMAPS: "true",
+  CONFIRM_IDENTITY_SUBJECT_REMAP_COUNT: "1"
+};
+assert.deepEqual(
+  phaseExecution("identity-preview", identityRemapEnvironment).arguments,
+  [
+    "--input", "/protected-input/run/iap-bindings.json",
+    "--allow-subject-remaps"
+  ]
+);
+const identityRemapApply = phaseExecution("identity-apply", identityRemapEnvironment);
+assert.deepEqual(
+  identityRemapApply.arguments.slice(-3),
+  ["--allow-subject-remaps", "--confirm-subject-remap-count", "1"]
+);
+assert.throws(
+  () => phaseExecution("identity-apply", {
+    ...identityRemapEnvironment,
+    CONFIRM_IDENTITY_SUBJECT_REMAP_COUNT: "0"
+  }),
+  (error) => error instanceof MigrationOperatorError
+);
+assert.throws(
+  () => phaseExecution("identity-preview", {
+    ...environment,
+    ALLOW_IDENTITY_SUBJECT_REMAPS: "yes"
+  }),
+  (error) => error instanceof MigrationOperatorError
+);
 assert.throws(
   () => phaseExecution("identity-apply", { ...environment, CONFIRM_IDENTITY_PREVIEW_FINGERPRINT: "" }),
+  (error) => error instanceof MigrationOperatorError
+);
+assert.throws(
+  () => phaseExecution("identity-apply", {
+    ...environment,
+    CONFIRM_IDENTITY_CURRENT_STATE_FINGERPRINT: ""
+  }),
   (error) => error instanceof MigrationOperatorError
 );
 assert.throws(

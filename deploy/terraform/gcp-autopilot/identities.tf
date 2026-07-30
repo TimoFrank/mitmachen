@@ -128,6 +128,22 @@ resource "google_project_iam_member" "deployer_iap_backend_access_binder" {
   member  = "serviceAccount:${google_service_account.deployer.email}"
 }
 
+resource "google_project_iam_custom_role" "identity_platform_preflight_reader" {
+  role_id     = "preGematikIdentityPlatformReader"
+  title       = "Pre-gematik Identity Platform preflight reader"
+  description = "Read the locked Identity Platform project and provider configuration before an external-identity IAP cutover."
+  stage       = "GA"
+  permissions = [
+    "firebaseauth.configs.get",
+  ]
+}
+
+resource "google_project_iam_member" "deployer_identity_platform_preflight_reader" {
+  project = var.GCP_PROJECT_ID
+  role    = google_project_iam_custom_role.identity_platform_preflight_reader.name
+  member  = "serviceAccount:${google_service_account.deployer.email}"
+}
+
 resource "google_project_iam_member" "workload_cloudsql_client" {
   project = var.GCP_PROJECT_ID
   role    = "roles/cloudsql.client"

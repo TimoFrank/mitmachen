@@ -8,7 +8,13 @@ data:
   PORT: {{ .Values.containerPort | quote }}
   ALLOWED_ORIGIN: {{ .Values.config.allowedOrigin | quote }}
   API_AUTH_MODE: {{ .Values.config.apiAuthMode | quote }}
+  IAP_IDENTITY_MODE: {{ .Values.config.iapIdentityMode | quote }}
   IAP_JWT_AUDIENCE: {{ .Values.config.iapJwtAudience | quote }}
+  IAP_GCIP_PROJECT_ID: {{ .Values.config.iapGcipProjectId | quote }}
+  IAP_GCIP_TENANT_ID: {{ .Values.config.iapGcipTenantId | quote }}
+  IAP_EXTERNAL_LOGIN_PAGE_URI: {{ .Values.config.iapExternalLoginPageUri | quote }}
+  IAP_EXTERNAL_AUTH_API_KEY: {{ .Values.config.iapExternalAuthApiKey | quote }}
+  IAP_EXTERNAL_ACCESS_EXPIRES_AT: {{ .Values.config.iapExternalAccessExpiresAt | quote }}
   HOSPITATION_IMPORT_OWNER_PROFILE_ID: {{ .Values.config.hospitationImportOwnerProfileId | quote }}
   {{- if eq .Values.config.apiAuthMode "oidc" }}
   OIDC_ISSUER: {{ .Values.config.oidcIssuer | quote }}
