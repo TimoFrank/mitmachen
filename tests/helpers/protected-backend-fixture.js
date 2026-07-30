@@ -183,9 +183,10 @@ function protectedDomainFixture() {
     ["health-insurance", "Krankenkassen"],
     ["patient-associations", "Patientenverbände"],
     ["hospital-associations", "Krankenhausgesellschaften"],
-    ["physician-associations", "Ärztliche Berufsverbände"]
+    ["physician-associations", "Ärztliche Berufsverbände"],
+    ["press", "Presse und Gesundheitsmedien"]
   ].map(([id, label], index) => ({ id, label, sortOrder: (index + 1) * 10, status: "active" }));
-  const stakeholderOrganizations = [
+  const baseStakeholderOrganizations = [
     { id: "demo-kv-nord", stakeholderTypeId: "kv", name: "Demo-KV Nord", organizationType: "Kassenärztliche Vereinigung", sector: "Ambulante Versorgung", city: "Musterstadt", state: "Nord", memberCount: 3200, memberCountLabel: "3.200", memberCountSourceLabel: "Synthetische Testangabe", website: "https://demo-kv-nord.example.invalid", status: "active" },
     { id: "demo-kv-mitte", stakeholderTypeId: "kv", name: "Demo-KV Mitte", organizationType: "Kassenärztliche Vereinigung", sector: "Ambulante Versorgung", city: "Beispielstadt", state: "Mitte", memberCount: 2100, memberCountLabel: "2.100", memberCountSourceLabel: "Synthetische Testangabe", website: "https://demo-kv-mitte.example.invalid", status: "active" },
     { id: "demo-health-a", stakeholderTypeId: "health-insurance", name: "Demo-Krankenkasse A", organizationType: "Krankenkasse", sector: "Kostenträger", city: "Musterstadt", state: "Nord", memberCount: 5400, memberCountLabel: "5.400", memberCountSourceLabel: "Synthetische Testangabe", status: "active" },
@@ -196,7 +197,54 @@ function protectedDomainFixture() {
     { id: "demo-physician-a", stakeholderTypeId: "physician-associations", name: "Demo-Berufsverband A", organizationType: "Ärztlicher Berufsverband", sector: "Ärztliche Vertretung", city: "Musterstadt", state: "Nord", memberCount: 1800, memberCountLabel: "1.800", memberCountSourceLabel: "Synthetische Testangabe", status: "active" },
     { id: "demo-physician-b", stakeholderTypeId: "physician-associations", name: "Demo-Berufsverband B", organizationType: "Ärztlicher Berufsverband", sector: "Ärztliche Vertretung", city: "Beispielstadt", state: "Mitte", memberCount: 1200, memberCountLabel: "1.200", memberCountSourceLabel: "Synthetische Testangabe", status: "active" }
   ];
-  const stakeholderPeople = stakeholderOrganizations.map((organization, index) => ({
+  const pressOrganizationPlans = [
+    ["Demo-Redaktion Gesundheitsfenster", "Fachmedium", "Digital Health"],
+    ["Demo-Nachrichtenbüro Versorgungsspiegel", "Nachrichtenagentur", "Gesundheitssystem"],
+    ["Demo-Magazin Digitalmedizin-Puls", "Digital-Health-Magazin", "Digital Health"],
+    ["Demo-Hauptstadtbrief Gesundheitspfad", "Politikredaktion", "Gesundheitspolitik"],
+    ["Demo-Wirtschaftsredaktion Gesundheitskurve", "Wirtschaftsredaktion", "Gesundheitswirtschaft"],
+    ["Demo-Regionalredaktion Versorgungsbogen", "Regionalredaktion", "Regionale Versorgung"],
+    ["Demo-Audio-Redaktion Gesundheitstakt", "Audio-Redaktion", "Gesundheitskommunikation"],
+    ["Demo-Fachmedium Interop-Lotse", "Technologie-Fachmedium", "Interoperabilität"],
+    ["Demo-Politikredaktion Systemblick", "Hauptstadtredaktion", "Gesundheitspolitik"],
+    ["Demo-Pressestelle Gesundheitsdialog", "Institutionelle Pressestelle", "Gesundheitssystem"],
+    ["Demo-Pressestelle Versorgungslabor", "Institutionelle Pressestelle", "Digitalisierung"],
+    ["Demo-Fachverlag Praxiswandel", "Fachverlag", "Versorgungsprozesse"]
+  ];
+  const pressLocations = [
+    ["10115", "Musterstadt", "Nord", 52.52, 13.4],
+    ["20095", "Testhafen", "Nord", 53.55, 10],
+    ["04109", "Beispielstadt", "Ost", 51.34, 12.37],
+    ["53111", "Demoburg", "West", 50.74, 7.1]
+  ];
+  const pressOrganizations = pressOrganizationPlans.map(([name, organizationType, sector], index) => {
+    const [postalCode, city, state, lat, lon] = pressLocations[index % pressLocations.length];
+    const number = String(index + 1).padStart(2, "0");
+    return {
+      id: `demo-press-organization-${number}`,
+      stakeholderTypeId: "press",
+      stakeholderType: "press",
+      name,
+      organizationType,
+      sector,
+      postalCode,
+      city,
+      state,
+      lat,
+      lon,
+      website: `https://presse-organisation-${number}.example.invalid`,
+      email: `redaktion-${number}@presse.example.invalid`,
+      memberCount: null,
+      memberCountLabel: "",
+      source: "Synthetische Testquelle · Stand 19.07.2026",
+      notes: "Vollständig synthetische Presseorganisation für das geschützte Test-Backend.",
+      status: "active",
+      createdAt: NOW,
+      updatedAt: NOW
+    };
+  });
+  const stakeholderOrganizations = [...baseStakeholderOrganizations, ...pressOrganizations];
+  const baseStakeholderPeople = baseStakeholderOrganizations.map((organization, index) => ({
     id: `demo-stakeholder-person-${String(index + 1).padStart(2, "0")}`,
     stakeholderTypeId: organization.stakeholderTypeId,
     organizationId: organization.id,
@@ -209,6 +257,66 @@ function protectedDomainFixture() {
     source: "Geschütztes Test-Backend",
     status: "active"
   }));
+  const pressRolePlans = [
+    ["Chefredakteur:in Gesundheit", "Redakteur:in Digital Health", "Redakteur:in Gesundheitssystem"],
+    ["Redaktionsleitung Gesundheit", "Korrespondent:in Gesundheitspolitik"],
+    ["Redaktionsleitung Digital Health", "Fachredakteur:in ePA", "Redakteur:in Telematikinfrastruktur"],
+    ["Ressortleitung Gesundheitspolitik", "Parlamentskorrespondent:in Gesundheit"],
+    ["Ressortleitung Gesundheitswirtschaft", "Redakteur:in Krankenkassen"],
+    ["Redaktionsleitung Regionale Versorgung", "Redakteur:in Krankenhaus und Pflege"],
+    ["Chef:in vom Dienst Audio", "Podcast-Redakteur:in Gesundheit"],
+    ["Leitende:r Fachredakteur:in Gesundheits-IT", "Datenjournalist:in Interoperabilität"],
+    ["Büroleitung Gesundheitspolitik", "Redakteur:in gematik und Digitalisierung"],
+    ["Pressesprecher:in", "Referent:in Presse und Medien"],
+    ["Leitung Kommunikation", "Pressesprecher:in Digitalisierung"],
+    ["Programmleitung Gesundheit", "Fachredakteur:in Versorgungsprozesse"]
+  ];
+  const pressTopicSets = [
+    ["Digital Health", "Gesundheitssystem", "gematik"],
+    ["Gesundheitspolitik", "Gesundheitssystem", "Versorgungsdaten"],
+    ["Digital Health", "ePA", "Telematikinfrastruktur"],
+    ["Gesundheitspolitik", "gematik", "Gesetzgebung"],
+    ["Gesundheitswirtschaft", "Digital Health", "Krankenkassen"],
+    ["Regionale Versorgung", "Krankenhäuser", "Pflege"],
+    ["Patientenperspektive", "Digital Health", "Versorgungsprozesse"],
+    ["Interoperabilität", "FHIR", "gematik"],
+    ["Gesundheitspolitik", "Bundestag", "gematik"],
+    ["Pressearbeit", "Gesundheitssystem", "Versorgungspolitik"],
+    ["Pressearbeit", "Digitalisierung", "Telematikinfrastruktur"],
+    ["Fachpublikationen", "ePA", "Gesundheitssystem"]
+  ];
+  let pressPersonNumber = 0;
+  const pressPeople = pressRolePlans.flatMap((roles, organizationIndex) => {
+    const organization = pressOrganizations[organizationIndex];
+    return roles.map((role) => {
+      pressPersonNumber += 1;
+      const number = String(pressPersonNumber).padStart(2, "0");
+      return {
+        id: `demo-press-person-${number}`,
+        stakeholderTypeId: "press",
+        stakeholderType: "press",
+        organizationId: organization.id,
+        organization: organization.name,
+        name: `Demo-Pressekontakt ${number}`,
+        role,
+        contactRole: role,
+        committee: "",
+        city: organization.city,
+        state: organization.state,
+        lat: organization.lat,
+        lon: organization.lon,
+        email: `pressekontakt-${number}@presse.example.invalid`,
+        themes: pressTopicSets[organizationIndex],
+        note: "Vollständig synthetische berufliche Kontaktperson für Presse-UI-Tests.",
+        source: "Synthetische Redaktions- oder Presseseite · Stand 19.07.2026",
+        url: `https://pressekontakt-${number}.example.invalid/profil`,
+        status: "active",
+        createdAt: NOW,
+        updatedAt: NOW
+      };
+    });
+  });
+  const stakeholderPeople = [...baseStakeholderPeople, ...pressPeople];
   return {
     expertGroups: [
       { id: "demo-expert-group-technology", name: "Demo-Wissenschaftliche Einrichtung und Patientenorganisation", sortOrder: 10, status: "active" },

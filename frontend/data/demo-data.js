@@ -1536,8 +1536,19 @@
     ["health-insurance", "Krankenkassen"],
     ["patient-associations", "Patientenorganisationen"],
     ["hospital-associations", "Krankenhausgesellschaften"],
-    ["physician-associations", "Ärztliche Berufsverbände"]
-  ].map(([id, label], index) => ({ id, key: id, value: id, label, description: "Synthetischer Stakeholdertyp für die öffentliche Beispieldarstellung.", sortOrder: (index + 1) * 10, status: "active" }));
+    ["physician-associations", "Ärztliche Berufsverbände"],
+    ["press", "Presse und Gesundheitsmedien"]
+  ].map(([id, label], index) => ({
+    id,
+    key: id,
+    value: id,
+    label,
+    description: id === "press"
+      ? "Synthetische Presse- und Medienkontakte für die öffentliche Beispieldarstellung."
+      : "Synthetischer Stakeholdertyp für die öffentliche Beispieldarstellung.",
+    sortOrder: (index + 1) * 10,
+    status: "active"
+  }));
   const stakeholderTypePlans = [
     ["kv", "Versorgungsregion", 6],
     ["health-insurance", "Gesundheitskasse", 5],
@@ -1554,7 +1565,7 @@
   };
   const patientAssociationTopics = ["Onkologie", "Herz-Kreislauf", "Neurologie", "Psychische Gesundheit", "Stoffwechsel", "Seltene Erkrankungen", "Pädiatrie", "Teilhabe", "Pflege"];
   const physicianAssociationTopics = ["Allgemeinmedizin", "Pädiatrie", "Innere Medizin", "Psychotherapie", "Radiologie"];
-  const stakeholderOrganizations = stakeholderTypePlans.flatMap(([typeId, label, count], typeIndex) =>
+  const coreStakeholderOrganizations = stakeholderTypePlans.flatMap(([typeId, label, count], typeIndex) =>
     Array.from({ length: count }, (_, index) => {
       const location = organizations[(typeIndex * 6 + index) % organizations.length];
       const indication = patientAssociationTopics[index] || "Versorgung";
@@ -1595,8 +1606,68 @@
       };
     })
   );
-  const stakeholderPeople = Array.from({ length: 45 }, (_, index) => {
-    const organization = stakeholderOrganizations[index % stakeholderOrganizations.length];
+  const pressOrganizationPlans = [
+    ["Redaktion Gesundheitsfenster", "Fachmedium", "Digital Health"],
+    ["Nachrichtenbüro Versorgungsspiegel", "Nachrichtenagentur", "Gesundheitssystem"],
+    ["Magazin Digitalmedizin-Puls", "Digital-Health-Magazin", "Digital Health"],
+    ["Hauptstadtbrief Gesundheitspfad", "Politikredaktion", "Gesundheitspolitik"],
+    ["Wirtschaftsredaktion Gesundheitskurve", "Wirtschaftsredaktion", "Gesundheitswirtschaft"],
+    ["Regionalredaktion Versorgungsbogen", "Regionalredaktion", "Regionale Versorgung"],
+    ["Audio-Redaktion Gesundheitstakt", "Audio-Redaktion", "Gesundheitskommunikation"],
+    ["Fachmedium Interop-Lotse", "Technologie-Fachmedium", "Interoperabilität"],
+    ["Politikredaktion Systemblick", "Hauptstadtredaktion", "Gesundheitspolitik"],
+    ["Pressestelle Gesundheitsdialog", "Institutionelle Pressestelle", "Gesundheitssystem"],
+    ["Pressestelle Versorgungslabor", "Institutionelle Pressestelle", "Digitalisierung"],
+    ["Fachverlag Praxiswandel", "Fachverlag", "Versorgungsprozesse"]
+  ];
+  const pressOrganizationTopics = [
+    ["Digital Health", "Gesundheitssystem", "gematik"],
+    ["Gesundheitspolitik", "Gesundheitssystem", "Versorgungsdaten"],
+    ["Digital Health", "ePA", "Telematikinfrastruktur"],
+    ["Gesundheitspolitik", "gematik", "Gesetzgebung"],
+    ["Gesundheitswirtschaft", "Digital Health", "Krankenkassen"],
+    ["Regionale Versorgung", "Krankenhäuser", "Pflege"],
+    ["Patientenperspektive", "Digital Health", "Versorgungsprozesse"],
+    ["Interoperabilität", "FHIR", "gematik"],
+    ["Gesundheitspolitik", "Bundestag", "gematik"],
+    ["Pressearbeit", "Gesundheitssystem", "Versorgungspolitik"],
+    ["Pressearbeit", "Digitalisierung", "Telematikinfrastruktur"],
+    ["Fachpublikationen", "ePA", "Gesundheitssystem"]
+  ];
+  const pressOrganizations = pressOrganizationPlans.map(([name, organizationType, sector], index) => {
+    const location = organizations[(index * 4 + 2) % organizations.length];
+    const number = String(index + 1).padStart(2, "0");
+    return {
+      id: `demo-stakeholder-org-press-${number}`,
+      stakeholderTypeId: "press",
+      stakeholderType: "press",
+      name,
+      normalizedName: name.toLowerCase(),
+      organizationType,
+      sector,
+      postalCode: location.postalCode,
+      city: location.city,
+      state: location.state,
+      lat: location.lat,
+      lon: location.lon,
+      website: demoReservedUrl(`presse-organisation-${number}`),
+      email: `redaktion-${number}@presse.example.invalid`,
+      phone: "",
+      memberCount: null,
+      memberCountLabel: "",
+      memberCountSourceUrl: "",
+      memberCountSourceLabel: "",
+      memberCountScope: "",
+      notes: "Fiktive Presseorganisation; Name, Schwerpunkt und Kontaktdaten sind vollständig synthetisch.",
+      source: "Synthetischer Presse-Demodatensatz · Stand 25.07.2026",
+      status: "active",
+      createdAt: now,
+      updatedAt: now
+    };
+  });
+  const stakeholderOrganizations = [...coreStakeholderOrganizations, ...pressOrganizations];
+  const coreStakeholderPeople = Array.from({ length: 45 }, (_, index) => {
+    const organization = coreStakeholderOrganizations[index % coreStakeholderOrganizations.length];
     const rolesByType = {
       kv: ["Versorgungsreferent:in", "Gremienkoordination", "Digitalisierungsreferent:in"],
       "health-insurance": ["Versorgungsmanagement", "Vertragsreferent:in", "Pflegeberatung"],
@@ -1628,6 +1699,55 @@
       updatedAt: now
     };
   });
+  const pressRolePlans = [
+    ["Chefredakteur:in Gesundheit", "Redakteur:in Digital Health", "Redakteur:in Gesundheitssystem"],
+    ["Redaktionsleitung Gesundheit", "Korrespondent:in Gesundheitspolitik"],
+    ["Redaktionsleitung Digital Health", "Fachredakteur:in ePA", "Redakteur:in Telematikinfrastruktur"],
+    ["Ressortleitung Gesundheitspolitik", "Parlamentskorrespondent:in Gesundheit"],
+    ["Ressortleitung Gesundheitswirtschaft", "Redakteur:in Krankenkassen"],
+    ["Redaktionsleitung Regionale Versorgung", "Redakteur:in Krankenhaus und Pflege"],
+    ["Chef:in vom Dienst Audio", "Podcast-Redakteur:in Gesundheit"],
+    ["Leitende:r Fachredakteur:in Gesundheits-IT", "Datenjournalist:in Interoperabilität"],
+    ["Büroleitung Gesundheitspolitik", "Redakteur:in gematik und Digitalisierung"],
+    ["Pressesprecher:in", "Referent:in Presse und Medien"],
+    ["Leitung Kommunikation", "Pressesprecher:in Digitalisierung"],
+    ["Programmleitung Gesundheit", "Fachredakteur:in Versorgungsprozesse"]
+  ];
+  const pressPeople = pressRolePlans.flatMap((roles, organizationIndex) => {
+    const organization = pressOrganizations[organizationIndex];
+    return roles.map((role, roleIndex) => {
+      const index = pressRolePlans
+        .slice(0, organizationIndex)
+        .reduce((count, organizationRoles) => count + organizationRoles.length, 0) + roleIndex;
+      const number = String(index + 1).padStart(2, "0");
+      return {
+        id: `demo-stakeholder-person-press-${number}`,
+        stakeholderTypeId: "press",
+        stakeholderType: "press",
+        organizationId: organization.id,
+        organization: organization.name,
+        name: fictionalPersonName(index, { offset: 230 }),
+        role,
+        contactRole: role,
+        committee: "",
+        city: organization.city,
+        state: organization.state,
+        lat: organization.lat,
+        lon: organization.lon,
+        email: `pressekontakt-${number}@presse.example.invalid`,
+        phone: "",
+        linkedin: "",
+        themes: pressOrganizationTopics[organizationIndex],
+        note: "Fiktive berufliche Kontaktperson für Suche, Filter, Sortierung und Detailansicht der Presse-Seite.",
+        source: "Synthetische Redaktions- oder Presseseite · Stand 25.07.2026",
+        url: demoReservedUrl(`pressekontakt-${number}`, "/profil"),
+        status: "active",
+        createdAt: now,
+        updatedAt: now
+      };
+    });
+  });
+  const stakeholderPeople = [...coreStakeholderPeople, ...pressPeople];
 
   const expertGroupNames = [
     "Ambulante Primärsysteme",

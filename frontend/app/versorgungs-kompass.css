@@ -40971,3 +40971,245 @@
           background: var(--surface);
         }
       }
+
+      /* Stakeholder-Kompass · Presse: kuratierte berufliche Pressekontakte. */
+      .press-context__mark {
+        color: var(--module-stakeholders-strong);
+      }
+
+      .press-context__source {
+        max-width: 250px;
+        color: var(--text-muted);
+        font-size: var(--font-size-xs);
+        font-weight: 700;
+        line-height: 1.4;
+        text-align: right;
+      }
+
+      .table-wrap > .press-table {
+        min-width: 1480px;
+      }
+
+      .press-table .thead,
+      .press-table .press-contact-row {
+        grid-template-columns:
+          minmax(185px, 0.92fr)
+          minmax(205px, 1.02fr)
+          minmax(180px, 0.88fr)
+          minmax(165px, 0.8fr)
+          minmax(205px, 1.02fr)
+          minmax(225px, 1.1fr)
+          minmax(130px, 0.6fr)
+          minmax(165px, 0.76fr);
+      }
+
+      .press-table .thead:has([data-press-header-filter-button][aria-expanded="true"]) {
+        z-index: 48;
+      }
+
+      .press-table .thead > div[data-press-column="organization"] .column-head__label,
+      .press-table .thead > div[data-press-column="contactType"] .column-head__label {
+        font-size: 0.68rem;
+        letter-spacing: 0;
+      }
+
+      .press-contact-row {
+        cursor: pointer;
+      }
+
+      .press-person-cell .avatar {
+        flex: 0 0 auto;
+      }
+
+      .press-table .press-contact-row .press-organization-cell {
+        display: grid;
+        align-content: center;
+        align-items: initial;
+        gap: 3px;
+        min-width: 0;
+      }
+
+      .press-organization-cell strong {
+        overflow: hidden;
+        text-overflow: ellipsis;
+        color: var(--text-primary);
+        font-size: var(--font-size-sm);
+        font-weight: 820;
+        line-height: 1.35;
+      }
+
+      .press-contact-type {
+        display: inline-flex;
+        width: fit-content;
+        max-width: 100%;
+        min-height: 25px;
+        align-items: center;
+        padding: 3px 8px;
+        border: 1px solid rgba(var(--module-stakeholders-rgb), 0.26);
+        border-radius: 999px;
+        background: rgba(var(--module-stakeholders-rgb), 0.09);
+        color: var(--module-stakeholders-strong);
+        font-size: var(--font-size-xs);
+        font-weight: 800;
+        line-height: 1.25;
+      }
+
+      .press-theme-list {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 5px;
+      }
+
+      .press-theme-chip,
+      .press-theme-more {
+        display: inline-flex;
+        min-height: 23px;
+        align-items: center;
+        padding: 2px 7px;
+        border: 1px solid var(--border);
+        border-radius: 999px;
+        background: var(--surface-muted);
+        color: var(--text-secondary);
+        font-size: 0.69rem;
+        font-weight: 750;
+        line-height: 1.25;
+      }
+
+      .press-theme-more {
+        color: var(--text-muted);
+      }
+
+      .press-value-link {
+        display: inline-block;
+        max-width: 100%;
+        overflow: hidden;
+        color: var(--text-secondary);
+        font-size: var(--font-size-xs);
+        font-weight: 720;
+        line-height: 1.35;
+        text-decoration: none;
+        text-overflow: ellipsis;
+        overflow-wrap: anywhere;
+      }
+
+      .press-value-link:hover {
+        color: var(--primary);
+        text-decoration: underline;
+        text-underline-offset: 2px;
+      }
+
+      .press-source-link {
+        width: fit-content;
+        margin-top: 2px;
+        font-size: 0.69rem;
+      }
+
+      .press-empty-value {
+        color: var(--text-muted);
+        font-size: var(--font-size-xs);
+        font-weight: 650;
+      }
+
+      .press-table-footer .table-footer__controls {
+        margin-left: auto;
+      }
+
+      @media (max-width: 760px) {
+        .app-shell[data-active-view="press"] .workspace-header {
+          align-items: flex-start;
+        }
+
+        .press-context__source {
+          max-width: 190px;
+          text-align: right;
+        }
+
+        .table-wrap > .press-table,
+        .press-table-wrap {
+          width: 100%;
+          min-width: 0;
+          overflow: visible;
+        }
+
+        .press-table .thead > div[data-press-column="organization"] .column-head__label {
+          font-size: 0;
+        }
+
+        .press-table .thead > div[data-press-column="organization"] .column-head__label::after {
+          content: "Medium";
+          font-size: 0.7rem;
+        }
+
+        .press-table .press-contact-row {
+          grid-template-columns: minmax(0, 1fr);
+          gap: 11px;
+          cursor: default;
+        }
+
+        .press-table .press-contact-row [data-press-field] {
+          grid-column: 1;
+          display: grid;
+          gap: 3px;
+          min-width: 0;
+        }
+
+        .press-table .press-contact-row [data-press-field="name"] {
+          display: flex;
+          padding-bottom: 10px;
+          border-bottom: 1px solid var(--border);
+        }
+
+        .press-table .press-contact-row [data-press-field]:not([data-press-field="name"])::before {
+          color: var(--text-muted);
+          font-size: 0.68rem;
+          font-weight: 850;
+          letter-spacing: 0.04em;
+          text-transform: uppercase;
+        }
+
+        .press-table .press-contact-row [data-press-field="organization"]::before {
+          content: "Medium / Organisation";
+        }
+
+        .press-table .press-contact-row [data-press-field="role"]::before {
+          content: "Funktion";
+        }
+
+        .press-table .press-contact-row [data-press-field="contactType"]::before {
+          content: "Kontaktart";
+        }
+
+        .press-table .press-contact-row [data-press-field="themes"]::before {
+          content: "Themen";
+        }
+
+        .press-table .press-contact-row [data-press-field="email"]::before {
+          content: "E-Mail";
+        }
+
+        .press-table .press-contact-row [data-press-field="phone"]::before {
+          content: "Telefon";
+        }
+
+        .press-table .press-contact-row [data-press-field="source"] {
+          padding-top: 10px;
+          border-top: 1px solid var(--border);
+        }
+
+        .press-table .press-contact-row [data-press-field="source"]::before {
+          content: "Quelle";
+        }
+
+        .press-table-footer {
+          display: flex;
+          align-items: stretch;
+          flex-direction: column;
+          gap: 10px;
+        }
+
+        .press-table-footer .table-footer__controls {
+          width: 100%;
+          margin-left: 0;
+          justify-content: space-between;
+        }
+      }
