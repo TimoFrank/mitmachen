@@ -1024,7 +1024,7 @@ jobs:
                 }
                 await pool.end();
               }
-            NODE
+          NODE
 
       - name: Require DNS and active certificates before canonical cutover
         if: ${{ steps.config.outputs.domain_mode == 'canonical' }}

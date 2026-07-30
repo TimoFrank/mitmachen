@@ -267,6 +267,11 @@ assert.match(liveHospitationContractScript, /begin read only/);
 assert.match(liveHospitationContractScript, /public\.hospitations/);
 assert.match(liveHospitationContractScript, /scheduled_on/);
 assert.match(liveHospitationContractScript, /data_type !== "date"/);
+assert.match(
+  liveHospitationContractScript,
+  /\nNODE\n?$/u,
+  "Der Here-Document-Abschluss des Live-Datenbankvertrags muss auf Shell-Spalte 0 stehen."
+);
 assert.equal(
   liveHospitationContractScript.match(/has_column_privilege\(/gu)?.length,
   3,
