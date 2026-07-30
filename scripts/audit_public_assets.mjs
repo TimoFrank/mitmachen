@@ -129,11 +129,11 @@ const shareContracts = [
   {
     documents: ["index.html", "versorgungs-kompass.html", "demo/index.html"],
     url: `${pagesBaseUrl}/`,
-    title: "Jetzt #Mitmachen: Gemeinsam Versorgung besser machen",
-    description: "Entdecken Sie vier Kompasse, die Menschen, Wissen und Ideen verbinden – in einer öffentlichen Demo mit ausschließlich fiktiven Daten.",
-    image: `${pagesBaseUrl}/public/media/social/mitmachen-share-v2.png`,
-    imageAlt: "#Mitmachen: Gemeinsam Versorgung besser machen – großes Hashtag-Signet auf dunkelblauem Hintergrund.",
-    imagePath: "public/media/social/mitmachen-share-v2.png"
+    title: "#Mitmachen",
+    description: "Zusammenarbeit in der Versorgung – auf einen Blick.",
+    image: `${pagesBaseUrl}/public/media/social/mitmachen-share-v3.png`,
+    imageAlt: "#Mitmachen Demo: Zusammenarbeit in der Versorgung auf einen Blick – zentriertes Banner auf dunkelblauem Hintergrund.",
+    imagePath: "public/media/social/mitmachen-share-v3.png"
   },
   {
     documents: ["mitmachen/versorgungs-netzwerk.html"],
@@ -234,6 +234,7 @@ const requiredFiles = new Set([
   "public/media/demo/mitmachen/versorgungs-netzwerk-concept.svg",
   "public/media/social/mitmachen-share-v1.png",
   "public/media/social/mitmachen-share-v2.png",
+  "public/media/social/mitmachen-share-v3.png",
   "public/media/social/versorgungs-netzwerk-share-v1.png"
 ]);
 

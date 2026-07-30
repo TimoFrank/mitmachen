@@ -1,0 +1,157 @@
+<!doctype html>
+<html lang="de">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=1200, initial-scale=1" />
+    <link rel="icon" href="data:," />
+    <title>#Mitmachen – Teams-optimierte Share-Vorschau</title>
+    <style>
+      :root {
+        font-family: Arial, Helvetica, sans-serif;
+        color: #ffffff;
+        background: #061652;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      html,
+      body {
+        width: 1200px;
+        height: 630px;
+        margin: 0;
+        overflow: hidden;
+      }
+
+      body {
+        background:
+          radial-gradient(circle at 50% 42%, rgba(0, 255, 101, 0.16), transparent 34%),
+          radial-gradient(circle at 6% 108%, rgba(74, 151, 255, 0.24), transparent 37%),
+          radial-gradient(circle at 94% -8%, rgba(0, 255, 101, 0.13), transparent 34%),
+          linear-gradient(132deg, #061652 0%, #0a286b 58%, #0a466c 100%);
+      }
+
+      .share-card {
+        position: relative;
+        display: flex;
+        width: 100%;
+        height: 100%;
+        flex-direction: column;
+        align-items: center;
+        padding: 46px 210px 50px;
+      }
+
+      .share-card::before,
+      .share-card::after {
+        position: absolute;
+        width: 530px;
+        height: 530px;
+        border: 2px solid rgba(255, 255, 255, 0.075);
+        border-radius: 50%;
+        box-shadow:
+          0 0 0 72px rgba(255, 255, 255, 0.018),
+          0 0 0 144px rgba(255, 255, 255, 0.012);
+        content: "";
+        pointer-events: none;
+      }
+
+      .share-card::before {
+        top: -330px;
+        left: -210px;
+      }
+
+      .share-card::after {
+        right: -210px;
+        bottom: -330px;
+      }
+
+      .share-card__top,
+      .share-card__content {
+        position: relative;
+        z-index: 1;
+      }
+
+      .share-card__top {
+        display: flex;
+        width: 100%;
+        min-height: 124px;
+        align-items: center;
+        justify-content: center;
+        gap: 34px;
+      }
+
+      .mitmachen-lockup {
+        display: block;
+        width: 530px;
+        height: auto;
+        filter: drop-shadow(0 16px 26px rgba(0, 8, 48, 0.22));
+      }
+
+      .demo-badge {
+        display: inline-flex;
+        min-width: 138px;
+        align-items: center;
+        justify-content: center;
+        padding: 13px 20px;
+        border-radius: 13px;
+        background: #00e45e;
+        color: #05245c;
+        font-size: 29px;
+        font-weight: 800;
+        letter-spacing: 0.04em;
+        line-height: 1;
+        text-transform: uppercase;
+        box-shadow: 0 14px 28px rgba(0, 8, 48, 0.22);
+      }
+
+      .share-card__divider {
+        position: relative;
+        z-index: 1;
+        width: 700px;
+        height: 2px;
+        margin: 23px 0 27px;
+        border: 0;
+        background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.42) 18%, rgba(255, 255, 255, 0.42) 82%, transparent);
+      }
+
+      .share-card__content {
+        display: grid;
+        flex: 1;
+        place-items: center;
+        text-align: center;
+      }
+
+      h1 {
+        margin: 0;
+        font-size: 76px;
+        font-weight: 800;
+        letter-spacing: -3.3px;
+        line-height: 0.98;
+        text-shadow: 0 18px 34px rgba(0, 8, 48, 0.24);
+      }
+
+      h1 span {
+        color: #86ffb5;
+      }
+    </style>
+  </head>
+  <body>
+    <main class="share-card" aria-labelledby="share-title">
+      <header class="share-card__top">
+        <img
+          class="mitmachen-lockup"
+          src="../../../public/brand/mitmachen/lockup-horizontal-on-dark.svg"
+          alt="#Mitmachen"
+        />
+        <span class="demo-badge">Demo</span>
+      </header>
+
+      <hr class="share-card__divider" />
+
+      <section class="share-card__content">
+        <h1 id="share-title">Zusammenarbeit<br />in der Versorgung –<br /><span>auf einen Blick.</span></h1>
+      </section>
+    </main>
+  </body>
+</html>

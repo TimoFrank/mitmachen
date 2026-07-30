@@ -252,6 +252,7 @@ EOF
   cp "$ROOT_DIR/public/media/demo/mitmachen/versorgungs-netzwerk-concept.svg" "$STAGE_DIR/public/media/demo/mitmachen/versorgungs-netzwerk-concept.svg"
   cp "$ROOT_DIR/public/media/social/mitmachen-share-v1.png" "$STAGE_DIR/public/media/social/mitmachen-share-v1.png"
   cp "$ROOT_DIR/public/media/social/mitmachen-share-v2.png" "$STAGE_DIR/public/media/social/mitmachen-share-v2.png"
+  cp "$ROOT_DIR/public/media/social/mitmachen-share-v3.png" "$STAGE_DIR/public/media/social/mitmachen-share-v3.png"
   cp "$ROOT_DIR/public/media/social/versorgungs-netzwerk-share-v1.png" "$STAGE_DIR/public/media/social/versorgungs-netzwerk-share-v1.png"
   cp "$ROOT_DIR/public/manifest.pages.webmanifest" "$STAGE_DIR/manifest.webmanifest"
   for asset in mitmachen-hospitations-framework.docx mitmachen-hospitations-framework.pdf; do
@@ -372,10 +373,10 @@ appHtml = appHtml.replace(
 const pagesBaseUrl = "https://timofrank.github.io/mitmachen";
 const rootShareMetadata = {
   url: `${pagesBaseUrl}/`,
-  title: "Jetzt #Mitmachen: Gemeinsam Versorgung besser machen",
-  description: "Entdecken Sie vier Kompasse, die Menschen, Wissen und Ideen verbinden – in einer öffentlichen Demo mit ausschließlich fiktiven Daten.",
-  image: `${pagesBaseUrl}/public/media/social/mitmachen-share-v2.png`,
-  imageAlt: "#Mitmachen: Gemeinsam Versorgung besser machen – großes Hashtag-Signet auf dunkelblauem Hintergrund."
+  title: "#Mitmachen",
+  description: "Zusammenarbeit in der Versorgung – auf einen Blick.",
+  image: `${pagesBaseUrl}/public/media/social/mitmachen-share-v3.png`,
+  imageAlt: "#Mitmachen Demo: Zusammenarbeit in der Versorgung auf einen Blick – zentriertes Banner auf dunkelblauem Hintergrund."
 };
 appHtml = injectShareMetadata(appHtml, rootShareMetadata);
 fs.writeFileSync(appPath, appHtml);
