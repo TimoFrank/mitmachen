@@ -1055,6 +1055,7 @@
       const stakeholderPageSizeSelect = document.getElementById("stakeholders-page-size-select");
       const stakeholderTypeActions = document.getElementById("stakeholder-type-actions");
       const stakeholderTables = [...document.querySelectorAll("[data-stakeholder-table]")];
+      const politicsTableHead = document.getElementById("politics-table-head");
       const politicsMemberList = document.getElementById("politics-member-list");
       const politicsMemberCount = document.getElementById("politics-member-count");
       const politicsDataNotice = document.getElementById("politics-data-notice");
@@ -1440,6 +1441,14 @@
       let selectedOrganizationCities = [];
       let selectedOrganizationContactRanges = [];
       let contactSort = { key: "", direction: "" };
+      let politicsSort = { key: "name", direction: "asc" };
+      let politicsHeaderFilters = {
+        name: "",
+        faction: "",
+        role: "",
+        postalCodes: "",
+        constituency: ""
+      };
       let formats = [];
       let hospitations = [];
       let hospitationSlots = [];
@@ -1897,7 +1906,7 @@
 
       function normalizePersonProfileKind(kind = "") {
         const normalized = String(kind || "").trim().toLowerCase();
-        if (["contact", "expert", "stakeholder"].includes(normalized)) return normalized;
+        if (["contact", "expert", "stakeholder", "politics"].includes(normalized)) return normalized;
         return "";
       }
 
@@ -1912,6 +1921,7 @@
       function defaultPersonProfileParentView(kind = activePersonProfile.kind) {
         if (kind === "expert") return "experts";
         if (kind === "stakeholder") return "stakeholders";
+        if (kind === "politics") return "politics";
         return "contacts";
       }
 
@@ -29084,7 +29094,13 @@
           if (parsed.protocol !== "https:" || parsed.hostname !== "www.bundestag.de" || parsed.username || parsed.password) return "";
           const allowedPath = kind === "profile"
             ? /^\/abgeordnete\/biografien\/[^?#]+$/i.test(parsed.pathname)
-            : /^\/ausschuesse\/gesundheit(?:\/|$)/i.test(parsed.pathname);
+            : kind === "image"
+              ? /^\/resource\/image\/[^?#]+\.(?:avif|jpe?g|png|webp)$/i.test(parsed.pathname)
+              : kind === "constituency"
+                ? /^(?:\/static\/appdata\/filter\/wks\.json|\/abgeordnete\/wahlkreise\/?)$/i.test(parsed.pathname)
+                : kind === "terms"
+                  ? /^\/(?:services\/impressum|dokumente\/parlamentsarchiv\/bildnutz-\d+|resource\/blob\/\d+\/[^/]+)$/i.test(parsed.pathname)
+                  : /^\/ausschuesse\/gesundheit(?:\/|$)/i.test(parsed.pathname);
           if (!allowedPath) return "";
           parsed.hash = "";
           return parsed.href;
@@ -29093,20 +29109,94 @@
         }
       }
 
+      function sanitizePoliticsPostalCodes(value) {
+        const source = Array.isArray(value)
+          ? value
+          : String(value || "").split(/[\s,;|]+/);
+        return [...new Set(source
+          .map((entry) => String(entry || "").trim())
+          .filter((entry) => /^\d{5}$/.test(entry)))]
+          .sort((left, right) => left.localeCompare(right, "de", { numeric: true }))
+          .slice(0, 120);
+      }
+
       function sanitizePoliticsMember(entry = {}, index = 0) {
         const name = String(entry.name || "").trim().replace(/\s+/g, " ").slice(0, 160);
         const faction = String(entry.faction || entry.party || "").trim();
         const idCandidate = String(entry.id || "").trim();
         const profileUrl = officialBundestagUrl(entry.profileUrl || entry.profile_url || entry.url, "profile");
+        const imageUrl = officialBundestagUrl(entry.imageUrl || entry.image_url || entry.portrait?.url, "image");
+        const imageSourceUrl = officialBundestagUrl(
+          entry.imageSourceUrl || entry.image_source_url || entry.portrait?.sourceUrl || profileUrl,
+          "profile"
+        ) || profileUrl;
+        const imageUsageTermsUrl = officialBundestagUrl(
+          entry.imageUsageTermsUrl || entry.image_usage_terms_url || entry.portrait?.usageTermsUrl || "https://www.bundestag.de/services/impressum",
+          "terms"
+        ) || "https://www.bundestag.de/services/impressum";
+        const constituencyNumberRaw = String(entry.constituencyNumber || entry.constituency_number || entry.constituency?.number || "").trim();
+        const constituencyNumber = /^\d{1,3}$/.test(constituencyNumberRaw) ? constituencyNumberRaw.padStart(3, "0") : "";
+        const constituencyName = String(entry.constituencyName || entry.constituency_name || entry.constituency?.name || "")
+          .trim().replace(/\s+/g, " ").slice(0, 160);
+        const constituencyLabelSource = typeof entry.constituency === "string"
+          ? entry.constituency
+          : entry.constituency?.label;
+        const constituency = String(
+          constituencyLabelSource
+          || (constituencyNumber && constituencyName ? `${constituencyNumber} · ${constituencyName}` : constituencyName)
+          || ""
+        ).trim().replace(/\s+/g, " ").slice(0, 220);
+        const postalCodes = sanitizePoliticsPostalCodes(
+          entry.constituencyPostalCodes
+          || entry.constituency_postal_codes
+          || entry.postalCodes
+          || entry.postal_codes
+          || entry.constituency?.postalCodes
+        );
+        const postalCodeCoverageCandidate = String(
+          entry.postalCodeCoverage || entry.postal_code_coverage || entry.constituency?.postalCodeCoverage || ""
+        ).trim();
+        const postalCodeCoverage = ["complete", "provided", "not_provided", "not_applicable"].includes(postalCodeCoverageCandidate)
+          ? postalCodeCoverageCandidate
+          : postalCodes.length ? "complete" : constituency ? "not_provided" : "not_applicable";
+        const constituencySourceUrl = officialBundestagUrl(
+          entry.constituencySourceUrl
+          || entry.constituency_source_url
+          || entry.constituency?.sourceUrl
+          || "https://www.bundestag.de/static/appdata/filter/wks.json",
+          "constituency"
+        ) || "https://www.bundestag.de/static/appdata/filter/wks.json";
         if (!name || !politicsAllowedFactions.has(faction) || !profileUrl) return null;
         return {
           id: /^[A-Za-z0-9][A-Za-z0-9._:-]{0,79}$/.test(idCandidate)
             ? idCandidate
             : `bundestag-member-${String(index + 1).padStart(2, "0")}`,
           name,
+          displayName: name,
+          initials: politicsMemberInitials(name),
+          avatarClass: "avatar--policy",
           faction,
           role: String(entry.role || entry.function || "Ordentliches Mitglied").trim().replace(/\s+/g, " ").slice(0, 180) || "Ordentliches Mitglied",
-          profileUrl
+          profileUrl,
+          imageUrl,
+          imageSourceUrl,
+          imageAttribution: String(entry.imageAttribution || entry.image_attribution || entry.portrait?.credit || "")
+            .trim().replace(/\s+/g, " ").slice(0, 260),
+          imageUsageTermsUrl,
+          imageRightsStatus: String(entry.imageRightsStatus || entry.image_rights_status || entry.portrait?.rightsStatus || "review_required")
+            .trim().slice(0, 40),
+          constituency,
+          constituencyNumber,
+          constituencyName,
+          constituencyFederalState: String(
+            entry.constituencyFederalState || entry.constituency_federal_state || entry.constituency?.federalState || ""
+          ).trim().replace(/\s+/g, " ").slice(0, 100),
+          mandateType: String(entry.mandateType || entry.mandate_type || entry.constituency?.mandateType || "")
+            .trim().replace(/\s+/g, " ").slice(0, 100),
+          postalCodes,
+          constituencyPostalCodes: postalCodes,
+          postalCodeCoverage,
+          constituencySourceUrl
         };
       }
 
@@ -29145,13 +29235,74 @@
           .trim();
       }
 
+      const politicsTableColumns = [
+        { key: "name", label: "Mitglied", filterLabel: "Mitglied" },
+        { key: "faction", label: "Fraktion", filterLabel: "Fraktion" },
+        { key: "role", label: "Funktion", filterLabel: "Funktion" },
+        { key: "postalCodes", label: "PLZ", filterLabel: "PLZ im Wahlkreis" },
+        { key: "constituency", label: "Wahlkreis", filterLabel: "Wahlkreis" },
+        { key: "profile", label: "Bundestag", sortable: false, filterable: false }
+      ];
+      const politicsMissingFilterValue = "__missing__";
+
+      function politicsColumnValues(member, key) {
+        if (key === "postalCodes") return member.postalCodes;
+        if (key === "constituency") return [politicsConstituencyLabel(member)];
+        const value = String(member[key] || "").trim();
+        return value ? [value] : [];
+      }
+
+      function politicsFilterOptions(key) {
+        const values = [...new Set(politicsCommittee.members.flatMap((member) => politicsColumnValues(member, key)))]
+          .sort((left, right) => left.localeCompare(right, "de", { sensitivity: "base", numeric: true }))
+          .map((value) => ({ value, label: value }));
+        if (politicsCommittee.members.some((member) => !politicsColumnValues(member, key).length)) {
+          values.push({ value: politicsMissingFilterValue, label: "Nicht ausgewiesen" });
+        }
+        return values;
+      }
+
+      function politicsMemberMatchesHeaderFilters(member) {
+        return Object.entries(politicsHeaderFilters).every(([key, selected]) => {
+          if (!selected) return true;
+          const values = politicsColumnValues(member, key);
+          return selected === politicsMissingFilterValue ? !values.length : values.includes(selected);
+        });
+      }
+
+      function politicsSortValue(member, key) {
+        if (key === "postalCodes") return member.postalCodes[0] || "";
+        if (key === "constituency") return politicsConstituencyLabel(member);
+        return String(member[key] || "");
+      }
+
       function filteredPoliticsMembers() {
         if (politicsDataState !== "ready" || !politicsCommittee.available) return [];
         const query = politicsSearchValue(searchInput?.value);
-        if (!query) return politicsCommittee.members;
-        return politicsCommittee.members.filter((member) =>
-          politicsSearchValue([member.name, member.faction, member.role].join(" ")).includes(query)
-        );
+        const directionFactor = politicsSort.direction === "desc" ? -1 : 1;
+        return politicsCommittee.members
+          .filter((member) => politicsMemberMatchesHeaderFilters(member))
+          .filter((member) => !query || politicsSearchValue([
+            member.name,
+            member.faction,
+            member.role,
+            politicsConstituencyLabel(member),
+            member.mandateType,
+            member.constituencyFederalState,
+            member.postalCodes.join(" ")
+          ].join(" ")).includes(query))
+          .map((member, index) => ({ member, index, value: politicsSortValue(member, politicsSort.key) }))
+          .sort((left, right) => {
+            const leftMissing = left.value === "";
+            const rightMissing = right.value === "";
+            if (leftMissing !== rightMissing) return leftMissing ? 1 : -1;
+            const comparison = String(left.value).localeCompare(String(right.value), "de", {
+              sensitivity: "base",
+              numeric: true
+            });
+            return (comparison * directionFactor) || (left.index - right.index);
+          })
+          .map((entry) => entry.member);
       }
 
       function politicsMemberInitials(name = "") {
@@ -29180,9 +29331,228 @@
         politicsDataNotice.textContent = message;
       }
 
+      function politicsFactionClassName(faction = "") {
+        return {
+          "CDU/CSU": "cdu-csu",
+          "AfD": "afd",
+          "SPD": "spd",
+          "Bündnis 90/Die Grünen": "greens",
+          "Die Linke": "left"
+        }[faction] || "neutral";
+      }
+
+      function politicsFactionBadgeMarkup(faction = "") {
+        return `<span class="politics-party-chip politics-party-chip--${politicsFactionClassName(faction)}">${escapeHtml(faction)}</span>`;
+      }
+
+      function politicsMemberPortraitIsApproved(member) {
+        return Boolean(member.imageUrl && member.imageRightsStatus === "approved");
+      }
+
+      function politicsMemberAvatarMarkup(member, size = "sm") {
+        const sizeClass = size === "lg" ? "avatar-lg" : "avatar-sm";
+        if (!politicsMemberPortraitIsApproved(member)) {
+          return `<span class="avatar avatar-fallback ${sizeClass} avatar--policy" aria-hidden="true">${escapeHtml(member.initials)}</span>`;
+        }
+        return `
+          <span class="avatar contact-image contact-thumb ${sizeClass} avatar--policy politics-member-avatar" aria-hidden="true">
+            <img
+              src="${escapeHtml(member.imageUrl)}"
+              alt=""
+              loading="${size === "lg" ? "eager" : "lazy"}"
+              decoding="async"
+              referrerpolicy="no-referrer"
+              data-image-fallback="${escapeHtml(member.initials)}"
+            />
+          </span>
+        `;
+      }
+
+      function politicsSortButtonMarkup(column) {
+        const active = politicsSort.key === column.key && ["asc", "desc"].includes(politicsSort.direction);
+        const direction = active ? politicsSort.direction : "none";
+        const sortLabel = active
+          ? `${column.label} ${direction === "asc" ? "aufsteigend" : "absteigend"} sortiert`
+          : `${column.label} sortieren`;
+        return `
+          <button
+            class="column-sort-button ${active ? "is-active" : ""}"
+            type="button"
+            data-politics-sort="${escapeHtml(column.key)}"
+            aria-label="${escapeHtml(sortLabel)}"
+            aria-sort="${direction === "asc" ? "ascending" : direction === "desc" ? "descending" : "none"}"
+          >
+            <span class="column-head__label">${escapeHtml(column.label)}</span>
+            ${columnSortIndicatorMarkup(direction)}
+          </button>
+        `;
+      }
+
+      function politicsColumnHeaderMarkup(column) {
+        if (column.sortable === false && column.filterable === false) return escapeHtml(column.label);
+        const selectedValue = politicsHeaderFilters[column.key] || "";
+        const isActive = Boolean(selectedValue);
+        const menuId = `politics-header-filter-${column.key}`;
+        const options = politicsFilterOptions(column.key);
+        return `
+          <div class="column-head politics-column-head">
+            ${politicsSortButtonMarkup(column)}
+            <span class="header-filter">
+              <button
+                class="filter-icon-button ${isActive ? "is-active" : ""}"
+                type="button"
+                data-header-filter-button
+                data-politics-header-filter-button
+                aria-label="${escapeHtml(column.filterLabel)} in Spalte filtern"
+                aria-expanded="false"
+                aria-controls="${menuId}"
+              >
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                  <path d="M4 6h16"></path>
+                  <path d="M7 12h10"></path>
+                  <path d="M10 18h4"></path>
+                </svg>
+              </button>
+              <div
+                class="filter-menu politics-filter-menu"
+                id="${menuId}"
+                data-header-filter-menu
+                data-politics-header-filter-menu
+                data-politics-filter-key="${escapeHtml(column.key)}"
+                hidden
+              >
+                <div class="filter-menu__hint">${escapeHtml(column.filterLabel)} filtern</div>
+                ${options.length > 12 ? `
+                  <label class="politics-filter-search">
+                    <span class="sr-only">Filteroptionen durchsuchen</span>
+                    <input type="search" data-politics-filter-search placeholder="${escapeHtml(column.filterLabel)} suchen …" autocomplete="off" />
+                  </label>
+                ` : ""}
+                <div class="filter-menu__list">
+                  <button class="filter-option ${isActive ? "" : "is-active"}" type="button" data-politics-filter-value="">Alle</button>
+                  ${options.map((option) => `
+                    <button
+                      class="filter-option ${selectedValue === option.value ? "is-active" : ""}"
+                      type="button"
+                      data-politics-filter-value="${escapeHtml(option.value)}"
+                      data-politics-filter-label="${escapeHtml(option.label)}"
+                    >
+                      <span>${escapeHtml(option.label)}</span>
+                    </button>
+                  `).join("")}
+                </div>
+              </div>
+            </span>
+          </div>
+        `;
+      }
+
+      function bindPoliticsTableControls() {
+        politicsTableHead?.querySelectorAll("[data-politics-sort]").forEach((button) => {
+          button.addEventListener("click", () => {
+            const key = button.dataset.politicsSort || "";
+            if (!politicsTableColumns.some((column) => column.key === key && column.sortable !== false)) return;
+            politicsSort = {
+              key,
+              direction: politicsSort.key === key && politicsSort.direction === "asc" ? "desc" : "asc"
+            };
+            updateView();
+          });
+        });
+        politicsTableHead?.querySelectorAll("[data-politics-header-filter-button]").forEach((button) => {
+          button.addEventListener("click", (event) => {
+            event.stopPropagation();
+            const menu = document.getElementById(button.getAttribute("aria-controls"));
+            if (!menu) return;
+            const shouldOpen = menu.hidden;
+            closeHeaderFilterMenus(menu);
+            menu.hidden = !shouldOpen;
+            button.setAttribute("aria-expanded", String(shouldOpen));
+            if (shouldOpen) {
+              if (isMobileLayout()) {
+                const buttonRect = button.getBoundingClientRect();
+                const maximumHeight = Math.min(Math.round(window.innerHeight * 0.52), 420);
+                const top = Math.max(12, Math.min(
+                  Math.round(buttonRect.bottom + 6),
+                  window.innerHeight - maximumHeight - 12
+                ));
+                Object.assign(menu.style, {
+                  position: "fixed",
+                  inset: "auto 12px auto 12px",
+                  top: `${top}px`,
+                  width: "auto",
+                  minWidth: "0",
+                  maxWidth: "none",
+                  maxHeight: `${maximumHeight}px`
+                });
+              } else {
+                menu.removeAttribute("style");
+              }
+              window.requestAnimationFrame(() => menu.querySelector("[data-politics-filter-search]")?.focus());
+            }
+          });
+        });
+        politicsTableHead?.querySelectorAll("[data-politics-header-filter-menu]").forEach((menu) => {
+          menu.addEventListener("click", (event) => {
+            event.stopPropagation();
+            const option = event.target.closest("[data-politics-filter-value]");
+            if (!option) return;
+            const key = menu.dataset.politicsFilterKey || "";
+            if (!(key in politicsHeaderFilters)) return;
+            politicsHeaderFilters = { ...politicsHeaderFilters, [key]: option.dataset.politicsFilterValue || "" };
+            closeHeaderFilterMenus();
+            updateView();
+          });
+          menu.querySelector("[data-politics-filter-search]")?.addEventListener("input", (event) => {
+            const query = politicsSearchValue(event.currentTarget.value);
+            menu.querySelectorAll("[data-politics-filter-label]").forEach((option) => {
+              option.hidden = Boolean(query) && !politicsSearchValue(option.dataset.politicsFilterLabel).includes(query);
+            });
+          });
+        });
+      }
+
+      function renderPoliticsTableHead() {
+        if (!politicsTableHead) return;
+        politicsTableHead.innerHTML = politicsTableColumns
+          .map((column) => `<div data-politics-column="${escapeHtml(column.key)}">${politicsColumnHeaderMarkup(column)}</div>`)
+          .join("");
+        bindPoliticsTableControls();
+      }
+
+      function politicsPostalCodesMarkup(member) {
+        if (!member.postalCodes.length) {
+          const label = member.postalCodeCoverage === "not_applicable" ? "Nicht zutreffend" : "Nicht ausgewiesen";
+          return `<span class="politics-postal-summary politics-postal-summary--empty">${escapeHtml(label)}</span>`;
+        }
+        const visible = member.postalCodes.slice(0, 2);
+        const remaining = member.postalCodes.length - visible.length;
+        return `
+          <span class="politics-postal-summary" title="${escapeHtml(member.postalCodes.join(", "))}">
+            ${escapeHtml(visible.join(", "))}${remaining > 0 ? ` <small>+${remaining}</small>` : ""}
+          </span>
+        `;
+      }
+
+      function bindPoliticsMemberRows() {
+        politicsMemberList?.querySelectorAll("[data-politics-member-id]").forEach((row) => {
+          const openProfile = () => {
+            const member = politicsCommittee.members.find((entry) => entry.id === row.dataset.politicsMemberId);
+            if (!member) return;
+            openPersonProfile("politics", member.id, { returnTo: "politics", title: member.name });
+          };
+          row.addEventListener("click", (event) => {
+            if (event.target.closest("a, button, input, select, textarea")) return;
+            openProfile();
+          });
+          row.querySelector("[data-open-politics-profile]")?.addEventListener("click", openProfile);
+        });
+      }
+
       function renderPoliticsView(items = filteredPoliticsMembers()) {
         if (!politicsMemberList || !politicsTableWrap || !politicsResultsMeta || !politicsMemberCount) return;
         if (politicsCommitteeSource) politicsCommitteeSource.href = politicsCommittee.sourceUrl;
+        renderPoliticsTableHead();
 
         if (politicsDataState === "loading") {
           politicsTableWrap.hidden = false;
@@ -29233,28 +29603,37 @@
         }
 
         if (!items.length) {
-          politicsMemberList.innerHTML = `<div class="empty">Keine Ausschussmitglieder passen zur aktuellen Suche.</div>`;
+          politicsMemberList.innerHTML = `<div class="empty">Keine Ausschussmitglieder passen zur aktuellen Suche oder den Spaltenfiltern.</div>`;
           return;
         }
 
         politicsMemberList.innerHTML = items.map((member) => `
-          <article class="row politics-member-row" data-politics-member-id="${escapeHtml(member.id)}">
+          <article
+            class="row politics-member-row"
+            data-politics-member-id="${escapeHtml(member.id)}"
+          >
             <div class="politics-member-cell" data-politics-field="member">
-              <span class="avatar avatar-sm avatar-fallback avatar--policy" aria-hidden="true">${escapeHtml(politicsMemberInitials(member.name))}</span>
+              ${politicsMemberAvatarMarkup(member)}
               <span class="politics-member-copy">
-                <strong>${escapeHtml(member.name)}</strong>
+                <button class="politics-member-name" type="button" data-open-politics-profile>${escapeHtml(member.name)}</button>
                 <small>Mitglied des Deutschen Bundestages</small>
               </span>
             </div>
             <div data-politics-field="faction">
-              <span class="politics-party-chip">${escapeHtml(member.faction)}</span>
+              ${politicsFactionBadgeMarkup(member.faction)}
             </div>
             <div data-politics-field="role">
               <span class="politics-role">${escapeHtml(member.role)}</span>
             </div>
+            <div data-politics-field="postalCodes">
+              ${politicsPostalCodesMarkup(member)}
+            </div>
+            <div data-politics-field="constituency">
+              <span class="politics-constituency">${escapeHtml(politicsConstituencyLabel(member))}</span>
+            </div>
             <div data-politics-field="profile">
               <a class="politics-profile-link" href="${escapeHtml(member.profileUrl)}" target="_blank" rel="noopener noreferrer">
-                Profil
+                Bundestag
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
                   <path d="M14 5h5v5M10 14 19 5"></path>
                   <path d="M19 13v6H5V5h6"></path>
@@ -29263,6 +29642,7 @@
             </div>
           </article>
         `).join("");
+        bindPoliticsMemberRows();
       }
 
       function safeImageUrl(value) {
@@ -34576,6 +34956,7 @@
         if (kind === "expert") return "Expertenkreis-Kontakt";
         if (kind === "stakeholder" && activePersonProfile.returnTo === "patients") return "Patienten-Person";
         if (kind === "stakeholder") return "Stakeholder-Kontakt";
+        if (kind === "politics") return "Bundestagsabgeordnete Person";
         return "Kontakt";
       }
 
@@ -34604,7 +34985,7 @@
 
       function renderPersonProfileState(title, message) {
         const panel = personProfileDetailPanel();
-        panel.classList.remove("detail-panel--organization", "detail-panel--registration");
+        panel.classList.remove("detail-panel--organization", "detail-panel--registration", "detail-panel--politics");
         panel.innerHTML = `
           <div class="detail-toolbar">
             ${personProfileBackButtonMarkup()}
@@ -34617,6 +34998,15 @@
       }
 
       async function getPersonRecord(kind, id) {
+        if (kind === "politics") {
+          let member = politicsCommittee.members.find((item) => item.id === id);
+          if (!member && politicsDataState !== "unavailable") {
+            await loadPoliticsData();
+            member = politicsCommittee.members.find((item) => item.id === id);
+          }
+          return member || null;
+        }
+
         if (window.dataService?.getPersonRecord) {
           const record = await window.dataService.getPersonRecord(kind, id, { includeArchived: canAdministerData() });
           if (record) {
@@ -34681,6 +35071,96 @@
         return null;
       }
 
+      function politicsConstituencyLabel(member) {
+        if (member.constituency) return member.constituency;
+        if (politicsSearchValue(member.mandateType).includes("landesliste")) {
+          return `Kein Wahlkreis (${[member.mandateType, member.constituencyFederalState].filter(Boolean).join(" · ")})`;
+        }
+        return "Nicht offiziell ausgewiesen";
+      }
+
+      function politicsPostalCodesProfileMarkup(member) {
+        if (!member.postalCodes.length) {
+          const label = member.postalCodeCoverage === "not_applicable"
+            ? "Nicht zutreffend, da kein Wahlkreis zugeordnet ist."
+            : "Im offiziellen Wahlkreisdatensatz nicht ausgewiesen.";
+          return `<span class="detail-secondary">${escapeHtml(label)}</span>`;
+        }
+        return `
+          <div class="politics-postal-code-list" aria-label="${member.postalCodes.length} Postleitzahlen im Wahlkreis">
+            ${member.postalCodes.map((postalCode) => `<span class="politics-postal-code">${escapeHtml(postalCode)}</span>`).join("")}
+          </div>
+        `;
+      }
+
+      function renderPoliticsPersonProfile(member) {
+        const panel = personProfileDetailPanel();
+        activePersonProfile.title = member.name || personKindLabel("politics");
+        renderViewChrome();
+        panel.classList.remove("detail-panel--organization", "detail-panel--registration", "detail-panel--politics");
+        panel.classList.add("detail-panel--politics");
+        const portraitSourceMarkup = member.imageSourceUrl
+          ? `<a href="${escapeHtml(member.imageSourceUrl || member.profileUrl)}" target="_blank" rel="noopener noreferrer">${escapeHtml(member.imageAttribution || "Bildquelle im Profil des Deutschen Bundestages")}</a>`
+          : "Kein offizielles Portrait verfügbar";
+        const portraitApproved = politicsMemberPortraitIsApproved(member);
+        panel.innerHTML = `
+          <div class="detail-toolbar">
+            ${personProfileBackButtonMarkup()}
+          </div>
+          <div class="detail-content">
+            <div class="detail-profile politics-person-profile">
+              <section class="detail-profile-top politics-person-profile__top">
+                <div class="detail-profile-main">
+                  ${politicsMemberAvatarMarkup(member, "lg")}
+                  <div class="detail-profile-copy">
+                    <h3>${escapeHtml(member.name)}</h3>
+                    <div class="detail-profile-role">${escapeHtml(politicsCommittee.committee)}</div>
+                    <div class="detail-profile-subline">${escapeHtml(member.role)}</div>
+                    <div class="detail-profile-status">${politicsFactionBadgeMarkup(member.faction)}</div>
+                  </div>
+                </div>
+                <div class="detail-profile-meta politics-person-profile__actions">
+                  <a class="action-button action-button--primary" href="${escapeHtml(member.profileUrl)}" target="_blank" rel="noopener noreferrer">Bundestag-Profil öffnen</a>
+                </div>
+              </section>
+
+              <div class="politics-person-profile__grid">
+                <section class="politics-person-profile__section" aria-labelledby="politics-profile-mandate">
+                  <h4 class="detail-section-title" id="politics-profile-mandate">Mandat und Ausschuss</h4>
+                  <div class="detail-line-list">
+                    ${detailLine("Fraktion", member.faction)}
+                    ${detailLine("Ausschussfunktion", member.role)}
+                    ${detailLine("Mandatsart", member.mandateType)}
+                    ${detailLine("Wahlkreis", politicsConstituencyLabel(member))}
+                    ${member.constituencyFederalState ? detailLine("Bundesland", member.constituencyFederalState) : ""}
+                    ${detailLineHtml("PLZ im Wahlkreis", politicsPostalCodesProfileMarkup(member), { empty: !member.postalCodes.length })}
+                  </div>
+                  <p class="politics-profile-data-note">
+                    Die PLZ bilden die vom Deutschen Bundestag veröffentlichten Postleitzahlen des Wahlkreises ab. Sie sind keine Wahlkreisbüro-Adresse.
+                  </p>
+                </section>
+
+                <section class="politics-person-profile__section" aria-labelledby="politics-profile-sources">
+                  <h4 class="detail-section-title" id="politics-profile-sources">Offizielle Quellen</h4>
+                  <div class="detail-line-list">
+                    ${detailContactLine("Abgeordnetenprofil", "Deutscher Bundestag", member.profileUrl)}
+                    ${detailContactLine("Wahlkreisdaten", "Wahlkreissuche des Deutschen Bundestages", member.constituencySourceUrl)}
+                    ${detailLineHtml("Bildnachweis", portraitSourceMarkup, { empty: !member.imageSourceUrl })}
+                    ${detailContactLine("Bildrechte", "Rechtehinweise des Deutschen Bundestages", member.imageUsageTermsUrl)}
+                  </div>
+                  <p class="politics-profile-rights-note">
+                    ${portraitApproved
+                      ? "Das Portrait ist für die Einbindung freigegeben. Bildnachweis und Nutzungsbedingungen bleiben bei einer Weiterverwendung zu beachten."
+                      : "Eine offizielle Bildquelle ist recherchiert. Bis zu einer dokumentierten Nutzungsfreigabe wird das Portrait nicht eingebettet; Initialen dienen als Platzhalter."}
+                  </p>
+                </section>
+              </div>
+            </div>
+          </div>
+        `;
+        bindPersonProfileBack(panel);
+      }
+
       function renderStakeholderPersonProfile(person) {
         const panel = personProfileDetailPanel();
         const organization = stakeholderPersonOrganization(person);
@@ -34699,7 +35179,7 @@
         activeStakeholderOrganizationId = null;
         activePersonProfile.title = person.name || stakeholderTypeConfig(person.stakeholderTypeId).personSingular;
         renderViewChrome();
-        panel.classList.remove("detail-panel--organization", "detail-panel--registration");
+        panel.classList.remove("detail-panel--organization", "detail-panel--registration", "detail-panel--politics");
         panel.innerHTML = `
           <div class="detail-toolbar">
             ${personProfileBackButtonMarkup()}
@@ -34813,7 +35293,9 @@
             return;
           }
           activePersonProfile.title = record.displayName || record.name || personKindLabel(kind);
-          if (kind === "stakeholder") {
+          if (kind === "politics") {
+            renderPoliticsPersonProfile(record);
+          } else if (kind === "stakeholder") {
             renderStakeholderPersonProfile(record);
           } else {
             openDetail(record.id, kind === "expert" ? expertContacts : contacts, { scope: kind === "expert" ? "expert" : "care", mode: "page" });
@@ -37815,7 +38297,7 @@
           : isStakeholdersView
             ? stakeholderTypeConfig().organizationSearchPlaceholder
           : isPoliticsView
-            ? "Ausschussmitglieder nach Name, Fraktion oder Funktion suchen..."
+            ? "Ausschussmitglieder nach Name, Fraktion, Funktion, PLZ oder Wahlkreis suchen..."
           : isFormatsView
             ? "Formate suchen..."
           : isFrameworkView
@@ -40255,7 +40737,10 @@
               || (activeView === "personProfile" && activePersonProfile.returnTo === "patients")
               || (activeView === "organizationProfile" && activeOrganizationProfile.kind === "patient");
           }
-          if (dataKind === "politics") return activeView === "politics";
+          if (dataKind === "politics") {
+            return activeView === "politics"
+              || (activeView === "personProfile" && activePersonProfile.kind === "politics");
+          }
           return false;
         };
         const refreshActiveViewAfter = async (dataKind, task) => {
