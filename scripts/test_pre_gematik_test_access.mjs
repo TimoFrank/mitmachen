@@ -75,6 +75,18 @@ assert.match(roleSql, /grant insert \(id, email, display_name, initials, role, a
 assert.match(roleSql, /grant update \(status, applied_profile_id\)/u);
 assert.doesNotMatch(
   roleSql,
+  /revoke all privileges on all functions in schema public from vk_access_enrollment_admin/iu
+);
+assert.match(
+  roleSql,
+  /routine\.proowner = \(\s*select oid from pg_catalog\.pg_roles where rolname = current_user\s*\)/u
+);
+assert.match(
+  roleSql,
+  /routine\.oid <> 'public\.pre_gematik_touch_updated_at\(\)'::pg_catalog\.regprocedure[\s\S]*has_function_privilege\('vk_access_enrollment_admin', routine\.oid, 'EXECUTE'\)/u
+);
+assert.doesNotMatch(
+  roleSql,
   /grant[^;]*(?:delete|truncate|create|alter|drop)[^;]*vk_access_enrollment_admin/iu
 );
 assert.doesNotMatch(roleSql, /security\s+definer/iu);

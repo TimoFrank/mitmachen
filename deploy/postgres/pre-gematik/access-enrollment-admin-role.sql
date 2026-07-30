@@ -129,7 +129,34 @@ $pre_gematik_access_admin_precondition$;
 
 revoke all privileges on all tables in schema public from vk_access_enrollment_admin;
 revoke all privileges on all sequences in schema public from vk_access_enrollment_admin;
-revoke all privileges on all functions in schema public from vk_access_enrollment_admin;
+
+-- The hardened allowlist consumer deliberately belongs to a separate NOLOGIN
+-- owner. Revoking its ACL as the access-object owner would abort the complete
+-- bootstrap. Reset only owner-controlled function ACLs here; the effective
+-- privilege verifier below still fails closed for direct, inherited, and
+-- PUBLIC execution on every function outside the explicit allowlist.
+do $pre_gematik_access_admin_revoke_owned_functions$
+declare
+  routine_signature pg_catalog.regprocedure;
+begin
+  for routine_signature in
+    select routine.oid::pg_catalog.regprocedure
+      from pg_catalog.pg_proc routine
+      join pg_catalog.pg_namespace namespace on namespace.oid = routine.pronamespace
+     where namespace.nspname = 'public'
+       and routine.prokind <> 'p'
+       and routine.proowner = (
+         select oid from pg_catalog.pg_roles where rolname = current_user
+       )
+  loop
+    execute format(
+      'revoke all privileges on function %s from vk_access_enrollment_admin',
+      routine_signature
+    );
+  end loop;
+end
+$pre_gematik_access_admin_revoke_owned_functions$;
+
 revoke all privileges on schema public from vk_access_enrollment_admin;
 
 grant usage on schema public to vk_access_enrollment_admin;
