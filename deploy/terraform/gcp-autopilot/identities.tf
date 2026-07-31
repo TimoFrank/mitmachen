@@ -144,6 +144,27 @@ resource "google_project_iam_member" "deployer_identity_platform_preflight_reade
   member  = "serviceAccount:${google_service_account.deployer.email}"
 }
 
+resource "google_project_iam_custom_role" "password_reset_broker" {
+  role_id     = "preGematikPasswordResetBroker"
+  title       = "Pre-gematik password reset broker"
+  description = "Look up Identity Platform users and send password-reset email only; no database, storage, or Identity Platform mutation permissions."
+  stage       = "GA"
+  permissions = [
+    "firebaseauth.users.get",
+    "firebaseauth.users.sendEmail",
+  ]
+}
+
+resource "google_project_iam_member" "password_reset_broker" {
+  project = var.GCP_PROJECT_ID
+  role    = google_project_iam_custom_role.password_reset_broker.name
+  member  = local.gke_password_reset_workload_principal
+
+  # The GKE-managed workload identity pool does not exist until the first
+  # cluster has finished provisioning, so IAM must not validate this principal earlier.
+  depends_on = [google_container_cluster.autopilot]
+}
+
 resource "google_project_iam_member" "workload_cloudsql_client" {
   project = var.GCP_PROJECT_ID
   role    = "roles/cloudsql.client"

@@ -725,6 +725,8 @@ jobs:
             --arg project_id "$GCP_PROJECT_ID" \
             --arg project_number "$GCP_PROJECT_NUMBER" \
             --arg api_host "$API_HOST" \
+            --arg custom_password_action_uri "https://${API_HOST}/konto/passwort-festlegen" \
+            --arg fallback_password_action_uri "https://steam-capsule-341212.firebaseapp.com/__/auth/action" \
             --arg login_page_host "$login_page_host" \
             '
               .name == "projects/\($project_number)/config" and
@@ -736,6 +738,10 @@ jobs:
               .client.permissions.disabledUserSignup == true and
               .client.permissions.disabledUserDeletion == true and
               .emailPrivacyConfig.enableImprovedEmailPrivacy == true and
+              (
+                .notification.sendEmail.callbackUri == $custom_password_action_uri or
+                .notification.sendEmail.callbackUri == $fallback_password_action_uri
+              ) and
               ((.mfa.state // "DISABLED") == "DISABLED") and
               (.multiTenant.allowTenants != true) and
               .passwordPolicyConfig.passwordPolicyEnforcementState == "ENFORCE" and
@@ -755,7 +761,7 @@ jobs:
                 == ([$api_host, ($project_id + ".firebaseapp.com"), "iap.googleapis.com"] | unique | sort)
               )
             ' "$project_config" >/dev/null; then
-            echo "Identity Platform is not locked to the exact Versorgungs-Kompass, Firebase, and IAP auth domains, improved email privacy, and admin-created email/password users without MFA, phone, anonymous, duplicates, deletion, or tenants." >&2
+            echo "Identity Platform is not locked to the exact approved password-action callback, Versorgungs-Kompass/Firebase/IAP auth domains, improved email privacy, and admin-created email/password users without MFA, phone, anonymous, duplicates, deletion, or tenants." >&2
             exit 1
           fi
           if ! jq --exit-status \
@@ -1739,6 +1745,7 @@ jobs:
             local runtime_external_login_page_uri=""
             local runtime_external_auth_api_key=""
             local runtime_external_access_expires_at=""
+            local password_reset_broker_enabled="false"
             if [[ "$public_entry_iap_enabled" != "true" && "$public_entry_iap_enabled" != "false" ]]; then
               echo "Public-entry IAP bootstrap state must be an explicit boolean." >&2
               return 1
@@ -1748,6 +1755,7 @@ jobs:
               runtime_external_login_page_uri="$IAP_EXTERNAL_LOGIN_PAGE_URI"
               runtime_external_auth_api_key="$IAP_EXTERNAL_AUTH_API_KEY"
               runtime_external_access_expires_at="$IAP_EXTERNAL_ACCESS_EXPIRES_AT"
+              password_reset_broker_enabled="true"
             fi
             local -a domain_migration_args=(
               --set-string "gke.managedCertificate.name=${HELM_RELEASE}-domain"
@@ -1814,6 +1822,7 @@ jobs:
               --set-string config.iapExternalLoginPageUri="$runtime_external_login_page_uri" \
               --set-string config.iapExternalAuthApiKey="$runtime_external_auth_api_key" \
               --set-string config.iapExternalAccessExpiresAt="$runtime_external_access_expires_at" \
+              --set passwordResetBroker.enabled="$password_reset_broker_enabled" \
               --set-string config.hospitationImportOwnerProfileId="$HOSPITATION_IMPORT_OWNER_PROFILE_ID" \
               --set-string frontend.backendConfig.iap.oauthClientCredentialsSecretName="$IAP_OAUTH_CLIENT_CREDENTIALS_SECRET_NAME" \
               --set-string frontend.publicEntry.image.repository="$PUBLIC_IMAGE_REPOSITORY" \
@@ -1845,6 +1854,8 @@ jobs:
           frontend_service_name="${HELM_RELEASE}-frontend"
           public_frontend_service_name="${HELM_RELEASE}-frontend-public"
           auth_proxy_service_name="${HELM_RELEASE}-frontend-auth-proxy"
+          password_reset_service_name="${HELM_RELEASE}-password-reset"
+          password_reset_security_policy_name="vk-pre-gematik-password-reset"
 
           resolve_public_backend_config_name() {
             local expected_backend_config_name="${HELM_RELEASE}-frontend-public"
@@ -1879,6 +1890,24 @@ jobs:
                 .name == $expected_backend and
                 .logConfig.enable == false
               ' <<< "$public_backend_state" >/dev/null 2>&1
+          }
+
+          password_reset_backend_is_hardened() {
+            local password_reset_backend="$1"
+            local password_reset_backend_state
+            password_reset_backend_state="$(gcloud compute backend-services describe "$password_reset_backend" \
+              --project "$GCP_PROJECT_ID" \
+              --global \
+              --format=json 2>/dev/null || true)"
+            [[ -n "$password_reset_backend_state" ]] && jq --exit-status \
+              --arg expected_backend "$password_reset_backend" \
+              --arg expected_policy "$password_reset_security_policy_name" '
+                .name == $expected_backend and
+                ((.iap.enabled // false) == false) and
+                .logConfig.enable == false and
+                .customRequestHeaders == ["X-Password-Reset-Client-IP:{client_ip_address}"] and
+                ((.securityPolicy // "") | endswith("/securityPolicies/\($expected_policy)"))
+              ' <<< "$password_reset_backend_state" >/dev/null 2>&1
           }
 
           wait_for_public_backend_logging_disabled() {
@@ -2335,11 +2364,25 @@ jobs:
           frontend_backend_service=""
           public_frontend_backend_service=""
           auth_proxy_backend_service=""
+          password_reset_backend_service=""
           for attempt in {1..120}; do
             backend_service="$(resolve_backend_for_service "$api_service_name" || true)"
             frontend_backend_service="$(resolve_backend_for_service "$frontend_service_name" || true)"
             public_frontend_backend_service="$(resolve_backend_for_service "$public_frontend_service_name" || true)"
             auth_proxy_backend_service="$(resolve_backend_for_service "$auth_proxy_service_name" || true)"
+            password_reset_backend_ready=1
+            if [[ "$IAP_IDENTITY_MODE" == "external" ]]; then
+              password_reset_backend_service="$(resolve_backend_for_service "$password_reset_service_name" || true)"
+              if [[ -z "$password_reset_backend_service" ]] || \
+                 [[ "$password_reset_backend_service" == "$backend_service" ]] || \
+                 [[ "$password_reset_backend_service" == "$frontend_backend_service" ]] || \
+                 [[ "$password_reset_backend_service" == "$public_frontend_backend_service" ]] || \
+                 [[ "$password_reset_backend_service" == "$auth_proxy_backend_service" ]]; then
+                password_reset_backend_ready=0
+              fi
+            elif kubectl --namespace "$K8S_NAMESPACE" get service "$password_reset_service_name" >/dev/null 2>&1; then
+              password_reset_backend_ready=0
+            fi
             if [[ -n "$backend_service" ]]; then
               backend_service_id="$(gcloud compute backend-services describe "$backend_service" \
                 --project "$GCP_PROJECT_ID" \
@@ -2350,6 +2393,7 @@ jobs:
                [[ -n "$frontend_backend_service" ]] && \
                [[ -n "$public_frontend_backend_service" ]] && \
                [[ -n "$auth_proxy_backend_service" ]] && \
+               [[ "$password_reset_backend_ready" == "1" ]] && \
                [[ "$(printf '%s\n' "$backend_service" "$frontend_backend_service" \
                     "$public_frontend_backend_service" "$auth_proxy_backend_service" \
                     | sort --unique | wc -l | tr -d '[:space:]')" == "4" ]]; then
@@ -2362,10 +2406,11 @@ jobs:
              [[ -z "$frontend_backend_service" ]] || \
              [[ -z "$public_frontend_backend_service" ]] || \
              [[ -z "$auth_proxy_backend_service" ]] || \
+             [[ "$password_reset_backend_ready" != "1" ]] || \
              [[ "$(printf '%s\n' "$backend_service" "$frontend_backend_service" \
                   "$public_frontend_backend_service" "$auth_proxy_backend_service" \
                   | sort --unique | wc -l | tr -d '[:space:]')" != "4" ]]; then
-            echo "Could not identify exactly four distinct API, protected frontend, public frontend, and auth-helper proxy GKE backend services." >&2
+            echo "Could not identify the distinct API, protected frontend, public frontend, auth-helper proxy, and conditional password-reset GKE backend services." >&2
             exit 1
           fi
           if [[ -f "$restore_marker" ]]; then
@@ -2385,7 +2430,9 @@ jobs:
             --arg api_service "$api_service_name" \
             --arg frontend_service "$frontend_service_name" \
             --arg public_service "$public_frontend_service_name" \
-            --arg auth_proxy_service "$auth_proxy_service_name" '
+            --arg auth_proxy_service "$auth_proxy_service_name" \
+            --arg password_reset_service "$password_reset_service_name" \
+            --arg identity_mode "$IAP_IDENTITY_MODE" '
               def services_for($host; $path; $path_type):
                 [
                   .spec.rules[]?
@@ -2403,6 +2450,13 @@ jobs:
               services_for($canonical_host; "/public/auth/assets/app.js"; "Exact") == [$public_service] and
               services_for($canonical_host; "/public/auth/brand/versorgungs-kompass.svg"; "Exact") == [$public_service] and
               services_for($canonical_host; "/public/auth/portal-config.js"; "Exact") == [$public_service] and
+              (
+                if $identity_mode == "external" then
+                  services_for($canonical_host; "/api/auth/password-reset"; "Exact") == [$password_reset_service]
+                else
+                  services_for($canonical_host; "/api/auth/password-reset"; "Exact") == []
+                end
+              ) and
               services_for(
                 $canonical_host;
                 "/public/media/social/mitmachen-share-v3.png";
@@ -2455,10 +2509,25 @@ jobs:
                   pathType: "Prefix"
                 }
               ] and
+              (
+                [
+                  .spec.rules[]? as $rule
+                  | $rule.http.paths[]?
+                  | select(.backend.service.name == $password_reset_service)
+                  | {host: $rule.host, path, pathType}
+                ]
+              ) == (
+                if $identity_mode == "external" then
+                  [{host: $canonical_host, path: "/api/auth/password-reset", pathType: "Exact"}]
+                else
+                  []
+                end
+              ) and
               ((.spec.defaultBackend.service.name? // "") != $public_service)
               and ((.spec.defaultBackend.service.name? // "") != $auth_proxy_service)
+              and ((.spec.defaultBackend.service.name? // "") != $password_reset_service)
             ' <<< "$ingress_state" >/dev/null; then
-            echo "The rendered Ingress does not keep the public entry and auth-helper proxy on their exact approved paths." >&2
+            echo "The rendered Ingress does not keep public entry, auth-helper proxy, and conditional password reset on their exact approved paths." >&2
             exit 1
           fi
 
@@ -2480,7 +2549,9 @@ jobs:
             jq --exit-status \
               --arg canonical_host "$API_HOST" \
               --arg api_suffix "/backendServices/${backend_service}" \
-              --arg frontend_suffix "/backendServices/${frontend_backend_service}" '
+              --arg frontend_suffix "/backendServices/${frontend_backend_service}" \
+              --arg password_reset_suffix "/backendServices/${password_reset_backend_service}" \
+              --arg identity_mode "$IAP_IDENTITY_MODE" '
                 def service_refs($suffix):
                   [
                     ..
@@ -2529,6 +2600,25 @@ jobs:
                   | unique
                   | sort
                 ) == ["/api", "/api/*"]
+                and (
+                  $canonical[0]
+                  | service_refs($password_reset_suffix)
+                  | [
+                      .[]
+                      | .paths[]?,
+                        .matchRules[]?.prefixMatch?,
+                        .matchRules[]?.fullPathMatch?
+                      | select(type == "string")
+                    ]
+                  | unique
+                  | sort
+                ) == (
+                  if $identity_mode == "external" then
+                    ["/api/auth/password-reset"]
+                  else
+                    []
+                  end
+                )
               ' <<< "$url_map_state" >/dev/null
           }
 
@@ -2570,6 +2660,7 @@ jobs:
             local public_iap
             local auth_proxy_state
             local current_url_map_name
+            local password_reset_boundary_ok
             for attempt in {1..60}; do
               boundary_backends="$(kubectl --namespace "$K8S_NAMESPACE" get ingress "$ingress_name" \
                 --output jsonpath='{.metadata.annotations.ingress\.kubernetes\.io/backends}' 2>/dev/null || true)"
@@ -2586,9 +2677,16 @@ jobs:
                 --project "$GCP_PROJECT_ID" --global --format=json 2>/dev/null || true)"
               current_url_map_name="$(kubectl --namespace "$K8S_NAMESPACE" get ingress "$ingress_name" \
                 --output jsonpath='{.metadata.annotations.ingress\.kubernetes\.io/url-map}' 2>/dev/null || true)"
+              password_reset_boundary_ok=1
+              if [[ "$IAP_IDENTITY_MODE" == "external" ]] && \
+                 { ! password_reset_backend_is_hardened "$password_reset_backend_service" || \
+                   ! backend_health_ok "$password_reset_backend_service"; }; then
+                password_reset_boundary_ok=0
+              fi
               if [[ "${api_iap,,}" == "true" ]] && \
                  [[ "${frontend_iap,,}" == "true" ]] && \
                  [[ "${public_iap,,}" == "$expected_public_iap" ]] && \
+                 [[ "$password_reset_boundary_ok" == "1" ]] && \
                  [[ -n "$auth_proxy_state" ]] && \
                  jq --exit-status '
                    (.iap.enabled // false) == false and
@@ -2598,11 +2696,14 @@ jobs:
                    --arg api "$backend_service" \
                    --arg frontend "$frontend_backend_service" \
                    --arg public "$public_frontend_backend_service" \
-                   --arg auth_proxy "$auth_proxy_backend_service" '
+                   --arg auth_proxy "$auth_proxy_backend_service" \
+                   --arg password_reset "$password_reset_backend_service" \
+                   --arg identity_mode "$IAP_IDENTITY_MODE" '
                      .[$api] == "HEALTHY" and
                      .[$frontend] == "HEALTHY" and
                      .[$public] == "HEALTHY" and
-                     .[$auth_proxy] == "HEALTHY"
+                     .[$auth_proxy] == "HEALTHY" and
+                     ($identity_mode != "external" or .[$password_reset] == "HEALTHY")
                  ' <<< "$boundary_backends" >/dev/null 2>&1 && \
                  public_backend_logging_is_disabled "$public_frontend_backend_service" && \
                  public_backend_logging_is_disabled "$auth_proxy_backend_service" && \
@@ -2620,7 +2721,7 @@ jobs:
           }
 
           if ! wait_for_boundary true; then
-            echo "The four-backend boundary did not converge to protected API/frontend, isolated public entry, and the tokenless auth-helper proxy." >&2
+            echo "The backend boundary did not converge to protected API/frontend, isolated public entry, tokenless auth-helper proxy, and hardened conditional password reset." >&2
             exit 1
           fi
 
@@ -3166,6 +3267,7 @@ jobs:
           echo "frontend_backend_service=$frontend_backend_service" >> "$GITHUB_OUTPUT"
           echo "public_frontend_backend_service=$public_frontend_backend_service" >> "$GITHUB_OUTPUT"
           echo "auth_proxy_backend_service=$auth_proxy_backend_service" >> "$GITHUB_OUTPUT"
+          echo "password_reset_backend_service=$password_reset_backend_service" >> "$GITHUB_OUTPUT"
           echo "public_entry_cutover=true" >> "$GITHUB_OUTPUT"
 
       - name: Verify rollout, Secret Sync, and fail-closed authentication
@@ -3180,6 +3282,8 @@ jobs:
           public_frontend_service_name="${HELM_RELEASE}-frontend-public"
           auth_proxy_deployment_name="${HELM_RELEASE}-frontend-auth-proxy"
           auth_proxy_service_name="${HELM_RELEASE}-frontend-auth-proxy"
+          password_reset_deployment_name="${HELM_RELEASE}-password-reset"
+          password_reset_service_name="${HELM_RELEASE}-password-reset"
 
           kubectl --namespace "$K8S_NAMESPACE" rollout status \
             "deployment/${deployment_name}" \
@@ -3193,6 +3297,35 @@ jobs:
           kubectl --namespace "$K8S_NAMESPACE" rollout status \
             "deployment/${auth_proxy_deployment_name}" \
             --timeout=10m
+          if [[ "$IAP_IDENTITY_MODE" == "external" ]]; then
+            kubectl --namespace "$K8S_NAMESPACE" rollout status \
+              "deployment/${password_reset_deployment_name}" \
+              --timeout=10m
+            kubectl --namespace "$K8S_NAMESPACE" get deployment "$password_reset_deployment_name" \
+              --output=json | jq --exit-status \
+              --arg expected_ksa "versorgungs-kompass-password-reset" '
+                .spec.template.spec.serviceAccountName == $expected_ksa and
+                .spec.template.spec.automountServiceAccountToken == false and
+                ((.spec.template.spec.volumes // []) | length) == 0 and
+                (.spec.template.spec.containers | length) == 1 and
+                .spec.template.spec.containers[0].name == "password-reset-broker" and
+                (.spec.template.spec.containers[0] | has("envFrom") | not) and
+                ([.spec.template.spec.containers[0].env[].name] | sort) == ([
+                  "IAP_EXTERNAL_AUTH_API_KEY",
+                  "IAP_GCIP_PROJECT_ID",
+                  "IAP_GCIP_TENANT_ID",
+                  "NODE_ENV",
+                  "PASSWORD_RESET_ALLOWED_ORIGIN",
+                  "PASSWORD_RESET_BROKER_ENABLED",
+                  "PORT"
+                ] | sort)
+              ' >/dev/null
+          else
+            if kubectl --namespace "$K8S_NAMESPACE" get deployment "$password_reset_deployment_name" >/dev/null 2>&1; then
+              echo "The password-reset broker must not be deployed outside external identity mode." >&2
+              exit 1
+            fi
+          fi
           kubectl --namespace "$K8S_NAMESPACE" get secret "$DB_PASSWORD_SECRET_NAME" >/dev/null
 
           kubectl --namespace "$K8S_NAMESPACE" exec \
@@ -3647,6 +3780,8 @@ jobs:
           frontend_port_forward_log="${RUNNER_TEMP}/pre-gematik-frontend-port-forward.log"
           public_frontend_port_forward_log="${RUNNER_TEMP}/pre-gematik-public-frontend-port-forward.log"
           auth_proxy_port_forward_log="${RUNNER_TEMP}/pre-gematik-auth-proxy-port-forward.log"
+          password_reset_port_forward_log="${RUNNER_TEMP}/pre-gematik-password-reset-port-forward.log"
+          password_reset_port_forward_pid=""
           kubectl --namespace "$K8S_NAMESPACE" port-forward \
             "service/${service_name}" 18080:80 \
             >"$port_forward_log" 2>&1 &
@@ -3663,11 +3798,20 @@ jobs:
             "service/${auth_proxy_service_name}" 18084:80 \
             >"$auth_proxy_port_forward_log" 2>&1 &
           auth_proxy_port_forward_pid=$!
+          if [[ "$IAP_IDENTITY_MODE" == "external" ]]; then
+            kubectl --namespace "$K8S_NAMESPACE" port-forward \
+              "service/${password_reset_service_name}" 18085:80 \
+              >"$password_reset_port_forward_log" 2>&1 &
+            password_reset_port_forward_pid=$!
+          fi
           cleanup() {
             kill "$port_forward_pid" >/dev/null 2>&1 || true
             kill "$frontend_port_forward_pid" >/dev/null 2>&1 || true
             kill "$public_frontend_port_forward_pid" >/dev/null 2>&1 || true
             kill "$auth_proxy_port_forward_pid" >/dev/null 2>&1 || true
+            if [[ -n "$password_reset_port_forward_pid" ]]; then
+              kill "$password_reset_port_forward_pid" >/dev/null 2>&1 || true
+            fi
           }
           trap cleanup EXIT
 
@@ -3675,6 +3819,10 @@ jobs:
           frontend_healthy=0
           public_frontend_healthy=0
           auth_proxy_healthy=0
+          password_reset_healthy=1
+          if [[ "$IAP_IDENTITY_MODE" == "external" ]]; then
+            password_reset_healthy=0
+          fi
           for attempt in {1..30}; do
             if curl --fail --silent --show-error http://127.0.0.1:18080/api/healthz >/dev/null; then
               api_healthy=1
@@ -3688,10 +3836,15 @@ jobs:
             if curl --fail --silent --show-error http://127.0.0.1:18084/_healthz >/dev/null; then
               auth_proxy_healthy=1
             fi
+            if [[ "$IAP_IDENTITY_MODE" == "external" ]] && \
+               curl --fail --silent --show-error http://127.0.0.1:18085/healthz >/dev/null; then
+              password_reset_healthy=1
+            fi
             if [[ "$api_healthy" == "1" && \
                   "$frontend_healthy" == "1" && \
                   "$public_frontend_healthy" == "1" && \
-                  "$auth_proxy_healthy" == "1" ]]; then
+                  "$auth_proxy_healthy" == "1" && \
+                  "$password_reset_healthy" == "1" ]]; then
               break
             fi
             sleep 2
@@ -3715,6 +3868,29 @@ jobs:
             cat "$auth_proxy_port_forward_log"
             echo "The in-cluster auth-helper proxy smoke test failed." >&2
             exit 1
+          fi
+          if [[ "$password_reset_healthy" != "1" ]]; then
+            cat "$password_reset_port_forward_log"
+            echo "The isolated password-reset broker health smoke test failed." >&2
+            exit 1
+          fi
+          if [[ "$IAP_IDENTITY_MODE" == "external" ]]; then
+            password_reset_response="$(curl --path-as-is --silent --show-error \
+              --request POST \
+              --header 'Host: versorgungs-kompass.de' \
+              --header 'Origin: https://versorgungs-kompass.de' \
+              --header 'Content-Type: application/json' \
+              --header 'Sec-Fetch-Site: same-origin' \
+              --header 'Sec-Fetch-Mode: cors' \
+              --header 'Sec-Fetch-Dest: empty' \
+              --header 'X-Password-Reset-Client-IP: 192.0.2.1' \
+              --data '{"email":"not-an-email"}' \
+              --write-out $'\n%{http_code}' \
+              http://127.0.0.1:18085/api/auth/password-reset)"
+            if [[ "$password_reset_response" != $'{"accepted":true}\n202' ]]; then
+              echo "The isolated password-reset broker did not return its exact neutral contract." >&2
+              exit 1
+            fi
           fi
 
           auth_proxy_handler_body="${RUNNER_TEMP}/pre-gematik-auth-helper.html"

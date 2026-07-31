@@ -338,6 +338,12 @@ a {
   color: var(--muted);
 }
 
+.notice-actions {
+  display: grid;
+  justify-items: start;
+  gap: 14px;
+}
+
 .notice--success {
   border-color: #b9e0d1;
   background: #f0faf6;
@@ -520,6 +526,16 @@ a {
   text-underline-offset: 3px;
 }
 
+.text-button--standalone {
+  min-height: 32px;
+  justify-self: center;
+  font-weight: 720;
+}
+
+.notice-actions .text-button--standalone {
+  justify-self: start;
+}
+
 .auth-form > label > input,
 .action-form > label > input {
   width: 100%;
@@ -565,6 +581,13 @@ a {
   margin: -6px 0 0;
   color: var(--error);
   font-size: 0.8rem;
+}
+
+.field-hint {
+  margin: -7px 0 0;
+  color: var(--muted);
+  font-size: 0.78rem;
+  line-height: 1.45;
 }
 
 .safe-email {

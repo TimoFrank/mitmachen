@@ -35,6 +35,40 @@ ingress:
     enabled: true
     secretName: "REPLACE_WITH_TLS_SECRET"
 
+passwordResetBroker:
+  enabled: false
+  replicaCount: 2
+  port: 8080
+  podAnnotations: {}
+  serviceAccount:
+    create: true
+    name: "versorgungs-kompass-password-reset"
+    annotations: {}
+    automountServiceAccountToken: false
+  service:
+    port: 80
+    annotations: {}
+  backendConfig:
+    name: ""
+    securityPolicyName: ""
+    timeoutSec: 10
+    connectionDrainingTimeoutSec: 0
+    healthCheck:
+      type: HTTP
+      requestPath: /healthz
+      port: 8080
+      checkIntervalSec: 15
+      timeoutSec: 5
+      healthyThreshold: 1
+      unhealthyThreshold: 3
+  resources:
+    requests:
+      cpu: 50m
+      memory: 64Mi
+    limits:
+      cpu: 250m
+      memory: 128Mi
+
 config:
   allowedOrigin: "https://versorgungs-kompass.example.internal"
   apiAuthMode: "oidc"
@@ -322,6 +356,8 @@ networkPolicy:
     apiAllowedCidrs:
       - 192.0.2.0/32
     frontendAllowedCidrs:
+      - 192.0.2.0/32
+    passwordResetAllowedCidrs:
       - 192.0.2.0/32
   metadataServer:
     dataplaneV2Ip: 169.254.169.254/32

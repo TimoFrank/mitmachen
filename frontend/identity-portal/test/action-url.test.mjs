@@ -23,15 +23,15 @@ test("accepts a minimal reset-password action", () => {
   assert.equal(parsed.continueUrl, null);
 });
 
-test("accepts a path on an explicitly allowed HTTPS origin", () => {
-  const continueUrl = encodeURIComponent("https://pilot.example.org/arbeitsbereich?aus=mail");
+test("accepts only the canonical start path on an explicitly allowed HTTPS origin", () => {
+  const continueUrl = encodeURIComponent("https://pilot.example.org/start");
   const parsed = parseActionUrl(
     `https://auth.example.org/konto/passwort-festlegen?mode=resetPassword&oobCode=${code}&apiKey=AIzaSyExampleKey&continueUrl=${continueUrl}`,
     config
   );
   assert.equal(
     parsed.continueUrl,
-    "https://pilot.example.org/arbeitsbereich?aus=mail"
+    "https://pilot.example.org/start"
   );
 });
 
@@ -70,7 +70,10 @@ test("rejects unsafe continue URLs", () => {
     "javascript:alert(1)",
     "http://pilot.example.org/",
     "https://pilot.example.org.attacker.invalid/",
-    "https://user:password@pilot.example.org/"
+    "https://user:password@pilot.example.org/",
+    "https://pilot.example.org/arbeitsbereich?aus=mail",
+    "https://pilot.example.org/start?aus=mail",
+    "https://pilot.example.org/start#fragment"
   ]) {
     assert.throws(
       () =>

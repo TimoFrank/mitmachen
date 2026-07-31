@@ -248,12 +248,27 @@ Loginseite zeigt nur:
 
 - `Mit Google anmelden`,
 - E-Mail und Passwort,
+- `Passwort vergessen?` für bereits administrativ vorprovisionierte,
+  verifizierte Passwort-only-Konten und
 - einen funktionierenden vollständigen Logout.
 
 Sie enthält keine Selbstregistrierung, keine anonyme Anmeldung und kein
-Account-Linking und keinen Self-Service-Passwort-Reset. Ein abgelaufener oder
-verbrauchter Einladungslink wird ausschließlich administrativ als neuer
-owner-only Recovery-Link ersetzt. Vor jedem `GO` wird die tatsächlich
+Account-Linking. Die Oberfläche ruft ausschließlich den gleichursprünglichen,
+minimal privilegierten Broker über den exakten Pfad
+`POST /api/auth/password-reset` auf. Der Broker läuft in einem separaten
+Deployment ohne Datenbank-, Cloud-SQL-, Secret-Manager- oder Storage-Zugriff.
+Seine Workload Identity besitzt ausschließlich `firebaseauth.users.get` und
+`firebaseauth.users.sendEmail`. Er versendet nur für genau einen aktiven,
+verifizierten Passwort-only-Account einen Reset-Link; die Continue-URL ist
+serverseitig bytegenau auf `https://versorgungs-kompass.de/start` festgelegt.
+
+Der Reset erzeugt weder Nutzer, Profile noch Bindings und gewährt allein keinen
+Anwendungszugriff. Bekannte, unbekannte und nicht als Passwortkonto nutzbare
+Adressen erhalten denselben öffentlichen `202 {"accepted":true}`-Vertrag und
+dieselbe neutrale UI-Antwort; Kontodaten werden nicht protokolliert. Ein
+abgelaufener oder verbrauchter Einladungs- oder Reset-Link kann weiterhin
+administrativ als neuer owner-only Recovery-Link ersetzt werden. Vor jedem
+`GO` wird die tatsächlich
 ausgelieferte Seite in einem privaten Browserfenster visuell geprüft; als
 Anmeldeprovider dürfen ausschließlich Google und E-Mail/Passwort sichtbar sein
 und Self-Signup muss verborgen sein.
@@ -261,10 +276,23 @@ und Self-Signup muss verborgen sein.
 Für die eigene Login- und Passwortsetzseite gelten zusätzlich diese harten
 Gates:
 
-1. `emailPrivacyConfig.enableImprovedEmailPrivacy=true` ist read-only zu
-   bestätigen. Login- und Fehlertexte bleiben neutral und verraten nicht, ob
-   ein Konto, Profil oder Binding existiert.
-2. `IAP_EXTERNAL_LOGIN_PAGE_URI` entspricht bytegenau
+1. `notification.sendEmail.callbackUri` entspricht bytegenau einem der beiden
+   freigegebenen Werte:
+   `https://versorgungs-kompass.de/konto/passwort-festlegen` (Zielbild) oder
+   vorübergehend
+   `https://steam-capsule-341212.firebaseapp.com/__/auth/action`
+   (Provider-Fallback). Der Identity-Platform-API-Write auf das Zielbild wird
+   derzeit selbst mit Projekt-Owner-Rechten serverseitig mit
+   `EMAIL_TEMPLATE_UPDATE_NOT_ALLOWED` abgewiesen. Terraform behauptet daher
+   keinen Callback-Write; der read-only Deployment-Preflight akzeptiert nur
+   diese zwei exakten Werte und stoppt bei jeder anderen URI vor einer
+   External-Mutation. Sobald der Provider den Write zulässt, wird auf das
+   Zielbild umgestellt und der Fallback aus Preflight und Runbook entfernt.
+2. `emailPrivacyConfig.enableImprovedEmailPrivacy=true` ist read-only zu
+   bestätigen. Login-, Reset- und Fehlertexte bleiben neutral; insbesondere
+   ist die sichtbare Antwort nach einer Reset-Anforderung für bekannte,
+   unbekannte und nicht als Passwortkonto nutzbare Adressen identisch.
+3. `IAP_EXTERNAL_LOGIN_PAGE_URI` entspricht bytegenau
    `https://versorgungs-kompass.de/anmelden`. Sie bleibt die kanonische
    query- und fragmentfreie Basis für Portal, Runtime-Konfiguration und
    Operator-Eingabe. Das Reconcile konstruiert ausschließlich intern die von
@@ -272,7 +300,7 @@ Gates:
    `${IAP_EXTERNAL_LOGIN_PAGE_URI}?apiKey=${IAP_EXTERNAL_AUTH_API_KEY}`, setzt
    sie bytegenau auf beiden geschützten Backends und gibt weder Browser-Key noch
    effektive URI aus.
-3. Der primäre, im Google-OAuth-Client freigegebene Redirect-URI entspricht
+4. Der primäre, im Google-OAuth-Client freigegebene Redirect-URI entspricht
    bytegenau
    `https://versorgungs-kompass.de/__/auth/handler`. Dieser technische
    Callback ist ausschließlich OAuth-Infrastruktur und darf weder als
@@ -281,11 +309,19 @@ Gates:
    `https://steam-capsule-341212.firebaseapp.com/__/auth/handler` bleibt nur
    während des Piloten als inaktiver Rollback-Eintrag registriert; Login-
    Konfiguration und Abnahmen referenzieren stets den kanonischen Redirect.
-4. Die Passwortsetzseite liegt bytegenau unter
-   `https://versorgungs-kompass.de/konto/passwort-festlegen`; der
-   `continue_url` jedes Passwortkontos ist bytegenau
-   `https://versorgungs-kompass.de/start`.
-5. Ein echter erfolgreicher Google-Login über die eigene Loginseite ist
+5. Einladungs- und administrative Recovery-Links werden vom gebrandeten Custom
+   Handler auf der Passwortsetzseite verarbeitet. Self-Service-Reset-Links
+   verwenden bis zur Aufhebung der Provider-Sperre den oben gepinnten
+   Firebase-Standard-Action-Handler. Unabhängig vom Handler ist die vom Broker
+   gesetzte `continue_url` jedes Self-Service-Reset-Links bytegenau
+   `https://versorgungs-kompass.de/start` und nicht browsersteuerbar.
+6. Der öffentliche Reset-Broker ist nur unter dem exakten kanonischen
+   `POST /api/auth/password-reset` erreichbar. Sein BackendService hat IAP
+   bewusst deaktiviert, Access-Logging deaktiviert, eine eigene
+   Cloud-Armor-Rate-Limit-Policy und keine Datenbank- oder Storage-Credentials.
+   Für unbekannte, Google-only, gemischte oder anderweitig unzulässige Konten
+   wird keine Mail angestoßen.
+7. Ein echter erfolgreicher Google-Login über die eigene Loginseite ist
    höchstens 24 Stunden vor Deployment nachzuweisen. Außerdem wird der
    vollständige Passwortgast-Ablauf erst nach abgeschlossenem Prebinding
    nachgewiesen. Der UTC-Zeitpunkt steht in
@@ -295,6 +331,13 @@ Gates:
    `googleLoginSucceeded: true`, dem exakten technischen Redirect,
    `selfSignupVisible: false`, `visibleOptions: ["google.com","password"]` und
    `verifiedAt`.
+
+Der für die Anmeldung erforderliche Identity-Platform-Web-API-Key ist
+browseröffentlich. Der Broker erzwingt den Passwort-only-Vertrag deshalb für
+den ausgelieferten Produktflow, kann aber direkte Identity-Toolkit-Aufrufe nicht
+technisch verhindern. Falls diese Regel projektweit atomar gelten muss, ist vor
+dem `GO` zusätzlich eine `beforeEmailSent`-Blocking-Function einzurichten und
+gegen Google-only sowie gemischte Konten nachzuweisen.
 
 ### 3. Bestehende Google-Konten
 
@@ -765,7 +808,8 @@ werden.
    Loginoptionen, `https://versorgungs-kompass.de/anmelden`, der exakte
    Google-Callback
    `https://versorgungs-kompass.de/__/auth/handler`, der kanonische
-   Auth-Helper-Proxy und der
+   Auth-Helper-Proxy, einer der beiden explizit freigegebenen Passwort-Action-
+   Callbacks, der gehärtete Reset-Broker und der
    höchstens 24 Stunden alte echte Google-Login-Nachweis müssen vollständig
    sein. Noch wird keine Einladung versendet.
 4. Jedes Passwortkonto create-only mit
@@ -839,6 +883,11 @@ nicht durch spontane Konto-, IAM- oder Binding-Erweiterungen repariert.
   keine und es ist keine weitere Domain freigegeben.
 - [ ] `emailPrivacyConfig.enableImprovedEmailPrivacy=true` ist read-only
   bestätigt.
+- [ ] `notification.sendEmail.callbackUri` entspricht entweder dem Zielbild
+  `https://versorgungs-kompass.de/konto/passwort-festlegen` oder – solange der
+  API-Write mit `EMAIL_TEMPLATE_UPDATE_NOT_ALLOWED` blockiert ist – exakt dem
+  dokumentierten Provider-Fallback
+  `https://steam-capsule-341212.firebaseapp.com/__/auth/action`.
 - [ ] `IAP_EXTERNAL_LOGIN_PAGE_URI` entspricht exakt
   `https://versorgungs-kompass.de/anmelden`.
 - [ ] Der eingeschränkte `IAP_EXTERNAL_AUTH_API_KEY` löst mit dem kanonischen
@@ -863,12 +912,22 @@ nicht durch spontane Konto-, IAM- oder Binding-Erweiterungen repariert.
   Redirect, `selfSignupVisible: false`,
   `visibleOptions: ["google.com","password"]` und Zeitpunkt überein.
 - [ ] Die tatsächlich ausgelieferte Loginseite zeigt ausschließlich Google und
-  E-Mail/Passwort als Anmeldeprovider; Selbstregistrierung, weitere Provider,
-  Account-Linking, anonyme Anmeldung und Self-Service-Passwort-Reset sind nicht
-  sichtbar.
+  E-Mail/Passwort als Anmeldeprovider sowie `Passwort vergessen?` für den
+  kontrollierten Reset; Selbstregistrierung, weitere Provider, Account-Linking
+  und anonyme Anmeldung sind nicht sichtbar.
+- [ ] Der Self-Service-Reset erzeugt keine Konten, Profile oder Bindings, wirkt
+  ausschließlich für bereits administrativ vorprovisionierte und vollständig
+  vorgebundene Passwortkonten und zeigt für bekannte, unbekannte und nicht als
+  Passwortkonto nutzbare Adressen dieselbe neutrale UI-Antwort.
+- [ ] Der Broker ist nur per exaktem kanonischem
+  `POST /api/auth/password-reset` erreichbar; sein Backend ist IAP-frei,
+  logfrei, Cloud-Armor-rate-limitiert und erhält keine Datenbank-, Storage- oder
+  Secret-Credentials.
 - [ ] Die eigene Passwortsetzseite wird unter
-  `https://versorgungs-kompass.de/konto/passwort-festlegen` ausgeliefert; der
-  Einladungslink zeigt keinen Firebase-/GCP-Projekthost und trägt
+  `https://versorgungs-kompass.de/konto/passwort-festlegen` ausgeliefert. Der
+  Einladungs-/Recovery-Link bleibt gebrandet; der Self-Service-Reset verwendet
+  bis zur Aufhebung der Provider-Sperre den gepinnten Firebase-Action-Handler.
+  Jeder vom Broker ausgelöste Reset trägt unabhängig davon exakt
   `continueUrl=https://versorgungs-kompass.de/start`.
 - [ ] Ein ungültiger, abgelaufener oder für eine nicht vorprovisionierte
   Adresse erzeugter Link legt weder Identity-Platform-Nutzer noch Profil,
@@ -941,11 +1000,15 @@ Der Owner prüft mindestens arbeitstäglich:
 
 E-Mail-Änderung, Provider-Linking, Rollenänderung oder ein zusätzliches Konto
 sind Adminvorgänge mit neuem Preview und Nachweis. Die Anwendung bietet dafür
-keine Self-Service-Funktion. Ein neuer Passwortsetz-/Recovery-Link für ein
-bereits administrativ angelegtes, unabhängig verifiziertes und exakt
-vorgebundenes Pilotkonto wird ausschließlich administrativ erzeugt und wieder
-owner-only übergeben. Vor jedem Versand wird der vollständige
-`unchanged`-Prebinding-Zustand erneut bestätigt.
+keine Self-Service-Funktion. Ausschließlich das Zurücksetzen des Passworts ist
+für ein bereits administrativ vorprovisioniertes und vollständig vorgebundenes
+Passwortkonto als Self-Service zulässig; es ändert weder Kontoidentität noch
+Profil, Binding, Rolle oder Scope. Die UI-Antwort bleibt unabhängig vom
+Kontostatus identisch, und der Broker setzt fest
+`continueUrl=https://versorgungs-kompass.de/start`. Der administrativ erzeugte
+owner-only Passwortsetz-/Recovery-Link bleibt als Fallback erhalten. Vor seiner
+erneuten Übergabe werden Pilotkonto und vollständiger `unchanged`-Prebinding-
+Zustand erneut bestätigt.
 
 ## Individuelles Offboarding
 
@@ -1046,7 +1109,8 @@ wird zusätzlich operativ zurückgebaut:
 5. Das Anwendungsrelease zuerst mit `IAP_IDENTITY_MODE=iam` ausrollen und die
    External-Ablaufvariable aus dem aktiven Runtimevertrag entfernen. Solange
    IAP noch External-Claims ausstellt, verwirft die IAM-Runtime diese bewusst;
-   der Dienst bleibt geschlossen.
+   der Dienst bleibt geschlossen. Derselbe Helm-Modus entfernt Deployment,
+   Service, BackendConfig und Exact-Route des Passwort-Reset-Brokers.
 6. Danach reconciliert derselbe Workflow beide IAP-Ressourcen auf
    `Use IAM to manage this resource` und stellt in derselben kontrollierten
    Umschalt-/Kompensationsphase die frühere Reauthentication mit
@@ -1090,6 +1154,13 @@ kein sicherer Rückbau.
   eigene Passwortsetzseite, aktivierte Improved Email Privacy, der exakte
   technische Google-OAuth-Callback, der höchstens 24 Stunden alte echte
   Google-Login-Nachweis und die sichtbare Provider-/UI-Prüfung bestanden sind,
+- `notification.sendEmail.callbackUri` einem der beiden explizit freigegebenen
+  Werte entspricht und der Provider-Fallback nur solange genutzt wird, wie der
+  API-Write mit `EMAIL_TEMPLATE_UPDATE_NOT_ALLOWED` blockiert ist,
+- der Self-Service-Passwort-Reset ausschließlich administrativ
+  vorprovisionierte und vollständig vorgebundene Passwortkonten bedient, für
+  jeden Kontostatus dieselbe neutrale UI-Antwort zeigt und stets
+  `continueUrl=https://versorgungs-kompass.de/start` verwendet,
 - der atomare Subject-Remap und sein Rückweg geprüft sind,
 - jedes Passwortkonto vor der Einladung entweder auf sein vorhandenes aktives
   Profil vorgebunden, im isolierten Anzeigename-Sonderfall atomar abgeglichen
@@ -1121,7 +1192,11 @@ kein sicherer Rückbau.
 - abweichendem Google-OAuth-Redirect, veraltetem/fehlendem
   Google-Login-Nachweis, sichtbarem Self-Signup oder zusätzlichen sichtbaren
   Anmeldeprovidern,
-- Self-Service-Passwort-Reset auf der Loginseite,
+- einem nicht freigegebenen Passwort-Action-Callback,
+- einem Self-Service-Passwort-Reset, der Konten, Profile oder Bindings anlegt,
+  bekannte und unbekannte Adressen unterscheidbar beantwortet, kein gehärtetes
+  Broker-Backend verwendet oder von
+  `continueUrl=https://versorgungs-kompass.de/start` abweicht,
 - Linkversand vor vollständigem `unchanged`-/No-op-Prebinding,
 - fehlendem oder inaktivem Bestandsprofil, fehlender `test_only`-Bindung oder
   einer kollidierenden Pending-Anfrage,

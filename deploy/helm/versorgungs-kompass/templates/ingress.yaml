@@ -90,6 +90,15 @@ spec:
     - host: {{ $host | quote }}
       http:
         paths:
+          {{- if and $.Values.passwordResetBroker.enabled (eq $host $.Values.ingress.host) }}
+          - path: /api/auth/password-reset
+            pathType: Exact
+            backend:
+              service:
+                name: {{ include "versorgungs-kompass.passwordResetBrokerFullname" $ }}
+                port:
+                  name: http
+          {{- end }}
           {{- if and $.Values.frontend.authProxy.enabled (eq $host $authProxyCanonicalHost) }}
           - path: /__/auth/
             pathType: Prefix

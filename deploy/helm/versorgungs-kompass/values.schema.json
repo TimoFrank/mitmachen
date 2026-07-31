@@ -2,11 +2,20 @@
   "$schema": "https://json-schema.org/draft-07/schema#",
   "title": "Versorgungs-Kompass Helm values",
   "type": "object",
-  "required": ["image", "config", "frontend"],
+  "required": [
+    "image",
+    "config",
+    "frontend",
+    "passwordResetBroker"
+  ],
   "properties": {
     "image": {
       "type": "object",
-      "required": ["repository", "tag", "digest"],
+      "required": [
+        "repository",
+        "tag",
+        "digest"
+      ],
       "properties": {
         "repository": {
           "type": "string",
@@ -28,6 +37,9 @@
     "ingress": {
       "type": "object",
       "properties": {
+        "enabled": {
+          "type": "boolean"
+        },
         "aliasHosts": {
           "type": "array",
           "uniqueItems": true,
@@ -38,17 +50,202 @@
         }
       }
     },
+    "passwordResetBroker": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "enabled",
+        "replicaCount",
+        "port",
+        "podAnnotations",
+        "serviceAccount",
+        "service",
+        "backendConfig",
+        "resources"
+      ],
+      "properties": {
+        "enabled": {
+          "type": "boolean"
+        },
+        "replicaCount": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "port": {
+          "const": 8080
+        },
+        "podAnnotations": {
+          "type": "object",
+          "maxProperties": 0,
+          "additionalProperties": false
+        },
+        "serviceAccount": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "create",
+            "name",
+            "annotations",
+            "automountServiceAccountToken"
+          ],
+          "properties": {
+            "create": {
+              "const": true
+            },
+            "name": {
+              "const": "versorgungs-kompass-password-reset"
+            },
+            "annotations": {
+              "type": "object",
+              "maxProperties": 0,
+              "additionalProperties": false
+            },
+            "automountServiceAccountToken": {
+              "const": false
+            }
+          }
+        },
+        "service": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "port",
+            "annotations"
+          ],
+          "properties": {
+            "port": {
+              "const": 80
+            },
+            "annotations": {
+              "type": "object",
+              "additionalProperties": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        "backendConfig": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "name",
+            "securityPolicyName",
+            "timeoutSec",
+            "connectionDrainingTimeoutSec",
+            "healthCheck"
+          ],
+          "properties": {
+            "name": {
+              "type": "string",
+              "maxLength": 63,
+              "pattern": "^$|^[a-z0-9]([-a-z0-9]*[a-z0-9])?$"
+            },
+            "securityPolicyName": {
+              "type": "string",
+              "maxLength": 63,
+              "pattern": "^$|^[a-z0-9]([-a-z0-9]*[a-z0-9])?$"
+            },
+            "timeoutSec": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 30
+            },
+            "connectionDrainingTimeoutSec": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 3600
+            },
+            "healthCheck": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "type",
+                "requestPath",
+                "port",
+                "checkIntervalSec",
+                "timeoutSec",
+                "healthyThreshold",
+                "unhealthyThreshold"
+              ],
+              "properties": {
+                "type": {
+                  "const": "HTTP"
+                },
+                "requestPath": {
+                  "const": "/healthz"
+                },
+                "port": {
+                  "const": 8080
+                },
+                "checkIntervalSec": {
+                  "type": "integer",
+                  "minimum": 1
+                },
+                "timeoutSec": {
+                  "type": "integer",
+                  "minimum": 1
+                },
+                "healthyThreshold": {
+                  "type": "integer",
+                  "minimum": 1
+                },
+                "unhealthyThreshold": {
+                  "type": "integer",
+                  "minimum": 1
+                }
+              }
+            }
+          }
+        },
+        "resources": {
+          "type": "object"
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "enabled": {
+                "const": true
+              }
+            },
+            "required": [
+              "enabled"
+            ]
+          },
+          "then": {
+            "properties": {
+              "backendConfig": {
+                "properties": {
+                  "securityPolicyName": {
+                    "minLength": 1
+                  }
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
     "config": {
       "type": "object",
-      "required": ["apiAuthMode"],
+      "required": [
+        "apiAuthMode"
+      ],
       "properties": {
         "apiAuthMode": {
           "type": "string",
-          "enum": ["iap", "oidc"]
+          "enum": [
+            "iap",
+            "oidc"
+          ]
         },
         "iapIdentityMode": {
           "type": "string",
-          "enum": ["iam", "external"]
+          "enum": [
+            "iam",
+            "external"
+          ]
         },
         "iapGcipProjectId": {
           "type": "string",
@@ -100,7 +297,11 @@
             }
           },
           "then": {
-            "required": ["oidcIssuer", "oidcAudience", "oidcJwksUrl"],
+            "required": [
+              "oidcIssuer",
+              "oidcAudience",
+              "oidcJwksUrl"
+            ],
             "properties": {
               "oidcIssuer": {
                 "pattern": "^https://[^\\s]+$"
@@ -121,7 +322,9 @@
                 "const": "external"
               }
             },
-            "required": ["iapIdentityMode"]
+            "required": [
+              "iapIdentityMode"
+            ]
           },
           "then": {
             "required": [
@@ -158,11 +361,16 @@
     },
     "database": {
       "type": "object",
-      "required": ["ssl"],
+      "required": [
+        "ssl"
+      ],
       "properties": {
         "ssl": {
           "type": "string",
-          "enum": ["verify-full", "disable"]
+          "enum": [
+            "verify-full",
+            "disable"
+          ]
         },
         "sslCaSecretName": {
           "type": "string"
@@ -184,22 +392,37 @@
         "stakeholderLogoBucket"
       ],
       "properties": {
-        "profileImageBucket": { "type": "string" },
-        "contactImageBucket": { "type": "string" },
-        "contactNoteAttachmentBucket": { "type": "string" },
-        "stakeholderLogoBucket": { "type": "string" }
+        "profileImageBucket": {
+          "type": "string"
+        },
+        "contactImageBucket": {
+          "type": "string"
+        },
+        "contactNoteAttachmentBucket": {
+          "type": "string"
+        },
+        "stakeholderLogoBucket": {
+          "type": "string"
+        }
       }
     },
     "networkPolicy": {
       "type": "object",
-      "required": ["enabled", "ingress"],
+      "required": [
+        "enabled",
+        "ingress"
+      ],
       "properties": {
         "enabled": {
           "const": true
         },
         "ingress": {
           "type": "object",
-          "required": ["apiAllowedCidrs", "frontendAllowedCidrs"],
+          "required": [
+            "apiAllowedCidrs",
+            "frontendAllowedCidrs",
+            "passwordResetAllowedCidrs"
+          ],
           "properties": {
             "apiAllowedCidrs": {
               "type": "array",
@@ -216,6 +439,14 @@
                 "type": "string",
                 "pattern": "^[0-9a-fA-F:.]+/[0-9]{1,3}$"
               }
+            },
+            "passwordResetAllowedCidrs": {
+              "type": "array",
+              "minItems": 1,
+              "items": {
+                "type": "string",
+                "pattern": "^[0-9a-fA-F:.]+/[0-9]{1,3}$"
+              }
             }
           }
         }
@@ -223,7 +454,13 @@
     },
     "frontend": {
       "type": "object",
-      "required": ["enabled", "bucketName", "releasePrefix", "contentRevision", "publicEntry"],
+      "required": [
+        "enabled",
+        "bucketName",
+        "releasePrefix",
+        "contentRevision",
+        "publicEntry"
+      ],
       "properties": {
         "enabled": {
           "type": "boolean"
@@ -243,7 +480,10 @@
           "type": "array",
           "items": {
             "type": "object",
-            "required": ["host", "targetOrigin"],
+            "required": [
+              "host",
+              "targetOrigin"
+            ],
             "additionalProperties": false,
             "properties": {
               "host": {
@@ -319,7 +559,11 @@
             "serviceAccount": {
               "type": "object",
               "additionalProperties": false,
-              "required": ["create", "name", "automountServiceAccountToken"],
+              "required": [
+                "create",
+                "name",
+                "automountServiceAccountToken"
+              ],
               "properties": {
                 "create": {
                   "const": true
@@ -334,7 +578,10 @@
             },
             "service": {
               "type": "object",
-              "required": ["port", "annotations"],
+              "required": [
+                "port",
+                "annotations"
+              ],
               "properties": {
                 "port": {
                   "type": "integer",
@@ -348,12 +595,19 @@
             },
             "resources": {
               "type": "object",
-              "required": ["requests", "limits"]
+              "required": [
+                "requests",
+                "limits"
+              ]
             },
             "backendConfig": {
               "type": "object",
               "additionalProperties": false,
-              "required": ["name", "timeoutSec", "healthCheck"],
+              "required": [
+                "name",
+                "timeoutSec",
+                "healthCheck"
+              ],
               "properties": {
                 "name": {
                   "type": "string",
@@ -405,7 +659,15 @@
         },
         "publicEntry": {
           "type": "object",
-          "required": ["enabled", "rootAliasHosts", "replicaCount", "image", "serviceAccount", "service", "backendConfig"],
+          "required": [
+            "enabled",
+            "rootAliasHosts",
+            "replicaCount",
+            "image",
+            "serviceAccount",
+            "service",
+            "backendConfig"
+          ],
           "properties": {
             "enabled": {
               "type": "boolean"
@@ -424,7 +686,12 @@
             },
             "image": {
               "type": "object",
-              "required": ["repository", "tag", "digest", "pullPolicy"],
+              "required": [
+                "repository",
+                "tag",
+                "digest",
+                "pullPolicy"
+              ],
               "properties": {
                 "repository": {
                   "type": "string",
@@ -443,14 +710,21 @@
                 },
                 "pullPolicy": {
                   "type": "string",
-                  "enum": ["Always", "IfNotPresent"]
+                  "enum": [
+                    "Always",
+                    "IfNotPresent"
+                  ]
                 }
               }
             },
             "serviceAccount": {
               "type": "object",
               "additionalProperties": false,
-              "required": ["create", "name", "automountServiceAccountToken"],
+              "required": [
+                "create",
+                "name",
+                "automountServiceAccountToken"
+              ],
               "properties": {
                 "create": {
                   "const": true
@@ -465,7 +739,9 @@
             },
             "service": {
               "type": "object",
-              "required": ["port"],
+              "required": [
+                "port"
+              ],
               "properties": {
                 "port": {
                   "type": "integer",
@@ -476,7 +752,12 @@
             },
             "backendConfig": {
               "type": "object",
-              "required": ["name", "timeoutSec", "healthCheck", "iap"],
+              "required": [
+                "name",
+                "timeoutSec",
+                "healthCheck",
+                "iap"
+              ],
               "properties": {
                 "name": {
                   "type": "string",
@@ -523,7 +804,10 @@
                 },
                 "iap": {
                   "type": "object",
-                  "required": ["enabled", "oauthClientCredentialsSecretName"],
+                  "required": [
+                    "enabled",
+                    "oauthClientCredentialsSecretName"
+                  ],
                   "properties": {
                     "enabled": {
                       "type": "boolean"
@@ -540,7 +824,9 @@
                             "const": true
                           }
                         },
-                        "required": ["enabled"]
+                        "required": [
+                          "enabled"
+                        ]
                       },
                       "then": {
                         "properties": {
@@ -567,10 +853,14 @@
                     "const": true
                   }
                 },
-                "required": ["enabled"]
+                "required": [
+                  "enabled"
+                ]
               }
             },
-            "required": ["authProxy"]
+            "required": [
+              "authProxy"
+            ]
           },
           "then": {
             "properties": {
@@ -587,7 +877,9 @@
                 "const": true
               }
             },
-            "required": ["enabled"]
+            "required": [
+              "enabled"
+            ]
           },
           "then": {
             "properties": {
@@ -609,10 +901,14 @@
                     "const": true
                   }
                 },
-                "required": ["enabled"]
+                "required": [
+                  "enabled"
+                ]
               }
             },
-            "required": ["publicEntry"]
+            "required": [
+              "publicEntry"
+            ]
           },
           "then": {
             "properties": {
@@ -629,7 +925,12 @@
       "properties": {
         "managedCertificate": {
           "type": "object",
-          "required": ["enabled", "name", "domains", "additionalCertificates"],
+          "required": [
+            "enabled",
+            "name",
+            "domains",
+            "additionalCertificates"
+          ],
           "properties": {
             "enabled": {
               "type": "boolean"
@@ -650,7 +951,10 @@
               "type": "array",
               "items": {
                 "type": "object",
-                "required": ["name", "domains"],
+                "required": [
+                  "name",
+                  "domains"
+                ],
                 "additionalProperties": false,
                 "properties": {
                   "name": {
@@ -678,7 +982,9 @@
                     "const": true
                   }
                 },
-                "required": ["enabled"]
+                "required": [
+                  "enabled"
+                ]
               },
               "then": {
                 "properties": {

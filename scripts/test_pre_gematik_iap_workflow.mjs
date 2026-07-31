@@ -236,6 +236,8 @@ assert.ok(
 const identityProject = "steam-capsule-341212";
 const identityApiHost = "versorgungs-kompass.de";
 const identityIapAuthDomain = "iap.googleapis.com";
+const identityPasswordActionFallback =
+  `https://${identityProject}.firebaseapp.com/__/auth/action`;
 const lockedIdentityProjectConfig = {
   name: `projects/${identityProjectNumber}/config`,
   signIn: {
@@ -251,6 +253,11 @@ const lockedIdentityProjectConfig = {
     }
   },
   emailPrivacyConfig: { enableImprovedEmailPrivacy: true },
+  notification: {
+    sendEmail: {
+      callbackUri: `https://${identityApiHost}/konto/passwort-festlegen`
+    }
+  },
   mfa: { state: "DISABLED" },
   multiTenant: { allowTenants: false },
   passwordPolicyConfig: {
@@ -281,6 +288,8 @@ function verifyIdentityProjectConfig(config, loginPageHost = identityApiHost) {
       "--arg", "project_id", identityProject,
       "--arg", "project_number", identityProjectNumber,
       "--arg", "api_host", identityApiHost,
+      "--arg", "custom_password_action_uri", `https://${identityApiHost}/konto/passwort-festlegen`,
+      "--arg", "fallback_password_action_uri", identityPasswordActionFallback,
       "--arg", "login_page_host", loginPageHost,
       identityProjectConfigFilter
     ],
@@ -342,6 +351,30 @@ assert.notEqual(
   verifyIdentityProjectConfig(lockedIdentityProjectConfig, "login.example.invalid").status,
   0,
   "Der Custom-Login-Host muss exakt dem kanonischen API-/Frontend-Host entsprechen."
+);
+assert.notEqual(
+  verifyIdentityProjectConfig({
+    ...lockedIdentityProjectConfig,
+    notification: {
+      sendEmail: {
+        callbackUri: `https://${identityApiHost}/__/auth/handler`
+      }
+    }
+  }).status,
+  0,
+  "Der Passwort-Reset darf nicht auf einen nicht freigegebenen Callback zeigen."
+);
+assert.equal(
+  verifyIdentityProjectConfig({
+    ...lockedIdentityProjectConfig,
+    notification: {
+      sendEmail: {
+        callbackUri: identityPasswordActionFallback
+      }
+    }
+  }).status,
+  0,
+  "Der gepinnte Firebase-Standard-Action-Handler muss als dokumentierter Provider-Fallback akzeptiert werden."
 );
 
 assert.doesNotMatch(

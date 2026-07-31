@@ -33,6 +33,40 @@ ingress:
     enabled: false
     secretName: ""
 
+passwordResetBroker:
+  enabled: false
+  replicaCount: 2
+  port: 8080
+  podAnnotations: {}
+  serviceAccount:
+    create: true
+    name: versorgungs-kompass-password-reset
+    annotations: {}
+    automountServiceAccountToken: false
+  service:
+    port: 80
+    annotations: {}
+  backendConfig:
+    name: versorgungs-kompass-password-reset
+    securityPolicyName: vk-pre-gematik-password-reset
+    timeoutSec: 10
+    connectionDrainingTimeoutSec: 0
+    healthCheck:
+      type: HTTP
+      requestPath: /healthz
+      port: 8080
+      checkIntervalSec: 15
+      timeoutSec: 5
+      healthyThreshold: 1
+      unhealthyThreshold: 3
+  resources:
+    requests:
+      cpu: 50m
+      memory: 64Mi
+    limits:
+      cpu: 250m
+      memory: 128Mi
+
 config:
   allowedOrigin: https://pre-gematik.example.invalid
   apiAuthMode: iap
@@ -73,6 +107,9 @@ networkPolicy:
       - 35.191.0.0/16
       - 130.211.0.0/22
     frontendAllowedCidrs:
+      - 35.191.0.0/16
+      - 130.211.0.0/22
+    passwordResetAllowedCidrs:
       - 35.191.0.0/16
       - 130.211.0.0/22
 

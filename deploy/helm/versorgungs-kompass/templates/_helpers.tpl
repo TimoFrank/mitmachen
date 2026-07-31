@@ -41,6 +41,28 @@ app.kubernetes.io/component: api
 {{- default (printf "%s-api" (include "versorgungs-kompass.fullname" .)) .Values.gke.backendConfig.name -}}
 {{- end -}}
 
+{{- define "versorgungs-kompass.passwordResetBrokerFullname" -}}
+{{- printf "%s-password-reset" (include "versorgungs-kompass.fullname" . | trunc 48 | trimSuffix "-") | trunc 63 | trimSuffix "-" -}}
+{{- end -}}
+
+{{- define "versorgungs-kompass.passwordResetBrokerSelectorLabels" -}}
+app.kubernetes.io/name: {{ include "versorgungs-kompass.name" . }}
+app.kubernetes.io/instance: {{ .Release.Name }}
+app.kubernetes.io/component: password-reset-broker
+{{- end -}}
+
+{{- define "versorgungs-kompass.passwordResetBrokerServiceAccountName" -}}
+{{- if .Values.passwordResetBroker.serviceAccount.create -}}
+{{- default "versorgungs-kompass-password-reset" .Values.passwordResetBroker.serviceAccount.name -}}
+{{- else -}}
+{{- required "passwordResetBroker.serviceAccount.name is required when passwordResetBroker.serviceAccount.create is false" .Values.passwordResetBroker.serviceAccount.name -}}
+{{- end -}}
+{{- end -}}
+
+{{- define "versorgungs-kompass.passwordResetBrokerBackendConfigName" -}}
+{{- default (include "versorgungs-kompass.passwordResetBrokerFullname" .) .Values.passwordResetBroker.backendConfig.name -}}
+{{- end -}}
+
 {{- define "versorgungs-kompass.gkeManagedCertificateName" -}}
 {{- default (printf "%s-api" (include "versorgungs-kompass.fullname" .)) .Values.gke.managedCertificate.name -}}
 {{- end -}}

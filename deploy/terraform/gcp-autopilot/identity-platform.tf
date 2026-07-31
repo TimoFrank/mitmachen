@@ -36,6 +36,10 @@ check "iap_external_identity_contract" {
 # The provider also does not expose improved email privacy. The custom portal
 # requires it to remain enabled; the deployment preflight reads and pins that
 # setting before any external-identity mutation.
+# notification.sendEmail.callbackUri remains intentionally outside Terraform:
+# the API currently rejects updates with EMAIL_TEMPLATE_UPDATE_NOT_ALLOWED.
+# The deployment preflight accepts only the desired canonical action page or
+# the pinned Firebase standard-action fallback while that provider limit lasts.
 resource "google_identity_platform_config" "pre_gematik" {
   project                    = var.GCP_PROJECT_ID
   autodelete_anonymous_users = false

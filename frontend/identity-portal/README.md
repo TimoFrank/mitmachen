@@ -13,7 +13,9 @@ Anwendung noch Cloud-Ressourcen und enthält keine Deployment-Automation.
 - ausschließlich `google.com` und `password`
 - `emailVerified=true` vor Übergabe an IAP
 - klare deutsche, barrierearme eigene Formulare auf offiziellen Firebase-Auth-APIs
-- Improved Email Privacy: generische Anmelde- und Reset-Rückmeldungen
+- Self-Service-Passwort-Reset über einen gleichursprünglichen, minimal
+  privilegierten Broker nur für bestehende, verifizierte Passwort-only-Konten
+- generische Broker- und UI-Rückmeldung unabhängig von der Kontoexistenz
 - lokal gebündelte, gepinnte npm-Artefakte; keine CDN-Runtime
 - exakter API-Key-Abgleich zwischen IAP-Link und lokaler Konfiguration
 - Action-URL-Allowlist für Modus, Parameter, Codeformat und HTTPS-Continue-Origin
@@ -64,8 +66,10 @@ window.IDENTITY_PORTAL_CONFIG = Object.freeze({
 });
 ```
 
-Der Web-API-Key ist kein Servergeheimnis, wird hier aber als strikter
-Umgebungsbezeichner verwendet. Es dürfen keine Service-Account-Schlüssel,
+Das Reset-Ziel ist absichtlich keine Browserkonfiguration: Der Broker setzt es
+fest auf den kanonischen `/start`-Pfad. Der Web-API-Key ist kein
+Servergeheimnis, wird hier aber als strikter Umgebungsbezeichner verwendet. Es
+dürfen keine Service-Account-Schlüssel,
 OAuth-Client-Secrets oder personenbezogenen Soll-Roster in diese Datei gelangen.
 
 ## Zielkonfiguration (manuell, nicht von diesem Prototyp ausgeführt)
@@ -78,16 +82,31 @@ OAuth-Client-Secrets oder personenbezogenen Soll-Roster in diese Datei gelangen.
    Provider und Selbstregistrierung deaktiviert lassen.
 4. Im Passwort-Reset-Template die benutzerdefinierte Action URL auf
    `https://versorgungs-kompass.de/konto/passwort-festlegen` setzen.
-5. `versorgungs-kompass.de` als Auth-Domain verwenden und
+5. Den exakten öffentlichen Pfad `POST /api/auth/password-reset` auf den
+   separaten Broker-Service routen. Nur dieser Dienst besitzt die nötigen
+   Identity-Platform-Rechte; er erhält keine Datenbank- oder Storage-Rechte.
+6. `versorgungs-kompass.de` als Auth-Domain verwenden und
    `https://versorgungs-kompass.de/__/auth/handler` im Google-OAuth-Client als
    primären Redirect hinterlegen.
-6. Ausschließlich den kanonischen Prefix `/__/auth/` über den dedizierten
+7. Ausschließlich den kanonischen Prefix `/__/auth/` über den dedizierten
    Auth-Helper-Proxy transparent und ohne Redirect an den festen,
    TLS-verifizierten Firebase-Upstream weiterleiten.
 
 Die exakten Portalpfade und der kanonische Auth-Helper-Prefix dürfen nicht selbst
 von IAP geschützt sein, sonst entsteht eine Redirect-Schleife. API, Anwendung
 und derselbe Prefix auf allen Alias-Hosts bleiben weiterhin hinter IAP.
+
+Der Browser sendet Reset-Anfragen ausschließlich gleichursprünglich an den
+Broker. Dieser prüft den Identity-Platform-Datensatz und stößt den Mailversand
+nur für aktive, verifizierte Passwort-only-Konten an. Unbekannte, unzulässige
+und zulässige Adressen erhalten denselben öffentlichen `202`-Vertrag; die
+Oberfläche zeigt deshalb immer dieselbe neutrale Erfolgsmeldung. Ein Reset
+erzeugt weder Profil noch Binding und gewährt allein keinen Anwendungszugriff.
+
+Der Browser benötigt weiterhin den öffentlichen Identity-Platform-Web-API-Key
+für die Anmeldung. Soll die Passwort-only-Regel auch gegen direkte Aufrufe der
+Identity-Toolkit-API projektweit gelten, ist zusätzlich eine
+`beforeEmailSent`-Blocking-Function erforderlich.
 
 ## Erforderliche HTTP-Header
 
@@ -122,6 +141,7 @@ Analytics-Telemetrie darf weder Action-Codes noch vollständige URLs erfassen.
 - visuelle Prüfung auf Desktop und Mobil
 - ausschließlich zwei sichtbare Provider; keine Registrierung
 - echter Google-Popup-Flow und E-Mail/Passwort-Flow
+- Reset-Anfrage für bekanntes und unbekanntes Konto mit identischer UI-Antwort
 - IAP-Rückleitung, stille Session-Erneuerung und vollständiger Logout
 - Reset mit gültigem, abgelaufenem und manipuliertem Link
 - CSP in Report-Only prüfen und anschließend erzwingen
