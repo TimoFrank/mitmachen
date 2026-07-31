@@ -429,6 +429,16 @@ assert.match(identityAdminRoleSql, /safe owner-only contract/i,
   "Als dauerhaftes Mitglied ist nur der geprüfte Objekt-Owner erlaubt.");
 assert.match(identityAdminRoleSql, /unsafe_other_function_privileges/i,
   "Alle weiteren effektiven Funktionsrechte müssen fail-closed geprüft werden.");
+assert.doesNotMatch(
+  identityAdminRoleSql,
+  /revoke\s+all\s+privileges\s+on\s+all\s+functions\s+in\s+schema\s+public\s+from\s+vk_identity_admin/i,
+  "Der Identity-Objekt-Owner darf keine ACLs fremder Funktionen zurücksetzen müssen."
+);
+assert.match(
+  identityAdminRoleSql,
+  /routine\.proowner\s*=\s*\(\s*select\s+oid\s+from\s+pg_catalog\.pg_roles\s+where\s+rolname\s*=\s*current_user\s*\)/i,
+  "Der Funktions-Reset muss auf Objekte des geprüften Owners begrenzt bleiben."
+);
 assert.match(identityAdminRoleSql, /grant\s+select\s+on\s+table\s+public\.profiles\s+to\s+vk_identity_admin/i);
 assert.match(
   identityAdminRoleSql,
