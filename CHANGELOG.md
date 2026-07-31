@@ -2,6 +2,32 @@
 
 Kompakte Zusammenfassung der wichtigsten Funktionssprünge des Versorgungs-Kompass.
 
+## Version 0.22 - Mehr Überblick. Mehr Verbindung.
+
+31. Juli 2026
+
+Der Versorgungs-Kompass wird klarer, verlässlicher und leichter nutzbar. Die neuen Verbesserungen unterstützen das Netzwerk dabei, Wissen zu teilen und gemeinsam ins Handeln zu kommen.
+
+### Verbesserungen für Einstieg und #Mitmachen
+
+Der Bereich Einstieg und #Mitmachen wurde weiterentwickelt. Die Änderung erleichtert die tägliche Arbeit mit dem Versorgungs-Kompass. Wichtige Informationen und Funktionen sind dadurch schneller erreichbar.
+
+### Teilnehmereinladung im Format-Kompass neu gestalten (#185)
+
+Die Änderung macht den Bereich Formate und Datenaustausch klarer und leichter nutzbar. Die wichtigsten Schritte sind schneller nachvollziehbar. So bleibt mehr Zeit für die gemeinsame Arbeit im Versorgungsnetzwerk.
+
+### Versorgungs-Kompass übersichtlicher aufgebaut
+
+Inhalte und Bedienelemente im Bereich Versorgungs-Kompass sind klarer angeordnet. Das erleichtert die Orientierung im Versorgungs-Kompass. Die nächsten Schritte sind dadurch schneller erkennbar.
+
+### Revise demo descriptions in README
+
+Die Änderung macht den Bereich Versorgungs-Kompass klarer und leichter nutzbar. Die wichtigsten Schritte sind schneller nachvollziehbar. So bleibt mehr Zeit für die gemeinsame Arbeit im Versorgungsnetzwerk.
+
+### Versorgungs-Kompass leichter nutzen
+
+Der Bereich Versorgungs-Kompass wurde verständlicher und angenehmer gestaltet. Wichtige Informationen und Aktionen sind schneller zu erfassen. Das erleichtert die Orientierung bei der täglichen Arbeit.
+
 ## Version 0.21 - Versorgung erleben, Wissen teilen
 
 24. Juli 2026
