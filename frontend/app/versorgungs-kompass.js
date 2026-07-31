@@ -1918,6 +1918,17 @@
       }
 
       let globalStatusTimer = null;
+      let pendingInitialDataReadyStatus = "";
+      let initialDataReadyStatusVisible = false;
+
+      function hideStorageStatus() {
+        window.clearTimeout(globalStatusTimer);
+        globalStatusTimer = null;
+        initialDataReadyStatusVisible = false;
+        if (!globalStatus) return;
+        globalStatus.hidden = true;
+        globalStatus.classList.remove("is-error", "is-ready", "is-entering");
+      }
 
       function setStorageStatus(message, options = {}) {
         if (!message) return;
@@ -1926,6 +1937,7 @@
         const isError = /fehl|nicht verfügbar|keine geschützten|error|warnung/i.test(message);
         const variant = !isError && options.variant === "ready" ? "ready" : "";
         window.clearTimeout(globalStatusTimer);
+        initialDataReadyStatusVisible = options.initialDataReady === true;
         (globalStatusMessage || globalStatus).textContent = message;
         globalStatus.hidden = false;
         globalStatus.classList.toggle("is-error", isError);
@@ -1933,10 +1945,23 @@
         globalStatus.classList.remove("is-entering");
         void globalStatus.offsetWidth;
         globalStatus.classList.add("is-entering");
-        globalStatusTimer = window.setTimeout(() => {
-          globalStatus.hidden = true;
-          globalStatus.classList.remove("is-error", "is-ready", "is-entering");
-        }, isError ? 12000 : Number(options.duration || 5000));
+        globalStatusTimer = window.setTimeout(hideStorageStatus, isError ? 12000 : Number(options.duration || 5000));
+      }
+
+      function showPendingInitialDataReadyStatus(view = activeView) {
+        const isCareWorkspace = view !== "home" && view !== "onboarding" && sidebarGroupForView(view) === "care";
+        if (!isCareWorkspace) {
+          if (initialDataReadyStatusVisible) hideStorageStatus();
+          return;
+        }
+        if (!pendingInitialDataReadyStatus) return;
+        const message = pendingInitialDataReadyStatus;
+        pendingInitialDataReadyStatus = "";
+        setStorageStatus(message, {
+          variant: "ready",
+          duration: 6500,
+          initialDataReady: true
+        });
       }
 
       function currentRole() {
@@ -5413,9 +5438,11 @@
       function loadStoredContacts() {
         loadedContactsFromStorage = false;
         const isPublicDemo = String(window.VERSORGUNGS_COMPASS_CONFIG?.dataMode || "").toLowerCase() === "demo";
-        setStorageStatus(window.dataService?.isConfigured?.()
+        const message = window.dataService?.isConfigured?.()
           ? isPublicDemo ? "Lokale synthetische Demo-Daten werden geladen" : "Geschütztes Backend wird geladen"
-          : "Geschütztes Backend ist nicht konfiguriert");
+          : "Geschütztes Backend ist nicht konfiguriert";
+        if (window.dataService?.isConfigured?.()) console.info(`[Versorgungs-Kompass] ${message}`);
+        else setStorageStatus(message);
         return [];
       }
 
@@ -38061,21 +38088,11 @@
       }
 
       function openSidebarForHomeDestination() {
-        if (!isMobileLayout()) {
-          setSidebarCollapsed(false, { persist: false });
+        if (isMobileLayout()) {
+          closeMobileSidebar();
           return;
         }
-        window.setTimeout(() => {
-          if (!isMobileLayout()) {
-            setSidebarCollapsed(false, { persist: false });
-            return;
-          }
-          setMobileSidebarExpanded(true);
-          window.requestAnimationFrame(() => {
-            const activeItem = document.querySelector(".sidebar-nav .primary-tab.is-active");
-            activeItem?.focus({ preventScroll: true });
-          });
-        }, 0);
+        setSidebarCollapsed(false, { persist: false });
       }
 
       function routeTokenForView(view) {
@@ -38185,6 +38202,7 @@
           clearSearchInput({ update: false });
         }
         activeView = view;
+        showPendingInitialDataReadyStatus(activeView);
         if (!["contacts", "personProfile"].includes(view)) {
           selectedConsentAvailability = [];
           contactSort = { key: "", direction: "" };
@@ -42887,12 +42905,10 @@
         contacts = (await window.dataService.loadContacts({ includeArchived: canAdministerData() })).map((contact, index) => sanitizeContact(contact, index));
         organizations = deriveOrganizationsFromContacts(contacts);
         loadedContactsFromStorage = false;
-        setStorageStatus(String(window.VERSORGUNGS_COMPASS_CONFIG?.dataMode || "").toLowerCase() === "demo"
+        pendingInitialDataReadyStatus = String(window.VERSORGUNGS_COMPASS_CONFIG?.dataMode || "").toLowerCase() === "demo"
           ? `Startklar: ${contacts.length} synthetische Demo-Kontakte stehen bereit.`
-          : `Startklar: ${contacts.length} Kontakte stehen bereit.`, {
-          variant: "ready",
-          duration: 6500
-        });
+          : `Startklar: ${contacts.length} Kontakte stehen bereit.`;
+        showPendingInitialDataReadyStatus(activeView);
       }
 
       let criticalInitialDataPromise = null;
