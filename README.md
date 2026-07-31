@@ -67,8 +67,8 @@
 
 | Zugang | Status | Inhalt |
 | --- | --- | --- |
-| [Öffentliche GitHub-Pages-Demo](https://timofrank.github.io/mitmachen/) | Demo | Fiktive Beispieldaten plus kuratiertes öffentliches Amtsträger-Verzeichnis |
-| [GKE-Demo](https://versorgungs-kompass.de/) | Interner PoC | Bereits über GKE bereitgestellter Arbeitsstand |
+| [GitHub-Pages-Demo](https://timofrank.github.io/mitmachen/) | Demo | Fiktive Beispieldaten, öffentlich verfügbar |
+| [GKE-Demo](https://versorgungs-kompass.de/) | Interner PoC | CI/CD Deployment aus Artifcat Regsitry von Helm Charts auf GKE-Cluster, mit IAM |
 | Zielbetrieb | In Vorbereitung | Nächster PoC-Schritt in der gematik-Infrastruktur |
 
 GitHub Pages veröffentlicht die öffentliche Demo. Die GKE-Demo läuft getrennt unter versorgungs-kompass.de; die bisherige Adresse mitmachen.timo-frank.de bleibt als HTTPS-Weiterleitung erhalten. Für den Zielbetrieb wird ein festgelegter Release Candidate gebaut und ein freigegebener Datenstand aus der geschützten Anwendung übernommen. Die Veröffentlichungswege können unabhängig voneinander weiterentwickelt werden. Der aktuelle PoC-Umfang und die benötigten Ressourcen stehen im [PoC-Durchstich](dokumentation/betrieb-und-deployment/POC_GEMATIK_DURCHSTICH.md).
