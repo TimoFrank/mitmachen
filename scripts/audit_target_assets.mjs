@@ -476,6 +476,10 @@ if (existsSync(identityPortalConfigPath)) {
     `${artifactLabel}/public/auth/portal-config.js erlaubt nicht exakt den geschuetzten Target-Origin`
   );
   assert(
+    !/passwordResetContinueUrl/.test(config),
+    `${artifactLabel}/public/auth/portal-config.js darf kein browsersteuerbares Passwort-Reset-Ziel enthalten`
+  );
+  assert(
     /enableLocalPreview:\s*false/.test(config),
     `${artifactLabel}/public/auth/portal-config.js darf den lokalen Vorschau-Modus im Target nicht aktivieren`
   );
@@ -486,8 +490,14 @@ if (existsSync(identityPortalAppPath)) {
   const app = readFileSync(identityPortalAppPath, "utf8");
   assert(
     /Mit Google anmelden/.test(app)
-      && /E-Mail-Adresse/.test(app),
-    `${artifactLabel}/public/auth/assets/app.js muss Google und E-Mail/Passwort anbieten`
+      && /E-Mail-Adresse/.test(app)
+      && /Reset-Link senden/.test(app)
+      && /\/api\/auth\/password-reset/.test(app),
+    `${artifactLabel}/public/auth/assets/app.js muss Google, E-Mail/Passwort und den Broker-Reset anbieten`
+  );
+  assert(
+    !/sendPasswordResetEmail/.test(app),
+    `${artifactLabel}/public/auth/assets/app.js darf Identity Platform nicht direkt zum Reset-Mail-Versand aufrufen`
   );
   assert(
     /\/public\/auth\/brand\/versorgungs-kompass\.svg/.test(app)

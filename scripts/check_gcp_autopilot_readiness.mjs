@@ -7,6 +7,8 @@ const requiredFiles = [
   ".github/workflows/deploy-pre-gematik.yml",
   ".dockerignore",
   "api/Dockerfile",
+  "api/password-reset-broker.mjs",
+  "api/password-reset-server.mjs",
   "api/server.mjs",
   "scripts/test_api_postgres_contracts.mjs",
   "scripts/test_pre_gematik_postgres_schema.mjs",
@@ -22,6 +24,7 @@ const requiredFiles = [
   "frontend/identity-portal/public/konto/passwort-festlegen/index.html",
   "frontend/identity-portal/src/app.jsx",
   "frontend/identity-portal/src/action.jsx",
+  "frontend/identity-portal/src/password-reset.js",
   "dokumentation/betrieb-und-deployment/DEPLOYMENT_GCP_AUTOPILOT.md",
   "deploy/postgres/pre-gematik/README.md",
   "deploy/postgres/pre-gematik/schema.sql",
@@ -56,6 +59,10 @@ const requiredFiles = [
   "deploy/frontend-public/Dockerfile",
   "deploy/helm/versorgungs-kompass/templates/managedcertificate.yaml",
   "deploy/helm/versorgungs-kompass/templates/networkpolicy.yaml",
+  "deploy/helm/versorgungs-kompass/templates/password-reset-broker-backendconfig.yaml",
+  "deploy/helm/versorgungs-kompass/templates/password-reset-broker-deployment.yaml",
+  "deploy/helm/versorgungs-kompass/templates/password-reset-broker-service.yaml",
+  "deploy/helm/versorgungs-kompass/templates/password-reset-broker-serviceaccount.yaml",
   "deploy/helm/versorgungs-kompass/templates/secretsync.yaml",
   "deploy/helm/versorgungs-kompass/templates/serviceaccount.yaml",
   "deploy/terraform/gcp-autopilot/gke.tf",
@@ -65,6 +72,7 @@ const requiredFiles = [
   "deploy/terraform/gcp-autopilot/identities.tf",
   "deploy/terraform/gcp-autopilot/identity-platform.tf",
   "deploy/terraform/gcp-autopilot/outputs.tf",
+  "deploy/terraform/gcp-autopilot/password-reset-broker.tf",
   "deploy/terraform/gcp-autopilot/secrets.tf",
   "deploy/terraform/gcp-autopilot/sql.tf",
   "deploy/terraform/gcp-autopilot/storage.tf",
@@ -157,7 +165,7 @@ const contentChecks = [
       /\/konto\/passwort-festlegen/,
       /\/public\/auth\/assets\/app\.js/,
       /\.emailPrivacyConfig\.enableImprovedEmailPrivacy == true/,
-      /https:\/\/versorgungs-kompass\.de\/__\/auth\/handler/,
+      /https:\/\/steam-capsule-341212\.firebaseapp\.com\/__\/auth\/action/,
       /customUi: true/,
       /Protected path \$\{protected_path\} did not return an IAP-generated boundary response/,
       /matrix_aliases=\([\s\S]*\/;probe[\s\S]*\/anmelden;probe/,
@@ -276,10 +284,22 @@ const contentChecks = [
     patterns: [
       /GoogleAuthProvider/,
       /signInWithEmailAndPassword/,
+      /requestPasswordResetEmail/,
       /Mit Google anmelden/,
-      /E-Mail-Adresse/
+      /E-Mail-Adresse/,
+      /Reset-Link senden/
     ],
-    reason: "Das Custom UI bietet ausschliesslich die vorgesehenen Google- und E-Mail/Passwort-Anmeldewege."
+    reason: "Das Custom UI bietet die vorgesehenen Google- und E-Mail/Passwort-Anmeldewege sowie den konto-neutralen Passwort-Reset ueber den gleichurspruenglichen Broker."
+  },
+  {
+    file: "frontend/identity-portal/src/password-reset.js",
+    patterns: [
+      /\/api\/auth\/password-reset/,
+      /credentials:\s*"omit"/,
+      /redirect:\s*"error"/,
+      /response\.status !== 202/
+    ],
+    reason: "Der Browser nutzt ausschliesslich den exakten gleichurspruenglichen und konto-neutralen Brokervertrag."
   },
   {
     file: "deploy/helm/versorgungs-kompass/files/frontend-auth-proxy.conf",
@@ -468,6 +488,42 @@ const contentChecks = [
     reason: "Identity Platform ist auf admin-angelegte E-Mail-Konten ohne MFA, Duplikate, Self-Signup oder Tenants begrenzt und loeschgeschuetzt."
   },
   {
+    file: "api/password-reset-server.mjs",
+    patterns: [
+      /PASSWORD_RESET_BROKER_PATH/,
+      /request\.method !== "POST"/,
+      /request\.url !== PASSWORD_RESET_BROKER_PATH/,
+      /request\.headers\.authorization/,
+      /request\.headers\.cookie/,
+      /trustedPasswordResetClientIp/,
+      /status >= 500/
+    ],
+    reason: "Der oeffentliche Broker akzeptiert nur den exakten, credential-freien Browservertrag und protokolliert keine Kontodaten."
+  },
+  {
+    file: "deploy/helm/versorgungs-kompass/templates/password-reset-broker-backendconfig.yaml",
+    patterns: [
+      /iap:\s*\n\s*enabled: false/,
+      /logging:\s*\n\s*enable: false/,
+      /securityPolicy:/,
+      /X-Password-Reset-Client-IP:\{client_ip_address\}/
+    ],
+    reason: "Der eigene Broker-BackendService bleibt IAP-frei, logfrei, Cloud-Armor-geschuetzt und erhaelt eine vom Load Balancer gesetzte Client-IP."
+  },
+  {
+    file: "deploy/terraform/gcp-autopilot/password-reset-broker.tf",
+    patterns: [
+      /google_compute_security_policy/,
+      /request\.path == '\/api\/auth\/password-reset'/,
+      /request\.method == 'POST'/,
+      /IDENTITY_PLATFORM_AUTHORIZED_HOSTNAME/,
+      /action\s*=\s*"rate_based_ban"/,
+      /enforce_on_key\s*=\s*"IP"/,
+      /action\s*=\s*"deny\(404\)"/
+    ],
+    reason: "Cloud Armor begrenzt den Broker auf den exakten kanonischen POST und rate-limitiert pro Client-IP."
+  },
+  {
     file: "scripts/reconcile_pre_gematik_iap_identity_mode.sh",
     patterns: [
       /gcipSettings/,
@@ -497,6 +553,11 @@ const contentChecks = [
 ];
 
 const forbiddenChecks = [
+  {
+    files: ["deploy/helm/versorgungs-kompass/templates/password-reset-broker-deployment.yaml"],
+    patterns: [/envFrom/, /secretKeyRef/, /DB_PASSWORD/, /cloud-sql/i, /\bstorage\b/i, /\bvolumes?:/],
+    reason: "Der oeffentliche Broker darf keine API-Konfiguration, Secrets, Datenbank-, Cloud-SQL- oder Storage-Anbindung erben."
+  },
   {
     files: ["deploy/helm/versorgungs-kompass/templates/frontend-public-deployment.yaml"],
     patterns: [/\binitContainers\b/, /\bgcloud\b/, /\bgs:\/\//, /frontend-public-content/],

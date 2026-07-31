@@ -29,10 +29,13 @@ test("routes a bare sign-in bookmark through the protected application", () => {
 test("offers only the approved Google and password sign-in operations", () => {
   assert.match(appSource, /signInWithPopup/u);
   assert.match(appSource, /signInWithEmailAndPassword/u);
+  assert.match(appSource, /requestPasswordResetEmail/u);
+  assert.match(appSource, /Wenn die Adresse zu einem freigeschalteten Konto gehört/u);
   assert.doesNotMatch(
     appSource,
     /createUserWithEmailAndPassword|sendSignInLinkToEmail|sendPasswordResetEmail|linkWithCredential/u
   );
+  assert.doesNotMatch(appSource, /Kein Konto|Konto nicht gefunden|user-not-found/u);
 });
 
 test("keeps public-facing copy and assets on the branded portal", () => {
@@ -123,11 +126,11 @@ test("keeps public-facing copy and assets on the branded portal", () => {
     assert.match(actionSource, new RegExp(asset.replaceAll(".", "\\."), "u"));
   }
   for (const stateCopy of [
-    "Deine Einladung wird sicher geprüft",
-    "Dieser Einladungslink ist nicht mehr gültig.",
+    "Dein Reset-Link wird sicher geprüft",
+    "Dieser Reset-Link ist nicht mehr gültig.",
     "Alles bereit.",
-    "Dein Passwort festlegen",
-    "Einladung nicht verfügbar"
+    "Neues Passwort festlegen",
+    "Reset-Link nicht verfügbar"
   ]) {
     assert.ok(actionSource.includes(stateCopy));
   }

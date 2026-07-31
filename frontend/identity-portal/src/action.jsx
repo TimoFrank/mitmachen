@@ -94,8 +94,8 @@ function ResetPasswordForm({ email, onSubmit, preview }) {
   return (
     <>
       <div className="card-heading">
-        <span className="step-label">{preview ? "Vorschau" : "Persönliche Einladung"}</span>
-        <h2>Dein Passwort festlegen</h2>
+        <span className="step-label">{preview ? "Vorschau" : "Sicherer Reset-Link"}</span>
+        <h2>Neues Passwort festlegen</h2>
         <p>
           Für <strong className="safe-email">{email}</strong>
         </p>
@@ -162,7 +162,7 @@ function ResetPasswordForm({ email, onSubmit, preview }) {
         ) : null}
         {error ? <p className="field-error" role="alert">{error}</p> : null}
         <button className="button button--primary" type="submit" disabled={!valid || busy}>
-          {busy ? "Wird gespeichert …" : "Zugang einrichten"}
+          {busy ? "Wird gespeichert …" : "Passwort speichern"}
         </button>
       </form>
     </>
@@ -217,21 +217,21 @@ function PasswordActionApp({
     content = (
       <div className="loading-block" role="status">
         <span className="spinner" aria-hidden="true" />
-        <p>Deine Einladung wird sicher geprüft …</p>
+        <p>Dein Reset-Link wird sicher geprüft …</p>
       </div>
     );
   } else if (state.status === "error") {
     content = (
       <InlineNotice
         tone="error"
-        title="Dieser Einladungslink ist nicht mehr gültig."
+        title="Dieser Reset-Link ist nicht mehr gültig."
         action={
           <a className="button button--secondary" href="/anmelden">
             Zur Anmeldung
           </a>
         }
       >
-        Antworte bitte auf deine Einladungsmail, wenn du einen neuen Link brauchst.
+        Fordere über die Anmeldung einen neuen Link an.
       </InlineNotice>
     );
   } else if (state.status === "success") {
@@ -297,8 +297,8 @@ function start() {
     root.render(
       <PortalShell
         eyebrow="Geschützter Zugang"
-        title="Einladung nicht verfügbar"
-        intro="Der sichere Einladungslink konnte gerade nicht geöffnet werden."
+        title="Reset-Link nicht verfügbar"
+        intro="Der sichere Reset-Link konnte gerade nicht geöffnet werden."
         config={config}
         compact
         variant="mitmachen"
@@ -306,7 +306,7 @@ function start() {
         compassBrands={COMPASS_BRANDS}
       >
         <InlineNotice tone="error" title="Bitte versuche es später erneut.">
-          Wenn das Problem bleibt, antworte bitte auf deine Einladungsmail.
+          Wenn das Problem bleibt, fordere über die Anmeldung einen neuen Link an.
         </InlineNotice>
       </PortalShell>
     );

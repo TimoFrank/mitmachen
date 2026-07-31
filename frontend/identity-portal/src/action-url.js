@@ -45,7 +45,8 @@ export function parseActionUrl(input, config) {
       candidate.protocol !== "https:" ||
       candidate.username ||
       candidate.password ||
-      !config.allowedContinueOrigins.includes(candidate.origin)
+      !config.allowedContinueOrigins.includes(candidate.origin) ||
+      candidate.href !== `${candidate.origin}/start`
     ) {
       throw new Error("Das Weiterleitungsziel ist nicht zulässig.");
     }

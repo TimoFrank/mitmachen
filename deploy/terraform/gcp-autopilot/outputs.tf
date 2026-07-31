@@ -177,3 +177,13 @@ output "FRONTEND_WORKLOAD_IDENTITY_PRINCIPAL" {
   description = "Direct frontend GKE Workload Identity principal with read-only access to the frontend artifact bucket."
   value       = local.gke_frontend_workload_principal
 }
+
+output "PASSWORD_RESET_WORKLOAD_IDENTITY_PRINCIPAL" {
+  description = "Dedicated password-reset broker Workload Identity principal with only Identity Platform user lookup and reset-email permissions."
+  value       = local.gke_password_reset_workload_principal
+}
+
+output "PASSWORD_RESET_CLOUD_ARMOR_POLICY_NAME" {
+  description = "Cloud Armor security policy attached only to the public password-reset broker backend."
+  value       = google_compute_security_policy.password_reset_broker.name
+}

@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { createRoot } from "react-dom/client";
 import { initializeApp, getApps } from "firebase/app";
 import {
@@ -21,6 +21,7 @@ import {
   getPortalConfig,
   isLocalPreview
 } from "./config.js";
+import { requestPasswordResetEmail } from "./password-reset.js";
 import {
   InlineNotice,
   PortalShell,
@@ -57,6 +58,112 @@ function normalizeSignInError(error) {
   return "Die Anmeldedaten konnten nicht bestätigt werden.";
 }
 
+function ForgotPasswordPanel({
+  email,
+  onBack,
+  onEmailChange,
+  preview
+}) {
+  const [busy, setBusy] = useState(false);
+  const [submitted, setSubmitted] = useState(false);
+  const [error, setError] = useState("");
+
+  async function requestReset(event) {
+    event.preventDefault();
+    if (busy) return;
+
+    setBusy(true);
+    setError("");
+    try {
+      if (!preview) {
+        await requestPasswordResetEmail(email);
+      }
+      setSubmitted(true);
+    } catch {
+      setError(
+        "Der Reset-Link konnte gerade nicht angefordert werden. Bitte versuche es in Kürze erneut."
+      );
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  if (submitted) {
+    return (
+      <>
+        <div className="card-heading">
+          <span className="step-label">E-Mail angefordert</span>
+          <h2>Prüfe dein Postfach</h2>
+          <p>Der nächste Schritt findet über einen geschützten Link statt.</p>
+        </div>
+        <InlineNotice
+          tone="success"
+          title="Deine Anfrage wurde entgegengenommen."
+          action={
+            <div className="notice-actions">
+              <button className="button button--primary" type="button" onClick={onBack}>
+                Zur Anmeldung
+              </button>
+              <button
+                className="text-button text-button--standalone"
+                type="button"
+                onClick={() => setSubmitted(false)}
+              >
+                Andere E-Mail-Adresse verwenden
+              </button>
+            </div>
+          }
+        >
+          Wenn die Adresse zu einem freigeschalteten Konto gehört, erhältst du
+          in Kürze einen einmal verwendbaren Reset-Link. Prüfe bitte auch den
+          Spam-Ordner.
+        </InlineNotice>
+      </>
+    );
+  }
+
+  return (
+    <>
+      <div className="card-heading">
+        <span className="step-label">Hilfe beim Zugang</span>
+        <h2>Passwort zurücksetzen</h2>
+        <p>
+          Gib deine E-Mail-Adresse ein. Wir senden dir einen Link, mit dem du
+          ein neues Passwort festlegen kannst.
+        </p>
+      </div>
+      <form className="auth-form" onSubmit={requestReset} aria-busy={busy}>
+        <label>
+          <span>E-Mail-Adresse</span>
+          <input
+            type="email"
+            autoComplete="email"
+            value={email}
+            onChange={(event) => onEmailChange(event.target.value)}
+            aria-describedby="password-reset-help"
+            autoFocus
+            required
+          />
+        </label>
+        <p className="field-hint" id="password-reset-help">
+          Aus Sicherheitsgründen ist die Rückmeldung für alle Adressen gleich.
+        </p>
+        {error ? <p className="field-error" role="alert">{error}</p> : null}
+        <button className="button button--primary" type="submit" disabled={busy}>
+          {busy ? "Link wird angefordert …" : "Reset-Link senden"}
+        </button>
+        <button
+          className="text-button text-button--standalone"
+          type="button"
+          onClick={onBack}
+        >
+          ← Zurück zur Anmeldung
+        </button>
+      </form>
+    </>
+  );
+}
+
 function SignInPanel({ auth, onCredential, preview = false }) {
   const [view, setView] = useState("signin");
   const [email, setEmail] = useState("");
@@ -64,6 +171,15 @@ function SignInPanel({ auth, onCredential, preview = false }) {
   const [showPassword, setShowPassword] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
+  const [restoreForgotFocus, setRestoreForgotFocus] = useState(false);
+  const forgotPasswordButton = useRef(null);
+
+  useEffect(() => {
+    if (view === "signin" && restoreForgotFocus) {
+      forgotPasswordButton.current?.focus();
+      setRestoreForgotFocus(false);
+    }
+  }, [restoreForgotFocus, view]);
 
   async function emailSignIn(event) {
     event.preventDefault();
@@ -94,34 +210,18 @@ function SignInPanel({ auth, onCredential, preview = false }) {
 
   if (view === "forgot") {
     return (
-      <>
-        <div className="card-heading">
-          <span className="step-label">Hilfe beim Zugang</span>
-          <h2>Passwort vergessen?</h2>
-          <p>
-            Antworte einfach auf deine persönliche Einladungsmail. Wir senden
-            dir anschließend einen neuen, sicheren Link.
-          </p>
-        </div>
-        <InlineNotice
-          title="Dein Konto bleibt geschützt."
-          action={
-            <button
-              className="button button--secondary"
-              type="button"
-              onClick={() => {
-                setView("signin");
-                setError("");
-              }}
-            >
-              ← Zurück zur Anmeldung
-            </button>
-          }
-        >
-          Passwörter werden nicht per E-Mail versendet. Der neue Link ist nur
-          einmal verwendbar und führt wieder auf versorgungs-kompass.de.
-        </InlineNotice>
-      </>
+      <ForgotPasswordPanel
+        email={email}
+        onEmailChange={setEmail}
+        onBack={() => {
+          setPassword("");
+          setShowPassword(false);
+          setView("signin");
+          setError("");
+          setRestoreForgotFocus(true);
+        }}
+        preview={preview}
+      />
     );
   }
 
@@ -165,9 +265,12 @@ function SignInPanel({ auth, onCredential, preview = false }) {
           <span className="label-row">
             <label htmlFor="identity-password">Passwort</label>
             <button
+              ref={forgotPasswordButton}
               className="text-button"
               type="button"
               onClick={() => {
+                setPassword("");
+                setShowPassword(false);
                 setView("forgot");
                 setError("");
               }}

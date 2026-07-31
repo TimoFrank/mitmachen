@@ -3,11 +3,13 @@ data "google_project" "current" {
 }
 
 locals {
-  environment       = "pre-gematik"
-  gke_location      = coalesce(var.GKE_LOCATION, var.GCP_REGION)
-  api_ksa_name      = "versorgungs-kompass-api"
-  frontend_ksa_name = "versorgungs-kompass-frontend"
-  name_prefix       = "vk-pre-gematik"
+  environment                = "pre-gematik"
+  gke_location               = coalesce(var.GKE_LOCATION, var.GCP_REGION)
+  api_ksa_name               = "versorgungs-kompass-api"
+  frontend_ksa_name          = "versorgungs-kompass-frontend"
+  password_reset_ksa_name    = "versorgungs-kompass-password-reset"
+  password_reset_policy_name = "vk-pre-gematik-password-reset"
+  name_prefix                = "vk-pre-gematik"
 
   labels = {
     application = "versorgungs-kompass"
@@ -43,6 +45,7 @@ locals {
     stakeholder_logos = local.stakeholder_logo_bucket
   }
 
-  gke_api_workload_principal      = "principal://iam.googleapis.com/projects/${data.google_project.current.number}/locations/global/workloadIdentityPools/${var.GCP_PROJECT_ID}.svc.id.goog/subject/ns/${var.K8S_NAMESPACE}/sa/${local.api_ksa_name}"
-  gke_frontend_workload_principal = "principal://iam.googleapis.com/projects/${data.google_project.current.number}/locations/global/workloadIdentityPools/${var.GCP_PROJECT_ID}.svc.id.goog/subject/ns/${var.K8S_NAMESPACE}/sa/${local.frontend_ksa_name}"
+  gke_api_workload_principal            = "principal://iam.googleapis.com/projects/${data.google_project.current.number}/locations/global/workloadIdentityPools/${var.GCP_PROJECT_ID}.svc.id.goog/subject/ns/${var.K8S_NAMESPACE}/sa/${local.api_ksa_name}"
+  gke_frontend_workload_principal       = "principal://iam.googleapis.com/projects/${data.google_project.current.number}/locations/global/workloadIdentityPools/${var.GCP_PROJECT_ID}.svc.id.goog/subject/ns/${var.K8S_NAMESPACE}/sa/${local.frontend_ksa_name}"
+  gke_password_reset_workload_principal = "principal://iam.googleapis.com/projects/${data.google_project.current.number}/locations/global/workloadIdentityPools/${var.GCP_PROJECT_ID}.svc.id.goog/subject/ns/${var.K8S_NAMESPACE}/sa/${local.password_reset_ksa_name}"
 }
