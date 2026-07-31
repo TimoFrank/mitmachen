@@ -937,10 +937,30 @@
           roles: ["admin"]
         },
         {
-          id: "roles",
-          title: "Rollen- und Teamübersicht verwalten",
-          body: "Team, Rollen und administrative Hinweise einordnen.",
+          id: "export",
+          title: "Daten exportieren",
+          body: "Kontakt- und Formatdaten kontrolliert herunterladen.",
           roles: ["admin"]
+        }
+      ];
+      const roleMatrixRoles = [
+        {
+          id: "admin",
+          label: "Admin",
+          summary: "Verantwortet Datenqualität und administrative Abläufe.",
+          detail: "Pflegen, importieren, exportieren, auswerten und archivieren."
+        },
+        {
+          id: "editor",
+          label: "Editor",
+          summary: "Pflegt die Inhalte der täglichen Zusammenarbeit.",
+          detail: "Kontakte, Organisationen, Formate und Notizen bearbeiten."
+        },
+        {
+          id: "viewer",
+          label: "Viewer",
+          summary: "Nutzt die freigegebenen Informationen lesend.",
+          detail: "Lesen, suchen, filtern und die Karte verwenden."
         }
       ];
 
@@ -1369,6 +1389,9 @@
       const profileRoleDisplay = document.getElementById("profile-role-display");
       const profileRoleDescription = document.getElementById("profile-role-description");
       const profilePermissionsList = document.getElementById("profile-permissions-list");
+      const roleMatrixRoleOverview = document.getElementById("role-matrix-role-overview");
+      const roleMatrixBody = document.getElementById("role-matrix-body");
+      const roleMatrixHeadings = [...document.querySelectorAll("[data-role-matrix-heading]")];
       const profilePhotoOpen = document.getElementById("profile-photo-open");
       const profilePhotoInput = document.getElementById("profile-photo-input");
       const profilePhotoModal = document.getElementById("profile-photo-modal");
@@ -2101,9 +2124,9 @@
         if (isTestAccess()) {
           return "Testbereich: Lesen und Selbstverwaltung sind möglich. Änderungen bleiben auf ausdrücklich markierte Testdaten begrenzt; Export, Import, Löschen und Administration sind gesperrt.";
         }
-        if (role === "admin") return "Admin: Kontakte und Organisationen anlegen und bearbeiten, Archiv und Import nutzen, Datenqualität prüfen.";
-        if (role === "editor") return "Editor: Kontakte und Organisationen anlegen und bearbeiten. Archiv, Import und Rollenverwaltung bleiben Admins vorbehalten.";
-        return "Viewer: Lesen, Suchen, Filtern, Karte und Auswertung nutzen. Änderungen sind deaktiviert.";
+        if (role === "admin") return "Admin: Inhalte pflegen, Import, Export, Auswertung und Archiv nutzen sowie Datenqualität prüfen.";
+        if (role === "editor") return "Editor: Kontakte, Organisationen, Formate und Notizen pflegen. Import, Export, Auswertung und Archiv bleiben Admins vorbehalten.";
+        return "Viewer: Lesen, suchen, filtern und die Karte nutzen. Änderungen und administrative Auswertungen sind deaktiviert.";
       }
 
       function showPermissionDenied(message) {
@@ -9145,6 +9168,59 @@
           .join("");
       }
 
+      function renderRoleMatrix(role = currentRole()) {
+        const normalizedRole = ["admin", "editor", "viewer"].includes(role) ? role : "viewer";
+        roleMatrixHeadings.forEach((heading) => {
+          const current = heading.dataset.roleMatrixHeading === normalizedRole;
+          heading.classList.toggle("is-current-role", current);
+          if (current) heading.setAttribute("aria-current", "true");
+          else heading.removeAttribute("aria-current");
+        });
+        if (roleMatrixRoleOverview) {
+          roleMatrixRoleOverview.innerHTML = roleMatrixRoles
+            .map((matrixRole) => {
+              const current = matrixRole.id === normalizedRole;
+              const allowedCount = rolePermissionItems.filter((item) => item.roles.includes(matrixRole.id)).length;
+              return `
+                <article class="role-matrix-role-summary ${current ? "is-current-role" : ""}" data-role-matrix-role-card="${matrixRole.id}" ${current ? 'aria-current="true"' : ""}>
+                  <div class="role-matrix-role-summary__head">
+                    <span class="account-role-pill account-role-pill--${matrixRole.id}">${escapeHtml(matrixRole.label)}</span>
+                    ${current ? '<span class="role-matrix-current-label">Deine Rolle</span>' : ""}
+                  </div>
+                  <strong>${escapeHtml(matrixRole.summary)}</strong>
+                  <p>${escapeHtml(matrixRole.detail)}</p>
+                  <span class="role-matrix-role-count">${allowedCount} von ${rolePermissionItems.length} Standardrechten</span>
+                </article>
+              `;
+            })
+            .join("");
+        }
+        if (roleMatrixBody) {
+          roleMatrixBody.innerHTML = rolePermissionItems
+            .map((item) => `
+              <tr>
+                <th scope="row">
+                  <strong>${escapeHtml(item.title)}</strong>
+                  <span>${escapeHtml(item.body)}</span>
+                </th>
+                ${roleMatrixRoles.map((matrixRole) => {
+                  const allowed = item.roles.includes(matrixRole.id);
+                  const current = matrixRole.id === normalizedRole;
+                  return `
+                    <td class="role-matrix-cell ${allowed ? "is-allowed" : "is-unavailable"} ${current ? "is-current-role" : ""}" data-role-matrix-role="${matrixRole.id}" data-role-label="${escapeHtml(matrixRole.label)}">
+                      <span class="role-matrix-status ${allowed ? "role-matrix-status--allowed" : "role-matrix-status--unavailable"}" aria-hidden="true">
+                        ${allowed ? '<svg viewBox="0 0 24 24"><path d="m5 12 4 4 10-10"></path></svg>' : "&ndash;"}
+                      </span>
+                      <span class="visually-hidden">${allowed ? "Erlaubt" : "Nicht erlaubt"}</span>
+                    </td>
+                  `;
+                }).join("")}
+              </tr>
+            `)
+            .join("");
+        }
+      }
+
       function isEmailLikeLabel(value = "") {
         const label = String(value || "").replace(/\s*\((Admin|Editor|Viewer|Nutzer)\)\s*$/i, "").trim();
         return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(label);
@@ -9756,6 +9832,7 @@
         });
         if (profileRoleDescription) profileRoleDescription.textContent = permissionText(role);
         renderProfilePermissions(role);
+        renderRoleMatrix(role);
         if (!profileForm) return;
         profileForm.elements.displayName.value = displayName;
         profileForm.elements.initials.value = initialsFromProfile(profile);

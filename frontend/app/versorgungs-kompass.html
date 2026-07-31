@@ -2417,6 +2417,44 @@
                     <div class="profile-permission-list" id="profile-permissions-list" aria-label="Rollenbasierte Berechtigungen"></div>
                   </details>
                 </div>
+                <div class="role-matrix-workspace" aria-labelledby="role-matrix-title" aria-describedby="role-matrix-context">
+                  <div class="role-matrix-heading">
+                    <div>
+                      <span class="role-matrix-eyebrow">Standardrollen</span>
+                      <h4 id="role-matrix-title">Admin, Editor und Viewer im Vergleich</h4>
+                      <p id="role-matrix-context">Die Matrix zeigt auf einen Blick, welche Funktionen im regulären Zielbetrieb freigeschaltet sind.</p>
+                    </div>
+                    <div class="role-matrix-legend" aria-label="Legende">
+                      <span><span class="role-matrix-status role-matrix-status--allowed" aria-hidden="true">
+                        <svg viewBox="0 0 24 24"><path d="m5 12 4 4 10-10"></path></svg>
+                      </span>Erlaubt</span>
+                      <span><span class="role-matrix-status role-matrix-status--unavailable" aria-hidden="true">&ndash;</span>Nicht erlaubt</span>
+                    </div>
+                  </div>
+                  <div class="role-matrix-role-overview" id="role-matrix-role-overview" aria-label="Rollen im Überblick"></div>
+                  <div class="role-matrix-table-wrap" role="region" aria-label="Rollen- und Berechtigungsmatrix" tabindex="0">
+                    <table class="role-matrix-table">
+                      <caption class="visually-hidden">Berechtigungen der Rollen Admin, Editor und Viewer</caption>
+                      <colgroup>
+                        <col class="role-matrix-permission-column" />
+                        <col span="3" class="role-matrix-role-column" />
+                      </colgroup>
+                      <thead>
+                        <tr>
+                          <th scope="col">Funktion</th>
+                          <th scope="col" data-role-matrix-heading="admin"><span class="account-role-pill account-role-pill--admin">Admin</span></th>
+                          <th scope="col" data-role-matrix-heading="editor"><span class="account-role-pill account-role-pill--editor">Editor</span></th>
+                          <th scope="col" data-role-matrix-heading="viewer"><span class="account-role-pill account-role-pill--viewer">Viewer</span></th>
+                        </tr>
+                      </thead>
+                      <tbody id="role-matrix-body"></tbody>
+                    </table>
+                  </div>
+                  <div class="role-matrix-notes" aria-label="Hinweise zur Rollenmatrix">
+                    <p><strong>Zusätzliche Schutzregeln:</strong> Owner-Zuordnung, Datenschutz und Testbereiche können einzelne Aktionen weiter einschränken.</p>
+                    <p><strong>Rollenvergabe:</strong> Rollen werden über einen geschützten Betriebsprozess vergeben und nicht in dieser Übersicht geändert.</p>
+                  </div>
+                </div>
               </section>
               <section class="profile-section" data-target-session>
                 <h3>Sitzung</h3>
