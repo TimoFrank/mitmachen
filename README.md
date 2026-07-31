@@ -15,11 +15,11 @@
 </p>
 
 > [!IMPORTANT]
-> Die öffentliche Demo arbeitet mit fiktiven CRM- und Fachdaten. Eine klar getrennte Ausnahme ist das kuratierte Verzeichnis der Mitglieder des Gesundheitsausschusses mit öffentlichen Angaben des Deutschen Bundestages. Verbindliche Informationen zu [#Mitmachen](https://www.gematik.de/mitmachen) und dem [Versorgungs-Netzwerk](https://www.gematik.de/mitmachen/versorgungs-netzwerk) stehen auf gematik.de.
+> Diese öffentliche Demo arbeitet mit fiktiven Daten. Verbindliche Informationen zu [#Mitmachen](https://www.gematik.de/mitmachen) und dem [Versorgungs-Netzwerk](https://www.gematik.de/mitmachen/versorgungs-netzwerk) stehen auf gematik.de.
 
 ## Vier Kompasse
 
-**#Mitmachen** verbindet vier gleichrangige Kompasse. Eigene Signets und Farben schaffen Orientierung; die vollständigen Namen bleiben in allen Ansichten sichtbar.
+**#Mitmachen** verbindet vier gleichrangige Kompasse.
 
 <table>
   <tr>
