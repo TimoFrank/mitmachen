@@ -51,28 +51,11 @@
     const runtime = runtimeConfig();
     if (runtime.authMode !== "iap") return buildLoginUrl() + "#signed-out";
     if (runtime.iapIdentityMode === "external") {
-      const configuredLoginPageUri = String(runtime.iapExternalLoginPageUri || "");
-      const apiKey = String(runtime.iapExternalAuthApiKey || "");
-      let loginPageUrl;
-      try {
-        loginPageUrl = new URL(configuredLoginPageUri);
-      } catch {
-        throw new Error("Der vollständige Identity-Platform-Logout ist nicht sicher konfiguriert.");
-      }
-      if (
-        loginPageUrl.protocol !== "https:"
-        || loginPageUrl.username
-        || loginPageUrl.password
-        || loginPageUrl.search
-        || loginPageUrl.hash
-        || loginPageUrl.href !== configuredLoginPageUri
-        || !/^AIza[0-9A-Za-z_-]{35}$/.test(apiKey)
-      ) {
-        throw new Error("Der vollständige Identity-Platform-Logout ist nicht sicher konfiguriert.");
-      }
-      loginPageUrl.searchParams.set("apiKey", apiKey);
-      loginPageUrl.searchParams.set("mode", "signout");
-      return loginPageUrl.href;
+      const logoutUrl = new URL(window.location.href);
+      logoutUrl.search = "";
+      logoutUrl.hash = "";
+      logoutUrl.searchParams.set("gcp-iap-mode", "GCIP_SIGNOUT");
+      return logoutUrl.href;
     }
     const loginPath = config.loginPath || "./" + (config.loginFile || "login.html");
     const logoutUrl = new URL(loginPath, window.location.href);
