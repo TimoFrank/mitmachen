@@ -656,7 +656,7 @@ const validUrlMap = {
           service: "https://www.googleapis.com/compute/v1/projects/p/global/backendServices/public"
         },
         {
-          paths: ["/__/auth/*"],
+          paths: ["/__/auth", "/__/auth/*"],
           service: "https://www.googleapis.com/compute/v1/projects/p/global/backendServices/auth-proxy"
         },
         {
@@ -809,7 +809,21 @@ function verifyAuthUrlMap(value) {
 assert.equal(
   verifyAuthUrlMap(validUrlMap).status,
   0,
-  "Der Auth-Helper-URL-Map-Filter muss ausschließlich den kanonischen Prefix akzeptieren."
+  "Der Auth-Helper-URL-Map-Filter muss exakt GKEs normalisiertes Basis-/Wildcard-Paar akzeptieren."
+);
+const nearMissAuthMap = structuredClone(validUrlMap);
+nearMissAuthMap.pathMatchers[0].pathRules[1].paths[0] = "/__/auth/";
+assert.notEqual(
+  verifyAuthUrlMap(nearMissAuthMap).status,
+  0,
+  "Der Auth-Helper-URL-Map-Filter darf den abweichenden Slash-Near-Miss nicht akzeptieren."
+);
+const incompleteAuthMap = structuredClone(validUrlMap);
+incompleteAuthMap.pathMatchers[0].pathRules[1].paths = ["/__/auth/*"];
+assert.notEqual(
+  verifyAuthUrlMap(incompleteAuthMap).status,
+  0,
+  "Der Auth-Helper-URL-Map-Filter muss das vollständige GKE-Basis-/Wildcard-Paar verlangen."
 );
 const widenedAuthMap = structuredClone(validUrlMap);
 widenedAuthMap.pathMatchers[0].pathRules[1].paths.push("/__/firebase/*");

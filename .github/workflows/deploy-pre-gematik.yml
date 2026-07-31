@@ -1975,9 +1975,7 @@ jobs:
                     ]
                   | unique
                   | sort
-                ) as $paths
-                | ($paths | length) >= 1
-                and all($paths[]; . == "/__/auth/" or . == "/__/auth/*")
+                ) == ["/__/auth", "/__/auth/*"]
               ' <<< "$url_map_state" >/dev/null
           }
 
