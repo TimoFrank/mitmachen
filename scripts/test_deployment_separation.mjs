@@ -25,6 +25,7 @@ const offlinePoliticsUpdater = path.join(
 );
 const apiBaseUrl = "https://gateway.pre-gematik.example";
 const identityPlatformApiKey = `AIza${"A".repeat(35)}`;
+const preparedExternalAuthApiKey = `AIza${"B".repeat(35)}`;
 const identityPlatformProjectId = "steam-capsule-341212";
 
 const quotedGreaterThanTag = scanHtmlStartTags(
@@ -636,7 +637,7 @@ try {
     {
       IAP_IDENTITY_MODE: "iam",
       IAP_EXTERNAL_LOGIN_PAGE_URI: preparedExternalLoginPageUri,
-      IAP_EXTERNAL_AUTH_API_KEY: identityPlatformApiKey
+      IAP_EXTERNAL_AUTH_API_KEY: preparedExternalAuthApiKey
     },
     "--profile", "target",
     "--output", targetIamRollbackDir,
@@ -653,13 +654,13 @@ try {
   assert.match(targetIamRollbackConfig, /iapExternalLoginPageUri:\s*""/);
   assert.match(targetIamRollbackConfig, /iapExternalAuthApiKey:\s*""/);
   assert.ok(!targetIamRollbackConfig.includes(preparedExternalLoginPageUri));
-  assert.ok(!targetIamRollbackConfig.includes(identityPlatformApiKey));
+  assert.ok(!targetIamRollbackConfig.includes(preparedExternalAuthApiKey));
 
   buildWithEnvironment(
     {
       IAP_IDENTITY_MODE: "external",
       IAP_EXTERNAL_LOGIN_PAGE_URI: preparedExternalLoginPageUri,
-      IAP_EXTERNAL_AUTH_API_KEY: identityPlatformApiKey
+      IAP_EXTERNAL_AUTH_API_KEY: preparedExternalAuthApiKey
     },
     "--profile", "target",
     "--output", targetExternalDir,
@@ -674,7 +675,7 @@ try {
   );
   assert.match(targetExternalConfig, /iapIdentityMode:\s*"external"/);
   assert.ok(targetExternalConfig.includes(preparedExternalLoginPageUri));
-  assert.ok(targetExternalConfig.includes(identityPlatformApiKey));
+  assert.ok(targetExternalConfig.includes(preparedExternalAuthApiKey));
 
   const nestedOfflineDirectory = path.join(targetDir, "nested");
   fs.mkdirSync(nestedOfflineDirectory, { recursive: true });
