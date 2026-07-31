@@ -1600,7 +1600,14 @@ assert.match(
 );
 assert.match(publicNginxConfig, /default-src 'none'/);
 assert.match(publicNginxConfig, /script-src 'none'/);
-assert.match(publicNginxConfig, /~\^\/anmelden[\s\S]*"default-src 'none'[\s\S]*script-src 'self'/);
+assert.match(
+  publicNginxConfig,
+  /~\^\/anmelden[\s\S]*"default-src 'none'[\s\S]*script-src 'self' https:\/\/apis\.google\.com;/
+);
+assert.doesNotMatch(
+  publicNginxConfig,
+  /~\^\/anmelden[^\n]*(?:script-src[^;"]*(?:\*|'unsafe-inline'|'unsafe-eval'))/
+);
 assert.match(publicNginxConfig, /~\^\/konto\/passwort-festlegen[\s\S]*"default-src 'none'[\s\S]*script-src 'self'/);
 assert.match(publicNginxConfig, /Cache-Control "no-store"/);
 assert.match(authConfig, /loginPath:\s*"\.\.\/login\/login\.html"/);

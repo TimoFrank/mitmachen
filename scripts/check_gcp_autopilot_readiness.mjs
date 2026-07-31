@@ -389,7 +389,7 @@ const contentChecks = [
       /try_files \/\$public_share_image_document =404/,
       /default-src 'none'/,
       /script-src 'none'/,
-      /~\^\/anmelden[\s\S]*"default-src 'none'[\s\S]*script-src 'self'/,
+      /~\^\/anmelden[\s\S]*"default-src 'none'[\s\S]*script-src 'self' https:\/\/apis\.google\.com;/,
       /Cache-Control "no-store"/
     ],
     reason: "Der Public-nginx serviert beide Portal-Aliase und nur die expliziten lokalen Identity-/Share-Artefakte; Near-Misses und Mutationen bleiben gesperrt."

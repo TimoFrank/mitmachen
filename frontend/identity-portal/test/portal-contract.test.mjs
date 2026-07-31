@@ -41,6 +41,22 @@ test("keeps the Firebase Auth iframe on the canonical first-party origin", () =>
   assert.doesNotMatch(signInHtml, /firebaseapp\.com/u);
 });
 
+test("allows only the external script required by Firebase Google popup auth", () => {
+  assert.match(
+    signInHtml,
+    /script-src 'self' https:\/\/apis\.google\.com;/u
+  );
+  assert.doesNotMatch(
+    signInHtml,
+    /script-src[^"]*(?:\*|'unsafe-inline'|'unsafe-eval')/u
+  );
+  assert.doesNotMatch(
+    actionHtml,
+    /apis\.google\.com/u,
+    "Die Passwortseite darf den Google-Popup-Origin nicht freigeben."
+  );
+});
+
 test("scrubs the one-time action code before validation or remote work", () => {
   const scrubPosition = actionSource.indexOf(
     'history.replaceState({}, "", window.location.pathname)'
