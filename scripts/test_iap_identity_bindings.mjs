@@ -63,6 +63,21 @@ assert.match(identityAdminRoleSql, /safe owner-only contract/iu,
   "The only persistent member must be the verified object owner.");
 assert.match(identityAdminRoleSql, /unsafe_other_function_privileges/iu,
   "Every other effective public-function privilege must fail closed.");
+assert.doesNotMatch(
+  identityAdminRoleSql,
+  /revoke all privileges on all functions in schema public from vk_identity_admin/iu,
+  "Der Objekt-Owner darf ACLs fremder Funktionen nicht global verändern müssen."
+);
+assert.match(
+  identityAdminRoleSql,
+  /routine\.proowner = \(\s*select oid from pg_catalog\.pg_roles where rolname = current_user\s*\)/u,
+  "Nur Funktionen des geprüften Objekt-Owners dürfen zurückgesetzt werden."
+);
+assert.match(
+  identityAdminRoleSql,
+  /routine\.oid <> 'public\.pre_gematik_touch_updated_at\(\)'::pg_catalog\.regprocedure[\s\S]*has_function_privilege\('vk_identity_admin', routine\.oid, 'EXECUTE'\)/u,
+  "Der Effektivrechte-Prüfer muss fremde Funktionen weiterhin fail-closed erfassen."
+);
 assert.match(identityAdminRoleSql, /grant select on table public\.profiles to vk_identity_admin/iu);
 assert.match(
   identityAdminRoleSql,
