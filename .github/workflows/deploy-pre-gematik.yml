@@ -965,6 +965,55 @@ jobs:
           kubectl version --client
           kubectl auth can-i get deployments --namespace "$K8S_NAMESPACE"
 
+      - name: Refuse unsafe live Ingress state before any deployment mutation
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          ingress_rules_are_helm_owned_and_canary_free() {
+            local ingress_json="$1"
+            jq --exit-status '
+              (
+                [
+                  .metadata.managedFields[]?
+                  | select(
+                      (.fieldsV1["f:spec"]["f:rules"]? // null) != null
+                    )
+                  | {
+                      manager,
+                      operation,
+                      apiVersion,
+                      subresource: (.subresource // "")
+                    }
+                ]
+              ) == [{
+                manager: "helm",
+                operation: "Apply",
+                apiVersion: "networking.k8s.io/v1",
+                subresource: ""
+              }]
+              and (
+                [
+                  .spec.rules[]?.http.paths[]?.path
+                  | select(
+                      type == "string"
+                      and startswith("/.well-known/vk-iap-canary/")
+                    )
+                ]
+                | length
+              ) == 0
+            ' <<< "$ingress_json" >/dev/null
+          }
+
+          live_ingress_state="$(kubectl --namespace "$K8S_NAMESPACE" get ingress \
+            "${HELM_RELEASE}-api" \
+            --show-managed-fields \
+            --output=json)"
+          if ! ingress_rules_are_helm_owned_and_canary_free "$live_ingress_state"; then
+            echo "The live Ingress rules are not exclusively owned by Helm or still contain a canary route; refusing every deployment mutation." >&2
+            exit 1
+          fi
+
       - name: Require live Hospitations-Kompass database contract before rollout
         shell: bash
         run: |
@@ -1681,7 +1730,8 @@ jobs:
             helm upgrade --install "$HELM_RELEASE" "$CHART_PATH" \
               --namespace "$K8S_NAMESPACE" \
               --create-namespace \
-              --atomic \
+              --rollback-on-failure \
+              --server-side=true \
               --wait \
               --timeout 15m \
               -f "$GCP_VALUES_PATH" \

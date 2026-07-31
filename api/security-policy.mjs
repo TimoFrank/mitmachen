@@ -144,7 +144,7 @@ export function assertIapJwtClaims(payload, expectedAudience, options = {}) {
     && iat <= now + IAP_CLOCK_SKEW_SECONDS
     && (nbf == null || nbf <= now + IAP_CLOCK_SKEW_SECONDS)
     && (nbf == null || nbf <= exp)
-    && lifetime <= IAP_MAX_TOKEN_LIFETIME_SECONDS + IAP_CLOCK_SKEW_SECONDS;
+    && lifetime <= IAP_MAX_TOKEN_LIFETIME_SECONDS + (2 * IAP_CLOCK_SKEW_SECONDS);
   if (
     payload?.iss !== IAP_ISSUER
     || payload?.aud !== expectedAudience
@@ -283,11 +283,28 @@ function externalIdentityError(status, message) {
 }
 
 function parsedGcipClaim(value) {
-  if (typeof value !== "string" || !value || Buffer.byteLength(value, "utf8") > IAP_GCIP_CLAIM_MAX_BYTES) {
-    throw externalIdentityError(401, "IAP-JWT enthaelt keinen gueltigen GCIP-Claim.");
-  }
   try {
-    const parsed = JSON.parse(value);
+    let serialized;
+    if (typeof value === "string") {
+      serialized = value;
+    } else if (
+      value
+      && typeof value === "object"
+      && !Array.isArray(value)
+      && Object.getPrototypeOf(value) === Object.prototype
+    ) {
+      serialized = JSON.stringify(value);
+    } else {
+      throw new Error("GCIP-Claim ist kein einfaches JSON-Objekt.");
+    }
+    if (
+      typeof serialized !== "string"
+      || !serialized
+      || Buffer.byteLength(serialized, "utf8") > IAP_GCIP_CLAIM_MAX_BYTES
+    ) {
+      throw new Error("GCIP-Claim ist leer oder zu gross.");
+    }
+    const parsed = JSON.parse(serialized);
     if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
       throw new Error("GCIP-Claim ist kein Objekt.");
     }

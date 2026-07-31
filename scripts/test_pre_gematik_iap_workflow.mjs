@@ -107,6 +107,9 @@ const projectNumberVerificationScript = stepScript(
 const identityPlatformPreflightScript = stepScript(
   "Preflight locked Identity Platform providers without mutation"
 );
+const ingressSafetyPreflightScript = stepScript(
+  "Refuse unsafe live Ingress state before any deployment mutation"
+);
 const liveHospitationContractScript = stepScript(
   "Require live Hospitations-Kompass database contract before rollout"
 );
@@ -123,6 +126,7 @@ assertBashSyntax(repositoryCheckScript, "Repository-Pruefungen");
 assertBashSyntax(immutableTagScript, "Unveraenderliche-Tag-Pruefung");
 assertBashSyntax(projectNumberVerificationScript, "Projektnummer-Verifikation");
 assertBashSyntax(identityPlatformPreflightScript, "Identity-Platform-Preflight");
+assertBashSyntax(ingressSafetyPreflightScript, "Ingress-Sicherheits-Preflight");
 assertBashSyntax(liveHospitationContractScript, "Live-Hospitations-Kompass-Datenbankvertrag");
 assertBashSyntax(iapScript, "IAP-Deployment");
 assertBashSyntax(rolloutVerificationScript, "Rollout-Verifikation");
@@ -692,6 +696,9 @@ assert.equal(
 const connectStepPosition = workflow.indexOf(
   "      - name: Connect to GKE through the DNS endpoint\n"
 );
+const ingressGuardStepPosition = workflow.indexOf(
+  "      - name: Refuse unsafe live Ingress state before any deployment mutation\n"
+);
 const liveHospitationContractStepPosition = workflow.indexOf(
   "      - name: Require live Hospitations-Kompass database contract before rollout\n"
 );
@@ -699,7 +706,12 @@ const nextStepAfterConnect = workflow.indexOf(
   "\n      - name: ",
   connectStepPosition + 1
 ) + 1;
+const nextStepAfterIngressGuard = workflow.indexOf(
+  "\n      - name: ",
+  ingressGuardStepPosition + 1
+) + 1;
 assert.notEqual(connectStepPosition, -1, "Der GKE-Verbindungsschritt fehlt.");
+assert.notEqual(ingressGuardStepPosition, -1, "Der globale Ingress-Sicherheits-Preflight fehlt.");
 assert.notEqual(
   liveHospitationContractStepPosition,
   -1,
@@ -707,8 +719,13 @@ assert.notEqual(
 );
 assert.equal(
   nextStepAfterConnect,
+  ingressGuardStepPosition,
+  "Der globale Ingress-Sicherheits-Preflight muss unmittelbar nach der GKE-Verbindung laufen."
+);
+assert.equal(
+  nextStepAfterIngressGuard,
   liveHospitationContractStepPosition,
-  "Der Live-Datenbankvertrag muss unmittelbar nach der GKE-Verbindung und vor jeder Rollout-Mutation laufen."
+  "Der Live-Datenbankvertrag muss unmittelbar nach dem globalen Ingress-Guard und vor jeder Rollout-Mutation laufen."
 );
 assert.match(liveHospitationContractScript, /deployment\/\$\{deployment_name\}/);
 assert.match(liveHospitationContractScript, /--container api/);
@@ -818,10 +835,146 @@ assert.match(
 assert.match(iapScript, /public_ingress_ref_count/);
 assert.match(iapScript, /preflight_url_map_name=/);
 assert.match(
+  ingressSafetyPreflightScript,
+  /live_ingress_state="\$\(kubectl[\s\S]*--show-managed-fields[\s\S]*--output=json\)"/,
+  "Der Ingress-Preflight muss die Server-Side-Apply-Ownership vor jeder Mutation lesen."
+);
+assert.match(
+  iapScript,
+  /helm upgrade --install[\s\S]*--rollback-on-failure[\s\S]*--server-side=true/,
+  "Helm muss den expliziten Server-Side-Apply-Vertrag mit kontrolliertem Rollback verwenden."
+);
+assert.doesNotMatch(
+  iapScript,
+  /--atomic|--force-conflicts|--server-side=false|--take-ownership|--force-replace/,
+  "Der Helm-Reconcile darf fremde Ingress-Ownership oder aktive Canary-Routen niemals erzwingen."
+);
+assert.match(
   iapScript,
   /Apply the reviewed Terraform IAM update before this application rollout/,
   "Die neue URL-Map-Leseberechtigung muss vor jeder Ingress-Aenderung fail-closed geprueft werden."
 );
+
+const ingressRulesOwnershipFilter = ingressSafetyPreflightScript.match(
+  /ingress_rules_are_helm_owned_and_canary_free\(\) \{[\s\S]*?jq --exit-status '\n([\s\S]*?)\n\s*' <<< "\$ingress_json"/u
+)?.[1];
+assert.ok(
+  ingressRulesOwnershipFilter,
+  "Der fail-closed Ingress-Ownership-Filter fehlt oder kann nicht eindeutig gelesen werden."
+);
+function verifyIngressRulesOwnership(document) {
+  return spawnSync(
+    "jq",
+    ["--exit-status", ingressRulesOwnershipFilter],
+    { input: JSON.stringify(document), encoding: "utf8" }
+  );
+}
+const helmRulesOwner = {
+  manager: "helm",
+  operation: "Apply",
+  apiVersion: "networking.k8s.io/v1",
+  fieldsV1: {
+    "f:spec": {
+      "f:rules": {}
+    }
+  }
+};
+const canaryRulesOwner = {
+  manager: "kubectl-patch",
+  operation: "Update",
+  apiVersion: "networking.k8s.io/v1",
+  fieldsV1: {
+    "f:spec": {
+      "f:rules": {}
+    }
+  }
+};
+const helmOwnedIngress = {
+  metadata: {
+    managedFields: [helmRulesOwner]
+  },
+  spec: {
+    rules: [{
+      host: "versorgungs-kompass.de",
+      http: {
+        paths: [{
+          path: "/api",
+          pathType: "Prefix",
+          backend: { service: { name: "versorgungs-kompass-api", port: { number: 80 } } }
+        }]
+      }
+    }]
+  }
+};
+assert.equal(
+  verifyIngressRulesOwnership(helmOwnedIngress).status,
+  0,
+  "Exakt von helm/Apply verwaltete Regeln ohne Canary-Pfad muessen den Preflight bestehen."
+);
+for (const unsafeIngress of [
+  {
+    ...helmOwnedIngress,
+    metadata: { managedFields: [canaryRulesOwner] }
+  },
+  {
+    ...helmOwnedIngress,
+    metadata: { managedFields: [helmRulesOwner, canaryRulesOwner] }
+  },
+  {
+    ...helmOwnedIngress,
+    spec: {
+      rules: [{
+        host: "versorgungs-kompass.de",
+        http: {
+          paths: [{
+            path: "/.well-known/vk-iap-canary/fixture/frontend",
+            pathType: "Exact",
+            backend: { service: { name: "canary", port: { number: 80 } } }
+          }]
+        }
+      }]
+    }
+  }
+]) {
+  assert.notEqual(
+    verifyIngressRulesOwnership(unsafeIngress).status,
+    0,
+    "Fremde oder mehrdeutige Rules-Ownership und verbliebene Canary-Pfade muessen fail-closed stoppen."
+  );
+}
+
+const deployJobPosition = workflow.indexOf("\n  deploy:\n");
+const ingressGuardCheckPosition = workflow.indexOf(
+  'if ! ingress_rules_are_helm_owned_and_canary_free "$live_ingress_state"',
+  ingressGuardStepPosition
+);
+for (const [label, marker] of [
+  ["Namespace-Erstellung", 'kubectl create namespace "$K8S_NAMESPACE"'],
+  ["Namespace-Apply", "| kubectl apply"],
+  ["OAuth-Secret-Erstellung", 'create secret generic "$IAP_OAUTH_CLIENT_CREDENTIALS_SECRET_NAME"'],
+  ["OAuth-Secret-Ersetzung", 'kubectl --namespace "$K8S_NAMESPACE" replace'],
+  ["Artefakt-Upload", "gcloud storage cp"],
+  ["Helm-Reconcile", 'helm upgrade --install "$HELM_RELEASE"'],
+  ["Kubernetes-Patch", 'kubectl --namespace "$K8S_NAMESPACE" patch'],
+  ["Rollout-Restart", 'kubectl --namespace "$K8S_NAMESPACE" rollout restart'],
+  ["IAP-Settings-Mutation", 'gcloud iap settings set "$desired_reauth_settings"'],
+  ["IAP-Policy-Mutation", 'gcloud iap web set-iam-policy "$desired_policy"'],
+  ["Backend-Service-Mutation", 'gcloud compute backend-services update "$public_frontend_backend_service"']
+]) {
+  const mutationPosition = workflow.indexOf(marker, deployJobPosition);
+  assert.notEqual(mutationPosition, -1, `${label} fehlt im Deployment-Workflow.`);
+  assert.ok(
+    ingressGuardCheckPosition < mutationPosition,
+    `${label} darf erst nach dem globalen Ingress-Ownership-/Canary-Guard erfolgen.`
+  );
+}
+assert.ok(
+  deployJobPosition < connectStepPosition &&
+    connectStepPosition < ingressGuardStepPosition &&
+    ingressGuardStepPosition < ingressGuardCheckPosition,
+  "Der globale Ingress-Guard muss unmittelbar nach der Cluster-Konfiguration und vor produktiven Mutationen laufen."
+);
+
 assert.match(
   iapScript,
   /deploy_release "\$iap_audience" false/,
