@@ -221,7 +221,7 @@ Die Namen stehen in `config/pre-gematik/variables.env.example`. Werte aus Terraf
 | `K8S_NAMESPACE` | Terraform-Output `K8S_NAMESPACE` |
 | `IAP_OAUTH_CLIENT_CREDENTIALS_SECRET_NAME` | fester Kubernetes-Secret-Name `versorgungs-kompass-iap-oauth`; keine Credential-Werte |
 | `IAP_RESOURCE_ACCESS_PRINCIPAL` | für den Testnutzer-Pilot exakt `group:versorgungs-kompass-pre-gematik-access@googlegroups.com`; nur an die zwei erzeugten Backend Services gebunden |
-| `IAP_RESOURCE_ACCESS_EXPIRES_AT` | für den Gruppenbetrieb verpflichtend exakt `2026-08-17T16:00:00Z`; für einen kontrollierten direkten `user:`-Rollback leer |
+| `IAP_RESOURCE_ACCESS_EXPIRES_AT` | für den Gruppenbetrieb verpflichtend exakt `2026-09-30T16:00:00Z`; für einen kontrollierten direkten `user:`-Rollback leer |
 | `API_BASE_URL` | gemeinsamer HTTPS-Origin; `https://mitmachen.timo-frank.de` nur zur Zertifikatsvorbereitung, danach `https://versorgungs-kompass.de` |
 | `FRONTEND_BASE_URL` | exakt derselbe gemeinsame HTTPS-Origin wie `API_BASE_URL` |
 
@@ -257,14 +257,14 @@ Das individuelle Onboarding wird in dieser Reihenfolge ausgeführt:
 
 Ohne eindeutige aktive Bindung wird nichts aktiviert. Die Anwendung führt neutral zu `/#zugriff-verweigert`. Die ehemaligen Self-Service-Endpunkte `/api/auth/auto-enrollment` und `/api/auth/enrollment` sind aus der API-Policy entfernt; ein Runtime-Schalter zur Reaktivierung existiert nicht. Eine Gruppenmitgliedschaft allein erzeugt zu keinem Zeitpunkt eine App-Bindung.
 
-IAP verlangt auf API und geschütztem Frontend `ENROLLED_SECOND_FACTORS` mit `maxAge: 28800s` und `policyType: MINIMUM`. Der Workflow liest zunächst beide ressourcenspezifischen IAM-Policies vollständig. Zulässig sind nur zwei leere Policies oder bereits exakt das Soll: Policy-Version 3, genau eine Gruppenbindung und die Bedingung `request.time < timestamp("2026-08-17T16:00:00Z")`. Erst nach erfolgreicher Prüfung beider Backends setzt und verifiziert er Reauthentication und anschließend die Policies. Eine vorhandene direkte Nutzerbindung wird nicht automatisch ersetzt. Das separate Public-Entry-Backend wird nie in diese IAM- oder Reauthentication-Schleifen aufgenommen.
+IAP verlangt auf API und geschütztem Frontend `ENROLLED_SECOND_FACTORS` mit `maxAge: 28800s` und `policyType: MINIMUM`. Der Workflow liest zunächst beide ressourcenspezifischen IAM-Policies vollständig. Zulässig sind nur zwei leere Policies oder bereits exakt das Soll: Policy-Version 3, genau eine Gruppenbindung und die Bedingung `request.time < timestamp("2026-09-30T16:00:00Z")`. Erst nach erfolgreicher Prüfung beider Backends setzt und verifiziert er Reauthentication und anschließend die Policies. Eine vorhandene direkte Nutzerbindung wird nicht automatisch ersetzt. Das separate Public-Entry-Backend wird nie in diese IAM- oder Reauthentication-Schleifen aufgenommen.
 
 Der kontrollierte Wechsel von der bisherigen direkten Ressourcenbindung zur Gruppe erfolgt deshalb in einem Wartungsfenster:
 
 1. Projektweite Break-glass-Policy und ihren geschützten Pin prüfen; sie werden nicht geändert.
 2. Backendnamen frisch über die API- und Frontend-NEGs ermitteln und beide aktuellen Resource-Policies mit ETag geschützt sichern.
 3. Deployment-Freeze setzen und beide Resource-Policies kontrolliert leeren. Ist nur eine leer oder enthält eine Policy einen unbekannten Eintrag, keinen Workflow starten.
-4. GitHub-Variablen auf die exakte Gruppe und `2026-08-17T16:00:00Z` setzen.
+4. GitHub-Variablen auf die exakte Gruppe und `2026-09-30T16:00:00Z` setzen.
 5. Workflow ausführen. Nach dessen Vorprüfung werden API und danach Frontend gebunden; anschließend werden beide Policies und beide Reauthentication-Einstellungen erneut gelesen.
 6. Zuerst einen Viewer vollständig abnehmen, danach höchstens einen `test_only`-Editor; weitere Personen folgen einzeln.
 
@@ -272,7 +272,7 @@ Gruppenänderungen sind nicht sofort konsistent. Vor einem positiven Zugriffstes
 
 ### Offboarding, Rollback und spätere Cloud-Identity-Option
 
-Bei individuellem Offboarding wird zuerst ein noch nicht verbrauchter Allowlist-Eintrag widerrufen beziehungsweise eine bereits erzeugte App-Bindung deaktiviert. Danach wird die Person aus der Gruppe und aus der OAuth-Testnutzerliste entfernt. Der negative Zugriffstest wird geschützt dokumentiert. Das `expires_at` eines Allowlist-Eintrags beendet nur die Möglichkeit des erstmaligen Bindings; einen bereits aktivierten Zugang beendet es nicht. Diese Sperre übernehmen die deaktivierte App-Bindung und die zeitlich bedingte IAP-Gruppenpolicy. Am 17. August 2026 um 18:00 Uhr CEST sperrt die IAM-Bedingung zusätzlich technisch; danach werden alle offenen Allowlist-Einträge widerrufen, alle Testerbindungen deaktiviert und Gruppen- sowie OAuth-Mitgliedschaften bereinigt.
+Bei individuellem Offboarding wird zuerst ein noch nicht verbrauchter Allowlist-Eintrag widerrufen beziehungsweise eine bereits erzeugte App-Bindung deaktiviert. Danach wird die Person aus der Gruppe und aus der OAuth-Testnutzerliste entfernt. Der negative Zugriffstest wird geschützt dokumentiert. Das `expires_at` eines Allowlist-Eintrags beendet nur die Möglichkeit des erstmaligen Bindings; einen bereits aktivierten Zugang beendet es nicht. Diese Sperre übernehmen die deaktivierte App-Bindung und die zeitlich bedingte IAP-Gruppenpolicy. Am 30. September 2026 um 18:00 Uhr CEST sperrt die IAM-Bedingung zusätzlich technisch; danach werden alle offenen Allowlist-Einträge widerrufen, alle Testerbindungen deaktiviert und Gruppen- sowie OAuth-Mitgliedschaften bereinigt.
 
 Bei einem Zugriffs- oder Policyvorfall werden die Resource-Policies in der Reihenfolge Frontend, dann API auf den zuvor gesicherten direkten `user:`-Sollzustand zurückgeführt; `IAP_RESOURCE_ACCESS_EXPIRES_AT` bleibt dabei leer. Der projektweite Break-glass-Pin darf sich nicht ändern. Ein teilweise ausgeführter Gruppen-Cutover wird nicht durch Hinzufügen weiterer Mitglieder repariert, sondern geschlossen und aus dem gesicherten Soll neu aufgebaut.
 
@@ -354,7 +354,7 @@ Der aufrufende Workflow kann die Rechte nicht über die im wiederverwendbaren Wo
 - [ ] Der GKE Ingress routet am Apex ausschließlich die allowlisteten Exact-Pfade für Einstieg, Identity-Portal und lokale Assets zum Public-Entry-Backend sowie Prefix `/__/auth/` zum Auth-Helper-Backend. Auf `www` zeigt ausschließlich Exact `/` zum Public-Entry-Backend; alle anderen Alias-Pfade bleiben beim IAP-geschützten Frontend. `/api` und der kanonische `/`-Catch-all zeigen auf die zwei IAP-geschützten Backends.
 - [ ] Das Public-Entry-Backend besitzt `iap.enabled: false`, eine leere Resource-Policy und im Webroot physisch exakt die zehn geprüften Dateien; `/anmelden` und `/konto/passwort-festlegen` liefern die jeweils gebrandete Seite.
 - [ ] Das Auth-Helper-Backend besitzt `iap.enabled: false`, deaktiviertes Load-Balancer-Zugriffslogging und eine leere Resource-Policy. Der Proxy akzeptiert ausschließlich GET/HEAD/POST unter dem rohen Prefix `/__/auth/`, allowlistet minimale Request-Header, entfernt Cookies und Authorization-/IAP-Identity-Header und verwendet nur den festen TLS-verifizierten Firebase-Upstream ohne Redirect.
-- [ ] Beide Resource-Policies stehen auf Version 3 und enthalten ausschließlich `group:versorgungs-kompass-pre-gematik-access@googlegroups.com` mit Ablaufbedingung `2026-08-17T16:00:00Z`.
+- [ ] Beide Resource-Policies stehen auf Version 3 und enthalten ausschließlich `group:versorgungs-kompass-pre-gematik-access@googlegroups.com` mit Ablaufbedingung `2026-09-30T16:00:00Z`.
 - [ ] API- und geschütztes Frontend-Backend erzwingen jeweils `ENROLLED_SECOND_FACTORS / 28800s / MINIMUM`.
 - [ ] Projektweiter IAP-Zugriff enthält unverändert nur den gepinnten Break-glass-Nutzer; die Testgruppe ist ausschließlich auf API- und geschützten Frontend-Backend-Service gebunden.
 

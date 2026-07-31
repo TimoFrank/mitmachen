@@ -500,7 +500,7 @@ jobs:
             external_expiry_epoch="$(date --utc --date="$IAP_EXTERNAL_ACCESS_EXPIRES_AT" '+%s')"
             now_epoch="$(date --utc '+%s')"
             max_external_expiry_epoch=$((now_epoch + 62 * 24 * 60 * 60))
-            approved_pilot_end_epoch="$(date --utc --date='2026-08-17T16:00:00Z' '+%s')"
+            approved_pilot_end_epoch="$(date --utc --date='2026-09-30T16:00:00Z' '+%s')"
             if (( external_expiry_epoch <= now_epoch || external_expiry_epoch > max_external_expiry_epoch )); then
               echo "IAP_EXTERNAL_ACCESS_EXPIRES_AT must be in the future and no more than 62 days away." >&2
               exit 1
@@ -539,7 +539,7 @@ jobs:
                 echo "IAP_RESOURCE_ACCESS_EXPIRES_AT must be a canonical UTC RFC3339 timestamp for a group principal." >&2
                 exit 1
               fi
-              if [[ "$IAP_RESOURCE_ACCESS_EXPIRES_AT" != "2026-08-17T16:00:00Z" ]]; then
+              if [[ "$IAP_RESOURCE_ACCESS_EXPIRES_AT" != "2026-09-30T16:00:00Z" ]]; then
                 echo "The pre-gematik group expiry must exactly match the approved pilot end." >&2
                 exit 1
               fi

@@ -815,7 +815,7 @@ assert.match(validationScript, /canonical UTC RFC3339 timestamp for a group prin
 assert.match(validationScript, /date --utc --date="\$IAP_RESOURCE_ACCESS_EXPIRES_AT"/);
 assert.match(
   validationScript,
-  /IAP_RESOURCE_ACCESS_EXPIRES_AT" != "2026-08-17T16:00:00Z"/,
+  /IAP_RESOURCE_ACCESS_EXPIRES_AT" != "2026-09-30T16:00:00Z"/,
   "Der Gruppenpfad muss auf das beschlossene Pilotende gepinnt sein."
 );
 assert.match(validationScript, /user:\*\)[\s\S]*IAP_RESOURCE_ACCESS_EXPIRES_AT must be empty/);
@@ -1353,7 +1353,7 @@ function renderPolicy(member, principalType, conditionExpression) {
   return JSON.parse(result.stdout);
 }
 
-const expiry = "2026-08-17T16:00:00Z";
+const expiry = "2026-09-30T16:00:00Z";
 const expression = `request.time < timestamp("${expiry}")`;
 assert.deepEqual(
   renderPolicy("group:test-access@example.invalid", "group", expression),

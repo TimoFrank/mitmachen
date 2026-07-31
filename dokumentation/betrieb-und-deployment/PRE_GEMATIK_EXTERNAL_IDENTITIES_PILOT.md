@@ -51,7 +51,7 @@ Wirksam ist immer der früheste Zeitpunkt aus
 `IAP_EXTERNAL_ACCESS_EXPIRES_AT`, gematik-Go-live und dem bereits genehmigten
 Pilot-/Löschende. Eine darüber hinausgehende Datenbereitstellung benötigt eine
 separate Entscheidung. Das aktuell festgelegte Ende des Datenpiloten ist
-`2026-08-17T16:00:00Z`. Ohne eine getrennt genehmigte Verlängerung dieses
+`2026-09-30T16:00:00Z`. Ohne eine getrennt genehmigte Verlängerung dieses
 Datenpiloten kann der hier beschriebene Authentisierungspilot deshalb nicht die
 gewünschten ein bis zwei Monate laufen; auch ein späterer Wert in
 `IAP_EXTERNAL_ACCESS_EXPIRES_AT` würde daran nichts ändern.
@@ -446,7 +446,7 @@ node scripts/render_pre_gematik_guest_welcome_email.mjs \
   --link-file /absolut/owner-only/set-password-link.txt \
   --sender-name "#Mitmachen" \
   --sender-email zugang@versorgungs-kompass.de \
-  --pilot-end 2026-08-17T16:00:00Z
+  --pilot-end 2026-09-30T16:00:00Z
 
 # Create-only Mailpaket; Fingerprint exakt aus dem Preview übernehmen
 node scripts/render_pre_gematik_guest_welcome_email.mjs \
@@ -455,7 +455,7 @@ node scripts/render_pre_gematik_guest_welcome_email.mjs \
   --output-dir /absolut/owner-only/welcome-mail \
   --sender-name "#Mitmachen" \
   --sender-email zugang@versorgungs-kompass.de \
-  --pilot-end 2026-08-17T16:00:00Z \
+  --pilot-end 2026-09-30T16:00:00Z \
   --apply \
   --confirm-operation RENDER_PRE_GEMATIK_GUEST_WELCOME_EMAIL \
   --confirm-fingerprint sha256:FINGERPRINT-AUS-PREVIEW
@@ -757,7 +757,7 @@ werden.
    `IAP_EXTERNAL_ACCESS_EXPIRES_AT` ist ein kanonischer UTC-RFC-3339-Zeitpunkt,
    liegt in der Zukunft, höchstens 62 Tage nach dem Cutover und nicht nach dem
    aktuell festgelegten Echtdaten-Pilot-/Löschende
-   `2026-08-17T16:00:00Z`, sofern dieses nicht separat verlängert wurde.
+   `2026-09-30T16:00:00Z`, sofern dieses nicht separat verlängert wurde.
 3. Provider, Selbstregistrierungssperre, strenge Password Policy, bestehende
    Google-Nutzer, password-only Nutzer und die eigene Login- und
    Passwortsetzseite vorbereiten, ohne IAP bereits umzuschalten.
@@ -1083,7 +1083,7 @@ kein sicherer Rückbau.
 
 - die Sicherheitsausnahme mit Ablaufzeitpunkt geschützt bestätigt ist,
 - der Ablauf nicht nach dem aktuell genehmigten Datenpilotende
-  `2026-08-17T16:00:00Z` liegt oder dessen separate Verlängerung vorliegt,
+  `2026-09-30T16:00:00Z` liegt oder dessen separate Verlängerung vorliegt,
 - genau die genehmigten Konten vorprovisioniert sind,
 - Selbstregistrierung und Selbstlöschung nachweislich deaktiviert sind,
 - die eigene Loginseite unter `https://versorgungs-kompass.de/anmelden`, die
@@ -1111,7 +1111,7 @@ kein sicherer Rückbau.
 `NO-GO` gilt insbesondere bei:
 
 - fehlendem oder nicht technisch erzwungenem Ablaufzeitpunkt,
-- gewünschter Laufzeit über `2026-08-17T16:00:00Z` ohne separat genehmigte
+- gewünschter Laufzeit über `2026-09-30T16:00:00Z` ohne separat genehmigte
   Verlängerung des Datenpiloten,
 - offener Registrierung,
 - deaktivierter oder nicht exakt bestätigter

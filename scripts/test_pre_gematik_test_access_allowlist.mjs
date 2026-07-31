@@ -87,7 +87,7 @@ const activeEntry = {
   },
   access_scope: "test_only",
   scope_ref: "pre-gematik-external-test-2026-08",
-  expires_at: "2026-08-17T16:00:00.000Z",
+  expires_at: "2026-09-30T16:00:00.000Z",
   desired_state: "active",
   revoke_reason: null
 };

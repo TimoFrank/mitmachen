@@ -19,7 +19,7 @@ export const WELCOME_EMAIL_SUBJECT =
   "#Mitmachen: Dein Testzugang zum Versorgungs-Kompass";
 export const WELCOME_EMAIL_SENDER_NAME = "#Mitmachen";
 export const WELCOME_EMAIL_SENDER_EMAIL = "zugang@versorgungs-kompass.de";
-export const EXPECTED_PILOT_END = "2026-08-17T16:00:00Z";
+export const EXPECTED_PILOT_END = "2026-09-30T16:00:00Z";
 export const PASSWORD_ACTION_ORIGIN = "https://versorgungs-kompass.de";
 export const PASSWORD_ACTION_PATH = "/konto/passwort-festlegen";
 
