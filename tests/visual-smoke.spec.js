@@ -6481,17 +6481,102 @@ test("Formate: Arbeitsbereich und Editor rendern", async ({ page }, testInfo) =>
   if (testInfo.project.name.includes("mobile")) {
     await expect(page.locator("#format-participant-drawer .format-participant-panel")).toHaveCSS("width", `${page.viewportSize()?.width}px`);
   }
-  await expect(page.locator("#format-participant-steps")).toBeVisible();
-  await expect(page.locator("#format-participant-search")).toBeVisible();
-  await expect(page.locator("#format-participant-sector")).toBeVisible();
-  await expect(page.locator('[data-format-participant-step="filters"]')).toBeVisible();
-  await page.locator("#format-participant-next").click();
-  await expect(page.locator('[data-format-participant-step="select"]')).toBeVisible();
-  const plannerCheckbox = page.locator('[data-planner-contact="demo-contact-08"] input');
+  const participantSearch = page.locator("#format-participant-search");
+  const participantRows = page.locator("#format-participant-list [data-planner-contact]");
+  await expect(participantSearch).toBeVisible();
+  await expect(participantSearch).toBeFocused();
+  const participantTable = page.locator(".format-participant-table");
+  await expect(participantTable).toBeVisible();
+  const participantColumns = ["Auswahl", "Person", "Organisation", "Sektor", "Ort", "Treffer im Profil"];
+  await expect.poll(() => participantTable.locator("thead th").evaluateAll((headers) => (
+    headers.map((header) => header.textContent.trim())
+  ))).toEqual(participantColumns);
+  const participantDrawer = page.locator("#format-participant-drawer");
+  const quickFilters = participantDrawer.locator(".format-participant-body > .format-participant-quick-filters");
+  const sectorFilter = page.locator("#format-participant-sector");
+  const stateFilter = page.locator("#format-participant-state");
+  const filterReset = quickFilters.locator("#format-participant-filter-reset");
+  const filterStatus = quickFilters.locator("#format-participant-filter-status");
+  const globalReset = page.locator("#format-participant-reset");
+  await expect(quickFilters).toBeVisible();
+  await expect(participantDrawer.locator(".format-participant-discovery .format-participant-quick-filters")).toHaveCount(0);
+  await expect(participantDrawer.locator(".format-participant-discovery + .format-participant-results-head")).toHaveCount(1);
+  await expect(participantDrawer.locator(".format-participant-results-head + .format-participant-quick-filters")).toHaveCount(1);
+  await expect(quickFilters.locator("[data-participant-quick-filter]")).toHaveCount(2);
+  await expect(sectorFilter).toBeVisible();
+  await expect(stateFilter).toBeVisible();
+  await expect(filterReset).toBeHidden();
+  await expect(filterStatus).toBeHidden();
+  await expect(globalReset).toHaveText("Suche zurücksetzen");
+  await expect(page.locator("#format-participant-specialty")).toHaveCount(0);
+  await expect(page.locator(".format-participant-filter-toggle")).toHaveCount(0);
+  const participantSearchScope = page.locator("#format-participant-search-scope");
+  await expect(page.locator("#format-participant-title")).toHaveText("Personen einladen");
+  await expect(participantDrawer.locator(".format-participant-discovery__intro")).toHaveCount(0);
+  await expect(page.locator("#format-participant-search-label")).toHaveText("Person oder Stichwort suchen");
+  await expect(participantSearchScope).toHaveText("Durchsucht auch Rollen, Organisationen, Orte, Themen, Notizen und Anhänge.");
+  await expect(page.locator("#format-participant-results")).not.toContainText("Nach Name");
+  await expect(participantRows.first()).toBeVisible();
+  const initialParticipantCount = await participantRows.count();
+  expect(initialParticipantCount).toBeGreaterThan(1);
+  await sectorFilter.selectOption({ label: "Reha" });
+  await stateFilter.selectOption({ label: "Baden-Wuerttemberg" });
+  const plannerRow = page.locator('[data-planner-contact="demo-contact-08"]');
+  await expect(plannerRow).toBeVisible();
+  await expect(filterStatus).toBeVisible();
+  await expect(filterStatus).toContainText(/2.*aktiv/i);
+  await expect(filterReset).toBeVisible();
+  await expect(filterReset).toHaveClass(/format-participant-filter-reset/);
+  await expect(filterReset).toHaveText("Filter zurücksetzen");
+  await expect(filterReset).toBeEnabled();
+  await attachScreenshot(page, testInfo, "format-teilnehmersuche-filter-aktiv");
+  await participantSearch.fill("Koordination");
+  await expect(plannerRow).toBeVisible();
+  await expect(plannerRow.locator(".format-participant-match__labels")).toContainText("Rolle");
+  await filterReset.click();
+  await expect(sectorFilter).toHaveValue("");
+  await expect(stateFilter).toHaveValue("");
+  await expect(participantSearch).toHaveValue("Koordination");
+  await expect(filterReset).toBeHidden();
+  await expect(filterStatus).toBeHidden();
+  await participantSearch.fill("");
+
+  for (const [query, source] of [
+    ["Koordination", "Rolle"],
+    ["Demo-Reha-Zentrum Neckarbogen", "Organisation"],
+    ["Stuttgart", "Ort"],
+    ["Baden-Wuerttemberg", "Ort"]
+  ]) {
+    await participantSearch.fill(query);
+    await expect(plannerRow).toBeVisible();
+    await expect(plannerRow.locator(".format-participant-match__labels")).toContainText(source);
+  }
+
+  await participantSearch.fill("Demo-Kontakt 08");
+  const plannerCheckbox = plannerRow.getByRole("checkbox", { name: "Demo-Kontakt 08 auswählen" });
+  await expect(plannerRow).toBeVisible();
+  await expect.poll(() => participantRows.count()).toBeLessThan(initialParticipantCount);
+  await expect(page.locator("#format-participant-results")).toContainText(/\d+(?: von \d+)? Personen?/);
+  await expect.poll(() => plannerRow.locator(":scope > td").evaluateAll((cells) => (
+    cells.map((cell) => cell.dataset.label)
+  ))).toEqual(participantColumns);
+  const plannerPersonCell = plannerRow.locator('[data-label="Person"]');
+  await expect(plannerPersonCell).toContainText("Demo-Kontakt 08");
+  await expect(plannerPersonCell).not.toContainText("Stuttgart");
+  await expect(plannerPersonCell).not.toContainText("Baden-Wuerttemberg");
+  const plannerOrganizationCell = plannerRow.locator('[data-label="Organisation"]');
+  await expect(plannerOrganizationCell).toHaveText("Demo-Reha-Zentrum Neckarbogen");
+  await expect(plannerRow.locator('[data-label="Sektor"]')).toContainText("Reha");
+  const plannerLocationCell = plannerRow.locator('[data-label="Ort"]');
+  await expect(plannerLocationCell).toContainText("Stuttgart");
+  await expect(plannerLocationCell).not.toContainText("Baden-Wuerttemberg");
+  await expect(plannerRow.locator('[data-label="Rolle"]')).toHaveCount(0);
+  await expect(plannerRow.locator('[data-label="Kontaktstatus"]')).toHaveCount(0);
   await plannerCheckbox.check();
   await expect(plannerCheckbox).toBeFocused();
   await expect(page.locator("#format-participant-add")).toBeEnabled();
-  await expect(page.locator("#format-participant-add")).toHaveText("1 Kandidat hinzufügen");
+  await expect(page.locator("#format-participant-add")).toHaveText("1 Person zur Einladungsliste hinzufügen");
+  await attachScreenshot(page, testInfo, "format-teilnehmersuche-live");
   await page.locator("#format-participant-add").click();
   await expect(page.locator("#format-participant-drawer")).toHaveAttribute("aria-hidden", "true");
   await expect(page.locator("#format-participant-drawer")).not.toHaveClass(/is-open/);

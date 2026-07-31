@@ -845,10 +845,6 @@
         { id: "topics", label: "Themen" },
         { id: "notes", label: "Notiz" }
       ];
-      const participantPlannerSteps = [
-        { id: "filters", label: "Eingrenzen" },
-        { id: "select", label: "Auswählen" }
-      ];
       const formatTabItems = [
         { id: "overview", label: "Überblick" },
         { id: "participants", label: "Teilnehmer" },
@@ -981,15 +977,15 @@
       const formatParticipantDrawer = document.getElementById("format-participant-drawer");
       const formatParticipantOverlay = document.getElementById("format-participant-overlay");
       const formatParticipantClose = document.getElementById("format-participant-close");
+      const formatParticipantSubtitle = document.getElementById("format-participant-subtitle");
       const formatParticipantCancel = document.getElementById("format-participant-cancel");
       const formatParticipantAdd = document.getElementById("format-participant-add");
-      const formatParticipantBack = document.getElementById("format-participant-back");
-      const formatParticipantNext = document.getElementById("format-participant-next");
-      const formatParticipantStepsNode = document.getElementById("format-participant-steps");
       const formatParticipantSearch = document.getElementById("format-participant-search");
+      const formatParticipantReset = document.getElementById("format-participant-reset");
       const formatParticipantSector = document.getElementById("format-participant-sector");
       const formatParticipantState = document.getElementById("format-participant-state");
-      const formatParticipantSpecialty = document.getElementById("format-participant-specialty");
+      const formatParticipantFilterStatus = document.getElementById("format-participant-filter-status");
+      const formatParticipantFilterReset = document.getElementById("format-participant-filter-reset");
       const formatParticipantResults = document.getElementById("format-participant-results");
       const formatParticipantList = document.getElementById("format-participant-list");
       const formatParticipantClear = document.getElementById("format-participant-clear");
@@ -1622,9 +1618,13 @@
       let hospitationDocumentationOwnerPickerOpen = false;
       let hospitationDocumentationAutosaveTimer = null;
       let participantPlannerFormatId = null;
-      let participantPlannerCurrentStep = "filters";
       let participantPlannerSelectedIds = new Set();
       let participantPlannerBusy = false;
+      let participantPlannerContentResults = [];
+      let participantPlannerSearchState = "idle";
+      let participantPlannerSearchQuery = "";
+      let participantPlannerSearchTimer = null;
+      let participantPlannerSearchToken = 0;
       let pendingFilterDraft = null;
       let activeSavedViewName = "";
       let favoriteContactsOnly = false;
@@ -27612,46 +27612,6 @@
         );
       }
 
-      function participantPlannerStepMarkup() {
-        const activeIndex = Math.max(0, participantPlannerSteps.findIndex((step) => step.id === participantPlannerCurrentStep));
-        return participantPlannerSteps
-          .map((step, index) => `
-            <div class="import-step ${index <= activeIndex ? "is-active" : ""}">
-              <span>${index + 1}</span>
-              <strong>${step.label}</strong>
-            </div>
-          `)
-          .join("");
-      }
-
-      function renderParticipantPlannerStep() {
-        const activeIndex = Math.max(0, participantPlannerSteps.findIndex((step) => step.id === participantPlannerCurrentStep));
-        if (formatParticipantStepsNode) formatParticipantStepsNode.innerHTML = participantPlannerStepMarkup();
-        formatParticipantDrawer?.querySelectorAll("[data-format-participant-step]").forEach((section) => {
-          section.hidden = section.dataset.formatParticipantStep !== participantPlannerCurrentStep;
-        });
-        if (formatParticipantBack) formatParticipantBack.hidden = activeIndex === 0;
-        if (formatParticipantNext) formatParticipantNext.hidden = activeIndex === participantPlannerSteps.length - 1;
-        if (formatParticipantAdd) formatParticipantAdd.hidden = activeIndex !== participantPlannerSteps.length - 1;
-        updateParticipantPlannerSelectionUi();
-      }
-
-      function setParticipantPlannerStep(step) {
-        if (!participantPlannerSteps.some((item) => item.id === step)) return;
-        participantPlannerCurrentStep = step;
-        renderParticipantPlanner();
-        window.setTimeout(() => {
-          if (step === "filters") formatParticipantSearch?.focus();
-          else formatParticipantList?.querySelector("input")?.focus();
-        }, 0);
-      }
-
-      function moveParticipantPlannerStep(direction) {
-        const activeIndex = Math.max(0, participantPlannerSteps.findIndex((step) => step.id === participantPlannerCurrentStep));
-        const nextIndex = Math.min(participantPlannerSteps.length - 1, Math.max(0, activeIndex + direction));
-        setParticipantPlannerStep(participantPlannerSteps[nextIndex].id);
-      }
-
       function openParticipantPlanner(formatId = activeFormatId) {
         const format = formats.find((item) => item.id === formatId);
         if (!format || !canEditFormat(format)) {
@@ -27661,13 +27621,19 @@
           return;
         }
         participantPlannerFormatId = format.id;
-        participantPlannerCurrentStep = "filters";
         participantPlannerSelectedIds = new Set();
         participantPlannerBusy = false;
+        participantPlannerContentResults = [];
+        participantPlannerSearchState = "idle";
+        participantPlannerSearchQuery = "";
+        window.clearTimeout(participantPlannerSearchTimer);
+        participantPlannerSearchToken += 1;
         if (formatParticipantSearch) formatParticipantSearch.value = "";
         if (formatParticipantSector) formatParticipantSector.value = "";
         if (formatParticipantState) formatParticipantState.value = "";
-        if (formatParticipantSpecialty) formatParticipantSpecialty.value = "";
+        if (formatParticipantSubtitle) {
+          formatParticipantSubtitle.textContent = `Für „${format.title || "dieses Format"}“`;
+        }
         if (formatParticipantStatus) {
           formatParticipantStatus.textContent = "";
           formatParticipantStatus.className = "format-participant-status";
@@ -27683,9 +27649,13 @@
         formatParticipantDrawer?.classList.remove("is-open");
         formatParticipantDrawer?.setAttribute("aria-hidden", "true");
         participantPlannerFormatId = null;
-        participantPlannerCurrentStep = "filters";
         participantPlannerSelectedIds = new Set();
         participantPlannerBusy = false;
+        participantPlannerContentResults = [];
+        participantPlannerSearchState = "idle";
+        participantPlannerSearchQuery = "";
+        window.clearTimeout(participantPlannerSearchTimer);
+        participantPlannerSearchToken += 1;
         if (formatParticipantStatus) {
           formatParticipantStatus.textContent = "";
           formatParticipantStatus.className = "format-participant-status";
@@ -27693,30 +27663,100 @@
         syncBodyScrollLock();
       }
 
+      function normalizeParticipantPlannerSearchText(value = "") {
+        return String(value || "")
+          .normalize("NFKD")
+          .replace(/\p{Diacritic}/gu, "")
+          .toLocaleLowerCase("de")
+          .replace(/ß/g, "ss")
+          .replace(/ae/g, "a")
+          .replace(/oe/g, "o")
+          .replace(/ue/g, "u")
+          .replace(/[^\p{Letter}\p{Number}@.+-]+/gu, " ")
+          .trim();
+      }
+
+      function participantPlannerSearchTerms(query = formatParticipantSearch?.value || "") {
+        return normalizeParticipantPlannerSearchText(query).split(/\s+/).filter(Boolean);
+      }
+
+      function participantPlannerContactFields(contact = {}) {
+        return [
+          { label: "Name", value: [...new Set([contact.name, contact.displayName].filter(Boolean))].join(" "), weight: 8 },
+          { label: "Rolle", value: [contact.contactRole, contact.role, contact.position].filter(Boolean).join(" "), weight: 10 },
+          { label: "Thema", value: [...(contact.themes || []), ...(contact.topics || []), contact.topic].filter(Boolean).join(" "), weight: 9 },
+          { label: "Organisation", value: [contact.organization, contact.organizationShort].filter(Boolean).join(" "), weight: 7 },
+          { label: "Fachrichtung", value: contact.specialty, weight: 8 },
+          { label: "Notiz", value: [contact.note, contact.notes, contact.nextStep, contact.description].filter(Boolean).join(" "), weight: 6 },
+          { label: "Sektor", value: contact.category, weight: 4 },
+          { label: "Ort", value: [contact.location, contact.city, contact.postalCode, stateLabel(contact)].filter(Boolean).join(" "), weight: 3 }
+        ].filter((field) => String(field.value || "").trim());
+      }
+
+      function participantPlannerRemoteResults(contactId) {
+        const query = String(formatParticipantSearch?.value || "").trim();
+        if (!query || participantPlannerSearchQuery !== query) return [];
+        return participantPlannerContentResults.filter((result) => result.contactId === contactId);
+      }
+
+      function participantPlannerRemoteLabel(kind = "") {
+        if (kind === "attachment") return "Anhang";
+        if (kind === "email_text") return "E-Mail-Notiz";
+        if (kind === "contact") return "Profil";
+        return "Notiz";
+      }
+
+      function participantPlannerSnippet(value = "", limit = 132) {
+        const text = String(value || "").replace(/\s+/g, " ").trim();
+        return text.length > limit ? `${text.slice(0, limit - 1).trimEnd()}…` : text;
+      }
+
+      function participantPlannerContactMatch(contact = {}) {
+        const query = String(formatParticipantSearch?.value || "").trim();
+        if (!query) return { matches: true, labels: [], snippet: "", score: 0 };
+        const terms = participantPlannerSearchTerms(query);
+        const fields = participantPlannerContactFields(contact).map((field) => ({
+          ...field,
+          normalizedValue: normalizeParticipantPlannerSearchText(field.value)
+        }));
+        const combined = fields.map((field) => field.normalizedValue).join(" ");
+        const localMatches = terms.length > 0 && terms.every((term) => combined.includes(term));
+        const matchedFields = localMatches
+          ? fields.filter((field) => terms.some((term) => field.normalizedValue.includes(term)))
+          : [];
+        const remoteResults = participantPlannerRemoteResults(contact.id);
+        if (!localMatches && !remoteResults.length) return null;
+        const remoteContent = remoteResults.find((result) => result.resultKind !== "contact") || remoteResults[0];
+        const strongestLocalField = [...matchedFields].sort((left, right) => right.weight - left.weight)[0];
+        const labels = [
+          ...matchedFields.map((field) => field.label),
+          ...remoteResults.map((result) => participantPlannerRemoteLabel(result.resultKind))
+        ];
+        const localScore = matchedFields.reduce((score, field) => score + field.weight, 0);
+        const remoteScore = remoteResults.reduce((score, result) => Math.max(score, Number(result.rank || 0)), 0);
+        return {
+          matches: true,
+          labels: [...new Set(labels)].slice(0, 4),
+          snippet: remoteContent?.snippet
+            ? `${participantPlannerRemoteLabel(remoteContent.resultKind)}: ${participantPlannerSnippet(remoteContent.snippet)}`
+            : strongestLocalField
+              ? `${strongestLocalField.label}: ${participantPlannerSnippet(strongestLocalField.value)}`
+              : "Treffer im Profil",
+          score: localScore + (remoteResults.length ? 40 + remoteScore : 0)
+        };
+      }
+
       function availablePlannerContacts(format) {
         const existingIds = formatParticipantIds(format);
-        const query = String(formatParticipantSearch?.value || "").trim().toLowerCase();
         const sector = formatParticipantSector?.value || "";
         const state = formatParticipantState?.value || "";
-        const specialty = formatParticipantSpecialty?.value || "";
         return contacts
           .filter((contact) => contact.status !== "archived" && !existingIds.has(contact.id))
           .filter((contact) => !sector || contact.category === sector)
           .filter((contact) => !state || stateLabel(contact) === state)
-          .filter((contact) => !specialty || specialtyLabel(contact) === specialty)
-          .filter((contact) => {
-            if (!query) return true;
-            return [
-              contact.name,
-              contact.organization,
-              contact.category,
-              stateLabel(contact),
-              specialtyLabel(contact),
-              contact.location,
-              ...(contact.themes || [])
-            ].join(" ").toLowerCase().includes(query);
-          })
-          .sort((a, b) => a.name.localeCompare(b.name, "de"));
+          .map((contact) => ({ contact, match: participantPlannerContactMatch(contact) }))
+          .filter((entry) => entry.match?.matches)
+          .sort((left, right) => right.match.score - left.match.score || left.contact.name.localeCompare(right.contact.name, "de"));
       }
 
       function renderParticipantPlannerOptions(format) {
@@ -27732,45 +27772,94 @@
         };
         renderOptions(formatParticipantSector, [...new Set(available.map((contact) => contact.category).filter(Boolean))].sort((a, b) => a.localeCompare(b, "de")), "Alle Sektoren");
         renderOptions(formatParticipantState, [...new Set(available.map((contact) => stateLabel(contact)).filter(Boolean))].sort((a, b) => a.localeCompare(b, "de")), "Alle Bundesländer");
-        renderOptions(formatParticipantSpecialty, [...new Set(available.map((contact) => specialtyLabel(contact)).filter(Boolean))].sort((a, b) => a.localeCompare(b, "de")), "Alle Fachrichtungen");
       }
 
-      function plannerContactMatchReasons(contact) {
-        const query = String(formatParticipantSearch?.value || "").trim().toLowerCase();
-        const reasons = [];
-        if (query) {
-          [
-            ["Name", contact.name],
-            ["Organisation", contact.organization],
-            ["Ort", `${contact.location || ""} ${stateLabel(contact)}`],
-            ["Fachrichtung", specialtyLabel(contact)],
-            ["Thema", (contact.themes || []).join(" ")]
-          ].forEach(([label, value]) => {
-            if (String(value || "").toLowerCase().includes(query)) reasons.push(label);
-          });
+      function renderParticipantPlannerQuickFilters() {
+        const controls = [formatParticipantSector, formatParticipantState];
+        const activeFilters = controls
+          .filter((control) => control?.value).length;
+        controls.forEach((control) => {
+          control?.closest("[data-participant-quick-filter]")?.classList.toggle("is-active", Boolean(control.value));
+        });
+        if (formatParticipantFilterStatus) {
+          formatParticipantFilterStatus.hidden = activeFilters === 0;
+          formatParticipantFilterStatus.textContent = `${activeFilters} aktiv`;
+          formatParticipantFilterStatus.setAttribute("aria-label", `${activeFilters} Filter aktiv`);
         }
-        if (formatParticipantSector?.value) reasons.push("Sektor");
-        if (formatParticipantState?.value) reasons.push("Bundesland");
-        if (formatParticipantSpecialty?.value) reasons.push("Fachrichtung");
-        return [...new Set(reasons)];
+        if (formatParticipantFilterReset) formatParticipantFilterReset.hidden = activeFilters === 0;
+        const hasSearchInput = Boolean(String(formatParticipantSearch?.value || "").trim());
+        if (formatParticipantReset) {
+          formatParticipantReset.hidden = !hasSearchInput;
+          formatParticipantReset.disabled = !hasSearchInput;
+          formatParticipantReset.parentElement.hidden = !hasSearchInput;
+        }
       }
 
-      function plannerContactChannelLabel(contact) {
-        if (contactChannelsRestricted(contact)) return "Kontaktkanal geschützt";
-        if (accessibleContactEmail(contact)) return `E-Mail: ${accessibleContactEmail(contact)}`;
-        if (accessibleContactPhone(contact)) return `Telefon: ${accessibleContactPhone(contact)}`;
-        return "Kein Kontaktkanal hinterlegt";
+      function resetParticipantPlannerQuickFilters() {
+        if (formatParticipantSector) formatParticipantSector.value = "";
+        if (formatParticipantState) formatParticipantState.value = "";
+        renderParticipantPlanner();
+      }
+
+      function resetParticipantPlannerSearch() {
+        if (formatParticipantSearch) formatParticipantSearch.value = "";
+        participantPlannerContentResults = [];
+        participantPlannerSearchState = "idle";
+        participantPlannerSearchQuery = "";
+        window.clearTimeout(participantPlannerSearchTimer);
+        participantPlannerSearchToken += 1;
+        renderParticipantPlanner();
+        formatParticipantSearch?.focus();
+      }
+
+      function scheduleParticipantPlannerContentSearch() {
+        window.clearTimeout(participantPlannerSearchTimer);
+        const query = String(formatParticipantSearch?.value || "").trim();
+        participantPlannerSearchQuery = query;
+        participantPlannerContentResults = [];
+        participantPlannerSearchToken += 1;
+        const token = participantPlannerSearchToken;
+        if (query.length < 2) {
+          participantPlannerSearchState = "idle";
+          renderParticipantPlanner();
+          return;
+        }
+        participantPlannerSearchState = "loading";
+        renderParticipantPlanner();
+        participantPlannerSearchTimer = window.setTimeout(async () => {
+          try {
+            const results = await window.dataService.searchContactContent(query, {
+              limit: 100,
+              distinctContacts: true
+            });
+            if (
+              token !== participantPlannerSearchToken
+              || participantPlannerFormatId === null
+              || query !== String(formatParticipantSearch?.value || "").trim()
+            ) return;
+            participantPlannerContentResults = results || [];
+            participantPlannerSearchState = "ready";
+          } catch (error) {
+            console.warn("Volltextsuche für die Einladungsliste ist nicht verfügbar.", error);
+            if (token !== participantPlannerSearchToken) return;
+            participantPlannerContentResults = [];
+            participantPlannerSearchState = "error";
+          }
+          renderParticipantPlanner();
+        }, 220);
       }
 
       function updateParticipantPlannerSelectionUi() {
         const count = participantPlannerSelectedIds.size;
         if (formatParticipantSelectionCount) {
-          formatParticipantSelectionCount.textContent = `${count} ${count === 1 ? "Kandidat" : "Kandidaten"} ausgewählt`;
+          formatParticipantSelectionCount.textContent = `${count} ${count === 1 ? "Person" : "Personen"} ausgewählt${count ? " · Auswahl bleibt beim Weitersuchen erhalten" : ""}`;
         }
         if (formatParticipantAdd) {
           formatParticipantAdd.textContent = participantPlannerBusy
-            ? `${count} ${count === 1 ? "Kandidat wird" : "Kandidaten werden"} hinzugefügt…`
-            : `${count} ${count === 1 ? "Kandidat" : "Kandidaten"} hinzufügen`;
+            ? `${count} ${count === 1 ? "Person wird" : "Personen werden"} hinzugefügt…`
+            : count
+              ? `${count} ${count === 1 ? "Person" : "Personen"} zur Einladungsliste hinzufügen`
+              : "Zur Einladungsliste hinzufügen";
           formatParticipantAdd.disabled = participantPlannerBusy || count === 0;
           formatParticipantAdd.setAttribute("aria-disabled", formatParticipantAdd.disabled ? "true" : "false");
         }
@@ -27786,41 +27875,94 @@
       function renderParticipantPlanner() {
         const format = formats.find((item) => item.id === participantPlannerFormatId);
         if (!format) return;
+        const focusedPlannerContactId = formatParticipantList?.contains(document.activeElement)
+          ? document.activeElement.closest("[data-planner-contact]")?.dataset.plannerContact || ""
+          : "";
+        if (!participantPlannerBusy) {
+          formatParticipantDrawer?.setAttribute("aria-busy", participantPlannerSearchState === "loading" ? "true" : "false");
+        }
         renderParticipantPlannerOptions(format);
-        renderParticipantPlannerStep();
+        renderParticipantPlannerQuickFilters();
         const matchingItems = availablePlannerContacts(format);
         const items = matchingItems.slice(0, FORMAT_PARTICIPANT_RESULT_LIMIT);
         const resultIsLimited = matchingItems.length > items.length;
         const existingCount = formatParticipantIds(format).size;
+        const query = String(formatParticipantSearch?.value || "").trim();
         if (formatParticipantResults) {
-          formatParticipantResults.textContent = resultIsLimited
-            ? `${items.length} von ${matchingItems.length} verfügbar · Die ersten ${items.length} werden angezeigt. Suche oder Filter grenzen die Auswahl weiter ein.${existingCount ? ` · ${existingCount} bereits im Format` : ""}`
-            : `${items.length} verfügbar${existingCount ? ` · ${existingCount} bereits im Format` : ""}`;
+          const countLabel = resultIsLimited
+            ? `${items.length} von ${matchingItems.length} Personen`
+            : `${items.length} ${items.length === 1 ? "Person" : "Personen"}`;
+          const searchStateLabel = query && participantPlannerSearchState === "loading"
+            ? " · Inhalte werden durchsucht …"
+              : query && participantPlannerSearchState === "error"
+                ? " · Notizen nicht verfügbar"
+                : "";
+          formatParticipantResults.textContent = `${countLabel}${searchStateLabel}${existingCount ? ` · ${existingCount} bereits im Format` : ""}`;
         }
         if (!formatParticipantList) return;
         if (!items.length) {
-          formatParticipantList.innerHTML = `<div class="empty">Keine neuen passenden Kontakte gefunden. Prüfe Suche und Filter; bereits zugeordnete Kontakte werden nicht doppelt angeboten.</div>`;
+          const loadingContent = query && participantPlannerSearchState === "loading";
+          formatParticipantList.innerHTML = `
+            <tr class="format-participant-empty-row">
+              <td colspan="6">
+                <div class="format-participant-empty">
+                  <strong>${loadingContent ? "Notizen und Anhänge werden durchsucht …" : "Keine passende Person gefunden"}</strong>
+                  <span>${loadingContent ? "Direkte Profiltreffer erscheinen sofort. Weitere Treffer aus dokumentiertem Wissen werden ergänzt." : "Probiere ein verwandtes Stichwort oder setze die Schnellfilter zurück. Bereits zugeordnete Personen werden nicht erneut angeboten."}</span>
+                  ${loadingContent || !query ? "" : `<button class="action-button action-button--compact" type="button" data-reset-participant-search>Suche zurücksetzen</button>`}
+                </div>
+              </td>
+            </tr>
+          `;
+          formatParticipantList.querySelector("[data-reset-participant-search]")?.addEventListener("click", resetParticipantPlannerSearch);
           updateParticipantPlannerSelectionUi();
           return;
         }
-        formatParticipantList.innerHTML = items.map((contact) => {
+        formatParticipantList.innerHTML = items.map(({ contact, match }) => {
           const selected = participantPlannerSelectedIds.has(contact.id);
-          const consent = contactConsentBadgeState(contact);
-          const matchReasons = plannerContactMatchReasons(contact);
+          const topics = (contact.themes || []).slice(0, 3);
+          const matchLabels = query ? match.labels : topics.length ? ["Themen im Profil"] : ["Profil"];
+          const matchSnippet = query
+            ? match.snippet
+            : topics.length
+              ? topics.join(" · ")
+              : specialtyLabel(contact) || contact.category || "Noch keine Themen hinterlegt";
+          const city = contact.city || contact.location || "";
+          const locationPrimary = city || "Ort nicht hinterlegt";
           return `
-            <label class="format-participant-row ${selected ? "is-selected" : ""}" data-planner-contact="${escapeHtml(contact.id)}">
-              <input type="checkbox" value="${escapeHtml(contact.id)}" ${selected ? "checked" : ""} />
-              ${contactAvatarMarkup(contact, "sm")}
-              <span class="format-participant-copy">
-                <span class="format-participant-name">${escapeHtml(contact.name)}</span>
-                <span class="format-participant-meta">${escapeHtml(contact.organization || "Keine Organisation")} · ${escapeHtml(stateLabel(contact) || "Bundesland offen")} · ${escapeHtml(specialtyLabel(contact) || "Fachrichtung offen")}</span>
-                <span class="participant-card-tags">
-                  ${sectorBadgeMarkup(contact.category)}
-                  <span class="format-participant-readiness format-participant-readiness--${escapeHtml(consent.tone)}" title="${escapeHtml(consent.detail || consent.reason || "")}">${escapeHtml(consent.label)}</span>
+            <tr class="format-participant-row ${selected ? "is-selected" : ""}" data-planner-contact="${escapeHtml(contact.id)}">
+              <td class="format-participant-select-cell" data-label="Auswahl">
+                <input type="checkbox" value="${escapeHtml(contact.id)}" aria-label="${escapeHtml(contact.name)} auswählen" ${selected ? "checked" : ""} />
+              </td>
+              <td data-label="Person">
+                <span class="format-participant-person">
+                  ${contactAvatarMarkup(contact, "sm")}
+                  <span class="format-participant-copy">
+                    <span class="format-participant-name">${escapeHtml(contact.name)}</span>
+                  </span>
                 </span>
-                <span class="format-participant-guidance">${escapeHtml(plannerContactChannelLabel(contact))}${matchReasons.length ? ` · Treffer: ${escapeHtml(matchReasons.join(", "))}` : ""}</span>
-              </span>
-            </label>
+              </td>
+              <td data-label="Organisation">
+                <span class="format-participant-profile">
+                  <strong>${escapeHtml(contact.organization || "Keine Organisation")}</strong>
+                </span>
+              </td>
+              <td data-label="Sektor">
+                <span class="format-participant-sector">${sectorBadgeMarkup(contact.category)}</span>
+              </td>
+              <td data-label="Ort">
+                <span class="format-participant-profile format-participant-location">
+                  <strong>${escapeHtml(locationPrimary)}</strong>
+                </span>
+              </td>
+              <td data-label="Treffer im Profil">
+                <span class="format-participant-match">
+                  <span class="format-participant-match__labels">
+                    ${matchLabels.map((label) => `<span>${escapeHtml(label)}</span>`).join("")}
+                  </span>
+                  <span class="format-participant-match__snippet">${escapeHtml(matchSnippet)}</span>
+                </span>
+              </td>
+            </tr>
           `;
         }).join("");
         formatParticipantList.querySelectorAll("[data-planner-contact] input").forEach((checkbox) => {
@@ -27831,6 +27973,11 @@
           });
         });
         updateParticipantPlannerSelectionUi();
+        if (focusedPlannerContactId) {
+          const focusedRow = [...formatParticipantList.querySelectorAll("[data-planner-contact]")]
+            .find((row) => row.dataset.plannerContact === focusedPlannerContactId);
+          focusedRow?.querySelector('input[type="checkbox"]')?.focus({ preventScroll: true });
+        }
       }
 
       async function addSelectedPlannerParticipants() {
@@ -27840,7 +27987,7 @@
         try {
           participantPlannerBusy = true;
           formatParticipantDrawer?.setAttribute("aria-busy", "true");
-          if (formatParticipantStatus) formatParticipantStatus.textContent = "Kandidaten werden gemeinsam hinzugefügt…";
+          if (formatParticipantStatus) formatParticipantStatus.textContent = "Ausgewählte Personen werden zur Einladungsliste hinzugefügt…";
           updateParticipantPlannerSelectionUi();
           const updated = await window.dataService.addFormatParticipants(
             format.id,
@@ -27848,11 +27995,11 @@
           );
           replaceFormat(updated);
           formatActiveTab = "participants";
-          setStorageStatus(`${ids.length} ${ids.length === 1 ? "Kandidat" : "Kandidaten"} hinzugefügt`);
+          setStorageStatus(`${ids.length} ${ids.length === 1 ? "Person" : "Personen"} zur Einladungsliste hinzugefügt`);
           closeParticipantPlanner();
           renderFormatsView();
         } catch (error) {
-          console.error("Kandidaten konnten nicht hinzugefügt werden.", error);
+          console.error("Personen konnten nicht zur Einladungsliste hinzugefügt werden.", error);
           if (formatParticipantStatus) {
             formatParticipantStatus.textContent = `Hinzufügen fehlgeschlagen: ${error?.message || "Bitte versuche es erneut."}`;
             formatParticipantStatus.classList.add("is-error");
@@ -40826,15 +40973,16 @@
       formatParticipantOverlay?.addEventListener("click", closeParticipantPlanner);
       formatParticipantClose?.addEventListener("click", closeParticipantPlanner);
       formatParticipantCancel?.addEventListener("click", closeParticipantPlanner);
-      formatParticipantBack?.addEventListener("click", () => moveParticipantPlannerStep(-1));
-      formatParticipantNext?.addEventListener("click", () => moveParticipantPlannerStep(1));
       formatParticipantAdd?.addEventListener("click", addSelectedPlannerParticipants);
+      formatParticipantReset?.addEventListener("click", resetParticipantPlannerSearch);
+      formatParticipantFilterReset?.addEventListener("click", resetParticipantPlannerQuickFilters);
       formatParticipantClear?.addEventListener("click", () => {
         participantPlannerSelectedIds.clear();
         updateParticipantPlannerSelectionUi();
         formatParticipantList?.querySelector("input")?.focus({ preventScroll: true });
       });
-      [formatParticipantSearch, formatParticipantSector, formatParticipantState, formatParticipantSpecialty].forEach((control) => {
+      formatParticipantSearch?.addEventListener("input", scheduleParticipantPlannerContentSearch);
+      [formatParticipantSector, formatParticipantState].forEach((control) => {
         control?.addEventListener("input", renderParticipantPlanner);
         control?.addEventListener("change", renderParticipantPlanner);
       });

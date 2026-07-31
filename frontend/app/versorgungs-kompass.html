@@ -2885,66 +2885,77 @@
       <section class="format-participant-panel" aria-labelledby="format-participant-title" aria-modal="true" role="dialog">
         <div class="format-participant-header">
           <div>
-            <h3 id="format-participant-title">Teilnehmer zusammenstellen</h3>
-            <p id="format-participant-subtitle">Kontakte suchen und als Kandidaten zum Format hinzufügen.</p>
+            <h3 id="format-participant-title">Personen einladen</h3>
+            <p id="format-participant-subtitle">Für dieses Format</p>
           </div>
           <button class="import-close" type="button" id="format-participant-close" aria-label="Teilnehmerauswahl schließen">&times;</button>
         </div>
         <div class="format-participant-body">
-          <div class="import-steps contact-editor-steps format-participant-steps" id="format-participant-steps" aria-label="Teilnehmerauswahl-Schritte"></div>
-          <section class="editor-section editor-section--primary format-participant-step" data-format-participant-step="filters" aria-labelledby="format-participant-step-filters">
-            <div class="editor-section-head">
-              <div>
-                <h4 id="format-participant-step-filters">Eingrenzen</h4>
-                <p>Suche zuerst nach Name, Organisation, Ort oder Thema und grenze die Kandidaten bei Bedarf weiter ein.</p>
-              </div>
-            </div>
+          <section class="format-participant-discovery" aria-labelledby="format-participant-search-label">
             <div class="format-participant-controls">
-              <label class="search-shell format-participant-search" aria-label="Teilnehmer suchen">
+              <label class="format-participant-search-label" id="format-participant-search-label" for="format-participant-search">Person oder Stichwort suchen</label>
+              <div class="search-shell format-participant-search">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" aria-hidden="true">
                   <circle cx="11" cy="11" r="7"></circle>
                   <path d="m20 20-3.5-3.5"></path>
                 </svg>
-                <input class="search-input" id="format-participant-search" type="search" placeholder="Nach Name, Organisation, Ort oder Thema suchen" />
+                <input class="search-input" id="format-participant-search" type="search" placeholder="z. B. Pflegeüberleitung, Charité oder Berlin" aria-describedby="format-participant-search-scope" autocomplete="off" />
+              </div>
+              <div class="format-participant-search-meta" hidden>
+                <button class="format-participant-reset" type="button" id="format-participant-reset" hidden>Suche zurücksetzen</button>
+              </div>
+              <span class="visually-hidden" id="format-participant-search-scope">Durchsucht auch Rollen, Organisationen, Orte, Themen, Notizen und Anhänge.</span>
+            </div>
+          </section>
+          <div class="format-participant-results-head">
+            <div>
+              <strong>Passende Personen</strong>
+              <span id="format-participant-results" role="status" aria-live="polite">Kontakte werden geladen</span>
+            </div>
+            <button class="action-button action-button--compact" type="button" id="format-participant-clear">Auswahl leeren</button>
+          </div>
+          <div class="format-participant-quick-filters" role="group" aria-labelledby="format-participant-quick-filter-label">
+            <div class="format-participant-quick-filters__copy">
+              <span class="format-participant-quick-filters__label" id="format-participant-quick-filter-label">Schnellfilter</span>
+            </div>
+            <div class="format-participant-quick-filters__controls">
+              <label class="format-participant-quick-filter" data-participant-quick-filter>
+                <span>Sektor</span>
+                <select id="format-participant-sector" aria-label="Nach Sektor filtern"></select>
               </label>
-              <div class="format-participant-filter-grid">
-                <label class="format-editor-field">
-                  <span>Sektor</span>
-                  <select id="format-participant-sector"></select>
-                </label>
-                <label class="format-editor-field">
-                  <span>Bundesland</span>
-                  <select id="format-participant-state"></select>
-                </label>
-                <label class="format-editor-field">
-                  <span>Fachrichtung</span>
-                  <select id="format-participant-specialty"></select>
-                </label>
-              </div>
+              <label class="format-participant-quick-filter" data-participant-quick-filter>
+                <span>Bundesland</span>
+                <select id="format-participant-state" aria-label="Nach Bundesland filtern"></select>
+              </label>
             </div>
-          </section>
-          <section class="editor-section editor-section--primary format-participant-step" data-format-participant-step="select" aria-labelledby="format-participant-step-select" hidden>
-            <div class="editor-section-head">
-              <div>
-                <h4 id="format-participant-step-select">Auswählen</h4>
-                <p>Kontakte markieren und gemeinsam als Kandidaten zum Format hinzufügen. Eine Einladung erfolgt erst nach Freigabe.</p>
-              </div>
+            <div class="format-participant-quick-filters__actions">
+              <span class="format-participant-quick-filters__status" id="format-participant-filter-status" hidden>0 aktiv</span>
+              <button class="format-participant-filter-reset" type="button" id="format-participant-filter-reset" aria-label="Sektor und Bundesland zurücksetzen" hidden>Filter zurücksetzen</button>
             </div>
-            <div class="format-participant-results-head">
-              <span id="format-participant-results" role="status" aria-live="polite">0 Kontakte</span>
-              <button class="action-button action-button--compact" type="button" id="format-participant-clear">Auswahl leeren</button>
-            </div>
-            <p class="format-participant-status" id="format-participant-status" role="status" aria-live="polite"></p>
-            <div class="format-participant-list" id="format-participant-list"></div>
-          </section>
+          </div>
+          <p class="format-participant-status" id="format-participant-status" role="status" aria-live="polite"></p>
+          <div class="format-participant-table-shell">
+            <table class="format-participant-table">
+              <caption class="visually-hidden">Live gefilterte Kontakte für die Einladungsliste</caption>
+              <thead>
+                <tr>
+                  <th scope="col"><span class="visually-hidden">Auswahl</span></th>
+                  <th scope="col">Person</th>
+                  <th scope="col">Organisation</th>
+                  <th scope="col">Sektor</th>
+                  <th scope="col">Ort</th>
+                  <th scope="col">Treffer im Profil</th>
+                </tr>
+              </thead>
+              <tbody id="format-participant-list"></tbody>
+            </table>
+          </div>
         </div>
         <div class="format-participant-footer">
-          <span id="format-participant-selection-count">0 ausgewählt</span>
+          <span id="format-participant-selection-count">0 Personen ausgewählt</span>
           <div class="format-editor-actions">
             <button class="action-button" type="button" id="format-participant-cancel">Abbrechen</button>
-            <button class="action-button" type="button" id="format-participant-back" hidden>Zurück</button>
-            <button class="action-button action-button--primary" type="button" id="format-participant-next">Weiter</button>
-            <button class="action-button action-button--primary" type="button" id="format-participant-add" disabled>0 Kandidaten hinzufügen</button>
+            <button class="action-button action-button--primary" type="button" id="format-participant-add" disabled>Zur Einladungsliste hinzufügen</button>
           </div>
         </div>
       </section>
