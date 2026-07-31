@@ -491,6 +491,91 @@ function mergeById(target, rows = []) {
   });
 }
 
+function normalizeFixtureEntityName(value = "") {
+  return String(value || "").trim().replace(/\s+/g, " ").toLocaleLowerCase("de");
+}
+
+function resolveProtectedHospitationEntities(fixture, payload = {}) {
+  const organizationReference = payload.organization && typeof payload.organization === "object"
+    ? payload.organization
+    : null;
+  const contactReference = payload.contact && typeof payload.contact === "object"
+    ? payload.contact
+    : null;
+  let organization = null;
+
+  if (organizationReference?.mode === "existing") {
+    organization = fixture.organizations.find((item) => item.id === organizationReference.id) || null;
+  } else if (organizationReference?.mode === "create") {
+    const name = String(organizationReference.name || "").trim().replace(/\s+/g, " ");
+    organization = fixture.organizations.find((item) =>
+      normalizeFixtureEntityName(item.name) === normalizeFixtureEntityName(name)
+    ) || null;
+    if (!organization && name) {
+      organization = {
+        id: idFor("demo-organization"),
+        name,
+        normalizedName: normalizeFixtureEntityName(name),
+        sector: payload.sector || "",
+        source: "Hospitationstermin",
+        status: "active",
+        createdAt: NOW,
+        updatedAt: NOW
+      };
+      fixture.organizations.unshift(organization);
+    }
+  }
+
+  let contact = null;
+  if (contactReference?.mode === "existing") {
+    contact = fixture.contacts.find((item) => item.id === contactReference.id) || null;
+  } else if (contactReference?.mode === "create") {
+    const name = String(contactReference.name || "").trim().replace(/\s+/g, " ");
+    contact = fixture.contacts.find((item) => {
+      if (normalizeFixtureEntityName(item.displayName || item.name) !== normalizeFixtureEntityName(name)) return false;
+      if (!organization?.id) return true;
+      return String(item.organizationId || item.organization_id || "") === String(organization.id);
+    }) || null;
+    if (!contact && name) {
+      contact = {
+        id: idFor("demo-contact"),
+        name,
+        displayName: name,
+        organizationId: organization?.id || "",
+        organization: organization?.name || "",
+        category: payload.sector || organization?.sector || "",
+        priority: "Mittel",
+        ownerId: payload.ownerId || fixture.currentProfileId,
+        ownerIds: [payload.ownerId || fixture.currentProfileId].filter(Boolean),
+        sources: ["Hospitationstermin"],
+        status: "active",
+        createdAt: NOW,
+        updatedAt: NOW
+      };
+      fixture.contacts.unshift(contact);
+    }
+  }
+
+  if (!organization && contact) {
+    organization = fixture.organizations.find((item) =>
+      item.id === (contact.organizationId || contact.organization_id)
+    ) || null;
+  }
+
+  const persisted = { ...payload };
+  delete persisted.contact;
+  delete persisted.organization;
+  if (contactReference) {
+    persisted.contactId = contact?.id || "";
+    persisted.contactName = contact?.displayName || contact?.name || "";
+  }
+  if (organizationReference || contactReference) {
+    persisted.organizationId = organization?.id || contact?.organizationId || contact?.organization_id || "";
+    persisted.organizationName = organization?.name || contact?.organization || "";
+  }
+  return { persisted, contact, organization };
+}
+
 async function fulfillJson(route, payload, status = 200, headers = {}) {
   await route.fulfill({
     status,
@@ -900,6 +985,22 @@ export async function installProtectedBackend(page, fixture) {
       const created = { ...body, id: body.id || idFor("demo-attachment"), contact_id: body.contactId || body.contact_id, note_id: body.noteId || body.note_id, file_name: body.fileName || body.file_name, mime_type: body.mimeType || body.mime_type, file_size: body.fileSize || body.file_size || 0, extracted_text: body.extractedText || body.extracted_text || "", extraction_status: body.extractionStatus || body.extraction_status || "complete", uploaded_at: NOW, uploader_id: fixture.currentProfileId, _testData: body.data || "" };
       fixture.contactNoteAttachments.push(created);
       await fulfillJson(route, created, 201);
+      return;
+    }
+    if (method === "POST" && path === "/api/hospitations" && (body.contact || body.organization)) {
+      const { persisted, contact, organization } = resolveProtectedHospitationEntities(fixture, body);
+      const created = {
+        ...persisted,
+        id: persisted.id || idFor("demo-hospitation"),
+        createdAt: persisted.createdAt || NOW,
+        updatedAt: NOW
+      };
+      fixture.hospitations.unshift(created);
+      await fulfillJson(route, {
+        ...created,
+        resolvedContact: body.contact ? contact : null,
+        resolvedOrganization: organization
+      }, 201);
       return;
     }
     const attachmentContentMatch = path.match(/^\/api\/contact-note-attachments\/([^/]+)\/content$/);

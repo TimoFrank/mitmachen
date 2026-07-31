@@ -1957,7 +1957,7 @@ test("Hospitationen: geschützte synthetische Backend-Fixture ist observation-fi
   await expect(drawer).not.toContainText("Roadmap-Bewertung");
 });
 
-test("Sidebar: Versorgung startet offen und neue Abschnitte schalten unabhängig", async ({ page }, testInfo) => {
+test("Sidebar: Aktiver Bereich startet offen und beim Modulwechsel bleibt nur ein Bereich offen", async ({ page }, testInfo) => {
   test.skip(testInfo.project.name.includes("mobile"), "Der Abschnittsdirektklick wird im Desktop-Sidebar-Layout geprüft.");
   await gotoAuthenticated(page, "/frontend/app/versorgungs-kompass.html#contacts", { role: "admin" });
 
@@ -1975,41 +1975,45 @@ test("Sidebar: Versorgung startet offen und neue Abschnitte schalten unabhängig
   await expect(page.locator('[data-sidebar-section="admin"]')).toHaveCount(0);
   await expect(collapseButton.locator(".sidebar-collapse-label")).toHaveText("Menü einklappen");
 
-  await page.locator('[data-sidebar-section-toggle="planning"] svg').click();
+  await page.locator('[data-sidebar-section-toggle="planning"]').click();
   await expect(shell).toHaveAttribute("data-active-view", "contacts");
-  await expect(careSection).toHaveClass(/is-expanded/);
+  await expect(careSection).toHaveClass(/is-collapsed/);
   await expect(stakeholderSection).toHaveClass(/is-collapsed/);
   await expect(planningSection).toHaveClass(/is-expanded/);
   await expect(formatsSection).toHaveClass(/is-collapsed/);
 
-  await page.locator('[data-sidebar-section-toggle="planning"] svg').click();
+  await page.locator('[data-sidebar-section-toggle="planning"]').click();
   await expect(shell).toHaveAttribute("data-active-view", "contacts");
   await expect(planningSection).toHaveClass(/is-collapsed/);
 
   await page.locator('[data-sidebar-section-toggle="planning"]').click();
+  await page.locator('[data-view-tab="framework"]').click();
   await expect(shell).toHaveAttribute("data-active-view", "framework");
   await expect(planningSection).toHaveClass(/is-expanded/);
-  await expect(careSection).toHaveClass(/is-expanded/);
+  await expect(careSection).toHaveClass(/is-collapsed/);
   await expect(stakeholderSection).toHaveClass(/is-collapsed/);
   await expect(formatsSection).toHaveClass(/is-collapsed/);
   await expect(page).toHaveURL(/#framework$/);
 
   await page.locator('[data-sidebar-section-toggle="care"]').click();
+  await expect(shell).toHaveAttribute("data-active-view", "framework");
+  await expect(careSection).toHaveClass(/is-expanded/);
+  await expect(planningSection).toHaveClass(/is-collapsed/);
+  await page.locator('[data-view-tab="map"]').click();
   await expect(shell).toHaveAttribute("data-active-view", "map");
   await expect(careSection).toHaveClass(/is-expanded/);
-  await expect(planningSection).toHaveClass(/is-expanded/);
-
-  await page.locator('[data-sidebar-section-toggle="care"] svg').click();
-  await expect(shell).toHaveAttribute("data-active-view", "map");
-  await expect(careSection).toHaveClass(/is-collapsed/);
-  await expect(planningSection).toHaveClass(/is-expanded/);
+  await expect(planningSection).toHaveClass(/is-collapsed/);
 
   await page.locator('[data-sidebar-section-toggle="stakeholders"]').click();
+  await expect(shell).toHaveAttribute("data-active-view", "map");
+  await expect(stakeholderSection).toHaveClass(/is-expanded/);
+  await expect(careSection).toHaveClass(/is-collapsed/);
+  await page.locator('[data-view-tab="patients"]').click();
   await expect(shell).toHaveAttribute("data-active-view", "patients");
   await expect(stakeholderSection).toHaveClass(/is-expanded/);
   await expect(stakeholderSection).toHaveClass(/is-active-section/);
   await expect(careSection).toHaveClass(/is-collapsed/);
-  await expect(planningSection).toHaveClass(/is-expanded/);
+  await expect(planningSection).toHaveClass(/is-collapsed/);
   await expect(formatsSection).toHaveClass(/is-collapsed/);
   await expect(page).toHaveURL(/#patients$/);
 
@@ -2019,38 +2023,42 @@ test("Sidebar: Versorgung startet offen und neue Abschnitte schalten unabhängig
   await expect(page).toHaveURL(/#stakeholders\/kv$/);
 
   await page.locator('[data-sidebar-section-toggle="formats"]').click();
+  await expect(shell).toHaveAttribute("data-active-view", "stakeholders");
+  await expect(formatsSection).toHaveClass(/is-expanded/);
+  await expect(stakeholderSection).toHaveClass(/is-collapsed/);
+  await page.locator('[data-view-tab="formats"]').click();
   await expect(shell).toHaveAttribute("data-active-view", "formats");
   await expect(formatsSection).toHaveClass(/is-expanded/);
   await expect(formatsSection).toHaveClass(/is-active-section/);
-  await expect(stakeholderSection).toHaveClass(/is-expanded/);
-  await expect(planningSection).toHaveClass(/is-expanded/);
+  await expect(stakeholderSection).toHaveClass(/is-collapsed/);
+  await expect(planningSection).toHaveClass(/is-collapsed/);
   await expect(page).toHaveURL(/#formats$/);
 
-  await page.locator('[data-sidebar-section-toggle="care"] svg').click();
+  await page.locator('[data-sidebar-section-toggle="care"]').click();
   await page.locator("#sidebar-analytics-button").click();
   await expect(shell).toHaveAttribute("data-active-view", "analytics");
   await expect(careSection).toHaveClass(/is-expanded/);
   await expect(careSection).toHaveClass(/is-active-section/);
-  await expect(stakeholderSection).toHaveClass(/is-expanded/);
-  await expect(planningSection).toHaveClass(/is-expanded/);
-  await expect(formatsSection).toHaveClass(/is-expanded/);
+  await expect(stakeholderSection).toHaveClass(/is-collapsed/);
+  await expect(planningSection).toHaveClass(/is-collapsed/);
+  await expect(formatsSection).toHaveClass(/is-collapsed/);
   await expect(page).toHaveURL(/#analytics$/);
 
-  const expandedCollapseBox = await collapseButton.boundingBox();
   await collapseButton.click();
   await expect(shell).toHaveClass(/is-sidebar-collapsed/);
   await expect(collapseButton).toHaveAttribute("aria-label", "Seitenleiste ausklappen");
   await expect(collapseButton.locator(".sidebar-collapse-label")).toHaveText("Menü ausklappen");
+  await expect(collapseButton).toHaveCSS("position", "static");
+  await expect(collapseButton).toBeInViewport();
   await expect(page.locator(".sidebar-nav > .sidebar-section:visible")).toHaveCount(1);
   await expect(careSection).toBeVisible();
   await expect(stakeholderSection).toBeHidden();
   await expect(planningSection).toBeHidden();
   await expect(formatsSection).toBeHidden();
   const collapsedCollapseBox = await collapseButton.boundingBox();
-  expect(expandedCollapseBox).not.toBeNull();
   expect(collapsedCollapseBox).not.toBeNull();
-  expect(collapsedCollapseBox.height).toBe(expandedCollapseBox.height);
-  expect(Math.abs(collapsedCollapseBox.y - expandedCollapseBox.y)).toBeLessThanOrEqual(1);
+  expect(collapsedCollapseBox.width).toBe(40);
+  expect(collapsedCollapseBox.height).toBe(34);
 
   await attachScreenshot(page, testInfo, "sidebar-section-first-page");
 });
@@ -2068,9 +2076,9 @@ test("Sidebar: Ruhiger Desktop-Modus nutzt die kurze Höhe ohne Navigationsscrol
   const inactiveTab = page.locator('[data-view-tab="map"]');
   const careToggle = page.locator('[data-sidebar-section-toggle="care"]');
 
-  await expect(careToggle).toHaveCSS("text-transform", "uppercase");
-  await expect(careToggle).toHaveCSS("font-weight", "820");
-  await expect(careToggle).toHaveCSS("border-left-width", "2px");
+  await expect(careToggle).toHaveCSS("text-transform", "none");
+  await expect(careToggle).toHaveCSS("font-weight", "600");
+  await expect(careToggle).toHaveCSS("border-left-width", "3px");
   const moduleAccentColors = await page.locator("[data-sidebar-section] > .sidebar-section-toggle").evaluateAll((toggles) =>
     toggles.map((toggle) => getComputedStyle(toggle).borderLeftColor)
   );
@@ -2129,9 +2137,8 @@ test("Sidebar: Ruhiger Desktop-Modus nutzt die kurze Höhe ohne Navigationsscrol
 
   await collapseButton.click();
   await expect(shell).toHaveClass(/is-sidebar-collapsed/);
-  await expect(collapseButton).toHaveCSS("position", "absolute");
-  const collapsedControlTop = await collapseButton.evaluate((element) => element.getBoundingClientRect().top);
-  expect(Math.abs(collapsedControlTop - metrics.collapseTop)).toBeLessThanOrEqual(1);
+  await expect(collapseButton).toHaveCSS("position", "static");
+  await expect(collapseButton).toBeInViewport();
 
   await collapseButton.click();
   await page.locator('[data-sidebar-section-toggle="planning"]').click();
@@ -2203,7 +2210,8 @@ test("Sidebar: Mobiles Profilavatar entspricht der Größe der Kontoaktionen", a
   );
   expect(new Set(moduleAccentColors).size).toBe(4);
   await expect(page.locator('[data-view-tab="contacts"]')).toHaveAttribute("aria-current", "page");
-  await expect(page.locator(".sidebar-nav")).toHaveCSS("overflow-y", "visible");
+  await expect(page.locator(".app-sidebar")).toHaveCSS("overflow-y", "hidden");
+  await expect(page.locator(".sidebar-nav")).toHaveCSS("overflow-y", "auto");
 
   const brandLayout = await page.locator(".sidebar-brand").evaluate((brand) => {
     const mark = brand.querySelector(".brand-mark")?.getBoundingClientRect();
@@ -3465,7 +3473,7 @@ test("Expertenkreis: Kontakt und Organisation werden getrennt angelegt", async (
 });
 
 test("Dubletten: Admin-Ansichten bleiben im jeweiligen Tab", async ({ page }, testInfo) => {
-  await gotoAuthenticated(page, "/frontend/app/versorgungs-kompass.html", {
+  await gotoAuthenticated(page, "/frontend/app/versorgungs-kompass.html#map", {
     backendFixtureScript: `window.VERSORGUNGS_COMPASS_CONTACTS = [
       { id: "demo-contact-match-a", name: "Demo-Dublettenperson A", organizationId: "demo-org-match-a", organization: "Demo-Klinik A", sector: "Krankenhaus", category: "Krankenhaus", city: "Musterstadt", state: "Nord", status: "active" },
       { id: "demo-contact-match-b", name: "Demo-Dublettenperson B", organization: "Demo-Praxis B", sector: "Praxis", category: "Praxis", status: "active" }
@@ -3482,10 +3490,10 @@ test("Dubletten: Admin-Ansichten bleiben im jeweiligen Tab", async ({ page }, te
     ];`
   });
 
-  await openMobileSidebarIfNeeded(page);
-  await page.locator('[data-view-tab="contacts"]').click();
+  await expandSidebarSectionIfNeeded(page, "care");
+  await page.locator('[data-view-tab="contacts"]:visible').click();
   await expect(page.locator(".app-shell")).toHaveAttribute("data-active-view", "contacts");
-  await expect(page.locator("#contact-matching-worklist-button")).toContainText("Dubletten (2)");
+  await expect(page.locator("#contact-matching-worklist-button")).toContainText("Dubletten");
   await page.locator("#contact-matching-worklist-button").click();
 
   await expect(page.locator(".app-shell")).toHaveAttribute("data-active-view", "contacts");
@@ -3501,10 +3509,10 @@ test("Dubletten: Admin-Ansichten bleiben im jeweiligen Tab", async ({ page }, te
 
   await attachScreenshot(page, testInfo, "kontakte-dubletten");
 
-  await openMobileSidebarIfNeeded(page);
-  await page.locator('[data-view-tab="organizations"]').click();
+  await expandSidebarSectionIfNeeded(page, "care");
+  await page.locator('[data-view-tab="organizations"]:visible').click();
   await expect(page.locator(".app-shell")).toHaveAttribute("data-active-view", "organizations");
-  await expect(page.locator("#organization-matching-worklist-button")).toContainText("Dubletten (1)");
+  await expect(page.locator("#organization-matching-worklist-button")).toContainText("Dubletten");
   await page.locator("#organization-matching-worklist-button").click();
   await expect(page.locator("#organization-duplicates-workspace")).toBeVisible();
   await expect(page.locator("#organization-list")).toBeHidden();
@@ -3516,12 +3524,11 @@ test("Dubletten: Admin-Ansichten bleiben im jeweiligen Tab", async ({ page }, te
 
   await attachScreenshot(page, testInfo, "organisationen-dubletten");
 
-  await page.evaluate(() => {
-    window.location.hash = "experts";
-  });
+  await expandSidebarSectionIfNeeded(page, "stakeholders");
+  await page.locator('[data-view-tab="experts"]:visible').click();
   await expect(page.locator(".app-shell")).toHaveAttribute("data-active-view", "experts");
   await expect(page.locator('[data-expert-table="duplicates"]')).toBeHidden();
-  await expect(page.locator("#expert-duplicates-button")).toContainText("Dubletten (2)");
+  await expect(page.locator("#expert-duplicates-button")).toContainText("Dubletten");
   await page.locator("#expert-duplicates-button").click();
 
   await expect(page.locator(".app-shell")).toHaveAttribute("data-active-view", "experts");
@@ -3543,7 +3550,7 @@ test("Dubletten: Admin-Ansichten bleiben im jeweiligen Tab", async ({ page }, te
   await expect(page.locator('[data-expert-table="duplicates"]')).toBeHidden();
   await expect(page.locator("#expert-organization-list .row").first()).toBeVisible();
   await expect(page.locator("#expert-duplicates-button")).not.toHaveClass(/is-active/);
-  await expect(page.locator("#expert-duplicates-button")).toContainText("Dubletten (1)");
+  await expect(page.locator("#expert-duplicates-button")).toContainText("Dubletten");
   await expect(page.locator("#new-expert-contact-button")).toBeHidden();
   await expect(page.locator("#new-expert-organization-button")).toBeVisible();
   await page.locator("#expert-duplicates-button").click();
@@ -4277,29 +4284,35 @@ test("Hospitationen: Dokumentationsdrawer mit Reitern", async ({ page }, testInf
   const bookingDrawer = page.locator("#hospitation-editor-drawer");
   await expect(bookingDrawer).toHaveClass(/is-open/);
   await expect(bookingDrawer.locator("#hospitation-editor-title")).toHaveText("Neuen Termin anlegen");
-  await expect(bookingDrawer.locator("#hospitation-editor-subtitle")).toContainText("Nur Kontakt, Organisation oder Freitext ist Pflicht");
-  await expect(bookingDrawer.locator("#hospitation-editor-steps .import-step")).toHaveCount(5);
-  await expect(bookingDrawer.locator("#hospitation-editor-steps .import-step").nth(0)).toContainText("Schnellerfassung");
+  await expect(bookingDrawer.locator("#hospitation-editor-subtitle")).toHaveText("Kontakt und Tag erfassen; neue Kontakte und Organisationen werden beim Speichern automatisch angelegt.");
+  await expect(bookingDrawer.locator("#hospitation-editor-steps .import-step")).toHaveCount(4);
+  await expect(bookingDrawer.locator("#hospitation-editor-steps .import-step strong")).toHaveText(["Grundlagen", "Termin", "Themen", "Notiz"]);
   await expect(bookingDrawer.locator("#hospitation-editor-back")).toBeHidden();
-  await expect(bookingDrawer.locator("#hospitation-editor-save")).toBeVisible();
-  await expect(bookingDrawer.locator("#hospitation-contact-name")).toBeVisible();
-  await bookingDrawer.locator("#hospitation-contact-name").fill("Freitext Kontakt Visualtest");
+  await expect(bookingDrawer.locator("#hospitation-editor-next")).toBeVisible();
+  await expect(bookingDrawer.locator("#hospitation-editor-save")).toBeHidden();
+  await expect(bookingDrawer.locator("#hospitation-contact")).toBeVisible();
+  await bookingDrawer.locator("#hospitation-contact").fill("Demo-Kontakt 01");
   await bookingDrawer.locator("#hospitation-editor-next").click();
   await expect(bookingDrawer.locator('[data-hospitation-editor-step="appointment"]')).toBeVisible();
   await expect(bookingDrawer.locator("#hospitation-editor-back")).toBeVisible();
-  await bookingDrawer.locator("#hospitation-start").fill("2026-07-03T10:00");
-  await bookingDrawer.locator("#hospitation-editor-next").click();
-  await expect(bookingDrawer.locator('[data-hospitation-editor-step="contact"]')).toBeVisible();
+  await bookingDrawer.locator("#hospitation-date").fill("2026-07-03");
   await bookingDrawer.locator("#hospitation-editor-next").click();
   await expect(bookingDrawer.locator('[data-hospitation-editor-step="topics"]')).toBeVisible();
-  await bookingDrawer.locator("#hospitation-goal").fill("Freitext-Kontakt Ziel aus dem Visualtest");
+  await bookingDrawer.locator("#hospitation-documentation-topic-input").fill("Medikationsplan Visualtest");
+  await bookingDrawer.locator("#hospitation-documentation-topic-add").click();
+  await expect(bookingDrawer.locator('input[name="documentationTopic"][value="Medikationsplan Visualtest"]')).toHaveCount(1);
+  await bookingDrawer.locator("#hospitation-editor-next").click();
+  await expect(bookingDrawer.locator('[data-hospitation-editor-step="notes"]')).toBeVisible();
+  await bookingDrawer.locator("#hospitation-request-message").fill("Kontaktbezogene Notiz aus dem Visualtest");
+  await expect(bookingDrawer.locator("#hospitation-editor-next")).toBeHidden();
+  await expect(bookingDrawer.locator("#hospitation-editor-save")).toBeVisible();
   await bookingDrawer.getByRole("button", { name: "Termin speichern" }).click();
   await expect(bookingDrawer).not.toHaveClass(/is-open/);
-  const freetextContactRow = page.locator(".hospitation-row", { hasText: "Freitext Kontakt Visualtest" }).first();
-  await expect(freetextContactRow).toBeVisible();
-  await expect(freetextContactRow.locator(".hospitation-contact-match-indicator")).toHaveText("!");
-  await expect(freetextContactRow.locator(".hospitation-row__cell").nth(0)).toContainText("03.07.26");
-  await expect(freetextContactRow.locator(".hospitation-row__cell").nth(0)).not.toContainText("2026");
+  const matchedContactRow = page.locator(".hospitation-row", { hasText: "Demo-Kontakt 01" }).filter({ hasText: "03.07.26" }).first();
+  await expect(matchedContactRow).toBeVisible();
+  await expect(matchedContactRow.locator(".hospitation-contact-match-indicator")).toHaveCount(0);
+  await expect(matchedContactRow.locator(".hospitation-row__cell").nth(0)).toContainText("03.07.26");
+  await expect(matchedContactRow.locator(".hospitation-row__cell").nth(0)).not.toContainText("2026");
   const scheduleTable = page.locator("#hospitation-list .hospitation-table").first();
   const scheduleHeaderCells = scheduleTable.locator(".hospitation-table-head > *");
   await expect(scheduleHeaderCells).toHaveCount(9);
@@ -4327,15 +4340,15 @@ test("Hospitationen: Dokumentationsdrawer mit Reitern", async ({ page }, testInf
     expect(dateFilterBox.left).toBeGreaterThanOrEqual(0);
     expect(dateFilterBox.right).toBeLessThanOrEqual(dateFilterBox.viewportWidth);
     await appointmentDateFilter.getByRole("button", { name: /03\.07\.2026/ }).click();
-    await expect(freetextContactRow).toBeVisible();
+    await expect(matchedContactRow).toBeVisible();
     await scheduleHeaderCells.nth(1).locator("[data-hospitation-header-filter-button]").click();
     await page.locator("#hospitation-header-filter-appointments-date").getByRole("button", { name: "Alle" }).click();
   }
   if (testInfo.project.name.includes("mobile")) {
-    await expect(freetextContactRow.locator("[data-hospitation-row-select]")).toBeHidden();
+    await expect(matchedContactRow.locator("[data-hospitation-row-select]")).toBeHidden();
     await expect(page.locator("#hospitation-bulk-toolbar")).toBeHidden();
   } else {
-    await freetextContactRow.locator("[data-hospitation-row-select]").check();
+    await matchedContactRow.locator("[data-hospitation-row-select]").check();
     await expect(page.locator("#hospitation-bulk-toolbar")).toBeVisible();
     await expect(page.locator("#hospitation-bulk-selection-count")).toHaveText("1 Termin ausgewählt");
     await page.locator("#hospitation-bulk-clear-selection").click();
@@ -4356,12 +4369,12 @@ test("Hospitationen: Dokumentationsdrawer mit Reitern", async ({ page }, testInf
   await expect(calendar.locator('[data-hospitation-calendar-mode="month"]')).toHaveAttribute("aria-pressed", "true");
   await expect(calendar.locator(".hospitation-calendar-weekday")).toHaveText(["Mo", "Di", "Mi", "Do", "Fr"]);
   await expect(calendar.locator(".hospitation-calendar-summary__item")).toHaveCount(0);
-  await expect(calendar.locator(".hospitation-calendar-legend__item")).toHaveCount(6);
+  await expect(calendar.locator(".hospitation-calendar-legend__item")).toHaveCount(4);
   await expect(calendar.locator(".hospitation-calendar-grid + .hospitation-calendar-legend")).toHaveCount(1);
   await expect(calendar.locator(".hospitation-calendar-legend")).toContainText("Terminiert");
   await expect(calendar.locator(".hospitation-calendar-legend")).toContainText("Durchgeführt");
   await expect(calendar.locator(".hospitation-calendar-legend")).toContainText("Dokumentiert");
-  await expect(calendar.locator(".hospitation-calendar-legend")).toContainText("Belegt");
+  await expect(calendar.locator(".hospitation-calendar-legend")).toContainText("Angefragt");
   await expect(calendar.locator(".hospitation-calendar-legend")).not.toContainText("Gebucht");
   await calendar.locator('[data-hospitation-calendar-mode="week"]').click();
   await expect(calendar).toHaveClass(/hospitation-calendar--week/);
@@ -4398,9 +4411,9 @@ test("Hospitationen: Dokumentationsdrawer mit Reitern", async ({ page }, testInf
   }
   await page.locator('[data-hospitation-schedule-view="list"]').click();
   await expect(page.locator("#hospitation-list .hospitation-table").first()).toBeVisible();
-  const freetextContactRowAfterCalendar = page.locator(".hospitation-row", { hasText: "Freitext Kontakt Visualtest" }).first();
-  await expect(freetextContactRowAfterCalendar).toBeVisible();
-  await freetextContactRowAfterCalendar.locator("[data-open-hospitation-entry]").click();
+  const createdContactRowAfterCalendar = page.locator(".hospitation-row", { hasText: "Demo-Kontakt 01" }).first();
+  await expect(createdContactRowAfterCalendar).toBeVisible();
+  await createdContactRowAfterCalendar.locator("[data-open-hospitation-entry]").click();
   await expect(bookingDrawer).toHaveClass(/is-open/);
   await expect(bookingDrawer.getByRole("tab", { name: "Kontext" })).toHaveAttribute("aria-selected", "true");
   await expect(bookingDrawer.getByRole("button", { name: /archivieren/i })).toBeVisible();
@@ -4410,9 +4423,13 @@ test("Hospitationen: Dokumentationsdrawer mit Reitern", async ({ page }, testInf
 
   await page.locator("#new-hospitation-request-button").click();
   await expect(bookingDrawer).toHaveClass(/is-open/);
-  await bookingDrawer.locator("#hospitation-contact-name").fill("Demo-Neuanlage Krankenhaus");
+  await bookingDrawer.locator("#hospitation-contact").fill("Demo-Neuanlage Krankenhaus");
   await bookingDrawer.locator("#hospitation-editor-next").click();
-  await bookingDrawer.locator("#hospitation-start").fill("2026-07-04T09:00");
+  await bookingDrawer.locator("#hospitation-date").fill("2026-07-04");
+  await bookingDrawer.locator("#hospitation-editor-next").click();
+  await expect(bookingDrawer.locator('[data-hospitation-editor-step="topics"]')).toBeVisible();
+  await bookingDrawer.locator("#hospitation-editor-next").click();
+  await expect(bookingDrawer.locator('[data-hospitation-editor-step="notes"]')).toBeVisible();
   await bookingDrawer.getByRole("button", { name: "Termin speichern" }).click();
   await expect(bookingDrawer).not.toHaveClass(/is-open/);
   const newlyCreatedRow = page.locator("#hospitation-list .hospitation-row", { hasText: "Demo-Neuanlage Krankenhaus" }).first();
@@ -4454,7 +4471,7 @@ test("Hospitationen: Dokumentationsdrawer mit Reitern", async ({ page }, testInf
   const drawerOverviewPanel = bookingDrawer.locator('[data-hospitation-editor-panel="overview"]');
   await expect(drawerOverviewPanel).toBeVisible();
   await expect(drawerOverviewPanel).toContainText("Termin");
-  await expect(drawerOverviewPanel).toContainText("22.01.2026, 08:35");
+  await expect(drawerOverviewPanel).toContainText("22.01.2026");
   await expect(drawerOverviewPanel).toContainText("Status");
   await expect(drawerOverviewPanel.locator(".hospitation-status-badge")).toContainText("Durchgeführt");
   await expect(drawerOverviewPanel).toContainText("Setting / Sektor");
@@ -4546,7 +4563,7 @@ test("Hospitationen: Dokumentationsdrawer mit Reitern", async ({ page }, testInf
     await expect(demoCalendar).toBeVisible();
     const currentMonthLabel = new Intl.DateTimeFormat("de-DE", { month: "long", year: "numeric" }).format(new Date());
     await expect(demoCalendar.locator(".hospitation-calendar-title")).toContainText(currentMonthLabel);
-    await expect(demoCalendar).toContainText("Freitext Kontakt Visualtest");
+    await expect(demoCalendar).toContainText("Demo-Kontakt 01");
     await expect(demoCalendar.locator(".hospitation-calendar-grid + .hospitation-calendar-legend")).toHaveCount(1);
   }
   await page.locator('[data-hospitation-schedule-view="list"]').click();
@@ -4582,7 +4599,7 @@ test("Hospitationen: Dokumentationsdrawer mit Reitern", async ({ page }, testInf
   await expect(documentationTable.locator(".hospitation-table-head > *").nth(7)).toContainText("Owner");
   await expect(documentationTable.locator(".hospitation-table-head > *").nth(8)).toContainText("Dokumentation");
   await expect(documentationTable.locator(".hospitation-table-head").locator('[data-hospitation-filter-key="documentation"]')).toHaveCount(1);
-  await expect(page.locator("#hospitation-list .hospitation-row", { hasText: "Freitext Kontakt Visualtest" })).toBeVisible();
+  await expect(page.locator("#hospitation-list .hospitation-row", { hasText: "Demo-Kontakt 01" })).toBeVisible();
   const documentationRow = page.locator("#hospitation-list .hospitation-row", { hasText: "Demo-Team Hausarztversorgung 01" }).first();
   await expect(documentationRow).toBeVisible();
   await expect(documentationRow.locator(".hospitation-row__person .avatar").first()).toHaveCSS("width", "48px");
@@ -4649,10 +4666,10 @@ test("Hospitationen: Dokumentationsdrawer mit Reitern", async ({ page }, testInf
   await expect(documentationDrawer.getByRole("button", { name: "Abbrechen" })).toHaveCount(0);
   await expect(documentationDrawer.getByRole("button", { name: "Dokumentation speichern" })).toHaveCount(0);
   await expect(documentationDrawer).toContainText("Demo-Team Hausarztversorgung 01");
-  await expect(documentationDrawer).toContainText("22.01.2026, 08:35");
+  await expect(documentationDrawer).toContainText("22.01.2026");
   const drawerProfileTop = documentationDrawer.locator(".hospitation-documentation-profile-top");
   await expect(drawerProfileTop.locator(".detail-profile-subline")).toHaveCount(0);
-  await expect(drawerProfileTop).not.toContainText("22.01.2026, 08:35");
+  await expect(drawerProfileTop).not.toContainText("22.01.2026");
   const organizationLinkMetrics = await drawerProfileTop.locator(".hospitation-documentation-profile-link").evaluate((link) => {
     const text = link.querySelector(".hospitation-documentation-profile-link__text");
     const textStyle = text ? window.getComputedStyle(text) : null;
@@ -5035,17 +5052,17 @@ test("Hospitationen: Dokumentationsdrawer mit Reitern", async ({ page }, testInf
   await expect(documentationRow).not.toContainText("Ø");
 
   if (!testInfo.project.name.includes("mobile")) {
-    const freetextArchiveRow = page.locator(".hospitation-row", { hasText: "Freitext Kontakt Visualtest" }).first();
+    const freetextArchiveRow = page.locator(".hospitation-row", { hasText: "Demo-Kontakt 01" }).first();
     await expect(freetextArchiveRow).toBeVisible();
     await freetextArchiveRow.locator("[data-hospitation-row-select]").check();
     page.once("dialog", (dialog) => dialog.accept());
     await page.locator("#hospitation-bulk-archive").click();
-    await expect(page.locator("#hospitation-list .hospitation-row", { hasText: "Freitext Kontakt Visualtest" })).toHaveCount(0);
+    await expect(page.locator("#hospitation-list .hospitation-row", { hasText: "Demo-Kontakt 01" })).toHaveCount(0);
     const archiveToggle = page.locator("[data-hospitation-archive-toggle]");
     await expect(archiveToggle).toContainText("Archiviert");
     await archiveToggle.click();
     await expect(page.locator(".hospitation-schedule-toolbar")).toHaveCount(0);
-    await expect(page.locator("#hospitation-list .hospitation-row", { hasText: "Freitext Kontakt Visualtest" }).first()).toBeVisible();
+    await expect(page.locator("#hospitation-list .hospitation-row", { hasText: "Demo-Kontakt 01" }).first()).toBeVisible();
     await page.locator("[data-hospitation-archive-toggle]").click();
   }
 
@@ -5554,8 +5571,14 @@ test("Sidebar: Team und Profil bleiben bei kurzer Höhe erreichbar", async ({ pa
     await expect(sidebarNav).toBeHidden();
     await page.locator("#sidebar-collapse-button").click();
     await expect(sidebarNav).toBeVisible();
-    await expect(sidebar).toHaveCSS("overflow-y", "auto");
-    await page.locator("#sidebar-profile-button").scrollIntoViewIfNeeded();
+    await expect(sidebar).toHaveCSS("overflow-y", "hidden");
+    await expect(sidebarNav).toHaveCSS("overflow-y", "auto");
+    const mobileScrollMetrics = await sidebarNav.evaluate((element) => ({
+      clientHeight: element.clientHeight,
+      scrollHeight: element.scrollHeight
+    }));
+    expect(mobileScrollMetrics.scrollHeight).toBeGreaterThan(mobileScrollMetrics.clientHeight);
+    await expect(accountSection).toBeInViewport();
   } else {
     const scrollMetrics = await sidebarNav.evaluate((element) => {
       element.scrollTop = 0;
@@ -5569,17 +5592,11 @@ test("Sidebar: Team und Profil bleiben bei kurzer Höhe erreichbar", async ({ pa
         scrollTop: element.scrollTop
       };
     });
-    expect(scrollMetrics.overflowY).toMatch(/auto|scroll/);
+    await expect(page.locator(".app-shell")).toHaveClass(/is-sidebar-collapsed/);
     await expect(sidebar).toHaveCSS("overflow-y", "hidden");
-    expect(scrollMetrics.scrollHeight).toBeGreaterThan(scrollMetrics.clientHeight);
-    expect(scrollMetrics.scrollTop).toBeGreaterThan(0);
-
-    const accountTopBefore = await accountSection.evaluate((element) => element.getBoundingClientRect().top);
-    await sidebarNav.evaluate((element) => {
-      element.scrollTop = element.scrollHeight;
-    });
-    const accountTopAfter = await accountSection.evaluate((element) => element.getBoundingClientRect().top);
-    expect(Math.abs(accountTopAfter - accountTopBefore)).toBeLessThanOrEqual(1);
+    expect(scrollMetrics.scrollHeight).toBeLessThanOrEqual(scrollMetrics.clientHeight + 1);
+    expect(scrollMetrics.scrollTop).toBe(0);
+    await expect(accountSection).toBeInViewport();
   }
 
   await expect(page.locator("#sidebar-profile-button")).toBeInViewport();
@@ -5588,12 +5605,8 @@ test("Sidebar: Team und Profil bleiben bei kurzer Höhe erreichbar", async ({ pa
 
   if (isMobile) {
     await page.locator("#sidebar-collapse-button").click();
-    await page.locator("#sidebar-team-button").scrollIntoViewIfNeeded();
-  } else {
-    await sidebarNav.evaluate((element) => {
-      element.scrollTop = element.scrollHeight;
-    });
   }
+  await expect(page.locator("#sidebar-team-button")).toBeInViewport();
   await page.locator("#sidebar-team-button").click();
   await expect(page.locator('[data-view-panel="team"]')).toBeVisible();
 
@@ -6419,8 +6432,8 @@ test("Stakeholder: Bereich ist im eigenen Sidebar-Abschnitt ohne obere Modus-Rei
 test("Auswertung: Analytics-View rendern", async ({ page }, testInfo) => {
   await gotoAuthenticated(page, "/frontend/app/versorgungs-kompass.html");
 
-  await openMobileSidebarIfNeeded(page);
-  await page.locator('[data-view-tab="analytics"]:visible').first().click();
+  await expandSidebarSectionIfNeeded(page, "care");
+  await page.locator("#sidebar-analytics-button:visible").click();
 
   await expect(page.locator('[data-view-panel="analytics"]')).toBeVisible();
   await expect(page.locator("#view-analytics .dashboard-grid")).toBeVisible();
