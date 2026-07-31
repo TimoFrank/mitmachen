@@ -1,19 +1,17 @@
 # Datenmodell Versorgungs-Kompass
 
-Stand: abgeleitet aus `supabase/schema.sql`, `frontend/data/sector-registry.js`, `frontend/data/data-service.js` und `api/care-sector-model.mjs`. Historische Postgres-Migrationsentwürfe liegen nur noch im Archiv.
+Stand: 31. Juli 2026, abgeleitet aus `deploy/postgres/pre-gematik/schema.sql`, den versionierten Zielmigrationen, `api/server.mjs`, `frontend/data/sector-registry.js` und `api/care-sector-model.mjs`.
 
-Zielbild-Hinweis: Supabase bleibt in diesem Dokument als Ursprungsschema und Migrationsquelle sichtbar. Die neue gematik-Zielarchitektur führt das relationale Modell in Shared PostgreSQL weiter.
+Cloud SQL beziehungsweise Shared PostgreSQL ist der alleinige aktive relationale Datenpfad. Frühere Quellschemata und Importwerkzeuge sind aus dem aktuellen Repository entfernt; ihre Herkunft bleibt über Git-Historie und geschützte Recovery-Evidenz nachvollziehbar.
 
 ## Überblick
 
-Der produktive Ziel-Datenbestand liegt in Shared PostgreSQL. Das bisherige Supabase-Schema `public` bleibt die wichtigste Migrationsquelle. Die App nutzt fachlich diese Tabellen:
+Der produktive Ziel-Datenbestand liegt in Shared PostgreSQL. Die App nutzt fachlich diese Tabellen:
 
 - `profiles`
 - `contacts`
 - `organizations`
 - `organization_primary_systems`
-- `network_registrations`
-- `network_registration_rate_limits`
 - `formats`
 - `format_participants`
 - `hospitation_slots`
@@ -22,7 +20,6 @@ Der produktive Ziel-Datenbestand liegt in Shared PostgreSQL. Das bisherige Supab
 - `activity_events`
 - `saved_views`
 - `user_settings`
-- `login_aliases`
 - `stakeholder_types`
 - `stakeholder_organizations`
 - `stakeholder_people`
@@ -36,9 +33,6 @@ erDiagram
   profiles ||--o{ contacts : "owner_id"
   organizations ||--o{ contacts : "organization_id"
   organizations ||--o{ organization_primary_systems : "organization_id"
-  contacts ||--o{ network_registrations : "contact_id"
-  organizations ||--o{ network_registrations : "organization_id"
-  profiles ||--o{ network_registrations : "processed_by"
   profiles ||--o{ contacts : "created_by"
   profiles ||--o{ contacts : "updated_by"
   profiles ||--o{ contacts : "relationship_basis_recorded_by"
@@ -62,7 +56,6 @@ erDiagram
   profiles ||--o{ saved_views : "owner_id"
   profiles ||--|| user_settings : "user_id"
   saved_views ||--o{ user_settings : "default_view_id"
-  profiles ||--o{ login_aliases : "profile_id"
 ```
 
 ## Fachmodell Versorgungssektoren
@@ -102,7 +95,7 @@ Regeln für Lesen und Schreiben:
 
 Zweck:
 
-- Nutzerprofile für angemeldete Supabase-Auth-Nutzer.
+- Stabile Anwendungsprofile für extern authentisierte Nutzer.
 - Rollensteuerung für Admin, Editor und Viewer.
 - Owner-Auswahl in Kontakten.
 
@@ -110,7 +103,7 @@ Wichtigste Felder:
 
 | Feld | Bedeutung |
 | --- | --- |
-| `id` | UUID, entspricht `auth.users.id`, Primärschlüssel. |
+| `id` | Stabile UUID der Anwendung, Primärschlüssel. Externe Subjects werden getrennt in `identity_bindings` zugeordnet. |
 | `email` | Login-/Kontaktadresse. |
 | `display_name` | Anzeigename in App und Owner-Auswahl. |
 | `initials` | Kurzlabel/Avatar. |
@@ -137,14 +130,14 @@ Kritische Felder:
 
 Automatisch gesetzt:
 
-- Neues Profil wird durch Trigger `handle_new_user()` nach erstem Auth-Login angelegt.
 - `created_at` und `updated_at` haben Defaults.
+- Ein externes Login legt kein Profil automatisch an. Profil und `identity_bindings` werden über den geprüften administrativen Enrollment-/Binding-Prozess provisioniert.
 
 Dürfen Nutzer bearbeiten:
 
 - Nutzer dürfen das eigene Profil für `display_name`, `initials`, `avatar_url`, `team` und `bio` aktualisieren.
 - `email`, `role` und `active` sind nicht durch die Profil-UI editierbar.
-- Admins pflegen Rollen weiterhin außerhalb der Profilseite in Supabase.
+- Admins pflegen Rollen weiterhin außerhalb der Profilseite über den geschützten Cloud-SQL-/API-Administrationsprozess.
 
 ## Tabelle `contacts`
 
@@ -294,7 +287,7 @@ UI-Nutzung:
 
 Migrationslogik:
 
-- Migration `supabase/migrations/20260516_create_organizations.sql` legt `organizations` an und ergänzt `contacts.organization_id`.
+- Das Ziel-Schema unter `deploy/postgres/pre-gematik/` definiert `organizations` und `contacts.organization_id` als aktuellen Vertrag.
 - Bestehende eindeutige `contacts.organization`-Freitextwerte werden getrimmt, mit zusammengefassten Leerzeichen normalisiert und als erste Organisationen angelegt.
 - Unsichere Dubletten wie "UKB" und "Universitätsklinikum Bonn" werden nicht automatisch zusammengeführt.
 - Danach werden Kontakte per normalisiertem Freitext auf die neue Organisation verlinkt.
@@ -337,45 +330,18 @@ Rechte:
 
 - Viewer lesen Einträge aktiver Organisationen.
 - Editor/Admin dürfen Einträge aktiver Organisationen anlegen, bearbeiten und löschen.
-- RLS folgt dem Status der zugehörigen Organisation.
+- Die API-Autorisierung prüft zusätzlich den Status der zugehörigen Organisation.
 
-## Tabellen `network_registrations` und `network_registration_rate_limits`
+## Vorbereitung eines späteren Registrierungs-Intakes
 
-Zweck:
-
-- Vorbereitendes Datenmodell für einen möglichen später freigegebenen #Mitmachen-Intake; die aktuelle Repo-Konzeptdemo schreibt keine Daten.
-- Trennung ungeklärter Eingänge vom aktiven Kontakt- und Organisationsbestand.
-- Strukturierte Erfassung von Profilstand, beruflichem Kontext, Organisation, Primärsystem, TI-Anwendungen und getrennten Einwilligungsnachweisen.
-
-Wichtigste Felder:
-
-| Feld | Bedeutung |
-| --- | --- |
-| `submission_id` | Eindeutige Browser-Einreichung für idempotente Retries ohne Doppelzeile. |
-| `status` | Arbeitsstatus von `neu` bis `uebernommen`, `verknuepft`, `abgelehnt` oder `widerrufen`. |
-| `onboarding_stage` | Stand der gestuften Registrierung: Kurzregistrierung, begonnenes/vollständiges Profil oder Verifizierung. |
-| `first_name`, `last_name`, `email` | Minimale Identifikation der registrierenden Person. |
-| `professional_group`, `role`, `employment_status`, `years_in_profession_band`, `age_group` | Forschungs- und Zielgruppenprofil der Person. |
-| `organization`, `sector`, `postal_code`, `city`, `federal_state`, `employee_count_band` | Organisations- und Standortkontext. |
-| `primary_system_*`, `ti_applications` | Digitale Arbeitsumgebung; bei Übernahme wird ein Primärsystem strukturiert an der Organisation ergänzt. |
-| `participation_formats`, `interest_topics` | Auswahlmerkmale für passende Beteiligungsformate. |
-| `consent_processing_*`, `consent_contact_*`, `privacy_notice_version` | Getrennte, versionierte Nachweise für Registrierung und optionale allgemeine #Mitmachen-Kontaktaufnahme. |
-| `email_confirmation_status`, `email_confirmed_at` | Besitznachweis der E-Mail-Adresse; bis zur Bestätigung darf keine Einwilligung als aktiv übernommen werden. |
-| `retention_review_at` | Zeitpunkt, zu dem die weitere Aufbewahrung fachlich geprüft werden muss. |
-| `contact_id`, `organization_id`, `processed_at`, `processed_by` | Nachvollziehbare Zuordnung nach der Admin-Prüfung. |
-
-Sicherheitsmodell:
-
-- Ein später freigegebener öffentlicher Prozess dürfte ausschließlich über einen geschützten serverseitigen Intake schreiben. Die aktuelle Landingpage ist technisch inert; die vorhandene Edge Function ist kein aktiver Vertrag der Konzeptdemo.
-- `anon` hat auf der Intake-Tabelle weder Lese- noch Schreibrechte. Nur die Edge Function schreibt mit Service-Identität.
-- Ausschließlich Admins dürfen Intake-Zeilen lesen oder löschen. Schreibrechte sind auf Workflow-, Zuordnungs- und Prüffelder begrenzt; Identität, Profilantworten und Einwilligungsnachweise sind unveränderlich.
-- `network_registration_rate_limits` speichert nur per HMAC und geheimem Pepper pseudonymisierte technische Fingerprints für ein kurzes Missbrauchsfenster und ist für Browserrollen vollständig gesperrt. Ein atomarer SQL-Zähler verhindert parallele Lost Updates.
-- Kontakte und Organisationen werden nicht direkt aus dem öffentlichen Formular heraus angelegt.
-
-Bewusste Grenze:
-
-- Der Status für Double-Opt-in beziehungsweise einen belastbaren manuellen E-Mail-Nachweis ist umgesetzt. Automatischer E-Mail-Versand, Bestätigungslink, Teilnehmerkonto, Incentives und Befragungsantworten sind noch keine Funktionen dieses Schemas.
-- Der Reiter `Registrierungskonzept` zeigt diese Schritte ausschließlich als mögliches Zukunftsszenario. Eine Aktivierung erfordert einen realen gematik-Prozess sowie abgestimmte Datenschutzinformationen, Löschfristen, Auftragsverarbeitung und gegebenenfalls eine DSFA-Prüfung.
+Das aktuelle Cloud-SQL-Schema besitzt keine aktive Intake-Tabelle. Die
+#Mitmachen-Konzeptdemo ist technisch inert und baut keinen Request an
+`POST /api/network-registrations` auf. Ein späterer Registrierungsprozess
+benötigt einen getrennt freigegebenen serverseitigen Vertrag mit
+Authentisierung, Idempotenz, Rate Limit, Datenschutzinformation,
+E-Mail-Bestätigung, Aufbewahrungsregeln und sicherem Backendausfall. Kontakte
+und Organisationen werden bis dahin nicht aus einem öffentlichen Formular
+angelegt.
 
 ## Tabellen `stakeholder_types`, `stakeholder_organizations`, `stakeholder_people`
 
@@ -684,12 +650,12 @@ Indizes und Idempotenz:
 - Zusammengesetzter Objektindex auf `entity_type`, `entity_id` und `occurred_at`.
 - Partieller Unique-Index auf `legacy_source`, `legacy_id` verhindert eine doppelte Übernahme derselben historischen Zeile.
 
-RLS und Schreibmodell:
+API-RBAC und Schreibmodell:
 
 - Admins dürfen alle Ereignisse lesen. Viewer und Editoren sehen nur Ereignisse ohne Kontaktbezug oder Ereignisse aktiver Kontakte; Aktivitäten archivierter Kontakte bleiben verborgen.
 - Für EHC-only-Kontakte gilt dieselbe nicht identifizierende Zugriffsprojektion auch im globalen Verlauf und im Kontaktverlauf. Nicht autorisierte Nutzer dürfen insbesondere weder Kontaktstammdaten noch Werte aus Profilführungs- oder Einwilligungsnachweisen über Aktivitätsfelder erhalten.
-- Authentifizierte Browser-Clients besitzen ausschließlich `SELECT`: keine Sequenzrechte, keine Insert-Policy und keine Rechte für Update oder Delete.
-- Ausschließlich der privilegierte serverseitige Writer besitzt `INSERT` und Sequenzrechte. Auch für ihn bleiben Update und Delete gesperrt, damit das Ledger append-only ist; der Schlüssel darf nie im Frontend verwendet werden.
+- Browser-Clients besitzen keinen direkten Datenbankzugriff; Lesen und Schreiben laufen ausschließlich über die autorisierte API.
+- Die `NOLOGIN`-Laufzeitrolle besitzt für `activity_events` nur `SELECT`, `INSERT` und die erforderlichen Sequenzrechte. Update und Delete bleiben gesperrt, damit das Ledger append-only ist.
 - Fachliche Mutationen schreiben Domainänderung, Audit-Zeilen, kanonisches Ereignis und die Verknüpfung der Audit-Zeilen in einer Transaktion. `actor_id`, Objekt- und Kontaktbezug stammen aus dem validierten Servervorgang, nicht aus frei formulierbaren Browserdaten.
 
 Trennung von `activity_events.changes` und `public.changes`:
@@ -790,61 +756,28 @@ Dürfen Nutzer bearbeiten:
 
 - Jeder angemeldete Nutzer nur die eigenen Einstellungen.
 
-## Tabelle `login_aliases`
-
-Zweck:
-
-- Server-seitige Zuordnung kurzer Login-Kürzel zu Supabase-Auth-E-Mail-Adressen.
-- Komfort-Login im Versorgungs-Kompass, ohne die E-Mail-Zuordnung in Frontend-Dateien auszuliefern.
-
-Wichtigste Felder:
-
-| Feld | Bedeutung |
-| --- | --- |
-| `alias` | Login-Kürzel, klein geschrieben, eindeutig, z. B. `timo`. |
-| `email` | Zugehörige Supabase-Auth-E-Mail-Adresse. |
-| `profile_id` | Optionaler Bezug zum Profil in `public.profiles`. |
-| `active` | Steuert, ob das Kürzel für Login-Auflösung verwendet wird. |
-| `created_at`, `updated_at` | Zeitstempel. |
-
-UI-Nutzung:
-
-- Das Login-Formular akzeptiert Kürzel oder E-Mail.
-- Die Supabase Edge Function `login-with-alias` löst Kürzel serverseitig auf und meldet danach mit E-Mail und Passwort bei Supabase Auth an.
-
-Kritische Felder:
-
-- `alias`, weil es der sichtbare Login-Identifier ist.
-- `email`, weil es auf den echten Supabase Auth User zeigen muss.
-- `active`, weil damit Kürzel deaktiviert werden können, ohne den Auth User oder das Profil zu löschen.
-
-Dürfen Nutzer bearbeiten:
-
-- Normale Nutzer lesen oder bearbeiten `login_aliases` nicht direkt.
-- Pflege erfolgt administrativ über SQL/Supabase Dashboard oder Service-Role-Kontext.
-
 ## Views und Funktionen
 
 | Objekt | Zweck |
 | --- | --- |
-| `public.current_profile_role()` | Liefert Rolle des aktuell angemeldeten aktiven Profils für RLS-Policies. |
-| `public.touch_updated_at()` | Aktualisiert `updated_at` bei Updates. |
-| `public.handle_new_user()` | Legt nach Supabase-Auth-Registrierung ein Profil an. |
+| `public.pre_gematik_touch_updated_at()` | Aktualisiert `updated_at` bei Updates. |
+| `public.pre_gematik_prepare_contact_purpose_write()` | Validiert und ergänzt zweckbezogene Kontaktänderungen serverseitig. |
+| `public.pre_gematik_log_contact_purpose_change()` | Schreibt den zugehörigen Auditnachweis transaktional. |
 
 ## Storage `profile-images`
 
 Zweck:
 
-- Ablage von Profilbildern für angemeldete Nutzer.
-- Dateipfad: `<auth.uid()>/avatar.<jpg|png|webp>`.
+- Ablage von Profilbildern in einem privaten Google-Cloud-Storage-Bucket.
+- Der Objektpfad wird serverseitig an die stabile Profil-ID gebunden.
 - Erlaubte Typen: `image/jpeg`, `image/png`, `image/webp`.
 - Größenlimit: 5 MB.
 
-RLS/Policy-Hinweise:
+Zugriffshinweise:
 
-- Authentifizierte Nutzer dürfen nur im eigenen Ordner hochladen, ersetzen und löschen.
-- Der Bucket ist privat. Es gibt keine anonyme Lesepolicy.
-- Lesen und Anzeigen erfolgen ausschließlich autorisiert über die geschützte API beziehungsweise kurzlebige signierte URLs; dauerhafte öffentliche Profilbild-URLs werden nicht gespeichert.
+- Der Bucket ist privat, nutzt Uniform Bucket-Level Access und Public Access Prevention.
+- Lesen, Hochladen, Ersetzen und Löschen erfolgen ausschließlich über die autorisierte API und deren Workload Identity.
+- Dauerhafte öffentliche Profilbild-URLs werden nicht gespeichert.
 
 ## Storage `stakeholder-logos`
 
@@ -853,20 +786,19 @@ RLS/Policy-Hinweise:
 - Nur der API-Workload besitzt Objekt-Leserechte. Frontend, GitHub-Pages-Demo und Deployment-Identität erhalten keinen Zugriff auf Logo-Inhalte.
 - Die API akzeptiert ausschließlich den freigegebenen Bildvertrag und liefert SVG mit restriktiver Content Security Policy aus. Unsichere, strukturell ungültige oder übergroße Quelldateien werden vor einer Migration quarantänisiert und nicht still übernommen.
 
-## RLS- und Rechtehinweise
+## Rollen- und Rechtehinweise
 
-- RLS ist für alle genannten Tabellen aktiv.
-- `authenticated` hat technische Grants, konkrete Aktionen werden durch Policies eingeschränkt.
-- Viewer dürfen nicht schreiben.
-- Editor/Admin dürfen aktive Kontakte erstellen und bearbeiten.
-- Admins dürfen archivieren/wiederherstellen und Profile verwalten.
-- Service-Role darf für lokale Admin-Skripte alles, darf aber nie ins Frontend.
+- Der Browser besitzt keinen direkten Datenbankzugriff. Jede fachliche Operation läuft über die API.
+- Die Cloud-SQL-Laufzeitrolle ist `NOLOGIN`, wird nur dem kurzlebigen API-Login zugeordnet und erhält explizite Grants.
+- Viewer dürfen nicht schreiben. Editor/Admin dürfen nur die im API-Policy-Manifest freigegebenen Mutationen ausführen.
+- Admins dürfen archivieren beziehungsweise wiederherstellen und geschützte Administrationsprozesse anstoßen.
+- `activity_events` bleibt append-only: Die Laufzeitrolle besitzt `SELECT` und `INSERT`, aber kein `UPDATE` oder `DELETE`.
 
 ## Kontaktanlage Sprint E
 
 Die Kontaktanlage verwendet weiterhin `contacts`; es gibt keine neue Datenquelle und kein neues Bulk-Datenmodell.
 
-- Einzelkontakt und Online-Tabelle schreiben über `window.dataService.createContact()` nach Supabase.
+- Einzelkontakt und Online-Tabelle schreiben über `window.dataService.createContact()` an die geschützte API `/api/contacts`.
 - Pflichtfeld in der UI ist `name`.
 - Defaults: `priority = Mittel`, `status = active`, `owner_id` wird gesetzt, wenn ein Profil ausgewählt ist; sonst bleibt Owner leer.
 - Online-Tabelle validiert je Zeile: fehlender Name, ungültige E-Mail, grob ungültige Telefonnummer und unbekannter Sektor sind Fehler.

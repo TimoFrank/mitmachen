@@ -337,16 +337,14 @@ Die lokale Anwendung enthält bereits hilfreiche Bausteine, ist für den beschri
 
 | Fundstelle | Ist-Befund | Änderungsticket |
 |---|---|---|
-| [`supabase/functions/network-registration/index.ts`](../../supabase/functions/network-registration/index.ts) | `consent_processing_accepted_at` wird als notwendige Zustimmung verlangt; Fehlermeldung „Die notwendige Verarbeitung wurde nicht bestätigt.“ | Pflichtzustimmung entfernen; stattdessen nur nachweisen, welche Datenschutzhinweis-Version beim Absenden angezeigt wurde |
-| [`supabase/schema.sql`](../../supabase/schema.sql) – `network_registrations` | `consent_processing_version` und `consent_processing_accepted_at` sind `NOT NULL` | in `privacy_notice_version`/`privacy_notice_presented_at` überführen; keine Einwilligungssemantik für den operativen Zweck |
-| [`supabase/schema.sql`](../../supabase/schema.sql) – E-Mail-Bestätigung | Statusfelder sind vorhanden, ein vollständiger DOI-Versand- und Bestätigungsworkflow ist im geprüften Code aber nicht erkennbar | Token-, Versand-, Bestätigungs-, Ablauf- und Widerrufsworkflow implementieren; `granted` erst nach Bestätigung |
-| [`supabase/schema.sql`](../../supabase/schema.sql) – Kontaktstatus | `granted` kann ohne gesonderten `pending`-Status geführt werden | `pending` beziehungsweise getrennte Felder `consent_checked_at` und `consent_confirmed_at` ergänzen |
+| Konzeptdemo / ehemaliger Netzwerk-Intake | Der Supabase-Legacy-Intake ist stillgelegt und aus dem aktiven Code sowie dem Deployment entfernt. Die Konzeptdemo sendet keinen Request und nimmt keine Registrierungsdaten entgegen. | Stilllegung beibehalten; keine Weiterleitung, Persistenz oder Reaktivierung ohne neue fachliche, datenschutzrechtliche und technische Freigabe |
+| Künftiger öffentlicher Intake | Es gibt derzeit keinen aktiven Intake und keinen produktiven DOI-Prozess. Das entfernte Supabase-Schema ist keine operative Implementierungsgrundlage mehr. | Erst nach Freigabe eines vollständigen Prozesses implementieren: angezeigte Datenschutzhinweis-Version und Zeitpunkt nachweisen, DOI mit Token, Versand, Bestätigung und Ablauf umsetzen sowie Widerruf und Sperre unveränderlich auditieren |
+| Künftige Datenhaltung und Berechtigungen | Supabase-RLS ist kein aktiver Kontrollpfad mehr. | Einen neuen Intake ausschließlich serverseitig über API-RBAC und eine Cloud-SQL-Rolle mit Minimalrechten anbinden; getrennte Lese-/Schreibrechte, Zweckbindung, Auditierung und negative Berechtigungstests vor Freigabe nachweisen |
 | [`api/security-policy.mjs`](../../api/security-policy.mjs) | `viewer` darf die wesentlichen Collections und aktiven Kontakte lesen | Discovery- und Fallsicht in getrennte Routen/Projektionen aufteilen; Zugriff nach Team, Owner und Format begrenzen |
-| [`supabase/schema.sql`](../../supabase/schema.sql) – RLS | Policy `contacts authenticated read active` erlaubt allen authentifizierten Profilen die Lektüre aller aktiven Kontakte | RLS/API-Scope auf autorisierte Versorgungskompass-Gruppe und erforderliche Zeilen/Felder begrenzen |
 | [`api/security-policy.mjs`](../../api/security-policy.mjs) – Export | Export ist bereits Admins vorbehalten | beibehalten und zusätzlich Zweck/Genehmigung/Audit sowie feldreduzierte Versandlisten einführen |
 | Kontaktmodell | Einwilligungsquelle, Textversion und Zeitpunkt sind bereits strukturiert | beibehalten; Online-`granted` nur mit DOI-Nachweis, Widerruf und Sperre unveränderlich auditieren |
 
-Wichtig: Das vorliegende Dokument empfiehlt diese Änderungen, setzt sie aber nicht in Produktivcode um. Vor der technischen Umsetzung sind Systemgrenze, produktiver Identitätsprovider und tatsächlicher Versanddienst festzulegen.
+Wichtig: Der stillgelegte Supabase-Legacy-Pfad ist kein offenes Implementierungsbacklog. Ein künftiger Intake ist ein neues, freigabepflichtiges Feature. Vor seiner technischen Umsetzung sind Systemgrenze, produktiver Identitätsprovider, tatsächlicher Versanddienst, Datenschutzhinweis und DOI-/Widerrufsprozess verbindlich festzulegen; API-RBAC und Cloud-SQL-Minimalrechte müssen Teil der Freigabe sein.
 
 ## 6. Zusätzliche Betriebsregeln
 

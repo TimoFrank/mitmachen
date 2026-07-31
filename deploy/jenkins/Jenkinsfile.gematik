@@ -726,7 +726,7 @@ pipeline {
           }
           poc_values_digest="sha256:$(sha256_file "$HELM_POC_VALUES")"
           schema_digest="sha256:$(sha256_file deploy/postgres/pre-gematik/schema.sql)"
-          migration_contract_digest="sha256:$(sha256_file scripts/lib/pre-gematik-database-migration.mjs)"
+          migration_contract_digest="$(node scripts/hash_pre_gematik_migration_contract.mjs)"
           identity_binding_digest="sha256:$(sha256_file deploy/postgres/poc-gematik/bind-oidc-identity.sql)"
           security_evidence_digest="sha256:$(sha256_file "$SECURITY_EVIDENCE_DIR/security-evidence.json")"
           api_sbom_digest="sha256:$(sha256_file "$SECURITY_EVIDENCE_DIR/api-sbom.cdx.json")"

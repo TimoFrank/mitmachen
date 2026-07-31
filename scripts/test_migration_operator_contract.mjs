@@ -3,11 +3,8 @@
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import {
-  lstat,
   mkdir,
   mkdtemp,
-  readFile,
-  readdir,
   realpath,
   rm,
   symlink,
@@ -18,10 +15,8 @@ import { join } from "node:path";
 
 import {
   MigrationOperatorError,
-  logoRemediationOutputFiles,
   phaseExecution,
   resolveProjectedInput,
-  stageLogoRemediationObjects,
   waitForEvidenceCollection
 } from "../deploy/migration-operator/operator-entrypoint.mjs";
 import { renderJob } from "../deploy/migration-operator/render-job.mjs";
@@ -40,83 +35,33 @@ const networkPolicy = readFileSync(new URL("deploy/migration-operator/networkpol
 
 const fingerprint = `sha256:${"a".repeat(64)}`;
 const environment = {
-  EXPECTED_SOURCE_PROJECT_ID: "source-project-ref",
   EXPECTED_TARGET_PROJECT_ID: "target-project-123",
   GCP_PROJECT_ID: "target-project-123",
-  PRE_IMPORT_BACKUP_ID: "backup-20260720",
-  CONFIRM_STORAGE_PREVIEW_FINGERPRINT: fingerprint,
-  CONFIRM_STORAGE_MANIFEST_FINGERPRINT: fingerprint,
-  CONFIRM_SOURCE_SNAPSHOT_FINGERPRINT: fingerprint,
   CONFIRM_IDENTITY_PREVIEW_FINGERPRINT: fingerprint,
   CONFIRM_IDENTITY_CURRENT_STATE_FINGERPRINT: fingerprint,
   CONFIRM_GUEST_ACCESS_INPUT_FINGERPRINT: fingerprint,
   CONFIRM_GUEST_ACCESS_CURRENT_STATE_FINGERPRINT: fingerprint,
   CONFIRM_GUEST_ACCESS_OPERATION: "PREBIND_IDENTITY_PLATFORM_PASSWORD_GUEST",
-  CONFIRM_QUARANTINED_OBJECT_COUNT: "0",
-  CONFIRM_BOOTSTRAP_PROFILE_FINGERPRINT: fingerprint,
   CONFIRM_IDENTITY_BINDING_COUNT: "1",
   CONFIRM_IDENTITY_ACTIVE_BINDING_COUNT: "1",
   GUEST_ACCESS_RECONCILE_PROFILE_DISPLAY_NAME_AND_PREBIND: "false"
 };
 
-assert.deepEqual(
-  phaseExecution("storage-preview", environment).arguments,
-  ["--manifest-output", "/protected-output/run/storage-preview.json"]
-);
-const storageApply = phaseExecution("storage-apply", environment);
-assert.equal(storageApply.arguments.includes("--apply"), true);
-assert.equal(storageApply.arguments.includes("MIGRATE_ALLOWLISTED_SUPABASE_STORAGE_TO_GCS"), true);
-assert.equal(storageApply.arguments.includes("/protected-output/run/storage-apply.ndjson"), true);
-
-const logoEnvironment = {
-  ...environment,
-  LOGO_REMEDIATION_MANIFEST_PATH: "/protected-input/run/logo-remediation-preview.json",
-  LOGO_REMEDIATION_OBJECT_DIRECTORY: "/protected-input/run/logo-remediation-objects"
-};
-const logoStoragePreview = phaseExecution("storage-preview", logoEnvironment);
-assert.equal(logoStoragePreview.logoRemediationBundle, true);
-assert.deepEqual(logoStoragePreview.protectedInputs, ["logo-remediation-preview.json"]);
-assert.equal(
-  logoStoragePreview.arguments.includes("/protected-input/run/logo-remediation-preview.json"),
-  true
-);
-assert.equal(
-  logoStoragePreview.arguments.includes("/protected-input/run/logo-remediation-objects"),
-  true
-);
-const logoStorageApply = phaseExecution("storage-apply", logoEnvironment);
-assert.equal(logoStorageApply.logoRemediationBundle, true);
-assert.deepEqual(logoStorageApply.protectedInputs, ["logo-remediation-preview.json"]);
-assert.throws(
-  () => phaseExecution("storage-preview", {
-    ...environment,
-    LOGO_REMEDIATION_MANIFEST_PATH: "/protected-input/run/logo-remediation-preview.json"
-  }),
-  (error) => error instanceof MigrationOperatorError
-    && /requires both protected operator paths/u.test(error.message)
-);
-assert.throws(
-  () => phaseExecution("storage-preview", {
-    ...logoEnvironment,
-    LOGO_REMEDIATION_OBJECT_DIRECTORY: "/tmp/logo-remediation-objects"
-  }),
-  (error) => error instanceof MigrationOperatorError
-    && /fixed owner-only operator locations/u.test(error.message)
-);
-
-const databasePreview = phaseExecution("database-preview", environment);
-assert.equal(databasePreview.managedTarget, true);
-assert.deepEqual(databasePreview.protectedInputs, ["supabase-root-ca.crt"]);
-
-const databaseApply = phaseExecution("database-apply", environment);
-assert.equal(databaseApply.arguments.includes("--replace-synthetic-target"), true);
-assert.equal(databaseApply.arguments.includes("pre-gematik-synthetic-v1"), true);
-assert.equal(databaseApply.arguments.includes("/protected-input/run/storage-apply.json"), true);
-assert.deepEqual(databaseApply.protectedInputs, ["supabase-root-ca.crt", "storage-apply.json"]);
+for (const retiredPhase of [
+  "storage-preview",
+  "storage-apply",
+  "database-preview",
+  "database-apply"
+]) {
+  assert.throws(
+    () => phaseExecution(retiredPhase, environment),
+    (error) => error instanceof MigrationOperatorError,
+    `Stillgelegte Importphase darf nicht mehr ausführbar sein: ${retiredPhase}`
+  );
+}
 
 const identityPreview = phaseExecution("identity-preview", environment);
 assert.equal(identityPreview.managedTarget, true);
-assert.equal(identityPreview.requiresSourceCa, false);
 assert.deepEqual(identityPreview.arguments, [
   "--input", "/protected-input/run/iap-bindings.json"
 ]);
@@ -124,7 +69,6 @@ assert.deepEqual(identityPreview.protectedInputs, ["iap-bindings.json"]);
 
 const identityApply = phaseExecution("identity-apply", environment);
 assert.equal(identityApply.managedTarget, true);
-assert.equal(identityApply.requiresSourceCa, false);
 assert.equal(identityApply.arguments.includes("--apply"), true);
 assert.equal(identityApply.arguments.includes("UPSERT_IAP_IDENTITY_BINDINGS"), true);
 assert.equal(identityApply.arguments.includes("--allow-active-bindings"), true);
@@ -207,7 +151,6 @@ assert.throws(
 
 const guestPreview = phaseExecution("guest-preview", environment);
 assert.equal(guestPreview.managedTarget, true);
-assert.equal(guestPreview.requiresSourceCa, false);
 assert.deepEqual(guestPreview.arguments, [
   "--input", "/protected-input/run/guest-access.json"
 ]);
@@ -216,7 +159,6 @@ assert.equal(guestPreview.guestAccessTargetProject, environment.EXPECTED_TARGET_
 
 const guestApply = phaseExecution("guest-apply", environment);
 assert.equal(guestApply.managedTarget, true);
-assert.equal(guestApply.requiresSourceCa, false);
 assert.deepEqual(guestApply.protectedInputs, ["guest-access.json"]);
 assert.deepEqual(guestApply.arguments, [
   "--input", "/protected-input/run/guest-access.json",
@@ -342,85 +284,22 @@ assert.throws(
   () => phaseExecution("shell", environment),
   (error) => error instanceof MigrationOperatorError
 );
-assert.throws(
-  () => phaseExecution("storage-apply", { ...environment, CONFIRM_QUARANTINED_OBJECT_COUNT: "-1" }),
-  (error) => error instanceof MigrationOperatorError
-);
 
 const projectedInputTestRoot = await mkdtemp(join(tmpdir(), "vk-operator-projected-secret-"));
 try {
   const secretRoot = join(projectedInputTestRoot, "secret-input");
   const versionDirectory = join(secretRoot, "..2026_07_20_00_00_00.000000000");
   await mkdir(versionDirectory, { recursive: true, mode: 0o700 });
-  const projectedTarget = join(versionDirectory, "supabase-root-ca.crt");
-  await writeFile(projectedTarget, "synthetic-ca-for-path-contract", { mode: 0o600 });
+  const projectedTarget = join(versionDirectory, "iap-bindings.json");
+  await writeFile(projectedTarget, "[]", { mode: 0o600 });
   await symlink("..2026_07_20_00_00_00.000000000", join(secretRoot, "..data"));
-  const projectedPath = join(secretRoot, "supabase-root-ca.crt");
-  await symlink("..data/supabase-root-ca.crt", projectedPath);
+  const projectedPath = join(secretRoot, "iap-bindings.json");
+  await symlink("..data/iap-bindings.json", projectedPath);
   assert.equal(
     await resolveProjectedInput(projectedPath, secretRoot),
     await realpath(projectedTarget),
     "Kubernetes' versioned Secret projection must be accepted after containment verification."
   );
-
-  const logoOutputFiles = ["01.resvg.png", "02.resvg.png"];
-  const logoManifest = {
-    schemaVersion: "versorgungs-kompass-logo-remediation-v1",
-    remediatedObjectCount: logoOutputFiles.length,
-    remediationFingerprint: fingerprint,
-    entries: logoOutputFiles.map((outputFile) => ({ outputFile }))
-  };
-  assert.deepEqual(
-    logoRemediationOutputFiles(Buffer.from(JSON.stringify(logoManifest))),
-    logoOutputFiles
-  );
-  assert.throws(
-    () => logoRemediationOutputFiles(Buffer.from(JSON.stringify({
-      ...logoManifest,
-      entries: [{ outputFile: "../unsafe.png" }, { outputFile: "02.resvg.png" }]
-    }))),
-    (error) => error instanceof MigrationOperatorError
-      && /output list is unsafe/u.test(error.message)
-  );
-  assert.throws(
-    () => logoRemediationOutputFiles(Buffer.from(JSON.stringify({
-      ...logoManifest,
-      entries: [{ outputFile: "01.resvg.png" }, { outputFile: "01.resvg.png" }]
-    }))),
-    (error) => error instanceof MigrationOperatorError
-      && /output list is unsafe/u.test(error.message)
-  );
-
-  for (const [index, outputFile] of logoOutputFiles.entries()) {
-    const projectedOutput = join(versionDirectory, outputFile);
-    await writeFile(projectedOutput, `synthetic-safe-png-${index}`, { mode: 0o600 });
-    await symlink(`..data/${outputFile}`, join(secretRoot, outputFile));
-  }
-  await writeFile(join(versionDirectory, "unreferenced.png"), "must-not-be-staged", { mode: 0o600 });
-  await symlink("..data/unreferenced.png", join(secretRoot, "unreferenced.png"));
-  const protectedRoot = join(projectedInputTestRoot, "protected-input");
-  await mkdir(protectedRoot, { mode: 0o700 });
-  await writeFile(
-    join(protectedRoot, "logo-remediation-preview.json"),
-    JSON.stringify(logoManifest),
-    { mode: 0o600 }
-  );
-  const stagedLogoBundle = await stageLogoRemediationObjects({
-    inputRoot: secretRoot,
-    protectedRoot
-  });
-  assert.deepEqual(stagedLogoBundle.outputFiles, logoOutputFiles);
-  assert.deepEqual(await readdir(stagedLogoBundle.objectDirectory), logoOutputFiles);
-  const stagedDirectoryMetadata = await lstat(stagedLogoBundle.objectDirectory);
-  assert.equal(stagedDirectoryMetadata.mode & 0o777, 0o700);
-  for (const [index, outputFile] of logoOutputFiles.entries()) {
-    const stagedOutput = join(stagedLogoBundle.objectDirectory, outputFile);
-    const metadata = await lstat(stagedOutput);
-    assert.equal(metadata.isFile(), true);
-    assert.equal(metadata.isSymbolicLink(), false);
-    assert.equal(metadata.mode & 0o777, 0o600);
-    assert.equal(await readFile(stagedOutput, "utf8"), `synthetic-safe-png-${index}`);
-  }
 
   const outsidePath = join(projectedInputTestRoot, "outside.json");
   await writeFile(outsidePath, "{}", { mode: 0o600 });
@@ -520,66 +399,172 @@ assert.match(jobTemplate, /secretName: vk-pre-gematik-migration-input/u);
 assert.doesNotMatch(jobTemplate, /service_role|postgresql:\/\/|password:/iu);
 assert.match(serviceAccount, /automountServiceAccountToken: false/u);
 assert.match(networkPolicy, /ingress: \[\]/u);
-assert.match(networkPolicy, /- ports:\s+- protocol: TCP\s+port: 5432/u);
+assert.doesNotMatch(networkPolicy, /port: 5432/u);
 assert.match(networkPolicy, /cidr: 10\.0\.0\.0\/8[\s\S]*port: 3307/u);
 assert.match(networkPolicy, /169\.254\.169\.252\/32/u);
-assert.match(operatorRunbook, /separate[^\n]*Env-Datei/u);
-assert.match(operatorRunbook, /kubectl --from-env-file/u);
-assert.match(operatorRunbook, /keine\s+äußeren Shell-Anführungszeichen/u);
-assert.match(operatorRunbook, /percent-encodiert/u);
-assert.match(operatorRunbook, /Bewusst kein\s+`kubectl apply`/u);
-assert.match(operatorRunbook, /erneuert ihn nicht automatisch/u);
-assert.match(operatorRunbook, /\/protected-input\/run\/logo-remediation-preview\.json/u);
-assert.match(operatorRunbook, /demselben\s+unveränderten Logo-Remediation-Bundle/u);
-assert.match(operatorRunbook, /identity-preview/u);
-assert.match(operatorRunbook, /identity-apply/u);
-assert.match(operatorRunbook, /guest-preview/u);
-assert.match(operatorRunbook, /guest-apply/u);
-assert.match(operatorRunbook, /\/protected-input\/run\/guest-access\.json/u);
+
+for (const role of [
+  "roles/container.clusterViewer",
+  "roles/cloudasset.viewer",
+  "roles/cloudsql.viewer",
+  "roles/cloudsql.client",
+  "roles/identitytoolkit.viewer",
+  "roles/serviceusage.serviceUsageConsumer"
+]) {
+  assert.match(
+    operatorRunbook,
+    new RegExp(role.replace(".", "\\."), "u"),
+    `Der Access-Operator-Runbookvertrag muss die temporäre IAM-Rolle ${role} benennen.`
+  );
+}
+assert.match(operatorRunbook, /für höchstens 24 Stunden[^\n]*Basisrollen/u);
+const guestIamSection = operatorRunbook.match(
+  /Nur während `guest-preview` und `guest-apply`[\s\S]*?(?=\n## 3\.)/u
+);
+assert.ok(guestIamSection, "Der phasenbegrenzte Guest-IAM-Vertrag fehlt.");
+assert.match(guestIamSection[0], /roles\/identitytoolkit\.viewer/u);
+assert.match(guestIamSection[0], /roles\/serviceusage\.serviceUsageConsumer/u);
+assert.match(guestIamSection[0], /firebaseauth\.users\.get/u);
+assert.match(guestIamSection[0], /serviceusage\.services\.use/u);
+assert.match(
+  guestIamSection[0],
+  /unmittelbar vor dem ersten `guest-preview`[\s\S]*unmittelbar nach dem letzten Gast-Readback/u
+);
+assert.match(guestIamSection[0], /nicht für Identity-Phasen/u);
+
+assert.match(
+  operatorRunbook,
+  /Format `KEY=VALUE`[\s\S]*keine äußeren Shell-Anführungszeichen[\s\S]*percent-encodiert/u
+);
+assert.match(
+  operatorRunbook,
+  /Beispieldatei darf deshalb nie unverändert an\s+`kubectl` übergeben werden/u
+);
+assert.match(
+  operatorRunbook,
+  /Identity-Admin-Runbook[^\n]*PRE_GEMATIK_IDENTITY_ADMIN\.md/u
+);
+assert.match(
+  operatorRunbook,
+  /exakt der `NOLOGIN`-Rolle\s+`vk_identity_admin`[\s\S]*`postgres`, `cloudsqlsuperuser` oder\s+weitere Mitgliedschaften werden abgewiesen/u
+);
+assert.match(
+  operatorRunbook,
+  /prepare_pre_gematik_test_access_operator\.mjs[\s\S]*exklusiv\s+`vk_access_enrollment_admin`/u
+);
+assert.match(
+  operatorRunbook,
+  /EXPECTED_TARGET_PROJECT_ID[\s\S]*exakt\s+`GCP_PROJECT_ID`/u
+);
+
+const identityInputSection = operatorRunbook.match(
+  /### Identity-Phasen[\s\S]*?(?=\n### Guest-Phasen)/u
+);
+assert.ok(identityInputSection, "Der phasenminimale Identity-Inputvertrag fehlt.");
+assert.match(identityInputSection[0], /identity-run\/identity-operator\.env/u);
+assert.match(identityInputSection[0], /--from-file=iap-bindings\.json=/u);
+assert.doesNotMatch(
+  identityInputSection[0],
+  /guest-access\.json|test-access-operator\.env|identity-platform-readback\.env/u
+);
+
+const guestInputSection = operatorRunbook.match(
+  /### Guest-Phasen[\s\S]*?(?=\n## 4\.)/u
+);
+assert.ok(guestInputSection, "Der phasenminimale Guest-Inputvertrag fehlt.");
+assert.match(guestInputSection[0], /access-run\/test-access-operator\.env/u);
+assert.match(guestInputSection[0], /identity-platform-readback\.env/u);
+assert.match(guestInputSection[0], /--from-file=guest-access\.json=/u);
+assert.match(guestInputSection[0], /keine\s+Identity-Admin- oder anderen phasenfremden Credentials/u);
+assert.doesNotMatch(identityInputSection[0], /guest-access\.json/u);
+
+assert.match(operatorRunbook, /Bewusst\s+kein `kubectl apply`/u);
+assert.match(operatorRunbook, /Ein vorhandenes gleichnamiges\s+Secret bedeutet Abbruch/u);
 assert.match(
   operatorRunbook,
   /GUEST_ACCESS_RECONCILE_PROFILE_DISPLAY_NAME_AND_PREBIND/u
 );
-assert.match(operatorRunbook, /ausschließlich\s+`true`\s+oder\s+`false`/u);
 assert.match(
   operatorRunbook,
-  /neuen[\s\S]*`current_state_fingerprint`[\s\S]*No-op/u
-);
-const baseTemporaryRoleSection = operatorRunbook.match(
-  /Workload-Identity-Principal werden für höchstens 24 Stunden[\s\S]*?(?=\nNur während `guest-preview`)/u
-);
-assert.ok(baseTemporaryRoleSection);
-assert.doesNotMatch(
-  baseTemporaryRoleSection[0],
-  /roles\/(?:identitytoolkit\.viewer|serviceusage\.serviceUsageConsumer)/u
-);
-const guestTemporaryRoleSection = operatorRunbook.match(
-  /Nur während `guest-preview` und `guest-apply`[\s\S]*?(?=\n## 3\.)/u
-);
-assert.ok(guestTemporaryRoleSection);
-assert.match(guestTemporaryRoleSection[0], /roles\/identitytoolkit\.viewer/u);
-assert.match(
-  guestTemporaryRoleSection[0],
-  /roles\/serviceusage\.serviceUsageConsumer/u
-);
-assert.match(guestTemporaryRoleSection[0], /serviceusage\.services\.use/u);
-assert.match(
-  guestTemporaryRoleSection[0],
-  /unmittelbar vor dem ersten `guest-preview`[\s\S]*unmittelbar nach dem letzten Gast-Readback/u
+  /akzeptiert exakt `true` oder `false`[\s\S]*Teilzustand oder ein\s+Moduswechsel[\s\S]*`NO-GO`/u
 );
 assert.match(
-  guestTemporaryRoleSection[0],
-  /weder für Storage-, Datenbank- noch Identity-Phasen/u
+  operatorRunbook,
+  /CONFIRM_GUEST_ACCESS_OPERATION[\s\S]*exakt aus demselben Preview/u
 );
+
+const identityExecutionSection = operatorRunbook.match(
+  /### Identity-Vertrag[\s\S]*?(?=\n### Guest-Vertrag)/u
+);
+assert.ok(identityExecutionSection, "Der Identity-Preview-/Apply-Vertrag fehlt.");
+assert.match(identityExecutionSection[0], /`identity-preview` zweimal/u);
+assert.match(identityExecutionSection[0], /`identity-apply` genau einmal/u);
+assert.match(identityExecutionSection[0], /neuen Ist-Fingerprint/u);
+assert.match(identityExecutionSection[0], /CONFIRM_IDENTITY_SUBJECT_REMAP_COUNT=0/u);
+assert.match(identityExecutionSection[0], /darf kein\s+`INSERT` oder `UPDATE` erzeugen/u);
+assert.match(identityExecutionSection[0], /vollständige Rollback-Roster/u);
+
+const guestExecutionSection = operatorRunbook.match(
+  /### Guest-Vertrag[\s\S]*?(?=\n## 5\.)/u
+);
+assert.ok(guestExecutionSection, "Der Guest-Preview-/Apply-Vertrag fehlt.");
+assert.match(guestExecutionSection[0], /`guest-preview` zweimal/u);
+assert.match(guestExecutionSection[0], /`guest-apply` genau einmal/u);
+assert.match(guestExecutionSection[0], /`result=unchanged`/u);
+assert.match(guestExecutionSection[0], /neuen Ist-Fingerprint/u);
+assert.match(
+  guestExecutionSection[0],
+  /weder ein Profil aktualisieren noch ein Binding anlegen/u
+);
+assert.match(guestExecutionSection[0], /wird Apply nie blind wiederholt/u);
+assert.match(guestExecutionSection[0], /weder `--create-profile-and-prebind` noch `--revoke`/u);
+
+const evidenceSection = operatorRunbook.match(
+  /## 5\. Geschützte Evidenzübergabe[\s\S]*?(?=\n## 6\.)/u
+);
+assert.ok(evidenceSection, "Der geschützte Evidence-ACK-Vertrag fehlt.");
+assert.match(evidenceSection[0], /kubectl --namespace pre-gematik cp/u);
+assert.match(
+  evidenceSection[0],
+  /sh -c 'umask 077; : > \/protected-output\/run\/\.evidence-collected'/u
+);
+assert.match(evidenceSection[0], /--for=condition=complete/u);
+assert.match(evidenceSection[0], /`succeeded: false`[\s\S]*`Failed` statt\s+`Complete`/u);
+assert.match(evidenceSection[0], /endet der Job nach 15 Minuten fail-closed/u);
+
 const cleanupSection = operatorRunbook.match(/## 6\. Vollständiger Cleanup[\s\S]*$/u);
-assert.ok(cleanupSection);
-assert.match(cleanupSection[0], /roles\/identitytoolkit\.viewer/u);
+assert.ok(cleanupSection, "Der vollständige Access-Operator-Cleanup fehlt.");
+for (const contract of [
+  "vk-pre-gematik-migration-environment",
+  "vk-pre-gematik-migration-input",
+  "vk_identity_admin",
+  "vk_access_enrollment_admin",
+  "roles/identitytoolkit.viewer",
+  "roles/serviceusage.serviceUsageConsumer",
+  "networkpolicy/vk-pre-gematik-migration-operator",
+  "serviceaccount/vk-pre-gematik-migration-operator"
+]) {
+  assert.ok(
+    cleanupSection[0].includes(contract),
+    `Der Cleanup muss ${contract} exakt abdecken.`
+  );
+}
 assert.match(
   cleanupSection[0],
-  /roles\/serviceusage\.serviceUsageConsumer/u
+  /erneut gelesenen IAM-Policy bestätigen/u
 );
-assert.match(cleanupSection[0], /Abwesenheit beider Gastrollen/u);
-assert.match(operatorRunbook, /ohne Klartext-PII/u);
+assert.match(
+  cleanupSection[0],
+  /inerte Kompatibilitätsausnahme für ServiceAccount und NetworkPolicy[\s\S]*weder Job noch Operator-Secrets oder Pods/u
+);
+assert.match(
+  cleanupSection[0],
+  /ohne\s+direkten PostgreSQL-Egress/u
+);
+assert.doesNotMatch(
+  `${dockerfile}\n${dockerignore}\n${operatorSource}\n${operatorRunbook}\n${networkPolicy}`,
+  /SUPABASE_|\.supabase\.co|migrate_supabase|supabase-root-ca|storage-(?:preview|apply)|database-(?:preview|apply)/iu
+);
 
 const image = `europe-west3-docker.pkg.dev/target-project-123/migrations/operator@sha256:${"b".repeat(64)}`;
 const rendered = renderJob({
@@ -598,4 +583,4 @@ assert.throws(
   /outside the approved target project and region/u
 );
 
-console.log("Migration operator contract checks passed.");
+console.log("Access operator contract checks passed.");

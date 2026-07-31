@@ -1,2 +1,0 @@
--- Schema-only migration: no operation.
--- Operational records are maintained only in protected storage.

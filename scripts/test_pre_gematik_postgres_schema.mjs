@@ -37,7 +37,8 @@ const expectedMigrationFiles = Object.freeze([
   "202607250001_add_test_access_allowlist.sql",
   "202607270001_add_hospitation_scheduled_on.sql",
   "202607270002_add_contact_relationship_basis_and_ehc_consent.sql",
-  "202607280001_add_format_participation_workflow.sql"
+  "202607280001_add_format_participation_workflow.sql",
+  "202607310001_restrict_activity_event_runtime_grants.sql"
 ]);
 const migrationFiles = readdirSync(migrationsUrl)
   .filter((fileName) => /^\d+_[a-z0-9_]+\.sql$/u.test(fileName))
@@ -60,9 +61,9 @@ function replaceSchemaFragmentExactlyOnce(source, pattern, replacement, descript
 }
 
 // Reconstruct the exact capabilities that existed immediately before the
-// eight versioned migrations. Keeping this derived from today's full schema
+// nine versioned migrations. Keeping this derived from today's full schema
 // makes the upgrade smoke exercise all current tables while deliberately
-// removing only the eight capabilities supplied by those migrations.
+// removing only the nine capabilities supplied by those migrations.
 let legacyUpgradeSchemaSql = replaceSchemaFragmentExactlyOnce(
   schemaSql,
   /  if new\.updated_at is not distinct from old\.updated_at then\n    new\.updated_at := now\(\);\n  end if;/u,
@@ -1503,7 +1504,11 @@ async function migrationUpgradeSemanticSnapshot(pool) {
         'vk_app_runtime',
         'public.log_format_participation_status_change()',
         'EXECUTE'
-      ) as runtime_format_log_execute
+      ) as runtime_format_log_execute,
+      has_table_privilege('vk_app_runtime', 'public.activity_events', 'SELECT') as activity_select,
+      has_table_privilege('vk_app_runtime', 'public.activity_events', 'INSERT') as activity_insert,
+      has_table_privilege('vk_app_runtime', 'public.activity_events', 'UPDATE') as activity_update,
+      has_table_privilege('vk_app_runtime', 'public.activity_events', 'DELETE') as activity_delete
   `);
   return result.rows[0];
 }
@@ -1528,6 +1533,11 @@ async function assertVersionedMigrationUpgrade(connectionString, containerName) 
     assert.match(String(version.rows[0].server_version_num), /^16\d{4}$/u,
       "Der Migrationstest muss tatsaechlich auf PostgreSQL 16 laufen.");
     await upgradePool.query(legacyUpgradeSchemaSql);
+    await upgradePool.query(`
+      grant select, insert, update, delete
+        on table public.activity_events
+        to vk_app_runtime
+    `);
 
     const legacyIdentity = await upgradePool.query(
       "select to_regclass('public.identity_bindings')::text as table_name"
@@ -1716,6 +1726,17 @@ async function assertVersionedMigrationUpgrade(connectionString, containerName) 
       "Migration 008 muss Vorbereitung und Aktivitätsprotokoll der Formatbeteiligung aktivieren.");
     assert.equal(firstSemantics.runtime_format_log_execute, false,
       "Die privilegierte Format-Triggerfunktion darf für die Laufzeitrolle nicht direkt aufrufbar sein.");
+    assert.deepEqual({
+      activity_select: firstSemantics.activity_select,
+      activity_insert: firstSemantics.activity_insert,
+      activity_update: firstSemantics.activity_update,
+      activity_delete: firstSemantics.activity_delete
+    }, {
+      activity_select: true,
+      activity_insert: true,
+      activity_update: false,
+      activity_delete: false
+    }, "Migration 009 muss bestehende Activity-Rechte auf append-only SELECT/INSERT verengen.");
     assert.match(firstSemantics.touch_function, /if new\.updated_at is not distinct from old\.updated_at then/iu,
       "Migration 002 muss explizite updated_at-Werte bewahren.");
     assert.deepEqual({
@@ -1837,9 +1858,9 @@ async function assertVersionedMigrationUpgrade(connectionString, containerName) 
     const dataAfterSecondPass = await migrationUpgradeDataSnapshot(upgradePool);
     const secondSemantics = await migrationUpgradeSemanticSnapshot(upgradePool);
     assert.deepEqual(dataAfterSecondPass, dataBeforeSecondPass,
-      "Der zweite Lauf aller acht Migrationen darf einschliesslich xmin keine Daten erneut veraendern.");
+      "Der zweite Lauf aller neun Migrationen darf einschliesslich xmin keine Daten erneut veraendern.");
     assert.deepEqual(secondSemantics, firstSemantics,
-      "Der zweite Lauf aller acht Migrationen muss denselben logischen Tabellen-, Constraint-, Trigger- und Rechtezustand ergeben.");
+      "Der zweite Lauf aller neun Migrationen muss denselben logischen Tabellen-, Constraint-, Trigger- und Rechtezustand ergeben.");
 
     const secondExplicitTimestamp = new Date("2003-04-05T06:07:08.901Z");
     const secondExplicit = await upgradePool.query(`
@@ -2306,7 +2327,7 @@ try {
     await databaseSmoke(pool);
     console.log("Externe Test-DB verwendet: runtime-role.sql und grants.sql wurden statisch, aber nicht mit temporären Rollen ausgeführt.");
   }
-  console.log("PostgreSQL 16 contract OK: Vollschema und acht Upgrade-Migrationen zweifach/idempotent; Legacy-Logo-Bereinigung, Identity-/Allowlist-Grenzen, getrennte NOLOGIN-Identity-Administration, explicit updated_at, Hospitationstag, Zweckachsen, Formatbeteiligungs-Workflow, Laufzeitrolle und relationaler Smoke-Test erfolgreich.");
+  console.log("PostgreSQL 16 contract OK: Vollschema und neun Upgrade-Migrationen zweifach/idempotent; Legacy-Logo-Bereinigung, Identity-/Allowlist-Grenzen, getrennte NOLOGIN-Identity-Administration, explicit updated_at, Hospitationstag, Zweckachsen, Formatbeteiligungs-Workflow, append-only Activity-Rechte, Laufzeitrolle und relationaler Smoke-Test erfolgreich.");
 } finally {
   if (pool) await pool.end().catch(() => {});
   if (containerName) {

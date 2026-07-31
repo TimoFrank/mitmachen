@@ -67,9 +67,9 @@ function assertActivityEventWriteBoundary() {
   const read = (file) => fs.readFileSync(path.join(root, file), "utf8");
   const frontendService = read("frontend/data/data-service.js");
   const apiServer = read("api/server.mjs");
-  const migration = read("supabase/migrations/20260716095902_create_activity_events.sql");
-  const hardeningMigration = read("supabase/migrations/20260716131500_harden_activity_event_ledger.sql");
-  const schema = read("supabase/schema.sql");
+  const schema = read("deploy/postgres/pre-gematik/schema.sql");
+  const grants = read("deploy/postgres/pre-gematik/grants.sql");
+  const runtimeRole = read("deploy/postgres/pre-gematik/runtime-role.sql");
   const violations = [];
   for (const [file, source] of [["frontend/data/data-service.js", frontendService]]) {
     if (/\brecordActivityEvent\b/.test(source)) violations.push(`${file}: oeffentlicher Activity-Producer vorhanden`);
@@ -89,43 +89,38 @@ function assertActivityEventWriteBoundary() {
   if (!/recordActivityEventInternal[\s\S]{0,320}?transaction\?\.\[DOMAIN_TRANSACTION\][\s\S]{0,240}?Fachvorgangs-Transaktion/.test(apiServer)) {
     violations.push("api/server.mjs: Activity-Writer erzwingt keine Fachvorgangs-Transaktion");
   }
-  for (const [file, source] of [
-    ["supabase/migrations/20260716095902_create_activity_events.sql", migration],
-    ["supabase/migrations/20260716131500_harden_activity_event_ledger.sql", hardeningMigration],
-    ["supabase/schema.sql", schema]
+  const requiredSchemaContracts = [
+    [/changes_canonical_reference_pair_check[\s\S]{0,260}?activity_event_id is null[\s\S]{0,120}?canonicalized_at is null/i, "gekoppelte Kanonisierungsfelder"],
+    [/changes_activity_event_contact_fkey[\s\S]{0,180}?foreign key\s*\(contact_id,\s*activity_event_id\)[\s\S]{0,180}?references\s+public\.activity_events\s*\(contact_id,\s*id\)/i, "Kontakt-paritaet der Activity-Verknuepfung"],
+    [/contact_id\s+text\s+references\s+public\.contacts\s*\(id\)\s+on delete restrict/i, "Loeschschutz fuer kontaktbezogene Ereignisse"],
+    [/pre_gematik_activity_contact_references_match[\s\S]{0,620}?item\s*->>\s*'id'\s+is distinct from\s+expected_contact_id/i, "eindeutiger Kontaktbezug fuer Referenzen"],
+    [/activity_events_contact_reference_check[\s\S]{0,160}?pre_gematik_activity_contact_references_match\s*\(["']?references["']?,\s*contact_id\)/i, "Kontakt-Referenz-Constraint"]
+  ];
+  requiredSchemaContracts.forEach(([pattern, label]) => {
+    if (!pattern.test(schema)) violations.push(`deploy/postgres/pre-gematik/schema.sql: ${label} fehlt`);
+  });
+  for (const [source, file] of [
+    [schema, "deploy/postgres/pre-gematik/schema.sql"],
+    [grants, "deploy/postgres/pre-gematik/grants.sql"],
+    [runtimeRole, "deploy/postgres/pre-gematik/runtime-role.sql"]
   ]) {
-    if (/grant\s+[^;]*insert[^;]*on(?:\s+table)?\s+public\.activity_events\s+to\s+authenticated/i.test(source)) {
-      violations.push(`${file}: authenticated besitzt INSERT auf activity_events`);
-    }
-    if (/grant\s+[^;]*on\s+sequence\s+public\.activity_events_id_seq\s+to\s+[^;]*authenticated/i.test(source)) {
-      violations.push(`${file}: authenticated besitzt Rechte auf activity_events_id_seq`);
-    }
-    if (/create\s+policy[\s\S]{0,240}?on\s+public\.activity_events\s+for\s+insert[\s\S]{0,160}?to\s+authenticated/i.test(source)) {
-      violations.push(`${file}: authenticated Insert-Policy fuer activity_events vorhanden`);
-    }
-    if (/grant\s+[^;]*(?:update|delete)[^;]*on(?:\s+table)?\s+public\.activity_events\s+to\s+service_role/i.test(source)) {
-      violations.push(`${file}: service_role darf das append-only Ledger veraendern oder loeschen`);
+    if (/\b(?:anon|authenticated|service_role)\b|auth\.uid\s*\(|create\s+policy|row\s+level\s+security/i.test(source)) {
+      violations.push(`${file}: ausrangierter Supabase-Rollen-/RLS-Vertrag vorhanden`);
     }
   }
-  for (const [file, source] of [
-    ["supabase/migrations/20260716131500_harden_activity_event_ledger.sql", hardeningMigration],
-    ["supabase/schema.sql", schema]
-  ]) {
-    const required = [
-      [/grant\s+select\s+on(?:\s+table)?\s+public\.activity_events\s+to\s+authenticated/i, "authenticated SELECT-Grant"],
-      [/grant\s+select\s*,\s*insert\s+on(?:\s+table)?\s+public\.activity_events\s+to\s+service_role/i, "serverseitiger INSERT-Grant"],
-      [/changes_canonical_reference_pair_check[\s\S]{0,260}?activity_event_id is null[\s\S]{0,120}?canonicalized_at is null/i, "gekoppelte Kanonisierungsfelder"],
-      [/changes_activity_event_contact_fkey[\s\S]{0,180}?foreign key\s*\(contact_id,\s*activity_event_id\)[\s\S]{0,180}?references\s+public\.activity_events\s*\(contact_id,\s*id\)/i, "Kontakt-paritaet der Activity-Verknuepfung"],
-      [/activity_events_contact_id_fkey[\s\S]{0,180}?references\s+public\.contacts\s*\(id\)[\s\S]{0,80}?on delete restrict/i, "Loeschschutz fuer kontaktbezogene Ereignisse"],
-      [/activity_contact_references_match[\s\S]{0,620}?item\s*->>\s*'id'\s+is distinct from\s+p_contact_id/i, "eindeutiger Kontaktbezug fuer Referenzen"],
-      [/activity_events_contact_reference_check[\s\S]{0,160}?activity_contact_references_match\s*\(["']?references["']?,\s*contact_id\)/i, "Kontakt-Referenz-Constraint"],
-      [/create policy "changes authenticated read"[\s\S]{0,520}?c\.status\s*<>\s*'archived'/i, "Archivschutz fuer changes"],
-      [/create policy "changes editor admin insert"[\s\S]{0,420}?activity_event_id is null[\s\S]{0,120}?canonicalized_at is null/i, "serverexklusive Kanonisierungsverknuepfung"],
-      [/create policy "activity events active profiles read"[\s\S]{0,620}?c\.status\s*<>\s*'archived'/i, "Archivschutz fuer activity_events"]
-    ];
-    required.forEach(([pattern, label]) => {
-      if (!pattern.test(source)) violations.push(`${file}: ${label} fehlt`);
-    });
+  if (!/create\s+role\s+vk_app_runtime\s+nologin/i.test(runtimeRole)
+    || !/alter\s+role\s+vk_app_runtime\s+nologin/i.test(runtimeRole)
+    || !/rolsuper[\s\S]{0,180}?rolbypassrls/i.test(runtimeRole)) {
+    violations.push("deploy/postgres/pre-gematik/runtime-role.sql: fail-closed NOLOGIN-Laufzeitrolle fehlt");
+  }
+  if (!/revoke\s+create\s+on\s+schema\s+public\s+from\s+:"runtime_role"/i.test(grants)
+    || !/grant\s+usage\s+on\s+schema\s+public\s+to\s+:"runtime_role"/i.test(grants)
+    || !/grant\s+select\s*,\s*insert\s+on\s+table\s+public\.activity_events\s+to\s+:"runtime_role"\s*;/i.test(grants)
+    || !/revoke\s+update\s*,\s*delete\s+on\s+table\s+public\.activity_events\s+from\s+:"runtime_role"\s*;/i.test(grants)) {
+    violations.push("deploy/postgres/pre-gematik/grants.sql: append-only API-Laufzeitrechte fuer activity_events fehlen");
+  }
+  if (/grant\s+[^;]*(?:update|delete)[^;]*on\s+table[^;]*public\.activity_events[^;]*to\s+:"runtime_role"/i.test(grants)) {
+    violations.push("deploy/postgres/pre-gematik/grants.sql: activity_events darf nicht veraendert oder geloescht werden");
   }
   if (violations.length) throw new Error(violations.join("\n- "));
 }
@@ -245,7 +240,7 @@ try {
 }
 
 if (!productionConfigPath) {
-  console.log("API Gateway Audit OK: Activity-Writer ist serverintern und authenticated bleibt read-only. Produktionsartefakt-Pruefung uebersprungen.");
+  console.log("API Gateway Audit OK: Activity-Writer ist serverintern und die Cloud-SQL-Laufzeitrolle bleibt API-gebunden. Produktionsartefakt-Pruefung uebersprungen.");
   process.exit(0);
 }
 
@@ -260,4 +255,4 @@ if (findings.length) {
   process.exit(1);
 }
 
-console.log(`API Gateway Audit OK: fachliche Supabase-Zugriffe laufen nicht direkt aus dem Browser. Produktionskonfiguration OK (${productionConfigPath}).`);
+console.log(`API Gateway Audit OK: ausrangierte Supabase-Zugriffe laufen nicht aus dem Browser. Produktionskonfiguration OK (${productionConfigPath}).`);

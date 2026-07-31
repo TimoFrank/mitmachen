@@ -23,7 +23,6 @@ frontend/**
 !frontend/data/sector-registry.js
 public
 scripts
-supabase
 tests
 
 # The dedicated public-entry image receives only the audited generated document

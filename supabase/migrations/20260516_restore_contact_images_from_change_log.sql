@@ -1,2 +1,0 @@
--- Schema-only migration: no operation.
--- Operational contact image metadata is maintained only in protected storage.

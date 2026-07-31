@@ -1,11 +1,11 @@
 # Bestehender Datenweg und Übernahme in den Gematik-PoC
 
-Status: technische Referenz
-Stand: 22. Juli 2026
+Status: abgeschlossener Herkunfts- und Retirement-Nachweis
+Stand: 31. Juli 2026
 
 ## Ausgangslage
 
-Der fachliche Bestand von `mitmachen.timo-frank.de` wurde im persönlichen Pilot bereits aus Supabase nach Cloud SQL und in private Google-Cloud-Storage-Buckets übernommen. Die geschützte GCP-Anwendung ist seitdem der schreibführende Stand; Supabase ist nur noch eine geschützte Rückfallquelle.
+Der fachliche Bestand von `mitmachen.timo-frank.de` wurde im persönlichen Pilot bereits aus Supabase nach Cloud SQL und in private Google-Cloud-Storage-Buckets übernommen. Die geschützte GCP-Anwendung ist seitdem der alleinige schreibführende Stand. Das frühere Projekt wurde am 31. Juli 2026 nach verifiziertem Archiv und Restore-Nachweis reversibel pausiert (`INACTIVE`), nicht gelöscht.
 
 Für den gematik-PoC wird deshalb ein aktueller Snapshot aus Cloud SQL verwendet. Die frühere Supabase-Migration wird nicht erneut als aktuelle Quelle behandelt.
 
@@ -58,7 +58,7 @@ Nicht übernommen werden alte `identity_bindings`, Supabase-Auth- und Systemtabe
 
 ## Plattformspezifische Grenze
 
-Die vorhandenen Ausführungswerkzeuge sind für Supabase, GCP Cloud SQL, GCS und IAP gebaut. Sie prüfen unter anderem GCP-Projekt, Cloud-SQL-Instanz, Storage-Buckets und den IAP-Issuer. Dieser Ausführungsweg darf nicht unverändert gegen eine andere gematik-Plattform verwendet werden.
+Die einmaligen Quell-, Datenbank- und Storage-Importwerkzeuge wurden nach erfolgreicher Übernahme aus dem aktuellen Repository entfernt. Der verbleibende kurzlebige GKE-Operator unterstützt ausschließlich Google-/Cloud-SQL-Identity- und Guest-Access-Phasen. Für eine andere gematik-Plattform ist ein neuer, plattformspezifischer Importadapter erforderlich; die stillgelegten Werkzeuge werden nicht reaktiviert.
 
 Für den Zielimport fehlt noch ein dünner Adapter für:
 
@@ -108,3 +108,12 @@ Für den kleinen PoC genügen im geschützten Ticket:
 - Prüftermin für Weiterführung oder Löschung.
 
 Die frühere persönliche Pilotentscheidung ist ein Herkunftsnachweis, aber keine Freigabe für den gematik-internen Nutzerkreis. Die kurze Entscheidung für diesen PoC wird deshalb separat im internen Ticket getroffen.
+
+## Retirement-Nachweis
+
+- Der aktive Repository-Stand enthält keinen `supabase/`-Quellbaum, keine Edge Functions und keine ausführbaren Supabase-Export-, Datenbank- oder Storage-Migrationsskripte mehr.
+- Frontend, API, Helm, Terraform und laufendes GKE enthalten keine Supabase-URL, keinen Schlüssel, keine Projekt-Referenz und kein SDK. Negative Regressionstests bleiben bewusst erhalten.
+- Das pausierte Providerprojekt ist keine Laufzeitabhängigkeit. Seine direkte Wiederherstellung ist nur innerhalb des von Supabase angegebenen 90-Tage-Fensters vorgesehen.
+- Die langfristige Recovery-Basis liegt im separaten, zugriffsgeschützten Google-Archiv. Bei der letzten Prüfung waren 542 Objekte mit 14.090.082 Bytes vollständig per Event-Based Hold geschützt; automatische Lifecycle-Löschung ist deaktiviert.
+- Ein koordinierter isolierter Restore von Cloud SQL und GCS wurde erfolgreich verifiziert. Die temporäre Restore-Instanz und der temporäre Bucket wurden nach gesicherter Evidenz wieder entfernt.
+- Die Git-Historie wird nicht umgeschrieben. Frühere Quellen bleiben damit nachvollziehbar, ohne im aktuellen Build- oder Deploymentpfad zu liegen.
