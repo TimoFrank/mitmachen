@@ -821,11 +821,24 @@ NODE
   perl -0pi -e 's~(?:\.\./|\./)versorgungs-kompass\.html#map~/versorgung/karte~g; s~(?:\.\./|\./)versorgungs-kompass\.html#stakeholders~/stakeholder~g; s~(?:\.\./|\./)versorgungs-kompass\.html#planning~/hospitationen/framework~g; s~(?:\.\./|\./)versorgungs-kompass\.html#formats~/formate~g; s~(?:\.\./|\./)versorgungs-kompass\.html~/start~g' "$STAGE_DIR/index.html" "$STAGE_DIR/mitmachen/index.html"
   perl -0pi -e 's~(href|src)="\./~$1="/~g' "$STAGE_DIR/versorgungs-kompass.html"
 
+  iap_identity_mode="${IAP_IDENTITY_MODE:-iam}"
+  iap_external_login_page_uri=""
+  iap_external_auth_api_key=""
+  if [ "$iap_identity_mode" = "external" ]; then
+    iap_external_login_page_uri="${IAP_EXTERNAL_LOGIN_PAGE_URI:-}"
+    iap_external_auth_api_key="${IAP_EXTERNAL_AUTH_API_KEY:-}"
+  fi
+
   node "$ROOT_DIR/scripts/prepare_target_frontend_config.mjs" \
     "$STAGE_DIR/data/runtime-config.js" \
     "$API_BASE_URL" \
     api \
-    "$AUTH_MODE"
+    "$AUTH_MODE" \
+    "$iap_identity_mode" \
+    "$iap_external_login_page_uri" \
+    "$iap_external_auth_api_key"
+
+  unset iap_identity_mode iap_external_login_page_uri iap_external_auth_api_key
 
 }
 

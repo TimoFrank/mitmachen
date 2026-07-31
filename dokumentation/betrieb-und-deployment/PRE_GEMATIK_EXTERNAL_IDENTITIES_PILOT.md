@@ -382,6 +382,14 @@ Password-Reset-Vertrag. Ausschließlich dieser Link wird create-only mit Modus
 Standardausgabe enthält nur Modus, Mengen und Fingerprint, niemals E-Mail, UID,
 Passwort oder Link.
 
+Der von der Admin-API erzeugte Rohlink kann den projektweiten Standard-API-Key
+und die Standardsprache `en` enthalten. Beides wird nicht an Gäste
+weitergegeben: Der Operator übernimmt ausschließlich den validierten
+Einmalcode, setzt den gepinnten referrer-beschränkten Portal-Key und `lang=de`
+und prüft den Code anschließend über `accounts:resetPassword` ohne
+`newPassword`. Dieser Readback bestätigt Projekt, Konto und Zweck des Codes,
+ohne ihn zu verbrauchen oder den Account zu verändern.
+
 **Die so erzeugte Linkdatei darf jetzt noch nicht versendet werden.** Sie bleibt
 owner-only, bis das App-Prebinding aus Abschnitt 5 vollständig angewendet,
 read-only bestätigt und als No-op wiederholt wurde. Wenn dieser Nachweis nicht

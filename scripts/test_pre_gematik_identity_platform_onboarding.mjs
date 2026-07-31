@@ -184,6 +184,7 @@ assert.match(fixedBootstrap, /[0-9]/u);
 assert.match(fixedBootstrap, /[^A-Za-z0-9]/u);
 
 const adminApiKey = `AIza${"A".repeat(35)}`;
+const generatedActionApiKey = `AIza${"B".repeat(35)}`;
 const adminAccessToken = `ya29.${"a".repeat(64)}`;
 const adminRequests = [];
 const adminUsers = new Map();
@@ -220,8 +221,15 @@ const adminFetch = async (url, options) => {
   if (pathname.endsWith("/accounts:sendOobCode")) {
     return response(200, {
       oobLink: "https://pilot-project-123.firebaseapp.com/__/auth/action"
-        + `?mode=resetPassword&oobCode=rest-one-time-secret-code&apiKey=${adminApiKey}`
+        + `?mode=resetPassword&oobCode=rest-one-time-secret-code&apiKey=${generatedActionApiKey}`
         + `&continueUrl=${encodeURIComponent(document.continue_url)}`
+        + "&lang=en"
+    });
+  }
+  if (pathname === "/v1/accounts:resetPassword") {
+    return response(200, {
+      email: document.email,
+      requestType: "PASSWORD_RESET"
     });
   }
   return response(404, { error: { message: "NOT_FOUND" } });
@@ -252,10 +260,44 @@ const restLink = await adminClient.generatePasswordResetLink(document.email, {
   handleCodeInApp: false
 });
 assert.match(restLink, /mode=resetPassword/u);
+const restVerification = await adminClient.verifyPasswordResetCode(
+  "rest-one-time-secret-code",
+  "https://versorgungs-kompass.de/"
+);
+assert.deepEqual(restVerification, {
+  email: document.email,
+  requestType: "PASSWORD_RESET"
+});
 assert.ok(adminRequests.every((request) => request.options.method === "POST"));
-assert.ok(adminRequests.every(
+const adminAuthorizedRequests = adminRequests.filter(
+  (request) => new URL(request.url).pathname !== "/v1/accounts:resetPassword"
+);
+const browserKeyVerificationRequests = adminRequests.filter(
+  (request) => new URL(request.url).pathname === "/v1/accounts:resetPassword"
+);
+assert.ok(adminAuthorizedRequests.every(
   (request) => request.options.headers.authorization === `Bearer ${adminAccessToken}`
 ));
+assert.equal(browserKeyVerificationRequests.length, 1);
+const browserKeyVerificationRequest = browserKeyVerificationRequests[0];
+assert.equal(
+  new URL(browserKeyVerificationRequest.url).origin,
+  "https://identitytoolkit.googleapis.com"
+);
+assert.equal(browserKeyVerificationRequest.options.redirect, "error");
+assert.deepEqual(
+  JSON.parse(browserKeyVerificationRequest.options.body),
+  { oobCode: "rest-one-time-secret-code" }
+);
+assert.equal(browserKeyVerificationRequest.options.headers.authorization, undefined);
+assert.equal(
+  browserKeyVerificationRequest.options.headers["x-goog-user-project"],
+  undefined
+);
+assert.equal(
+  browserKeyVerificationRequest.options.headers.referer,
+  "https://versorgungs-kompass.de/"
+);
 assert.ok(adminRequests.every((request) => request.options.signal instanceof AbortSignal));
 assert.ok(adminRequests.every((request) => new URL(request.url).searchParams.get("key") === adminApiKey));
 assert.ok(adminRequests.some((request) => new URL(request.url).pathname.endsWith("/accounts")));
@@ -270,7 +312,10 @@ class MockIdentityPlatformAuth {
     this.usersByEmail = new Map();
     this.createCalls = [];
     this.linkCalls = [];
+    this.verifyCalls = [];
     this.failLink = false;
+    this.failVerification = false;
+    this.verificationResponse = null;
   }
 
   notFound() {
@@ -331,8 +376,20 @@ class MockIdentityPlatformAuth {
       throw new Error(`raw provider failure for ${email}`);
     }
     return "https://pilot-project-123.firebaseapp.com/__/auth/action"
-      + `?mode=resetPassword&oobCode=one-time-secret-code&apiKey=${adminApiKey}`
-      + `&continueUrl=${encodeURIComponent(document.continue_url)}`;
+      + `?mode=resetPassword&oobCode=one-time-secret-code&apiKey=${generatedActionApiKey}`
+      + `&continueUrl=${encodeURIComponent(document.continue_url)}`
+      + "&lang=en";
+  }
+
+  async verifyPasswordResetCode(oobCode, referer) {
+    this.verifyCalls.push({ oobCode, referer });
+    if (this.failVerification) {
+      throw new Error("raw reset-code verification failure");
+    }
+    return this.verificationResponse || {
+      email: document.email,
+      requestType: "PASSWORD_RESET"
+    };
   }
 }
 
@@ -397,6 +454,12 @@ assert.deepEqual(applyResult, {
 });
 assert.equal(auth.createCalls.length, 1);
 assert.equal(auth.linkCalls.length, 1);
+assert.deepEqual(auth.verifyCalls, [
+  {
+    oobCode: "one-time-secret-code",
+    referer: "https://versorgungs-kompass.de/"
+  }
+]);
 assert.deepEqual(
   {
     uid: auth.createCalls[0].uid,
@@ -427,6 +490,8 @@ assert.match(linkFile, /mode=resetPassword/u);
 assert.match(linkFile, /oobCode=one-time-secret-code/u);
 assert.equal(new URL(linkFile.trim()).origin, new URL(document.continue_url).origin);
 assert.equal(new URL(linkFile.trim()).pathname, "/konto/passwort-festlegen");
+assert.equal(new URL(linkFile.trim()).searchParams.get("apiKey"), adminApiKey);
+assert.equal(new URL(linkFile.trim()).searchParams.get("lang"), "de");
 assert.doesNotMatch(linkFile, /firebaseapp/u);
 if (process.platform !== "win32") {
   assert.equal((await fs.stat(outputPath)).mode & 0o077, 0);
@@ -470,6 +535,7 @@ assert.deepEqual(recoveryResult, {
 });
 assert.equal(auth.createCalls.length, 1);
 assert.equal(auth.linkCalls.length, 2);
+assert.equal(auth.verifyCalls.length, 2);
 assert.match(recoveryLogs[0], /target_state=exact-existing/u);
 
 const partialAuth = new MockIdentityPlatformAuth();
@@ -568,6 +634,7 @@ await executeIdentityPlatformAccountOnboarding({
 });
 assert.equal(partialAuth.createCalls.length, 1);
 assert.equal(partialAuth.linkCalls.length, 2);
+assert.equal(partialAuth.verifyCalls.length, 1);
 
 const hostileLinkAuth = new MockIdentityPlatformAuth();
 await hostileLinkAuth.createUser({
@@ -596,8 +663,8 @@ await safeRejection(
 );
 await assert.rejects(fs.stat(hostileLinkOutput), (error) => error?.code === "ENOENT");
 
-const mismatchedApiKeyAuth = new MockIdentityPlatformAuth();
-await mismatchedApiKeyAuth.createUser({
+const generatedKeyRewriteAuth = new MockIdentityPlatformAuth();
+await generatedKeyRewriteAuth.createUser({
   uid: document.uid,
   email: document.email,
   emailVerified: true,
@@ -606,24 +673,62 @@ await mismatchedApiKeyAuth.createUser({
   disabled: false
 });
 const otherValidApiKey = `AIza${"B".repeat(35)}`;
-mismatchedApiKeyAuth.generatePasswordResetLink = async () =>
+generatedKeyRewriteAuth.generatePasswordResetLink = async () =>
   `https://${document.project_id}.firebaseapp.com/__/auth/action?mode=resetPassword`
-  + `&oobCode=wrong-key-one-time-secret-code&apiKey=${otherValidApiKey}`
+  + `&oobCode=generated-key-one-time-secret-code&apiKey=${otherValidApiKey}`
   + `&continueUrl=${encodeURIComponent(document.continue_url)}`;
-const mismatchedApiKeyOutput = path.join(protectedDirectory, "mismatched-key-link.txt");
+const generatedKeyRewriteOutput = path.join(
+  protectedDirectory,
+  "generated-key-rewritten-link.txt"
+);
+await executeIdentityPlatformAccountOnboarding({
+  auth: generatedKeyRewriteAuth,
+  document,
+  fingerprint,
+  options: applyOptions(generatedKeyRewriteOutput, { recoverLinkOnly: true }),
+  repository,
+  log: () => {}
+});
+const generatedKeyRewriteLink = (
+  await fs.readFile(generatedKeyRewriteOutput, "utf8")
+).trim();
+assert.equal(
+  new URL(generatedKeyRewriteLink).searchParams.get("apiKey"),
+  adminApiKey
+);
+assert.ok(!generatedKeyRewriteLink.includes(otherValidApiKey));
+assert.equal(generatedKeyRewriteAuth.verifyCalls.length, 1);
+
+const wrongVerificationAuth = new MockIdentityPlatformAuth();
+await wrongVerificationAuth.createUser({
+  uid: document.uid,
+  email: document.email,
+  emailVerified: true,
+  password: fixedBootstrap,
+  displayName: document.display_name,
+  disabled: false
+});
+wrongVerificationAuth.verificationResponse = {
+  email: "different@example.invalid",
+  requestType: "PASSWORD_RESET"
+};
+const wrongVerificationOutput = path.join(
+  protectedDirectory,
+  "wrong-verification-link.txt"
+);
 await safeRejection(
   () => executeIdentityPlatformAccountOnboarding({
-    auth: mismatchedApiKeyAuth,
+    auth: wrongVerificationAuth,
     document,
     fingerprint,
-    options: applyOptions(mismatchedApiKeyOutput, { recoverLinkOnly: true }),
+    options: applyOptions(wrongVerificationOutput, { recoverLinkOnly: true }),
     repository,
     log: () => {}
   }),
-  /gueltigen Set-password-Link/u
+  /Portal-Key bestaetigt/u
 );
 await assert.rejects(
-  fs.stat(mismatchedApiKeyOutput),
+  fs.stat(wrongVerificationOutput),
   (error) => error?.code === "ENOENT"
 );
 

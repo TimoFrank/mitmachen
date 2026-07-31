@@ -13,6 +13,8 @@ fs.mkdirSync(distRoot, { recursive: true });
 const fixtureRoot = fs.mkdtempSync(path.join(distRoot, ".deployment-separation-test-"));
 const pagesDir = path.join(fixtureRoot, "pages");
 const targetDir = path.join(fixtureRoot, "target");
+const targetIamRollbackDir = path.join(fixtureRoot, "target-iam-rollback");
+const targetExternalDir = path.join(fixtureRoot, "target-external");
 const builder = path.join(root, "scripts", "build_static_frontend.sh");
 const publicAudit = path.join(root, "scripts", "audit_public_assets.mjs");
 const targetAudit = path.join(root, "scripts", "audit_target_assets.mjs");
@@ -23,6 +25,7 @@ const offlinePoliticsUpdater = path.join(
 );
 const apiBaseUrl = "https://gateway.pre-gematik.example";
 const identityPlatformApiKey = `AIza${"A".repeat(35)}`;
+const preparedExternalAuthApiKey = `AIza${"B".repeat(35)}`;
 const identityPlatformProjectId = "steam-capsule-341212";
 
 const quotedGreaterThanTag = scanHtmlStartTags(
@@ -45,6 +48,15 @@ assert.deepEqual(
 
 function build(...args) {
   execFileSync("bash", [builder, ...args], { cwd: root, encoding: "utf8", stdio: "pipe" });
+}
+
+function buildWithEnvironment(environment, ...args) {
+  execFileSync("bash", [builder, ...args], {
+    cwd: root,
+    encoding: "utf8",
+    stdio: "pipe",
+    env: { ...process.env, ...environment }
+  });
 }
 
 function rejected(...args) {
@@ -619,6 +631,51 @@ try {
     "--identity-platform-project-id", identityPlatformProjectId
   );
   execFileSync(process.execPath, [targetAudit, "--artifact-root", targetDir], { cwd: root, stdio: "pipe" });
+
+  const preparedExternalLoginPageUri = "https://versorgungs-kompass.de/anmelden";
+  buildWithEnvironment(
+    {
+      IAP_IDENTITY_MODE: "iam",
+      IAP_EXTERNAL_LOGIN_PAGE_URI: preparedExternalLoginPageUri,
+      IAP_EXTERNAL_AUTH_API_KEY: preparedExternalAuthApiKey
+    },
+    "--profile", "target",
+    "--output", targetIamRollbackDir,
+    "--api-base-url", apiBaseUrl,
+    "--auth-mode", "iap",
+    "--identity-platform-api-key", identityPlatformApiKey,
+    "--identity-platform-project-id", identityPlatformProjectId
+  );
+  const targetIamRollbackConfig = fs.readFileSync(
+    path.join(targetIamRollbackDir, "data", "runtime-config.js"),
+    "utf8"
+  );
+  assert.match(targetIamRollbackConfig, /iapIdentityMode:\s*"iam"/);
+  assert.match(targetIamRollbackConfig, /iapExternalLoginPageUri:\s*""/);
+  assert.match(targetIamRollbackConfig, /iapExternalAuthApiKey:\s*""/);
+  assert.ok(!targetIamRollbackConfig.includes(preparedExternalLoginPageUri));
+  assert.ok(!targetIamRollbackConfig.includes(preparedExternalAuthApiKey));
+
+  buildWithEnvironment(
+    {
+      IAP_IDENTITY_MODE: "external",
+      IAP_EXTERNAL_LOGIN_PAGE_URI: preparedExternalLoginPageUri,
+      IAP_EXTERNAL_AUTH_API_KEY: preparedExternalAuthApiKey
+    },
+    "--profile", "target",
+    "--output", targetExternalDir,
+    "--api-base-url", apiBaseUrl,
+    "--auth-mode", "iap",
+    "--identity-platform-api-key", identityPlatformApiKey,
+    "--identity-platform-project-id", identityPlatformProjectId
+  );
+  const targetExternalConfig = fs.readFileSync(
+    path.join(targetExternalDir, "data", "runtime-config.js"),
+    "utf8"
+  );
+  assert.match(targetExternalConfig, /iapIdentityMode:\s*"external"/);
+  assert.ok(targetExternalConfig.includes(preparedExternalLoginPageUri));
+  assert.ok(targetExternalConfig.includes(preparedExternalAuthApiKey));
 
   const nestedOfflineDirectory = path.join(targetDir, "nested");
   fs.mkdirSync(nestedOfflineDirectory, { recursive: true });

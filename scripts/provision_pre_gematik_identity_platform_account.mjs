@@ -485,7 +485,7 @@ function validateSetPasswordLink(value, document, expectedApiKey) {
       parsed.origin === brandedAction.origin
       && parsed.pathname === PASSWORD_ACTION_PATH
     );
-  const apiKey = parsed.searchParams.get("apiKey");
+  const sourceApiKey = parsed.searchParams.get("apiKey");
   const oobCode = parsed.searchParams.get("oobCode");
   const continueUrl = parsed.searchParams.get("continueUrl");
   const language = parsed.searchParams.get("lang");
@@ -497,13 +497,12 @@ function validateSetPasswordLink(value, document, expectedApiKey) {
     || parsed.hash
     || !sourceIsExpected
     || parsed.searchParams.get("mode") !== "resetPassword"
-    || !apiKey
-    || !API_KEY_PATTERN.test(apiKey)
-    || apiKey !== expectedApiKey
+    || !sourceApiKey
+    || !API_KEY_PATTERN.test(sourceApiKey)
     || !oobCode
     || !ACTION_CODE_PATTERN.test(oobCode)
     || continueUrl !== document.continue_url
-    || (language !== null && language !== "de")
+    || (language !== null && !["de", "en"].includes(language))
   ) {
     throw new IdentityPlatformOnboardingError(
       "Identity Platform lieferte keinen gueltigen Set-password-Link."
@@ -512,7 +511,7 @@ function validateSetPasswordLink(value, document, expectedApiKey) {
 
   brandedAction.searchParams.set("mode", "resetPassword");
   brandedAction.searchParams.set("oobCode", oobCode);
-  brandedAction.searchParams.set("apiKey", apiKey);
+  brandedAction.searchParams.set("apiKey", expectedApiKey);
   brandedAction.searchParams.set("continueUrl", document.continue_url);
   brandedAction.searchParams.set("lang", "de");
   return brandedAction.href;
@@ -526,17 +525,32 @@ async function generateSetPasswordLink(auth, document) {
     );
   }
   try {
-    return validateSetPasswordLink(await auth.generatePasswordResetLink(
+    const brandedLink = validateSetPasswordLink(await auth.generatePasswordResetLink(
       document.email,
       {
         url: document.continue_url,
         handleCodeInApp: false
       }
     ), document, expectedApiKey);
+    const brandedAction = new URL(brandedLink);
+    const verification = await auth.verifyPasswordResetCode(
+      brandedAction.searchParams.get("oobCode"),
+      `${brandedAction.origin}/`
+    );
+    if (
+      !isPlainObject(verification)
+      || verification.requestType !== "PASSWORD_RESET"
+      || String(verification.email || "").toLowerCase() !== document.email
+    ) {
+      throw new IdentityPlatformOnboardingError(
+        "Der einmalige Set-password-Code konnte nicht mit dem gepinnten Portal-Key bestaetigt werden."
+      );
+    }
+    return brandedLink;
   } catch (error) {
     if (error instanceof IdentityPlatformOnboardingError) throw error;
     throw new IdentityPlatformOnboardingError(
-      "Der einmalige Set-password-Link konnte nicht sicher erzeugt werden."
+      "Der einmalige Set-password-Link konnte nicht sicher erzeugt und bestaetigt werden."
     );
   }
 }
@@ -908,18 +922,23 @@ export function createIdentityToolkitAdminClient({
 
   const apiRoot = `${IDENTITY_TOOLKIT_ORIGIN}/v1/projects/${encodeURIComponent(projectId)}`;
 
-  async function request(pathname, body) {
+  async function requestUrl(url, body, { admin = false, referer = "" } = {}) {
+    const headers = {
+      "content-type": "application/json"
+    };
+    if (admin) {
+      headers.authorization = `Bearer ${accessToken}`;
+      headers["x-goog-user-project"] = projectId;
+    }
+    if (referer) headers.referer = referer;
+
     let response;
     try {
       response = await fetchImpl(
-        `${apiRoot}${pathname}?key=${encodeURIComponent(apiKey)}`,
+        url,
         {
           method: "POST",
-          headers: {
-            authorization: `Bearer ${accessToken}`,
-            "content-type": "application/json",
-            "x-goog-user-project": projectId
-          },
+          headers,
           body: JSON.stringify(body),
           redirect: "error",
           signal: AbortSignal.timeout(IDENTITY_TOOLKIT_TIMEOUT_MS)
@@ -960,6 +979,14 @@ export function createIdentityToolkitAdminClient({
       });
     }
     return payload;
+  }
+
+  function request(pathname, body) {
+    return requestUrl(
+      `${apiRoot}${pathname}?key=${encodeURIComponent(apiKey)}`,
+      body,
+      { admin: true }
+    );
   }
 
   async function lookup(body) {
@@ -1034,6 +1061,39 @@ export function createIdentityToolkitAdminClient({
         returnOobLink: true
       });
       return String(payload.oobLink || "");
+    },
+    async verifyPasswordResetCode(oobCode, referer) {
+      assertText(oobCode, "Set-password-Code", 1024, ACTION_CODE_PATTERN);
+      let parsedReferer;
+      try {
+        parsedReferer = new URL(referer);
+      } catch {
+        throw new IdentityPlatformOnboardingError(
+          "Der Set-password-Code-Readback besitzt keinen gueltigen Portal-Referer."
+        );
+      }
+      if (
+        parsedReferer.protocol !== "https:"
+        || parsedReferer.username
+        || parsedReferer.password
+        || parsedReferer.pathname !== "/"
+        || parsedReferer.search
+        || parsedReferer.hash
+        || parsedReferer.href !== referer
+      ) {
+        throw new IdentityPlatformOnboardingError(
+          "Der Set-password-Code-Readback besitzt keinen gueltigen Portal-Referer."
+        );
+      }
+      const payload = await requestUrl(
+        `${IDENTITY_TOOLKIT_ORIGIN}/v1/accounts:resetPassword?key=${encodeURIComponent(apiKey)}`,
+        { oobCode },
+        { referer }
+      );
+      return Object.freeze({
+        email: String(payload.email || ""),
+        requestType: String(payload.requestType || "")
+      });
     }
   });
 }
