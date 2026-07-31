@@ -557,6 +557,11 @@ const OIDC_EMAIL_CLAIM = process.env.OIDC_EMAIL_CLAIM || "email";
 const OIDC_SUBJECT_CLAIM = process.env.OIDC_SUBJECT_CLAIM || "sub";
 const AUTH_EMAIL_HEADER = String(process.env.AUTH_EMAIL_HEADER || "x-auth-request-email").toLowerCase();
 const AUTH_SUBJECT_HEADER = String(process.env.AUTH_SUBJECT_HEADER || "x-auth-request-user").toLowerCase();
+const JWT_HEADER_MAX_BYTES = 4 * 1024;
+const IAP_JWT_PAYLOAD_MAX_BYTES = 20 * 1024;
+const OIDC_JWT_PAYLOAD_MAX_BYTES = 9_000;
+const JWT_SIGNATURE_MAX_BYTES = 1024;
+const HTTP_MAX_HEADER_BYTES = 32 * 1024;
 const OUTBOUND_FETCH_TIMEOUT_MS = Math.max(1000, Number(process.env.OUTBOUND_FETCH_TIMEOUT_MS || 5000));
 const bundestagHealthCommitteeDirectory = createBundestagHealthCommitteeDirectory({
   timeoutMs: OUTBOUND_FETCH_TIMEOUT_MS
@@ -3318,11 +3323,22 @@ function authModeLabel() {
   }[API_AUTH_MODE] || "Backend-Identitaet";
 }
 
-function decodeJwtPart(value) {
+function decodeJwtPart(value, maximumBytes) {
   try {
     const encoded = String(value || "");
-    if (!encoded || encoded.length > 12_000) throw new Error("JWT-Segment ist zu gross.");
-    const parsed = JSON.parse(Buffer.from(encoded, "base64url").toString("utf8"));
+    const maximumEncodedCharacters = Math.ceil(maximumBytes * 4 / 3);
+    if (
+      !encoded
+      || encoded.length > maximumEncodedCharacters
+      || !/^[A-Za-z0-9_-]+$/u.test(encoded)
+    ) {
+      throw new Error("JWT-Segment ist ungueltig oder zu gross.");
+    }
+    const decoded = Buffer.from(encoded, "base64url");
+    if (decoded.byteLength > maximumBytes || decoded.toString("base64url") !== encoded) {
+      throw new Error("JWT-Segment ist ungueltig oder zu gross.");
+    }
+    const parsed = JSON.parse(decoded.toString("utf8"));
     if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) throw new Error("JWT-Segment ist kein Objekt.");
     return parsed;
   } catch {
@@ -3431,7 +3447,23 @@ function jwtAudienceMatches(actual, expected) {
 }
 
 function verifyJwtSignature(header, signedData, encodedSignature, publicKey) {
-  const signature = Buffer.from(encodedSignature, "base64url");
+  const encoded = String(encodedSignature || "");
+  const maximumEncodedCharacters = Math.ceil(JWT_SIGNATURE_MAX_BYTES * 4 / 3);
+  if (
+    !encoded
+    || encoded.length > maximumEncodedCharacters
+    || !/^[A-Za-z0-9_-]+$/u.test(encoded)
+  ) {
+    return false;
+  }
+  const signature = Buffer.from(encoded, "base64url");
+  if (
+    signature.byteLength > JWT_SIGNATURE_MAX_BYTES
+    || signature.toString("base64url") !== encoded
+    || (header.alg === "ES256" && signature.byteLength !== 64)
+  ) {
+    return false;
+  }
   if (header.alg === "ES256") {
     return crypto.verify("sha256", signedData, { key: publicKey, dsaEncoding: "ieee-p1363" }, signature);
   }
@@ -3465,8 +3497,8 @@ async function verifyIapJwt(request) {
     throw error;
   }
   const [encodedHeader, encodedPayload, encodedSignature] = parts;
-  const header = decodeJwtPart(encodedHeader);
-  const payload = decodeJwtPart(encodedPayload);
+  const header = decodeJwtPart(encodedHeader, JWT_HEADER_MAX_BYTES);
+  const payload = decodeJwtPart(encodedPayload, IAP_JWT_PAYLOAD_MAX_BYTES);
   if (header.alg !== "ES256" || !header.kid) {
     const error = new Error("IAP-JWT nutzt keinen unterstuetzten Signaturalgorithmus.");
     error.status = 401;
@@ -3479,11 +3511,11 @@ async function verifyIapJwt(request) {
     error.status = 401;
     throw error;
   }
-  const verified = crypto.verify(
-    "sha256",
+  const verified = verifyJwtSignature(
+    header,
     Buffer.from(`${encodedHeader}.${encodedPayload}`),
-    { key: publicKey, dsaEncoding: "ieee-p1363" },
-    Buffer.from(encodedSignature, "base64url")
+    encodedSignature,
+    publicKey
   );
   if (!verified) {
     const error = new Error("IAP-JWT-Signatur ist ungueltig.");
@@ -3521,8 +3553,8 @@ async function verifyOidcJwt(request) {
     throw error;
   }
   const [encodedHeader, encodedPayload, encodedSignature] = parts;
-  const header = decodeJwtPart(encodedHeader);
-  const payload = decodeJwtPart(encodedPayload);
+  const header = decodeJwtPart(encodedHeader, JWT_HEADER_MAX_BYTES);
+  const payload = decodeJwtPart(encodedPayload, OIDC_JWT_PAYLOAD_MAX_BYTES);
   if (!header.kid || !["ES256", "RS256", "PS256"].includes(header.alg)) {
     const error = new Error("OIDC-Token nutzt keinen erlaubten Signaturalgorithmus.");
     error.status = 401;
@@ -10077,7 +10109,7 @@ async function handle(request, response) {
   }
 }
 
-const server = http.createServer(handle);
+const server = http.createServer({ maxHeaderSize: HTTP_MAX_HEADER_BYTES }, handle);
 server.requestTimeout = Math.max(5000, Number(process.env.HTTP_REQUEST_TIMEOUT_MS || 30000));
 server.headersTimeout = Math.max(5000, Number(process.env.HTTP_HEADERS_TIMEOUT_MS || 10000));
 server.keepAliveTimeout = Math.max(1000, Number(process.env.HTTP_KEEP_ALIVE_TIMEOUT_MS || 5000));

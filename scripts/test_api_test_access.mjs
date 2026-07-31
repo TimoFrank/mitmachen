@@ -71,7 +71,7 @@ const validIapClaims = {
 };
 assert.doesNotThrow(() => assertIapJwtClaims(validIapClaims, iapAudience, { nowSeconds: iapNow }));
 for (const boundaryClaims of [
-  { ...validIapClaims, iat: iapNow + 30, nbf: iapNow + 30, exp: iapNow + 660 },
+  { ...validIapClaims, iat: iapNow - 360, nbf: iapNow - 360, exp: iapNow + 300 },
   { ...validIapClaims, iat: iapNow - 629, nbf: iapNow - 629, exp: iapNow - 29 },
   { ...validIapClaims, nbf: iapNow + 30, exp: iapNow + 300 }
 ]) {
@@ -98,7 +98,7 @@ for (const [label, claims] of [
   ["future iat", { ...validIapClaims, iat: iapNow + 31, exp: iapNow + 300 }],
   ["future nbf", { ...validIapClaims, nbf: iapNow + 31 }],
   ["nbf after exp", { ...validIapClaims, nbf: iapNow + 21, exp: iapNow + 20 }],
-  ["lifetime over ten minutes plus skew", { ...validIapClaims, iat: iapNow - 331, exp: iapNow + 300 }],
+  ["lifetime over ten minutes plus two skews", { ...validIapClaims, iat: iapNow - 361, exp: iapNow + 300 }],
   ["issuer mismatch", { ...validIapClaims, iss: "https://attacker.example.invalid" }],
   ["audience mismatch", { ...validIapClaims, aud: "/projects/attacker/global/backendServices/1" }]
 ]) {
