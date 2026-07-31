@@ -220,62 +220,64 @@ test("Phase 4: die Pages-Registrierung bleibt technisch inert", async ({ page })
   expect(adapterRequests).toEqual([]);
 });
 
-test("Phase 4: Teams zeigen eine Kartenübersicht mit gemeinsamem Detailbereich und laden Kontakte erst bei Bedarf", async ({ page }) => {
+test("Phase 4: Teams zeigen offene Bereiche mit Mitgliedern im direkten Kontext und laden Kontakte erst bei Bedarf", async ({ page }) => {
   await gotoAuthenticated(page, "/frontend/app/versorgungs-kompass.html#team", {
     role: "admin",
     backendFixtureScript: teamDirectoryBackendFixtureScript()
   });
 
   await expect(page.locator('[data-view-panel="team"]')).toBeVisible();
-  await expect(page.locator("#workspace-view-title")).not.toBeVisible();
-  await expect(page.locator("#workspace-view-subtitle")).not.toBeVisible();
-  await expect(page.locator("#team-overview-title")).toHaveText("Teams");
-  await expect(page.getByText("Zusammenarbeit im Überblick", { exact: true })).toHaveCount(0);
+  await expect(page.locator("#team-overview-title")).toHaveCount(0);
+  await expect(page.locator("#workspace-view-title")).toHaveText("Teams");
+  await expect(page.locator("#workspace-view-subtitle")).toHaveText("Finde Nutzer, Rollen und Zuständigkeiten, ohne lange Kontaktlisten durchsuchen zu müssen.");
+  await expect(page.locator('[data-workspace-brand]')).toBeVisible();
+  await expect(page.locator("#workspace-brand-image")).toHaveAttribute("alt", "#Mitmachen");
   await expect(page.locator("#team-user-count")).toHaveText("36");
   await expect(page.locator("#team-group-count")).toHaveText("3");
-  await expect(page.locator("#team-directory-title, #team-directory-result, .team-toolbar")).toHaveCount(0);
+  await expect(page.locator("#team-directory-title")).toHaveCount(0);
+  await expect(page.locator("#team-directory-result")).toBeHidden();
+  await expect(page.locator(".team-toolbar")).toHaveCount(0);
+  const isMobile = (page.viewportSize()?.width || 1440) < 760;
   const workspaceWidth = await page.locator(".team-workspace").evaluate((element) => Math.round(element.getBoundingClientRect().width));
-  expect(workspaceWidth).toBeGreaterThan(760);
-  expect(workspaceWidth).toBeLessThanOrEqual(1120);
+  expect(workspaceWidth).toBeGreaterThan(isMobile ? 320 : 760);
+  expect(workspaceWidth).toBeLessThanOrEqual(isMobile ? 390 : 1120);
+  await expect(page.locator('.app-shell[data-active-view="team"] .workspace-header')).toHaveCSS("border-top-width", "1px");
 
-  const teamCards = page.locator("#team-account-list .team-card");
+  const searchBox = await page.locator(".team-search").boundingBox();
+  const metricsBox = await page.locator(".team-metrics").boundingBox();
+  expect(searchBox).not.toBeNull();
+  expect(metricsBox).not.toBeNull();
+  if (!isMobile) expect(Math.abs(searchBox.height - metricsBox.height)).toBeLessThanOrEqual(1);
+
+  const teamCards = page.locator("#team-account-list .team-board-card");
   await expect(teamCards).toHaveCount(4);
   await expect(page.locator("#team-account-list .team-column")).toHaveCount(0);
   await expect(teamCards.filter({ hasText: "Strategie und Standards" })).toHaveCount(0);
   await expect(teamCards.filter({ hasText: "Ohne Team" })).toHaveCount(1);
-  await expect(page.locator("#team-account-list .team-card[aria-pressed='true']")).toHaveCount(1);
+  await expect(page.locator("#team-selected-detail, #team-account-list [aria-pressed]")).toHaveCount(0);
 
-  const teamGridColumns = await page.locator(".team-card-grid").evaluate((element) =>
+  const teamGridColumns = await page.locator(".team-board-grid").evaluate((element) =>
     getComputedStyle(element).gridTemplateColumns.split(" ").filter(Boolean).length
   );
-  expect(teamGridColumns).toBe(2);
+  expect(teamGridColumns).toBe(isMobile ? 1 : 2);
+  const teamGridBox = await page.locator(".team-board-grid").boundingBox();
+  expect(teamGridBox.y - Math.max(searchBox.y + searchBox.height, metricsBox.y + metricsBox.height)).toBeGreaterThanOrEqual(24);
+  if (!isMobile) {
+    const teamCardWidths = await teamCards.evaluateAll((elements) =>
+      elements.map((element) => Math.round(element.getBoundingClientRect().width))
+    );
+    expect(new Set(teamCardWidths).size).toBe(1);
+  }
 
   const firstTeam = teamCards.first();
-  await expect(firstTeam).toHaveAttribute("aria-pressed", "true");
-  await expect(firstTeam.locator(".team-card__title")).toHaveText("Stabsstelle Versorgung");
+  await expect(firstTeam.locator(".team-board-card__heading h4")).toHaveText("Stabsstelle Versorgung");
+  await expect(firstTeam.locator(".team-board-card__heading span, .team-board-card__heading p")).toHaveCount(0);
   await expect(firstTeam.locator(".team-icon svg")).toBeVisible();
-  await expect(firstTeam.locator(".team-card__count")).toHaveText("9 Nutzer");
-  await expect(firstTeam.locator(".team-card-avatar:not(.team-card-avatar--overflow)")).toHaveCount(4);
-  await expect(firstTeam.locator(".team-card-avatar--overflow")).toHaveText("+5");
-  await expect(page.locator('[data-view-panel="team"]')).not.toContainText("Mitglied");
-
-  const teamDetail = page.locator("#team-selected-detail");
-  await expect(teamDetail).toHaveCount(1);
-  await expect(teamDetail.locator(".team-selected-detail__header h3")).toHaveText("Stabsstelle Versorgung");
-  await expect(teamDetail.locator(".team-account-card")).toHaveCount(9);
-  const accountGridColumns = await teamDetail.locator(".team-account-grid").evaluate((element) =>
-    getComputedStyle(element).gridTemplateColumns.split(" ").filter(Boolean).length
-  );
-  expect(accountGridColumns).toBe(2);
-  await expect(teamDetail.getByText("Profil ansehen")).toHaveCount(0);
-  await expect(teamDetail.locator(".team-account-responsibilities")).toHaveCount(0);
-
-  await teamCards.nth(1).click();
-  await expect(page.locator("#team-account-list .team-card[aria-pressed='true']")).toContainText("Kommunikation");
-  await expect(page.locator("#team-selected-detail .team-selected-detail__header h3")).toHaveText("Kommunikation");
-  await expect(page.locator("#team-account-list .team-card[aria-pressed='true']")).toBeFocused();
-  await page.locator("#team-account-list .team-card").first().click();
-  await expect(page.locator("#team-selected-detail .team-selected-detail__header h3")).toHaveText("Stabsstelle Versorgung");
+  await expect(firstTeam.locator(".team-board-card__member-count")).toContainText("9");
+  await expect(firstTeam.locator(".team-account-card")).toHaveCount(9);
+  await expect(page.locator("#team-account-list .team-account-card")).toHaveCount(36);
+  await expect(firstTeam.getByText("Profil ansehen")).toHaveCount(0);
+  await expect(firstTeam.locator(".team-account-responsibilities")).toHaveCount(0);
 
   await expect(page.locator("#team-account-list .profile-owner-contact")).toHaveCount(0);
   const responsibilityDetails = page.locator("#team-account-list [data-team-owner-profile]").filter({ hasText: "1 Kontakt öffnen" }).first();
@@ -291,14 +293,10 @@ test("Phase 4: Teams zeigen eine Kartenübersicht mit gemeinsamem Detailbereich 
 
   await page.setViewportSize({ width: 360, height: 780 });
   await expectNoHorizontalOverflow(page);
-  const mobileTeamGridColumns = await page.locator(".team-card-grid").evaluate((element) =>
-    getComputedStyle(element).gridTemplateColumns.split(" ").filter(Boolean).length
-  );
-  const mobileAccountGridColumns = await page.locator(".team-account-grid").evaluate((element) =>
+  const mobileTeamGridColumns = await page.locator(".team-board-grid").evaluate((element) =>
     getComputedStyle(element).gridTemplateColumns.split(" ").filter(Boolean).length
   );
   expect(mobileTeamGridColumns).toBe(1);
-  expect(mobileAccountGridColumns).toBe(1);
 
   const navigableResponsibility = page.locator("#team-account-list [data-team-owner-profile]").filter({ hasText: "1 Kontakt öffnen" }).first();
   if ((await navigableResponsibility.getAttribute("open")) === null) await navigableResponsibility.locator("summary").click();
@@ -313,12 +311,11 @@ for (const role of ["viewer", "editor", "admin"]) {
       role,
       backendFixtureScript: teamDirectoryBackendFixtureScript()
     });
-    const firstTeam = page.locator("#team-account-list .team-card").first();
-    await expect(page.locator("#team-account-list .team-card[aria-pressed='true']")).toHaveCount(1);
-    await expect(firstTeam).toHaveAttribute("aria-pressed", "true");
-    await expect(page.locator("#team-selected-detail .team-account-card").first()).toBeVisible();
+    const firstTeam = page.locator("#team-account-list .team-board-card").first();
+    await expect(firstTeam.locator(".team-account-card").first()).toBeVisible();
+    await expect(page.locator("#team-selected-detail, #team-account-list [aria-pressed]")).toHaveCount(0);
     await expect(page.locator("#team-account-list").getByRole("button", { name: /bearbeiten|löschen|Rolle ändern/i })).toHaveCount(0);
     await expect(page.locator("#team-account-list").getByText("Profil ansehen")).toHaveCount(0);
-    await expect(page.locator("#team-selected-detail").getByText(/Kontakte? öffnen/).first()).toBeVisible();
+    await expect(firstTeam.getByText(/Kontakte? öffnen/).first()).toBeVisible();
   });
 }

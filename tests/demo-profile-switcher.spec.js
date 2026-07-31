@@ -8,6 +8,10 @@ function pagesUrl(profileId, hash = "#contacts") {
   return `${PAGES_APP}?demoProfile=${encodeURIComponent(profileId)}${hash}`;
 }
 
+function onboardingPreviewUrl(profileId = PROFILE_VIEWER, hash = "#contacts") {
+  return `${PAGES_APP}?demoProfile=${encodeURIComponent(profileId)}&demoOnboarding=fresh${hash}`;
+}
+
 async function revealProfileSwitcher(page) {
   const shell = page.locator(".app-shell");
   const switcher = page.locator("#demo-profile-switcher");
@@ -34,6 +38,47 @@ async function revealProfileSwitcher(page) {
 }
 
 test.describe("Pages-Profilwechsel", () => {
+  test("normaler Demo-Modus bleibt ohne Onboarding-Vorschau", async ({ page }) => {
+    await page.goto(pagesUrl(PROFILE_VIEWER));
+
+    await expect(page.locator('[data-view-panel="onboarding"]')).toBeHidden();
+    await expect(page.locator('[data-view-panel="contacts"]')).toBeVisible();
+    await expect.poll(() => page.evaluate(
+      () => window.VersorgungsCompassDemoApi.snapshot().currentProfileId
+    )).toBe(PROFILE_VIEWER);
+    expect(await page.evaluate(
+      () => window.VERSORGUNGS_COMPASS_DEMO_RUNTIME.onboardingPreview
+    )).toBe(false);
+
+    await page.goto(onboardingPreviewUrl(PROFILE_ADMIN));
+    await expect(page.locator('[data-view-panel="onboarding"]')).toBeHidden();
+    await expect(page.locator('[data-view-panel="contacts"]')).toBeVisible();
+    expect(await page.evaluate(
+      () => window.VERSORGUNGS_COMPASS_DEMO_RUNTIME.onboardingPreview
+    )).toBe(false);
+  });
+
+  test("Onboarding-Vorschau startet nur mit dem frischen Viewer-Vertrag", async ({ page }) => {
+    await page.goto(onboardingPreviewUrl());
+
+    await expect(page.locator('[data-view-panel="onboarding"]')).toBeVisible();
+    await expect(page.locator('[data-onboarding-step-panel="welcome"]')).toBeVisible();
+    await expect(page.locator("#workspace-view-title")).toHaveText("Willkommen");
+    await expect(page.locator('[data-workspace-brand]')).toBeVisible();
+    await expect(page.locator("#workspace-brand-image")).toHaveAttribute("alt", "Versorgungs-Kompass");
+    await expect(page.locator('[data-onboarding-step-dot]')).toHaveCount(7);
+    expect(await page.evaluate(
+      () => window.VERSORGUNGS_COMPASS_DEMO_RUNTIME.onboardingPreview
+    )).toBe(true);
+    await expect.poll(() => page.evaluate(
+      () => window.VersorgungsCompassDemoApi.snapshot().currentProfileId
+    )).toBe(PROFILE_VIEWER);
+
+    await page.locator("#onboarding-welcome-next").click();
+    await expect(page.locator("#onboarding-profile-form")).toBeVisible();
+    await expect(page.locator("#onboarding-display-name")).toHaveValue("Nora Demir");
+  });
+
   test("zeigt die neue Überschrift und das modernisierte Dropdown in Desktop und Mobil", async ({ page }) => {
     await page.goto(pagesUrl(PROFILE_ADMIN));
     const { desktopLayout, select, switcher } = await revealProfileSwitcher(page);

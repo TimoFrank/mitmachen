@@ -1069,8 +1069,8 @@
     loadContacts: loadContacts,
     getContacts: getContacts,
     getContact: getContact,
-    getProfiles: async function() {
-      return loadProfiles();
+    getProfiles: async function(options = {}) {
+      return loadProfiles(options);
     },
     getCurrentProfile: getCurrentProfile,
     updateCurrentProfile: async function(profile = {}) {

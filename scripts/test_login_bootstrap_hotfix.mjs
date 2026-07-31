@@ -182,6 +182,9 @@ function createInitializeHarness({ coreError = null, settingsPromise }) {
     },
     initialDataLoadingSlow: true,
     isInitialDataLoading: true,
+    ensureCriticalInitialData: async () => {
+      if (coreError) throw coreError;
+    },
     loadCriticalInitialData: async () => {
       if (coreError) throw coreError;
     },
@@ -213,6 +216,10 @@ function createInitializeHarness({ coreError = null, settingsPromise }) {
         }
       },
       dataService: {
+        getCurrentProfile: async () => ({
+          id: "profile-1",
+          created_at: "2026-01-01T00:00:00.000Z"
+        }),
         isConfigured: () => true
       },
       location: {
@@ -279,10 +286,10 @@ async function assertNonAuthFailuresStillRevealShell() {
   assert.equal(harness.state.finishCalls, 1);
   assert.equal(harness.state.redirect, "");
   assert.equal(harness.state.loginCleared, false);
-  assert.match(harness.state.storageStatus, /Keine geschützten Kontaktdaten verfügbar/u);
 
   settings.resolve();
   await initialization;
+  assert.match(harness.state.storageStatus, /Keine geschützten Kontaktdaten verfügbar/u);
 }
 
 async function assertStructuredUnauthorizedRedirects() {
