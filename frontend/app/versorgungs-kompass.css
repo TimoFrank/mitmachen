@@ -21196,7 +21196,6 @@
         .profile-settings-grid,
         .profile-role-card,
         .profile-session-row,
-        .profile-onboarding-card,
         .profile-photo-remove {
           grid-template-columns: 1fr;
         }
@@ -21208,15 +21207,6 @@
 
         .profile-setting-toggle {
           justify-content: flex-start;
-        }
-
-        .profile-onboarding-actions {
-          justify-content: stretch;
-        }
-
-        .profile-onboarding-actions .action-button {
-          width: 100%;
-          justify-content: center;
         }
 
         .profile-panel__footer {
@@ -21458,39 +21448,71 @@
         line-height: var(--line-height-normal);
       }
 
-      .profile-onboarding-card {
-        display: grid;
-        grid-template-columns: minmax(0, 1fr) auto;
-        gap: 12px;
-        align-items: center;
-        padding: 12px;
-        border: 1px solid var(--border);
-        border-radius: var(--radius-md);
-        background: var(--surface-muted);
-      }
-
-      .profile-onboarding-copy {
+      .profile-guidance-heading {
         display: grid;
         gap: 4px;
+      }
+
+      .profile-guidance-heading h3,
+      .profile-guidance-copy h4 {
+        margin: 0;
+      }
+
+      .profile-guidance-heading p {
+        margin: 0;
+        color: var(--text-muted);
+        font-size: var(--font-size-sm);
+        line-height: var(--line-height-normal);
+      }
+
+      .profile-guidance-list {
+        display: grid;
+        margin-top: 8px;
+      }
+
+      .profile-guidance-item {
+        display: grid;
+        grid-template-columns: 36px minmax(0, 1fr) auto;
+        gap: 12px;
+        align-items: center;
+        min-width: 0;
+        padding: 14px 0;
+      }
+
+      .profile-guidance-item + .profile-guidance-item {
+        border-top: 1px solid var(--border);
+      }
+
+      .profile-guidance-index {
+        display: inline-grid;
+        width: 32px;
+        height: 32px;
+        place-items: center;
+        border-radius: 999px;
+        background: var(--primary-soft);
+        color: var(--primary);
+        font-size: var(--font-size-xs);
+        font-weight: 900;
+        font-variant-numeric: tabular-nums;
+      }
+
+      .profile-guidance-copy {
+        display: grid;
+        gap: 6px;
         min-width: 0;
       }
 
-      .profile-onboarding-copy strong {
+      .profile-guidance-copy h4 {
         color: var(--text-primary);
         font-size: var(--font-size-sm);
         font-weight: 900;
       }
 
-      .profile-onboarding-copy span,
-      .profile-onboarding-status {
-        color: var(--text-secondary);
-        font-size: var(--font-size-sm);
-        line-height: var(--line-height-normal);
-      }
-
       .profile-onboarding-status {
         color: var(--text-muted);
+        font-size: var(--font-size-sm);
         font-weight: 750;
+        line-height: var(--line-height-normal);
       }
 
       .profile-onboarding-status.is-ready {
@@ -21501,7 +21523,24 @@
         color: var(--warning);
       }
 
-      .profile-onboarding-actions {
+      .profile-guidance-progress {
+        width: min(280px, 100%);
+        height: 5px;
+        overflow: hidden;
+        border-radius: 999px;
+        background: var(--border);
+      }
+
+      .profile-guidance-progress span {
+        display: block;
+        width: 0;
+        height: 100%;
+        border-radius: inherit;
+        background: var(--primary);
+        transition: width 0.2s ease;
+      }
+
+      .profile-guidance-actions {
         display: flex;
         flex-wrap: wrap;
         justify-content: flex-end;
@@ -21509,16 +21548,17 @@
       }
 
       @media (max-width: 760px) {
-        .profile-onboarding-card {
-          grid-template-columns: 1fr;
-          align-items: stretch;
+        .profile-guidance-item {
+          grid-template-columns: 36px minmax(0, 1fr);
+          align-items: start;
         }
 
-        .profile-onboarding-actions {
+        .profile-guidance-actions {
+          grid-column: 2;
           justify-content: stretch;
         }
 
-        .profile-onboarding-actions .action-button {
+        .profile-guidance-actions .action-button {
           width: 100%;
           justify-content: center;
         }

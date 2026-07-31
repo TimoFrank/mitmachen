@@ -73,6 +73,7 @@ for (const [routeToken, expectedPath] of routeMatrix) {
   assert.ok(routes.routeTokenForPath(expectedPath), `${expectedPath} wird nicht als Anwendungspfad erkannt`);
   assert.ok(routes.isApplicationPath(expectedPath), `${expectedPath} fehlt in der Auth-Allowlist`);
 }
+assert.equal(routes.routeTokenForPath("/onboarding"), "onboarding");
 
 assert.equal(
   routes.urlForRouteToken("profile-imports:onlineEntry"),
@@ -165,6 +166,15 @@ for (const expectedNginxContract of [
 ]) {
   assert.ok(nginxSource.includes(expectedNginxContract), `Nginx-Routenvertrag fehlt: ${expectedNginxContract}`);
 }
+
+const topLevelLocationLine = nginxSource
+  .split("\n")
+  .find((line) => line.includes("(?:start|onboarding|formate|teams)"));
+const topLevelLocationPattern = topLevelLocationLine?.trim().match(/^location ~ (.+) \{$/);
+assert.ok(topLevelLocationPattern, "Nginx-Vertrag für kanonische Top-Level-Anwendungspfade fehlt.");
+const topLevelLocationRegex = new RegExp(topLevelLocationPattern[1]);
+assert.ok(topLevelLocationRegex.test("/onboarding"), "/onboarding fehlt im Nginx-Anwendungspfadvertrag");
+assert.equal(topLevelLocationRegex.test("/onboarding/details"), false, "Verschachtelte unbekannte Onboarding-Pfade dürfen nicht auf die App-Shell fallen");
 
 const stakeholderLocationPattern = nginxSource.match(/location ~ (\^\/stakeholder[^\n]+) \{/);
 assert.ok(stakeholderLocationPattern, "Nginx-Stakeholder-Routenvertrag fehlt.");
