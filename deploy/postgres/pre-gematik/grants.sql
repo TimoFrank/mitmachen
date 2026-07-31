@@ -88,9 +88,12 @@ grant select, insert, update, delete on table
   public.notification_recipients
 to :"runtime_role";
 
+revoke all privileges on table public.activity_events from public;
+revoke all privileges on table public.activity_events from :"runtime_role" cascade;
 grant select, insert on table public.activity_events to :"runtime_role";
-revoke update, delete on table public.activity_events from :"runtime_role";
 
+revoke all privileges on sequence public.activity_events_id_seq from public;
+revoke all privileges on sequence public.activity_events_id_seq from :"runtime_role" cascade;
 grant usage, select on sequence
   public.activity_events_id_seq,
   public.changes_id_seq,

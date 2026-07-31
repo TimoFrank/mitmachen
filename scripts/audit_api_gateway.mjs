@@ -115,8 +115,12 @@ function assertActivityEventWriteBoundary() {
   }
   if (!/revoke\s+create\s+on\s+schema\s+public\s+from\s+:"runtime_role"/i.test(grants)
     || !/grant\s+usage\s+on\s+schema\s+public\s+to\s+:"runtime_role"/i.test(grants)
+    || !/revoke\s+all\s+privileges\s+on\s+table\s+public\.activity_events\s+from\s+public\s*;/i.test(grants)
+    || !/revoke\s+all\s+privileges\s+on\s+table\s+public\.activity_events\s+from\s+:"runtime_role"\s+cascade\s*;/i.test(grants)
     || !/grant\s+select\s*,\s*insert\s+on\s+table\s+public\.activity_events\s+to\s+:"runtime_role"\s*;/i.test(grants)
-    || !/revoke\s+update\s*,\s*delete\s+on\s+table\s+public\.activity_events\s+from\s+:"runtime_role"\s*;/i.test(grants)) {
+    || !/revoke\s+all\s+privileges\s+on\s+sequence\s+public\.activity_events_id_seq\s+from\s+public\s*;/i.test(grants)
+    || !/revoke\s+all\s+privileges\s+on\s+sequence\s+public\.activity_events_id_seq\s+from\s+:"runtime_role"\s+cascade\s*;/i.test(grants)
+    || !/grant\s+usage\s*,\s*select\s+on\s+sequence[\s\S]{0,120}?public\.activity_events_id_seq[\s\S]{0,180}?to\s+:"runtime_role"\s*;/i.test(grants)) {
     violations.push("deploy/postgres/pre-gematik/grants.sql: append-only API-Laufzeitrechte fuer activity_events fehlen");
   }
   if (/grant\s+[^;]*(?:update|delete)[^;]*on\s+table[^;]*public\.activity_events[^;]*to\s+:"runtime_role"/i.test(grants)) {

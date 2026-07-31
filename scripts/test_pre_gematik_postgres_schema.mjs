@@ -925,7 +925,10 @@ async function assertRuntimeRoleContract(adminPool, appPool, runtimeRole, appUse
   }, "Die Laufzeitrolle muss NOLOGIN und frei von Verwaltungsattributen sein.");
 
   const memberships = await adminPool.query(`
-    select granted_role.rolname as granted_role
+    select granted_role.rolname as granted_role,
+           membership.admin_option,
+           membership.inherit_option,
+           membership.set_option
       from pg_catalog.pg_auth_members membership
       join pg_catalog.pg_roles granted_role on granted_role.oid = membership.roleid
       join pg_catalog.pg_roles member_role on member_role.oid = membership.member
@@ -933,8 +936,13 @@ async function assertRuntimeRoleContract(adminPool, appPool, runtimeRole, appUse
      order by granted_role.rolname
   `, [appUser]);
   assert.deepEqual(
-    memberships.rows.map((row) => row.granted_role),
-    [runtimeRole],
+    memberships.rows,
+    [{
+      granted_role: runtimeRole,
+      admin_option: false,
+      inherit_option: true,
+      set_option: true
+    }],
     "Der App-Login darf nur Mitglied der benutzerdefinierten Laufzeitrolle sein."
   );
 
@@ -1029,6 +1037,17 @@ async function assertRuntimeRoleContract(adminPool, appPool, runtimeRole, appUse
       ) as test_object_updated_at_insert,
       has_sequence_privilege(current_user, 'public.activity_events_id_seq', 'USAGE') as sequence_usage,
       has_sequence_privilege(current_user, 'public.activity_events_id_seq', 'SELECT') as sequence_select,
+      has_sequence_privilege(current_user, 'public.activity_events_id_seq', 'UPDATE') as sequence_update,
+      has_sequence_privilege(
+        current_user,
+        'public.activity_events_id_seq',
+        'USAGE WITH GRANT OPTION'
+      ) as sequence_usage_grant_option,
+      has_sequence_privilege(
+        current_user,
+        'public.activity_events_id_seq',
+        'SELECT WITH GRANT OPTION'
+      ) as sequence_select_grant_option,
       has_function_privilege(current_user, 'public.pre_gematik_touch_updated_at()', 'EXECUTE') as function_execute
   `, [runtimeRole, appUser]);
   assert.deepEqual(effective.rows[0], {
@@ -1066,6 +1085,9 @@ async function assertRuntimeRoleContract(adminPool, appPool, runtimeRole, appUse
     test_object_updated_at_insert: false,
     sequence_usage: true,
     sequence_select: true,
+    sequence_update: false,
+    sequence_usage_grant_option: false,
+    sequence_select_grant_option: false,
     function_execute: true
   }, "Der App-Login muss ausschließlich die effektiven Rechte der Laufzeitrolle erben.");
 }
@@ -1404,6 +1426,9 @@ async function applyVersionedMigrations(pool, fileNames = migrationFiles) {
     for (const fileName of fileNames) {
       await client.query(migrationSqlByFile.get(fileName));
     }
+  } catch (error) {
+    await client.query("rollback").catch(() => {});
+    throw error;
   } finally {
     client.release();
   }
@@ -1505,16 +1530,58 @@ async function migrationUpgradeSemanticSnapshot(pool) {
         'public.log_format_participation_status_change()',
         'EXECUTE'
       ) as runtime_format_log_execute,
+      not exists (
+        select 1
+          from pg_catalog.pg_auth_members membership
+          join pg_catalog.pg_roles runtime_role on runtime_role.oid = membership.member
+         where runtime_role.rolname = 'vk_app_runtime'
+      ) as runtime_has_no_parent_memberships,
+      not exists (
+        select 1
+          from pg_catalog.pg_auth_members membership
+          join pg_catalog.pg_roles runtime_role on runtime_role.oid = membership.roleid
+         where runtime_role.rolname = 'vk_app_runtime'
+           and (
+             membership.admin_option
+             or not membership.inherit_option
+           )
+      ) as runtime_memberships_safe,
       has_table_privilege('vk_app_runtime', 'public.activity_events', 'SELECT') as activity_select,
       has_table_privilege('vk_app_runtime', 'public.activity_events', 'INSERT') as activity_insert,
+      has_table_privilege(
+        'vk_app_runtime',
+        'public.activity_events',
+        'SELECT WITH GRANT OPTION'
+      ) as activity_select_grant_option,
+      has_table_privilege(
+        'vk_app_runtime',
+        'public.activity_events',
+        'INSERT WITH GRANT OPTION'
+      ) as activity_insert_grant_option,
       has_table_privilege('vk_app_runtime', 'public.activity_events', 'UPDATE') as activity_update,
-      has_table_privilege('vk_app_runtime', 'public.activity_events', 'DELETE') as activity_delete
+      has_any_column_privilege('vk_app_runtime', 'public.activity_events', 'UPDATE') as activity_column_update,
+      has_table_privilege('vk_app_runtime', 'public.activity_events', 'DELETE') as activity_delete,
+      has_any_column_privilege('vk_app_runtime', 'public.activity_events', 'REFERENCES') as activity_column_references,
+      has_sequence_privilege('vk_app_runtime', 'public.activity_events_id_seq', 'USAGE') as activity_sequence_usage,
+      has_sequence_privilege('vk_app_runtime', 'public.activity_events_id_seq', 'SELECT') as activity_sequence_select,
+      has_sequence_privilege('vk_app_runtime', 'public.activity_events_id_seq', 'UPDATE') as activity_sequence_update,
+      has_sequence_privilege(
+        'vk_app_runtime',
+        'public.activity_events_id_seq',
+        'USAGE WITH GRANT OPTION'
+      ) as activity_sequence_usage_grant_option,
+      has_sequence_privilege(
+        'vk_app_runtime',
+        'public.activity_events_id_seq',
+        'SELECT WITH GRANT OPTION'
+      ) as activity_sequence_select_grant_option
   `);
   return result.rows[0];
 }
 
 async function assertVersionedMigrationUpgrade(connectionString, containerName) {
   const databaseName = `vk_upgrade_${process.pid}`;
+  const foreignGrantor = `vk_upgrade_acl_grantor_${process.pid}`;
   runDocker([
     "exec", containerName,
     "createdb", "-U", "vk_contract", databaseName
@@ -1537,6 +1604,57 @@ async function assertVersionedMigrationUpgrade(connectionString, containerName) 
       grant select, insert, update, delete
         on table public.activity_events
         to vk_app_runtime
+    `);
+    await upgradePool.query(`
+      grant select, insert
+        on table public.activity_events
+        to vk_app_runtime
+        with grant option
+    `);
+    await upgradePool.query(`
+      grant update (actor_id), references (actor_id)
+        on table public.activity_events
+        to vk_app_runtime
+    `);
+    await upgradePool.query(`
+      grant update, delete
+        on table public.activity_events
+        to public
+    `);
+    await upgradePool.query(`
+      grant update (actor_id), references (actor_id)
+        on table public.activity_events
+        to public
+    `);
+    await upgradePool.query(`
+      grant update
+        on sequence public.activity_events_id_seq
+        to vk_app_runtime, public
+    `);
+    await upgradePool.query(`
+      grant usage, select
+        on sequence public.activity_events_id_seq
+        to vk_app_runtime
+        with grant option
+    `);
+    await upgradePool.query(`
+      grant vk_app_runtime to current_user
+        with admin false, inherit true, set true
+    `);
+    await upgradePool.query(`
+      create role ${foreignGrantor} nologin;
+      grant select, insert
+        on table public.activity_events
+        to ${foreignGrantor}
+        with grant option;
+      grant usage, select
+        on sequence public.activity_events_id_seq
+        to ${foreignGrantor}
+        with grant option;
+      set role ${foreignGrantor};
+      grant select, insert on table public.activity_events to public;
+      grant usage, select on sequence public.activity_events_id_seq to public;
+      reset role;
     `);
 
     const legacyIdentity = await upgradePool.query(
@@ -1615,6 +1733,33 @@ async function assertVersionedMigrationUpgrade(connectionString, containerName) 
     const migrationsBeforeFormatWorkflow = migrationFiles.filter(
       (fileName) => fileName !== formatMigrationFile
     );
+    await assert.rejects(
+      applyVersionedMigrations(upgradePool, migrationsBeforeFormatWorkflow),
+      /PUBLIC activity_events table, column, and sequence privileges must be empty/u,
+      "Migration 009 muss fremd-grantierte PUBLIC-Rechte fail-closed ablehnen."
+    );
+    await upgradePool.query(`
+      set role ${foreignGrantor};
+      revoke select, insert on table public.activity_events from public;
+      revoke usage, select on sequence public.activity_events_id_seq from public;
+      reset role;
+      revoke all privileges on table public.activity_events from ${foreignGrantor} cascade;
+      revoke all privileges on sequence public.activity_events_id_seq from ${foreignGrantor} cascade;
+      drop role ${foreignGrantor};
+    `);
+    await upgradePool.query(`
+      grant vk_app_runtime to current_user
+        with admin true, inherit true, set true
+    `);
+    await assert.rejects(
+      applyVersionedMigrations(upgradePool, migrationsBeforeFormatWorkflow),
+      /vk_app_runtime memberships must be non-admin and inherited/u,
+      "Migration 009 muss delegierbare Runtime-Mitgliedschaften fail-closed ablehnen."
+    );
+    await upgradePool.query(`
+      grant vk_app_runtime to current_user
+        with admin false, inherit true, set true
+    `);
     await applyVersionedMigrations(upgradePool, migrationsBeforeFormatWorkflow);
     await upgradePool.query(`
       insert into public.contacts (
@@ -1726,16 +1871,38 @@ async function assertVersionedMigrationUpgrade(connectionString, containerName) 
       "Migration 008 muss Vorbereitung und Aktivitätsprotokoll der Formatbeteiligung aktivieren.");
     assert.equal(firstSemantics.runtime_format_log_execute, false,
       "Die privilegierte Format-Triggerfunktion darf für die Laufzeitrolle nicht direkt aufrufbar sein.");
+    assert.equal(firstSemantics.runtime_has_no_parent_memberships, true,
+      "Die Laufzeitrolle darf keine Elternrolle erben oder per SET ROLE erreichen.");
+    assert.equal(firstSemantics.runtime_memberships_safe, true,
+      "Laufzeitrollen-Mitglieder müssen ohne ADMIN ausschließlich erbend gebunden sein.");
     assert.deepEqual({
       activity_select: firstSemantics.activity_select,
       activity_insert: firstSemantics.activity_insert,
+      activity_select_grant_option: firstSemantics.activity_select_grant_option,
+      activity_insert_grant_option: firstSemantics.activity_insert_grant_option,
       activity_update: firstSemantics.activity_update,
-      activity_delete: firstSemantics.activity_delete
+      activity_column_update: firstSemantics.activity_column_update,
+      activity_delete: firstSemantics.activity_delete,
+      activity_column_references: firstSemantics.activity_column_references,
+      activity_sequence_usage: firstSemantics.activity_sequence_usage,
+      activity_sequence_select: firstSemantics.activity_sequence_select,
+      activity_sequence_update: firstSemantics.activity_sequence_update,
+      activity_sequence_usage_grant_option: firstSemantics.activity_sequence_usage_grant_option,
+      activity_sequence_select_grant_option: firstSemantics.activity_sequence_select_grant_option
     }, {
       activity_select: true,
       activity_insert: true,
+      activity_select_grant_option: false,
+      activity_insert_grant_option: false,
       activity_update: false,
-      activity_delete: false
+      activity_column_update: false,
+      activity_delete: false,
+      activity_column_references: false,
+      activity_sequence_usage: true,
+      activity_sequence_select: true,
+      activity_sequence_update: false,
+      activity_sequence_usage_grant_option: false,
+      activity_sequence_select_grant_option: false
     }, "Migration 009 muss bestehende Activity-Rechte auf append-only SELECT/INSERT verengen.");
     assert.match(firstSemantics.touch_function, /if new\.updated_at is not distinct from old\.updated_at then/iu,
       "Migration 002 muss explizite updated_at-Werte bewahren.");
@@ -2297,7 +2464,10 @@ try {
       "-U", "vk_contract", "-d", "versorgungs_kompass"
     ], { input: identityAdminRoleSql });
     await assertIdentityAdminRoleContract(pool, connectionString);
-    await pool.query(`create role ${appUser} login inherit in role ${runtimeRole} password '${appPassword}'`);
+    await pool.query(`
+      create role ${appUser} login inherit password '${appPassword}';
+      grant ${runtimeRole} to ${appUser} with admin false, inherit true, set true;
+    `);
     const portOutput = runDocker(["port", containerName, "5432/tcp"]);
     const portMatch = /:(\d+)\s*$/m.exec(portOutput);
     assert.ok(portMatch);

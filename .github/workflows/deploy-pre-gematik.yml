@@ -3224,15 +3224,16 @@ jobs:
               });
 
               try {
+                const appendOnlyTables = ["activity_events"];
                 const requiredTables = [
                   "profiles", "organizations", "organization_primary_systems", "contacts", "contact_owners",
-                  "activity_events", "changes", "import_runs", "contact_notes", "contact_note_attachments",
+                  "changes", "import_runs", "contact_notes", "contact_note_attachments",
                   "saved_views", "user_settings", "formats", "format_participants", "hospitation_slots",
                   "hospitations", "hospitation_observations", "hospitation_observation_changes", "roadmap_items",
                   "hospitation_roadmap_assessments", "hospitation_unmet_needs", "expert_groups", "expert_contacts",
                   "expert_organizations", "expert_entity_links", "stakeholder_types", "stakeholder_organizations",
                   "stakeholder_people", "notification_events", "notification_recipients"
-                ];
+                ].concat(appendOnlyTables);
                 const connectivity = await pool.query("select 1 as ok");
                 if (Number(connectivity.rows[0]?.ok) !== 1) throw new Error("PostgreSQL SELECT 1 failed.");
 
@@ -3262,26 +3263,66 @@ jobs:
                 }
 
                 const memberships = await pool.query(`
-                  select granted_role.rolname as granted_role
+                  select granted_role.rolname as granted_role,
+                         membership.admin_option,
+                         membership.inherit_option,
+                         membership.set_option
                     from pg_catalog.pg_auth_members membership
                     join pg_catalog.pg_roles granted_role on granted_role.oid = membership.roleid
                     join pg_catalog.pg_roles member_role on member_role.oid = membership.member
                    where member_role.rolname = current_user
                    order by granted_role.rolname
                 `);
-                if (memberships.rows.length !== 1 || memberships.rows[0]?.granted_role !== "vk_app_runtime") {
-                  throw new Error("Database login must have exactly one explicit role membership: vk_app_runtime.");
+                const loginMembership = memberships.rows[0];
+                if (memberships.rows.length !== 1 || loginMembership?.granted_role !== "vk_app_runtime"
+                    || loginMembership.admin_option || !loginMembership.inherit_option) {
+                  throw new Error("Database login must inherit exactly one non-admin role membership: vk_app_runtime.");
                 }
 
                 const runtimeRole = await pool.query(`
-                  select rolcanlogin, rolsuper, rolcreatedb, rolcreaterole, rolreplication, rolbypassrls
-                    from pg_catalog.pg_roles
-                   where rolname = 'vk_app_runtime'
+                  select role_state.rolcanlogin,
+                         role_state.rolsuper,
+                         role_state.rolcreatedb,
+                         role_state.rolcreaterole,
+                         role_state.rolreplication,
+                         role_state.rolbypassrls,
+                         not exists (
+                           select 1
+                             from pg_catalog.pg_auth_members membership
+                            where membership.member = role_state.oid
+                         ) as has_no_parent_memberships
+                    from pg_catalog.pg_roles role_state
+                   where role_state.rolname = 'vk_app_runtime'
                 `);
                 const runtime = runtimeRole.rows[0];
                 if (!runtime || runtime.rolcanlogin || runtime.rolsuper || runtime.rolcreatedb
-                    || runtime.rolcreaterole || runtime.rolreplication || runtime.rolbypassrls) {
+                    || runtime.rolcreaterole || runtime.rolreplication || runtime.rolbypassrls
+                    || !runtime.has_no_parent_memberships) {
                   throw new Error("vk_app_runtime is missing or has unsafe role attributes.");
+                }
+
+                const publicActivityAcl = await pool.query(`
+                  select not exists (
+                    select 1
+                      from pg_catalog.pg_class target
+                      join pg_catalog.pg_namespace namespace
+                        on namespace.oid = target.relnamespace
+                      cross join lateral pg_catalog.aclexplode(target.relacl) privilege
+                     where namespace.nspname = 'public'
+                       and target.relname in ('activity_events', 'activity_events_id_seq')
+                       and privilege.grantee = 0
+                    union all
+                    select 1
+                      from pg_catalog.pg_attribute attribute
+                      cross join lateral pg_catalog.aclexplode(attribute.attacl) privilege
+                     where attribute.attrelid = 'public.activity_events'::pg_catalog.regclass
+                       and attribute.attnum > 0
+                       and not attribute.attisdropped
+                       and privilege.grantee = 0
+                  ) as empty
+                `);
+                if (!publicActivityAcl.rows[0]?.empty) {
+                  throw new Error("PUBLIC must not retain activity_events table, column, or sequence privileges.");
                 }
 
                 const contract = await pool.query(`
@@ -3289,6 +3330,20 @@ jobs:
                          to_regclass(format('public.%I', requested.name)) is not null as present,
                          case
                            when to_regclass(format('public.%I', requested.name)) is null then false
+                           when requested.name = any($2::text[]) then
+                             has_table_privilege(current_user, format('public.%I', requested.name), 'SELECT')
+                               and has_table_privilege(current_user, format('public.%I', requested.name), 'INSERT')
+                               and not has_table_privilege(current_user, format('public.%I', requested.name), 'SELECT WITH GRANT OPTION')
+                               and not has_table_privilege(current_user, format('public.%I', requested.name), 'INSERT WITH GRANT OPTION')
+                               and not has_any_column_privilege(current_user, format('public.%I', requested.name), 'SELECT WITH GRANT OPTION')
+                               and not has_any_column_privilege(current_user, format('public.%I', requested.name), 'INSERT WITH GRANT OPTION')
+                               and not has_table_privilege(current_user, format('public.%I', requested.name), 'UPDATE')
+                               and not has_any_column_privilege(current_user, format('public.%I', requested.name), 'UPDATE')
+                               and not has_table_privilege(current_user, format('public.%I', requested.name), 'DELETE')
+                               and not has_table_privilege(current_user, format('public.%I', requested.name), 'TRUNCATE')
+                               and not has_table_privilege(current_user, format('public.%I', requested.name), 'REFERENCES')
+                               and not has_any_column_privilege(current_user, format('public.%I', requested.name), 'REFERENCES')
+                               and not has_table_privilege(current_user, format('public.%I', requested.name), 'TRIGGER')
                            else has_table_privilege(current_user, format('public.%I', requested.name), 'SELECT')
                             and has_table_privilege(current_user, format('public.%I', requested.name), 'INSERT')
                             and has_table_privilege(current_user, format('public.%I', requested.name), 'UPDATE')
@@ -3297,10 +3352,10 @@ jobs:
                          end as runtime_ready
                     from unnest($1::text[]) as requested(name)
                    order by requested.name
-                `, [requiredTables]);
+                `, [requiredTables, appendOnlyTables]);
                 const invalid = contract.rows.filter((row) => !row.present || !row.runtime_ready);
                 if (invalid.length) {
-                  throw new Error(`Required schema tables are missing or have incomplete runtime grants: ${invalid.map((row) => row.name).join(", ")}`);
+                  throw new Error(`Required schema tables are missing or have unsafe or incomplete runtime grants: ${invalid.map((row) => row.name).join(", ")}`);
                 }
 
                 const testAccessContract = await pool.query(`
@@ -3544,6 +3599,9 @@ jobs:
                   select
                     has_sequence_privilege(current_user, 'public.activity_events_id_seq', 'USAGE')
                       and has_sequence_privilege(current_user, 'public.activity_events_id_seq', 'SELECT')
+                      and not has_sequence_privilege(current_user, 'public.activity_events_id_seq', 'UPDATE')
+                      and not has_sequence_privilege(current_user, 'public.activity_events_id_seq', 'USAGE WITH GRANT OPTION')
+                      and not has_sequence_privilege(current_user, 'public.activity_events_id_seq', 'SELECT WITH GRANT OPTION')
                       and has_sequence_privilege(current_user, 'public.changes_id_seq', 'USAGE')
                       and has_sequence_privilege(current_user, 'public.changes_id_seq', 'SELECT')
                       and has_sequence_privilege(current_user, 'public.hospitation_observation_changes_id_seq', 'USAGE')
