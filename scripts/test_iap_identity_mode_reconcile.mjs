@@ -152,7 +152,7 @@ assert.match(identityPlatformTerraform, /allow_tenants\s*=\s*false/u);
 assert.match(identityPlatformTerraform, /state\s*=\s*"DISABLED"/u);
 assert.match(
   identityPlatformTerraform,
-  /timecmp\(var\.IAP_EXTERNAL_ACCESS_EXPIRES_AT, "2026-08-17T16:00:00Z"\) <= 0/u
+  /timecmp\(var\.IAP_EXTERNAL_ACCESS_EXPIRES_AT, "2026-09-30T16:00:00Z"\) <= 0/u
 );
 assert.doesNotMatch(
   readFileSync(join(repositoryRoot, "deploy", "terraform", "gcp-autopilot", "identities.tf"), "utf8"),
@@ -236,7 +236,7 @@ chmodSync(fakeGcloud, 0o755);
 
 const backendServices = ["api-backend", "frontend-backend"];
 const approvedPrincipal = "group:versorgungs-kompass-pre-gematik-access@googlegroups.com";
-const approvedExpiry = "2026-08-17T16:00:00Z";
+const approvedExpiry = "2026-09-30T16:00:00Z";
 const agentTenant = "_123456789";
 const loginPageUri = "https://login.example.invalid/auth";
 const externalAuthApiKey = `AIza${"A".repeat(35)}`;

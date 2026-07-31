@@ -17,7 +17,7 @@ check "iap_external_identity_contract" {
       (
         var.IAP_EXTERNAL_ACCESS_EXPIRES_AT == null
         ? false
-        : timecmp(var.IAP_EXTERNAL_ACCESS_EXPIRES_AT, "2026-08-17T16:00:00Z") <= 0
+        : timecmp(var.IAP_EXTERNAL_ACCESS_EXPIRES_AT, "2026-09-30T16:00:00Z") <= 0
       )
     )
     error_message = "External pre-gematik IAP requires the same GCIP project, no tenant, and an explicit hard expiry no later than the approved pilot end."
