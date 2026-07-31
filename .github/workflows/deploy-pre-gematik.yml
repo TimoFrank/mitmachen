@@ -3922,6 +3922,24 @@ jobs:
             fi
           done
 
+          bare_auth_headers="${RUNNER_TEMP}/external-auth-helper-bare.headers"
+          bare_auth_body="${RUNNER_TEMP}/external-auth-helper-bare.html"
+          bare_auth_status="$(curl --path-as-is --silent --show-error \
+            --dump-header "$bare_auth_headers" \
+            --output "$bare_auth_body" \
+            --write-out '%{http_code}' \
+            --max-time 30 \
+            "${auth_helper_origin}/__/auth")"
+          if [[ "$bare_auth_status" != "404" ]] || \
+             grep --fixed-strings --quiet 'data-public-entry=' "$bare_auth_body" || \
+             grep --fixed-strings --quiet 'data-identity-portal=' "$bare_auth_body" || \
+             grep --fixed-strings --quiet 'fireauth.' "$bare_auth_body" || \
+             grep --ignore-case --extended-regexp --quiet \
+               '^(location|set-cookie|x-goog-iap[^:]*):' "$bare_auth_headers"; then
+            echo "The bare Firebase Auth namespace must fail closed with a content-free HTTP 404." >&2
+            exit 1
+          fi
+
           post_headers="${RUNNER_TEMP}/public-entry-post.headers"
           post_status="$(curl --path-as-is --silent --show-error \
             --request POST \
@@ -3976,7 +3994,6 @@ jobs:
             "/public/auth/assets/unknown.js"
             "/public/auth/assets/app.js/"
             "/public/auth/brand/unknown.svg"
-            "/__/auth"
             "/__/authx/handler"
             "/__/firebase/init.json"
           )

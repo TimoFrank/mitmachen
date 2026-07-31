@@ -1287,6 +1287,12 @@ for (const protectedPath of [
 const protectedPathsBlock = externalBoundaryScript.match(
   /protected_paths=\([\s\S]*?\n\s*\)/
 )?.[0];
+const authHelperBoundaryBlock = externalBoundaryScript.match(
+  /auth_helper_headers=[\s\S]*?\n\s*bare_auth_headers=/
+)?.[0];
+const bareAuthBoundaryBlock = externalBoundaryScript.match(
+  /bare_auth_headers=[\s\S]*?The bare Firebase Auth namespace must fail closed[\s\S]*?\n\s*fi/
+)?.[0];
 const normalizedAliasesBlock = externalBoundaryScript.match(
   /normalized_aliases=\([\s\S]*?\n\s*\)/
 )?.[0];
@@ -1300,10 +1306,52 @@ const matrixBoundaryBlock = externalBoundaryScript.match(
   /matrix_aliases=\([\s\S]*?\n\s*done/
 )?.[0];
 assert.ok(protectedPathsBlock, "Die Protected-Path-Matrix fehlt.");
+assert.ok(authHelperBoundaryBlock, "Der Auth-Handler-Vertrag fehlt.");
+assert.ok(bareAuthBoundaryBlock, "Der exakte Bare-Auth-404-Vertrag fehlt.");
 assert.ok(normalizedAliasesBlock, "Die sichere Near-Miss-Matrix fehlt.");
 assert.ok(normalizedBoundaryBlock, "Der sichere Near-Miss-Vertrag fehlt.");
 assert.ok(matrixAliasesBlock, "Die Matrix-Parameter-Matrix fehlt.");
 assert.ok(matrixBoundaryBlock, "Der Matrix-Parameter-Vertrag fehlt.");
+for (const authHelperContract of [
+  '"${auth_helper_origin}/__/auth/handler?boundary_probe=${GITHUB_RUN_ID}"',
+  'auth_helper_status" != "200"',
+  "fireauth.oauthhelper.widget.initialize",
+  'auth_helper_head_status" == "200"',
+  'auth_helper_post_status" == "200"'
+]) {
+  assert.ok(
+    authHelperBoundaryBlock.includes(authHelperContract),
+    `Der Auth-Handler-200-Vertrag ist unvollstaendig: ${authHelperContract}`
+  );
+}
+assert.doesNotMatch(
+  protectedPathsBlock,
+  /"\/__\/auth"/,
+  "Der exakte Bare-Auth-Pfad darf nicht als IAP-geschuetzter Pfad geprueft werden."
+);
+assert.match(
+  protectedPathsBlock,
+  /"\/__\/authx\/handler"/,
+  "Ein Auth-Namespace-Near-Miss muss weiterhin IAP-geschuetzt bleiben."
+);
+for (const bareAuthContract of [
+  '"${auth_helper_origin}/__/auth"',
+  'bare_auth_status" != "404"',
+  "data-public-entry=",
+  "data-identity-portal=",
+  "fireauth.",
+  "location|set-cookie|x-goog-iap"
+]) {
+  assert.ok(
+    bareAuthBoundaryBlock.includes(bareAuthContract),
+    `Der Bare-Auth-404-Vertrag ist unvollstaendig: ${bareAuthContract}`
+  );
+}
+assert.doesNotMatch(
+  bareAuthBoundaryBlock,
+  /\$\{auth_helper_origin\}\/__\/auth\//,
+  "Der Bare-Auth-Probe darf nicht versehentlich den Handler oder einen breiteren Prefix pruefen."
+);
 assert.doesNotMatch(
   protectedPathsBlock,
   /"\/anmelden;probe"/,
