@@ -699,11 +699,27 @@ Widerruf sind dort bewusst nicht exponiert.
 
 Der bestätigte `current_state_fingerprint` umfasst Issuer, aktuelles Subject,
 Profil-ID, Binding-Aktivität, `access_scope`, `scope_ref`, Profilrolle und
-Profilaktivität. Apply liest und sperrt denselben Zustand erneut und bricht bei
-jeder Abweichung ab. Der Fingerprint ist deshalb keine zweite Bezeichnung für
-den Eingabe- oder Soll-Fingerprint, sondern die ausdrückliche
-Time-of-check-/Time-of-use-Bestätigung des unmittelbar freigegebenen
-Datenbankzustands.
+Profilaktivität. Apply liest denselben Zustand in einer neuen
+`SERIALIZABLE`-Transaktion erneut und bricht bei jeder Abweichung vom
+bestätigten Fingerprint ab. Der transaktionale Advisory Lock serialisiert alle
+Läufe dieses Identity-Operators; vor dem Commit wird der vollständige
+verknüpfte Abschlusszustand erneut gelesen und gegen den Soll-Fingerprint
+geprüft.
+
+Der Profil-Read verwendet bewusst keine Zeilensperre wie `FOR SHARE`.
+PostgreSQL 16 verlangt dafür ein Schreibrecht auf `profiles`; genau dieses
+Recht darf `vk_identity_admin` nicht besitzen. Der Verzicht erweitert weder
+Rollenrechte noch zulässige Schreibpfade: Die Rolle bleibt auf `profiles`
+`SELECT`-only, darf im v2-Vertrag nur `identity_bindings.subject` ändern und
+wird vor jedem Lauf erneut exakt geprüft. Die serialisierbare Transaktion
+liefert einen konsistenten Snapshot und eine eindeutige logische Reihenfolge;
+eine Profiländerung nach diesem geprüften Zustand wäre auch unmittelbar nach
+dem Commit möglich und wird durch eine kurzlebige Zeilensperre nicht dauerhaft
+verhindert.
+
+Der Fingerprint ist deshalb keine zweite Bezeichnung für den Eingabe- oder
+Soll-Fingerprint, sondern die ausdrückliche Time-of-check-/Time-of-use-
+Bestätigung des unmittelbar freigegebenen Datenbankzustands.
 
 Die Zähler werden bei jedem Lauf aus dem geschützten Voll-Soll-Roster bestätigt
 und nicht im Repository festgeschrieben. Jede Änderung des vollständigen

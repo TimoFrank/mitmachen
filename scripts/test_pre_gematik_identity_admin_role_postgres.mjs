@@ -6,6 +6,13 @@ import { readFileSync } from "node:fs";
 import process from "node:process";
 import pg from "pg";
 
+import {
+  EXPECTED_IAP_ISSUER,
+  bindingDocumentFingerprint,
+  executeIdentityBindingTransaction,
+  validateBindingDocument
+} from "./provision_iap_identity_bindings.mjs";
+
 const { Client } = pg;
 const root = new URL("../", import.meta.url);
 const identityRoleSql = readFileSync(
@@ -43,6 +50,8 @@ const containerName = `vk-identity-role-pg-${process.pid}`;
 const databasePassword = `vk-identity-role-contract-${process.pid}`;
 const schemaOwner = `vk_identity_schema_owner_${process.pid}`;
 const schemaOwnerPassword = `vk-identity-schema-owner-${process.pid}`;
+const operatorLogin = `vk_identity_operator_${process.pid}`;
+const operatorPassword = `vk-identity-operator-${process.pid}`;
 let adminClient;
 
 try {
@@ -94,6 +103,7 @@ try {
   await adminClient.query(`
     create role ${schemaOwner} login createrole password '${schemaOwnerPassword}';
     create role vk_allowlist_executor nologin noinherit;
+    create role cloudsqlsuperuser nologin noinherit;
     alter database postgres owner to ${schemaOwner};
   `);
   const ownerAttributes = await adminClient.query(
@@ -179,6 +189,40 @@ try {
         select 1
       $function$;
       revoke all on function public.identity_owner_only_helper() from public;
+      insert into public.profiles (
+        id,
+        email,
+        display_name,
+        initials,
+        role,
+        active,
+        team,
+        bio
+      ) values (
+        'profile-preview',
+        'preview@example.invalid',
+        'Preview',
+        'PV',
+        'editor',
+        true,
+        'Test',
+        null
+      );
+      insert into public.identity_bindings (
+        issuer,
+        subject,
+        profile_id,
+        active,
+        access_scope,
+        scope_ref
+      ) values (
+        '${EXPECTED_IAP_ISSUER}',
+        'securetoken.google.com/example-project:preview-subject',
+        'profile-preview',
+        true,
+        'test_only',
+        'pre-gematik-external-test'
+      );
     `);
   } finally {
     await schemaOwnerClient.end();
@@ -374,8 +418,99 @@ try {
   const finalImport = runRoleImport();
   assert.equal(finalImport.status, 0, combinedOutput(finalImport));
 
+  await adminClient.query(`
+    create role ${operatorLogin}
+      login inherit nosuperuser nocreatedb nocreaterole noreplication nobypassrls
+      password '${operatorPassword}';
+    grant vk_identity_admin to ${operatorLogin}
+      with admin false, inherit true, set true;
+  `);
+  const operatorMembership = await adminClient.query(
+    `select
+       membership.admin_option,
+       membership.inherit_option,
+       membership.set_option
+       from pg_catalog.pg_auth_members membership
+       join pg_catalog.pg_roles granted_role on granted_role.oid = membership.roleid
+       join pg_catalog.pg_roles member_role on member_role.oid = membership.member
+      where granted_role.rolname = 'vk_identity_admin'
+        and member_role.rolname = $1`,
+    [operatorLogin]
+  );
+  assert.deepEqual(operatorMembership.rows, [{
+    admin_option: false,
+    inherit_option: true,
+    set_option: true
+  }]);
+
+  const operatorClient = new Client({
+    host: "127.0.0.1",
+    port: Number(port),
+    database: "postgres",
+    user: operatorLogin,
+    password: operatorPassword
+  });
+  await operatorClient.connect();
+  try {
+    const previewDocument = validateBindingDocument({
+      version: 1,
+      bindings: [{
+        issuer: EXPECTED_IAP_ISSUER,
+        subject: "securetoken.google.com/example-project:preview-subject",
+        profile_id: "profile-preview",
+        active: true
+      }]
+    });
+    const previewLogs = [];
+    const previewPlan = await executeIdentityBindingTransaction({
+      client: operatorClient,
+      document: previewDocument,
+      fingerprint: bindingDocumentFingerprint(previewDocument),
+      apply: false,
+      allowSubjectRemaps: true,
+      expectedDatabase: "",
+      log: (line) => previewLogs.push(line)
+    });
+    assert.equal(previewPlan.requestedCount, 1);
+    assert.equal(previewPlan.unchanged.length, 1);
+    assert.equal(previewPlan.inserts.length, 0);
+    assert.equal(previewPlan.updates.length, 0);
+    assert.equal(previewPlan.remaps.length, 0);
+    assert.equal(previewLogs.length, 1);
+    assert.match(previewLogs[0], /mode=PREVIEW/u);
+    assert.match(previewLogs[0], /unchanged_count=1/u);
+
+    await assert.rejects(
+      operatorClient.query(
+        `select id
+           from public.profiles
+          where id = $1
+          for share`,
+        ["profile-preview"]
+      ),
+      (error) => error?.code === "42501",
+      "PostgreSQL 16 muss die schreibberechtigungspflichtige Profil-Zeilensperre verweigern."
+    );
+    await assert.rejects(
+      operatorClient.query(
+        "update public.profiles set active = false where id = $1",
+        ["profile-preview"]
+      ),
+      (error) => error?.code === "42501",
+      "Der exakte Rollenvertrag muss Profilmutationen weiterhin verweigern."
+    );
+  } finally {
+    await operatorClient.end();
+  }
+
+  const profileReadback = await adminClient.query(
+    "select active from public.profiles where id = $1",
+    ["profile-preview"]
+  );
+  assert.deepEqual(profileReadback.rows, [{ active: true }]);
+
   console.log(
-    "PostgreSQL identity admin role ownership and effective function ACL contracts passed."
+    "PostgreSQL identity admin role, SELECT-only preview, and function ACL contracts passed."
   );
 } finally {
   if (adminClient) await adminClient.end().catch(() => {});

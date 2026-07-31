@@ -955,11 +955,16 @@ export async function executeIdentityBindingTransaction({
     const privilegeMode = validateIdentityAdministrationPrivileges(privilegeResult.rows[0]);
 
     const profileIds = [...new Set(document.bindings.map((binding) => binding.profile_id))];
+    // Intentionally use a plain read: PostgreSQL 16 requires a write privilege
+    // for row-locking SELECT clauses, while vk_identity_admin must remain
+    // SELECT-only on profiles. SERIALIZABLE keeps one transaction snapshot, the
+    // advisory lock serializes identity-operator runs, and Apply verifies the
+    // complete joined final-state fingerprint before commit. Removing this
+    // unnecessary row lock neither grants a privilege nor adds a write path.
     const profileResult = await client.query(
       `select id, active, role
          from public.profiles
-        where id = any($1::text[])
-        for share`,
+        where id = any($1::text[])`,
       [profileIds]
     );
     const existingResult = await client.query(
