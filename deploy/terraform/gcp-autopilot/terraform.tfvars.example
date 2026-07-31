@@ -45,7 +45,9 @@ IAP_RESOURCE_ACCESS_PRINCIPAL = "group:pre-gematik-access@example.invalid"
 
 # IAM remains the default and rollback mode. For the temporary project-level
 # Identity Platform cutover set external, pin the same project ID, keep the
-# tenant null, and provide the separately approved hard expiry.
+# tenant null, and provide the separately approved hard expiry. Authorized
+# domains remain code-pinned exactly to versorgungs-kompass.de, the current
+# project Firebase auth domain, and iap.googleapis.com.
 IAP_IDENTITY_MODE               = "iam"
 IAP_GCIP_PROJECT_ID             = null
 IAP_GCIP_TENANT_ID              = null

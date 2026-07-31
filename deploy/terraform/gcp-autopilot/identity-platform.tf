@@ -2,6 +2,7 @@ locals {
   identity_platform_authorized_domains = sort([
     var.IDENTITY_PLATFORM_AUTHORIZED_HOSTNAME,
     "${var.GCP_PROJECT_ID}.firebaseapp.com",
+    "iap.googleapis.com",
   ])
 }
 

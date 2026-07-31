@@ -305,13 +305,13 @@ variable "IAP_EXTERNAL_ACCESS_EXPIRES_AT" {
 }
 
 variable "IDENTITY_PLATFORM_AUTHORIZED_DOMAINS" {
-  description = "Deprecated compatibility input. The temporary pilot pins authorized domains exactly to IDENTITY_PLATFORM_AUTHORIZED_HOSTNAME and the project Firebase auth domain, so this set must stay empty."
+  description = "Deprecated compatibility input. The temporary pilot pins authorized domains exactly to IDENTITY_PLATFORM_AUTHORIZED_HOSTNAME, the project Firebase auth domain, and iap.googleapis.com, so this set must stay empty."
   type        = set(string)
   default     = []
 
   validation {
     condition     = length(var.IDENTITY_PLATFORM_AUTHORIZED_DOMAINS) == 0
-    error_message = "IDENTITY_PLATFORM_AUTHORIZED_DOMAINS must remain empty; the pilot authorizes exactly IDENTITY_PLATFORM_AUTHORIZED_HOSTNAME and the project Firebase auth domain."
+    error_message = "IDENTITY_PLATFORM_AUTHORIZED_DOMAINS must remain empty; the pilot authorizes exactly IDENTITY_PLATFORM_AUTHORIZED_HOSTNAME, the project Firebase auth domain, and iap.googleapis.com."
   }
 }
 
