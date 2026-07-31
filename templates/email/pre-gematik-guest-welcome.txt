@@ -12,7 +12,7 @@ Richte jetzt dein persönliches Passwort ein:
 Nach dem Einrichten erreichst du den Versorgungs-Kompass über:
 https://versorgungs-kompass.de/start
 
-Wähle dort „Mit E-Mail und Passwort anmelden“.
+Gib dort deine E-Mail-Adresse und dein Passwort ein und wähle „Sicher anmelden“.
 
 Der Testzugang endet spätestens am {{PILOT_END}}. Wenn du diese Einladung nicht erwartet hast, kannst du sie ignorieren.
 
