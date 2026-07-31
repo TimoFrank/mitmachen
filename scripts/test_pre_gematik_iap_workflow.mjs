@@ -110,6 +110,9 @@ const identityPlatformPreflightScript = stepScript(
 const ingressSafetyPreflightScript = stepScript(
   "Refuse unsafe live Ingress state before any deployment mutation"
 );
+const deploymentImageOwnershipPreflightScript = stepScript(
+  "Refuse unsafe live Deployment image ownership before any deployment mutation"
+);
 const liveHospitationContractScript = stepScript(
   "Require live Hospitations-Kompass database contract before rollout"
 );
@@ -127,6 +130,10 @@ assertBashSyntax(immutableTagScript, "Unveraenderliche-Tag-Pruefung");
 assertBashSyntax(projectNumberVerificationScript, "Projektnummer-Verifikation");
 assertBashSyntax(identityPlatformPreflightScript, "Identity-Platform-Preflight");
 assertBashSyntax(ingressSafetyPreflightScript, "Ingress-Sicherheits-Preflight");
+assertBashSyntax(
+  deploymentImageOwnershipPreflightScript,
+  "Deployment-Image-Ownership-Preflight"
+);
 assertBashSyntax(liveHospitationContractScript, "Live-Hospitations-Kompass-Datenbankvertrag");
 assertBashSyntax(iapScript, "IAP-Deployment");
 assertBashSyntax(rolloutVerificationScript, "Rollout-Verifikation");
@@ -699,6 +706,9 @@ const connectStepPosition = workflow.indexOf(
 const ingressGuardStepPosition = workflow.indexOf(
   "      - name: Refuse unsafe live Ingress state before any deployment mutation\n"
 );
+const deploymentImageGuardStepPosition = workflow.indexOf(
+  "      - name: Refuse unsafe live Deployment image ownership before any deployment mutation\n"
+);
 const liveHospitationContractStepPosition = workflow.indexOf(
   "      - name: Require live Hospitations-Kompass database contract before rollout\n"
 );
@@ -710,8 +720,17 @@ const nextStepAfterIngressGuard = workflow.indexOf(
   "\n      - name: ",
   ingressGuardStepPosition + 1
 ) + 1;
+const nextStepAfterDeploymentImageGuard = workflow.indexOf(
+  "\n      - name: ",
+  deploymentImageGuardStepPosition + 1
+) + 1;
 assert.notEqual(connectStepPosition, -1, "Der GKE-Verbindungsschritt fehlt.");
 assert.notEqual(ingressGuardStepPosition, -1, "Der globale Ingress-Sicherheits-Preflight fehlt.");
+assert.notEqual(
+  deploymentImageGuardStepPosition,
+  -1,
+  "Der globale Deployment-Image-Ownership-Preflight fehlt."
+);
 assert.notEqual(
   liveHospitationContractStepPosition,
   -1,
@@ -724,8 +743,13 @@ assert.equal(
 );
 assert.equal(
   nextStepAfterIngressGuard,
+  deploymentImageGuardStepPosition,
+  "Der Deployment-Image-Ownership-Preflight muss unmittelbar nach dem globalen Ingress-Guard laufen."
+);
+assert.equal(
+  nextStepAfterDeploymentImageGuard,
   liveHospitationContractStepPosition,
-  "Der Live-Datenbankvertrag muss unmittelbar nach dem globalen Ingress-Guard und vor jeder Rollout-Mutation laufen."
+  "Der Live-Datenbankvertrag muss unmittelbar nach den globalen Ownership-Guards und vor jeder Rollout-Mutation laufen."
 );
 assert.match(liveHospitationContractScript, /deployment\/\$\{deployment_name\}/);
 assert.match(liveHospitationContractScript, /--container api/);
@@ -840,6 +864,21 @@ assert.match(
   "Der Ingress-Preflight muss die Server-Side-Apply-Ownership vor jeder Mutation lesen."
 );
 assert.match(
+  deploymentImageOwnershipPreflightScript,
+  /live_deployment_state="\$\(kubectl[\s\S]*--show-managed-fields[\s\S]*--output=json\)"/,
+  "Der Deployment-Preflight muss die Server-Side-Apply-Ownership vor jeder Mutation lesen."
+);
+assert.match(
+  deploymentImageOwnershipPreflightScript,
+  /"\$\{HELM_RELEASE\}-api:api"/,
+  "Das bei jedem Rollout wechselnde API-Image muss vom Ownership-Preflight erfasst werden."
+);
+assert.match(
+  deploymentImageOwnershipPreflightScript,
+  /"\$\{HELM_RELEASE\}-frontend-public:nginx"/,
+  "Das bei jedem Rollout wechselnde Public-Frontend-Image muss vom Ownership-Preflight erfasst werden."
+);
+assert.match(
   iapScript,
   /helm upgrade --install[\s\S]*--rollback-on-failure[\s\S]*--server-side=true/,
   "Helm muss den expliziten Server-Side-Apply-Vertrag mit kontrolliertem Rollback verwenden."
@@ -943,10 +982,133 @@ for (const unsafeIngress of [
   );
 }
 
+const deploymentImageOwnershipFilter = deploymentImageOwnershipPreflightScript.match(
+  /deployment_container_image_is_helm_apply_owned\(\) \{[\s\S]*?jq --exit-status --arg container_name "\$container_name" '\n([\s\S]*?)\n\s*' <<< "\$deployment_json"/u
+)?.[1];
+assert.ok(
+  deploymentImageOwnershipFilter,
+  "Der fail-closed Deployment-Image-Ownership-Filter fehlt oder kann nicht eindeutig gelesen werden."
+);
+function verifyDeploymentImageOwnership(document, containerName = "api") {
+  return spawnSync(
+    "jq",
+    [
+      "--exit-status",
+      "--arg",
+      "container_name",
+      containerName,
+      deploymentImageOwnershipFilter
+    ],
+    { input: JSON.stringify(document), encoding: "utf8" }
+  );
+}
+function imageOwner(manager, operation, apiVersion = "apps/v1") {
+  return {
+    manager,
+    operation,
+    apiVersion,
+    fieldsV1: {
+      "f:spec": {
+        "f:template": {
+          "f:spec": {
+            "f:containers": {
+              'k:{"name":"api"}': {
+                "f:image": {}
+              }
+            }
+          }
+        }
+      }
+    }
+  };
+}
+const helmApplyImageOwner = imageOwner("helm", "Apply");
+const helmUpdateImageOwner = imageOwner("helm", "Update");
+const foreignImageOwner = imageOwner("kubectl-patch", "Update");
+const unrelatedFieldOwner = {
+  manager: "kubectl-scale",
+  operation: "Update",
+  apiVersion: "apps/v1",
+  fieldsV1: {
+    "f:spec": {
+      "f:replicas": {}
+    }
+  }
+};
+const helmOwnedDeploymentImage = {
+  metadata: {
+    managedFields: [helmApplyImageOwner, unrelatedFieldOwner]
+  },
+  spec: {
+    template: {
+      spec: {
+        containers: [{
+          name: "api",
+          image: "example.invalid/api@sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        }]
+      }
+    }
+  }
+};
+assert.equal(
+  verifyDeploymentImageOwnership(helmOwnedDeploymentImage).status,
+  0,
+  "Exakt von helm/Apply verwaltete Ziel-Images muessen trotz fremder Ownership anderer Felder bestehen."
+);
+for (const unsafeDeployment of [
+  {
+    ...helmOwnedDeploymentImage,
+    metadata: { managedFields: [helmUpdateImageOwner] }
+  },
+  {
+    ...helmOwnedDeploymentImage,
+    metadata: { managedFields: [helmApplyImageOwner, helmUpdateImageOwner] }
+  },
+  {
+    ...helmOwnedDeploymentImage,
+    metadata: { managedFields: [foreignImageOwner] }
+  },
+  {
+    ...helmOwnedDeploymentImage,
+    metadata: { managedFields: [] }
+  },
+  {
+    ...helmOwnedDeploymentImage,
+    spec: { template: { spec: { containers: [] } } }
+  },
+  {
+    ...helmOwnedDeploymentImage,
+    spec: { template: { spec: { containers: [{ name: "api" }] } } }
+  },
+  {
+    ...helmOwnedDeploymentImage,
+    spec: {
+      template: {
+        spec: {
+          containers: [
+            { name: "api", image: "example.invalid/api:one" },
+            { name: "api", image: "example.invalid/api:two" }
+          ]
+        }
+      }
+    }
+  }
+]) {
+  assert.notEqual(
+    verifyDeploymentImageOwnership(unsafeDeployment).status,
+    0,
+    "Update-, duale, fremde oder fehlende Image-Ownership und fehlende, leere oder mehrdeutige Zielcontainer muessen fail-closed stoppen."
+  );
+}
+
 const deployJobPosition = workflow.indexOf("\n  deploy:\n");
 const ingressGuardCheckPosition = workflow.indexOf(
   'if ! ingress_rules_are_helm_owned_and_canary_free "$live_ingress_state"',
   ingressGuardStepPosition
+);
+const deploymentImageGuardCheckPosition = workflow.indexOf(
+  "if ! deployment_container_image_is_helm_apply_owned",
+  deploymentImageGuardStepPosition
 );
 for (const [label, marker] of [
   ["Namespace-Erstellung", 'kubectl create namespace "$K8S_NAMESPACE"'],
@@ -967,12 +1129,18 @@ for (const [label, marker] of [
     ingressGuardCheckPosition < mutationPosition,
     `${label} darf erst nach dem globalen Ingress-Ownership-/Canary-Guard erfolgen.`
   );
+  assert.ok(
+    deploymentImageGuardCheckPosition < mutationPosition,
+    `${label} darf erst nach dem globalen Deployment-Image-Ownership-Guard erfolgen.`
+  );
 }
 assert.ok(
   deployJobPosition < connectStepPosition &&
     connectStepPosition < ingressGuardStepPosition &&
-    ingressGuardStepPosition < ingressGuardCheckPosition,
-  "Der globale Ingress-Guard muss unmittelbar nach der Cluster-Konfiguration und vor produktiven Mutationen laufen."
+    ingressGuardStepPosition < ingressGuardCheckPosition &&
+    ingressGuardCheckPosition < deploymentImageGuardStepPosition &&
+    deploymentImageGuardStepPosition < deploymentImageGuardCheckPosition,
+  "Die globalen Ingress- und Deployment-Image-Guards muessen unmittelbar nach der Cluster-Konfiguration und vor produktiven Mutationen laufen."
 );
 
 assert.match(

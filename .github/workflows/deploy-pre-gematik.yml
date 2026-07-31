@@ -1014,6 +1014,70 @@ jobs:
             exit 1
           fi
 
+      - name: Refuse unsafe live Deployment image ownership before any deployment mutation
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          deployment_container_image_is_helm_apply_owned() {
+            local deployment_json="$1"
+            local container_name="$2"
+
+            jq --exit-status --arg container_name "$container_name" '
+              (
+                [
+                  .metadata.managedFields[]?
+                  | select(
+                      (
+                        .fieldsV1["f:spec"]["f:template"]["f:spec"]["f:containers"]
+                          [("k:" + ({name: $container_name} | tojson))]
+                          ["f:image"]?
+                        // null
+                      ) != null
+                    )
+                  | {
+                      manager,
+                      operation,
+                      apiVersion,
+                      subresource: (.subresource // "")
+                    }
+                ]
+              ) == [{
+                manager: "helm",
+                operation: "Apply",
+                apiVersion: "apps/v1",
+                subresource: ""
+              }]
+              and (
+                [
+                  .spec.template.spec.containers[]?
+                  | select(
+                      .name == $container_name
+                      and ((.image? // "") | type == "string" and length > 0)
+                    )
+                ]
+                | length
+              ) == 1
+            ' <<< "$deployment_json" >/dev/null
+          }
+
+          for deployment_target in \
+            "${HELM_RELEASE}-api:api" \
+            "${HELM_RELEASE}-frontend-public:nginx"; do
+            deployment_name="${deployment_target%%:*}"
+            container_name="${deployment_target##*:}"
+            live_deployment_state="$(kubectl --namespace "$K8S_NAMESPACE" \
+              get deployment "$deployment_name" \
+              --show-managed-fields \
+              --output=json)"
+
+            if ! deployment_container_image_is_helm_apply_owned \
+              "$live_deployment_state" "$container_name"; then
+              echo "The live ${deployment_name}/${container_name} image is not exclusively owned by helm/Apply; refusing every deployment mutation." >&2
+              exit 1
+            fi
+          done
+
       - name: Require live Hospitations-Kompass database contract before rollout
         shell: bash
         run: |
