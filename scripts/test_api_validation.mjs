@@ -4,6 +4,25 @@ import fs from "node:fs";
 import vm from "node:vm";
 
 const apiSource = fs.readFileSync(new URL("../api/server.mjs", import.meta.url), "utf8");
+const protectedBackendFixtureSource = fs.readFileSync(
+  new URL("../tests/helpers/protected-backend-fixture.js", import.meta.url),
+  "utf8"
+);
+
+function declaredStringArray(source, declaration) {
+  const declarationStart = source.indexOf(declaration);
+  assert.ok(declarationStart >= 0, `${declaration} muss im Quelltext vorhanden sein.`);
+  const arrayStart = source.indexOf("[", declarationStart);
+  const arrayEnd = source.indexOf("]", arrayStart);
+  assert.ok(arrayStart >= 0 && arrayEnd > arrayStart, `${declaration} muss ein statisches String-Array enthalten.`);
+  return [...source.slice(arrayStart, arrayEnd).matchAll(/"([^"]+)"/gu)].map((match) => match[1]);
+}
+
+assert.deepEqual(
+  declaredStringArray(protectedBackendFixtureSource, "const PROTECTED_HOSPITATION_INPUT_FIELDS").sort(),
+  declaredStringArray(apiSource, "const HOSPITATION_INPUT_FIELDS").sort(),
+  "Die Browser-Fixture muss exakt dieselben Hospitationsfelder wie die echte API akzeptieren."
+);
 const validationErrorStart = apiSource.indexOf("function validationError(");
 const validationErrorEnd = apiSource.indexOf("\n}\n", validationErrorStart) + 2;
 const consentRulesStart = apiSource.indexOf("const MITMACHEN_CONSENT_STATUSES");

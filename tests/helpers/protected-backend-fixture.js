@@ -495,27 +495,61 @@ function normalizeFixtureEntityName(value = "") {
   return String(value || "").trim().replace(/\s+/g, " ").toLocaleLowerCase("de");
 }
 
-function resolveProtectedHospitationEntities(fixture, payload = {}) {
-  const organizationReference = payload.organization && typeof payload.organization === "object"
-    ? payload.organization
-    : null;
-  const contactReference = payload.contact && typeof payload.contact === "object"
-    ? payload.contact
-    : null;
+const PROTECTED_HOSPITATION_INPUT_FIELDS = new Set([
+  "id", "contact", "organization", "slotId", "slot_id", "contactId", "contact_id",
+  "contactName", "contact_name", "organizationId", "organization_id", "organizationName",
+  "organization_name", "requesterProfileId", "requester_profile_id", "ownerId", "owner_id",
+  "owner", "status", "requestedWindows", "requested_windows", "scheduledOn", "scheduled_on",
+  "startsAt", "starts_at", "endsAt", "ends_at", "location", "city", "state", "federalState",
+  "federal_state", "sector", "goal", "topics", "requestNote", "request_note",
+  "documentationSummary", "documentation_summary", "documentationOutcome", "documentation_outcome",
+  "followUpNote", "follow_up_note", "followUpOwnerId", "follow_up_owner_id", "followUpDueAt",
+  "follow_up_due_at", "documentedAt", "documented_at", "documentedBy", "documented_by"
+]);
+
+function protectedHospitationReference(reference, label) {
+  if (reference === null || typeof reference === "undefined") return null;
+  if (!reference || typeof reference !== "object" || Array.isArray(reference)) {
+    throw Object.assign(new Error(`${label} ist ungültig.`), { status: 400 });
+  }
+  const unknownFields = Object.keys(reference).filter((field) => !["mode", "id", "name"].includes(field));
+  if (unknownFields.length) {
+    throw Object.assign(new Error(`${label} enthält nicht unterstützte Felder.`), { status: 400 });
+  }
+  const mode = String(reference.mode || "").trim();
+  if (mode === "existing") {
+    const id = String(reference.id || "").trim();
+    if (!id) throw Object.assign(new Error(`${label} benötigt eine ID.`), { status: 400 });
+    return { mode, id, name: "" };
+  }
+  if (mode === "create") {
+    const name = String(reference.name || "").trim().replace(/\s+/g, " ");
+    if (!name) throw Object.assign(new Error(`${label} benötigt einen Namen.`), { status: 400 });
+    return { mode, id: "", name };
+  }
+  throw Object.assign(new Error(`${label} benötigt einen gültigen Modus.`), { status: 400 });
+}
+
+function resolveProtectedHospitationEntities(fixture, payload = {}, current = {}) {
+  const organizationReference = protectedHospitationReference(payload.organization, "Organisation");
+  const contactReference = protectedHospitationReference(payload.contact, "Kontakt");
   let organization = null;
 
   if (organizationReference?.mode === "existing") {
     organization = fixture.organizations.find((item) => item.id === organizationReference.id) || null;
+    if (!organization) throw Object.assign(new Error("Organisation wurde nicht gefunden."), { status: 404 });
   } else if (organizationReference?.mode === "create") {
-    const name = String(organizationReference.name || "").trim().replace(/\s+/g, " ");
-    organization = fixture.organizations.find((item) =>
-      normalizeFixtureEntityName(item.name) === normalizeFixtureEntityName(name)
-    ) || null;
-    if (!organization && name) {
+    const matches = fixture.organizations.filter((item) =>
+      !["archived", "Archiviert"].includes(item.status)
+      && normalizeFixtureEntityName(item.name) === normalizeFixtureEntityName(organizationReference.name)
+    );
+    if (matches.length > 1) throw Object.assign(new Error("Mehrere Organisationen haben diesen Namen."), { status: 409 });
+    organization = matches[0] || null;
+    if (!organization) {
       organization = {
         id: idFor("demo-organization"),
-        name,
-        normalizedName: normalizeFixtureEntityName(name),
+        name: organizationReference.name,
+        normalizedName: normalizeFixtureEntityName(organizationReference.name),
         sector: payload.sector || "",
         source: "Hospitationstermin",
         status: "active",
@@ -526,21 +560,26 @@ function resolveProtectedHospitationEntities(fixture, payload = {}) {
     }
   }
 
-  let contact = null;
+  let contact = contactReference
+    ? null
+    : fixture.contacts.find((item) => item.id === (current.contactId || current.contact_id)) || null;
   if (contactReference?.mode === "existing") {
     contact = fixture.contacts.find((item) => item.id === contactReference.id) || null;
+    if (!contact) throw Object.assign(new Error("Kontakt wurde nicht gefunden."), { status: 404 });
   } else if (contactReference?.mode === "create") {
-    const name = String(contactReference.name || "").trim().replace(/\s+/g, " ");
-    contact = fixture.contacts.find((item) => {
-      if (normalizeFixtureEntityName(item.displayName || item.name) !== normalizeFixtureEntityName(name)) return false;
+    const matches = fixture.contacts.filter((item) => {
+      if (["archived", "Archiviert"].includes(item.status)) return false;
+      if (normalizeFixtureEntityName(item.displayName || item.name) !== normalizeFixtureEntityName(contactReference.name)) return false;
       if (!organization?.id) return true;
       return String(item.organizationId || item.organization_id || "") === String(organization.id);
-    }) || null;
-    if (!contact && name) {
+    });
+    if (matches.length > 1) throw Object.assign(new Error("Mehrere Kontakte haben diesen Namen."), { status: 409 });
+    contact = matches[0] || null;
+    if (!contact) {
       contact = {
         id: idFor("demo-contact"),
-        name,
-        displayName: name,
+        name: contactReference.name,
+        displayName: contactReference.name,
         organizationId: organization?.id || "",
         organization: organization?.name || "",
         category: payload.sector || organization?.sector || "",
@@ -556,15 +595,32 @@ function resolveProtectedHospitationEntities(fixture, payload = {}) {
     }
   }
 
+  const contactOrganizationId = String(contact?.organizationId || contact?.organization_id || "").trim();
+  if (organization?.id && contactOrganizationId && contactOrganizationId !== String(organization.id)) {
+    throw Object.assign(new Error("Der ausgewählte Kontakt gehört zu einer anderen Organisation."), { status: 400 });
+  }
+  const contactOrganizationName = normalizeFixtureEntityName(contact?.organization || "");
+  if (organization?.id && !contactOrganizationId && contactOrganizationName
+      && contactOrganizationName !== normalizeFixtureEntityName(organization.name)) {
+    throw Object.assign(new Error("Der ausgewählte Kontakt gehört zu einer anderen Organisation."), { status: 400 });
+  }
   if (!organization && contact) {
     organization = fixture.organizations.find((item) =>
-      item.id === (contact.organizationId || contact.organization_id)
+      item.id === contactOrganizationId
     ) || null;
   }
 
   const persisted = { ...payload };
   delete persisted.contact;
   delete persisted.organization;
+  delete persisted.contactId;
+  delete persisted.contact_id;
+  delete persisted.contactName;
+  delete persisted.contact_name;
+  delete persisted.organizationId;
+  delete persisted.organization_id;
+  delete persisted.organizationName;
+  delete persisted.organization_name;
   if (contactReference) {
     persisted.contactId = contact?.id || "";
     persisted.contactName = contact?.displayName || contact?.name || "";
@@ -987,20 +1043,52 @@ export async function installProtectedBackend(page, fixture) {
       await fulfillJson(route, created, 201);
       return;
     }
-    if (method === "POST" && path === "/api/hospitations" && (body.contact || body.organization)) {
-      const { persisted, contact, organization } = resolveProtectedHospitationEntities(fixture, body);
-      const created = {
-        ...persisted,
-        id: persisted.id || idFor("demo-hospitation"),
-        createdAt: persisted.createdAt || NOW,
-        updatedAt: NOW
-      };
-      fixture.hospitations.unshift(created);
-      await fulfillJson(route, {
-        ...created,
-        resolvedContact: body.contact ? contact : null,
-        resolvedOrganization: organization
-      }, 201);
+    const nestedHospitationMatch = path.match(/^\/api\/hospitations(?:\/([^/]+))?$/);
+    const hasNestedHospitationEntities = Object.prototype.hasOwnProperty.call(body, "contact")
+      || Object.prototype.hasOwnProperty.call(body, "organization");
+    if (nestedHospitationMatch && hasNestedHospitationEntities && ["POST", "PATCH"].includes(method)) {
+      const previousOrganizations = clone(fixture.organizations);
+      const previousContacts = clone(fixture.contacts);
+      const previousHospitations = clone(fixture.hospitations);
+      try {
+        const unknownFields = Object.keys(body).filter((field) => !PROTECTED_HOSPITATION_INPUT_FIELDS.has(field));
+        if (unknownFields.length) {
+          throw Object.assign(new Error(`Hospitation enthält nicht unterstützte Felder: ${unknownFields.join(", ")}.`), { status: 400 });
+        }
+        if (method === "POST" && (!Object.prototype.hasOwnProperty.call(body, "contact") || body.contact === null)) {
+          throw Object.assign(new Error("Der verschachtelte Hospitationsvertrag benötigt einen Kontakt."), { status: 400 });
+        }
+        if (method === "POST" && !String(body.scheduledOn || body.scheduled_on || "").trim()) {
+          throw Object.assign(new Error("Der verschachtelte Hospitationsvertrag benötigt einen Hospitationstag."), { status: 400 });
+        }
+        const id = nestedHospitationMatch[1] ? decodeURIComponent(nestedHospitationMatch[1]) : "";
+        const index = id ? fixture.hospitations.findIndex((item) => item.id === id) : -1;
+        const current = index >= 0 ? fixture.hospitations[index] : {};
+        if (method === "PATCH" && index < 0) {
+          throw Object.assign(new Error("Hospitation wurde nicht gefunden."), { status: 404 });
+        }
+        const { persisted, contact, organization } = resolveProtectedHospitationEntities(fixture, body, current);
+        const saved = method === "POST"
+          ? {
+            ...persisted,
+            id: persisted.id || idFor("demo-hospitation"),
+            createdAt: persisted.createdAt || NOW,
+            updatedAt: NOW
+          }
+          : { ...current, ...persisted, id, updatedAt: NOW };
+        if (method === "POST") fixture.hospitations.unshift(saved);
+        else fixture.hospitations[index] = saved;
+        await fulfillJson(route, {
+          ...saved,
+          resolvedContact: body.contact ? contact : null,
+          resolvedOrganization: organization
+        }, method === "POST" ? 201 : 200);
+      } catch (error) {
+        fixture.organizations = previousOrganizations;
+        fixture.contacts = previousContacts;
+        fixture.hospitations = previousHospitations;
+        await fulfillJson(route, { error: error?.message || "Hospitation konnte nicht gespeichert werden." }, error?.status || 400);
+      }
       return;
     }
     const attachmentContentMatch = path.match(/^\/api\/contact-note-attachments\/([^/]+)\/content$/);
