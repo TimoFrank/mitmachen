@@ -1,6 +1,25 @@
 import { expect, test } from "@playwright/test";
+import { resolve } from "node:path";
 import { gotoAuthenticated } from "./helpers/app-test-session.js";
 import { createProtectedBackendFixture } from "./helpers/protected-backend-fixture.js";
+
+async function installTargetLikeCleanUrlShell(page) {
+  await page.route("**/*", async (route) => {
+    const pathname = new URL(route.request().url()).pathname;
+    const sourcePath = pathname === "/onboarding"
+      ? "frontend/app/versorgungs-kompass.html"
+      : ["/versorgungs-kompass.css", "/versorgungs-kompass-no-script.css", "/versorgungs-kompass-routes.js", "/versorgungs-kompass.js"].includes(pathname)
+        ? `frontend/app${pathname}`
+        : pathname.startsWith("/data/") || pathname.startsWith("/map/") || pathname.startsWith("/vendor/")
+          ? `frontend${pathname}`
+          : "";
+    if (!sourcePath) {
+      await route.fallback();
+      return;
+    }
+    await route.fulfill({ path: resolve(process.cwd(), sourcePath) });
+  });
+}
 
 async function expectTourPanelInteractive(page) {
   await expect(page.locator("#product-tour-panel")).toBeVisible();
@@ -99,7 +118,13 @@ async function expectTourTargetDescribed(page, stepId) {
     .every((id) => Boolean(target.ownerDocument.getElementById(id))))).toBe(true);
 }
 
-function onboardingDataServiceScript({ createdAt = "2026-06-09T08:30:00.000Z", completed = false } = {}) {
+function onboardingDataServiceScript({
+  createdAt = "2026-06-09T08:30:00.000Z",
+  completed = false,
+  settingsDelayMs = 0,
+  criticalDataFails = false,
+  deferContacts = false
+} = {}) {
   return `
     (() => {
       let profile = {
@@ -117,12 +142,15 @@ function onboardingDataServiceScript({ createdAt = "2026-06-09T08:30:00.000Z", c
       };
       let settings = ${completed ? `{
         userId: profile.id,
-        defaultViewType: "contacts",
-        tableDensity: "comfortable",
-        theme: "system",
-        fontScale: 1,
-        pageSize: 20,
+        defaultViewId: "saved-view-keep",
+        defaultViewType: "organizations",
+        tableDensity: "compact",
+        theme: "dark",
+        fontScale: 1.15,
+        pageSize: 50,
         preferences: {
+          favoriteContactIds: ["contact-anna"],
+          customPreference: "keep-me",
           onboarding: {
             version: 1,
             profileCompletedAt: "2026-06-09T09:00:00.000Z",
@@ -147,6 +175,8 @@ function onboardingDataServiceScript({ createdAt = "2026-06-09T08:30:00.000Z", c
           updatedAt: "2026-06-09T09:00:00.000Z"
         }
       ];
+      window.__vkSettingsWrites = 0;
+      window.__vkSettingsResolved = ${JSON.stringify(settingsDelayMs === 0)};
       window.dataService = {
         isConfigured: () => true,
         getClient: () => ({ auth: { signOut: async () => ({}) } }),
@@ -171,7 +201,15 @@ function onboardingDataServiceScript({ createdAt = "2026-06-09T08:30:00.000Z", c
           profile = { ...profile, avatar_url: "" };
           return profile;
         },
-        loadContacts: async () => contacts,
+        loadContacts: async () => {
+          if (${JSON.stringify(criticalDataFails)}) throw new Error("critical data unavailable");
+          if (${JSON.stringify(deferContacts)}) {
+            return new Promise((resolve) => {
+              window.__resolveInitialContacts = () => resolve(contacts);
+            });
+          }
+          return contacts;
+        },
         getContacts: async () => contacts,
         getContact: async (id) => contacts.find((contact) => contact.id === id),
         loadOrganizations: async () => [],
@@ -182,10 +220,17 @@ function onboardingDataServiceScript({ createdAt = "2026-06-09T08:30:00.000Z", c
         loadExpertEntityLinks: async () => [],
         loadFormats: async () => [],
         getSavedViews: async () => [],
-        getUserSettings: async () => settings,
+        getUserSettings: async () => ${settingsDelayMs > 0
+          ? `new Promise((resolve) => window.setTimeout(() => {
+              window.__vkSettingsResolved = true;
+              resolve(settings);
+            }, ${settingsDelayMs}))`
+          : "(window.__vkSettingsResolved = true, settings)"},
         upsertUserSettings: async (next = {}) => {
+          window.__vkSettingsWrites += 1;
           settings = {
             userId: profile.id,
+            defaultViewId: next.defaultViewId || "",
             defaultViewType: next.defaultViewType || "contacts",
             tableDensity: next.tableDensity || "comfortable",
             theme: next.theme || "system",
@@ -269,12 +314,7 @@ function onboardingBackendFixtureScript({ completed = false } = {}) {
 }
 
 function delayedInitialDataServiceScript() {
-  return onboardingDataServiceScript({ completed: true }).replace(
-    "loadContacts: async () => contacts,",
-    `loadContacts: async () => new Promise((resolve) => {
-          window.__resolveInitialContacts = () => resolve(contacts);
-        }),`
-  );
+  return onboardingDataServiceScript({ completed: true, deferContacts: true });
 }
 
 function failingHospitationDataServiceScript() {
@@ -2397,7 +2437,126 @@ test("Onboarding: neuer geschützter Account richtet Profil ein und startet Tour
   await attachScreenshot(page, testInfo, "onboarding");
 });
 
-test("Onboarding: abgeschlossener neuer Account landet direkt in Zielansicht", async ({ page }) => {
+for (const settingsDelayMs of [0, 450]) {
+  test(`Onboarding: abgeschlossener Nutzer kann den Einstieg direkt öffnen (${settingsDelayMs ? "verzögerte" : "direkte"} Einstellungen)`, async ({ page }, testInfo) => {
+    test.skip(testInfo.project.name !== "chromium-desktop", "Der direkte Routingvertrag wird einmal im Desktop-Projekt geprüft.");
+
+    await installTargetLikeCleanUrlShell(page);
+    await gotoAuthenticated(page, "/onboarding", {
+      role: "viewer",
+      cleanUrls: true,
+      dataServiceScript: onboardingDataServiceScript({ completed: true, settingsDelayMs })
+    });
+
+    await expect(page.locator('[data-view-panel="onboarding"]')).toBeVisible();
+    await expect(page.locator('[data-onboarding-step-panel="welcome"]')).toBeVisible();
+    await expect(page.locator('[data-view-panel="contacts"]')).toBeHidden();
+    await expect(page.locator("#workspace-view-title")).toHaveText("Willkommen");
+    await expect(page).toHaveURL(/\/onboarding$/);
+
+    await page.waitForTimeout(settingsDelayMs + 300);
+    await expect(page.locator('[data-view-panel="onboarding"]')).toBeVisible();
+    await expect(page.locator('[data-onboarding-step-panel="welcome"]')).toBeVisible();
+    await expect(page).toHaveURL(/\/onboarding$/);
+
+    const onboardingState = await page.evaluate(async () => ({
+      writes: window.__vkSettingsWrites,
+      onboarding: (await window.dataService.getUserSettings())?.preferences?.onboarding || {}
+    }));
+    expect(onboardingState.writes).toBe(0);
+    expect(onboardingState.onboarding.tourSkippedAt).toBeTruthy();
+  });
+}
+
+test("Onboarding: früher Einstieg bewahrt verzögert geladene Einstellungen", async ({ page }, testInfo) => {
+  test.skip(testInfo.project.name !== "chromium-desktop", "Der Schreibkonflikt wird einmal im Desktop-Projekt geprüft.");
+
+  await installTargetLikeCleanUrlShell(page);
+  await gotoAuthenticated(page, "/onboarding", {
+    role: "viewer",
+    cleanUrls: true,
+    dataServiceScript: onboardingDataServiceScript({ completed: true, settingsDelayMs: 450 })
+  });
+
+  await expect(page.locator('[data-onboarding-step-panel="welcome"]')).toBeVisible();
+  expect(await page.evaluate(() => window.__vkSettingsResolved)).toBe(false);
+  await page.locator("#onboarding-welcome-next").click();
+  await expect(page.locator("#onboarding-profile-form")).toBeVisible();
+
+  const settingsState = await page.evaluate(async () => ({
+    writes: window.__vkSettingsWrites,
+    settings: await window.dataService.getUserSettings()
+  }));
+  expect(settingsState.writes).toBe(1);
+  expect(settingsState.settings.defaultViewId).toBe("saved-view-keep");
+  expect(settingsState.settings.defaultViewType).toBe("organizations");
+  expect(settingsState.settings.tableDensity).toBe("compact");
+  expect(settingsState.settings.theme).toBe("dark");
+  expect(settingsState.settings.fontScale).toBe(1.15);
+  expect(settingsState.settings.pageSize).toBe(50);
+  expect(settingsState.settings.preferences.favoriteContactIds).toEqual(["contact-anna"]);
+  expect(settingsState.settings.preferences.customPreference).toBe("keep-me");
+  expect(settingsState.settings.preferences.onboarding.currentStep).toBe("profile");
+});
+
+test("Mein Profil: spät geladener Onboarding-Status wird aktualisiert", async ({ page }, testInfo) => {
+  test.skip(testInfo.project.name !== "chromium-desktop", "Der verzögerte Statusvertrag wird einmal im Desktop-Projekt geprüft.");
+
+  await gotoAuthenticated(page, "/frontend/app/versorgungs-kompass.html#profile", {
+    role: "viewer",
+    dataServiceScript: onboardingDataServiceScript({
+      completed: true,
+      createdAt: "2026-05-01T08:30:00.000Z",
+      settingsDelayMs: 450
+    })
+  });
+
+  await expect(page.locator('[data-view-panel="profile"]')).toBeVisible();
+  await expect(page.locator("#profile-onboarding-status")).toContainText("Einrichtung abgeschlossen");
+  await expect(page.locator("#profile-onboarding-progress")).toHaveAttribute("aria-valuenow", "6");
+  await expect(page.locator("#profile-onboarding-start")).toHaveText("Onboarding ansehen");
+});
+
+test("Onboarding: freiwilliger Wiedereinstieg sperrt bei Ladefehler nicht die Navigation", async ({ page }, testInfo) => {
+  test.skip(testInfo.project.name !== "chromium-desktop", "Der freiwillige Fehlerpfad wird einmal im Desktop-Projekt geprüft.");
+
+  await installTargetLikeCleanUrlShell(page);
+  await gotoAuthenticated(page, "/onboarding", {
+    role: "viewer",
+    cleanUrls: true,
+    dataServiceScript: onboardingDataServiceScript({
+      completed: true,
+      settingsDelayMs: 450,
+      criticalDataFails: true
+    })
+  });
+
+  await expect(page.locator('[data-onboarding-step-panel="welcome"]')).toBeVisible();
+  await page.waitForTimeout(800);
+  await page.locator("#onboarding-welcome-next").click();
+  await expect(page.locator("#onboarding-profile-form")).toBeVisible();
+  await page.locator("#onboarding-profile-submit").click();
+  await expect(page.locator("#onboarding-identity-form")).toBeVisible();
+  await page.locator("#onboarding-identity-confirm").check();
+  await page.locator("#onboarding-identity-submit").click();
+  await expect(page.locator("#onboarding-team-form")).toBeVisible();
+  await page.locator("#onboarding-team").selectOption("Stabsstelle Versorgung");
+  await page.locator("#onboarding-team-submit").click();
+  await expect(page.locator("#onboarding-access-form")).toBeVisible();
+  await page.locator("#onboarding-access-confirm").check();
+  await page.locator("#onboarding-access-submit").click();
+  await expect(page.locator("#onboarding-summary-panel")).toBeVisible();
+  await page.locator("#onboarding-summary-submit").click();
+  await expect(page.locator("#onboarding-tour-panel")).toBeVisible();
+  await page.locator("#onboarding-tour-skip").click();
+  await expect(page.locator("#onboarding-tour-status")).toContainText("noch nicht geladen");
+
+  await page.locator("#sidebar-team-button").click();
+  await expect(page.locator('[data-view-panel="team"]')).toBeVisible();
+  await expect(page).toHaveURL(/\/teams$/);
+});
+
+test("Onboarding: abgeschlossener neuer Account landet direkt in Zielansicht", async ({ page }, testInfo) => {
   await gotoAuthenticated(page, "/frontend/app/versorgungs-kompass.html#contacts", {
     role: "viewer",
     backendFixtureScript: onboardingBackendFixtureScript({ completed: true })
@@ -2407,10 +2566,24 @@ test("Onboarding: abgeschlossener neuer Account landet direkt in Zielansicht", a
   await expect(page.locator('[data-view-panel="contacts"]')).toBeVisible();
   await openMobileSidebarIfNeeded(page);
   await page.locator("#sidebar-profile-button").click();
-  await expect(page.locator("#profile-onboarding-status")).toContainText("Du kannst sie über App-Tour in der Sidebar jederzeit erneut starten.");
-  const profileOnboardingStatusHtml = await page.locator("#profile-onboarding-status").evaluate((element) => element.innerHTML);
-  expect(profileOnboardingStatusHtml).toContain("<br>");
-  expect(profileOnboardingStatusHtml).toContain("Du kannst sie über App-Tour in der Sidebar jederzeit erneut starten.");
+  await expect(page.locator("#profile-guidance-title")).toHaveText("Dein Einstieg");
+  await expect(page.locator("#profile-onboarding-status")).toContainText("Einrichtung abgeschlossen");
+  await expect(page.locator("#profile-onboarding-progress")).toHaveAttribute("aria-valuenow", "6");
+  await expect(page.locator("#profile-onboarding-progress")).toHaveAttribute("aria-valuetext", "6 von 6 Schritten abgeschlossen");
+  await expect(page.locator("#profile-onboarding-start")).toHaveText("Onboarding ansehen");
+  await expect(page.locator("#profile-tour-status")).toContainText("Zuletzt übersprungen");
+  await expect(page.locator("#profile-tour-start")).toHaveText("Tour nachholen");
+  await expect(page.locator("#profile-tour-start")).toHaveClass(/action-button--primary/);
+  await expect(page.locator("#profile-onboarding-start")).not.toHaveClass(/action-button--primary/);
+  await expectNoHorizontalOverflow(page);
+  await attachScreenshot(page, testInfo, "profil-onboarding-und-tour");
+
+  await page.locator("#profile-onboarding-start").click();
+  await expect(page.locator('[data-view-panel="onboarding"]')).toBeVisible();
+  await expect(page.locator('[data-onboarding-step-panel="welcome"]')).toBeVisible();
+  await expect(page).toHaveURL(/#onboarding$/);
+  await expectNoHorizontalOverflow(page);
+  await attachScreenshot(page, testInfo, "onboarding-wiedereinstieg");
 });
 
 test("Organisationen: Demo-Daten rendern im CRM-Profilmodus", async ({ page }, testInfo) => {

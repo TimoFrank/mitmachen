@@ -2357,6 +2357,44 @@
                   </div>
                 </div>
               </section>
+              <section class="profile-section profile-guidance-section" aria-labelledby="profile-guidance-title">
+                <div class="profile-guidance-heading">
+                  <h3 id="profile-guidance-title">Dein Einstieg</h3>
+                  <p>Prüfe deine persönliche Einrichtung oder entdecke die wichtigsten Arbeitsbereiche in der App-Tour.</p>
+                </div>
+                <div class="profile-guidance-list">
+                  <article class="profile-guidance-item">
+                    <span class="profile-guidance-index" aria-hidden="true">1</span>
+                    <div class="profile-guidance-copy">
+                      <h4>Profil-Onboarding</h4>
+                      <div
+                        class="profile-guidance-progress"
+                        id="profile-onboarding-progress"
+                        role="progressbar"
+                        aria-label="Fortschritt Profil-Onboarding"
+                        aria-valuemin="0"
+                        aria-valuemax="6"
+                        aria-valuenow="0"
+                        aria-valuetext="0 von 6 Schritten abgeschlossen"
+                      ><span id="profile-onboarding-progress-value"></span></div>
+                      <div class="profile-onboarding-status" id="profile-onboarding-status" role="status" aria-live="polite" aria-atomic="true">Onboarding-Status wird geladen.</div>
+                    </div>
+                    <div class="profile-guidance-actions">
+                      <button class="action-button action-button--primary" type="button" id="profile-onboarding-start" aria-describedby="profile-onboarding-status">Onboarding fortsetzen</button>
+                    </div>
+                  </article>
+                  <article class="profile-guidance-item">
+                    <span class="profile-guidance-index" aria-hidden="true">2</span>
+                    <div class="profile-guidance-copy">
+                      <h4>App-Tour</h4>
+                      <div class="profile-onboarding-status" id="profile-tour-status" role="status" aria-live="polite" aria-atomic="true">Tour-Status wird geladen.</div>
+                    </div>
+                    <div class="profile-guidance-actions">
+                      <button class="action-button" type="button" id="profile-tour-start" aria-describedby="profile-tour-status">Tour starten</button>
+                    </div>
+                  </article>
+                </div>
+              </section>
               <section class="profile-section">
                 <h3>Basisdaten</h3>
                 <div class="profile-grid">
@@ -2391,18 +2429,6 @@
                   <summary id="profile-owner-summary">Du bist Owner von 0 Kontakten.</summary>
                   <div class="profile-owner-list" id="profile-owner-list"></div>
                 </details>
-              </section>
-              <section class="profile-section profile-onboarding-section" aria-labelledby="profile-onboarding-title">
-                <h3 id="profile-onboarding-title">Onboarding</h3>
-                <div class="profile-onboarding-card">
-                  <div class="profile-onboarding-copy">
-                    <strong>Produkttour durch den Versorgungs-Kompass</strong>
-                    <div class="profile-onboarding-status" id="profile-onboarding-status" aria-live="polite">Onboarding-Status wird geladen.</div>
-                  </div>
-                  <div class="profile-onboarding-actions">
-                    <button class="action-button action-button--primary" type="button" id="profile-tour-start">Tour starten</button>
-                  </div>
-                </div>
               </section>
               <section class="profile-section">
                 <h3>Rolle &amp; Berechtigungen</h3>

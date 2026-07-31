@@ -25,13 +25,14 @@ function authGuardStub() {
   `;
 }
 
-function configStub({ role }) {
+function configStub({ role, cleanUrls = false }) {
   return `window.VERSORGUNGS_COMPASS_CONFIG = {
     dataMode: "api",
     authMode: "trusted-header",
     apiBaseUrl: "",
     apiCredentials: "include",
     requireApiGateway: true,
+    cleanUrls: ${JSON.stringify(cleanUrls)},
     capabilities: {
       contactRole: true,
       contactConsent: true,
@@ -60,14 +61,15 @@ export async function installAppTestSession(
     backendFixtureScript = "",
     dataServiceScript = "",
     backendFixture = null,
-    localNotifications = []
+    localNotifications = [],
+    cleanUrls = false
   } = {}
 ) {
   await page.route("**/login/auth-guard.js", async (route) => {
     await fulfillScript(route, authGuardStub());
   });
   await page.route("**/data/runtime-config.js", async (route) => {
-    await fulfillScript(route, configStub({ role }));
+    await fulfillScript(route, configStub({ role, cleanUrls }));
   });
   const fixture = backendFixture || createProtectedBackendFixture({
     role,

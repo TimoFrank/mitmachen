@@ -212,6 +212,7 @@ function createInitializeHarness({
     },
     loadedContactsFromStorage: true,
     onboardingActive: false,
+    onboardingReviewActive: false,
     onboardingPreferences: () => context.userSettings?.preferences?.onboarding || {},
     onboardingResumeStep: (onboarding = {}) => onboarding.currentStep || "welcome",
     openOnboarding: async () => {

@@ -357,6 +357,16 @@
       const ONBOARDING_VERSION = 2;
       const ONBOARDING_ROLLOUT_AT = "2026-06-09T00:00:00.000+02:00";
       const ONBOARDING_STEPS = ["welcome", "profile", "identity", "team", "access", "summary", "tour"];
+      const ONBOARDING_SETUP_STEPS = ONBOARDING_STEPS.filter((step) => step !== "tour");
+      const ONBOARDING_STEP_LABELS = new Map([
+        ["welcome", "Willkommen"],
+        ["profile", "Profil"],
+        ["identity", "Profilbild"],
+        ["team", "Team"],
+        ["access", "Zugriff"],
+        ["summary", "Abschluss"],
+        ["tour", "App-Tour"]
+      ]);
       const TEAM_UNASSIGNED_LABEL = "Ohne Team";
       const teamDefinitions = [
         { name: "Stabsstelle Versorgung", icon: "stabsstelle", description: "Versorgung vernetzen und gemeinsame Vorhaben koordinieren" },
@@ -1403,6 +1413,10 @@
       const profileOwnerSummary = document.getElementById("profile-owner-summary");
       const profileOwnerList = document.getElementById("profile-owner-list");
       const profileOnboardingStatus = document.getElementById("profile-onboarding-status");
+      const profileOnboardingProgress = document.getElementById("profile-onboarding-progress");
+      const profileOnboardingProgressValue = document.getElementById("profile-onboarding-progress-value");
+      const profileOnboardingStart = document.getElementById("profile-onboarding-start");
+      const profileTourStatus = document.getElementById("profile-tour-status");
       const profileTourStart = document.getElementById("profile-tour-start");
       const onboardingPersistenceStatus = document.getElementById("onboarding-persistence-status");
       const onboardingWelcomeStatus = document.getElementById("onboarding-welcome-status");
@@ -1747,10 +1761,14 @@
       const contactHistoryRequests = new WeakMap();
       let savedViews = [];
       let userSettings = null;
+      let userSettingsHydrated = false;
+      let userSettingsInitialLoadPromise = null;
       let userSettingsWriteRevision = 0;
       let favoriteContactIds = new Set();
       const favoriteContactSavePending = new Set();
       let onboardingActive = false;
+      let onboardingReviewActive = false;
+      let onboardingSessionRequired = false;
       let onboardingStep = "welcome";
       let pendingPostOnboardingView = "home";
       let productTourState = { open: false, index: 0, source: "manual", target: null, steps: [], returnContext: null };
@@ -2002,12 +2020,12 @@
       }
 
       function canAccessView(view) {
-        if (view === "onboarding") return onboardingActive;
+        if (view === "onboarding") return onboardingActive || onboardingReviewActive;
         return !["settings", "about", "analytics", "quality"].includes(view) || canAdministerData();
       }
 
       function safeViewForRole(view) {
-        if (view === "onboarding") return onboardingActive ? "onboarding" : "contacts";
+        if (view === "onboarding") return onboardingActive || onboardingReviewActive ? "onboarding" : "contacts";
         if (["imports", "settings"].includes(view)) return canAdministerData() ? "profile" : "contacts";
         if (view === "analytics") return canAdministerData() ? "analytics" : "contacts";
         if (view === "quality") return canAdministerData() ? "quality" : "contacts";
@@ -10024,40 +10042,101 @@
         return Number(state.version || 1) < ONBOARDING_VERSION && Boolean(legacyOnboardingCompletedAt(state));
       }
 
+      function setProfileGuidanceStatus(node, message = "", variant = "") {
+        if (!node) return;
+        node.textContent = message;
+        node.classList.toggle("is-ready", variant === "ready");
+        node.classList.toggle("is-missing", variant === "missing");
+      }
+
+      function onboardingSetupProgress(state = onboardingPreferences()) {
+        if (onboardingIsComplete(state)) return ONBOARDING_SETUP_STEPS.length;
+        const step = normalizeOnboardingStep(state.currentStep || "welcome");
+        if (step === "tour") return ONBOARDING_SETUP_STEPS.length;
+        return Math.max(0, ONBOARDING_SETUP_STEPS.indexOf(step));
+      }
+
       function renderProfileOnboardingStatus() {
-        if (!profileOnboardingStatus) return;
         const profile = currentProfile || {};
         const state = onboardingPreferences();
         const missing = [];
         if (!String(profile.display_name || profile.displayName || "").trim()) missing.push("Anzeigename");
-        profileOnboardingStatus.classList.remove("is-ready", "is-missing");
+        const onboardingComplete = onboardingIsComplete(state);
+        const setupComplete = onboardingComplete && missing.length === 0;
+        const currentStep = normalizeOnboardingStep(state.currentStep || "welcome");
+        const currentStepLabel = ONBOARDING_STEP_LABELS.get(currentStep) || "Einrichtung";
+        const rawProgress = onboardingSetupProgress(state);
+        const completedSteps = missing.length ? Math.min(rawProgress, ONBOARDING_SETUP_STEPS.length - 1) : rawProgress;
+        const progressPercent = (completedSteps / ONBOARDING_SETUP_STEPS.length) * 100;
+
+        if (profileOnboardingProgress) {
+          profileOnboardingProgress.setAttribute("aria-valuenow", String(completedSteps));
+          profileOnboardingProgress.setAttribute(
+            "aria-valuetext",
+            `${completedSteps} von ${ONBOARDING_SETUP_STEPS.length} Schritten abgeschlossen`
+          );
+        }
+        if (profileOnboardingProgressValue) profileOnboardingProgressValue.style.width = `${progressPercent}%`;
+
         if (missing.length) {
-          profileOnboardingStatus.textContent = `Profil noch unvollständig: ${missing.join(" und ")} ${missing.length === 1 ? "fehlt" : "fehlen"}. Das Foto bleibt optional.`;
-          profileOnboardingStatus.classList.add("is-missing");
-          return;
+          setProfileGuidanceStatus(
+            profileOnboardingStatus,
+            `Profil noch unvollständig: ${missing.join(" und ")} ${missing.length === 1 ? "fehlt" : "fehlen"}. Das Foto bleibt optional.`,
+            "missing"
+          );
+        } else if (!onboardingComplete) {
+          setProfileGuidanceStatus(
+            profileOnboardingStatus,
+            `${completedSteps} von ${ONBOARDING_SETUP_STEPS.length} Schritten abgeschlossen · Weiter bei „${currentStepLabel}“.`,
+            "missing"
+          );
+        } else {
+          const completedAt = state.completedAt || legacyOnboardingCompletedAt(state);
+          setProfileGuidanceStatus(
+            profileOnboardingStatus,
+            `Einrichtung abgeschlossen${completedAt ? ` · ${formatDateTimeLabel(completedAt)}` : ""}. Profil, Team und Berechtigungen können erneut geprüft werden.`,
+            "ready"
+          );
         }
-        if (!onboardingIsComplete(state)) {
-          const step = normalizeOnboardingStep(state.currentStep || "welcome");
-          const label = onboardingStepDots.find((dot) => dot.dataset.onboardingStepDot === step)?.textContent?.replace(/^\s*\d+\s*/, "") || "Einrichtung";
-          profileOnboardingStatus.textContent = `Einrichtung noch offen: ${label}. Beim nächsten Login setzt du an dieser Stelle fort.`;
-          profileOnboardingStatus.classList.add("is-missing");
-          return;
+
+        if (profileOnboardingStart) {
+          profileOnboardingStart.textContent = setupComplete ? "Onboarding ansehen" : "Onboarding fortsetzen";
+          profileOnboardingStart.classList.toggle("action-button--primary", !setupComplete);
         }
+
         if (state.tourCompletedAt) {
-          profileOnboardingStatus.innerHTML = `Tour zuletzt abgeschlossen: ${escapeHtml(formatDateTimeLabel(state.tourCompletedAt) || "Zeitpunkt offen")}.<br>Du kannst sie über App-Tour in der Sidebar jederzeit erneut starten.`;
-          profileOnboardingStatus.classList.add("is-ready");
-          return;
+          setProfileGuidanceStatus(
+            profileTourStatus,
+            `Zuletzt abgeschlossen: ${formatDateTimeLabel(state.tourCompletedAt) || "Zeitpunkt offen"}. Du kannst die Tour jederzeit wiederholen.`,
+            "ready"
+          );
+        } else if (state.tourSkippedAt) {
+          setProfileGuidanceStatus(
+            profileTourStatus,
+            `Zuletzt übersprungen: ${formatDateTimeLabel(state.tourSkippedAt) || "Zeitpunkt offen"}. Du kannst sie jederzeit nachholen.`
+          );
+        } else if (state.tourOfferedAt) {
+          setProfileGuidanceStatus(
+            profileTourStatus,
+            `Bereit seit ${formatDateTimeLabel(state.tourOfferedAt) || "dem Abschluss der Einrichtung"}. Die Tour bleibt freiwillig.`
+          );
+        } else {
+          setProfileGuidanceStatus(
+            profileTourStatus,
+            setupComplete
+              ? "Deine Einrichtung ist abgeschlossen. Die App-Tour ist bereit."
+              : "Die App-Tour ist freiwillig und kann schon jetzt oder nach dem Onboarding gestartet werden."
+          );
         }
-        if (state.tourSkippedAt) {
-          profileOnboardingStatus.innerHTML = `Tour zuletzt übersprungen: ${escapeHtml(formatDateTimeLabel(state.tourSkippedAt) || "Zeitpunkt offen")}.<br>Du kannst sie über App-Tour in der Sidebar jederzeit erneut starten.`;
-          return;
+
+        if (profileTourStart) {
+          profileTourStart.textContent = state.tourCompletedAt
+            ? "Tour wiederholen"
+            : state.tourSkippedAt
+              ? "Tour nachholen"
+              : "Tour starten";
+          profileTourStart.classList.toggle("action-button--primary", setupComplete);
         }
-        if (state.tourOfferedAt) {
-          profileOnboardingStatus.textContent = `Tour angeboten: ${formatDateTimeLabel(state.tourOfferedAt) || "Zeitpunkt offen"}. Du kannst sie hier oder über die Sidebar starten.`;
-          return;
-        }
-        profileOnboardingStatus.textContent = "Einrichtung abgeschlossen. Starte die App-Tour hier oder direkt über die Sidebar.";
-        profileOnboardingStatus.classList.add("is-ready");
       }
 
       function isProtectedOnboardingMode() {
@@ -10084,6 +10163,7 @@
         if (!window.dataService?.upsertUserSettings) {
           throw new Error("Geschützte API für Benutzereinstellungen fehlt.");
         }
+        await ensureUserSettingsHydratedForWrite();
         const previousSettings = userSettings;
         const currentState = onboardingPreferences();
         const legacyCompletedAt = legacyOnboardingCompletedAt(currentState);
@@ -10288,11 +10368,7 @@
         }
       }
 
-      async function openOnboarding(targetView = "home") {
-        pendingPostOnboardingView = normalizePostOnboardingView(targetView);
-        onboardingActive = true;
-        closeMenus();
-        closeMobileSidebar();
+      function resetOnboardingFeedback() {
         setOnboardingPersistenceStatus("");
         setOnboardingWelcomeStatus("");
         setOnboardingStatus("");
@@ -10302,19 +10378,46 @@
         setOnboardingAccessStatus("");
         setOnboardingSummaryStatus("");
         setOnboardingTourStatus("");
-        setOnboardingStep(onboardingResumeStep(onboardingPreferences()));
+      }
+
+      async function openOnboarding(targetView = "home", { required = true, step = "", focus = false } = {}) {
+        pendingPostOnboardingView = normalizePostOnboardingView(targetView);
+        onboardingActive = Boolean(required);
+        onboardingReviewActive = !onboardingActive;
+        onboardingSessionRequired = onboardingActive;
+        closeMenus();
+        closeMobileSidebar();
+        resetOnboardingFeedback();
+        const entryStep = step || (onboardingActive || !onboardingIsComplete(onboardingPreferences())
+          ? onboardingResumeStep(onboardingPreferences())
+          : "welcome");
+        setOnboardingStep(entryStep, { focus });
         setActiveView("onboarding");
         updateRouteHash("onboarding");
         updateView();
       }
 
-      async function finishOnboarding(targetView = pendingPostOnboardingView || "home") {
+      async function openOnboardingReview(targetView = activeView || "profile") {
+        return openOnboarding(targetView, {
+          required: false,
+          step: onboardingIsComplete(onboardingPreferences()) ? "welcome" : onboardingResumeStep(onboardingPreferences()),
+          focus: true
+        });
+      }
+
+      async function finishOnboarding(
+        targetView = pendingPostOnboardingView || "home",
+        { required = onboardingSessionRequired || onboardingActive } = {}
+      ) {
+        const keepOnboardingRequired = Boolean(required);
         setOnboardingTourStatus("Arbeitsbereich wird geladen …");
         try {
           await ensureCriticalInitialData();
         } catch (error) {
           console.error("Arbeitsbereich konnte nach dem Onboarding nicht geladen werden.", error);
-          onboardingActive = true;
+          onboardingActive = keepOnboardingRequired;
+          onboardingReviewActive = !keepOnboardingRequired;
+          onboardingSessionRequired = keepOnboardingRequired;
           setOnboardingTourStatus("Der Arbeitsbereich konnte noch nicht geladen werden. Bitte prüfe die Verbindung und versuche es erneut.", true);
           setActiveView("onboarding");
           updateRouteHash("onboarding");
@@ -10322,6 +10425,8 @@
           return false;
         }
         onboardingActive = false;
+        onboardingReviewActive = false;
+        onboardingSessionRequired = false;
         const nextView = normalizePostOnboardingView(targetView);
         if (nextView === "home" && transientInitialHomeSidebarCollapse && !isMobileLayout()) {
           setSidebarCollapsed(true, { persist: false });
@@ -11535,6 +11640,7 @@
             return false;
           }
           onboardingActive = false;
+          onboardingReviewActive = false;
         }
         if (isTrackedProductTourSource(source)) await persistOnboardingState({ tourOfferedAt: onboardingPreferences().tourOfferedAt || new Date().toISOString() });
         productTourState = { open: true, index: 0, source, target: null, steps: visibleProductTourSteps(), returnContext };
@@ -11822,12 +11928,37 @@
 
       function applyLoadedUserSettings(settings) {
         userSettings = settings;
+        userSettingsHydrated = true;
         syncFavoriteContactsFromSettings();
         if (userSettings?.pageSize) {
           pageSize = Number(userSettings.pageSize) || pageSize;
           syncPageSizeSelects();
         }
         applyUserSettingsUi();
+        renderProfileOnboardingStatus();
+      }
+
+      async function ensureUserSettingsHydratedForWrite() {
+        if (userSettingsHydrated || userSettings !== null) {
+          userSettingsHydrated = true;
+          return userSettings;
+        }
+        let outcome = userSettingsInitialLoadPromise ? await userSettingsInitialLoadPromise : null;
+        if (!outcome || outcome.status === "error") {
+          try {
+            const settings = await fetchUserSettings({ strict: true });
+            outcome = { status: "ready", settings };
+            userSettingsInitialLoadPromise = Promise.resolve(outcome);
+          } catch (error) {
+            userSettingsInitialLoadPromise = Promise.resolve({ status: "error", error });
+            throw error;
+          }
+        }
+        if (outcome.status !== "ready") {
+          throw outcome.error || new Error("Benutzereinstellungen konnten vor dem Speichern nicht geladen werden.");
+        }
+        if (!userSettingsHydrated) applyLoadedUserSettings(outcome.settings);
+        return userSettings;
       }
 
       async function loadUserSettings({ strict = false } = {}) {
@@ -38144,6 +38275,10 @@
 
       function setActiveView(view) {
         if (onboardingActive && view !== "onboarding") view = "onboarding";
+        if (onboardingReviewActive && view !== "onboarding") {
+          onboardingReviewActive = false;
+          onboardingSessionRequired = false;
+        }
         if (activeView === "profile" && view !== "profile" && profileDirty) {
           if (!window.confirm("Ungespeicherte Profiländerungen verwerfen?")) {
             blockedRouteUpdate = true;
@@ -41329,6 +41464,14 @@
       profilePhotoPick?.addEventListener("click", () => profilePhotoInput?.click());
       profilePhotoInput?.addEventListener("change", () => handleProfilePhotoFile(profilePhotoInput.files?.[0]));
       profilePhotoRemove?.addEventListener("click", removeProfilePhoto);
+      profileOnboardingStart?.addEventListener("click", async () => {
+        if (profileDirty) {
+          setProfileStatus("Bitte speichere oder verwirf deine Profiländerungen, bevor du das Onboarding öffnest.", true);
+          return;
+        }
+        setProfileStatus("");
+        await openOnboardingReview("profile");
+      });
       profileTourStart?.addEventListener("click", async () => {
         if (profileDirty) {
           setProfileStatus("Bitte speichere oder verwirf deine Profiländerungen, bevor du die Tour startest.", true);
@@ -42570,7 +42713,7 @@
           setProfileTab("profile");
           return "profile";
         }
-        if (hashView === "onboarding" && onboardingActive) {
+        if (hashView === "onboarding") {
           return "onboarding";
         }
         if (settingsTabItems.some((item) => item.id === hashView)) {
@@ -42588,6 +42731,10 @@
       function applyLocationRoute({ canonicalizeLegacy = false } = {}) {
         const routeToken = routeTokenFromLocation();
         const nextView = routeViewFromToken(routeToken) || "home";
+        if (routeToken === "onboarding" && !onboardingActive && !onboardingReviewActive) {
+          void openOnboardingReview(activeView === "onboarding" ? "profile" : activeView);
+          return;
+        }
         if (onboardingActive && nextView !== "onboarding") {
           updateRouteHash("onboarding", { replace: true });
           return;
@@ -42990,6 +43137,8 @@
       }
 
       async function initializeData() {
+        const initialRouteToken = routeTokenFromLocation();
+        const onboardingRouteRequested = initialRouteToken === "onboarding";
         const initialRouteView = routeViewFromLocation();
         const initialTargetView = initialRouteView || "home";
         let initialDataAvailable = false;
@@ -43015,6 +43164,7 @@
             return latestSettingsOutcome;
           }
         );
+        userSettingsInitialLoadPromise = settingsTask;
         const accessFailureKind = (error) => {
           const message = String(error?.message || error?.details || "");
           return {
@@ -43050,12 +43200,32 @@
             if (settingsRevisionAtStart !== userSettingsWriteRevision) return;
             applyLoadedUserSettings(outcome.settings);
             const onboardingStillRequired = shouldRequireInitialOnboarding();
+            if (onboardingReviewActive) {
+              if (onboardingStillRequired) {
+                onboardingReviewActive = false;
+                onboardingActive = true;
+                onboardingSessionRequired = true;
+                setOnboardingStep(onboardingResumeStep(onboardingPreferences()));
+                updateView();
+                return;
+              }
+              try {
+                await ensureCriticalInitialData();
+              } catch (error) {
+                console.error("Arbeitsbereich konnte nach dem manuellen Onboarding-Aufruf nicht geladen werden.", error);
+                setOnboardingPersistenceStatus("Der Arbeitsbereich konnte noch nicht vollständig geladen werden. Du kannst das Onboarding trotzdem prüfen.", true);
+              }
+              if (settingsRevisionAtStart !== userSettingsWriteRevision) return;
+              setOnboardingStep(onboardingIsComplete(onboardingPreferences()) ? "welcome" : onboardingResumeStep(onboardingPreferences()));
+              updateView();
+              return;
+            }
             if (onboardingActive) {
               if (onboardingStillRequired) {
                 setOnboardingStep(onboardingResumeStep(onboardingPreferences()));
                 updateView();
               } else {
-                await finishOnboarding(initialTargetView);
+                await finishOnboarding(initialTargetView, { required: false });
               }
               return;
             }
@@ -43112,10 +43282,13 @@
           loadedContactsFromStorage = false;
           setStorageStatus("Keine geschützten Kontaktdaten verfügbar. Bitte prüfe Verbindung, Anmeldung und Rollen.");
         }
-        if (initialDataAvailable && onboardingRequired) {
+        if (initialDataAvailable && (onboardingRequired || onboardingRouteRequested)) {
           if (transientInitialHomeSidebarCollapse) restoreSidebarState();
           try {
-            await openOnboarding(initialTargetView);
+            await openOnboarding(onboardingRouteRequested ? "profile" : initialTargetView, {
+              required: onboardingRequired && !(onboardingRouteRequested && settingsPending),
+              step: onboardingRouteRequested && !onboardingRequired ? "welcome" : ""
+            });
           } finally {
             revealInitialShell();
           }
