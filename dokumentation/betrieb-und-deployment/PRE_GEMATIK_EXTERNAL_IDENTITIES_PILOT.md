@@ -265,7 +265,13 @@ Gates:
    bestätigen. Login- und Fehlertexte bleiben neutral und verraten nicht, ob
    ein Konto, Profil oder Binding existiert.
 2. `IAP_EXTERNAL_LOGIN_PAGE_URI` entspricht bytegenau
-   `https://versorgungs-kompass.de/anmelden`.
+   `https://versorgungs-kompass.de/anmelden`. Sie bleibt die kanonische
+   query- und fragmentfreie Basis für Portal, Runtime-Konfiguration und
+   Operator-Eingabe. Das Reconcile konstruiert ausschließlich intern die von
+   IAP benötigte effektive URI
+   `${IAP_EXTERNAL_LOGIN_PAGE_URI}?apiKey=${IAP_EXTERNAL_AUTH_API_KEY}`, setzt
+   sie bytegenau auf beiden geschützten Backends und gibt weder Browser-Key noch
+   effektive URI aus.
 3. Der primäre, im Google-OAuth-Client freigegebene Redirect-URI entspricht
    bytegenau
    `https://versorgungs-kompass.de/__/auth/handler`. Dieser technische
@@ -756,6 +762,10 @@ nicht durch spontane Konto-, IAM- oder Binding-Erweiterungen repariert.
   bestätigt.
 - [ ] `IAP_EXTERNAL_LOGIN_PAGE_URI` entspricht exakt
   `https://versorgungs-kompass.de/anmelden`.
+- [ ] Der eingeschränkte `IAP_EXTERNAL_AUTH_API_KEY` löst mit dem kanonischen
+  Referer über `GET /v1/projects` exakt die numerische Projektreferenz und die
+  drei freigegebenen Domains auf; der IAP-Readback enthält auf beiden Backends
+  bytegenau die einmalig um `?apiKey=…` ergänzte effektive Login-URI.
 - [ ] Der Google-OAuth-Redirect entspricht exakt
   `https://versorgungs-kompass.de/__/auth/handler`; der frühere
   Firebase-Redirect ist ausschließlich als inaktiver Rollback-Eintrag

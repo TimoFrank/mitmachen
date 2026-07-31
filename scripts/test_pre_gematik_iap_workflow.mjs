@@ -216,7 +216,7 @@ for (const [resolvedProjectNumber, pinnedProjectNumber] of [
 }
 
 const identityProjectConfigFilter = identityPlatformPreflightScript.match(
-  /--arg auth_api_key "\$IAP_EXTERNAL_AUTH_API_KEY" '\n([\s\S]*?)\n\s*' "\$project_config"/
+  /--arg login_page_host "\$login_page_host" \\\n\s*'\n([\s\S]*?)\n\s*' "\$project_config"/
 )?.[1];
 assert.ok(
   identityProjectConfigFilter,
@@ -225,7 +225,6 @@ assert.ok(
 const identityProject = "steam-capsule-341212";
 const identityApiHost = "versorgungs-kompass.de";
 const identityIapAuthDomain = "iap.googleapis.com";
-const identityApiKey = `AIza${"A".repeat(35)}`;
 const lockedIdentityProjectConfig = {
   name: `projects/${identityProjectNumber}/config`,
   signIn: {
@@ -238,8 +237,7 @@ const lockedIdentityProjectConfig = {
     permissions: {
       disabledUserSignup: true,
       disabledUserDeletion: true
-    },
-    apiKey: identityApiKey
+    }
   },
   emailPrivacyConfig: { enableImprovedEmailPrivacy: true },
   mfa: { state: "DISABLED" },
@@ -273,7 +271,6 @@ function verifyIdentityProjectConfig(config, loginPageHost = identityApiHost) {
       "--arg", "project_number", identityProjectNumber,
       "--arg", "api_host", identityApiHost,
       "--arg", "login_page_host", loginPageHost,
-      "--arg", "auth_api_key", identityApiKey,
       identityProjectConfigFilter
     ],
     { input: JSON.stringify(config), encoding: "utf8" }
@@ -298,6 +295,17 @@ for (const unsafeProjectConfigName of [
     "Die Admin-Projektkonfiguration muss exakt den numerischen Projektressourcennamen tragen."
   );
 }
+assert.equal(
+  verifyIdentityProjectConfig({
+    ...lockedIdentityProjectConfig,
+    client: {
+      ...lockedIdentityProjectConfig.client,
+      apiKey: "unrelated-admin-readback-value"
+    }
+  }).status,
+  0,
+  "Die Admin-Config darf nicht faelschlich zur Bindung des Browser-Keys verwendet werden."
+);
 assert.notEqual(
   verifyIdentityProjectConfig({
     ...lockedIdentityProjectConfig,
@@ -324,6 +332,79 @@ assert.notEqual(
   0,
   "Der Custom-Login-Host muss exakt dem kanonischen API-/Frontend-Host entsprechen."
 );
+
+assert.doesNotMatch(
+  identityPlatformPreflightScript,
+  /\.client\.apiKey/u,
+  "Der Browser-Key darf nicht gegen das ungeeignete Admin-Config-Feld validiert werden."
+);
+assert.match(
+  identityPlatformPreflightScript,
+  /identity_project_number="\$GCP_PROJECT_NUMBER"/u,
+  "Der Browser-Key-Probe muss die bereits verifizierte geschuetzte Projektnummer verwenden."
+);
+assert.match(
+  identityPlatformPreflightScript,
+  /\/v1\/projects\?key=%s&projectNumber=%s/u
+);
+assert.match(
+  identityPlatformPreflightScript,
+  /referer = "%s"[\s\S]*"\$IAP_EXTERNAL_LOGIN_PAGE_URI"/u
+);
+assert.match(
+  identityPlatformPreflightScript,
+  /curl --config "\$browser_key_curl_config"[\s\S]*--output "\$browser_key_project_config"/u
+);
+const browserKeyProjectConfigFilter = identityPlatformPreflightScript.match(
+  /--arg api_host "\$API_HOST" '\n([\s\S]*?)\n\s*' "\$browser_key_project_config"/
+)?.[1];
+assert.ok(
+  browserKeyProjectConfigFilter,
+  "Der oeffentliche Browser-Key-Projektvertrag fehlt oder ist nicht eindeutig begrenzt."
+);
+function verifyBrowserKeyProjectConfig(config) {
+  return spawnSync(
+    "jq",
+    [
+      "--exit-status",
+      "--arg", "project_id", identityProject,
+      "--arg", "project_number", identityProjectNumber,
+      "--arg", "api_host", identityApiHost,
+      browserKeyProjectConfigFilter
+    ],
+    { input: JSON.stringify(config), encoding: "utf8" }
+  );
+}
+const browserKeyProjectConfig = {
+  projectId: identityProjectNumber,
+  authorizedDomains: lockedIdentityProjectConfig.authorizedDomains
+};
+assert.equal(
+  verifyBrowserKeyProjectConfig(browserKeyProjectConfig).status,
+  0,
+  "Der eingeschraenkte Browser-Key muss die numerische Projektnummer und die drei Domains aufloesen."
+);
+assert.notEqual(
+  verifyBrowserKeyProjectConfig({
+    ...browserKeyProjectConfig,
+    projectId: "765190393968"
+  }).status,
+  0,
+  "Ein Browser-Key eines fremden numerischen Projekts muss fail-closed stoppen."
+);
+for (const authorizedDomains of [
+  browserKeyProjectConfig.authorizedDomains.slice(1),
+  [...browserKeyProjectConfig.authorizedDomains, "extra.example.invalid"]
+]) {
+  assert.notEqual(
+    verifyBrowserKeyProjectConfig({
+      ...browserKeyProjectConfig,
+      authorizedDomains
+    }).status,
+    0,
+    "Der Browser-Key-Vertrag muss fehlende und zusaetzliche Domains ablehnen."
+  );
+}
 
 const passwordPolicyCanonicalFilter = identityPlatformPreflightScript.match(
   /canonical_password_policy="\$\(jq --compact-output --sort-keys '\n([\s\S]*?)\n\s*' "\$project_config"\)"/u

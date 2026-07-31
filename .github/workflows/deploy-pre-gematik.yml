@@ -662,7 +662,9 @@ jobs:
           set -euo pipefail
           identity_preflight_dir="$(mktemp -d)"
           curl_config="${identity_preflight_dir}/curl.config"
+          browser_key_curl_config="${identity_preflight_dir}/browser-key-curl.config"
           project_config="${identity_preflight_dir}/project-config.json"
+          browser_key_project_config="${identity_preflight_dir}/browser-key-project-config.json"
           google_provider="${identity_preflight_dir}/google-provider.json"
           default_providers="${identity_preflight_dir}/default-providers.json"
           oidc_providers="${identity_preflight_dir}/oidc-providers.json"
@@ -670,7 +672,9 @@ jobs:
           cleanup() {
             rm -f \
               "$curl_config" \
+              "$browser_key_curl_config" \
               "$project_config" \
+              "$browser_key_project_config" \
               "$google_provider" \
               "$default_providers" \
               "$oidc_providers" \
@@ -689,6 +693,16 @@ jobs:
           unset access_token
 
           identity_api="https://identitytoolkit.googleapis.com"
+          identity_project_number="$GCP_PROJECT_NUMBER"
+          printf 'url = "%s/v1/projects?key=%s&projectNumber=%s"\nreferer = "%s"\n' \
+            "$identity_api" \
+            "$IAP_EXTERNAL_AUTH_API_KEY" \
+            "$identity_project_number" \
+            "$IAP_EXTERNAL_LOGIN_PAGE_URI" \
+            > "$browser_key_curl_config"
+          curl --config "$browser_key_curl_config" \
+            --fail --silent --show-error \
+            --output "$browser_key_project_config"
           curl --config "$curl_config" --fail --silent --show-error \
             --output "$project_config" \
             "${identity_api}/admin/v2/projects/${GCP_PROJECT_ID}/config"
@@ -712,7 +726,7 @@ jobs:
             --arg project_number "$GCP_PROJECT_NUMBER" \
             --arg api_host "$API_HOST" \
             --arg login_page_host "$login_page_host" \
-            --arg auth_api_key "$IAP_EXTERNAL_AUTH_API_KEY" '
+            '
               .name == "projects/\($project_number)/config" and
               .signIn.email.enabled == true and
               .signIn.email.passwordRequired == true and
@@ -721,7 +735,6 @@ jobs:
               (.signIn.anonymous.enabled != true) and
               .client.permissions.disabledUserSignup == true and
               .client.permissions.disabledUserDeletion == true and
-              .client.apiKey == $auth_api_key and
               .emailPrivacyConfig.enableImprovedEmailPrivacy == true and
               ((.mfa.state // "DISABLED") == "DISABLED") and
               (.multiTenant.allowTenants != true) and
@@ -742,7 +755,20 @@ jobs:
                 == ([$api_host, ($project_id + ".firebaseapp.com"), "iap.googleapis.com"] | unique | sort)
               )
             ' "$project_config" >/dev/null; then
-            echo "Identity Platform is not locked to the exact Versorgungs-Kompass, Firebase, and IAP auth domains, improved email privacy, the pinned Web API key, and admin-created email/password users without MFA, phone, anonymous, duplicates, deletion, or tenants." >&2
+            echo "Identity Platform is not locked to the exact Versorgungs-Kompass, Firebase, and IAP auth domains, improved email privacy, and admin-created email/password users without MFA, phone, anonymous, duplicates, deletion, or tenants." >&2
+            exit 1
+          fi
+          if ! jq --exit-status \
+            --arg project_id "$GCP_PROJECT_ID" \
+            --arg project_number "$GCP_PROJECT_NUMBER" \
+            --arg api_host "$API_HOST" '
+              .projectId == $project_number and
+              (
+                (.authorizedDomains // [] | sort)
+                == ([$api_host, ($project_id + ".firebaseapp.com"), "iap.googleapis.com"] | unique | sort)
+              )
+            ' "$browser_key_project_config" >/dev/null; then
+            echo "The restricted browser API key did not resolve the exact numeric project and approved three-domain Identity Platform contract." >&2
             exit 1
           fi
           canonical_password_policy="$(jq --compact-output --sort-keys '
@@ -2737,8 +2763,37 @@ jobs:
           IAP_PROJECT_NUMBER="$project_number" \
           IAP_API_BACKEND_SERVICE="$backend_service" \
           IAP_FRONTEND_BACKEND_SERVICE="$frontend_backend_service" \
+          IAP_EXTERNAL_LOGIN_PAGE_URI="$IAP_EXTERNAL_LOGIN_PAGE_URI" \
+          IAP_EXTERNAL_AUTH_API_KEY="$IAP_EXTERNAL_AUTH_API_KEY" \
           IAP_WORK_DIR="$iap_policy_dir" \
             bash scripts/reconcile_pre_gematik_iap_identity_mode.sh
+
+          if [[ "$IAP_IDENTITY_MODE" == "external" ]]; then
+            expected_effective_login_page_uri="${IAP_EXTERNAL_LOGIN_PAGE_URI}?apiKey=${IAP_EXTERNAL_AUTH_API_KEY}"
+            expected_agent_tenant="_${project_number}"
+            for candidate in "$backend_service" "$frontend_backend_service"; do
+              external_readback="${iap_policy_dir}/${candidate}-external-settings-workflow-verified.json"
+              gcloud iap settings get \
+                --project "$GCP_PROJECT_ID" \
+                --resource-type=backend-services \
+                --service "$candidate" \
+                --format=json > "$external_readback"
+              IAP_EXPECTED_EFFECTIVE_LOGIN_PAGE_URI="$expected_effective_login_page_uri" \
+                jq --exit-status \
+                  --arg tenant "$expected_agent_tenant" '
+                    (.accessSettings.gcipSettings // {}) == {
+                      tenantIds: [$tenant],
+                      loginPageUri: env.IAP_EXPECTED_EFFECTIVE_LOGIN_PAGE_URI
+                    } and
+                    ((.accessSettings.reauthSettings // {}) | length) == 0
+                  ' "$external_readback" >/dev/null \
+                || {
+                  echo "The External-IAP readback is not exact on one protected backend." >&2
+                  exit 1
+                }
+            done
+            unset expected_effective_login_page_uri expected_agent_tenant
+          fi
 
           if [[ "$IAP_IDENTITY_MODE" == "iam" ]]; then
             # Read and validate both protected resource policies before any mutation.

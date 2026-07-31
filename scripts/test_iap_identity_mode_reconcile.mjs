@@ -72,7 +72,15 @@ assert.match(
   workflow,
   /IDENTITY_PLATFORM_GOOGLE_LOGIN_EVIDENCE_SHA256:\s*\$\{\{\s*vars\.IDENTITY_PLATFORM_GOOGLE_LOGIN_EVIDENCE_SHA256\s*\}\}/u
 );
-assert.match(workflow, /\.client\.apiKey == \$auth_api_key/u);
+assert.doesNotMatch(workflow, /\.client\.apiKey/u);
+assert.match(
+  workflow,
+  /\/v1\/projects\?key=%s&projectNumber=%s/u
+);
+assert.match(
+  workflow,
+  /referer = "%s"[\s\S]*"\$IAP_EXTERNAL_LOGIN_PAGE_URI"/u
+);
 assert.match(
   workflow,
   /\[\[ "\$IDENTITY_PLATFORM_API_KEY" != "\$IAP_EXTERNAL_AUTH_API_KEY" \]\]/u
@@ -117,6 +125,18 @@ assert.doesNotMatch(workflow, /\.passwordPolicyConfig\.enforcementState/u);
 assert.match(
   workflow,
   /bash scripts\/reconcile_pre_gematik_iap_identity_mode\.sh[\s\S]*if \[\[ "\$IAP_IDENTITY_MODE" == "iam" \]\]/u
+);
+assert.match(
+  workflow,
+  /IAP_EXTERNAL_AUTH_API_KEY="\$IAP_EXTERNAL_AUTH_API_KEY"[\s\S]*bash scripts\/reconcile_pre_gematik_iap_identity_mode\.sh/u
+);
+assert.match(
+  workflow,
+  /expected_effective_login_page_uri="\$\{IAP_EXTERNAL_LOGIN_PAGE_URI\}\?apiKey=\$\{IAP_EXTERNAL_AUTH_API_KEY\}"/u
+);
+assert.match(
+  readFileSync(reconcileScript, "utf8"),
+  /effective_external_login_page_uri="\$\{IAP_EXTERNAL_LOGIN_PAGE_URI\}\?apiKey=\$\{IAP_EXTERNAL_AUTH_API_KEY\}"/u
 );
 for (const runtimeKey of [
   "IAP_EXTERNAL_LOGIN_PAGE_URI",
@@ -190,6 +210,12 @@ if [[ "\${1:-} \${2:-} \${3:-}" == "iap settings set" ]]; then
   temporary_file="\${state_file}.tmp"
   jq '.' "$source_file" > "$temporary_file"
   mv "$temporary_file" "$state_file"
+  if [[ ",\${MOCK_TAMPER_AFTER_SET_CALLS:-}," == *",\${set_call_count},"* ]]; then
+    temporary_file="\${state_file}.tampered"
+    jq '.accessSettings.gcipSettings.loginPageUri = "https://tampered.example.invalid/"' \
+      "$state_file" > "$temporary_file"
+    mv "$temporary_file" "$state_file"
+  fi
   exit 0
 fi
 
@@ -213,6 +239,8 @@ const approvedPrincipal = "group:versorgungs-kompass-pre-gematik-access@googlegr
 const approvedExpiry = "2026-08-17T16:00:00Z";
 const agentTenant = "_123456789";
 const loginPageUri = "https://login.example.invalid/auth";
+const externalAuthApiKey = `AIza${"A".repeat(35)}`;
+const effectiveLoginPageUri = `${loginPageUri}?apiKey=${externalAuthApiKey}`;
 const reauthSettings = {
   method: "ENROLLED_SECOND_FACTORS",
   maxAge: "28800s",
@@ -291,6 +319,7 @@ function reconcile(mode, overrides = {}) {
       IAP_GCIP_PROJECT_ID: "example-project",
       IAP_GCIP_TENANT_ID: "",
       IAP_EXTERNAL_LOGIN_PAGE_URI: loginPageUri,
+      IAP_EXTERNAL_AUTH_API_KEY: externalAuthApiKey,
       IAP_WORK_DIR: workDirectory,
       ...overrides
     }
@@ -307,10 +336,46 @@ function readSettings(service) {
   );
 }
 
+function assertNoExternalContractLeak(result) {
+  const output = `${result.stdout}\n${result.stderr}\n${result.log}`;
+  assert.ok(
+    !output.includes(externalAuthApiKey),
+    "Der Browser-Key darf weder auf stdout/stderr noch im Gcloud-Log erscheinen."
+  );
+  assert.ok(
+    !output.includes(effectiveLoginPageUri),
+    "Die effektive Login-URI darf weder auf stdout/stderr noch im Gcloud-Log erscheinen."
+  );
+}
+
 try {
+  writeState();
+  const missingExternalKey = reconcile("external", {
+    IAP_EXTERNAL_AUTH_API_KEY: ""
+  });
+  assert.notEqual(missingExternalKey.status, 0);
+  assert.match(missingExternalKey.stderr, /browser API key/u);
+  assert.doesNotMatch(missingExternalKey.log, /^(settings|policy):/mu);
+  assertNoExternalContractLeak(missingExternalKey);
+
+  for (const invalidBaseUri of [
+    `${loginPageUri}?existing=true`,
+    `${loginPageUri}#fragment`
+  ]) {
+    writeState();
+    const invalidBase = reconcile("external", {
+      IAP_EXTERNAL_LOGIN_PAGE_URI: invalidBaseUri
+    });
+    assert.notEqual(invalidBase.status, 0);
+    assert.match(invalidBase.stderr, /without query or fragment/u);
+    assert.doesNotMatch(invalidBase.log, /^(settings|policy):/mu);
+    assertNoExternalContractLeak(invalidBase);
+  }
+
   writeState();
   const externalCutover = reconcile("external");
   assert.equal(externalCutover.status, 0, externalCutover.stderr);
+  assertNoExternalContractLeak(externalCutover);
   assert.equal(
     externalCutover.log.match(/^settings:set:/gmu)?.length,
     2,
@@ -320,8 +385,13 @@ try {
     const settings = readSettings(service).accessSettings;
     assert.deepEqual(settings.gcipSettings, {
       tenantIds: [agentTenant],
-      loginPageUri
+      loginPageUri: effectiveLoginPageUri
     });
+    assert.equal(
+      settings.gcipSettings.loginPageUri.match(/apiKey=/gu)?.length,
+      1,
+      "Die effektive IAP-URI muss apiKey exakt einmal enthalten."
+    );
     assert.equal(
       settings.reauthSettings,
       undefined,
@@ -336,6 +406,7 @@ try {
 
   const idempotentExternal = reconcile("external");
   assert.equal(idempotentExternal.status, 0, idempotentExternal.stderr);
+  assertNoExternalContractLeak(idempotentExternal);
   assert.doesNotMatch(
     idempotentExternal.log,
     /^settings:set:/mu,
@@ -343,7 +414,7 @@ try {
   );
 
   writeState({
-    apiGcip: { tenantIds: [agentTenant], loginPageUri },
+    apiGcip: { tenantIds: [agentTenant], loginPageUri: effectiveLoginPageUri },
     apiReauth: null
   });
   const mixedExternalSource = reconcile("external");
@@ -366,6 +437,7 @@ try {
   assert.notEqual(failedSecondExternalSet.status, 0);
   assert.match(failedSecondExternalSet.stderr, /rolled back to the exact original settings/u);
   assert.match(failedSecondExternalSet.log, /settings:set-failed:frontend-backend/u);
+  assertNoExternalContractLeak(failedSecondExternalSet);
   for (const service of backendServices) {
     const settings = readSettings(service).accessSettings;
     assert.equal(settings.gcipSettings, undefined);
@@ -381,16 +453,31 @@ try {
     failedCompensation.stderr,
     /::error::Compensating rollback of protected IAP identity settings failed/u
   );
+  assertNoExternalContractLeak(failedCompensation);
+
+  writeState();
+  const failedExactReadback = reconcile("external", {
+    MOCK_TAMPER_AFTER_SET_CALLS: "2"
+  });
+  assert.notEqual(failedExactReadback.status, 0);
+  assert.match(failedExactReadback.stderr, /rolled back to the exact original settings/u);
+  assertNoExternalContractLeak(failedExactReadback);
+  for (const service of backendServices) {
+    const settings = readSettings(service).accessSettings;
+    assert.equal(settings.gcipSettings, undefined);
+    assert.deepEqual(settings.reauthSettings, reauthSettings);
+  }
 
   writeState({
-    apiGcip: { tenantIds: [agentTenant], loginPageUri },
-    frontendGcip: { tenantIds: [agentTenant], loginPageUri },
+    apiGcip: { tenantIds: [agentTenant], loginPageUri: effectiveLoginPageUri },
+    frontendGcip: { tenantIds: [agentTenant], loginPageUri: effectiveLoginPageUri },
     apiReauth: null,
     frontendReauth: null
   });
   const unpinnedIamRollback = reconcile("iam", {
     IAP_GCIP_PROJECT_ID: "",
-    IAP_EXTERNAL_LOGIN_PAGE_URI: ""
+    IAP_EXTERNAL_LOGIN_PAGE_URI: "",
+    IAP_EXTERNAL_AUTH_API_KEY: ""
   });
   assert.notEqual(unpinnedIamRollback.status, 0);
   assert.match(unpinnedIamRollback.stderr, /unpinned or unknown GCIP configuration/u);
@@ -407,7 +494,8 @@ try {
 
   const idempotentIam = reconcile("iam", {
     IAP_GCIP_PROJECT_ID: "",
-    IAP_EXTERNAL_LOGIN_PAGE_URI: ""
+    IAP_EXTERNAL_LOGIN_PAGE_URI: "",
+    IAP_EXTERNAL_AUTH_API_KEY: ""
   });
   assert.equal(idempotentIam.status, 0, idempotentIam.stderr);
   assert.doesNotMatch(idempotentIam.log, /^settings:set:/mu);
@@ -420,7 +508,8 @@ try {
   });
   const initialIamBootstrap = reconcile("iam", {
     IAP_GCIP_PROJECT_ID: "",
-    IAP_EXTERNAL_LOGIN_PAGE_URI: ""
+    IAP_EXTERNAL_LOGIN_PAGE_URI: "",
+    IAP_EXTERNAL_AUTH_API_KEY: ""
   });
   assert.equal(initialIamBootstrap.status, 0, initialIamBootstrap.stderr);
   assert.equal(initialIamBootstrap.log.match(/^settings:set:/gmu)?.length, 2);
