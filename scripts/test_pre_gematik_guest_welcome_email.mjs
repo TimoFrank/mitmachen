@@ -111,6 +111,13 @@ for (const [name, value] of Object.entries(rendered)) {
 assert.equal(rendered.subject.trim(), WELCOME_EMAIL_SUBJECT);
 assert.match(rendered.text, /Du brauchst dafür kein Google-Konto/u);
 assert.match(rendered.text, /versorgungs-kompass\.de\/start/u);
+for (const body of [rendered.text, rendered.html, rendered.eml]) {
+  assert.match(
+    body,
+    /Gib dort deine E-Mail-Adresse und dein Passwort ein und wähle „Sicher anmelden“\./u
+  );
+  assert.doesNotMatch(body, /Mit E-Mail und Passwort anmelden/u);
+}
 assert.equal(rendered.text.split(actionUrl).length - 1, 1);
 assert.equal(
   rendered.html.split(actionUrl.replaceAll("&", "&amp;")).length - 1,
