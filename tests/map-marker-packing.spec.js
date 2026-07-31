@@ -203,7 +203,7 @@ test("Karte: Desktop zeigt dezente Bundesland-Orientierung und die tatsächliche
   const densityLegend = page.locator(".map-density-legend");
   await expect(densityLegend).toContainText("Kontakte je Bundesland");
   await expect(densityLegend.locator(".map-distribution-legend"))
-    .toHaveAttribute("aria-label", "Kontaktdichte je Bundesland: 0 bis 5 Kontakte");
+    .toHaveAttribute("aria-label", "Verteilung je Bundesland: 0 bis 5 Kontakte");
 
   if (isMobile) {
     await expect(page.locator(".state-label")).toHaveCount(0);

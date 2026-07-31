@@ -1724,6 +1724,7 @@
       const contactHistoryRequests = new WeakMap();
       let savedViews = [];
       let userSettings = null;
+      let userSettingsWriteRevision = 0;
       let favoriteContactIds = new Set();
       const favoriteContactSavePending = new Set();
       let onboardingActive = false;
@@ -9797,6 +9798,7 @@
         }
         setProfileStatus("Profil wird gespeichert...");
         setProfileTeamBadge(profileTeamLine, nextProfile.team || TEAM_UNASSIGNED_LABEL);
+        userSettingsWriteRevision += 1;
         try {
           const updatedProfile = await window.dataService.updateCurrentProfile(nextProfile);
           userSettings = window.dataService?.upsertUserSettings ? await window.dataService.upsertUserSettings(nextSettings) : nextSettings;
@@ -9993,6 +9995,7 @@
             onboarding
           }
         };
+        userSettingsWriteRevision += 1;
         try {
           const saved = await window.dataService.upsertUserSettings(userSettingsWritePayload(nextSettings));
           userSettings = {
@@ -10424,6 +10427,7 @@
           id: "team",
           view: "team",
           target: "#team-account-list .team-board-card",
+          narrowTarget: "#team-account-list .team-board-card__header",
           fallbackTarget: "#team-account-list",
           sidebarSection: "account",
           sidebarTarget: "#sidebar-team-button",
@@ -10580,6 +10584,7 @@
           id: "formats",
           view: "formats",
           target: "#view-formats .formats-workspace",
+          narrowTarget: "#view-formats .formats-command-row",
           mobileTarget: "#format-detail-panel",
           prepare: "formats-overview",
           sidebarSection: "formats",
@@ -10771,9 +10776,18 @@
 
       function targetForProductTourStep(step) {
         if (!step || step.welcome || step.overlay) return null;
+        const useNarrowTarget = window.matchMedia("(max-width: 480px)").matches;
         const useCompactTarget = window.matchMedia("(max-width: 900px)").matches;
-        const targetSelector = useCompactTarget && step.mobileTarget ? step.mobileTarget : step.target;
-        const fallbackSelector = useCompactTarget && step.mobileFallbackTarget ? step.mobileFallbackTarget : step.fallbackTarget;
+        const targetSelector = useNarrowTarget && step.narrowTarget
+          ? step.narrowTarget
+          : useCompactTarget && step.mobileTarget
+            ? step.mobileTarget
+            : step.target;
+        const fallbackSelector = useNarrowTarget && step.narrowFallbackTarget
+          ? step.narrowFallbackTarget
+          : useCompactTarget && step.mobileFallbackTarget
+            ? step.mobileFallbackTarget
+            : step.fallbackTarget;
         const target = document.querySelector(targetSelector) || (fallbackSelector ? document.querySelector(fallbackSelector) : null);
         const frameTargetSelector = useCompactTarget && step.mobileFrameTarget ? step.mobileFrameTarget : step.frameTarget;
         if (frameTargetSelector && target?.tagName === "IFRAME") {
@@ -11633,6 +11647,7 @@
             ...(userSettings || {}),
             preferences
           };
+          userSettingsWriteRevision += 1;
           const saved = await window.dataService.upsertUserSettings(userSettingsWritePayload(fallbackSettings));
           userSettings = {
             ...fallbackSettings,
@@ -11690,21 +11705,31 @@
         updateView();
       }
 
-      async function loadUserSettings({ strict = false } = {}) {
+      async function fetchUserSettings({ strict = false } = {}) {
         try {
-          userSettings = window.dataService?.getUserSettings ? await window.dataService.getUserSettings() : null;
+          return window.dataService?.getUserSettings ? await window.dataService.getUserSettings() : null;
         } catch (error) {
           console.warn("Benutzereinstellungen konnten nicht aus der geschützten API geladen werden.", error);
-          userSettings = null;
           if (strict) throw error;
+          return null;
         }
+      }
 
+      function applyLoadedUserSettings(settings) {
+        userSettings = settings;
         syncFavoriteContactsFromSettings();
         if (userSettings?.pageSize) {
           pageSize = Number(userSettings.pageSize) || pageSize;
           syncPageSizeSelects();
         }
         applyUserSettingsUi();
+      }
+
+      async function loadUserSettings({ strict = false } = {}) {
+        const revisionAtStart = userSettingsWriteRevision;
+        const settings = await fetchUserSettings({ strict });
+        if (revisionAtStart === userSettingsWriteRevision) applyLoadedUserSettings(settings);
+        return settings;
       }
 
       async function loadSavedViewsAndSettings() {
@@ -11907,6 +11932,7 @@
       }
 
       async function persistUserSettingPatch(patch = {}) {
+        userSettingsWriteRevision += 1;
         userSettings = { ...(userSettings || {}), ...patch };
         try {
           if (!window.dataService?.upsertUserSettings) throw new Error("Geschützte API für Benutzereinstellungen fehlt.");
@@ -36650,6 +36676,7 @@
         let savedSuccessfully = false;
         politicsProfileSavePending = true;
         setPoliticsProfileSavingState(member.id, true);
+        userSettingsWriteRevision += 1;
         try {
           const saved = await window.dataService.upsertUserSettings(userSettingsWritePayload(fallbackSettings));
           userSettings = {
@@ -42870,42 +42897,111 @@
           finishInitialLoading();
           initialShellRevealed = true;
         };
-        let settingsSettled = false;
-        const settingsPromise = loadUserSettings({ strict: true }).then(
-          (value) => {
-            settingsSettled = true;
-            return value;
+        let settingsPending = true;
+        let latestSettingsOutcome = null;
+        const settingsRevisionAtStart = userSettingsWriteRevision;
+        const settingsTask = fetchUserSettings({ strict: true }).then(
+          (settings) => {
+            latestSettingsOutcome = { status: "ready", settings };
+            return latestSettingsOutcome;
           },
           (error) => {
-            settingsSettled = true;
-            throw error;
+            latestSettingsOutcome = { status: "error", error };
+            return latestSettingsOutcome;
           }
         );
+        const accessFailureKind = (error) => {
+          const message = String(error?.message || error?.details || "");
+          return {
+            authFailed: Number(error?.status) === 401
+              || /permission denied|JWT|auth|not authenticated|Unauthorized|401/i.test(message),
+            accessDenied: Number(error?.status) === 403
+              || String(error?.code || "") === "API_HTTP_403"
+          };
+        };
+        const redirectForAccessFailure = (error) => {
+          const { authFailed, accessDenied } = accessFailureKind(error);
+          if (window.dataService?.isConfigured?.() && accessDenied) {
+            window.location.replace("/#zugriff-verweigert");
+            return true;
+          }
+          if (window.dataService?.isConfigured?.() && authFailed && window.VKAuth) {
+            window.VKAuth.clearAuthenticated();
+            window.location.replace(window.VKAuth.buildLoginUrl());
+            return true;
+          }
+          return false;
+        };
+        const reconcileLateSettings = () => {
+          if (!settingsPending) return;
+          settingsPending = false;
+          void settingsTask.then(async (outcome) => {
+            if (outcome.status === "error") {
+              if (!redirectForAccessFailure(outcome.error)) {
+                console.warn("Benutzereinstellungen konnten auch nach dem Anwendungsstart nicht geladen werden.", outcome.error);
+              }
+              return;
+            }
+            if (settingsRevisionAtStart !== userSettingsWriteRevision) return;
+            applyLoadedUserSettings(outcome.settings);
+            const onboardingStillRequired = shouldRequireInitialOnboarding();
+            if (onboardingActive) {
+              if (onboardingStillRequired) {
+                setOnboardingStep(onboardingResumeStep(onboardingPreferences()));
+                updateView();
+              } else {
+                await finishOnboarding(initialTargetView);
+              }
+              return;
+            }
+            if (onboardingStillRequired) {
+              await openOnboarding(initialTargetView);
+              return;
+            }
+            updateView();
+          }).catch((error) => {
+            console.error("Nachlaufende Benutzereinstellungen konnten nicht verarbeitet werden.", error);
+          });
+        };
         try {
           const profile = await window.dataService.getCurrentProfile();
           renderAccountProfile(profile);
-          if (!settingsSettled) revealInitialShell();
-          await settingsPromise;
+          let settingsGraceTimer = 0;
+          const settingsOutcome = await Promise.race([
+            settingsTask,
+            new Promise((resolve) => {
+              settingsGraceTimer = window.setTimeout(() => resolve({ status: "pending" }), 250);
+            })
+          ]);
+          if (settingsGraceTimer) window.clearTimeout(settingsGraceTimer);
+          if (settingsOutcome.status === "error") {
+            const { authFailed, accessDenied } = accessFailureKind(settingsOutcome.error);
+            if (authFailed || accessDenied) throw settingsOutcome.error;
+            console.warn("Der Anwendungsstart wird ohne Benutzereinstellungen fortgesetzt.", settingsOutcome.error);
+          }
+          settingsPending = settingsOutcome.status === "pending";
+          if (settingsOutcome.status === "ready" && settingsRevisionAtStart === userSettingsWriteRevision) {
+            applyLoadedUserSettings(settingsOutcome.settings);
+          }
           onboardingRequired = shouldRequireInitialOnboarding();
           if (!onboardingRequired) await ensureCriticalInitialData();
           initialDataAvailable = true;
         } catch (error) {
           console.error("Geschützte Anwendungsdaten konnten nicht über die API geladen werden.", error);
           if (teamDirectoryState === "loading") teamDirectoryState = "error";
-          const message = String(error?.message || error?.details || "");
-          const authFailed = Number(error?.status) === 401
-            || /permission denied|JWT|auth|not authenticated|Unauthorized|401/i.test(message);
-          const accessDenied = Number(error?.status) === 403
-            || String(error?.code || "") === "API_HTTP_403";
-          if (window.dataService?.isConfigured?.() && accessDenied) {
-            window.location.replace("/#zugriff-verweigert");
-            return;
+          if (redirectForAccessFailure(error)) return;
+          let settingsAccessOutcome = latestSettingsOutcome;
+          if (!settingsAccessOutcome) {
+            let settingsAccessTimer = 0;
+            settingsAccessOutcome = await Promise.race([
+              settingsTask,
+              new Promise((resolve) => {
+                settingsAccessTimer = window.setTimeout(() => resolve(null), 250);
+              })
+            ]);
+            if (settingsAccessTimer) window.clearTimeout(settingsAccessTimer);
           }
-          if (window.dataService?.isConfigured?.() && authFailed && window.VKAuth) {
-            window.VKAuth.clearAuthenticated();
-            window.location.replace(window.VKAuth.buildLoginUrl());
-            return;
-          }
+          if (settingsAccessOutcome?.status === "error" && redirectForAccessFailure(settingsAccessOutcome.error)) return;
           contacts = [];
           organizations = [];
           loadedContactsFromStorage = false;
@@ -42918,6 +43014,7 @@
           } finally {
             revealInitialShell();
           }
+          reconcileLateSettings();
           return;
         }
         try {
@@ -42936,6 +43033,7 @@
           revealInitialShell();
         }
         if (initialDataAvailable) updateView();
+        reconcileLateSettings();
       }
 
       function finishInitialLoading() {

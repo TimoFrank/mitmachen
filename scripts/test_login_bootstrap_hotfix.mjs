@@ -157,12 +157,23 @@ function initializeDataSource() {
   return appSource.slice(start, end);
 }
 
-function createInitializeHarness({ coreError = null, settingsPromise }) {
+function createInitializeHarness({
+  coreError = null,
+  corePromise = null,
+  profilePromise = null,
+  settingsPromise,
+  shouldRequireOnboarding = () => false
+}) {
   const finished = deferred();
   const state = {
+    appliedSettings: [],
     finishCalls: 0,
+    finishOnboardingCalls: 0,
+    criticalLoadCalls: 0,
     loginCleared: false,
+    onboardingOpenCalls: 0,
     redirect: "",
+    resumedOnboardingStep: "",
     storageStatus: "",
     updateViewCalls: 0
   };
@@ -183,32 +194,59 @@ function createInitializeHarness({ coreError = null, settingsPromise }) {
     initialDataLoadingSlow: true,
     isInitialDataLoading: true,
     ensureCriticalInitialData: async () => {
+      state.criticalLoadCalls += 1;
+      if (corePromise) await corePromise;
       if (coreError) throw coreError;
     },
     loadCriticalInitialData: async () => {
       if (coreError) throw coreError;
     },
-    loadUserSettings: () => settingsPromise,
+    applyLoadedUserSettings(settings) {
+      context.userSettings = settings;
+      state.appliedSettings.push(settings);
+    },
+    fetchUserSettings: () => settingsPromise,
+    finishOnboarding: async () => {
+      state.finishOnboardingCalls += 1;
+      context.onboardingActive = false;
+    },
     loadedContactsFromStorage: true,
-    openOnboarding: async () => {},
+    onboardingActive: false,
+    onboardingPreferences: () => context.userSettings?.preferences?.onboarding || {},
+    onboardingResumeStep: (onboarding = {}) => onboarding.currentStep || "welcome",
+    openOnboarding: async () => {
+      state.onboardingOpenCalls += 1;
+      context.onboardingActive = true;
+    },
     organizations: [ { id: "existing" } ],
-    renderAccountProfile() {},
+    renderAccountProfile(profile) {
+      context.currentProfile = profile;
+    },
     restoreSidebarState() {},
     routeTokenFromLocation: () => "",
     routeViewFromLocation: () => "home",
     scheduleDeferredInitialData() {},
-    setActiveView() {},
+    setActiveView(view) {
+      state.activeView = view;
+    },
+    setOnboardingStep(step) {
+      state.resumedOnboardingStep = step;
+    },
     setStorageStatus(message) {
       state.storageStatus = message;
     },
-    shouldRequireInitialOnboarding: () => false,
+    shouldRequireInitialOnboarding: () => shouldRequireOnboarding(context),
     teamDirectoryState: "loading",
     transientInitialHomeSidebarCollapse: false,
+    userSettings: null,
+    userSettingsWriteRevision: 0,
     updateRouteHash() {},
     updateView() {
       state.updateViewCalls += 1;
     },
     window: {
+      clearTimeout,
+      setTimeout,
       VKAuth: {
         buildLoginUrl: () => "/frontend/login/login.html",
         clearAuthenticated() {
@@ -216,7 +254,7 @@ function createInitializeHarness({ coreError = null, settingsPromise }) {
         }
       },
       dataService: {
-        getCurrentProfile: async () => ({
+        getCurrentProfile: async () => profilePromise || ({
           id: "profile-1",
           created_at: "2026-01-01T00:00:00.000Z"
         }),
@@ -252,20 +290,133 @@ async function assertSettingsDoNotBlockShell() {
 
   await withDeadline(
     harness.finished,
-    "Die App-Shell wurde durch noch ausstehende Benutzereinstellungen blockiert."
+    "Die App-Shell wurde durch noch ausstehende Benutzereinstellungen blockiert.",
+    1000
   );
-  await Promise.resolve();
-  assert.equal(initializationSettled, false);
-  assert.equal(harness.state.finishCalls, 1);
-
-  settings.resolve();
   await initialization;
   assert.equal(initializationSettled, true);
+  assert.equal(harness.state.finishCalls, 1);
+  assert.equal(harness.state.criticalLoadCalls, 1);
+
+  settings.resolve();
+  await new Promise((resolve) => setTimeout(resolve, 0));
   assert.equal(
     harness.state.updateViewCalls,
-    2,
+    3,
     "Nachlaufende Einstellungen muessen die bereits sichtbare Ansicht einmal gezielt aktualisieren."
   );
+}
+
+async function assertQuickSettingsKeepSkeletonUntilCriticalData() {
+  const core = deferred();
+  const harness = createInitializeHarness({
+    corePromise: core.promise,
+    settingsPromise: Promise.resolve()
+  });
+  const initialization = harness.initialize();
+
+  await new Promise((resolve) => setTimeout(resolve, 25));
+  assert.equal(harness.state.criticalLoadCalls, 1);
+  assert.equal(
+    harness.state.finishCalls,
+    0,
+    "Schnelle Benutzereinstellungen duerfen das Skeleton nicht vor den kritischen Daten freigeben."
+  );
+
+  core.resolve();
+  await initialization;
+  assert.equal(harness.state.finishCalls, 1);
+}
+
+async function assertSettingsFailuresFallBackWithoutDiscardingCoreData() {
+  const backendError = new Error("Benutzereinstellungen voruebergehend nicht erreichbar.");
+  backendError.status = 503;
+  backendError.code = "API_HTTP_503";
+  const harness = createInitializeHarness({
+    settingsPromise: Promise.reject(backendError)
+  });
+
+  await harness.initialize();
+  assert.equal(harness.state.criticalLoadCalls, 1);
+  assert.equal(harness.state.finishCalls, 1);
+  assert.equal(harness.state.redirect, "");
+  assert.equal(harness.state.loginCleared, false);
+}
+
+function onboardingRequiredUntilComplete(context) {
+  return !context.userSettings?.preferences?.onboarding?.completedAt;
+}
+
+async function assertLateSettingsResumeOnboarding() {
+  const settings = deferred();
+  const harness = createInitializeHarness({
+    settingsPromise: settings.promise,
+    shouldRequireOnboarding: onboardingRequiredUntilComplete
+  });
+
+  await harness.initialize();
+  assert.equal(harness.state.onboardingOpenCalls, 1);
+  assert.equal(harness.state.criticalLoadCalls, 0);
+
+  settings.resolve({
+    preferences: {
+      onboarding: { currentStep: "team" }
+    }
+  });
+  await new Promise((resolve) => setTimeout(resolve, 0));
+
+  assert.equal(harness.state.appliedSettings.length, 1);
+  assert.equal(harness.state.resumedOnboardingStep, "team");
+  assert.equal(harness.state.finishOnboardingCalls, 0);
+}
+
+async function assertLateCompletedSettingsCloseFallbackOnboarding() {
+  const settings = deferred();
+  const harness = createInitializeHarness({
+    settingsPromise: settings.promise,
+    shouldRequireOnboarding: onboardingRequiredUntilComplete
+  });
+
+  await harness.initialize();
+  assert.equal(harness.state.onboardingOpenCalls, 1);
+
+  settings.resolve({
+    preferences: {
+      onboarding: { completedAt: "2026-07-31T08:00:00.000Z" }
+    }
+  });
+  await new Promise((resolve) => setTimeout(resolve, 0));
+
+  assert.equal(harness.state.appliedSettings.length, 1);
+  assert.equal(harness.state.finishOnboardingCalls, 1);
+  assert.equal(harness.context.onboardingActive, false);
+}
+
+async function assertLateSettingsCannotOverwriteNewerWrite() {
+  const settings = deferred();
+  const harness = createInitializeHarness({
+    settingsPromise: settings.promise,
+    shouldRequireOnboarding: onboardingRequiredUntilComplete
+  });
+
+  await harness.initialize();
+  harness.context.userSettingsWriteRevision += 1;
+  harness.context.userSettings = {
+    preferences: {
+      onboarding: { currentStep: "identity" }
+    }
+  };
+
+  settings.resolve({
+    preferences: {
+      onboarding: { completedAt: "2026-07-30T08:00:00.000Z" }
+    }
+  });
+  await new Promise((resolve) => setTimeout(resolve, 0));
+
+  assert.equal(harness.state.appliedSettings.length, 0);
+  assert.equal(harness.state.finishOnboardingCalls, 0);
+  assert.equal(harness.context.userSettings.preferences.onboarding.currentStep, "identity");
 }
 
 async function assertNonAuthFailuresStillRevealShell() {
@@ -281,14 +432,16 @@ async function assertNonAuthFailuresStillRevealShell() {
 
   await withDeadline(
     harness.finished,
-    "Die App-Shell blieb nach einem Nicht-Auth-Fehler verborgen."
+    "Die App-Shell blieb nach einem Nicht-Auth-Fehler verborgen.",
+    1000
   );
+  await initialization;
   assert.equal(harness.state.finishCalls, 1);
   assert.equal(harness.state.redirect, "");
   assert.equal(harness.state.loginCleared, false);
 
   settings.resolve();
-  await initialization;
+  await new Promise((resolve) => setTimeout(resolve, 0));
   assert.match(harness.state.storageStatus, /Keine geschützten Kontaktdaten verfügbar/u);
 }
 
@@ -330,6 +483,61 @@ async function assertStructuredForbiddenRedirects() {
   );
 }
 
+async function assertImmediateSettingsUnauthorizedRedirects() {
+  const settingsError = new Error("Anmeldung erforderlich.");
+  settingsError.status = 401;
+  settingsError.code = "AUTH_REQUIRED";
+  const harness = createInitializeHarness({
+    settingsPromise: Promise.reject(settingsError)
+  });
+
+  await harness.initialize();
+  assert.equal(harness.state.loginCleared, true);
+  assert.equal(harness.state.redirect, "/frontend/login/login.html");
+  assert.equal(harness.state.criticalLoadCalls, 0);
+  assert.equal(harness.state.finishCalls, 0);
+}
+
+async function assertLateSettingsForbiddenRedirects() {
+  const settings = deferred();
+  const settingsError = new Error("Zugriff verweigert.");
+  settingsError.status = 403;
+  settingsError.code = "API_HTTP_403";
+  const harness = createInitializeHarness({ settingsPromise: settings.promise });
+
+  await harness.initialize();
+  assert.equal(harness.state.finishCalls, 1);
+  settings.reject(settingsError);
+  await new Promise((resolve) => setTimeout(resolve, 0));
+
+  assert.equal(harness.state.loginCleared, false);
+  assert.equal(harness.state.redirect, "/#zugriff-verweigert");
+}
+
+async function assertKnownSettingsAuthFailureWinsOverProfileBackendFailure() {
+  const profile = deferred();
+  const settings = deferred();
+  const settingsError = new Error("Anmeldung erforderlich.");
+  settingsError.status = 401;
+  settingsError.code = "AUTH_REQUIRED";
+  const profileError = new Error("Profil vorübergehend nicht erreichbar.");
+  profileError.status = 503;
+  profileError.code = "API_HTTP_503";
+  const harness = createInitializeHarness({
+    profilePromise: profile.promise,
+    settingsPromise: settings.promise
+  });
+  const initialization = harness.initialize();
+
+  settings.reject(settingsError);
+  profile.reject(profileError);
+  await initialization;
+
+  assert.equal(harness.state.loginCleared, true);
+  assert.equal(harness.state.redirect, "/frontend/login/login.html");
+  assert.equal(harness.state.finishCalls, 0);
+}
+
 function assertPublicLoginBootstrapContract() {
   const expectedHref = 'href="/start"';
   assert.equal(
@@ -349,9 +557,17 @@ function assertPublicLoginBootstrapContract() {
 
 await assertApiRequestErrorContract();
 await assertSettingsDoNotBlockShell();
+await assertQuickSettingsKeepSkeletonUntilCriticalData();
+await assertSettingsFailuresFallBackWithoutDiscardingCoreData();
+await assertLateSettingsResumeOnboarding();
+await assertLateCompletedSettingsCloseFallbackOnboarding();
+await assertLateSettingsCannotOverwriteNewerWrite();
 await assertNonAuthFailuresStillRevealShell();
 await assertStructuredUnauthorizedRedirects();
 await assertStructuredForbiddenRedirects();
+await assertImmediateSettingsUnauthorizedRedirects();
+await assertLateSettingsForbiddenRedirects();
+await assertKnownSettingsAuthFailureWinsOverProfileBackendFailure();
 assertPublicLoginBootstrapContract();
 
 console.log("Login-Bootstrap- und Startzeit-Hotfix-Vertraege sind konsistent.");

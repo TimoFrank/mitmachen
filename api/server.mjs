@@ -839,6 +839,8 @@ const HOSPITATION_SLOT_INPUT_FIELDS = [
 ];
 const HOSPITATION_INPUT_FIELDS = [
   "id",
+  "contact",
+  "organization",
   "slotId",
   "slot_id",
   "contactId",
@@ -888,6 +890,7 @@ const HOSPITATION_INPUT_FIELDS = [
   "documentedBy",
   "documented_by"
 ];
+const HOSPITATION_ENTITY_REFERENCE_INPUT_FIELDS = ["mode", "id", "name"];
 const HOSPITATION_OBSERVATION_INPUT_FIELDS = [
   "title", "situation", "description", "observed", "processPhase", "process_phase",
   "problemType", "problem_type", "impact", "observationType", "observation_type",
@@ -4444,6 +4447,10 @@ async function acquireDuplicateGuardLocks(transaction, ...lockKeys) {
   }
 }
 
+function organizationDuplicateLockKey(name, scopeRef = "standard") {
+  return `versorgungs-kompass:duplicate-guard:organizations:${scopeRef}:${normalizeOrganizationName(name)}:v1`;
+}
+
 async function contactIdentityWithOrganization(transaction, contact = {}) {
   const organizationId = String(contact.organization_id || contact.organizationId || "").trim();
   if (!organizationId || contact.resolved_organization_name) return contact;
@@ -4454,7 +4461,8 @@ async function contactIdentityWithOrganization(transaction, contact = {}) {
             postal_code as resolved_organization_postal_code
        from organizations
       where id = $1
-      limit 1`,
+      limit 1
+      for share`,
     [organizationId]
   );
   return { ...contact, ...(result.rows[0] || {}) };
@@ -4466,7 +4474,9 @@ async function assertNoContactDuplicate(transaction, contact = {}, excludeId = "
     transaction,
     `select c.id, c.name, c.organization_id, c.organization, c.postal_code, c.city,
             c.email, c.phone, c.linkedin, c.owner_id, c.status,
-            c.mitmachen_consent_status, c.ehc_consent_status,
+            c.mitmachen_consent_status, c.mitmachen_consent_source,
+            c.ehc_consent_status, c.ehc_consent_effective_at, c.ehc_consent_source,
+            c.ehc_consent_text_version, c.ehc_consent_recorded_by, c.ehc_consent_note,
             coalesce((
               select array_agg(contact_owner.profile_id order by contact_owner.assigned_at)
                 from contact_owners contact_owner
@@ -4478,7 +4488,8 @@ async function assertNoContactDuplicate(transaction, contact = {}, excludeId = "
        from contacts c
        left join organizations o on o.id = c.organization_id
       where ($1::text = '' or c.id <> $1)
-      order by c.id asc`,
+      order by c.id asc
+      for share of c`,
     [String(excludeId || "")]
   );
   const visibleCandidates = result.rows.filter((candidate) => duplicateContactVisibleToRequest(request, candidate));
@@ -4507,14 +4518,11 @@ async function contactIdentityForHospitation(transaction, hospitation = {}) {
     const result = await databaseQuery(
       transaction,
       `select c.id, c.name, c.organization_id, c.organization, c.postal_code, c.city,
-              c.email, c.phone, c.linkedin,
-              o.name as resolved_organization_name,
-              o.city as resolved_organization_city,
-              o.postal_code as resolved_organization_postal_code
+              c.email, c.phone, c.linkedin
          from contacts c
-         left join organizations o on o.id = c.organization_id
         where c.id = $1
-        limit 1`,
+        limit 1
+        for share`,
       [contactId]
     );
     linkedContact = result.rows[0] || null;
@@ -4537,33 +4545,6 @@ async function contactIdentityForHospitation(transaction, hospitation = {}) {
     phone: linkedContact?.phone || "",
     linkedin: linkedContact?.linkedin || ""
   });
-}
-
-function contactIdentityFromHospitationCandidate(row = {}) {
-  return {
-    id: row.resolved_contact_id || row.contact_id || "",
-    name: row.resolved_contact_name || row.contact_name || "",
-    organization_id: row.resolved_contact_organization_id || row.hospitation_organization_id || "",
-    organization: row.resolved_contact_organization_name
-      || row.resolved_contact_organization
-      || row.resolved_hospitation_organization_name
-      || row.hospitation_organization_name
-      || "",
-    resolved_organization_name: row.resolved_contact_organization_name
-      || row.resolved_hospitation_organization_name
-      || "",
-    postal_code: row.resolved_contact_postal_code || "",
-    resolved_organization_postal_code: row.resolved_contact_organization_postal_code
-      || row.resolved_hospitation_organization_postal_code
-      || "",
-    city: row.resolved_contact_city || row.hospitation_city || "",
-    resolved_organization_city: row.resolved_contact_organization_city
-      || row.resolved_hospitation_organization_city
-      || "",
-    email: row.resolved_contact_email || "",
-    phone: row.resolved_contact_phone || "",
-    linkedin: row.resolved_contact_linkedin || ""
-  };
 }
 
 async function assertNoHospitationDuplicate(transaction, hospitation = {}, excludeId = "", request = null) {
@@ -4604,17 +4585,37 @@ async function assertNoHospitationDuplicate(transaction, hospitation = {}, exclu
        left join organizations ho on ho.id = h.organization_id
       where ${dateClause}
         and ($2::text = '' or h.id <> $2)
-      order by h.id asc`,
+      order by h.id asc
+      for share of h`,
     [scheduledOn || startsAt.toISOString(), String(excludeId || "")]
   );
-  const duplicate = result.rows.find((candidate) => {
-    const candidateContact = contactIdentityFromHospitationCandidate(candidate);
+  let duplicate = null;
+  for (const candidate of result.rows) {
+    if (candidate.contact_id) {
+      try {
+        await linkedContactVisibleToRequest(request, candidate.contact_id, transaction);
+      } catch (error) {
+        if (error?.status === 404) continue;
+        throw error;
+      }
+    }
+    const candidateContact = await contactIdentityForHospitation(transaction, {
+      contact_id: candidate.contact_id || null,
+      contact_name: candidate.contact_name || null,
+      organization_id: candidate.hospitation_organization_id || null,
+      organization_name: candidate.hospitation_organization_name || null,
+      city: candidate.hospitation_city || null
+    });
     const candidateHasContact = Boolean(canonicalDuplicatePersonName(candidateContact.name) || candidateContact.id);
-    if (incomingHasContact !== candidateHasContact) return false;
-    return incomingHasContact
+    if (incomingHasContact !== candidateHasContact) continue;
+    const matches = incomingHasContact
       ? contactsAreSameCanonicalIdentity(incomingContact, candidateContact)
       : organizationsAreSameCanonicalIdentity(incomingContact, candidateContact);
-  });
+    if (matches) {
+      duplicate = candidate;
+      break;
+    }
+  }
   if (duplicate) {
     throw duplicateConflict(
       "HOSPITATION_DUPLICATE",
@@ -4868,11 +4869,23 @@ async function loadContactOwnerRows(request, contactIds = [], transaction = null
   const ids = [...new Set(contactIds.map((id) => String(id || "").trim()).filter(Boolean))];
   if (!ids.length) return [];
   try {
+    if (transaction) {
+      const result = await databaseQuery(
+        transaction,
+        `select ${CONTACT_OWNER_FIELDS.map(qid).join(", ")}
+           from contact_owners
+          where contact_id = any($1::text[])
+          order by assigned_at asc
+          for share`,
+        [ids]
+      );
+      return result.rows || [];
+    }
     return await cloudSqlRest("contact_owners", request, new URLSearchParams({
       select: CONTACT_OWNER_FIELDS.join(","),
       contact_id: `in.(${ids.join(",")})`,
       order: "assigned_at.asc"
-    }), transaction ? { transaction } : {}) || [];
+    })) || [];
   } catch (error) {
     if (isMissingContactOwnersError(error)) {
       supportsContactOwners = false;
@@ -4905,11 +4918,17 @@ async function assertEhcContactAccess(request, contact = {}, { mutation = false,
 async function linkedContactVisibleToRequest(request, contactId = "", transaction = null) {
   const id = String(contactId || "").trim();
   if (!id) return null;
-  const rows = await cloudSqlRest("contacts", request, new URLSearchParams({
-    select: CONTACT_FIELDS.join(","),
-    id: `eq.${id}`,
-    limit: "1"
-  }), transaction ? { transaction } : {});
+  const rows = transaction
+    ? (await databaseQuery(
+      transaction,
+      "select * from contacts where id = $1 limit 1 for share",
+      [id]
+    )).rows
+    : await cloudSqlRest("contacts", request, new URLSearchParams({
+      select: CONTACT_FIELDS.join(","),
+      id: `eq.${id}`,
+      limit: "1"
+    }));
   const contact = rows?.[0];
   if (!contact || (isArchivedStatus(contact.status) && request.currentProfile?.role !== "admin")) {
     throw Object.assign(new Error("Kontakt wurde nicht gefunden."), { status: 404 });
@@ -6859,6 +6878,10 @@ async function createOrganization(request) {
   dbOrganization.created_by = userId;
   dbOrganization.updated_by = userId;
   const created = await withDomainTransaction(async (transaction) => {
+    await acquireDuplicateGuardLocks(
+      transaction,
+      organizationDuplicateLockKey(dbOrganization.normalized_name, testOnlyScopeRef(request) || "standard")
+    );
     const rows = await cloudSqlRest("organizations", request, new URLSearchParams({
       select: ORGANIZATION_FIELDS.join(",")
     }), {
@@ -6898,6 +6921,12 @@ async function patchOrganization(request, id) {
   dbPatch.updated_by = userId;
   dbPatch.updated_at = new Date().toISOString();
   const updated = await withDomainTransaction(async (transaction) => {
+    if (dbPatch.normalized_name) {
+      await acquireDuplicateGuardLocks(
+        transaction,
+        organizationDuplicateLockKey(dbPatch.normalized_name, testOnlyScopeRef(request) || "standard")
+      );
+    }
     await assertTestObjectScope(transaction, request, "organizations", id);
     const rows = await cloudSqlRest("organizations", request, new URLSearchParams({
       id: `eq.${id}`,
@@ -7811,17 +7840,23 @@ async function listHospitationSlots(request, url) {
   return { items };
 }
 
-async function getHospitationSlot(request, id) {
+async function getHospitationSlot(request, id, transaction = null) {
   await loadProfiles(request);
-  const rows = await cloudSqlRest("hospitation_slots", request, new URLSearchParams({
-    select: HOSPITATION_SLOT_FIELDS.join(","),
-    id: `eq.${id}`,
-    limit: "1"
-  }));
+  const rows = transaction
+    ? (await databaseQuery(
+      transaction,
+      "select * from hospitation_slots where id = $1 limit 1 for update",
+      [id]
+    )).rows
+    : await cloudSqlRest("hospitation_slots", request, new URLSearchParams({
+      select: HOSPITATION_SLOT_FIELDS.join(","),
+      id: `eq.${id}`,
+      limit: "1"
+    }));
   assertEntityVisible(request, rows?.[0], "Hospitations-Termin wurde nicht gefunden.");
   if (rows[0].contact_id) {
     try {
-      await linkedContactVisibleToRequest(request, rows[0].contact_id);
+      await linkedContactVisibleToRequest(request, rows[0].contact_id, transaction);
     } catch (error) {
       if (error?.status === 404) throw Object.assign(new Error("Hospitations-Termin wurde nicht gefunden."), { status: 404 });
       throw error;
@@ -7949,9 +7984,9 @@ function hospitationActivityEventKey(status = "", fallback = "hospitation.update
   }[normalizeHospitationStatus(status)] || fallback;
 }
 
-async function hydrateHospitationFromSlot(request, payload = {}) {
+async function hydrateHospitationFromSlot(request, payload = {}, transaction = null) {
   if (!payload.slot_id) return payload;
-  const slot = await getHospitationSlot(request, payload.slot_id);
+  const slot = await getHospitationSlot(request, payload.slot_id, transaction);
   return {
     ...payload,
     contact_id: payload.contact_id || slot.contactId || null,
@@ -8283,6 +8318,329 @@ async function getHospitation(request, id) {
   return hospitationToDto(rows[0]);
 }
 
+function normalizeHospitationEntityReference(reference, label) {
+  if (reference === null || typeof reference === "undefined") return null;
+  assertAllowedFields(reference, HOSPITATION_ENTITY_REFERENCE_INPUT_FIELDS, label);
+  const mode = String(reference.mode || "").trim();
+  if (mode === "existing") {
+    const id = String(reference.id || "").trim();
+    if (!id) throw validationError(`${label} benötigt eine ID.`);
+    return { mode, id, name: "" };
+  }
+  if (mode === "create") {
+    const name = String(reference.name || "").trim().replace(/\s+/g, " ");
+    if (!name) throw validationError(`${label} benötigt einen Namen.`);
+    return { mode, id: "", name };
+  }
+  throw validationError(`${label} benötigt den Modus "existing" oder "create".`);
+}
+
+function normalizeHospitationEntityReferences(rawInput = {}) {
+  return {
+    contact: normalizeHospitationEntityReference(rawInput.contact, "Kontakt"),
+    organization: normalizeHospitationEntityReference(rawInput.organization, "Organisation")
+  };
+}
+
+function withoutFlatHospitationEntityIdentity(payload = {}) {
+  const normalized = { ...payload };
+  delete normalized.contact_id;
+  delete normalized.contact_name;
+  delete normalized.organization_id;
+  delete normalized.organization_name;
+  return normalized;
+}
+
+function hospitationMutationLockKeys(references = null, request = null) {
+  const keys = [HOSPITATION_DUPLICATE_LOCK_KEY];
+  if (references?.contact?.mode === "create") keys.push(CONTACT_DUPLICATE_LOCK_KEY);
+  if (references?.organization?.mode === "create") {
+    keys.push(organizationDuplicateLockKey(references.organization.name, testOnlyScopeRef(request) || "standard"));
+  }
+  return keys;
+}
+
+function hospitationEntityAmbiguity(message) {
+  const error = new Error(message);
+  error.status = 409;
+  return error;
+}
+
+async function hospitationRowsInRequestScope(transaction, request, entityType, rows = []) {
+  const scopeRef = testOnlyScopeRef(request);
+  if (!rows.length) return rows;
+  const markers = await testAccessMarkerMap(entityType, rows.map((row) => row.id), transaction);
+  if (!scopeRef) return rows.filter((row) => !markers.has(row.id));
+  return rows
+    .filter((row) => markers.get(row.id) === scopeRef)
+    .map((row) => ({ ...row, _test_scope_ref: scopeRef }));
+}
+
+async function hospitationOrganizationById(request, organizationId, transaction) {
+  const rows = (await databaseQuery(
+    transaction,
+    "select * from organizations where id = $1 limit 1 for share",
+    [organizationId]
+  )).rows;
+  const organization = rows?.[0];
+  assertEntityVisible(request, organization, "Organisation wurde nicht gefunden.");
+  const scopeRef = testOnlyScopeRef(request);
+  if (scopeRef) {
+    await assertTestObjectScope(transaction, request, "organizations", organization.id);
+    return { ...organization, _test_scope_ref: scopeRef };
+  }
+  return organization;
+}
+
+async function hospitationOrganizationByName(request, name, transaction, excludeId = "") {
+  const normalizedName = normalizeOrganizationName(name);
+  const rows = (await databaseQuery(
+    transaction,
+    `select *
+       from organizations
+      where normalized_name = $1
+        and status <> 'archived'
+        and ($2::text = '' or id <> $2)
+      order by id asc
+      for share`,
+    [normalizedName, String(excludeId || "")]
+  )).rows || [];
+  const visibleRows = await hospitationRowsInRequestScope(transaction, request, "organizations", rows);
+  if (visibleRows.length > 1) {
+    throw hospitationEntityAmbiguity("Mehrere bestehende Organisationen haben diesen Namen. Bitte wähle die passende Organisation aus.");
+  }
+  return visibleRows[0] || null;
+}
+
+async function createHospitationOrganization(request, reference, payload, userId, transaction) {
+  const existing = await hospitationOrganizationByName(request, reference.name, transaction);
+  if (existing) return { row: existing, created: false };
+  const dbOrganization = organizationCreateToDb({
+    name: reference.name,
+    sector: payload.sector || "",
+    source: "Hospitationstermin",
+    status: "active"
+  });
+  dbOrganization.created_by = userId;
+  dbOrganization.updated_by = userId;
+  const rows = await cloudSqlRest("organizations", request, new URLSearchParams({
+    select: ORGANIZATION_FIELDS.join(",")
+  }), {
+    method: "POST",
+    headers: { prefer: "return=representation" },
+    body: dbOrganization,
+    transaction
+  });
+  if (!rows?.[0]) throw Object.assign(new Error("Organisation wurde nicht angelegt."), { status: 500 });
+  await registerTestAccessObject(transaction, request, "organizations", rows[0].id);
+  return {
+    row: { ...rows[0], _test_scope_ref: testOnlyScopeRef(request) },
+    created: true
+  };
+}
+
+async function hospitationContactCandidates(request, name, organization, transaction) {
+  const result = await databaseQuery(
+    transaction,
+    `select c.*,
+            coalesce((
+              select array_agg(contact_owner.profile_id order by contact_owner.assigned_at)
+                from contact_owners contact_owner
+               where contact_owner.contact_id = c.id
+            ), '{}'::text[]) as owner_ids
+       from contacts c
+      where lower(regexp_replace(btrim(c.name), '[[:space:]]+', ' ', 'g')) = $1
+        and lower(coalesce(c.status, 'active')) <> 'archived'
+      order by c.id asc
+      for share of c`,
+    [normalizeOrganizationName(name)]
+  );
+  const accessibleRows = [];
+  for (const row of result.rows) {
+    const ownerIds = await storedContactOwnerIds(request, row, transaction);
+    if (requestHasEhcContactAccess(request, row, ownerIds)) {
+      accessibleRows.push({ ...row, owner_ids: ownerIds });
+    }
+  }
+  let rows = accessibleRows;
+  rows = await hospitationRowsInRequestScope(transaction, request, "contacts", rows);
+  if (organization?.id) {
+    rows = rows.filter((row) => {
+      const organizationId = String(row.organization_id || "").trim();
+      if (organizationId) return organizationId === String(organization.id);
+      return normalizeOrganizationName(row.organization || "") === normalizeOrganizationName(organization.name || "");
+    });
+  }
+  if (rows.length > 1) {
+    throw hospitationEntityAmbiguity("Mehrere bestehende Kontakte haben diesen Namen. Bitte wähle den passenden Kontakt aus.");
+  }
+  return rows;
+}
+
+async function createHospitationContact(request, reference, organization, payload, userId, transaction) {
+  const existingRows = await hospitationContactCandidates(request, reference.name, organization, transaction);
+  if (existingRows[0]) {
+    return {
+      row: existingRows[0],
+      ownerIds: existingRows[0].owner_ids || await storedContactOwnerIds(request, existingRows[0], transaction),
+      created: false
+    };
+  }
+  const ownerId = String(payload.owner_id || userId).trim();
+  if (!profileCache.byId.has(ownerId)) throw validationError("Der ausgewählte Owner wurde nicht gefunden.");
+  const contactInput = {
+    name: reference.name,
+    organizationId: organization?.id || "",
+    organization: organization?.name || "",
+    category: payload.sector || organization?.sector || "",
+    priority: "Mittel",
+    ownerId,
+    sources: ["Hospitationstermin"],
+    status: "active"
+  };
+  assertTestOnlyContactInput(request, contactInput, {});
+  const ownerIds = ownerIdsFromContact(contactInput);
+  assertTestOnlyContactOwners(request, ownerIds);
+  const dbContact = contactCreateToDb(contactInput);
+  validateRelationshipBasis(dbContact);
+  validateMitmachenConsent(dbContact);
+  validateEhcConsent(dbContact);
+  dbContact.created_by = userId;
+  dbContact.updated_by = userId;
+  await assertTestContactParentScope(transaction, request, dbContact.organization_id);
+  await assertNoContactDuplicate(transaction, dbContact, "", request);
+  const rows = await cloudSqlRest("contacts", request, new URLSearchParams({
+    select: CONTACT_FIELDS.join(",")
+  }), {
+    method: "POST",
+    headers: { prefer: "return=representation" },
+    body: dbContact,
+    transaction
+  });
+  if (!rows?.[0]) throw Object.assign(new Error("Kontakt wurde nicht angelegt."), { status: 500 });
+  const row = rows[0];
+  await registerTestAccessObject(transaction, request, "contacts", row.id);
+  await cloudSqlRest("changes", request, new URLSearchParams(), {
+    method: "POST",
+    headers: { prefer: "return=minimal" },
+    body: {
+      contact_id: row.id,
+      action: "create",
+      field_name: null,
+      old_value: "",
+      new_value: row.name || row.id,
+      changed_by: userId
+    },
+    transaction
+  });
+  await replaceStoredContactOwners(request, row.id, [], ownerIds, userId, { log: false, transaction });
+  await recordActivityEventInternal(transaction, request, {
+    eventKey: "contact.created",
+    entityType: "contact",
+    entityId: row.id,
+    objectLabel: row.name,
+    originKey: "manual"
+  });
+  return {
+    row: { ...row, _test_scope_ref: testOnlyScopeRef(request) },
+    ownerIds,
+    created: true
+  };
+}
+
+async function resolveHospitationEntityReferences(request, rawInput, references, payload, current, userId, transaction) {
+  const hasContactReference = Object.prototype.hasOwnProperty.call(rawInput, "contact");
+  const hasOrganizationReference = Object.prototype.hasOwnProperty.call(rawInput, "organization");
+  const contactReference = references.contact;
+  const organizationReference = references.organization;
+  let organization = null;
+  let contact = null;
+  let contactOwnerIds = [];
+  let createdOrganization = false;
+  let createdContact = false;
+
+  if (organizationReference?.mode === "existing") {
+    organization = await hospitationOrganizationById(request, organizationReference.id, transaction);
+  } else if (organizationReference?.mode === "create") {
+    const resolved = await createHospitationOrganization(request, organizationReference, payload, userId, transaction);
+    organization = resolved.row;
+    createdOrganization = resolved.created;
+  }
+
+  if (contactReference?.mode === "existing") {
+    contact = await linkedContactVisibleToRequest(request, contactReference.id, transaction);
+    const scopeRef = testOnlyScopeRef(request);
+    if (scopeRef) {
+      await assertTestObjectScope(transaction, request, "contacts", contact.id);
+      contact = { ...contact, _test_scope_ref: scopeRef };
+    }
+    contactOwnerIds = await storedContactOwnerIds(request, contact, transaction);
+  } else if (contactReference?.mode === "create") {
+    const resolved = await createHospitationContact(request, contactReference, organization, payload, userId, transaction);
+    contact = resolved.row;
+    contactOwnerIds = resolved.ownerIds;
+    createdContact = resolved.created;
+  } else if (current?.contact_id) {
+    contact = await linkedContactVisibleToRequest(request, current.contact_id, transaction);
+    contactOwnerIds = await storedContactOwnerIds(request, contact, transaction);
+  }
+
+  const contactOrganizationId = String(contact?.organization_id || "").trim();
+  if (organization?.id && contactOrganizationId && contactOrganizationId !== String(organization.id)) {
+    throw validationError("Der ausgewählte Kontakt gehört zu einer anderen Organisation.");
+  }
+  const contactOrganizationName = normalizeOrganizationName(contact?.organization || "");
+  if (organization?.id && !contactOrganizationId && contactOrganizationName
+      && contactOrganizationName !== normalizeOrganizationName(organization.name)) {
+    throw validationError("Der ausgewählte Kontakt gehört zu einer anderen Organisation.");
+  }
+  if (!organization && contactOrganizationId) {
+    organization = await hospitationOrganizationById(request, contactOrganizationId, transaction);
+  }
+  if (!organization && contact?.organization) {
+    organization = await hospitationOrganizationByName(request, contact.organization, transaction);
+  }
+
+  if (hasContactReference && contactReference) {
+    payload.contact_id = contact?.id || null;
+    payload.contact_name = contact?.name || null;
+  }
+  if (organizationReference || contactReference) {
+    payload.organization_id = organization?.id || contact?.organization_id || null;
+    payload.organization_name = organization?.name || contact?.organization || null;
+  }
+
+  return {
+    request,
+    payload,
+    contact,
+    contactOwnerIds,
+    organization,
+    createdContact,
+    createdOrganization,
+    hasContactReference,
+    hasOrganizationReference,
+    includeResolvedContact: Boolean(contactReference)
+  };
+}
+
+function resolvedHospitationResponse(row, resolution = null) {
+  const dto = hospitationToDto(row);
+  if (!resolution) return dto;
+  return {
+    ...dto,
+    resolvedContact: resolution.includeResolvedContact && resolution.contact
+      ? projectContactForRequest(
+        resolution.request,
+        contactToDto(resolution.contact, 0, resolution.contactOwnerIds),
+        resolution.contact,
+        resolution.contactOwnerIds
+      )
+      : null,
+    resolvedOrganization: resolution.organization ? organizationToDto(resolution.organization, 0) : null
+  };
+}
+
 async function createHospitation(request) {
   const rawBody = await readValidatedJsonBody(request, HOSPITATION_INPUT_FIELDS, "Hospitation");
   await loadProfiles(request);
@@ -8292,20 +8650,37 @@ async function createHospitation(request) {
     error.status = 401;
     throw error;
   }
-  const payload = await hydrateHospitationFromSlot(request, hospitationToDb(rawBody, userId));
-  if (!payload.contact_id && !payload.contact_name && !payload.organization_id && !payload.organization_name && !payload.slot_id) {
-    const error = new Error("Hospitation benötigt Kontakt, Organisation oder Termin-Slot.");
-    error.status = 400;
-    throw error;
+  const nestedEntityContract = Object.prototype.hasOwnProperty.call(rawBody, "contact")
+    || Object.prototype.hasOwnProperty.call(rawBody, "organization");
+  if (nestedEntityContract && (!Object.prototype.hasOwnProperty.call(rawBody, "contact") || rawBody.contact === null)) {
+    throw validationError("Der verschachtelte Hospitationsvertrag benötigt einen Kontakt.");
   }
-  if (payload.contact_id) {
-    const contact = await linkedContactVisibleToRequest(request, payload.contact_id);
-    payload.contact_name = contact.name;
+  const nestedReferences = nestedEntityContract ? normalizeHospitationEntityReferences(rawBody) : null;
+  const initialPayload = hospitationToDb(rawBody, userId);
+  if (nestedEntityContract && !initialPayload.scheduled_on) {
+    throw validationError("Der verschachtelte Hospitationsvertrag benötigt einen Hospitationstag.");
   }
-  payload.created_by = userId;
-  payload.updated_by = userId;
-  const row = await withDomainTransaction(async (transaction) => {
-    await acquireDuplicateGuardLocks(transaction, HOSPITATION_DUPLICATE_LOCK_KEY);
+  const result = await withDomainTransaction(async (transaction) => {
+    await acquireDuplicateGuardLocks(transaction, ...hospitationMutationLockKeys(nestedReferences, request));
+    let payload = await hydrateHospitationFromSlot(request, { ...initialPayload }, transaction);
+    let resolution = null;
+    if (nestedEntityContract) {
+      payload = withoutFlatHospitationEntityIdentity(payload);
+      resolution = await resolveHospitationEntityReferences(request, rawBody, nestedReferences, payload, {}, userId, transaction);
+      payload = resolution.payload;
+    }
+    if (payload.contact_id) {
+      const contact = await linkedContactVisibleToRequest(request, payload.contact_id, transaction);
+      payload.contact_name = contact.name;
+    }
+    if (!payload.contact_id && !payload.contact_name && !payload.organization_id && !payload.organization_name && !payload.slot_id) {
+      throw validationError("Hospitation benötigt Kontakt, Organisation oder Termin-Slot.");
+    }
+    if (nestedEntityContract && !payload.contact_id) {
+      throw validationError("Der verschachtelte Hospitationsvertrag benötigt einen gültigen Kontakt.");
+    }
+    payload.created_by = userId;
+    payload.updated_by = userId;
     await assertNoHospitationDuplicate(transaction, payload, "", request);
     const rows = await cloudSqlRest("hospitations", request, new URLSearchParams({
       select: HOSPITATION_FIELDS.join(",")
@@ -8324,10 +8699,16 @@ async function createHospitation(request) {
       objectLabel: rows[0].title || rows[0].contact_name || rows[0].organization_name || "Hospitation",
       contactId: rows[0].contact_id || ""
     });
-    return rows[0];
+    return { row: rows[0], resolution };
   });
-  const dto = hospitationToDto(row);
-  return dto;
+  const response = resolvedHospitationResponse(result.row, result.resolution);
+  if (result.resolution?.createdOrganization && !testOnlyScopeRef(request) && response.resolvedOrganization) {
+    await notifyOrganizationChanged(request, response.resolvedOrganization, userId, "create");
+  }
+  if (result.resolution?.createdContact && !testOnlyScopeRef(request) && response.resolvedContact) {
+    await notifyContactCreated(request, response.resolvedContact, userId, {});
+  }
+  return response;
 }
 
 async function patchHospitation(request, id) {
@@ -8339,35 +8720,54 @@ async function patchHospitation(request, id) {
     error.status = 401;
     throw error;
   }
-  const previous = await getHospitation(request, id);
-  if (Object.prototype.hasOwnProperty.call(rawPatch, "status") &&
-      normalizeHospitationStatus(rawPatch.status) !== normalizeHospitationStatus(previous.status) &&
-      [normalizeHospitationStatus(rawPatch.status), normalizeHospitationStatus(previous.status)].includes("Archiviert") &&
-      request.currentProfile?.role !== "admin") {
-    throw Object.assign(new Error("Archivieren und Wiederherstellen ist nur fuer Admins erlaubt."), { status: 403 });
-  }
-  const payload = await hydrateHospitationFromSlot(request, hospitationPatchToDb(rawPatch));
-  if (payload.contact_id) {
-    const contact = await linkedContactVisibleToRequest(request, payload.contact_id);
-    payload.contact_name = contact.name;
-  }
-  if (normalizeHospitationStatus(rawPatch.status) === "Dokumentiert") {
-    if (!("documentedAt" in rawPatch) && !("documented_at" in rawPatch)) payload.documented_at = new Date().toISOString();
-    if (!("documentedBy" in rawPatch) && !("documented_by" in rawPatch)) payload.documented_by = userId;
-  }
-  payload.updated_by = userId;
-  payload.updated_at = new Date().toISOString();
-  const duplicateIdentityChanged = patchTouchesDuplicateIdentity(payload, HOSPITATION_DUPLICATE_IDENTITY_FIELDS);
-  const row = await withDomainTransaction(async (transaction) => {
+  const nestedEntityContract = Object.prototype.hasOwnProperty.call(rawPatch, "contact")
+    || Object.prototype.hasOwnProperty.call(rawPatch, "organization");
+  const nestedReferences = nestedEntityContract ? normalizeHospitationEntityReferences(rawPatch) : null;
+  const initialPayload = hospitationPatchToDb(rawPatch);
+  const result = await withDomainTransaction(async (transaction) => {
+    await acquireDuplicateGuardLocks(transaction, ...hospitationMutationLockKeys(nestedReferences, request));
+    const currentResult = await databaseQuery(
+      transaction,
+      "select * from public.hospitations where id = $1 for update",
+      [id]
+    );
+    const currentRow = currentResult.rows?.[0];
+    assertEntityVisible(request, currentRow, "Hospitation wurde nicht gefunden.");
+    if (currentRow.contact_id) {
+      try {
+        await linkedContactVisibleToRequest(request, currentRow.contact_id, transaction);
+      } catch (error) {
+        if (error?.status === 404) throw Object.assign(new Error("Hospitation wurde nicht gefunden."), { status: 404 });
+        throw error;
+      }
+    }
+    const previous = hospitationToDto(currentRow);
+    if (Object.prototype.hasOwnProperty.call(rawPatch, "status") &&
+        normalizeHospitationStatus(rawPatch.status) !== normalizeHospitationStatus(previous.status) &&
+        [normalizeHospitationStatus(rawPatch.status), normalizeHospitationStatus(previous.status)].includes("Archiviert") &&
+        request.currentProfile?.role !== "admin") {
+      throw Object.assign(new Error("Archivieren und Wiederherstellen ist nur fuer Admins erlaubt."), { status: 403 });
+    }
+    let payload = await hydrateHospitationFromSlot(request, { ...initialPayload }, transaction);
+    let resolution = null;
+    if (nestedEntityContract) {
+      payload = withoutFlatHospitationEntityIdentity(payload);
+      resolution = await resolveHospitationEntityReferences(request, rawPatch, nestedReferences, payload, currentRow, userId, transaction);
+      payload = resolution.payload;
+    }
+    if (payload.contact_id) {
+      const contact = await linkedContactVisibleToRequest(request, payload.contact_id, transaction);
+      payload.contact_name = contact.name;
+    }
+    if (normalizeHospitationStatus(rawPatch.status) === "Dokumentiert") {
+      if (!("documentedAt" in rawPatch) && !("documented_at" in rawPatch)) payload.documented_at = new Date().toISOString();
+      if (!("documentedBy" in rawPatch) && !("documented_by" in rawPatch)) payload.documented_by = userId;
+    }
+    payload.updated_by = userId;
+    payload.updated_at = new Date().toISOString();
+    const duplicateIdentityChanged = patchTouchesDuplicateIdentity(payload, HOSPITATION_DUPLICATE_IDENTITY_FIELDS);
     if (duplicateIdentityChanged) {
-      await acquireDuplicateGuardLocks(transaction, HOSPITATION_DUPLICATE_LOCK_KEY);
-      const currentRows = await cloudSqlRest("hospitations", request, new URLSearchParams({
-        id: `eq.${id}`,
-        select: HOSPITATION_FIELDS.join(","),
-        limit: "1"
-      }), { transaction });
-      if (!currentRows?.[0]) throw Object.assign(new Error("Hospitation wurde nicht gefunden."), { status: 404 });
-      await assertNoHospitationDuplicate(transaction, { ...currentRows[0], ...payload }, id, request);
+      await assertNoHospitationDuplicate(transaction, { ...currentRow, ...payload }, id, request);
     }
     const rows = await cloudSqlRest("hospitations", request, new URLSearchParams({
       id: `eq.${id}`,
@@ -8391,10 +8791,16 @@ async function patchHospitation(request, id) {
       objectLabel: rows[0].title || rows[0].contact_name || rows[0].organization_name || "Hospitation",
       contactId: rows[0].contact_id || ""
     });
-    return rows[0];
+    return { row: rows[0], resolution };
   });
-  const dto = hospitationToDto(row);
-  return dto;
+  const response = resolvedHospitationResponse(result.row, result.resolution);
+  if (result.resolution?.createdOrganization && !testOnlyScopeRef(request) && response.resolvedOrganization) {
+    await notifyOrganizationChanged(request, response.resolvedOrganization, userId, "create");
+  }
+  if (result.resolution?.createdContact && !testOnlyScopeRef(request) && response.resolvedContact) {
+    await notifyContactCreated(request, response.resolvedContact, userId, {});
+  }
+  return response;
 }
 
 async function deleteHospitation(request, id) {
@@ -9577,6 +9983,9 @@ async function patchContact(request, id) {
   let effectiveOldOwnerIds = oldOwnerIds;
 
   const updated = await withDomainTransaction(async (transaction) => {
+    if (duplicateIdentityChanged) {
+      await acquireDuplicateGuardLocks(transaction, CONTACT_DUPLICATE_LOCK_KEY);
+    }
     await assertTestObjectScope(transaction, request, "contacts", id);
     const currentResult = await databaseQuery(
       transaction,
@@ -9600,7 +10009,6 @@ async function patchContact(request, id) {
       : currentRow.organization_id;
     await assertTestContactParentScope(transaction, request, effectiveOrganizationId);
     if (duplicateIdentityChanged) {
-      await acquireDuplicateGuardLocks(transaction, CONTACT_DUPLICATE_LOCK_KEY);
       await assertNoContactDuplicate(transaction, { ...currentRow, ...dbPatch }, id, request);
     }
     const updateParams = new URLSearchParams({ id: `eq.${id}`, select: CONTACT_FIELDS.join(",") });
