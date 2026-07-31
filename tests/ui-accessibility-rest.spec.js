@@ -181,11 +181,10 @@ test("Experten-, Patienten- und Stakeholderlisten haben eine dynamische ARIA-Tab
     await expect(table).toHaveAttribute("aria-colcount", /[1-9]\d*/);
     await expect(table).toHaveAttribute("aria-rowcount", /[1-9]\d*/);
     await expect(table.locator(":scope > .thead")).toHaveAttribute("role", "row");
-    expect(await table.locator('[role="columnheader"]').count()).toBeGreaterThan(0);
-    const firstRow = table.locator('[role="row"]:has(> [role="cell"])').first();
-    await expect(firstRow).toBeAttached();
-    expect(await firstRow.locator('[role="cell"]').count()).toBeGreaterThan(0);
-    if ((page.viewportSize()?.width || 0) > 760) await expect(firstRow).toBeVisible();
+    await expect(table.locator(":scope > .thead > [role='columnheader']").first()).toBeAttached();
+    const firstCell = table.locator(":scope [role='cell']").first();
+    await expect(firstCell).toBeAttached();
+    if ((page.viewportSize()?.width || 0) > 760) await expect(firstCell).toBeVisible();
   };
 
   await assertSemanticTable("Expertenkreis-Kontakte");

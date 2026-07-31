@@ -114,7 +114,7 @@ Der Quellcode und die technische Dokumentation stehen unter der [Apache License 
 
 ## Aktueller Release
 
-- Version: [v0.21.0](https://github.com/TimoFrank/mitmachen/releases/tag/v0.21.0)
-- Stand: 24. Juli 2026
-- Kurznotiz: Versorgung erleben, Wissen teilen
+- Version: [v0.22.0](https://github.com/TimoFrank/mitmachen/releases/tag/v0.22.0)
+- Stand: 31. Juli 2026
+- Kurznotiz: Mehr Überblick. Mehr Verbindung.
 - Demo-Kanal: [GitHub Pages](https://timofrank.github.io/mitmachen/)

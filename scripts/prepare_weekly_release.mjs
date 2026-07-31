@@ -426,7 +426,7 @@ function releaseBlock({ version, date, title }, heading = "## Aktueller Release"
 }
 
 function updateReadme(source, release) {
-  const sectionPattern = /(## (?:\d+\.\s*)?Aktueller Release\n\n)[\s\S]*?(?=\n## )/;
+  const sectionPattern = /(## (?:\d+\.\s*)?Aktueller Release\n\n)[\s\S]*?(?=\n## |\s*$)/;
   if (sectionPattern.test(source)) {
     return source.replace(sectionPattern, (_match, heading) => releaseBlock(release, heading.trim()).trimEnd());
   }

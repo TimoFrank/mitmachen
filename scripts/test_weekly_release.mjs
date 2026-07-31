@@ -77,9 +77,12 @@ Datenschutzbereinigte Baseline.
 `);
   write("README.md", `# Fixture
 
-## Schnellstart
+## Aktueller Release
 
-Test.
+- Version: [v0.20.0](https://github.com/TimoFrank/mitmachen/releases/tag/v0.20.0)
+- Stand: 1. Juli 2026
+- Kurznotiz: Baseline
+- Demo-Kanal: [GitHub Pages](https://timofrank.github.io/mitmachen/)
 `);
   git(["add", "."]);
   git(["commit", "-m", "Privacy-clean baseline"]);
@@ -111,6 +114,7 @@ Test.
   assert(releaseNotes.includes("Bump @playwright/test"), "Abhängigkeitsupdates müssen technisch nachvollziehbar bleiben.");
   assert(releaseNotes.startsWith("# Mehr Überblick. Mehr Verbindung."), "Bereits verwendete Release-Titel müssen vermieden werden.");
   assert(read("README.md").includes("/releases/tag/v0.21.0"), "README-Link auf das Release fehlt.");
+  assert(read("README.md").match(/^## Aktueller Release$/gm)?.length === 1, "README darf nur einen aktuellen Release nennen.");
 
   const preparedDryRun = runGenerator(["--dry-run"]);
   assert(preparedDryRun.stdout.includes("Fortsetzen für v0.21.0"), "Ein vorbereiteter Arbeitsbaum muss im Dry-Run pruefbar bleiben.");
