@@ -500,7 +500,7 @@ async function fulfillJson(route, payload, status = 200, headers = {}) {
   });
 }
 
-function searchProtectedContent(fixture, query) {
+function searchProtectedContent(fixture, query, options = {}) {
   const needle = String(query || "").trim().toLocaleLowerCase("de");
   if (!needle) return [];
   const noteResults = fixture.contactNotes
@@ -509,7 +509,16 @@ function searchProtectedContent(fixture, query) {
   const attachmentResults = fixture.contactNoteAttachments
     .filter((attachment) => [attachment.file_name, attachment.fileName, attachment.description, attachment.extracted_text, attachment.extractedText].join(" ").toLocaleLowerCase("de").includes(needle))
     .map((attachment) => ({ contactId: attachment.contact_id || attachment.contactId, noteId: attachment.note_id || attachment.noteId, attachmentId: attachment.id, resultKind: "attachment", title: attachment.file_name || attachment.fileName, snippet: attachment.description || attachment.extracted_text || attachment.extractedText || "", occurredAt: attachment.uploaded_at || attachment.uploadedAt || NOW, rank: 1.2 }));
-  return [...attachmentResults, ...noteResults];
+  const items = [...attachmentResults, ...noteResults];
+  const seenContactIds = new Set();
+  const scopedItems = options.distinctContacts
+    ? items.filter((item) => {
+        if (seenContactIds.has(item.contactId)) return false;
+        seenContactIds.add(item.contactId);
+        return true;
+      })
+    : items;
+  return scopedItems.slice(0, Math.max(1, Math.min(Number(options.limit) || 40, 100)));
 }
 
 function activityEventKey(item = {}) {
@@ -755,7 +764,10 @@ export async function installProtectedBackend(page, fixture) {
       return;
     }
     if (method === "GET" && path === "/api/contact-content-search") {
-      await fulfillJson(route, collectionResponse(searchProtectedContent(fixture, url.searchParams.get("query") || url.searchParams.get("q"))));
+      await fulfillJson(route, collectionResponse(searchProtectedContent(fixture, url.searchParams.get("query") || url.searchParams.get("q"), {
+        limit: url.searchParams.get("limit"),
+        distinctContacts: url.searchParams.get("distinctContacts") === "true"
+      })));
       return;
     }
     const contactHistoryMatch = path.match(/^\/api\/contacts\/([^/]+)\/history$/);

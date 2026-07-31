@@ -664,7 +664,7 @@
     });
   }
 
-  function searchContactContent(query) {
+  function searchContactContent(query, options = {}) {
     const needle = String(query || "").trim().toLocaleLowerCase("de");
     if (!needle) return [];
     const notes = state.contactNotes
@@ -698,7 +698,16 @@
         occurredAt: attachment.uploadedAt || attachment.uploaded_at || NOW,
         rank: 1.2
       }));
-    return [...attachments, ...notes];
+    const items = [...attachments, ...notes];
+    const seenContactIds = new Set();
+    const scopedItems = options.distinctContacts
+      ? items.filter((item) => {
+          if (seenContactIds.has(item.contactId)) return false;
+          seenContactIds.add(item.contactId);
+          return true;
+        })
+      : items;
+    return scopedItems.slice(0, Math.max(1, Math.min(Number(options.limit) || 40, 100)));
   }
 
   function byteArrayFromBase64(value) {
@@ -895,7 +904,12 @@
       return json({ items: rows.slice(offset, offset + limit), nextOffset: Math.min(rows.length, offset + limit), hasMore: rows.length > offset + limit, nextCursor: null });
     }
     if (method === "GET" && path === "/api/contact-content-search") {
-      return json({ items: searchContactContent(url.searchParams.get("query") || url.searchParams.get("q")) });
+      return json({
+        items: searchContactContent(url.searchParams.get("query") || url.searchParams.get("q"), {
+          limit: url.searchParams.get("limit"),
+          distinctContacts: url.searchParams.get("distinctContacts") === "true"
+        })
+      });
     }
     const contactHistoryMatch = path.match(/^\/api\/contacts\/([^/]+)\/history$/);
     if (method === "GET" && contactHistoryMatch) {

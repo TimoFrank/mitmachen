@@ -1582,7 +1582,8 @@
       {
         const payload = await apiGet("/api/contact-content-search", {
           query: search,
-          limit: limit
+          limit: limit,
+          ...(options.distinctContacts === true ? { distinctContacts: "true" } : {})
         });
         return (payload.items || payload || []).map(normalizeContentSearchResult);
       }

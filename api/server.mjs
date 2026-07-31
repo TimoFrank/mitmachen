@@ -6346,6 +6346,7 @@ async function searchContactContent(request, url) {
   const query = String(url.searchParams.get("query") || "").trim();
   if (query.length < 2) return { items: [] };
   const limit = Math.max(1, Math.min(Number(url.searchParams.get("limit")) || 40, 100));
+  const distinctContacts = url.searchParams.get("distinctContacts") === "true";
   const includeArchived = request.currentProfile?.role === "admin";
   const canReadAllEhcContacts = roleRank(request.currentProfile?.role) >= roleRank("admin");
   const userId = userIdFromToken(request);
@@ -6415,8 +6416,17 @@ async function searchContactContent(request, url) {
              )
            )
          )
-     ) select * from ranked order by rank desc, occurred_at desc limit $5`,
-    [query, includeArchived, canReadAllEhcContacts, userId, limit]
+     ), scoped as (
+       select ranked.*,
+         row_number() over (partition by contact_id order by rank desc, occurred_at desc) as contact_result_number
+       from ranked
+     )
+     select contact_id, note_id, attachment_id, result_kind, title, snippet, occurred_at, rank
+     from scoped
+     where (not $6::boolean or contact_result_number = 1)
+     order by rank desc, occurred_at desc
+     limit $5`,
+    [query, includeArchived, canReadAllEhcContacts, userId, limit, distinctContacts]
   );
   return { items: result.rows.map(contentSearchResultToDto) };
 }
