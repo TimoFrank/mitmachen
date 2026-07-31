@@ -423,14 +423,14 @@ const identityPortalDocuments = [
   {
     relativePath: "public/auth/index.html",
     marker: "signin",
-    stylesheet: "/public/auth/assets/app.css?v=20260730-1",
-    script: "/public/auth/assets/app.js?v=20260730-1"
+    stylesheet: "/public/auth/assets/app.css?v=20260731-1",
+    script: "/public/auth/assets/app.js?v=20260731-1"
   },
   {
     relativePath: "public/auth/konto/passwort-festlegen/index.html",
     marker: "password",
-    stylesheet: "/public/auth/assets/action.css?v=20260730-1",
-    script: "/public/auth/assets/action.js?v=20260730-1"
+    stylesheet: "/public/auth/assets/action.css?v=20260731-1",
+    script: "/public/auth/assets/action.js?v=20260731-1"
   }
 ];
 for (const { relativePath, marker, stylesheet, script } of identityPortalDocuments) {

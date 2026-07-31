@@ -22,6 +22,9 @@ await build({
   platform: "browser",
   target: ["es2022"],
   jsx: "automatic",
+  loader: {
+    ".svg": "dataurl"
+  },
   minify: true,
   sourcemap: false,
   legalComments: "none",

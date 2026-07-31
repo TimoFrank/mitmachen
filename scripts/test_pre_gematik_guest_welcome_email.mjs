@@ -13,7 +13,10 @@ import {
 } from "./provision_pre_gematik_identity_platform_account.mjs";
 import {
   EXPECTED_PILOT_END,
+  WELCOME_EMAIL_BRAND_ASSET_SPECS,
   WELCOME_EMAIL_OPERATION,
+  WELCOME_EMAIL_SENDER_EMAIL,
+  WELCOME_EMAIL_SENDER_NAME,
   WELCOME_EMAIL_SUBJECT,
   executeWelcomeEmailRendering,
   loadProtectedBrandedSetPasswordLink,
@@ -99,8 +102,8 @@ for (const unsafeLink of [
 const rendered = await renderGuestWelcomeEmail({
   document,
   actionUrl,
-  senderName: "Versorgungs-Kompass Team",
-  senderEmail: "owner@example.invalid",
+  senderName: WELCOME_EMAIL_SENDER_NAME,
+  senderEmail: WELCOME_EMAIL_SENDER_EMAIL,
   pilotEnd: EXPECTED_PILOT_END,
   textTemplate,
   htmlTemplate
@@ -109,13 +112,34 @@ for (const [name, value] of Object.entries(rendered)) {
   assert.ok(value.trim().length > 0, `${name} darf nicht leer sein.`);
 }
 assert.equal(rendered.subject.trim(), WELCOME_EMAIL_SUBJECT);
-assert.match(rendered.text, /Du brauchst dafür kein Google-Konto/u);
+assert.match(rendered.text, /Ein zusätzliches Google-Konto ist nicht erforderlich/u);
+assert.match(rendered.text, /innerhalb von 60 Minuten/u);
 assert.match(rendered.text, /versorgungs-kompass\.de\/start/u);
-for (const body of [rendered.text, rendered.html, rendered.eml]) {
+assert.match(rendered.html, /Persönlichen Zugang einrichten/u);
+assert.match(rendered.html, /mso-padding-alt:16px 28px/u);
+assert.match(rendered.html, /Der persönliche Link kann nur einmal verwendet werden/u);
+assert.match(rendered.html, /<h1[^>]*>Willkommen<\/h1>/u);
+assert.doesNotMatch(rendered.html, /Willkommen im(?:<br>)?Versorgungs-Kompass/u);
+for (const label of ["Versorgung", "Stakeholder", "Hospitation", "Formate"]) {
+  assert.match(rendered.text, new RegExp(label, "u"));
+  assert.match(rendered.html, new RegExp(`>${label}<`, "u"));
+}
+const renderedBrandCids = [...rendered.html.matchAll(/<img src="cid:([^"]+)"/gu)]
+  .map((match) => match[1]);
+assert.equal(renderedBrandCids.length, 4);
+assert.equal(new Set(renderedBrandCids).size, 4);
+for (const [index, spec] of WELCOME_EMAIL_BRAND_ASSET_SPECS.entries()) {
+  assert.match(
+    renderedBrandCids[index],
+    new RegExp(`^${spec.cidPrefix}\\.[a-f0-9]{24}@versorgungs-kompass\\.de$`, "u")
+  );
+}
+for (const body of [rendered.text, rendered.html]) {
   assert.match(
     body,
-    /Gib dort deine E-Mail-Adresse und dein Passwort ein und wähle „Sicher anmelden“\./u
+    /Auf der #Mitmachen-Anmeldeseite gibst du deine E-Mail-Adresse und dein Passwort ein und wählst „Sicher anmelden“\./u
   );
+  assert.match(body, /#Mitmachen/u);
   assert.doesNotMatch(body, /Mit E-Mail und Passwort anmelden/u);
 }
 assert.equal(rendered.text.split(actionUrl).length - 1, 1);
@@ -127,9 +151,28 @@ assert.equal((rendered.html.match(/<a\s+href=/gu) || []).length, 1);
 assert.match(rendered.html, /Timo &lt;Test&gt; &amp; Co\./u);
 assert.doesNotMatch(rendered.html, /Timo <Test>/u);
 assert.match(rendered.eml, /Content-Type: multipart\/alternative/u);
+assert.match(rendered.eml, /Content-Type: multipart\/related/u);
 assert.match(rendered.eml, /Content-Type: text\/plain/u);
 assert.match(rendered.eml, /Content-Type: text\/html/u);
+assert.equal(
+  (rendered.eml.match(/Content-Transfer-Encoding: base64/gu) || []).length,
+  6
+);
+assert.equal((rendered.eml.match(/Content-Type: image\/png/gu) || []).length, 4);
+assert.equal(
+  (rendered.eml.match(/Content-Disposition: inline/gu) || []).length,
+  4
+);
+assert.match(
+  rendered.eml,
+  /Reply-To: <zugang@versorgungs-kompass\.de>/u
+);
 assert.match(rendered.eml, /To: <guest@example\.invalid>/u);
+assert.match(rendered.eml, /pre-gematik-guest-welcome-v3/u);
+assert.ok(
+  rendered.eml.split("\r\n").every((line) => Buffer.byteLength(line, "utf8") <= 998),
+  "EML-Zeilen muessen das SMTP-Limit einhalten."
+);
 for (const forbidden of [
   /firebase/iu,
   /steam-capsule/iu,
@@ -137,18 +180,19 @@ for (const forbidden of [
   /google cloud/iu,
   /<script/iu,
   /<form/iu,
-  /<img/iu,
+  /<svg/iu,
+  /data:/iu,
   /https?:\/\/example\.invalid/iu
 ]) {
-  assert.doesNotMatch(rendered.eml, forbidden);
+  assert.doesNotMatch(`${rendered.text}\n${rendered.html}`, forbidden);
 }
 
 await safeRejection(
   () => renderGuestWelcomeEmail({
     document,
     actionUrl,
-    senderName: "Versorgungs-Kompass Team",
-    senderEmail: "owner@example.invalid",
+    senderName: WELCOME_EMAIL_SENDER_NAME,
+    senderEmail: WELCOME_EMAIL_SENDER_EMAIL,
     pilotEnd: EXPECTED_PILOT_END,
     textTemplate: "",
     htmlTemplate
@@ -159,8 +203,8 @@ await safeRejection(
   () => renderGuestWelcomeEmail({
     document,
     actionUrl,
-    senderName: "Versorgungs-Kompass Team",
-    senderEmail: "owner@example.invalid",
+    senderName: WELCOME_EMAIL_SENDER_NAME,
+    senderEmail: WELCOME_EMAIL_SENDER_EMAIL,
     pilotEnd: EXPECTED_PILOT_END,
     textTemplate,
     htmlTemplate: htmlTemplate.replace(
@@ -168,14 +212,32 @@ await safeRejection(
       '<img src="https://tracker.example.invalid/pixel"></body>'
     )
   }),
-  /aktive Inhalte/u
+  /Signets|aktive Inhalte/u
 );
+for (const activeMarkup of [
+  '<svg onload="alert(1)"></svg>',
+  '<div style="background-image:url(data:text/plain,unsafe)">Unsicher</div>',
+  '<object data="cid:brand"></object>'
+]) {
+  await safeRejection(
+    () => renderGuestWelcomeEmail({
+      document,
+      actionUrl,
+      senderName: WELCOME_EMAIL_SENDER_NAME,
+      senderEmail: WELCOME_EMAIL_SENDER_EMAIL,
+      pilotEnd: EXPECTED_PILOT_END,
+      textTemplate,
+      htmlTemplate: htmlTemplate.replace("</body>", `${activeMarkup}</body>`)
+    }),
+    /aktive Inhalte/u
+  );
+}
 await safeRejection(
   () => renderGuestWelcomeEmail({
     document,
     actionUrl,
-    senderName: "Versorgungs-Kompass Team\r\nBcc: attacker@example.invalid",
-    senderEmail: "owner@example.invalid",
+    senderName: "Versorgungs-Kompass\r\nBcc: attacker@example.invalid",
+    senderEmail: WELCOME_EMAIL_SENDER_EMAIL,
     pilotEnd: EXPECTED_PILOT_END,
     textTemplate,
     htmlTemplate
@@ -186,20 +248,32 @@ await safeRejection(
   () => renderGuestWelcomeEmail({
     document,
     actionUrl,
-    senderName: "Versorgungs-Kompass Team",
-    senderEmail: "Owner@Example.invalid",
+    senderName: WELCOME_EMAIL_SENDER_NAME,
+    senderEmail: "Zugang@Versorgungs-Kompass.de",
     pilotEnd: EXPECTED_PILOT_END,
     textTemplate,
     htmlTemplate
   }),
   /kleingeschrieben/u
 );
+await safeRejection(
+  () => renderGuestWelcomeEmail({
+    document,
+    actionUrl,
+    senderName: WELCOME_EMAIL_SENDER_NAME,
+    senderEmail: "personal@example.invalid",
+    pilotEnd: EXPECTED_PILOT_END,
+    textTemplate,
+    htmlTemplate
+  }),
+  /freigegebenen #Mitmachen-Absender/u
+);
 
 const previewOptions = parseWelcomeEmailArguments([
   "--input", "/protected/account.json",
   "--link-file", "/protected/link.txt",
-  "--sender-name", "Versorgungs-Kompass Team",
-  "--sender-email", "owner@example.invalid",
+  "--sender-name", WELCOME_EMAIL_SENDER_NAME,
+  "--sender-email", WELCOME_EMAIL_SENDER_EMAIL,
   "--pilot-end", EXPECTED_PILOT_END
 ]);
 assert.equal(previewOptions.apply, false);
@@ -223,8 +297,8 @@ const applyOptions = parseWelcomeEmailArguments([
   "--input", path.join(temporaryRoot, "account.json"),
   "--link-file", linkFile,
   "--output-dir", outputDirectory,
-  "--sender-name", "Versorgungs-Kompass Team",
-  "--sender-email", "owner@example.invalid",
+  "--sender-name", WELCOME_EMAIL_SENDER_NAME,
+  "--sender-email", WELCOME_EMAIL_SENDER_EMAIL,
   "--pilot-end", EXPECTED_PILOT_END,
   "--apply",
   "--confirm-operation", WELCOME_EMAIL_OPERATION,

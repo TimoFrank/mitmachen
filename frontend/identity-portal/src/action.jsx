@@ -6,6 +6,11 @@ import {
   getAuth,
   verifyPasswordResetCode
 } from "firebase/auth";
+import mitmachenLockupUrl from "../../../public/brand/mitmachen/lockup-horizontal-on-dark.svg";
+import versorgungMarkUrl from "../../../public/brand/versorgungs-kompass/mark-on-dark.svg";
+import stakeholderMarkUrl from "../../../public/brand/modules/stakeholder/mark-on-dark.svg";
+import hospitationMarkUrl from "../../../public/brand/modules/hospitation/mark-on-dark.svg";
+import formateMarkUrl from "../../../public/brand/modules/formate/mark-on-dark.svg";
 import "./styles.css";
 import {
   assertProductionConfig,
@@ -22,6 +27,12 @@ import { InlineNotice, PortalShell } from "./shell.jsx";
 
 const root = createRoot(document.getElementById("root"));
 const initialActionHref = window.location.href;
+const COMPASS_BRANDS = Object.freeze([
+  { label: "Versorgung", logoSrc: versorgungMarkUrl },
+  { label: "Stakeholder", logoSrc: stakeholderMarkUrl },
+  { label: "Hospitation", logoSrc: hospitationMarkUrl },
+  { label: "Formate", logoSrc: formateMarkUrl }
+]);
 
 function getActionAuth(config) {
   assertSafeFirebaseDefaults();
@@ -253,11 +264,14 @@ function PasswordActionApp({
 
   return (
     <PortalShell
-      eyebrow="Willkommen"
-      title="Dein Zugang zum Versorgungs-Kompass"
-      intro="Lege einmalig dein persönliches Passwort fest. Danach kannst du dich direkt im geschützten Arbeitsbereich anmelden."
+      eyebrow="Geschützter Zugang"
+      title="Willkommen"
+      intro="Deine Plattform für Austausch, Wissen und Vernetzung."
       config={config}
       compact
+      variant="mitmachen"
+      senderLogoSrc={mitmachenLockupUrl}
+      compassBrands={COMPASS_BRANDS}
     >
       {content}
     </PortalShell>
@@ -282,11 +296,14 @@ function start() {
   } catch {
     root.render(
       <PortalShell
-        eyebrow="Versorgungs-Kompass"
+        eyebrow="Geschützter Zugang"
         title="Einladung nicht verfügbar"
         intro="Der sichere Einladungslink konnte gerade nicht geöffnet werden."
         config={config}
         compact
+        variant="mitmachen"
+        senderLogoSrc={mitmachenLockupUrl}
+        compassBrands={COMPASS_BRANDS}
       >
         <InlineNotice tone="error" title="Bitte versuche es später erneut.">
           Wenn das Problem bleibt, antworte bitte auf deine Einladungsmail.

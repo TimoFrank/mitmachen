@@ -9,18 +9,23 @@
       content="default-src 'none'; base-uri 'none'; object-src 'none'; script-src 'self' https://apis.google.com; style-src 'self'; img-src 'self' data:; connect-src 'self' https://iap.googleapis.com https://identitytoolkit.googleapis.com https://securetoken.googleapis.com https://www.googleapis.com; frame-src 'self'; frame-ancestors 'self'; form-action 'self'"
     >
     <meta name="color-scheme" content="light">
-    <title>Anmelden · Versorgungs-Kompass</title>
+    <title>Anmelden · Versorgungs-Kompass | #Mitmachen</title>
     <link rel="icon" href="/public/auth/brand/versorgungs-kompass.svg" type="image/svg+xml">
-    <link rel="stylesheet" href="/public/auth/assets/app.css?v=20260730-1">
+    <link rel="stylesheet" href="/public/auth/assets/app.css?v=20260731-1">
     <script src="/public/auth/portal-config.js" defer></script>
-    <script src="/public/auth/assets/app.js?v=20260730-1" defer></script>
+    <script src="/public/auth/assets/app.js?v=20260731-1" defer></script>
   </head>
   <body data-identity-portal="signin">
     <div id="root">
-      <main class="shell shell--loading">
-        <p class="status-line" role="status">Anmeldung wird vorbereitet …</p>
+      <main class="shell shell--loading shell--mitmachen">
+        <div class="loading-block">
+          <strong class="loading-sender"><span aria-hidden="true">#</span>Mitmachen</strong>
+          <p class="status-line" role="status">Anmeldung wird vorbereitet …</p>
+          <noscript>
+            <p class="loading-note">Für die sichere Anmeldung muss JavaScript aktiviert sein.</p>
+          </noscript>
+        </div>
       </main>
     </div>
-    <noscript>Für die sichere Anmeldung muss JavaScript aktiviert sein.</noscript>
   </body>
 </html>
