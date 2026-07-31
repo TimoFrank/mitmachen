@@ -144,6 +144,7 @@ assert.ok(
 );
 const identityProject = "steam-capsule-341212";
 const identityApiHost = "versorgungs-kompass.de";
+const identityIapAuthDomain = "iap.googleapis.com";
 const identityApiKey = `AIza${"A".repeat(35)}`;
 const lockedIdentityProjectConfig = {
   name: `projects/${identityProject}/config`,
@@ -179,7 +180,8 @@ const lockedIdentityProjectConfig = {
   },
   authorizedDomains: [
     `${identityProject}.firebaseapp.com`,
-    identityApiHost
+    identityApiHost,
+    identityIapAuthDomain
   ]
 };
 function verifyIdentityProjectConfig(config, loginPageHost = identityApiHost) {
@@ -199,7 +201,17 @@ function verifyIdentityProjectConfig(config, loginPageHost = identityApiHost) {
 assert.equal(
   verifyIdentityProjectConfig(lockedIdentityProjectConfig).status,
   0,
-  "Die exakt gepinnten Versorgungs-Kompass-/Firebase-Auth-Domains muessen akzeptiert werden."
+  "Die exakt gepinnten Versorgungs-Kompass-, Firebase- und IAP-Auth-Domains muessen akzeptiert werden."
+);
+assert.notEqual(
+  verifyIdentityProjectConfig({
+    ...lockedIdentityProjectConfig,
+    authorizedDomains: lockedIdentityProjectConfig.authorizedDomains.filter(
+      (domain) => domain !== identityIapAuthDomain
+    )
+  }).status,
+  0,
+  "Die fuer den External-IAP-Flow erforderliche Domain iap.googleapis.com darf nicht fehlen."
 );
 assert.notEqual(
   verifyIdentityProjectConfig({
@@ -219,7 +231,7 @@ assert.notEqual(
 );
 assert.match(
   identityPlatformTerraform,
-  /identity_platform_authorized_domains = sort\(\[\s*var\.IDENTITY_PLATFORM_AUTHORIZED_HOSTNAME,\s*"\$\{var\.GCP_PROJECT_ID\}\.firebaseapp\.com",\s*\]\)/u
+  /identity_platform_authorized_domains = sort\(\[\s*var\.IDENTITY_PLATFORM_AUTHORIZED_HOSTNAME,\s*"\$\{var\.GCP_PROJECT_ID\}\.firebaseapp\.com",\s*"iap\.googleapis\.com",\s*\]\)/u
 );
 assert.doesNotMatch(identityPlatformTerraform, /setunion/u);
 assert.doesNotMatch(identityPlatformTerraform, /var\.PUBLIC_HOSTNAME/u);

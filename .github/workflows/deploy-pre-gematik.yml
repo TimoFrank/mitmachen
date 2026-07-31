@@ -714,10 +714,10 @@ jobs:
               ($login_page_host == $api_host) and
               (
                 (.authorizedDomains // [] | sort)
-                == ([$api_host, ($project + ".firebaseapp.com")] | unique | sort)
+                == ([$api_host, ($project + ".firebaseapp.com"), "iap.googleapis.com"] | unique | sort)
               )
             ' "$project_config" >/dev/null; then
-            echo "Identity Platform is not locked to the exact Versorgungs-Kompass/Firebase auth domains, improved email privacy, the pinned Web API key, and admin-created email/password users without MFA, phone, anonymous, duplicates, deletion, or tenants." >&2
+            echo "Identity Platform is not locked to the exact Versorgungs-Kompass, Firebase, and IAP auth domains, improved email privacy, the pinned Web API key, and admin-created email/password users without MFA, phone, anonymous, duplicates, deletion, or tenants." >&2
             exit 1
           fi
           canonical_password_policy="$(jq --compact-output --sort-keys '

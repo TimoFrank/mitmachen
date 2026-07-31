@@ -202,6 +202,13 @@ Identity Platform wird im selben Projekt wie IAP aktiviert. Projektweit werden
 ausschließlich Google und E-Mail/Passwort eingeschaltet. Multi-Tenancy wird
 nicht aktiviert.
 
+`authorizedDomains` ist als exakte, nicht erweiterbare Menge auf
+`versorgungs-kompass.de`,
+`steam-capsule-341212.firebaseapp.com` und `iap.googleapis.com` gepinnt. Die
+Firebase-Domain bleibt der technische OAuth-Handler; `iap.googleapis.com` ist
+für den External-IAP-Anmeldefluss erforderlich. Eine fehlende oder zusätzliche
+Domain stoppt den Deployment-Preflight fail-closed.
+
 In den Identity-Platform-Einstellungen werden die Nutzeraktionen
 `account creation` und `account deletion` deaktiviert. Dadurch führen
 Clientversuche zur Kontoerstellung oder -löschung fail-closed zu
@@ -710,6 +717,9 @@ nicht durch spontane Konto-, IAM- oder Binding-Erweiterungen repariert.
 - [ ] Beide Backend-Audiences werden unabhängig geprüft.
 - [ ] `IAP_GCIP_PROJECT_ID` entspricht dem IAP-/Identity-Platform-Projekt und
   `IAP_GCIP_TENANT_ID` ist leer.
+- [ ] `authorizedDomains` entspricht exakt `versorgungs-kompass.de`,
+  `steam-capsule-341212.firebaseapp.com` und `iap.googleapis.com`; es fehlt
+  keine und es ist keine weitere Domain freigegeben.
 - [ ] `emailPrivacyConfig.enableImprovedEmailPrivacy=true` ist read-only
   bestätigt.
 - [ ] `IAP_EXTERNAL_LOGIN_PAGE_URI` entspricht exakt
