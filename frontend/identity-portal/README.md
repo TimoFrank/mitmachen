@@ -95,7 +95,7 @@ Die HTML-Dateien und `portal-config.js` sollten `Cache-Control: no-store`
 erhalten. Zusätzlich:
 
 ```text
-Content-Security-Policy: default-src 'none'; base-uri 'none'; object-src 'none'; script-src 'self'; style-src 'self'; img-src 'self' data:; connect-src 'self' https://identitytoolkit.googleapis.com https://securetoken.googleapis.com https://www.googleapis.com; frame-src 'self' https://accounts.google.com; frame-ancestors 'self'; form-action 'self'
+Content-Security-Policy: default-src 'none'; base-uri 'none'; object-src 'none'; script-src 'self' https://apis.google.com; style-src 'self'; img-src 'self' data:; connect-src 'self' https://iap.googleapis.com https://identitytoolkit.googleapis.com https://securetoken.googleapis.com https://www.googleapis.com; frame-src 'self'; frame-ancestors 'self'; form-action 'self'
 Cross-Origin-Opener-Policy: same-origin-allow-popups
 Permissions-Policy: camera=(), geolocation=(), microphone=(), payment=()
 Referrer-Policy: no-referrer
@@ -106,7 +106,10 @@ Der Session-Refresher von IAP kann die Auth-Seite gleichursprünglich in einem
 Iframe laden; deshalb sind `frame-ancestors 'self'` und der kanonische
 gleichursprüngliche Auth-Helper in `frame-src 'self'` vorgesehen. Ein
 Firebase-/GCP-Projekthost gehört nicht in die browserseitige Konfiguration oder
-CSP.
+CSP. Der Google-Popup-Resolver des Firebase-SDK lädt seinen Bootstrap und die
+nachgeladenen GAPI-Module ausschließlich vom Origin
+`https://apis.google.com`; deshalb ist genau dieser Script-Origin, nicht aber
+ein Wildcard- oder Inline-Script, freigegeben.
 
 Proxy- und CDN-Zugriffslogs für `/konto/passwort-festlegen/` müssen
 Query-Strings ausblenden:
