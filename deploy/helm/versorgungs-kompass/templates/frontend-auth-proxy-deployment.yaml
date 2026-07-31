@@ -1,0 +1,91 @@
+{{- if and .Values.frontend.enabled .Values.frontend.authProxy.enabled -}}
+{{- $podAnnotations := deepCopy (.Values.frontend.authProxy.podAnnotations | default dict) -}}
+{{- $_ := set $podAnnotations "checksum/frontend-auth-proxy-nginx" (include (print $.Template.BasePath "/frontend-auth-proxy-configmap.yaml") . | sha256sum) -}}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "versorgungs-kompass.frontendAuthProxyFullname" . }}
+  labels:
+    {{- include "versorgungs-kompass.labels" . | nindent 4 }}
+spec:
+  replicas: {{ .Values.frontend.authProxy.replicaCount }}
+  minReadySeconds: 5
+  progressDeadlineSeconds: 600
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: {{ .Values.rollout.maxUnavailable }}
+      maxSurge: {{ .Values.rollout.maxSurge }}
+  selector:
+    matchLabels:
+      {{- include "versorgungs-kompass.frontendAuthProxySelectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "versorgungs-kompass.frontendAuthProxySelectorLabels" . | nindent 8 }}
+      annotations:
+        {{- toYaml $podAnnotations | nindent 8 }}
+    spec:
+      automountServiceAccountToken: {{ .Values.frontend.authProxy.serviceAccount.automountServiceAccountToken }}
+      enableServiceLinks: false
+      serviceAccountName: {{ include "versorgungs-kompass.frontendAuthProxyServiceAccountName" . }}
+      terminationGracePeriodSeconds: {{ .Values.terminationGracePeriodSeconds }}
+      securityContext:
+        {{- toYaml .Values.frontend.authProxy.podSecurityContext | nindent 8 }}
+      containers:
+        - name: nginx
+          image: {{ .Values.frontend.authProxy.image | quote }}
+          imagePullPolicy: {{ .Values.frontend.authProxy.imagePullPolicy }}
+          ports:
+            - name: auth-http
+              containerPort: 8080
+              protocol: TCP
+          readinessProbe:
+            httpGet:
+              path: /_healthz
+              port: auth-http
+            initialDelaySeconds: 2
+            periodSeconds: 10
+            timeoutSeconds: 3
+            failureThreshold: 3
+          livenessProbe:
+            httpGet:
+              path: /_healthz
+              port: auth-http
+            initialDelaySeconds: 10
+            periodSeconds: 30
+            timeoutSeconds: 3
+            failureThreshold: 3
+          resources:
+            {{- toYaml .Values.frontend.authProxy.resources | nindent 12 }}
+          securityContext:
+            {{- toYaml .Values.frontend.authProxy.securityContext | nindent 12 }}
+          volumeMounts:
+            - name: frontend-auth-proxy-nginx
+              mountPath: /etc/nginx/conf.d/default.conf
+              subPath: default.conf
+              readOnly: true
+            - name: frontend-auth-proxy-runtime
+              mountPath: /tmp
+      topologySpreadConstraints:
+        - maxSkew: 1
+          topologyKey: topology.kubernetes.io/zone
+          whenUnsatisfiable: ScheduleAnyway
+          labelSelector:
+            matchLabels:
+              {{- include "versorgungs-kompass.frontendAuthProxySelectorLabels" . | nindent 14 }}
+        - maxSkew: 1
+          topologyKey: kubernetes.io/hostname
+          whenUnsatisfiable: ScheduleAnyway
+          labelSelector:
+            matchLabels:
+              {{- include "versorgungs-kompass.frontendAuthProxySelectorLabels" . | nindent 14 }}
+      volumes:
+        - name: frontend-auth-proxy-nginx
+          configMap:
+            name: {{ include "versorgungs-kompass.frontendAuthProxyFullname" . }}-nginx
+            defaultMode: 0444
+        - name: frontend-auth-proxy-runtime
+          emptyDir:
+            sizeLimit: 64Mi
+{{- end }}

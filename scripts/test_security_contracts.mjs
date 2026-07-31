@@ -373,6 +373,10 @@ const helmSource = [
   configMapSource,
   read("deploy/helm/versorgungs-kompass/templates/deployment.yaml"),
   read("deploy/helm/versorgungs-kompass/templates/frontend-deployment.yaml"),
+  read("deploy/helm/versorgungs-kompass/templates/frontend-auth-proxy-deployment.yaml"),
+  read("deploy/helm/versorgungs-kompass/templates/frontend-auth-proxy-serviceaccount.yaml"),
+  read("deploy/helm/versorgungs-kompass/templates/frontend-auth-proxy-backendconfig.yaml"),
+  read("deploy/helm/versorgungs-kompass/files/frontend-auth-proxy.conf"),
   read("deploy/helm/versorgungs-kompass/templates/frontend-nginx-configmap.yaml"),
   frontendNginxSource,
   read("deploy/helm/versorgungs-kompass/templates/networkpolicy.yaml"),
@@ -422,6 +426,16 @@ assert.doesNotMatch(
   helmSource,
   /AUTH_(?:EMAIL|SUBJECT)_HEADER|auth(?:Email|Subject)Header/,
   "Produktive Helm-Artefakte duerfen keine unsignierten Identity-Header konfigurieren."
+);
+assert.match(
+  helmSource,
+  /location \^~ \/__\/auth\/[\s\S]*limit_except GET HEAD POST[\s\S]*proxy_pass_request_headers off;[\s\S]*proxy_ssl_verify on;[\s\S]*proxy_set_header Authorization "";[\s\S]*proxy_set_header Cookie "";[\s\S]*proxy_pass https:\/\/steam-capsule-341212\.firebaseapp\.com;/,
+  "Der oeffentliche Auth-Helper muss methodenbegrenzt, TLS-verifiziert, credentialfrei und auf einen festen Upstream gepinnt sein."
+);
+assert.match(
+  helmSource,
+  /logging:[\s\S]*enable: false[\s\S]*iap:[\s\S]*enabled: false/,
+  "Das dedizierte Auth-Helper-Backend muss IAP- und zugriffslogfrei bleiben."
 );
 assert.match(
   configMapSource,

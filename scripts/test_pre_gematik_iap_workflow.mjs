@@ -656,6 +656,10 @@ const validUrlMap = {
           service: "https://www.googleapis.com/compute/v1/projects/p/global/backendServices/public"
         },
         {
+          paths: ["/__/auth/*"],
+          service: "https://www.googleapis.com/compute/v1/projects/p/global/backendServices/auth-proxy"
+        },
+        {
           paths: ["/api", "/api/*"],
           service: "https://www.googleapis.com/compute/v1/projects/p/global/backendServices/api"
         },
@@ -781,6 +785,63 @@ assert.notEqual(
   verifyUrlMap(topLevelPublicDefaultMap).status,
   0,
   "Der URL-Map-Prueffilter muss auch ein top-level oeffentliches defaultService ablehnen."
+);
+
+const authUrlMapFilter = iapScript.match(
+  /--arg auth_proxy_suffix "\/backendServices\/\$\{auth_proxy_backend\}" '([\s\S]*?)' <<< "\$url_map_state"/
+)?.[1];
+assert.ok(
+  authUrlMapFilter,
+  "Der Live-Auth-Helper-URL-Map-Prueffilter fehlt oder ist nicht eindeutig begrenzt."
+);
+function verifyAuthUrlMap(value) {
+  return spawnSync(
+    "jq",
+    [
+      "--exit-status",
+      "--arg", "canonical_host", "versorgungs-kompass.de",
+      "--arg", "auth_proxy_suffix", "/backendServices/auth-proxy",
+      authUrlMapFilter
+    ],
+    { input: JSON.stringify(value), encoding: "utf8" }
+  );
+}
+assert.equal(
+  verifyAuthUrlMap(validUrlMap).status,
+  0,
+  "Der Auth-Helper-URL-Map-Filter muss ausschließlich den kanonischen Prefix akzeptieren."
+);
+const widenedAuthMap = structuredClone(validUrlMap);
+widenedAuthMap.pathMatchers[0].pathRules[1].paths.push("/__/firebase/*");
+assert.notEqual(
+  verifyAuthUrlMap(widenedAuthMap).status,
+  0,
+  "Der Auth-Helper-URL-Map-Filter muss einen verbreiterten Pfad fail-closed ablehnen."
+);
+const aliasAuthMap = structuredClone(validUrlMap);
+aliasAuthMap.pathMatchers[1].pathRules.push({
+  paths: ["/__/auth/*"],
+  service: "https://www.googleapis.com/compute/v1/projects/p/global/backendServices/auth-proxy"
+});
+assert.notEqual(
+  verifyAuthUrlMap(aliasAuthMap).status,
+  0,
+  "Der Auth-Helper darf nicht auf einem getrennten Alias-Matcher erscheinen."
+);
+const sharedAuthMatcherMap = structuredClone(validUrlMap);
+sharedAuthMatcherMap.hostRules[1].pathMatcher = "canonical";
+assert.notEqual(
+  verifyAuthUrlMap(sharedAuthMatcherMap).status,
+  0,
+  "Der kanonische Auth-Helper-Matcher darf mit keinem Alias-Host geteilt werden."
+);
+const authDefaultMap = structuredClone(validUrlMap);
+authDefaultMap.pathMatchers[0].defaultService =
+  "https://www.googleapis.com/compute/v1/projects/p/global/backendServices/auth-proxy";
+assert.notEqual(
+  verifyAuthUrlMap(authDefaultMap).status,
+  0,
+  "Das Auth-Helper-Backend darf kein defaultService sein."
 );
 assert.match(iapScript, /\) == \["\/\*"\]/);
 assert.match(iapScript, /\) == \["\/api", "\/api\/\*"\]/);

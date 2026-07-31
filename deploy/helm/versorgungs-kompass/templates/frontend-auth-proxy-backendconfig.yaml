@@ -1,0 +1,23 @@
+{{- if and .Values.frontend.enabled .Values.frontend.authProxy.enabled -}}
+apiVersion: cloud.google.com/v1
+kind: BackendConfig
+metadata:
+  name: {{ include "versorgungs-kompass.frontendAuthProxyBackendConfigName" . }}
+  labels:
+    {{- include "versorgungs-kompass.labels" . | nindent 4 }}
+    app.kubernetes.io/component: frontend-auth-proxy
+spec:
+  timeoutSec: {{ .Values.frontend.authProxy.backendConfig.timeoutSec }}
+  logging:
+    enable: false
+  healthCheck:
+    type: "HTTP"
+    requestPath: {{ .Values.frontend.authProxy.backendConfig.healthCheck.requestPath | quote }}
+    port: {{ .Values.frontend.authProxy.backendConfig.healthCheck.port }}
+    checkIntervalSec: {{ .Values.frontend.authProxy.backendConfig.healthCheck.checkIntervalSec }}
+    timeoutSec: {{ .Values.frontend.authProxy.backendConfig.healthCheck.timeoutSec }}
+    healthyThreshold: {{ .Values.frontend.authProxy.backendConfig.healthCheck.healthyThreshold }}
+    unhealthyThreshold: {{ .Values.frontend.authProxy.backendConfig.healthCheck.unhealthyThreshold }}
+  iap:
+    enabled: false
+{{- end }}

@@ -46,6 +46,10 @@ export function assertProductionConfig(config) {
     throw new Error("Die Identity-Platform-Konfiguration ist unvollständig.");
   }
 
+  if (firebase.authDomain !== "versorgungs-kompass.de") {
+    throw new Error("Die Anmeldedomain entspricht nicht dem kanonischen Portal.");
+  }
+
   if (!Array.isArray(config.allowedContinueOrigins) || config.allowedContinueOrigins.length === 0) {
     throw new Error("Es ist kein zulässiges Weiterleitungsziel konfiguriert.");
   }

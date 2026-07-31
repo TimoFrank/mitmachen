@@ -37,5 +37,19 @@ spec:
     matchLabels:
       {{- include "versorgungs-kompass.frontendPublicSelectorLabels" . | nindent 6 }}
 {{- end }}
+{{- if .Values.frontend.authProxy.enabled }}
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: {{ include "versorgungs-kompass.frontendAuthProxyFullname" . }}
+  labels:
+    {{- include "versorgungs-kompass.labels" . | nindent 4 }}
+spec:
+  minAvailable: {{ .Values.podDisruptionBudget.minAvailable }}
+  selector:
+    matchLabels:
+      {{- include "versorgungs-kompass.frontendAuthProxySelectorLabels" . | nindent 6 }}
+{{- end }}
 {{- end }}
 {{- end }}

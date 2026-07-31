@@ -801,7 +801,7 @@ try {
   assert.match(targetIdentitySigninHtml, /data-identity-portal="signin"/);
   assert.match(targetIdentityPasswordHtml, /data-identity-portal="password"/);
   assert.match(targetIdentityConfig, new RegExp(`apiKey:\\s*"${identityPlatformApiKey}"`));
-  assert.match(targetIdentityConfig, /authDomain:\s*"steam-capsule-341212\.firebaseapp\.com"/);
+  assert.match(targetIdentityConfig, /authDomain:\s*"versorgungs-kompass\.de"/);
   assert.match(targetIdentityConfig, /projectId:\s*"steam-capsule-341212"/);
   assert.match(
     targetIdentityConfig,

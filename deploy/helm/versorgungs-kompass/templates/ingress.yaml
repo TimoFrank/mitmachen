@@ -12,6 +12,13 @@
 {{- if and .Values.frontend.publicEntry.enabled (not .Values.frontend.enabled) -}}
 {{- fail "frontend.enabled must be true when frontend.publicEntry.enabled is true" -}}
 {{- end -}}
+{{- if and .Values.frontend.authProxy.enabled (not .Values.frontend.enabled) -}}
+{{- fail "frontend.enabled must be true when frontend.authProxy.enabled is true" -}}
+{{- end -}}
+{{- $authProxyCanonicalHost := "versorgungs-kompass.de" -}}
+{{- if and .Values.frontend.authProxy.enabled (not (or (eq .Values.ingress.host $authProxyCanonicalHost) (has $authProxyCanonicalHost $aliasHosts))) -}}
+{{- fail "frontend.authProxy requires versorgungs-kompass.de as ingress.host or ingress.aliasHosts" -}}
+{{- end -}}
 {{- $redirectHosts := dict -}}
 {{- range $hostRedirects -}}
 {{- if eq .host $.Values.ingress.host -}}
@@ -83,6 +90,15 @@ spec:
     - host: {{ $host | quote }}
       http:
         paths:
+          {{- if and $.Values.frontend.authProxy.enabled (eq $host $authProxyCanonicalHost) }}
+          - path: /__/auth/
+            pathType: Prefix
+            backend:
+              service:
+                name: {{ include "versorgungs-kompass.frontendAuthProxyFullname" $ }}
+                port:
+                  name: http
+          {{- end }}
           {{- if and $.Values.frontend.publicEntry.enabled (or (eq $host $.Values.ingress.host) (hasKey $publicRootAliasHostSet $host)) }}
           - path: /
             pathType: Exact

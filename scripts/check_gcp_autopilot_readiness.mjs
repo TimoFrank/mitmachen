@@ -44,6 +44,12 @@ const requiredFiles = [
   "deploy/helm/versorgungs-kompass/templates/frontend-public-deployment.yaml",
   "deploy/helm/versorgungs-kompass/templates/frontend-public-serviceaccount.yaml",
   "deploy/helm/versorgungs-kompass/templates/frontend-public-service.yaml",
+  "deploy/helm/versorgungs-kompass/files/frontend-auth-proxy.conf",
+  "deploy/helm/versorgungs-kompass/templates/frontend-auth-proxy-backendconfig.yaml",
+  "deploy/helm/versorgungs-kompass/templates/frontend-auth-proxy-configmap.yaml",
+  "deploy/helm/versorgungs-kompass/templates/frontend-auth-proxy-deployment.yaml",
+  "deploy/helm/versorgungs-kompass/templates/frontend-auth-proxy-serviceaccount.yaml",
+  "deploy/helm/versorgungs-kompass/templates/frontend-auth-proxy-service.yaml",
   "deploy/helm/versorgungs-kompass/templates/frontend-serviceaccount.yaml",
   "deploy/helm/versorgungs-kompass/templates/frontend-service.yaml",
   "deploy/helm/versorgungs-kompass/files/frontend-public.conf",
@@ -147,7 +153,7 @@ const contentChecks = [
       /\/konto\/passwort-festlegen/,
       /\/public\/auth\/assets\/app\.js/,
       /\.emailPrivacyConfig\.enableImprovedEmailPrivacy == true/,
-      /https:\/\/steam-capsule-341212\.firebaseapp\.com\/__\/auth\/handler/,
+      /https:\/\/versorgungs-kompass\.de\/__\/auth\/handler/,
       /customUi: true/,
       /Protected path \$\{protected_path\} did not return an IAP-generated boundary response/,
       /matrix_aliases=\([\s\S]*\/;probe[\s\S]*\/anmelden;probe/,
@@ -272,6 +278,21 @@ const contentChecks = [
     reason: "Das Custom UI bietet ausschliesslich die vorgesehenen Google- und E-Mail/Passwort-Anmeldewege."
   },
   {
+    file: "deploy/helm/versorgungs-kompass/files/frontend-auth-proxy.conf",
+    patterns: [
+      /location \^~ \/__\/auth\//,
+      /limit_except GET HEAD POST/,
+      /proxy_pass_request_headers off/,
+      /proxy_ssl_name steam-capsule-341212\.firebaseapp\.com/,
+      /proxy_ssl_verify on/,
+      /proxy_redirect off/,
+      /proxy_set_header Authorization ""/,
+      /proxy_set_header Cookie ""/,
+      /access_log off/
+    ],
+    reason: "Der kanonische Auth-Helper ist ein logfreier, methodenbegrenzter Festziel-Proxy mit TLS-Pruefung und entfernt Browser-/IAP-Credentials."
+  },
+  {
     file: "deploy/helm/versorgungs-kompass/templates/networkpolicy.yaml",
     patterns: [
       /cidr: 10\.0\.0\.0\/8/,
@@ -305,6 +326,22 @@ const contentChecks = [
     file: "deploy/helm/versorgungs-kompass/templates/frontend-public-deployment.yaml",
     patterns: [/publicImageDigest/, /frontendPublicSelectorLabels/, /frontendPublicServiceAccountName/, /automountServiceAccountToken/, /image:\s*"\{\{ \$publicImageRepository \}\}@\{\{ \$publicImageDigest \}\}"/, /_healthz/],
     reason: "Das dedizierte Public-Deployment nutzt ausschließlich ein digest-gepinntes Zwei-Dateien-Webroot aus HTML und PNG sowie eine eigene KSA ohne Kubernetes-API-Token."
+  },
+  {
+    file: "deploy/helm/versorgungs-kompass/templates/frontend-auth-proxy-deployment.yaml",
+    patterns: [
+      /frontendAuthProxyServiceAccountName/,
+      /automountServiceAccountToken/,
+      /enableServiceLinks: false/,
+      /checksum\/frontend-auth-proxy-nginx/,
+      /_healthz/
+    ],
+    reason: "Das dedizierte Auth-Helper-Deployment verwendet seine tokenlose KSA, keine Service-Links und eine gehashte, health-gepruefte Konfiguration."
+  },
+  {
+    file: "deploy/helm/versorgungs-kompass/templates/frontend-auth-proxy-backendconfig.yaml",
+    patterns: [/logging:[\s\S]*enable: false[\s\S]*iap:[\s\S]*enabled: false/],
+    reason: "Das Auth-Helper-Backend ist explizit IAP-frei und deaktiviert Load-Balancer-Zugriffslogging."
   },
   {
     file: "deploy/helm/versorgungs-kompass/templates/frontend-public-backendconfig.yaml",
