@@ -142,34 +142,43 @@ test("Startkarte öffnet den passenden Navigationsbereich auf Desktop", async ({
   await expectCleanHomeSidebar(page);
 });
 
-test("Startkarte öffnet und fokussiert die mobile Navigation", async ({ page }) => {
+test("Startkarten lassen die mobile Navigation eingeklappt", async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto("/dist/pages/index.html");
 
   const shell = page.locator(".app-shell");
-  await page.locator('.home-destination-link[data-home-module="stakeholders"]').click();
+  const modules = [
+    { module: "care", url: /#map$/, view: "map", group: "care" },
+    { module: "stakeholders", url: /#stakeholders\/kv$/, view: "stakeholders", group: "stakeholders" },
+    { module: "planning", url: /#framework$/, view: "framework", group: "planning" },
+    { module: "formats", url: /#formats$/, view: "formats", group: "formats" }
+  ];
 
-  await expect(page).toHaveURL(/#stakeholders\/kv$/);
-  await expect(shell).toHaveClass(/is-mobile-sidebar-expanded/);
-  await expect(page.locator(".sidebar-collapse")).toBeVisible();
-  await expect(page.locator(".sidebar-nav")).toBeVisible();
-  await expect(page.locator(".sidebar-account-section")).toBeVisible();
-  await expect(page.locator(".sidebar-brand-word")).toBeVisible();
-  await expect(page.locator('[data-sidebar-section="stakeholders"]')).toHaveClass(/is-active-section/);
-  await expect(page.locator('[data-sidebar-section-toggle="stakeholders"]')).toHaveAttribute("aria-expanded", "true");
-  await expect(page.locator('[data-sidebar-section="stakeholders"] .primary-tab.is-active')).toBeFocused();
+  for (const item of modules) {
+    await page.locator(`.home-destination-link[data-home-module="${item.module}"]`).click();
+    await expect(page).toHaveURL(item.url);
+    await expect(shell).not.toHaveClass(/is-mobile-sidebar-expanded/);
+    await expect(page.locator("#sidebar-collapse-button")).toHaveAttribute("aria-expanded", "false");
+    await expect(page.locator(".sidebar-nav")).toBeHidden();
+    await expect(page.locator(".sidebar-account-section")).toBeHidden();
+    await expect(page.locator(`[data-view-panel="${item.view}"]`)).toBeVisible();
+    await expect(page.locator(`[data-sidebar-section="${item.group}"]`)).toHaveClass(/is-active-section/);
 
-  await page.locator("#brand-home-link").click();
-  await expect(page).toHaveURL(/#home$/);
-  await expectCleanHomeSidebar(page);
+    await page.locator("#brand-home-link").click();
+    await expect(page).toHaveURL(/#home$/);
+    await expectCleanHomeSidebar(page);
+  }
 });
 
-test("Mobile-Auslieferung: Startklar-Hinweis bleibt oberhalb der Fußzeile", async ({ page }) => {
+test("Mobile-Auslieferung: Startklar-Hinweis erscheint erst im Versorgungs-Kompass", async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto("/dist/pages/index.html");
 
   const status = page.locator("#global-status");
   const footer = page.locator(".versorgungs-app-footer");
+  await expect(status).toBeHidden();
+
+  await page.locator('.home-destination-link[data-home-module="care"]').click();
   await expect(status).toBeVisible();
   await expect(status).toHaveText(/Startklar: \d+ synthetische Demo-Kontakte stehen bereit\./);
   await expect(status).toHaveClass(/is-ready/);
@@ -182,9 +191,12 @@ test("Mobile-Auslieferung: Startklar-Hinweis bleibt oberhalb der Fußzeile", asy
   expect(statusBox.y + statusBox.height).toBeLessThanOrEqual(footerBox.y - 8);
   expect(statusBox.x).toBeGreaterThanOrEqual(0);
   expect(statusBox.x + statusBox.width).toBeLessThanOrEqual(390);
+
+  await page.locator("#brand-home-link").click();
+  await expect(status).toBeHidden();
 });
 
-test("Geschützte Auslieferung: Kontakte werden motivierend als startklar angekündigt", async ({ page }) => {
+test("Geschützte Auslieferung: Kontakte werden erst im Versorgungs-Kompass als startklar angekündigt", async ({ page }) => {
   await gotoAuthenticated(page, "/frontend/app/versorgungs-kompass.html#home");
 
   const shell = page.locator(".app-shell");
@@ -199,6 +211,9 @@ test("Geschützte Auslieferung: Kontakte werden motivierend als startklar angek�
     await expect(page.locator(".sidebar-account-section")).toBeVisible();
   }
   const status = page.locator("#global-status");
+  await expect(status).toBeHidden();
+
+  await page.locator('.home-destination-link[data-home-module="care"]').click();
   await expect(status).toBeVisible();
   await expect(status).toHaveText(/Startklar: \d+ Kontakte stehen bereit\./);
   await expect(status).not.toContainText("Backend");
