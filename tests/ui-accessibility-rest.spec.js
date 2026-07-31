@@ -102,16 +102,16 @@ test("Teamsuche filtert live und zählt betreute Kontakte eindeutig", async ({ p
   await expect(page.locator('[data-view-panel="team"]')).toBeVisible();
   await expect(page.locator("#team-user-count")).toHaveText("2");
   await expect(page.locator("#team-contact-count")).toHaveText("2");
-  await expect(page.locator("#team-directory-result")).toContainText("2 Nutzer");
+  await expect(page.locator("#team-directory-result")).toBeHidden();
 
   const search = page.getByRole("searchbox", { name: "Team oder Person suchen" });
   await search.fill("Berta");
   await expect(page.locator("#team-directory-result")).toHaveText("1 Treffer in 1 Team");
   await expect(page.locator("#team-account-list [data-team-group]")).toHaveCount(1);
   const resultTeam = page.locator('#team-account-list [data-team-group="Kommunikation"]');
-  await expect(resultTeam).toHaveAttribute("open", "");
-  await expect(resultTeam.locator(".team-column-count")).toHaveText(/1\s*Nutzer/);
+  await expect(resultTeam.locator(".team-board-card__member-count")).toContainText("1");
   await expect(resultTeam.getByText("Berta Berg", { exact: true })).toBeVisible();
+  await expect(page.locator("#team-selected-detail, #team-account-list [aria-pressed]")).toHaveCount(0);
 
   const ownerDetails = resultTeam.locator("[data-team-owner-profile='profile-berta']");
   await expect(ownerDetails.locator(".profile-owner-count")).toHaveText("1");
@@ -121,7 +121,12 @@ test("Teamsuche filtert live und zählt betreute Kontakte eindeutig", async ({ p
 
   await page.getByRole("button", { name: "Teamsuche leeren" }).click();
   await expect(search).toHaveValue("");
-  await expect(page.locator("#team-directory-result")).toContainText("2 Nutzer");
+  await expect(page.locator("#team-directory-result")).toBeHidden();
+
+  const stabsstelleCard = page.locator('[data-team-group="Stabsstelle Versorgung"]');
+  await expect(stabsstelleCard).toContainText("Anna Adler");
+  const horizontalOverflow = await page.locator("html").evaluate((node) => Math.max(0, node.scrollWidth - node.clientWidth));
+  expect(horizontalOverflow).toBeLessThanOrEqual(1);
 });
 
 test("Benachrichtigungsfilter sind Tabs mit roving tabindex", async ({ page }) => {

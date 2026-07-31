@@ -103,7 +103,6 @@
       let ownerOptions = [];
       let ownerProfiles = [];
       let teamDirectoryState = "loading";
-      const expandedTeamNames = new Set();
       let teamSearchQuery = "";
       const germanStates = [
         "Baden-Württemberg",
@@ -355,8 +354,9 @@
       const visibleStakeholderOrganizationColumnsStorageKey = "versorgungs-kompass-visible-stakeholder-organization-columns-v1";
       const visibleStakeholderPeopleColumnsStorageKey = "versorgungs-kompass-visible-stakeholder-people-columns-v1";
       const visibleHospitationObservationColumnsStorageKey = "versorgungs-kompass-visible-hospitation-observation-columns-v1";
-      const ONBOARDING_VERSION = 1;
+      const ONBOARDING_VERSION = 2;
       const ONBOARDING_ROLLOUT_AT = "2026-06-09T00:00:00.000+02:00";
+      const ONBOARDING_STEPS = ["welcome", "profile", "identity", "team", "access", "summary", "tour"];
       const TEAM_UNASSIGNED_LABEL = "Ohne Team";
       const teamDefinitions = [
         { name: "Stabsstelle Versorgung", icon: "stabsstelle", description: "Versorgung vernetzen und gemeinsame Vorhaben koordinieren" },
@@ -1216,6 +1216,9 @@
       const questionnaireReflectionAuthorLabel = questionnaireForm?.querySelector("[data-questionnaire-reflection-author-label]");
       const workspaceViewTitle = document.getElementById("workspace-view-title");
       const workspaceViewSubtitle = document.getElementById("workspace-view-subtitle");
+      const workspaceBrand = document.querySelector("[data-workspace-brand]");
+      const workspaceBrandSource = document.getElementById("workspace-brand-source");
+      const workspaceBrandImage = document.getElementById("workspace-brand-image");
       const sidebarUserBadge = document.getElementById("sidebar-user-badge");
       const sidebarUserName = document.getElementById("sidebar-user-name");
       const sidebarUserRole = document.getElementById("sidebar-user-role");
@@ -1382,10 +1385,36 @@
       const profileOwnerList = document.getElementById("profile-owner-list");
       const profileOnboardingStatus = document.getElementById("profile-onboarding-status");
       const profileTourStart = document.getElementById("profile-tour-start");
+      const onboardingPersistenceStatus = document.getElementById("onboarding-persistence-status");
+      const onboardingWelcomeStatus = document.getElementById("onboarding-welcome-status");
+      const onboardingWelcomeNext = document.getElementById("onboarding-welcome-next");
       const onboardingProfileForm = document.getElementById("onboarding-profile-form");
       const onboardingDisplayName = document.getElementById("onboarding-display-name");
       const onboardingEmail = document.getElementById("onboarding-email");
+      const onboardingIdentityForm = document.getElementById("onboarding-identity-form");
+      const onboardingInitials = document.getElementById("onboarding-initials");
+      const onboardingIdentityConfirm = document.getElementById("onboarding-identity-confirm");
+      const onboardingIdentityConfirmCopy = document.getElementById("onboarding-identity-confirm-copy");
+      const onboardingIdentityStatus = document.getElementById("onboarding-identity-status");
+      const onboardingTeamForm = document.getElementById("onboarding-team-form");
       const onboardingTeam = document.getElementById("onboarding-team");
+      const onboardingTeamSummary = document.getElementById("onboarding-team-summary");
+      const onboardingTeamStatus = document.getElementById("onboarding-team-status");
+      const onboardingAccessForm = document.getElementById("onboarding-access-form");
+      const onboardingRoleLabel = document.getElementById("onboarding-role-label");
+      const onboardingRoleDescription = document.getElementById("onboarding-role-description");
+      const onboardingScopeLabel = document.getElementById("onboarding-scope-label");
+      const onboardingScopeDescription = document.getElementById("onboarding-scope-description");
+      const onboardingPermissionList = document.getElementById("onboarding-permission-list");
+      const onboardingAccessConfirm = document.getElementById("onboarding-access-confirm");
+      const onboardingAccessStatus = document.getElementById("onboarding-access-status");
+      const onboardingSummaryProfile = document.getElementById("onboarding-summary-profile");
+      const onboardingSummaryIdentity = document.getElementById("onboarding-summary-identity");
+      const onboardingSummaryTeam = document.getElementById("onboarding-summary-team");
+      const onboardingSummaryRole = document.getElementById("onboarding-summary-role");
+      const onboardingSummaryScope = document.getElementById("onboarding-summary-scope");
+      const onboardingSummaryStatus = document.getElementById("onboarding-summary-status");
+      const onboardingSummarySubmit = document.getElementById("onboarding-summary-submit");
       const onboardingAvatarPreview = document.getElementById("onboarding-avatar-preview");
       const onboardingPhotoButton = document.getElementById("onboarding-photo-button");
       const onboardingPhotoInput = document.getElementById("onboarding-photo-input");
@@ -1394,6 +1423,7 @@
       const onboardingTourStatus = document.getElementById("onboarding-tour-status");
       const onboardingTourStart = document.getElementById("onboarding-tour-start");
       const onboardingTourSkip = document.getElementById("onboarding-tour-skip");
+      const onboardingBackButtons = [...document.querySelectorAll("[data-onboarding-back]")];
       const onboardingStepDots = [...document.querySelectorAll("[data-onboarding-step-dot]")];
       const onboardingStepPanels = [...document.querySelectorAll("[data-onboarding-step-panel]")];
       const productTour = document.getElementById("product-tour");
@@ -1697,7 +1727,7 @@
       let favoriteContactIds = new Set();
       const favoriteContactSavePending = new Set();
       let onboardingActive = false;
-      let onboardingStep = "profile";
+      let onboardingStep = "welcome";
       let pendingPostOnboardingView = "home";
       let productTourState = { open: false, index: 0, source: "manual", target: null, steps: [], returnContext: null };
       const productTourTargetAria = new WeakMap();
@@ -5463,13 +5493,13 @@
         map: { title: "Karte", subtitle: "Regionale Verteilung und Standortkontext der aktuellen Auswahl." },
         analytics: { title: "Auswertung", subtitle: "Reporting, regionale Abdeckung und Netzwerktransparenz." },
         quality: { title: "Datenqualität", subtitle: "Pflegehinweise, Datenlücken und konkrete Arbeitslisten." },
-        team: { title: "Teams", subtitle: "Nutzer, Rollen und Zuständigkeiten im Überblick." },
+        team: { title: "Teams", subtitle: "Finde Nutzer, Rollen und Zuständigkeiten, ohne lange Kontaktlisten durchsuchen zu müssen." },
         settings: { title: "Import", subtitle: "Kontakte erfassen, importieren und Backend-Eingänge prüfen." },
         about: { title: "Über die App", subtitle: "Kurzüberblick und Versionsverlauf des Versorgungs-Kompass." },
         profile: { title: "Mein Profil", subtitle: "Persönliche Informationen und Einstellungen verwalten." },
         personProfile: { title: "Personenprofil", subtitle: "Stammdaten, Kontaktwege, Notizen und Verlauf im Lesemodus." },
         organizationProfile: { title: "Organisationsprofil", subtitle: "Stammdaten, Kontaktwege, Kontakte, Notizen und Verlauf im Lesemodus." },
-        onboarding: { title: "Willkommen", subtitle: "Profil einrichten und Tour starten." }
+        onboarding: { title: "Willkommen", subtitle: "Profil, Team und Berechtigungen gemeinsam einrichten." }
       };
 
       const appVersionHistory = [
@@ -9250,7 +9280,7 @@
         groups.forEach((group) => {
           group.accounts.sort((a, b) => a.label.localeCompare(b.label, "de"));
         });
-        return groups;
+        return groups.filter((group) => group.accounts.length > 0);
       }
 
       function availableTeamOptions(selectedTeam = "") {
@@ -9284,7 +9314,9 @@
       }
 
       function teamIconMarkup(team = "") {
-        const icon = teamDefinitions.find((entry) => entry.name === team)?.icon || "unassigned";
+        const icon =
+          teamDefinitions.find((entry) => entry.name === team)?.icon ||
+          (team === TEAM_UNASSIGNED_LABEL ? "unassigned" : "team");
         if (icon === "kommunikation") {
           return `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12a8 8 0 0 1-8 8H6l-3 3v-7a8 8 0 1 1 18-4Z"></path><path d="M8 11h8"></path><path d="M8 15h5"></path></svg>`;
         }
@@ -9294,12 +9326,15 @@
         if (icon === "stabsstelle") {
           return `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3 5 6v5c0 4.4 2.8 8.4 7 10 4.2-1.6 7-5.6 7-10V6l-7-3Z"></path><path d="m9 12 2 2 4-4"></path></svg>`;
         }
+        if (icon === "team") {
+          return `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M22 21v-2a4 4 0 0 0-3-3.9"></path><path d="M16 3.1a4 4 0 0 1 0 7.8"></path></svg>`;
+        }
         return `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M16 21v-2a4 4 0 0 0-4-4H7a4 4 0 0 0-4 4v2"></path><circle cx="9.5" cy="7" r="4"></circle><path d="M19 8v6"></path><path d="M22 11h-6"></path></svg>`;
       }
 
       function teamGroupDomId(team = "", index = 0) {
         const slug = normalizeTeamLookup(team).replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") || "team";
-        return `team-column-${slug}-${index}`;
+        return `team-card-${slug}-${index}`;
       }
 
       function teamContactIndex(profiles = teamProfiles()) {
@@ -9362,6 +9397,59 @@
         details.dataset.teamOwnerLoaded = "true";
       }
 
+      function teamAccountCardMarkup(profile, contactIndex) {
+        const ownerCount = contactIndex.get(profile.id)?.length || 0;
+        const role = String(profile.role || "viewer").toLowerCase();
+        const roleClass = ["admin", "editor", "viewer"].includes(role) ? role : "viewer";
+        const profileName = teamProfileDisplayLabel(profile);
+        return `
+          <article class="team-account-card" role="listitem">
+            <header class="team-account-card__header">
+              <span class="team-account-avatar" aria-hidden="true">${avatarMarkup(profile)}</span>
+              <div class="team-account-copy">
+                <strong>${escapeHtml(profileName)}</strong>
+                <span class="team-account-card__contact-count">${ownerCount} ${ownerCount === 1 ? "betreuter Kontakt" : "betreute Kontakte"}</span>
+              </div>
+              <span class="team-account-role">
+                <span class="account-role-pill account-role-pill--${roleClass}">${escapeHtml(roleLabel(role))}</span>
+              </span>
+            </header>
+            <details class="profile-owner-details team-contact-details" data-team-owner-profile="${escapeHtml(profile.id)}">
+              <summary><span class="profile-owner-summary-label"><span class="profile-owner-count">${ownerCount}</span> ${ownerCount === 1 ? "Kontakt öffnen" : "Kontakte öffnen"}</span></summary>
+              <div class="profile-owner-list" data-team-owner-list>
+                <div class="profile-owner-empty">Kontakte werden erst beim Öffnen geladen.</div>
+              </div>
+            </details>
+          </article>
+        `;
+      }
+
+      function teamBoardCardMarkup(group, groupIndex, contactIndex) {
+        const groupId = teamGroupDomId(group.name, groupIndex);
+        const accountCards = group.accounts.map((profile) => teamAccountCardMarkup(profile, contactIndex)).join("");
+        return `
+          <section
+            class="team-board-card team-board-card--${escapeHtml(group.icon)}"
+            data-team-group="${escapeHtml(group.name)}"
+            aria-labelledby="${groupId}"
+          >
+            <header class="team-board-card__header">
+              <span class="team-icon" aria-hidden="true">${teamIconMarkup(group.name)}</span>
+              <div class="team-board-card__heading">
+                <h4 id="${groupId}">${escapeHtml(group.name)}</h4>
+              </div>
+              <span class="team-board-card__member-count" aria-label="${group.accounts.length} Nutzer">
+                <strong>${group.accounts.length}</strong>
+                <span>Nutzer</span>
+              </span>
+            </header>
+            <div class="team-board-card__members" role="list" aria-label="Nutzer im Team ${escapeHtml(group.name)}">
+              ${accountCards}
+            </div>
+          </section>
+        `;
+      }
+
       function teamProfileMatchesSearch(profile, query = "") {
         if (!query) return true;
         return normalizeTeamLookup([
@@ -9417,7 +9505,10 @@
           if (teamUserCount) teamUserCount.textContent = "–";
           if (teamGroupCount) teamGroupCount.textContent = "–";
           if (teamContactCount) teamContactCount.textContent = "–";
-          if (teamDirectoryResult) teamDirectoryResult.textContent = "Nutzer werden geladen.";
+          if (teamDirectoryResult) {
+            teamDirectoryResult.textContent = "";
+            teamDirectoryResult.hidden = true;
+          }
           teamAccountList.setAttribute("aria-busy", "true");
           teamAccountList.innerHTML = `<div class="team-directory-state"><strong>Teams werden geladen</strong><span>Profile und Zuständigkeiten werden vorbereitet.</span></div>`;
           renderedTeamViewSignature = renderSignature;
@@ -9428,7 +9519,10 @@
           if (teamUserCount) teamUserCount.textContent = "–";
           if (teamGroupCount) teamGroupCount.textContent = "–";
           if (teamContactCount) teamContactCount.textContent = "–";
-          if (teamDirectoryResult) teamDirectoryResult.textContent = "Teamdaten sind nicht verfügbar.";
+          if (teamDirectoryResult) {
+            teamDirectoryResult.textContent = "";
+            teamDirectoryResult.hidden = true;
+          }
           teamAccountList.setAttribute("aria-busy", "false");
           teamAccountList.innerHTML = `<div class="team-directory-state team-directory-state--error" role="alert"><strong>Teamdaten sind gerade nicht verfügbar</strong><span>Bitte lade die Ansicht neu oder prüfe die Verbindung.</span></div>`;
           renderedTeamViewSignature = renderSignature;
@@ -9444,9 +9538,12 @@
         teamAccountList.setAttribute("aria-busy", "false");
 
         if (!profiles.length) {
-          if (teamDirectoryResult) teamDirectoryResult.textContent = "Noch keine Nutzer vorhanden.";
+          if (teamDirectoryResult) {
+            teamDirectoryResult.textContent = "";
+            teamDirectoryResult.hidden = true;
+          }
           teamAccountList.innerHTML = `<div class="team-directory-state"><strong>Noch keine Nutzer vorhanden</strong><span>Sobald Profile eingerichtet sind, erscheinen sie hier nach Teams gruppiert.</span></div>`;
-          renderedTeamViewSignature = renderSignature;
+          renderedTeamViewSignature = teamViewRenderSignature(profiles);
           return;
         }
 
@@ -9470,7 +9567,8 @@
         if (teamDirectoryResult) {
           teamDirectoryResult.textContent = searchQuery
             ? `${visibleMemberCount} Treffer in ${groups.length} ${groups.length === 1 ? "Team" : "Teams"}`
-            : `${profiles.length} Nutzer in ${groups.length} ${groups.length === 1 ? "Bereich" : "Bereichen"}`;
+            : "";
+          teamDirectoryResult.hidden = !searchQuery;
         }
 
         if (!groups.length) {
@@ -9492,86 +9590,13 @@
           return;
         }
 
-        teamAccountList.innerHTML = groups
-          .map((group, groupIndex) => {
-            const team = group.name;
-            const accounts = group.accounts;
-            const groupId = teamGroupDomId(team, groupIndex);
-            const teamDefinition = teamDefinitions.find((entry) => entry.name === team);
-            const teamSubtitle = group.isUnassigned
-              ? "Noch ohne Teamzuordnung"
-              : teamDefinition?.description || "Team in #Mitmachen";
-            const isOpen = accounts.length > 0 && (Boolean(searchQuery) || expandedTeamNames.has(team));
-            const memberNames = accounts.map((profile) => teamProfileDisplayLabel(profile));
-            const memberAvatars = accounts
-              .map((profile) => {
-                const profileName = teamProfileDisplayLabel(profile);
-                return `<span class="team-column-member-avatar" title="${escapeHtml(profileName)}" aria-hidden="true">${avatarMarkup(profile, "team-column-member-image")}</span>`;
-              })
-              .join("");
-            return `
-              <details class="team-column team-column--${escapeHtml(group.icon)}" data-team-group="${escapeHtml(team)}" ${isOpen ? "open" : ""}>
-                <summary class="team-column-head" aria-labelledby="${groupId}">
-                  <span class="team-icon" aria-hidden="true">${teamIconMarkup(team)}</span>
-                  <span class="team-column-title">
-                    <strong id="${groupId}">${escapeHtml(team)}</strong>
-                    <span>${escapeHtml(teamSubtitle)}</span>
-                  </span>
-                  <span class="team-column-preview">
-                    ${accounts.length ? `<span class="team-column-members" role="img" aria-label="${escapeHtml(`Nutzer: ${memberNames.join(", ")}`)}">${memberAvatars}</span>` : ""}
-                    <span class="team-column-count" aria-label="${accounts.length} Nutzer">
-                      <strong>${accounts.length}</strong>
-                      <span>Nutzer</span>
-                    </span>
-                  </span>
-                  <span class="team-column-toggle" aria-hidden="true">⌄</span>
-                </summary>
-                <div class="team-column-accounts">
-                  ${accounts.length
-                    ? accounts
-                        .map((profile) => {
-                          const ownerCount = contactIndex.get(profile.id)?.length || 0;
-                          const role = String(profile.role || "viewer").toLowerCase();
-                          const roleClass = ["admin", "editor", "viewer"].includes(role) ? role : "viewer";
-                          const profileName = teamProfileDisplayLabel(profile);
-                          return `
-                            <article class="team-account-row">
-                              <span class="team-account-avatar" aria-hidden="true">${avatarMarkup(profile)}</span>
-                              <div class="team-account-copy">
-                                <strong>${escapeHtml(profileName)}</strong>
-                                <span class="team-account-team">${escapeHtml(team)}</span>
-                              </div>
-                              <div class="team-account-meta">
-                                <span class="team-account-role">
-                                  <span class="account-role-pill account-role-pill--${roleClass}">${escapeHtml(roleLabel(role))}</span>
-                                </span>
-                              </div>
-                              <div class="team-account-actions">
-                                <details class="profile-owner-details team-contact-details" data-team-owner-profile="${escapeHtml(profile.id)}">
-                                  <summary><span class="profile-owner-summary-label"><span class="profile-owner-count">${ownerCount}</span> ${ownerCount === 1 ? "Kontakt öffnen" : "Kontakte öffnen"}</span></summary>
-                                  <div class="profile-owner-list" data-team-owner-list>
-                                    <div class="profile-owner-empty">Kontakte werden erst beim Öffnen geladen.</div>
-                                  </div>
-                                </details>
-                              </div>
-                            </article>
-                          `;
-                        })
-                        .join("")
-                    : `<div class="team-column-empty">${group.isUnassigned ? "Alle geladenen Nutzer sind einem Team zugeordnet." : "Noch keine Nutzer zugeordnet."}</div>`}
-                </div>
-              </details>
-            `;
-          })
-          .join("");
+        const teamCards = groups.map((group, groupIndex) => teamBoardCardMarkup(group, groupIndex, contactIndex)).join("");
 
-        teamAccountList.querySelectorAll("[data-team-group]").forEach((details) => {
-          details.addEventListener("toggle", () => {
-            const team = details.dataset.teamGroup || "";
-            if (details.open) expandedTeamNames.add(team);
-            else expandedTeamNames.delete(team);
-          });
-        });
+        teamAccountList.innerHTML = `
+          <div class="team-board-grid" aria-label="Offene Teamübersicht">
+            ${teamCards}
+          </div>
+        `;
         teamAccountList.querySelectorAll("[data-team-owner-profile]").forEach((details) => {
           details.addEventListener("toggle", () => {
             if (details.open) renderTeamOwnerContacts(details);
@@ -9830,6 +9855,42 @@
         onboardingStatus.classList.toggle("is-error", Boolean(isError));
       }
 
+      function setOnboardingPersistenceStatus(message = "", isError = false) {
+        if (!onboardingPersistenceStatus) return;
+        onboardingPersistenceStatus.textContent = message;
+        onboardingPersistenceStatus.classList.toggle("is-error", Boolean(isError));
+      }
+
+      function setOnboardingWelcomeStatus(message = "", isError = false) {
+        if (!onboardingWelcomeStatus) return;
+        onboardingWelcomeStatus.textContent = message;
+        onboardingWelcomeStatus.classList.toggle("is-error", Boolean(isError));
+      }
+
+      function setOnboardingIdentityStatus(message = "", isError = false) {
+        if (!onboardingIdentityStatus) return;
+        onboardingIdentityStatus.textContent = message;
+        onboardingIdentityStatus.classList.toggle("is-error", Boolean(isError));
+      }
+
+      function setOnboardingTeamStatus(message = "", isError = false) {
+        if (!onboardingTeamStatus) return;
+        onboardingTeamStatus.textContent = message;
+        onboardingTeamStatus.classList.toggle("is-error", Boolean(isError));
+      }
+
+      function setOnboardingAccessStatus(message = "", isError = false) {
+        if (!onboardingAccessStatus) return;
+        onboardingAccessStatus.textContent = message;
+        onboardingAccessStatus.classList.toggle("is-error", Boolean(isError));
+      }
+
+      function setOnboardingSummaryStatus(message = "", isError = false) {
+        if (!onboardingSummaryStatus) return;
+        onboardingSummaryStatus.textContent = message;
+        onboardingSummaryStatus.classList.toggle("is-error", Boolean(isError));
+      }
+
       function setOnboardingPhotoStatus(message = "", isError = false) {
         if (!onboardingPhotoStatus) return;
         onboardingPhotoStatus.textContent = message;
@@ -9846,6 +9907,16 @@
         return userSettings?.preferences?.onboarding || {};
       }
 
+      function legacyOnboardingCompletedAt(state = onboardingPreferences()) {
+        if (!state.profileCompletedAt || (!state.tourCompletedAt && !state.tourSkippedAt)) return "";
+        return state.tourCompletedAt || state.tourSkippedAt || state.profileCompletedAt;
+      }
+
+      function onboardingIsComplete(state = onboardingPreferences()) {
+        if (state.completedAt) return true;
+        return Number(state.version || 1) < ONBOARDING_VERSION && Boolean(legacyOnboardingCompletedAt(state));
+      }
+
       function renderProfileOnboardingStatus() {
         if (!profileOnboardingStatus) return;
         const profile = currentProfile || {};
@@ -9855,6 +9926,13 @@
         profileOnboardingStatus.classList.remove("is-ready", "is-missing");
         if (missing.length) {
           profileOnboardingStatus.textContent = `Profil noch unvollständig: ${missing.join(" und ")} ${missing.length === 1 ? "fehlt" : "fehlen"}. Das Foto bleibt optional.`;
+          profileOnboardingStatus.classList.add("is-missing");
+          return;
+        }
+        if (!onboardingIsComplete(state)) {
+          const step = normalizeOnboardingStep(state.currentStep || "welcome");
+          const label = onboardingStepDots.find((dot) => dot.dataset.onboardingStepDot === step)?.textContent?.replace(/^\s*\d+\s*/, "") || "Einrichtung";
+          profileOnboardingStatus.textContent = `Einrichtung noch offen: ${label}. Beim nächsten Login setzt du an dieser Stelle fort.`;
           profileOnboardingStatus.classList.add("is-missing");
           return;
         }
@@ -9871,11 +9949,16 @@
           profileOnboardingStatus.textContent = `Tour angeboten: ${formatDateTimeLabel(state.tourOfferedAt) || "Zeitpunkt offen"}. Du kannst sie hier oder über die Sidebar starten.`;
           return;
         }
-        profileOnboardingStatus.textContent = "Profil bereit. Starte die App-Tour hier oder direkt über die Sidebar.";
+        profileOnboardingStatus.textContent = "Einrichtung abgeschlossen. Starte die App-Tour hier oder direkt über die Sidebar.";
+        profileOnboardingStatus.classList.add("is-ready");
       }
 
       function isProtectedOnboardingMode() {
-        return String(window.VERSORGUNGS_COMPASS_CONFIG?.dataMode || "").toLowerCase() === "api";
+        const dataMode = String(window.VERSORGUNGS_COMPASS_CONFIG?.dataMode || "").toLowerCase();
+        if (dataMode === "api") return true;
+        return dataMode === "demo"
+          && String(window.VERSORGUNGS_COMPASS_CONFIG?.authMode || "").toLowerCase() === "anonymous-demo"
+          && window.VERSORGUNGS_COMPASS_DEMO_RUNTIME?.onboardingPreview === true;
       }
 
       function profileCreatedAfterOnboardingRollout() {
@@ -9887,23 +9970,49 @@
       function shouldRequireInitialOnboarding() {
         if (!isProtectedOnboardingMode()) return false;
         if (!profileCreatedAfterOnboardingRollout()) return false;
-        const state = onboardingPreferences();
-        if (!state.profileCompletedAt) return true;
-        return !state.tourCompletedAt && !state.tourSkippedAt;
+        return !onboardingIsComplete(onboardingPreferences());
       }
 
       async function persistOnboardingState(patch = {}) {
-        const preferences = {
-          ...(userSettings?.preferences || {}),
-          onboarding: {
-            ...onboardingPreferences(),
-            version: ONBOARDING_VERSION,
-            ...patch
+        if (!window.dataService?.upsertUserSettings) {
+          throw new Error("Geschützte API für Benutzereinstellungen fehlt.");
+        }
+        const previousSettings = userSettings;
+        const currentState = onboardingPreferences();
+        const legacyCompletedAt = legacyOnboardingCompletedAt(currentState);
+        const onboarding = {
+          ...currentState,
+          version: ONBOARDING_VERSION,
+          ...(legacyCompletedAt && !currentState.completedAt ? { completedAt: legacyCompletedAt } : {}),
+          ...patch
+        };
+        const nextSettings = {
+          ...(userSettings || {}),
+          preferences: {
+            ...(userSettings?.preferences || {}),
+            onboarding
           }
         };
-        await persistUserSettingPatch({ preferences });
-        renderProfileOnboardingStatus();
-        return userSettings?.preferences?.onboarding || preferences.onboarding;
+        try {
+          const saved = await window.dataService.upsertUserSettings(userSettingsWritePayload(nextSettings));
+          userSettings = {
+            ...nextSettings,
+            ...(saved || {}),
+            preferences: {
+              ...nextSettings.preferences,
+              ...(saved?.preferences || {}),
+              onboarding: {
+                ...onboarding,
+                ...(saved?.preferences?.onboarding || {})
+              }
+            }
+          };
+          renderProfileOnboardingStatus();
+          return userSettings.preferences.onboarding;
+        } catch (error) {
+          userSettings = previousSettings;
+          throw error;
+        }
       }
 
       function normalizePostOnboardingView(view = "home") {
@@ -9914,28 +10023,161 @@
         return candidate;
       }
 
-      function renderOnboardingProfileForm() {
-        const profile = currentProfile || {};
-        updateAvatarElement(onboardingAvatarPreview, profile);
-        if (onboardingDisplayName) onboardingDisplayName.value = profile.display_name || "";
-        if (onboardingEmail) onboardingEmail.value = profile.email || "";
-        renderTeamSelectOptions(onboardingTeam, selectableTeamValue(profile));
-        refreshCustomSelects(onboardingProfileForm);
+      function normalizeOnboardingStep(step = "welcome") {
+        return ONBOARDING_STEPS.includes(step) ? step : "welcome";
       }
 
-      async function setOnboardingStep(step = "profile", { markTourOffered = false } = {}) {
-        onboardingStep = step === "tour" ? "tour" : "profile";
+      function onboardingResumeStep(state = onboardingPreferences()) {
+        if (Number(state.version || 0) >= ONBOARDING_VERSION) {
+          return normalizeOnboardingStep(state.currentStep || "welcome");
+        }
+        if (state.profileCompletedAt) return "tour";
+        return "welcome";
+      }
+
+      function onboardingScopeInfo(profile = currentProfile || {}) {
+        const accessScope = String(profile.accessScope || profile.access_scope || "standard").trim().toLowerCase();
+        const scopeRef = String(profile.scopeRef || profile.scope_ref || "").trim();
+        if (accessScope === "test_only") {
+          return {
+            value: accessScope,
+            label: scopeRef ? `Testbereich · ${scopeRef}` : "Testbereich",
+            description: "Du kannst freigegebene Inhalte lesen. Änderungen bleiben auf ausdrücklich markierte Testdaten in deinem Testbereich begrenzt."
+          };
+        }
+        return {
+          value: "standard",
+          label: "Standardbereich",
+          description: "Du kannst den regulär freigegebenen Datenbestand lesen. Welche Änderungen möglich sind, entscheidet deine Rolle."
+        };
+      }
+
+      function renderOnboardingProfileForm() {
+        const profile = currentProfile || {};
+        if (onboardingDisplayName) onboardingDisplayName.value = profile.display_name || "";
+        if (onboardingEmail) onboardingEmail.value = profile.email || "";
+      }
+
+      function renderOnboardingIdentityForm() {
+        const profile = currentProfile || {};
+        const state = onboardingPreferences();
+        updateAvatarElement(onboardingAvatarPreview, profile);
+        if (onboardingInitials) onboardingInitials.value = initialsFromProfile(profile);
+        if (onboardingIdentityConfirm) onboardingIdentityConfirm.checked = Boolean(state.initialsConfirmedAt);
+        if (onboardingIdentityConfirmCopy) {
+          onboardingIdentityConfirmCopy.textContent = profileAvatarUrl(profile)
+            ? "Ich bestätige das aktuelle Foto und die hinterlegten Initialen."
+            : "Ich bestätige meine Initialen als Profilbild.";
+        }
+      }
+
+      function renderOnboardingTeamForm() {
+        const profile = currentProfile || {};
+        const team = selectableTeamValue(profile);
+        renderTeamSelectOptions(onboardingTeam, selectableTeamValue(profile));
+        if (onboardingTeamSummary) onboardingTeamSummary.textContent = team || "Noch kein Team zugewiesen";
+        refreshCustomSelects(onboardingTeamForm);
+      }
+
+      function renderOnboardingAccess() {
+        const role = currentRole();
+        const scope = onboardingScopeInfo();
+        const canWrite = canEditContacts() || canCreateCareObject();
+        const canAdmin = role === "admin" && !isTestAccess();
+        if (onboardingRoleLabel) {
+          onboardingRoleLabel.textContent = roleLabel(role);
+          onboardingRoleLabel.className = `account-role-pill account-role-pill--${role}`;
+        }
+        if (onboardingRoleDescription) onboardingRoleDescription.textContent = permissionText(role);
+        if (onboardingScopeLabel) onboardingScopeLabel.textContent = scope.label;
+        if (onboardingScopeDescription) onboardingScopeDescription.textContent = scope.description;
+        if (onboardingPermissionList) {
+          const permissions = [
+            { allowed: true, title: "Lesen und orientieren", body: "Kontakte, Organisationen und Formate öffnen, suchen und filtern." },
+            {
+              allowed: canWrite,
+              title: "Daten pflegen",
+              body: canWrite
+                ? (isTestAccess() ? "Markierte Testdaten in deinem Testbereich anlegen und bearbeiten." : "Kontakte und Organisationen entsprechend deiner Rolle bearbeiten.")
+                : "Dein Konto hat derzeit keine Schreibberechtigung."
+            },
+            {
+              allowed: canAdmin,
+              title: "Administration",
+              body: canAdmin ? "Import, Archiv und administrative Prüfungen nutzen." : "Import, Archiv und Rollenverwaltung bleiben administrativ verwaltet."
+            }
+          ];
+          onboardingPermissionList.innerHTML = permissions.map((permission) => `
+            <div class="onboarding-permission-item ${permission.allowed ? "is-allowed" : "is-unavailable"}">
+              <span class="onboarding-permission-icon" aria-hidden="true">${permission.allowed ? "✓" : "–"}</span>
+              <span><strong>${escapeHtml(permission.title)}</strong><span>${escapeHtml(permission.body)}</span></span>
+            </div>
+          `).join("");
+        }
+        if (onboardingAccessConfirm) onboardingAccessConfirm.checked = Boolean(onboardingPreferences().permissionsAcknowledgedAt);
+      }
+
+      function renderOnboardingSummary() {
+        const profile = currentProfile || {};
+        const state = onboardingPreferences();
+        const scope = onboardingScopeInfo(profile);
+        const displayName = profile.display_name || profile.email || "Unbenanntes Profil";
+        if (onboardingSummaryProfile) onboardingSummaryProfile.textContent = `${displayName} · ${profile.email || "geschütztes Konto"}`;
+        if (onboardingSummaryIdentity) onboardingSummaryIdentity.textContent = profileAvatarUrl(profile)
+          ? `Profilfoto · Initialen ${initialsFromProfile(profile)}`
+          : `Initialen ${initialsFromProfile(profile)}`;
+        if (onboardingSummaryTeam) onboardingSummaryTeam.textContent = resolvedProfileTeam(profile);
+        if (onboardingSummaryRole) onboardingSummaryRole.textContent = roleLabel(currentRole());
+        if (onboardingSummaryScope) onboardingSummaryScope.textContent = scope.label;
+        if (state.currentStep === "summary") setOnboardingSummaryStatus("");
+      }
+
+      function renderOnboardingStep(step = onboardingStep) {
+        if (step === "profile") renderOnboardingProfileForm();
+        if (step === "identity") renderOnboardingIdentityForm();
+        if (step === "team") renderOnboardingTeamForm();
+        if (step === "access") renderOnboardingAccess();
+        if (step === "summary") renderOnboardingSummary();
+      }
+
+      function setOnboardingStep(step = "welcome", { focus = false } = {}) {
+        onboardingStep = normalizeOnboardingStep(step);
+        const activeIndex = ONBOARDING_STEPS.indexOf(onboardingStep);
         onboardingStepDots.forEach((dot) => {
-          dot.classList.toggle("is-active", dot.dataset.onboardingStepDot === onboardingStep);
+          const index = ONBOARDING_STEPS.indexOf(dot.dataset.onboardingStepDot);
+          const active = dot.dataset.onboardingStepDot === onboardingStep;
+          dot.classList.toggle("is-active", active);
+          dot.classList.toggle("is-complete", index >= 0 && index < activeIndex);
+          if (active) dot.setAttribute("aria-current", "step");
+          else dot.removeAttribute("aria-current");
         });
+        let activePanel = null;
         onboardingStepPanels.forEach((panel) => {
           panel.hidden = panel.dataset.onboardingStepPanel !== onboardingStep;
+          if (!panel.hidden) activePanel = panel;
         });
-        if (onboardingStep === "profile") renderOnboardingProfileForm();
-        if (onboardingStep === "tour" && markTourOffered && !onboardingPreferences().tourOfferedAt) {
-          await persistOnboardingState({ tourOfferedAt: new Date().toISOString() });
-        }
+        renderOnboardingStep(onboardingStep);
         renderViewChrome();
+        if (focus && activePanel) {
+          const heading = activePanel.querySelector("h3");
+          heading?.setAttribute("tabindex", "-1");
+          heading?.focus({ preventScroll: true });
+        }
+      }
+
+      async function transitionOnboardingStep(step, patch = {}) {
+        const nextStep = normalizeOnboardingStep(step);
+        setOnboardingPersistenceStatus("Fortschritt wird gespeichert …");
+        try {
+          await persistOnboardingState({ ...patch, currentStep: nextStep });
+          setOnboardingPersistenceStatus("");
+          setOnboardingStep(nextStep, { focus: true });
+          return true;
+        } catch (error) {
+          console.error("Onboarding-Fortschritt konnte nicht gespeichert werden.", error);
+          setOnboardingPersistenceStatus("Dein Fortschritt konnte nicht gespeichert werden. Bitte prüfe die Verbindung und versuche es erneut.", true);
+          return false;
+        }
       }
 
       async function openOnboarding(targetView = "home") {
@@ -9943,17 +10185,34 @@
         onboardingActive = true;
         closeMenus();
         closeMobileSidebar();
+        setOnboardingPersistenceStatus("");
+        setOnboardingWelcomeStatus("");
         setOnboardingStatus("");
         setOnboardingPhotoStatus("");
+        setOnboardingIdentityStatus("");
+        setOnboardingTeamStatus("");
+        setOnboardingAccessStatus("");
+        setOnboardingSummaryStatus("");
         setOnboardingTourStatus("");
-        const state = onboardingPreferences();
-        await setOnboardingStep(state.profileCompletedAt ? "tour" : "profile", { markTourOffered: Boolean(state.profileCompletedAt) });
+        setOnboardingStep(onboardingResumeStep(onboardingPreferences()));
         setActiveView("onboarding");
         updateRouteHash("onboarding");
         updateView();
       }
 
-      function finishOnboarding(targetView = pendingPostOnboardingView || "home") {
+      async function finishOnboarding(targetView = pendingPostOnboardingView || "home") {
+        setOnboardingTourStatus("Arbeitsbereich wird geladen …");
+        try {
+          await ensureCriticalInitialData();
+        } catch (error) {
+          console.error("Arbeitsbereich konnte nach dem Onboarding nicht geladen werden.", error);
+          onboardingActive = true;
+          setOnboardingTourStatus("Der Arbeitsbereich konnte noch nicht geladen werden. Bitte prüfe die Verbindung und versuche es erneut.", true);
+          setActiveView("onboarding");
+          updateRouteHash("onboarding");
+          updateView();
+          return false;
+        }
         onboardingActive = false;
         const nextView = normalizePostOnboardingView(targetView);
         if (nextView === "home" && transientInitialHomeSidebarCollapse && !isMobileLayout()) {
@@ -9962,13 +10221,13 @@
         setActiveView(nextView);
         updateRouteHash(nextView);
         updateView();
+        return true;
       }
 
       async function saveOnboardingProfile(event) {
         event?.preventDefault();
         if (!onboardingProfileForm) return;
         const displayName = String(onboardingDisplayName?.value || "").trim();
-        const team = String(onboardingTeam?.value || "").trim();
         if (!displayName) {
           setOnboardingStatus("Bitte trage deinen Namen ein.", true);
           onboardingDisplayName?.focus();
@@ -9978,20 +10237,111 @@
         try {
           const updatedProfile = await window.dataService.updateCurrentProfile({
             displayName,
-            initials: initialsFromProfile({ display_name: displayName }),
-            team
+            initials: String(currentProfile?.initials || "").trim() || initialsFromProfile({ display_name: displayName })
           });
           renderAccountProfile(updatedProfile);
-          applyProfiles(await window.dataService.getProfiles());
-          await persistOnboardingState({
+          setOnboardingStatus("Profil gespeichert.");
+          await transitionOnboardingStep("identity", {
             profileCompletedAt: onboardingPreferences().profileCompletedAt || new Date().toISOString()
           });
-          setOnboardingStatus("Profil gespeichert.");
-          await setOnboardingStep("tour", { markTourOffered: true });
         } catch (error) {
           console.error("Onboarding-Profil konnte nicht gespeichert werden.", error);
           setOnboardingStatus("Profil konnte nicht gespeichert werden. Bitte prüfe Anmeldung und Verbindung.", true);
         }
+      }
+
+      async function saveOnboardingIdentity(event) {
+        event?.preventDefault();
+        const initials = String(onboardingInitials?.value || "").trim().slice(0, 4).toUpperCase();
+        if (!/^[\p{L}\p{N}]{1,4}$/u.test(initials)) {
+          setOnboardingIdentityStatus("Bitte trage ein bis vier Buchstaben oder Zahlen als Initialen ein.", true);
+          onboardingInitials?.focus();
+          return;
+        }
+        if (!onboardingIdentityConfirm?.checked) {
+          setOnboardingIdentityStatus("Bitte bestätige die angezeigte Profildarstellung.", true);
+          onboardingIdentityConfirm?.focus();
+          return;
+        }
+        setOnboardingIdentityStatus("Profildarstellung wird gespeichert …");
+        try {
+          const updatedProfile = await window.dataService.updateCurrentProfile({
+            displayName: currentProfile?.display_name || currentProfile?.email || "Angemeldet",
+            initials,
+            team: selectableTeamValue(currentProfile || {})
+          });
+          renderAccountProfile(updatedProfile);
+          const timestamp = new Date().toISOString();
+          setOnboardingIdentityStatus("Profildarstellung bestätigt.");
+          await transitionOnboardingStep("team", {
+            identityCompletedAt: timestamp,
+            initialsConfirmedAt: timestamp,
+            identityChoice: profileAvatarUrl(updatedProfile) ? "photo" : "initials"
+          });
+        } catch (error) {
+          console.error("Onboarding-Profildarstellung konnte nicht gespeichert werden.", error);
+          setOnboardingIdentityStatus("Die Profildarstellung konnte nicht gespeichert werden. Bitte versuche es erneut.", true);
+        }
+      }
+
+      async function saveOnboardingTeam(event) {
+        event?.preventDefault();
+        const team = String(onboardingTeam?.value || "").trim();
+        if (!team) {
+          setOnboardingTeamStatus("Bitte bestätige ein Team oder kläre die Zuordnung mit einer Administration.", true);
+          onboardingTeam?.focus();
+          return;
+        }
+        setOnboardingTeamStatus("Team wird gespeichert …");
+        try {
+          const updatedProfile = await window.dataService.updateCurrentProfile({
+            displayName: currentProfile?.display_name || currentProfile?.email || "Angemeldet",
+            initials: initialsFromProfile(currentProfile),
+            team
+          });
+          renderAccountProfile(updatedProfile);
+          setOnboardingTeamStatus("Team bestätigt.");
+          await transitionOnboardingStep("access", {
+            teamConfirmedAt: new Date().toISOString(),
+            confirmedTeam: team
+          });
+        } catch (error) {
+          console.error("Onboarding-Team konnte nicht gespeichert werden.", error);
+          setOnboardingTeamStatus("Das Team konnte nicht gespeichert werden. Bitte versuche es erneut.", true);
+        }
+      }
+
+      async function saveOnboardingAccess(event) {
+        event?.preventDefault();
+        if (!onboardingAccessConfirm?.checked) {
+          setOnboardingAccessStatus("Bitte bestätige, dass du Rolle und Datenbereich verstanden hast.", true);
+          onboardingAccessConfirm?.focus();
+          return;
+        }
+        const scope = onboardingScopeInfo();
+        setOnboardingAccessStatus("Bestätigung wird gespeichert …");
+        const moved = await transitionOnboardingStep("summary", {
+          permissionsAcknowledgedAt: new Date().toISOString(),
+          acknowledgedRole: currentRole(),
+          acknowledgedAccessScope: scope.value,
+          acknowledgedScopeRef: String(currentProfile?.scopeRef || currentProfile?.scope_ref || "").trim()
+        });
+        if (!moved) setOnboardingAccessStatus("Die Bestätigung konnte nicht gespeichert werden. Bitte versuche es erneut.", true);
+      }
+
+      async function completeOnboardingSummary() {
+        const timestamp = new Date().toISOString();
+        setOnboardingSummaryStatus("Einrichtung wird abgeschlossen …");
+        const moved = await transitionOnboardingStep("tour", {
+          summaryCompletedAt: timestamp,
+          completedAt: timestamp,
+          tourOfferedAt: onboardingPreferences().tourOfferedAt || timestamp
+        });
+        if (!moved) {
+          setOnboardingSummaryStatus("Die Einrichtung konnte nicht abgeschlossen werden. Bitte versuche es erneut.", true);
+          return;
+        }
+        setOnboardingTourStatus("Deine Einrichtung ist abgeschlossen.");
       }
 
       async function handleOnboardingPhotoFile(file) {
@@ -9999,13 +10349,24 @@
         setOnboardingPhotoStatus("Foto wird hochgeladen...");
         try {
           const updatedProfile = await window.dataService.uploadCurrentProfileImage(file);
-          renderAccountProfile(updatedProfile);
-          applyProfiles(await window.dataService.getProfiles());
-          renderOnboardingProfileForm();
+          renderAccountProfile({
+            ...(currentProfile || {}),
+            ...(updatedProfile || {}),
+            accessScope: currentProfile?.accessScope,
+            scopeRef: currentProfile?.scopeRef,
+            capabilities: currentProfile?.capabilities
+          });
+          renderOnboardingIdentityForm();
           setOnboardingPhotoStatus("Foto gespeichert.");
         } catch (error) {
           console.error("Onboarding-Foto konnte nicht hochgeladen werden.", error);
-          setOnboardingPhotoStatus(error?.message || "Upload fehlgeschlagen. Bitte prüfe Format, Größe und Verbindung.", true);
+          const unavailable = Number(error?.status) === 404
+            || Number(error?.status) === 405
+            || Number(error?.status) === 501
+            || /nicht verfügbar|not available|not implemented|deaktiviert/i.test(String(error?.message || ""));
+          setOnboardingPhotoStatus(unavailable
+            ? "Der Foto-Upload ist in dieser Umgebung noch nicht verfügbar. Du kannst mit deinen Initialen fortfahren."
+            : "Das Foto konnte nicht gespeichert werden. Du kannst trotzdem mit deinen Initialen fortfahren.", true);
         } finally {
           if (onboardingPhotoInput) onboardingPhotoInput.value = "";
         }
@@ -10062,7 +10423,7 @@
         {
           id: "team",
           view: "team",
-          target: "#team-account-list .team-column-head",
+          target: "#team-account-list .team-board-card",
           fallbackTarget: "#team-account-list",
           sidebarSection: "account",
           sidebarTarget: "#sidebar-team-button",
@@ -11028,7 +11389,7 @@
         }
         if (source === "onboarding") {
           setOnboardingTourStatus(skipped ? "Tour übersprungen." : "Tour abgeschlossen.");
-          finishOnboarding();
+          await finishOnboarding();
         }
       }
 
@@ -11046,6 +11407,14 @@
         closeMenus();
         closeMobileSidebar();
         if (source === "onboarding") {
+          setOnboardingTourStatus("Arbeitsbereich wird für die Tour geladen …");
+          try {
+            await ensureCriticalInitialData();
+          } catch (error) {
+            console.error("Arbeitsbereich konnte für die App-Tour nicht geladen werden.", error);
+            setOnboardingTourStatus("Die App-Tour kann erst starten, sobald der Arbeitsbereich geladen ist. Bitte prüfe die Verbindung.", true);
+            return false;
+          }
           onboardingActive = false;
         }
         if (isTrackedProductTourSource(source)) await persistOnboardingState({ tourOfferedAt: onboardingPreferences().tourOfferedAt || new Date().toISOString() });
@@ -11054,6 +11423,7 @@
         productTour.setAttribute("aria-hidden", "false");
         document.body.classList.add("is-product-tour-open");
         renderProductTourStep();
+        return true;
       }
 
       async function advanceProductTour(direction = 1) {
@@ -11320,12 +11690,13 @@
         updateView();
       }
 
-      async function loadUserSettings() {
+      async function loadUserSettings({ strict = false } = {}) {
         try {
           userSettings = window.dataService?.getUserSettings ? await window.dataService.getUserSettings() : null;
         } catch (error) {
           console.warn("Benutzereinstellungen konnten nicht aus der geschützten API geladen werden.", error);
           userSettings = null;
+          if (strict) throw error;
         }
 
         syncFavoriteContactsFromSettings();
@@ -14474,7 +14845,7 @@
             .join("");
         };
 
-        if (activeView === "home") {
+        if (activeView === "home" || activeView === "onboarding") {
           if (summaryGrid) summaryGrid.innerHTML = "";
           return;
         }
@@ -37151,6 +37522,20 @@
         if (topbarViewMeta) topbarViewMeta.textContent = greetingLabel;
         if (workspaceViewTitle) workspaceViewTitle.textContent = view.title;
         if (workspaceViewSubtitle) workspaceViewSubtitle.textContent = view.subtitle;
+        const onboardingBrand = activeView === "onboarding" || onboardingActive;
+        const showWorkspaceBrand = activeView === "team" || onboardingBrand;
+        if (workspaceBrand) workspaceBrand.hidden = !showWorkspaceBrand;
+        if (workspaceBrandSource) {
+          workspaceBrandSource.srcset = onboardingBrand
+            ? "../../public/brand/versorgungs-kompass/mark.svg"
+            : "../../public/brand/mitmachen/mark.svg";
+        }
+        if (workspaceBrandImage) {
+          workspaceBrandImage.src = onboardingBrand
+            ? "../../public/brand/versorgungs-kompass/mark.svg"
+            : "../../public/brand/mitmachen/lockup-horizontal.svg";
+          workspaceBrandImage.alt = onboardingBrand ? "Versorgungs-Kompass" : "#Mitmachen";
+        }
         if (mainContent) mainContent.setAttribute("aria-label", view.title);
         if (!isHospitationDocumentationStandalone) document.title = `${view.title} · #Mitmachen`;
         const announcement = [view.title, view.subtitle].filter(Boolean).join(". ");
@@ -39632,6 +40017,7 @@
         organizationLogoMapCache = null;
         syncOwnerOptionsFromContacts();
         const isHomeView = activeView === "home";
+        const isOnboardingView = activeView === "onboarding";
         const isContactsView = activeView === "contacts";
         const isOrganizationsView = activeView === "organizations";
         const isActivitiesView = activeView === "activities";
@@ -39672,7 +40058,7 @@
           syncQuestionnaireReflectionAuthor();
         }
         if (isFrameworkView) syncHospitationFrameworkMetrics();
-        const items = isHomeView
+        const items = isHomeView || isOnboardingView
           ? []
           : isFormatsView
           ? filteredFormats()
@@ -39704,7 +40090,7 @@
         if (contactListSwitcher) contactListSwitcher.hidden = !isContactsView || isContactsDuplicatesMode;
         renderContactListModeSwitcher();
         resultsCount.textContent = isInitialDataLoading && isContactsView ? "Kontakte werden geladen" : hitCountLabel(items);
-        resultsCount.hidden = isHomeView || isPressView || isProfileRecordView || isFrameworkView || isQuestionnaireView || (isInitialDataLoading && isContactsView ? false : isFormatsView || isAnyDuplicateMode ? false : !hasActiveSearchOrFilters());
+        resultsCount.hidden = isHomeView || isOnboardingView || isPressView || isProfileRecordView || isFrameworkView || isQuestionnaireView || (isInitialDataLoading && isContactsView ? false : isFormatsView || isAnyDuplicateMode ? false : !hasActiveSearchOrFilters());
         archiveViewButton.textContent = archiveViewButtonLabel();
         const searchPlaceholder = isAnyDuplicateMode
           ? "Dubletten suchen..."
@@ -39746,7 +40132,7 @@
         const isHospitationDashboardTab = isHospitationsView && activeHospitationTab === "dashboard";
         const isHospitationCommandHiddenTab = isHospitationsView && ["dashboard", "observations", "patterns"].includes(activeHospitationTab);
         const isHospitationHeaderSearchVisible = hospitationHeaderSearchVisible(activeHospitationTab);
-        const searchHidden = isHomeView || activeView === "analytics" || activeView === "quality" || isNotificationsView || isProfileRecordView || isFrameworkView || isQuestionnaireView || (isPoliticsView && politicsDataState !== "ready") || (isPressView && pressDataState !== "ready") || (isHospitationsView ? !isHospitationHeaderSearchVisible : false);
+        const searchHidden = isHomeView || isOnboardingView || activeView === "analytics" || activeView === "quality" || isNotificationsView || isProfileRecordView || isFrameworkView || isQuestionnaireView || (isPoliticsView && politicsDataState !== "ready") || (isPressView && pressDataState !== "ready") || (isHospitationsView ? !isHospitationHeaderSearchVisible : false);
         if (searchShell) {
           if (expertHeaderSearch) expertHeaderSearch.hidden = true;
           if (stakeholderHeaderSearch) stakeholderHeaderSearch.hidden = true;
@@ -39768,7 +40154,7 @@
           hospitationHeaderSearchToggle.setAttribute("aria-expanded", isHospitationHeaderSearchVisible ? "true" : "false");
         }
         syncSearchClearButton();
-        if (controlsRoot) controlsRoot.hidden = isHomeView || isHospitationsView || isFrameworkView || isQuestionnaireView || (isPoliticsView && politicsDataState !== "ready") || (isPressView && pressDataState !== "ready");
+        if (controlsRoot) controlsRoot.hidden = isHomeView || isOnboardingView || isHospitationsView || isFrameworkView || isQuestionnaireView || (isPoliticsView && politicsDataState !== "ready") || (isPressView && pressDataState !== "ready");
         newContactButton.hidden = !isContactsView;
         newOrganizationButton.hidden = !isOrganizationsView;
         if (contactMatchingWorklistButton) contactMatchingWorklistButton.hidden = !isContactsView;
@@ -39807,11 +40193,11 @@
         if (organizationsTable) organizationsTable.hidden = isOrganizationsDuplicatesMode;
         if (organizationDuplicatesWorkspace) organizationDuplicatesWorkspace.hidden = !isOrganizationsDuplicatesMode;
         columnMenuShell.hidden = !(isContactsView || isOrganizationsView || isExpertsView || isPatientsView) || isAnyDuplicateMode || isPatientIndicationsMode;
-        if (viewSelectShell) viewSelectShell.hidden = isHomeView || isExpertsView || isPatientsView || isPoliticsView || isPressView || isHospitationsView || isFrameworkView || isQuestionnaireView || isStakeholdersView || isActivitiesView || isNotificationsView || isCareDuplicatesMode || isProfileRecordView;
+        if (viewSelectShell) viewSelectShell.hidden = isHomeView || isOnboardingView || isExpertsView || isPatientsView || isPoliticsView || isPressView || isHospitationsView || isFrameworkView || isQuestionnaireView || isStakeholdersView || isActivitiesView || isNotificationsView || isCareDuplicatesMode || isProfileRecordView;
         filterPanel.querySelector('[data-filter-field="category"] summary').textContent = isPatientsView ? "Indikation" : isExpertsView ? "Gruppe" : "Sektor";
-        if (filterToolbar) filterToolbar.hidden = isHomeView || isPoliticsView || isPressView || isFormatsView || isHospitationsView || isFrameworkView || isQuestionnaireView || isStakeholdersView || isActivitiesView || isNotificationsView || isAnyDuplicateMode || isProfileRecordView || isPatientIndicationsMode;
+        if (filterToolbar) filterToolbar.hidden = isHomeView || isOnboardingView || isPoliticsView || isPressView || isFormatsView || isHospitationsView || isFrameworkView || isQuestionnaireView || isStakeholdersView || isActivitiesView || isNotificationsView || isAnyDuplicateMode || isProfileRecordView || isPatientIndicationsMode;
         patientPageSizeSelect?.closest(".page-size-shell")?.toggleAttribute("hidden", isPatientIndicationsMode);
-        if (isHomeView || isPoliticsView || isPressView || isHospitationsView || isFrameworkView || isQuestionnaireView || isStakeholdersView || isActivitiesView || isNotificationsView || isAnyDuplicateMode || isProfileRecordView || isPatientIndicationsMode) setFilterPanelOpen(false);
+        if (isHomeView || isOnboardingView || isPoliticsView || isPressView || isHospitationsView || isFrameworkView || isQuestionnaireView || isStakeholdersView || isActivitiesView || isNotificationsView || isAnyDuplicateMode || isProfileRecordView || isPatientIndicationsMode) setFilterPanelOpen(false);
         if (columnMenuShell) {
           if (isOrganizationsView) organizationColumnActions?.append(filterToolbar, viewSelectShell, columnMenuShell);
           else if (isPatientsView) patientColumnActions?.append(filterToolbar, viewSelectShell, columnMenuShell);
@@ -40676,16 +41062,49 @@
       onboardingDisplayName?.addEventListener("input", () => {
         setOnboardingStatus("");
       });
+      onboardingWelcomeNext?.addEventListener("click", async () => {
+        setOnboardingWelcomeStatus("Einrichtung wird vorbereitet …");
+        const moved = await transitionOnboardingStep("profile", {
+          welcomeCompletedAt: onboardingPreferences().welcomeCompletedAt || new Date().toISOString()
+        });
+        if (!moved) setOnboardingWelcomeStatus("Die Einrichtung konnte nicht gestartet werden. Bitte versuche es erneut.", true);
+      });
+      onboardingIdentityForm?.addEventListener("submit", saveOnboardingIdentity);
+      onboardingInitials?.addEventListener("input", () => {
+        onboardingInitials.value = String(onboardingInitials.value || "").toUpperCase().slice(0, 4);
+        if (onboardingIdentityConfirm) onboardingIdentityConfirm.checked = false;
+        setOnboardingIdentityStatus("");
+      });
+      onboardingIdentityConfirm?.addEventListener("change", () => setOnboardingIdentityStatus(""));
+      onboardingTeamForm?.addEventListener("submit", saveOnboardingTeam);
       onboardingTeam?.addEventListener("change", () => {
-        setOnboardingStatus("");
+        if (onboardingTeamSummary) onboardingTeamSummary.textContent = onboardingTeam.value || "Noch kein Team zugewiesen";
+        setOnboardingTeamStatus("");
+      });
+      onboardingAccessForm?.addEventListener("submit", saveOnboardingAccess);
+      onboardingAccessConfirm?.addEventListener("change", () => setOnboardingAccessStatus(""));
+      onboardingSummarySubmit?.addEventListener("click", completeOnboardingSummary);
+      onboardingBackButtons.forEach((button) => {
+        button.addEventListener("click", () => transitionOnboardingStep(button.dataset.onboardingBack || "welcome"));
       });
       onboardingPhotoButton?.addEventListener("click", () => onboardingPhotoInput?.click());
       onboardingPhotoInput?.addEventListener("change", () => handleOnboardingPhotoFile(onboardingPhotoInput.files?.[0]));
-      onboardingTourStart?.addEventListener("click", () => startProductTour("onboarding"));
+      onboardingTourStart?.addEventListener("click", async () => {
+        await startProductTour("onboarding");
+      });
       onboardingTourSkip?.addEventListener("click", async () => {
-        setOnboardingTourStatus("Tour wird übersprungen...");
-        await persistOnboardingState({ tourSkippedAt: new Date().toISOString() });
-        finishOnboarding();
+        setOnboardingTourStatus("Auswahl wird gespeichert …");
+        try {
+          await persistOnboardingState({
+            currentStep: "tour",
+            tourSkippedAt: new Date().toISOString(),
+            tourCompletedAt: null
+          });
+          await finishOnboarding();
+        } catch (error) {
+          console.error("Onboarding-Tourauswahl konnte nicht gespeichert werden.", error);
+          setOnboardingTourStatus("Die Auswahl konnte nicht gespeichert werden. Bitte versuche es erneut.", true);
+        }
       });
       productTourPrev?.addEventListener("click", () => advanceProductTour(-1));
       productTourNext?.addEventListener("click", () => advanceProductTour(1));
@@ -42180,7 +42599,7 @@
 
       async function loadCriticalInitialData() {
         const [profiles, profile] = await Promise.all([
-          window.dataService.getProfiles(),
+          window.dataService.getProfiles({ force: true }),
           window.dataService.getCurrentProfile()
         ]);
         applyProfiles(profiles);
@@ -42194,6 +42613,26 @@
           variant: "ready",
           duration: 6500
         });
+      }
+
+      let criticalInitialDataPromise = null;
+      let criticalInitialDataLoaded = false;
+
+      async function ensureCriticalInitialData() {
+        if (criticalInitialDataLoaded) return true;
+        if (!criticalInitialDataPromise) {
+          criticalInitialDataPromise = loadCriticalInitialData()
+            .then(() => {
+              criticalInitialDataLoaded = true;
+              scheduleDeferredInitialData();
+              return true;
+            })
+            .catch((error) => {
+              criticalInitialDataPromise = null;
+              throw error;
+            });
+        }
+        return criticalInitialDataPromise;
       }
 
       let deferredInitialDataPromise = null;
@@ -42271,17 +42710,37 @@
       }
 
       async function initializeData() {
-        const initialRouteToken = routeTokenFromLocation();
         const initialRouteView = routeViewFromLocation();
-        let initialTargetView = initialRouteView || "home";
+        const initialTargetView = initialRouteView || "home";
         let initialDataAvailable = false;
-        const settingsPromise = loadUserSettings().catch((error) => {
-          console.warn("Benutzereinstellungen konnten beim Anwendungsstart nicht verarbeitet werden.", error);
-        });
+        let onboardingRequired = false;
+        let initialShellRevealed = false;
+        const revealInitialShell = () => {
+          if (initialShellRevealed) return;
+          isInitialDataLoading = false;
+          initialDataLoadingSlow = false;
+          finishInitialLoading();
+          initialShellRevealed = true;
+        };
+        let settingsSettled = false;
+        const settingsPromise = loadUserSettings({ strict: true }).then(
+          (value) => {
+            settingsSettled = true;
+            return value;
+          },
+          (error) => {
+            settingsSettled = true;
+            throw error;
+          }
+        );
         try {
-          await loadCriticalInitialData();
+          const profile = await window.dataService.getCurrentProfile();
+          renderAccountProfile(profile);
+          if (!settingsSettled) revealInitialShell();
+          await settingsPromise;
+          onboardingRequired = shouldRequireInitialOnboarding();
+          if (!onboardingRequired) await ensureCriticalInitialData();
           initialDataAvailable = true;
-          scheduleDeferredInitialData();
         } catch (error) {
           console.error("Geschützte Anwendungsdaten konnten nicht über die API geladen werden.", error);
           if (teamDirectoryState === "loading") teamDirectoryState = "error";
@@ -42304,8 +42763,15 @@
           loadedContactsFromStorage = false;
           setStorageStatus("Keine geschützten Kontaktdaten verfügbar. Bitte prüfe Verbindung, Anmeldung und Rollen.");
         }
-        isInitialDataLoading = false;
-        initialDataLoadingSlow = false;
+        if (initialDataAvailable && onboardingRequired) {
+          if (transientInitialHomeSidebarCollapse) restoreSidebarState();
+          try {
+            await openOnboarding(initialTargetView);
+          } finally {
+            revealInitialShell();
+          }
+          return;
+        }
         try {
           if (CLEAN_URLS_ENABLED || initialTargetView === "stakeholders") {
             updateRouteHash(
@@ -42319,14 +42785,9 @@
           setActiveView(activeView);
           updateView();
         } finally {
-          finishInitialLoading();
+          revealInitialShell();
         }
-        await settingsPromise;
         if (initialDataAvailable) updateView();
-        if (initialDataAvailable && shouldRequireInitialOnboarding()) {
-          if (transientInitialHomeSidebarCollapse) restoreSidebarState();
-          await openOnboarding(initialTargetView || activeView || "home");
-        }
       }
 
       function finishInitialLoading() {

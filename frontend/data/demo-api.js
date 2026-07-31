@@ -36,6 +36,7 @@
     window.VERSORGUNGS_COMPASS_PUBLIC_POLITICS_DIRECTORY || null;
   const originalFetch = window.fetch.bind(window);
   let idCounter = 0;
+  let onboardingPreview = false;
 
   function clone(value) {
     return value === undefined ? undefined : JSON.parse(JSON.stringify(value));
@@ -48,11 +49,17 @@
       profile.active !== false && !["inactive", "archived", "Archiviert"].includes(profile.status)
     );
     let requestedProfileId = "";
+    let requestedOnboardingMode = "";
     try {
-      requestedProfileId = new URL(window.location.href).searchParams.get("demoProfile") || "";
+      const searchParams = new URL(window.location.href).searchParams;
+      requestedProfileId = searchParams.get("demoProfile") || "";
+      requestedOnboardingMode = searchParams.get("demoOnboarding") || "";
     } catch (_error) {
       requestedProfileId = "";
+      requestedOnboardingMode = "";
     }
+    onboardingPreview = requestedProfileId === "demo-profile-viewer"
+      && requestedOnboardingMode === "fresh";
     state.currentProfileId = activeProfiles.find((profile) => profile.id === requestedProfileId)?.id
       || activeProfiles.find((profile) => profile.role === (CONFIG.demoRole || "admin"))?.id
       || activeProfiles[0]?.id
@@ -122,6 +129,19 @@
     state.contactNotes ||= [];
     state.contactNoteAttachments ||= [];
     state.userSettings ||= {};
+    if (onboardingPreview) {
+      state.userSettings = {
+        ...state.userSettings,
+        userId: state.currentProfileId,
+        preferences: {
+          ...(state.userSettings.preferences || {}),
+          onboarding: {
+            version: 2,
+            currentStep: "welcome"
+          }
+        }
+      };
+    }
     state.formatCreateRequests ||= [];
     return state;
   }
@@ -1786,6 +1806,7 @@
   };
 
   window.VERSORGUNGS_COMPASS_DEMO_RUNTIME = Object.freeze({
+    onboardingPreview,
     publicDemo: true,
     persistence: "memory-only",
     resetOnReload: true,

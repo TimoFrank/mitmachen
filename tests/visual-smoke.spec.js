@@ -2312,6 +2312,13 @@ test("Suche: Versorgung filtert Karte und wird beim Modulwechsel geloescht", asy
 });
 
 test("Onboarding: neuer geschützter Account richtet Profil ein und startet Tour", async ({ page }, testInfo) => {
+  const protectedCollectionRequests = [];
+  page.on("request", (request) => {
+    const pathname = new URL(request.url()).pathname;
+    if (["/api/profiles", "/api/contacts", "/api/organizations", "/api/formats", "/api/hospitations"].includes(pathname)) {
+      protectedCollectionRequests.push(pathname);
+    }
+  });
   await gotoAuthenticated(page, "/frontend/app/versorgungs-kompass.html#map", {
     role: "viewer",
     backendFixtureScript: onboardingBackendFixtureScript()
@@ -2319,13 +2326,38 @@ test("Onboarding: neuer geschützter Account richtet Profil ein und startet Tour
 
   await expect(page.locator('[data-view-panel="onboarding"]')).toBeVisible();
   await expect(page.locator("#workspace-view-title")).toHaveText("Willkommen");
+  await expect(page.locator('[data-onboarding-step-panel="welcome"]')).toBeVisible();
+  expect(protectedCollectionRequests).toEqual([]);
+
+  await page.locator("#onboarding-welcome-next").click();
+  await expect(page.locator("#onboarding-profile-form")).toBeVisible();
   await expect(page.locator("#onboarding-display-name")).toHaveValue("steffen");
-  await page.locator("#onboarding-team").selectOption("Stabsstelle Versorgung");
   await page.locator("#onboarding-profile-submit").click();
+  await expect(page.locator("#onboarding-identity-form")).toBeVisible();
+  await expect(page.locator("#onboarding-initials")).toHaveValue("ST");
+  await page.locator("#onboarding-identity-confirm").check();
+  await page.locator("#onboarding-identity-submit").click();
+
+  await expect(page.locator("#onboarding-team-form")).toBeVisible();
+  await page.locator("#onboarding-team").selectOption("Stabsstelle Versorgung");
+  await page.locator("#onboarding-team-submit").click();
+
+  await expect(page.locator("#onboarding-access-form")).toBeVisible();
+  await expect(page.locator("#onboarding-role-label")).toHaveText("Viewer");
+  await expect(page.locator("#onboarding-scope-label")).toHaveText("Standardbereich");
+  await page.locator("#onboarding-access-confirm").check();
+  await page.locator("#onboarding-access-submit").click();
+
+  await expect(page.locator("#onboarding-summary-panel")).toBeVisible();
+  await expect(page.locator("#onboarding-summary-team")).toHaveText("Stabsstelle Versorgung");
+  expect(protectedCollectionRequests).toEqual([]);
+  await page.locator("#onboarding-summary-submit").click();
   await expect(page.locator("#onboarding-tour-panel")).toBeVisible();
 
   await page.locator("#onboarding-tour-start").click();
   await expect(page.locator("#product-tour")).toBeVisible();
+  expect(protectedCollectionRequests).toContain("/api/profiles");
+  expect(protectedCollectionRequests).toContain("/api/contacts");
   await expect(page.locator("#product-tour-meta")).toHaveText(/Schritt 1 von \d+/);
   await expect(page.locator("#product-tour-title")).toHaveText("Willkommen bei #Mitmachen");
   await expect(page.locator("#product-tour-panel")).toHaveClass(/is-welcome/);
@@ -2346,7 +2378,12 @@ test("Onboarding: neuer geschützter Account richtet Profil ein und startet Tour
   await expect(page.locator("#product-tour")).toBeHidden();
   await expect(page.locator('[data-view-panel="map"]')).toBeVisible();
   const settings = await page.evaluate(() => window.dataService.getUserSettings());
+  expect(settings.preferences.onboarding.version).toBe(2);
+  expect(settings.preferences.onboarding.completedAt).toBeTruthy();
   expect(settings.preferences.onboarding.profileCompletedAt).toBeTruthy();
+  expect(settings.preferences.onboarding.identityCompletedAt).toBeTruthy();
+  expect(settings.preferences.onboarding.teamConfirmedAt).toBeTruthy();
+  expect(settings.preferences.onboarding.permissionsAcknowledgedAt).toBeTruthy();
   expect(settings.preferences.onboarding.tourSkippedAt).toBeTruthy();
 
   await attachScreenshot(page, testInfo, "onboarding");

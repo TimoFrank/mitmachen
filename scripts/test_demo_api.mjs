@@ -56,6 +56,7 @@ function createRuntime({
   authMode = "anonymous-demo",
   demoRole = "admin",
   demoProfile = "",
+  demoOnboarding = "",
   ownerOnlyContactChannels = true,
   allDemoContactsInvitable = true,
   includePublicPoliticsDirectory = true,
@@ -67,6 +68,7 @@ function createRuntime({
   const storageAccesses = [];
   const location = new URL("https://demo.example.invalid/versorgungs-kompass.html");
   if (demoProfile) location.searchParams.set("demoProfile", demoProfile);
+  if (demoOnboarding) location.searchParams.set("demoOnboarding", demoOnboarding);
   const originalFetch = async (input, init = {}) => {
     originalFetchCalls.push({ input: String(input), init: { ...init } });
     return new Response("static passthrough", { status: 200 });
@@ -331,12 +333,40 @@ assert.equal(api.active, true, "Die Demo-API muss ihre aktive lokale Übernahme 
 assert.deepEqual(
   JSON.parse(JSON.stringify(runtimeContract)),
   {
+    onboardingPreview: false,
     publicDemo: true,
     persistence: "memory-only",
     resetOnReload: true,
     syntheticOnly: true
   },
   "Die Runtime-Metadaten müssen den öffentlichen, synthetischen memory-only Betrieb eindeutig beschreiben."
+);
+
+const onboardingPreviewRuntime = createRuntime({
+  demoProfile: "demo-profile-viewer",
+  demoOnboarding: "fresh"
+});
+const onboardingPreviewSnapshot = onboardingPreviewRuntime.window.VersorgungsCompassDemoApi.snapshot();
+assert.equal(
+  onboardingPreviewRuntime.window.VERSORGUNGS_COMPASS_DEMO_RUNTIME.onboardingPreview,
+  true,
+  "Nur der explizite Viewer-Testlink darf den Onboarding-Previewmodus aktivieren."
+);
+assert.equal(onboardingPreviewSnapshot.currentProfileId, "demo-profile-viewer");
+assert.deepEqual(
+  JSON.parse(JSON.stringify(onboardingPreviewSnapshot.userSettings.preferences.onboarding)),
+  { version: 2, currentStep: "welcome" },
+  "Der Viewer-Testlink muss ausschließlich einen frischen In-Memory-Onboardingzustand bereitstellen."
+);
+
+const adminOnboardingPreviewRuntime = createRuntime({
+  demoProfile: "demo-profile-admin",
+  demoOnboarding: "fresh"
+});
+assert.equal(
+  adminOnboardingPreviewRuntime.window.VERSORGUNGS_COMPASS_DEMO_RUNTIME.onboardingPreview,
+  false,
+  "Der Previewparameter darf für das Admin-Demoprofil nicht aktiviert werden."
 );
 assert.equal(runtime.storageAccesses.length, 0, "Initialisierung darf keinen persistenten Browser-Speicher berühren.");
 assert.equal(runtime.documentListeners.has("DOMContentLoaded"), false, "Ohne schwebenden Demo-Hinweis ist kein DOMContentLoaded-Hook nötig.");

@@ -407,6 +407,10 @@
             <h2 id="workspace-view-title">Kontakte</h2>
             <p id="workspace-view-subtitle">Willkommen im Versorgungs-Kompass</p>
           </div>
+          <picture class="workspace-brand" data-workspace-brand hidden>
+            <source id="workspace-brand-source" media="(max-width: 760px)" srcset="../../public/brand/mitmachen/mark.svg" />
+            <img id="workspace-brand-image" src="../../public/brand/mitmachen/lockup-horizontal.svg" alt="#Mitmachen" />
+          </picture>
           <header class="press-page-header" id="press-page-header" aria-labelledby="press-page-title">
             <div class="politics-context__mark press-page-header__mark" aria-hidden="true">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9">
@@ -1902,35 +1906,8 @@
 
           <section class="view-panel" id="view-team" data-view-panel="team">
             <div class="team-workspace">
-              <section class="team-overview" aria-labelledby="team-overview-title">
-                <div class="team-overview__copy">
-                  <span class="team-overview__eyebrow">Teams und Zuständigkeiten</span>
-                  <h2 id="team-overview-title">Zusammenarbeit im Überblick</h2>
-                  <p>Finde Nutzer, Rollen und Zuständigkeiten, ohne lange Kontaktlisten durchsuchen zu müssen.</p>
-                </div>
-                <dl class="team-metrics" aria-label="Team-Kennzahlen">
-                  <div>
-                    <dt>Aktive Nutzer</dt>
-                    <dd id="team-user-count">–</dd>
-                  </div>
-                  <div>
-                    <dt>Teams</dt>
-                    <dd id="team-group-count">–</dd>
-                  </div>
-                  <div>
-                    <dt>Betreute Kontakte</dt>
-                    <dd id="team-contact-count">–</dd>
-                  </div>
-                </dl>
-              </section>
-
-              <section class="team-directory" aria-labelledby="team-directory-title">
+              <section class="team-directory" aria-label="Teamverzeichnis">
                 <header class="team-directory__header">
-                  <div class="team-directory__heading">
-                    <span>Teamverzeichnis</span>
-                    <h3 id="team-directory-title">Teams &amp; Zuständigkeiten</h3>
-                    <p id="team-directory-result" aria-live="polite">Nutzer werden geladen.</p>
-                  </div>
                   <div class="team-search" role="search">
                     <label class="visually-hidden" for="team-search-input">Team oder Person suchen</label>
                     <span class="team-search__icon" aria-hidden="true">
@@ -1942,6 +1919,21 @@
                     <input id="team-search-input" type="search" placeholder="Team oder Person suchen" autocomplete="off">
                     <button class="team-search__clear" id="team-search-clear" type="button" aria-label="Teamsuche leeren" hidden>×</button>
                   </div>
+                  <dl class="team-metrics" aria-label="Team-Kennzahlen">
+                    <div>
+                      <dt>Aktive Nutzer</dt>
+                      <dd id="team-user-count">–</dd>
+                    </div>
+                    <div>
+                      <dt>Teams</dt>
+                      <dd id="team-group-count">–</dd>
+                    </div>
+                    <div>
+                      <dt>Betreute Kontakte</dt>
+                      <dd id="team-contact-count">–</dd>
+                    </div>
+                  </dl>
+                  <p class="team-directory__result" id="team-directory-result" aria-live="polite" hidden></p>
                 </header>
                 <div class="team-account-list" id="team-account-list" aria-label="Nutzer nach Teams" aria-busy="true">
                   <div class="saved-view-empty">Nutzer werden nach dem Laden des Profils angezeigt.</div>
@@ -1954,77 +1946,202 @@
             <div class="onboarding-workspace">
               <section class="onboarding-panel" aria-labelledby="onboarding-title">
                 <div class="onboarding-stepper" aria-label="Onboarding-Schritte">
-                  <span class="onboarding-step-dot is-active" data-onboarding-step-dot="profile">Profil</span>
-                  <span class="onboarding-step-dot" data-onboarding-step-dot="tour">Tour</span>
+                  <span class="onboarding-step-dot is-active" data-onboarding-step-dot="welcome"><span aria-hidden="true">1</span>Willkommen</span>
+                  <span class="onboarding-step-dot" data-onboarding-step-dot="profile"><span aria-hidden="true">2</span>Profil</span>
+                  <span class="onboarding-step-dot" data-onboarding-step-dot="identity"><span aria-hidden="true">3</span>Profilbild</span>
+                  <span class="onboarding-step-dot" data-onboarding-step-dot="team"><span aria-hidden="true">4</span>Team</span>
+                  <span class="onboarding-step-dot" data-onboarding-step-dot="access"><span aria-hidden="true">5</span>Zugriff</span>
+                  <span class="onboarding-step-dot" data-onboarding-step-dot="summary"><span aria-hidden="true">6</span>Abschluss</span>
+                  <span class="onboarding-step-dot" data-onboarding-step-dot="tour"><span aria-hidden="true">7</span>Tour</span>
                 </div>
                 <div class="onboarding-panel__body">
-                  <form class="profile-tab-panel" id="onboarding-profile-form" data-onboarding-step-panel="profile" novalidate>
-                    <div class="onboarding-heading">
+                  <div class="profile-status onboarding-persistence-status" id="onboarding-persistence-status" aria-live="polite"></div>
+
+                  <section class="profile-tab-panel onboarding-welcome" data-onboarding-step-panel="welcome">
+                    <div class="onboarding-heading onboarding-heading--welcome">
+                      <span class="onboarding-eyebrow">Schön, dass du da bist</span>
                       <h3 id="onboarding-title">Willkommen im Versorgungs-Kompass</h3>
-                      <p>Richte kurz dein Profil ein, damit Zuständigkeiten, Team-Ansichten und Owner-Zuweisungen sauber angezeigt werden.</p>
+                      <p>In wenigen Schritten prüfen wir dein Profil und zeigen dir, mit welchen Rechten und in welchem Team du arbeitest.</p>
                     </div>
-                    <div class="onboarding-profile">
-                      <div class="onboarding-photo">
-                        <div class="onboarding-avatar" id="onboarding-avatar-preview" aria-hidden="true">VK</div>
-                        <button class="action-button" type="button" id="onboarding-photo-button">Foto hochladen</button>
-                        <div class="profile-status" id="onboarding-photo-status" aria-live="polite"></div>
+                    <div class="onboarding-intro-grid" aria-label="Das erwartet dich">
+                      <article class="onboarding-intro-card">
+                        <span class="onboarding-intro-icon" aria-hidden="true">01</span>
+                        <strong>Persönlich starten</strong>
+                        <span>Name und Profildarstellung sorgen dafür, dass dich andere direkt erkennen.</span>
+                      </article>
+                      <article class="onboarding-intro-card">
+                        <span class="onboarding-intro-icon" aria-hidden="true">02</span>
+                        <strong>Richtig zugeordnet</strong>
+                        <span>Du bestätigst Team, Rolle und den für dich freigegebenen Datenbereich.</span>
+                      </article>
+                      <article class="onboarding-intro-card">
+                        <span class="onboarding-intro-icon" aria-hidden="true">03</span>
+                        <strong>Sicher loslegen</strong>
+                        <span>Zum Abschluss kannst du die wichtigsten Bereiche in einer kurzen App-Tour entdecken.</span>
+                      </article>
+                    </div>
+                    <div class="profile-status" id="onboarding-welcome-status" aria-live="polite"></div>
+                    <div class="onboarding-actions">
+                      <button class="action-button action-button--primary" type="button" id="onboarding-welcome-next">Einrichtung starten</button>
+                    </div>
+                  </section>
+
+                  <form class="profile-tab-panel onboarding-form-card" id="onboarding-profile-form" data-onboarding-step-panel="profile" hidden novalidate>
+                    <div class="onboarding-heading">
+                      <span class="onboarding-eyebrow">Dein Profil</span>
+                      <h3>Wie dürfen wir dich ansprechen?</h3>
+                      <p>Der Anzeigename erscheint im Teamverzeichnis und bei deinen Beiträgen. Deine Anmelde-E-Mail kann hier nicht verändert werden.</p>
+                    </div>
+                    <div class="onboarding-fields">
+                      <div class="profile-grid">
+                        <div class="profile-field profile-field--wide">
+                          <label for="onboarding-display-name">Anzeigename</label>
+                          <input id="onboarding-display-name" name="displayName" autocomplete="name" required />
+                        </div>
+                        <div class="profile-field profile-field--wide">
+                          <label for="onboarding-email">Anmelde-E-Mail</label>
+                          <input id="onboarding-email" name="email" type="email" readonly aria-describedby="onboarding-email-hint" />
+                          <span class="profile-field__hint" id="onboarding-email-hint">Die E-Mail stammt aus deinem geschützten Konto.</span>
+                        </div>
                       </div>
-                      <div class="onboarding-fields">
-                        <div class="profile-grid">
-                          <div class="profile-field profile-field--wide">
-                            <label for="onboarding-display-name">Anzeigename</label>
-                            <input id="onboarding-display-name" name="displayName" autocomplete="name" required />
-                          </div>
-                          <div class="profile-field">
-                            <label for="onboarding-email">E-Mail</label>
-                            <input id="onboarding-email" name="email" type="email" readonly />
-                          </div>
-                          <div class="profile-field">
-                            <label for="onboarding-team">Team</label>
-                            <div class="select-shell" data-custom-select>
-                              <select id="onboarding-team" name="team">
-                                <option value="">Bitte auswählen</option>
-                              </select>
-                            </div>
-                          </div>
-                        </div>
-                        <div class="profile-status" id="onboarding-status" aria-live="polite"></div>
-                        <div class="onboarding-actions">
-                          <button class="action-button action-button--primary" type="submit" id="onboarding-profile-submit">Profil speichern und weiter</button>
-                        </div>
+                      <div class="profile-status" id="onboarding-status" aria-live="polite"></div>
+                      <div class="onboarding-actions onboarding-actions--split">
+                        <button class="action-button" type="button" data-onboarding-back="welcome">Zurück</button>
+                        <button class="action-button action-button--primary" type="submit" id="onboarding-profile-submit">Profil speichern</button>
                       </div>
                     </div>
                   </form>
-                  <section class="profile-tab-panel" id="onboarding-tour-panel" data-onboarding-step-panel="tour" hidden>
+
+                  <form class="profile-tab-panel onboarding-form-card" id="onboarding-identity-form" data-onboarding-step-panel="identity" hidden novalidate>
                     <div class="onboarding-heading">
-                      <h3>#Mitmachen kennenlernen</h3>
-                      <p>Die App-Tour beginnt mit dem gemeinsamen Konzept und führt dich anschließend durch die wichtigsten Arbeitsbereiche. Du kannst sie jederzeit über die Sidebar oder in Mein Profil erneut starten.</p>
+                      <span class="onboarding-eyebrow">Deine Profildarstellung</span>
+                      <h3>So erkennen dich andere im Team</h3>
+                      <p>Ein Foto ist freiwillig. Deine Initialen sind eine gleichwertige und jederzeit verfügbare Alternative.</p>
+                    </div>
+                    <div class="onboarding-identity-layout">
+                      <div class="onboarding-photo">
+                        <div class="onboarding-avatar" id="onboarding-avatar-preview" aria-hidden="true">VK</div>
+                        <button class="action-button" type="button" id="onboarding-photo-button">Optional Foto hochladen</button>
+                        <div class="profile-status" id="onboarding-photo-status" aria-live="polite"></div>
+                      </div>
+                      <div class="onboarding-identity-fields">
+                        <div class="profile-field">
+                          <label for="onboarding-initials">Deine Initialen</label>
+                          <input id="onboarding-initials" name="initials" maxlength="4" autocomplete="off" required aria-describedby="onboarding-initials-hint" />
+                          <span class="profile-field__hint" id="onboarding-initials-hint">Ein bis vier Zeichen, zum Beispiel „MS“.</span>
+                        </div>
+                        <label class="onboarding-confirmation" for="onboarding-identity-confirm">
+                          <input id="onboarding-identity-confirm" type="checkbox" />
+                          <span><strong>Diese Profildarstellung verwenden</strong><span id="onboarding-identity-confirm-copy">Ich bestätige meine Initialen als Profilbild.</span></span>
+                        </label>
+                      </div>
+                    </div>
+                    <div class="profile-status" id="onboarding-identity-status" aria-live="polite"></div>
+                    <div class="onboarding-actions onboarding-actions--split">
+                      <button class="action-button" type="button" data-onboarding-back="profile">Zurück</button>
+                      <button class="action-button action-button--primary" type="submit" id="onboarding-identity-submit">Darstellung bestätigen</button>
+                    </div>
+                  </form>
+
+                  <form class="profile-tab-panel onboarding-form-card" id="onboarding-team-form" data-onboarding-step-panel="team" hidden novalidate>
+                    <div class="onboarding-heading">
+                      <span class="onboarding-eyebrow">Deine Zuordnung</span>
+                      <h3>In welchem Team arbeitest du?</h3>
+                      <p>Das Team macht Zuständigkeiten sichtbar. Es verändert weder deine Rolle noch deinen freigegebenen Datenbereich.</p>
+                    </div>
+                    <div class="onboarding-team-card">
+                      <span class="onboarding-team-card__label">Aktuelle Zuordnung</span>
+                      <strong id="onboarding-team-summary">Noch kein Team zugewiesen</strong>
+                      <div class="profile-field">
+                        <label for="onboarding-team">Team prüfen oder korrigieren</label>
+                        <div class="select-shell" data-custom-select>
+                          <select id="onboarding-team" name="team" required>
+                            <option value="">Bitte auswählen</option>
+                          </select>
+                        </div>
+                      </div>
+                      <p>Ist dein Team nicht in der Liste oder bist du unsicher? Wähle noch nichts und wende dich an eine Administration.</p>
+                    </div>
+                    <div class="profile-status" id="onboarding-team-status" aria-live="polite"></div>
+                    <div class="onboarding-actions onboarding-actions--split">
+                      <button class="action-button" type="button" data-onboarding-back="identity">Zurück</button>
+                      <button class="action-button action-button--primary" type="submit" id="onboarding-team-submit">Team bestätigen</button>
+                    </div>
+                  </form>
+
+                  <form class="profile-tab-panel onboarding-form-card" id="onboarding-access-form" data-onboarding-step-panel="access" hidden novalidate>
+                    <div class="onboarding-heading">
+                      <span class="onboarding-eyebrow">Rolle &amp; Berechtigungen</span>
+                      <h3>Das kannst du im Versorgungs-Kompass tun</h3>
+                      <p>Diese Angaben werden von deinem Konto übernommen und können an dieser Stelle nicht verändert werden.</p>
+                    </div>
+                    <div class="onboarding-access-overview">
+                      <article class="onboarding-access-card onboarding-access-card--role">
+                        <span>Deine Rolle</span>
+                        <strong id="onboarding-role-label">Viewer</strong>
+                        <p id="onboarding-role-description">Lesen, suchen und filtern.</p>
+                      </article>
+                      <article class="onboarding-access-card">
+                        <span>Dein Datenbereich</span>
+                        <strong id="onboarding-scope-label">Standardbereich</strong>
+                        <p id="onboarding-scope-description">Freigegebene Arbeitsdaten werden entsprechend deiner Rolle bereitgestellt.</p>
+                      </article>
+                    </div>
+                    <div class="onboarding-permission-list" id="onboarding-permission-list" aria-label="Wichtige Berechtigungen"></div>
+                    <label class="onboarding-confirmation" for="onboarding-access-confirm">
+                      <input id="onboarding-access-confirm" type="checkbox" />
+                      <span><strong>Rolle und Datenbereich verstanden</strong><span>Bei Fragen oder fehlenden Rechten wende ich mich an eine Administration.</span></span>
+                    </label>
+                    <div class="profile-status" id="onboarding-access-status" aria-live="polite"></div>
+                    <div class="onboarding-actions onboarding-actions--split">
+                      <button class="action-button" type="button" data-onboarding-back="team">Zurück</button>
+                      <button class="action-button action-button--primary" type="submit" id="onboarding-access-submit">Verstanden und weiter</button>
+                    </div>
+                  </form>
+
+                  <section class="profile-tab-panel onboarding-form-card" id="onboarding-summary-panel" data-onboarding-step-panel="summary" hidden>
+                    <div class="onboarding-heading">
+                      <span class="onboarding-eyebrow">Fast geschafft</span>
+                      <h3>Bitte prüfe deine Einrichtung</h3>
+                      <p>Die Angaben werden noch einmal zusammengefasst. Rolle und Datenbereich bleiben administrativ verwaltet.</p>
+                    </div>
+                    <dl class="onboarding-summary-list" id="onboarding-summary-list">
+                      <div><dt>Profil</dt><dd id="onboarding-summary-profile">–</dd></div>
+                      <div><dt>Profildarstellung</dt><dd id="onboarding-summary-identity">–</dd></div>
+                      <div><dt>Team</dt><dd id="onboarding-summary-team">–</dd></div>
+                      <div><dt>Rolle</dt><dd id="onboarding-summary-role">–</dd></div>
+                      <div><dt>Datenbereich</dt><dd id="onboarding-summary-scope">–</dd></div>
+                    </dl>
+                    <div class="profile-status" id="onboarding-summary-status" aria-live="polite"></div>
+                    <div class="onboarding-actions onboarding-actions--split">
+                      <button class="action-button" type="button" data-onboarding-back="access">Zurück</button>
+                      <button class="action-button action-button--primary" type="button" id="onboarding-summary-submit">Einrichtung abschließen</button>
+                    </div>
+                  </section>
+
+                  <section class="profile-tab-panel onboarding-form-card onboarding-tour-panel" id="onboarding-tour-panel" data-onboarding-step-panel="tour" hidden>
+                    <div class="onboarding-heading">
+                      <span class="onboarding-eyebrow">Dein nächster Schritt</span>
+                      <h3>Bereit für eine kurze App-Tour?</h3>
+                      <p>Deine Einrichtung ist abgeschlossen. Die Tour ist freiwillig und bleibt später über die Sidebar oder „Mein Profil“ erreichbar.</p>
                     </div>
                     <div class="onboarding-tour-list" aria-label="Tour-Inhalte">
                       <div class="onboarding-tour-item">
                         <span class="onboarding-tour-index" aria-hidden="true">1</span>
-                        <span><strong>#Mitmachen als gemeinsames Prinzip</strong><span>Menschen, Beobachtungen und Wissen aus der Versorgung werden gemeinsam nutzbar.</span></span>
+                        <span><strong>Gemeinsam arbeiten</strong><span>Profile, Teams und Zuständigkeiten im Versorgungsnetzwerk verstehen.</span></span>
                       </div>
                       <div class="onboarding-tour-item">
                         <span class="onboarding-tour-index" aria-hidden="true">2</span>
-                        <span><strong>Im Team sichtbar zusammenarbeiten</strong><span>Profile, Zuständigkeiten und Aktivitäten machen Beiträge und Ansprechpersonen transparent.</span></span>
+                        <span><strong>Versorgung einordnen</strong><span>Karte, Kontakte und Organisationen sicher finden und nutzen.</span></span>
                       </div>
                       <div class="onboarding-tour-item">
                         <span class="onboarding-tour-index" aria-hidden="true">3</span>
-                        <span><strong>Versorgung regional verstehen</strong><span>Deutschlandkarte, Kontakte, Organisationen und weitere Perspektiven zeigen die Versorgungslandschaft.</span></span>
-                      </div>
-                      <div class="onboarding-tour-item">
-                        <span class="onboarding-tour-index" aria-hidden="true">4</span>
-                        <span><strong>Beobachtungen weiterentwickeln</strong><span>Der Bereich Hospitation verbindet Framework, Termine und Fragebogen mit Mustern, Evidenz und Formaten.</span></span>
-                      </div>
-                      <div class="onboarding-tour-item">
-                        <span class="onboarding-tour-index" aria-hidden="true">5</span>
-                        <span><strong>Registrierungsszenario prüfen</strong><span>Die Konzeptdemo zeigt einen möglichen späteren Übergang in die gemeinsame Kontaktpflege.</span></span>
+                        <span><strong>Wissen weiterentwickeln</strong><span>Beobachtungen, Formate und nächste Schritte miteinander verbinden.</span></span>
                       </div>
                     </div>
                     <div class="profile-status" id="onboarding-tour-status" aria-live="polite"></div>
                     <div class="onboarding-actions">
-                      <button class="action-button" type="button" id="onboarding-tour-skip">Tour überspringen</button>
+                      <button class="action-button" type="button" id="onboarding-tour-skip">Später entdecken</button>
                       <button class="action-button action-button--primary" type="button" id="onboarding-tour-start">Tour starten</button>
                     </div>
                   </section>
