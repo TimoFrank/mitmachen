@@ -10427,6 +10427,7 @@
           id: "team",
           view: "team",
           target: "#team-account-list .team-board-card",
+          narrowTarget: "#team-account-list .team-board-card__header",
           fallbackTarget: "#team-account-list",
           sidebarSection: "account",
           sidebarTarget: "#sidebar-team-button",
@@ -10583,6 +10584,7 @@
           id: "formats",
           view: "formats",
           target: "#view-formats .formats-workspace",
+          narrowTarget: "#view-formats .formats-command-row",
           mobileTarget: "#format-detail-panel",
           prepare: "formats-overview",
           sidebarSection: "formats",
@@ -10774,9 +10776,18 @@
 
       function targetForProductTourStep(step) {
         if (!step || step.welcome || step.overlay) return null;
+        const useNarrowTarget = window.matchMedia("(max-width: 480px)").matches;
         const useCompactTarget = window.matchMedia("(max-width: 900px)").matches;
-        const targetSelector = useCompactTarget && step.mobileTarget ? step.mobileTarget : step.target;
-        const fallbackSelector = useCompactTarget && step.mobileFallbackTarget ? step.mobileFallbackTarget : step.fallbackTarget;
+        const targetSelector = useNarrowTarget && step.narrowTarget
+          ? step.narrowTarget
+          : useCompactTarget && step.mobileTarget
+            ? step.mobileTarget
+            : step.target;
+        const fallbackSelector = useNarrowTarget && step.narrowFallbackTarget
+          ? step.narrowFallbackTarget
+          : useCompactTarget && step.mobileFallbackTarget
+            ? step.mobileFallbackTarget
+            : step.fallbackTarget;
         const target = document.querySelector(targetSelector) || (fallbackSelector ? document.querySelector(fallbackSelector) : null);
         const frameTargetSelector = useCompactTarget && step.mobileFrameTarget ? step.mobileFrameTarget : step.frameTarget;
         if (frameTargetSelector && target?.tagName === "IFRAME") {
