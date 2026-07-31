@@ -51,7 +51,6 @@ assert.doesNotMatch(
 for (const contract of [
   /location = \/__\/auth \{[\s\S]*return 404;/u,
   /location \^~ \/__\/auth\//u,
-  /if \(\$request_uri !~ "\^\/__\/auth\/"\)[\s\S]*return 404;/u,
   /if \(\$request_method !~ "\^\(GET\|HEAD\|POST\)\$"\)[\s\S]*return 405;/u,
   /limit_except GET HEAD POST/u,
   /proxy_pass_request_headers off;/u,
@@ -68,6 +67,75 @@ for (const contract of [
 ]) {
   assert.match(nginx, contract, `Auth-Proxy-Vertrag fehlt: ${contract}`);
 }
+const normalizedHelperGuard = nginx.match(
+  /if \(\$uri !~ "([^"]+)"\) \{[\s\S]*?return 404;/
+)?.[1];
+const rawHelperGuard = nginx.match(
+  /if \(\$request_uri !~ "([^"]+)"\) \{[\s\S]*?return 404;/
+)?.[1];
+const helperAlternation = [
+  "callback",
+  "experiments\\.js",
+  "handler",
+  "handler\\.js",
+  "iframe",
+  "iframe\\.js",
+  "links",
+  "links\\.js"
+].join("|");
+assert.equal(
+  normalizedHelperGuard,
+  `^/__/auth/(${helperAlternation})$`,
+  "Nur die feste Firebase-Helper-Allowlist darf den normalisierten Proxy-Pfad erreichen."
+);
+assert.equal(
+  rawHelperGuard,
+  `^/__/auth/(${helperAlternation})(\\?.*)?$`,
+  "Auch der rohe Pfad muss exakt zur Helper-Allowlist passen; Prozentkodierung ist nur in Queryparametern erlaubt."
+);
+const normalizedHelperPattern = new RegExp(normalizedHelperGuard, "u");
+const rawHelperPattern = new RegExp(rawHelperGuard, "u");
+for (const helperPath of [
+  "/__/auth/callback",
+  "/__/auth/experiments.js",
+  "/__/auth/handler",
+  "/__/auth/handler.js",
+  "/__/auth/iframe",
+  "/__/auth/iframe.js",
+  "/__/auth/links",
+  "/__/auth/links.js"
+]) {
+  assert.match(helperPath, normalizedHelperPattern);
+  assert.match(helperPath, rawHelperPattern);
+}
+assert.match(
+  "/__/auth/handler?redirect_uri=https%3A%2F%2Fversorgungs-kompass.de%2Fstart",
+  rawHelperPattern,
+  "Kodierte OAuth-Queryparameter muessen erlaubt bleiben."
+);
+for (const ambiguousPath of [
+  "/__/auth/%68andler",
+  "/__/auth//handler",
+  "/__/auth/handler/",
+  "/__/auth/handler;probe",
+  "/__/auth/foo/../handler",
+  "/__/auth/%2e%2e/start",
+  "/__/auth/%252e%252e/start",
+  "/__/auth/%5chandler",
+  "/__/auth/action",
+  "/__/auth/unknown.js"
+]) {
+  assert.doesNotMatch(
+    ambiguousPath,
+    rawHelperPattern,
+    `Der rohe Alias darf den Firebase-Upstream nicht erreichen: ${ambiguousPath}`
+  );
+}
+assert.doesNotMatch(
+  nginx,
+  /if \(\$request_uri !~ "\^\/__\/auth\/"\)/u,
+  "Ein reiner Prefix-Check darf den festen Helper-Vertrag nicht wieder aufweiten."
+);
 for (const sensitiveHeader of [
   "Authorization",
   "Cookie",
