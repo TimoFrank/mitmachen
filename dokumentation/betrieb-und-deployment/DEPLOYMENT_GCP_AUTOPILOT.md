@@ -200,6 +200,7 @@ Die Namen stehen in `config/pre-gematik/variables.env.example`. Werte aus Terraf
 | GitHub-Variable | Quelle |
 | --- | --- |
 | `GCP_PROJECT_ID` | Terraform-Output `GCP_PROJECT_ID` |
+| `GCP_PROJECT_NUMBER` | numerischer Terraform-Output `GCP_PROJECT_NUMBER`; wird gegen das authentifizierte Projekt und `WIF_PROVIDER` verifiziert |
 | `GCP_REGION` | Terraform-Output `GCP_REGION` |
 | `GKE_CLUSTER_NAME` | Terraform-Output `GKE_CLUSTER_NAME` |
 | `GKE_LOCATION` | Terraform-Output `GKE_LOCATION` |
@@ -224,7 +225,7 @@ Die Namen stehen in `config/pre-gematik/variables.env.example`. Werte aus Terraf
 | `API_BASE_URL` | gemeinsamer HTTPS-Origin; `https://mitmachen.timo-frank.de` nur zur Zertifikatsvorbereitung, danach `https://versorgungs-kompass.de` |
 | `FRONTEND_BASE_URL` | exakt derselbe gemeinsame HTTPS-Origin wie `API_BASE_URL` |
 
-`WIF_PROVIDER` ist der volle Ressourcenname mit numerischer Projektnummer. `GAR_REPOSITORY` hat die Form `REGION-docker.pkg.dev/PROJECT/REPOSITORY`. Bucket-Werte enthalten nur den Namen, kein `gs://`. Der Workflow bricht ab, wenn `API_BASE_URL` und `FRONTEND_BASE_URL` nicht exakt denselben Origin bezeichnen oder der Origin außerhalb der beiden freigegebenen Cutover-Zustände liegt.
+`GCP_PROJECT_NUMBER` und die Projektnummer in `WIF_PROVIDER` müssen exakt übereinstimmen. `WIF_PROVIDER` ist der volle Ressourcenname mit numerischer Projektnummer. `GAR_REPOSITORY` hat die Form `REGION-docker.pkg.dev/PROJECT/REPOSITORY`. Bucket-Werte enthalten nur den Namen, kein `gs://`. Der Workflow bricht ab, wenn `API_BASE_URL` und `FRONTEND_BASE_URL` nicht exakt denselben Origin bezeichnen oder der Origin außerhalb der beiden freigegebenen Cutover-Zustände liegt.
 
 Zusätzlich liegen zwei geschützte Environment-Secrets vor. `IAP_PROJECT_BREAK_GLASS_SHA256` ist der SHA-256-Pin der kanonisch sortierten, projektweiten IAP-Break-glass-Nutzerliste und kein Zugangswert. `HOSPITATION_IMPORT_OWNER_PROFILE_ID` enthält ausschließlich die stabile produktive Profil-ID von Timo Frank; sie wird nicht im Repository hinterlegt und durch den Workflow in die geschützte API-Konfiguration übernommen. Der Workflow liest die Projekt-IAM-Policy nur als Metadatum, verlangt genau eine unbedingte, ausschließlich aus `user:`-Mitgliedern bestehende Break-glass-Bindung und stoppt bei jeder Mitgliedschaftsänderung. Der Gruppen-Cutover verändert diese projektweite Bindung nicht. Der Klartext der Nutzerliste wird weder in Git noch in der Actions-Zusammenfassung ausgegeben.
 

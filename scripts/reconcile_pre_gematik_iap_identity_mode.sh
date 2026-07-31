@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 
 set -euo pipefail
+umask 077
 
 require_value() {
   local name="$1"
@@ -77,20 +78,51 @@ mutation_attempted_services=()
 agent_tenant="_${IAP_PROJECT_NUMBER}"
 desired_external_settings="${IAP_WORK_DIR}/external-gcip-settings-desired.json"
 desired_iam_settings="${IAP_WORK_DIR}/iam-settings-desired.json"
+external_contract_configured=0
+
+if [[ "$IAP_IDENTITY_MODE" == "external" ]]; then
+  if [[ "${IAP_GCIP_PROJECT_ID:-}" != "$GCP_PROJECT_ID" ]]; then
+    echo "External IAP requires IAP_GCIP_PROJECT_ID to match GCP_PROJECT_ID." >&2
+    exit 1
+  fi
+  if [[ -z "${IAP_EXTERNAL_LOGIN_PAGE_URI:-}" ]] || \
+     [[ ! "$IAP_EXTERNAL_LOGIN_PAGE_URI" =~ ^https://[a-z0-9]([a-z0-9.-]*[a-z0-9])?(/[A-Za-z0-9._~%:@+/-]*)?$ ]]; then
+    echo "External IAP requires an exact custom HTTPS login page base URI without query or fragment." >&2
+    exit 1
+  fi
+  if [[ ! "${IAP_EXTERNAL_AUTH_API_KEY:-}" =~ ^AIza[0-9A-Za-z_-]{35}$ ]]; then
+    echo "External IAP requires the restricted Identity Platform browser API key." >&2
+    exit 1
+  fi
+  external_contract_configured=1
+elif [[ -n "${IAP_EXTERNAL_LOGIN_PAGE_URI:-}" || -n "${IAP_EXTERNAL_AUTH_API_KEY:-}" ]]; then
+  if [[ "${IAP_GCIP_PROJECT_ID:-}" != "$GCP_PROJECT_ID" ]] || \
+     [[ -z "${IAP_EXTERNAL_LOGIN_PAGE_URI:-}" ]] || \
+     [[ ! "$IAP_EXTERNAL_LOGIN_PAGE_URI" =~ ^https://[a-z0-9]([a-z0-9.-]*[a-z0-9])?(/[A-Za-z0-9._~%:@+/-]*)?$ ]] || \
+     [[ ! "${IAP_EXTERNAL_AUTH_API_KEY:-}" =~ ^AIza[0-9A-Za-z_-]{35}$ ]]; then
+    echo "IAM rollback requires the complete pinned External-IAP base URI and browser-key contract when either value is supplied." >&2
+    exit 1
+  fi
+  external_contract_configured=1
+fi
 
 # `gcloud iap settings set` sends no update mask and therefore replaces the
 # resource settings. The preflight below accepts only these identity-mode fields
 # before either exact replacement is allowed.
-jq --null-input \
-  --arg tenant "$agent_tenant" \
-  --arg login_page_uri "${IAP_EXTERNAL_LOGIN_PAGE_URI:-}" '{
-    accessSettings: {
-      gcipSettings: {
-        tenantIds: [$tenant],
-        loginPageUri: $login_page_uri
-      }
-    }
-  }' > "$desired_external_settings"
+if [[ "$external_contract_configured" == "1" ]]; then
+  effective_external_login_page_uri="${IAP_EXTERNAL_LOGIN_PAGE_URI}?apiKey=${IAP_EXTERNAL_AUTH_API_KEY}"
+  IAP_EFFECTIVE_EXTERNAL_LOGIN_PAGE_URI="$effective_external_login_page_uri" \
+    jq --null-input \
+      --arg tenant "$agent_tenant" '{
+        accessSettings: {
+          gcipSettings: {
+            tenantIds: [$tenant],
+            loginPageUri: env.IAP_EFFECTIVE_EXTERNAL_LOGIN_PAGE_URI
+          }
+        }
+      }' > "$desired_external_settings"
+  unset effective_external_login_page_uri IAP_EFFECTIVE_EXTERNAL_LOGIN_PAGE_URI
+fi
 
 jq --null-input '{
   accessSettings: {
@@ -194,14 +226,12 @@ gcip_is_inactive() {
 
 gcip_is_expected_external() {
   local settings_file="$1"
-  jq --exit-status \
-    --arg tenant "$agent_tenant" \
-    --arg login_page_uri "${IAP_EXTERNAL_LOGIN_PAGE_URI:-}" '
-      (.accessSettings.gcipSettings // {}) == {
-        tenantIds: [$tenant],
-        loginPageUri: $login_page_uri
-      }
-    ' "$settings_file" >/dev/null
+  [[ "$external_contract_configured" == "1" && -f "$desired_external_settings" ]] \
+    || return 1
+  jq --exit-status --slurpfile desired "$desired_external_settings" '
+    (.accessSettings.gcipSettings // {})
+    == $desired[0].accessSettings.gcipSettings
+  ' "$settings_file" >/dev/null
 }
 
 reauth_is_exact() {
@@ -310,18 +340,6 @@ policy_is_empty() {
   ' "$policy_file" >/dev/null
 }
 
-if [[ "$IAP_IDENTITY_MODE" == "external" ]]; then
-  if [[ "${IAP_GCIP_PROJECT_ID:-}" != "$GCP_PROJECT_ID" ]]; then
-    echo "External IAP requires IAP_GCIP_PROJECT_ID to match GCP_PROJECT_ID." >&2
-    exit 1
-  fi
-  if [[ -z "${IAP_EXTERNAL_LOGIN_PAGE_URI:-}" ]] || \
-     [[ ! "$IAP_EXTERNAL_LOGIN_PAGE_URI" =~ ^https://[a-z0-9]([a-z0-9.-]*[a-z0-9])?(/[A-Za-z0-9._~%:@+/-]*)?$ ]]; then
-    echo "External IAP requires an exact custom HTTPS login page URI." >&2
-    exit 1
-  fi
-fi
-
 # Read and validate every protected backend before mutating either one.
 for candidate in "${backend_services[@]}"; do
   current_settings="${IAP_WORK_DIR}/${candidate}-identity-settings-current.json"
@@ -377,6 +395,7 @@ for candidate in "${backend_services[@]}"; do
   fi
   if [[ "${IAP_GCIP_PROJECT_ID:-}" != "$GCP_PROJECT_ID" ]] || \
      [[ -z "${IAP_EXTERNAL_LOGIN_PAGE_URI:-}" ]] || \
+     [[ ! "${IAP_EXTERNAL_AUTH_API_KEY:-}" =~ ^AIza[0-9A-Za-z_-]{35}$ ]] || \
      ! gcip_is_expected_external "$current_settings" || \
      ! reauth_is_inactive "$current_settings"; then
     echo "An unpinned or unknown GCIP configuration is active on ${candidate}; refusing IAM rollback." >&2

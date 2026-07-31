@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
+import { createHash } from "node:crypto";
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 
@@ -100,6 +101,9 @@ function assertBashSyntax(script, label) {
 const validationScript = stepScript("Validate pre-gematik environment variables");
 const repositoryCheckScript = stepScript("Run repository checks");
 const immutableTagScript = stepScript("Refuse mutable image tag reuse");
+const projectNumberVerificationScript = stepScript(
+  "Verify pinned Google Cloud project number"
+);
 const identityPlatformPreflightScript = stepScript(
   "Preflight locked Identity Platform providers without mutation"
 );
@@ -117,6 +121,7 @@ const failClosedRestoreScript = stepScript(
 assertBashSyntax(validationScript, "Environment-Validierung");
 assertBashSyntax(repositoryCheckScript, "Repository-Pruefungen");
 assertBashSyntax(immutableTagScript, "Unveraenderliche-Tag-Pruefung");
+assertBashSyntax(projectNumberVerificationScript, "Projektnummer-Verifikation");
 assertBashSyntax(identityPlatformPreflightScript, "Identity-Platform-Preflight");
 assertBashSyntax(liveHospitationContractScript, "Live-Hospitations-Kompass-Datenbankvertrag");
 assertBashSyntax(iapScript, "IAP-Deployment");
@@ -134,9 +139,84 @@ assert.match(
   /\["npm", \["--prefix", "frontend\/identity-portal", "test"\]\]/u,
   "Auch npm run check muss die Portal-Vertraege enthalten."
 );
+assert.match(
+  workflow,
+  /GCP_PROJECT_NUMBER:\s*\$\{\{\s*vars\.GCP_PROJECT_NUMBER\s*\}\}/u,
+  "Die numerische Projektnummer muss aus dem geschuetzten GitHub Environment stammen."
+);
+assert.match(
+  validationScript,
+  /GCP_PROJECT_ID GCP_PROJECT_NUMBER GCP_REGION/u,
+  "Die gepinnte Projektnummer muss verpflichtend validiert werden."
+);
+assert.match(
+  validationScript,
+  /WIF_PROVIDER" != "projects\/\$\{GCP_PROJECT_NUMBER\}\/locations\/global\/"\*/u,
+  "WIF_PROVIDER und GCP_PROJECT_NUMBER muessen bereits vor der Authentifizierung uebereinstimmen."
+);
+assert.match(
+  projectNumberVerificationScript,
+  /gcloud projects describe[\s\S]*--format='value\(projectNumber\)'/u
+);
+assert.match(
+  projectNumberVerificationScript,
+  /resolved_project_number" != "\$GCP_PROJECT_NUMBER"/u,
+  "Die geschuetzte Projektnummer muss gegen das authentifizierte Projekt gelesen werden."
+);
+assert.doesNotMatch(
+  projectNumberVerificationScript,
+  /GITHUB_ENV|GITHUB_OUTPUT/u,
+  "Die geschuetzte Projektnummer darf nicht durch einen dynamischen Workflow-Wert ueberschrieben werden."
+);
+
+function runProjectNumberVerification(resolvedProjectNumber, pinnedProjectNumber) {
+  return spawnSync(
+    "bash",
+    [
+      "-c",
+      `gcloud() { printf '%s\\n' "$MOCK_RESOLVED_PROJECT_NUMBER"; }\n${projectNumberVerificationScript}`
+    ],
+    {
+      encoding: "utf8",
+      env: {
+        ...process.env,
+        GCP_PROJECT_ID: "steam-capsule-341212",
+        GCP_PROJECT_NUMBER: pinnedProjectNumber,
+        MOCK_RESOLVED_PROJECT_NUMBER: resolvedProjectNumber
+      }
+    }
+  );
+}
+
+const identityProjectNumber = "765190393967";
+assert.equal(
+  runProjectNumberVerification(identityProjectNumber, identityProjectNumber).status,
+  0,
+  "Die authentifizierte und geschuetzte identische Projektnummer muss akzeptiert werden."
+);
+for (const [resolvedProjectNumber, pinnedProjectNumber] of [
+  ["765190393968", identityProjectNumber],
+  ["steam-capsule-341212", identityProjectNumber],
+  [identityProjectNumber, "765190393968"]
+]) {
+  const verification = runProjectNumberVerification(
+    resolvedProjectNumber,
+    pinnedProjectNumber
+  );
+  assert.notEqual(
+    verification.status,
+    0,
+    "Abweichende oder nicht numerische Projektnummern muessen fail-closed stoppen."
+  );
+  assert.doesNotMatch(
+    `${verification.stdout}${verification.stderr}`,
+    /76519039396[78]|steam-capsule-341212/u,
+    "Die Projektnummer-Verifikation darf Ist- und Sollwerte nicht ausgeben."
+  );
+}
 
 const identityProjectConfigFilter = identityPlatformPreflightScript.match(
-  /--arg auth_api_key "\$IAP_EXTERNAL_AUTH_API_KEY" '\n([\s\S]*?)\n\s*' "\$project_config"/
+  /--arg login_page_host "\$login_page_host" \\\n\s*'\n([\s\S]*?)\n\s*' "\$project_config"/
 )?.[1];
 assert.ok(
   identityProjectConfigFilter,
@@ -145,9 +225,8 @@ assert.ok(
 const identityProject = "steam-capsule-341212";
 const identityApiHost = "versorgungs-kompass.de";
 const identityIapAuthDomain = "iap.googleapis.com";
-const identityApiKey = `AIza${"A".repeat(35)}`;
 const lockedIdentityProjectConfig = {
-  name: `projects/${identityProject}/config`,
+  name: `projects/${identityProjectNumber}/config`,
   signIn: {
     email: { enabled: true, passwordRequired: true },
     allowDuplicateEmails: false,
@@ -158,8 +237,7 @@ const lockedIdentityProjectConfig = {
     permissions: {
       disabledUserSignup: true,
       disabledUserDeletion: true
-    },
-    apiKey: identityApiKey
+    }
   },
   emailPrivacyConfig: { enableImprovedEmailPrivacy: true },
   mfa: { state: "DISABLED" },
@@ -189,10 +267,10 @@ function verifyIdentityProjectConfig(config, loginPageHost = identityApiHost) {
     "jq",
     [
       "--exit-status",
-      "--arg", "project", identityProject,
+      "--arg", "project_id", identityProject,
+      "--arg", "project_number", identityProjectNumber,
       "--arg", "api_host", identityApiHost,
       "--arg", "login_page_host", loginPageHost,
-      "--arg", "auth_api_key", identityApiKey,
       identityProjectConfigFilter
     ],
     { input: JSON.stringify(config), encoding: "utf8" }
@@ -202,6 +280,31 @@ assert.equal(
   verifyIdentityProjectConfig(lockedIdentityProjectConfig).status,
   0,
   "Die exakt gepinnten Versorgungs-Kompass-, Firebase- und IAP-Auth-Domains muessen akzeptiert werden."
+);
+for (const unsafeProjectConfigName of [
+  `projects/${identityProject}/config`,
+  "projects/765190393968/config",
+  `projects/${identityProjectNumber}/config/extra`
+]) {
+  assert.notEqual(
+    verifyIdentityProjectConfig({
+      ...lockedIdentityProjectConfig,
+      name: unsafeProjectConfigName
+    }).status,
+    0,
+    "Die Admin-Projektkonfiguration muss exakt den numerischen Projektressourcennamen tragen."
+  );
+}
+assert.equal(
+  verifyIdentityProjectConfig({
+    ...lockedIdentityProjectConfig,
+    client: {
+      ...lockedIdentityProjectConfig.client,
+      apiKey: "unrelated-admin-readback-value"
+    }
+  }).status,
+  0,
+  "Die Admin-Config darf nicht faelschlich zur Bindung des Browser-Keys verwendet werden."
 );
 assert.notEqual(
   verifyIdentityProjectConfig({
@@ -229,6 +332,340 @@ assert.notEqual(
   0,
   "Der Custom-Login-Host muss exakt dem kanonischen API-/Frontend-Host entsprechen."
 );
+
+assert.doesNotMatch(
+  identityPlatformPreflightScript,
+  /\.client\.apiKey/u,
+  "Der Browser-Key darf nicht gegen das ungeeignete Admin-Config-Feld validiert werden."
+);
+assert.match(
+  identityPlatformPreflightScript,
+  /identity_project_number="\$GCP_PROJECT_NUMBER"/u,
+  "Der Browser-Key-Probe muss die bereits verifizierte geschuetzte Projektnummer verwenden."
+);
+assert.match(
+  identityPlatformPreflightScript,
+  /\/v1\/projects\?key=%s&projectNumber=%s/u
+);
+assert.match(
+  identityPlatformPreflightScript,
+  /referer = "%s"[\s\S]*"\$IAP_EXTERNAL_LOGIN_PAGE_URI"/u
+);
+assert.match(
+  identityPlatformPreflightScript,
+  /curl --config "\$browser_key_curl_config"[\s\S]*--output "\$browser_key_project_config"/u
+);
+const browserKeyProjectConfigFilter = identityPlatformPreflightScript.match(
+  /--arg api_host "\$API_HOST" '\n([\s\S]*?)\n\s*' "\$browser_key_project_config"/
+)?.[1];
+assert.ok(
+  browserKeyProjectConfigFilter,
+  "Der oeffentliche Browser-Key-Projektvertrag fehlt oder ist nicht eindeutig begrenzt."
+);
+function verifyBrowserKeyProjectConfig(config) {
+  return spawnSync(
+    "jq",
+    [
+      "--exit-status",
+      "--arg", "project_id", identityProject,
+      "--arg", "project_number", identityProjectNumber,
+      "--arg", "api_host", identityApiHost,
+      browserKeyProjectConfigFilter
+    ],
+    { input: JSON.stringify(config), encoding: "utf8" }
+  );
+}
+const browserKeyProjectConfig = {
+  projectId: identityProjectNumber,
+  authorizedDomains: lockedIdentityProjectConfig.authorizedDomains
+};
+assert.equal(
+  verifyBrowserKeyProjectConfig(browserKeyProjectConfig).status,
+  0,
+  "Der eingeschraenkte Browser-Key muss die numerische Projektnummer und die drei Domains aufloesen."
+);
+assert.notEqual(
+  verifyBrowserKeyProjectConfig({
+    ...browserKeyProjectConfig,
+    projectId: "765190393968"
+  }).status,
+  0,
+  "Ein Browser-Key eines fremden numerischen Projekts muss fail-closed stoppen."
+);
+for (const authorizedDomains of [
+  browserKeyProjectConfig.authorizedDomains.slice(1),
+  [...browserKeyProjectConfig.authorizedDomains, "extra.example.invalid"]
+]) {
+  assert.notEqual(
+    verifyBrowserKeyProjectConfig({
+      ...browserKeyProjectConfig,
+      authorizedDomains
+    }).status,
+    0,
+    "Der Browser-Key-Vertrag muss fehlende und zusaetzliche Domains ablehnen."
+  );
+}
+
+const passwordPolicyCanonicalFilter = identityPlatformPreflightScript.match(
+  /canonical_password_policy="\$\(jq --compact-output --sort-keys '\n([\s\S]*?)\n\s*' "\$project_config"\)"/u
+)?.[1];
+assert.ok(
+  passwordPolicyCanonicalFilter,
+  "Der kanonische Passwort-Policy-Filter fehlt oder ist nicht eindeutig begrenzt."
+);
+const canonicalPasswordPolicyResult = spawnSync(
+  "jq",
+  ["--compact-output", "--sort-keys", passwordPolicyCanonicalFilter],
+  {
+    input: JSON.stringify(lockedIdentityProjectConfig),
+    encoding: "utf8"
+  }
+);
+assert.equal(
+  canonicalPasswordPolicyResult.status,
+  0,
+  `Die Passwort-Policy kann nicht kanonisiert werden:\n${canonicalPasswordPolicyResult.stderr}`
+);
+assert.match(
+  canonicalPasswordPolicyResult.stdout,
+  /\n$/u,
+  "jq muss fuer diesen Vertrag genau den von Command-Substitution entfernten Abschluss-LF liefern."
+);
+const canonicalPasswordPolicyWithoutLf =
+  canonicalPasswordPolicyResult.stdout.slice(0, -1);
+assert.doesNotMatch(
+  canonicalPasswordPolicyWithoutLf,
+  /[\r\n]/u,
+  "Die gehashte kompakte Passwort-Policy darf keinen Zeilenumbruch enthalten."
+);
+const passwordPolicyHashWithoutLf = createHash("sha256")
+  .update(canonicalPasswordPolicyWithoutLf, "utf8")
+  .digest("hex");
+const passwordPolicyHashWithLf = createHash("sha256")
+  .update(canonicalPasswordPolicyResult.stdout, "utf8")
+  .digest("hex");
+assert.notEqual(
+  passwordPolicyHashWithoutLf,
+  passwordPolicyHashWithLf,
+  "Der Policy-Pin muss eindeutig zwischen JSON ohne und mit Abschluss-LF unterscheiden."
+);
+assert.match(
+  identityPlatformPreflightScript,
+  /Command substitution removes jq's trailing LF[\s\S]*actual_password_policy_sha256="sha256:\$\(printf '%s' "\$canonical_password_policy"/u,
+  "Der Workflow muss explizit die kompakten JSON-Bytes ohne Abschluss-LF hashen."
+);
+assert.doesNotMatch(
+  identityPlatformPreflightScript,
+  /actual_password_policy_sha256="[^"]*(?:echo|printf '%s\\n')/u,
+  "Der Passwort-Policy-Hash darf keinen Abschluss-LF wieder einfuehren."
+);
+
+function identityProviderFilter(inputVariable) {
+  const inputToken = `' "$${inputVariable}"`;
+  const filterEnd = identityPlatformPreflightScript.indexOf(inputToken);
+  assert.notEqual(filterEnd, -1, `Identity-Provider-Eingabe fehlt: ${inputVariable}`);
+  const argumentToken = `--arg project_number "$GCP_PROJECT_NUMBER" '`;
+  const argumentStart = identityPlatformPreflightScript.lastIndexOf(
+    argumentToken,
+    filterEnd
+  );
+  assert.notEqual(
+    argumentStart,
+    -1,
+    `Numerisches Projektargument fehlt fuer ${inputVariable}.`
+  );
+  return identityPlatformPreflightScript
+    .slice(argumentStart + argumentToken.length, filterEnd)
+    .trim();
+}
+
+const googleProviderFilter = identityProviderFilter("google_provider");
+const defaultProvidersFilter = identityProviderFilter("default_providers");
+const oidcProvidersFilter = identityProviderFilter("oidc_providers");
+const samlProvidersFilter = identityProviderFilter("saml_providers");
+for (const [label, filter] of [
+  ["Google-Provider", googleProviderFilter],
+  ["Default-Provider-Liste", defaultProvidersFilter],
+  ["OIDC-Provider-Liste", oidcProvidersFilter],
+  ["SAML-Provider-Liste", samlProvidersFilter]
+]) {
+  assert.ok(filter, `${label}: numerischer Resource-Name-Filter fehlt.`);
+}
+
+function verifyIdentityProviderResource(filter, document) {
+  return spawnSync(
+    "jq",
+    [
+      "--exit-status",
+      "--arg", "project_number", identityProjectNumber,
+      filter
+    ],
+    {
+      input: JSON.stringify(document),
+      encoding: "utf8"
+    }
+  );
+}
+
+const canonicalGoogleProviderName =
+  `projects/${identityProjectNumber}/defaultSupportedIdpConfigs/google.com`;
+assert.equal(
+  verifyIdentityProviderResource(googleProviderFilter, {
+    name: canonicalGoogleProviderName,
+    enabled: true,
+    clientId: "fixture-client.apps.googleusercontent.com"
+  }).status,
+  0,
+  "Der aktivierte Google-Provider mit numerischem Ressourcennamen muss akzeptiert werden."
+);
+for (const unsafeGoogleProviderName of [
+  `projects/${identityProject}/defaultSupportedIdpConfigs/google.com`,
+  "projects/765190393968/defaultSupportedIdpConfigs/google.com",
+  `${canonicalGoogleProviderName}/extra`
+]) {
+  assert.notEqual(
+    verifyIdentityProviderResource(googleProviderFilter, {
+      name: unsafeGoogleProviderName,
+      enabled: true,
+      clientId: "fixture-client.apps.googleusercontent.com"
+    }).status,
+    0,
+    "Der Google-Provider darf keinen Projekt-ID-, Fremdprojekt- oder Unterressourcennamen tragen."
+  );
+}
+
+const approvedDefaultProviders = {
+  defaultSupportedIdpConfigs: [
+    {
+      name: canonicalGoogleProviderName,
+      enabled: true
+    },
+    {
+      name: `projects/${identityProjectNumber}/defaultSupportedIdpConfigs/apple.com`,
+      enabled: false
+    }
+  ]
+};
+assert.equal(
+  verifyIdentityProviderResource(
+    defaultProvidersFilter,
+    approvedDefaultProviders
+  ).status,
+  0,
+  "Die vollstaendige Default-Provider-Liste muss genau Google aktiviert akzeptieren."
+);
+for (const unsafeDefaultProviders of [
+  {
+    defaultSupportedIdpConfigs: [
+      ...approvedDefaultProviders.defaultSupportedIdpConfigs,
+      {
+        name: `projects/${identityProject}/defaultSupportedIdpConfigs/facebook.com`,
+        enabled: false
+      }
+    ]
+  },
+  {
+    defaultSupportedIdpConfigs: [{
+      name: canonicalGoogleProviderName,
+      enabled: true
+    }],
+    nextPageToken: "hidden-page"
+  },
+  {
+    defaultSupportedIdpConfigs: [
+      {
+        name: canonicalGoogleProviderName,
+        enabled: true
+      },
+      {
+        name: `projects/${identityProjectNumber}/defaultSupportedIdpConfigs/facebook.com`,
+        enabled: true
+      }
+    ]
+  }
+]) {
+  assert.notEqual(
+    verifyIdentityProviderResource(
+      defaultProvidersFilter,
+      unsafeDefaultProviders
+    ).status,
+    0,
+    "Fremde Namen, Folgeseiten oder zusaetzliche aktivierte Default-Provider muessen fail-closed stoppen."
+  );
+}
+
+const approvedOidcProviders = {
+  oauthIdpConfigs: [{
+    name: `projects/${identityProjectNumber}/oauthIdpConfigs/oidc.disabled`,
+    enabled: false
+  }]
+};
+assert.equal(
+  verifyIdentityProviderResource(oidcProvidersFilter, approvedOidcProviders).status,
+  0,
+  "Eine vollstaendig gelesene, deaktivierte OIDC-Liste im numerischen Projekt darf passieren."
+);
+for (const unsafeOidcProviders of [
+  {
+    oauthIdpConfigs: [{
+      name: `projects/${identityProject}/oauthIdpConfigs/oidc.disabled`,
+      enabled: false
+    }]
+  },
+  {
+    oauthIdpConfigs: [{
+      name: `projects/${identityProjectNumber}/oauthIdpConfigs/oidc.enabled`,
+      enabled: true
+    }]
+  },
+  {
+    ...approvedOidcProviders,
+    nextPageToken: "hidden-page"
+  }
+]) {
+  assert.notEqual(
+    verifyIdentityProviderResource(oidcProvidersFilter, unsafeOidcProviders).status,
+    0,
+    "OIDC-Fremdprojekt, Aktivierung oder unvollstaendige Pagination muss fail-closed stoppen."
+  );
+}
+
+const approvedSamlProviders = {
+  inboundSamlConfigs: [{
+    name: `projects/${identityProjectNumber}/inboundSamlConfigs/saml.disabled`,
+    enabled: false
+  }]
+};
+assert.equal(
+  verifyIdentityProviderResource(samlProvidersFilter, approvedSamlProviders).status,
+  0,
+  "Eine vollstaendig gelesene, deaktivierte SAML-Liste im numerischen Projekt darf passieren."
+);
+for (const unsafeSamlProviders of [
+  {
+    inboundSamlConfigs: [{
+      name: "projects/765190393968/inboundSamlConfigs/saml.disabled",
+      enabled: false
+    }]
+  },
+  {
+    inboundSamlConfigs: [{
+      name: `projects/${identityProjectNumber}/inboundSamlConfigs/saml.enabled`,
+      enabled: true
+    }]
+  },
+  {
+    ...approvedSamlProviders,
+    nextPageToken: "hidden-page"
+  }
+]) {
+  assert.notEqual(
+    verifyIdentityProviderResource(samlProvidersFilter, unsafeSamlProviders).status,
+    0,
+    "SAML-Fremdprojekt, Aktivierung oder unvollstaendige Pagination muss fail-closed stoppen."
+  );
+}
+
 assert.match(
   identityPlatformTerraform,
   /identity_platform_authorized_domains = sort\(\[\s*var\.IDENTITY_PLATFORM_AUTHORIZED_HOSTNAME,\s*"\$\{var\.GCP_PROJECT_ID\}\.firebaseapp\.com",\s*"iap\.googleapis\.com",\s*\]\)/u

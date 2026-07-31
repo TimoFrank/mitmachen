@@ -89,6 +89,10 @@ const contentChecks = [
       /IDENTITY_PLATFORM_API_KEY must provide the browser-visible Identity Platform Web API key in every identity mode/,
       /\[\[ "\$IDENTITY_PLATFORM_API_KEY" != "\$IAP_EXTERNAL_AUTH_API_KEY" \]\]/,
       /\[\[ "\$IAP_EXTERNAL_LOGIN_PAGE_URI" != "\$\{FRONTEND_BASE_URL\}\/anmelden" \]\]/,
+      /\/v1\/projects\?key=%s&projectNumber=%s/,
+      /referer = "%s"/,
+      /IAP_EXTERNAL_AUTH_API_KEY="\$IAP_EXTERNAL_AUTH_API_KEY"[\s\S]*bash scripts\/reconcile_pre_gematik_iap_identity_mode\.sh/,
+      /expected_effective_login_page_uri="\$\{IAP_EXTERNAL_LOGIN_PAGE_URI\}\?apiKey=\$\{IAP_EXTERNAL_AUTH_API_KEY\}"/,
       /gcloud secrets versions access latest/,
       /--out-file "\$oauth_source_file"/,
       /create secret generic "\$IAP_OAUTH_CLIENT_CREDENTIALS_SECRET_NAME"/,
@@ -127,7 +131,7 @@ const contentChecks = [
       /The preparation release must expose all approved hosts and certificates before cutover/,
       /domain-cutover-probe\?source=deployment/,
       /Redirect contract failed for/,
-      /WIF_PROVIDER does not belong to GCP_PROJECT_ID/,
+      /WIF_PROVIDER does not belong to the pinned GCP_PROJECT_NUMBER/,
       /gcloud iap web set-iam-policy/,
       /A backend-specific IAP policy differs from the exact approved state; clear both resource policies in the controlled cutover before retrying/,
       /A backend-specific IAP policy does not match the exact approved principal policy/,
@@ -469,6 +473,7 @@ const contentChecks = [
       /gcipSettings/,
       /ENROLLED_SECOND_FACTORS/,
       /workforceIdentitySettings/,
+      /effective_external_login_page_uri="\$\{IAP_EXTERNAL_LOGIN_PAGE_URI\}\?apiKey=\$\{IAP_EXTERNAL_AUTH_API_KEY\}"/,
       /restore_original_settings/,
       /Compensating rollback/
     ],
@@ -504,7 +509,7 @@ const forbiddenChecks = [
   },
   {
     files: [".github/workflows/deploy-pre-gematik.yml"],
-    patterns: [/backends_json:-\{\}/, /-- node --input-type=module --eval '/],
+    patterns: [/backends_json:-\{\}/, /-- node --input-type=module --eval '/, /\.client\.apiKey/],
     reason: "IAP-JSON und DB-Smoke-Skript muessen ohne Shell-bedingte Zeichenveraenderungen ausgewertet werden."
   },
   {
