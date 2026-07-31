@@ -131,18 +131,20 @@ function assertIapLogoutContract() {
   window.VERSORGUNGS_COMPASS_CONFIG.iapExternalAuthApiKey =
     `AIza${"A".repeat(35)}`;
   const externalLogoutUrl = new URL(window.VKAuth.buildLogoutUrl());
-  assert.equal(externalLogoutUrl.origin, "https://versorgungs-kompass-login.example.run.app");
-  assert.equal(
-    externalLogoutUrl.searchParams.get("apiKey"),
-    window.VERSORGUNGS_COMPASS_CONFIG.iapExternalAuthApiKey
+  assert.equal(externalLogoutUrl.origin, appUrl.origin, "GCIP-Logout muss zuerst den geschuetzten App-Host erreichen.");
+  assert.equal(externalLogoutUrl.pathname, appUrl.pathname);
+  assert.equal(externalLogoutUrl.searchParams.get("gcp-iap-mode"), "GCIP_SIGNOUT");
+  assert.deepEqual(
+    [...externalLogoutUrl.searchParams.keys()],
+    ["gcp-iap-mode"],
+    "App-Parameter und direkte Portal-Parameter duerfen den IAP-Logout nicht umgehen."
   );
-  assert.equal(externalLogoutUrl.searchParams.get("mode"), "signout");
-  assert.equal(externalLogoutUrl.searchParams.has("gcp-iap-mode"), false);
+  assert.equal(externalLogoutUrl.hash, "");
   window.VERSORGUNGS_COMPASS_CONFIG.iapExternalAuthApiKey = "";
-  assert.throws(
-    () => window.VKAuth.buildLogoutUrl(),
-    /vollständige Identity-Platform-Logout/u,
-    "External-IAP darf bei fehlender Full-Logout-Konfiguration nicht auf einen Teil-Logout zurueckfallen."
+  assert.equal(
+    new URL(window.VKAuth.buildLogoutUrl()).searchParams.get("gcp-iap-mode"),
+    "GCIP_SIGNOUT",
+    "Der IAP-Logout darf nicht von clientseitigen Portal-Schluesseln abhaengen."
   );
   window.VERSORGUNGS_COMPASS_CONFIG.iapIdentityMode = "iam";
   window.VERSORGUNGS_COMPASS_CONFIG.iapExternalLoginPageUri = "";
