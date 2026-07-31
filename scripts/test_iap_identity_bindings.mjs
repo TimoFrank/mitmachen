@@ -887,10 +887,17 @@ assert.ok(remapClient.queries.some(({ sql }) => (
   sql.startsWith("update public.identity_bindings")
   && sql.includes("set subject = $2")
 )));
-assert.ok(remapClient.queries.some(({ sql }) => (
-  sql.includes("from public.profiles")
-  && sql.endsWith("for share")
-)));
+const remapProfileRead = remapClient.queries.find(({ sql }) => (
+  sql.startsWith("select id, active, role from public.profiles")
+));
+assert.ok(remapProfileRead, "Der Remap muss den Profilzustand innerhalb der Transaktion lesen.");
+assert.doesNotMatch(
+  remapProfileRead.sql,
+  /\bfor\s+(?:key\s+share|share|no\s+key\s+update|update)\b/u,
+  "Der SELECT-only-Rollenvertrag darf keine schreibberechtigungspflichtige Profil-Zeilensperre verwenden."
+);
+assert.ok(remapClient.queries.some(({ sql }) => sql === "begin isolation level serializable"));
+assert.ok(remapClient.queries.some(({ sql }) => sql.includes("pg_advisory_xact_lock")));
 
 const remapNoopDocument = document([
   binding("securetoken.google.com/example-project:external-subject", "profile-a", true),

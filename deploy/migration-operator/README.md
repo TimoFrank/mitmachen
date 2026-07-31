@@ -354,6 +354,12 @@ unveränderter Remap-No-op und nach dem Forward-Apply zweimal als tatsächlicher
 umgekehrter Subject-Remap previewt. Der Wert `0` darf nie einen Preview mit
 einem positiven `remap_count` bestätigen; der Operator gleicht den
 geschützten Zähler innerhalb derselben serialisierbaren Transaktion exakt ab.
+Der Profilbestand wird dabei mit dem `SELECT`-only-Vertrag der
+`vk_identity_admin`-Rolle ohne `FOR SHARE` gelesen. PostgreSQL 16 würde für
+diese Zeilensperre ein absichtlich nicht vorhandenes Schreibrecht auf
+`profiles` verlangen. Advisory Lock, bestätigter Ist-Fingerprint und
+vollständige Abschlussprüfung bleiben unverändert; weder Grant noch
+Schreibumfang werden erweitert.
 
 Zwischen 4 und 5 wird die statische `NOLOGIN`-Rolle kontrolliert gebootstrappt
 und der kurzlebige Login exakt dieser Custom-Rolle zugeordnet. Der Dienst bleibt

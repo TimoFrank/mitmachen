@@ -155,6 +155,15 @@ Profilrolle und Profilaktivität an den Apply. Ab Enrollment-v2 besitzt
 `UPDATE (subject)` auf `identity_bindings`; ein Insert oder eine Änderung
 anderer Binding-Spalten ist datenbankseitig nicht möglich.
 
+Profile werden dabei absichtlich nur gelesen und nicht per `FOR SHARE`
+gesperrt: PostgreSQL 16 setzt für diese Zeilensperre ein Schreibrecht auf
+`profiles` voraus, das dem Least-Privilege-Vertrag widerspräche. Der Remap
+bleibt durch `SERIALIZABLE`, den transaktionalen Identity-Operator-Advisory-
+Lock, den bestätigten Ist-Fingerprint und die vollständige Abschlussprüfung
+abgesichert. Das Entfernen der unnötigen Lesesperre ändert keine Rolle, kein
+Grant und keinen erlaubten Schreibpfad; Profilmutationen bleiben
+datenbankseitig verboten.
+
 Die Anwendung erzeugt, verknüpft oder repariert keine Bindung. Ein
 Passwortkonto wird vor der Einladung administrativ und exakt auf sein bereits
 vorhandenes aktives Profil gebunden. Der frühere Post-Login-Weg über
