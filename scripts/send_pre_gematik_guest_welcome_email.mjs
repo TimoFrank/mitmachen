@@ -723,26 +723,48 @@ export async function curlSmtpTransport({
   rawMail,
   environment = process.env
 }) {
-  await new Promise((resolve, reject) => {
-    const child = spawn("curl", ["--disable", "--config", "/dev/fd/3"], {
-      env: environment,
-      stdio: ["pipe", "ignore", "pipe", "pipe"]
+  const configDirectory = await fs.mkdtemp(
+    path.join(os.tmpdir(), "vk-welcome-smtp-curl-")
+  );
+  const configPath = path.join(configDirectory, "curl.conf");
+  let configHandle;
+  try {
+    await fs.chmod(configDirectory, 0o700);
+    await fs.writeFile(configPath, curlConfig, {
+      encoding: "utf8",
+      flag: "wx",
+      mode: 0o600
     });
-    let stderrBytes = 0;
-    child.stderr.on("data", (chunk) => {
-      stderrBytes += chunk.length;
-      if (stderrBytes > 64 * 1024) child.kill("SIGTERM");
+    configHandle = await fs.open(configPath, "r");
+
+    // curl must receive a regular file descriptor on Linux. Node implements
+    // extra "pipe" descriptors as sockets there, which /dev/fd cannot reopen.
+    // Unlinking the owner-only file before spawn keeps the credentials
+    // anonymous while the inherited descriptor remains readable by curl.
+    await fs.unlink(configPath);
+
+    await new Promise((resolve, reject) => {
+      const child = spawn("curl", ["--disable", "--config", "/dev/fd/3"], {
+        env: environment,
+        stdio: ["pipe", "ignore", "pipe", configHandle.fd]
+      });
+      let stderrBytes = 0;
+      child.stderr.on("data", (chunk) => {
+        stderrBytes += chunk.length;
+        if (stderrBytes > 64 * 1024) child.kill("SIGTERM");
+      });
+      child.on("error", () => reject(new Error("curl unavailable")));
+      child.on("close", (code, signal) => {
+        if (code === 0 && !signal) resolve();
+        else reject(new Error("smtp transport failed"));
+      });
+      child.stdin.on("error", () => {});
+      child.stdin.end(rawMail, "utf8");
     });
-    child.on("error", () => reject(new Error("curl unavailable")));
-    child.on("close", (code, signal) => {
-      if (code === 0 && !signal) resolve();
-      else reject(new Error("smtp transport failed"));
-    });
-    child.stdin.on("error", () => {});
-    child.stdio[3].on("error", () => {});
-    child.stdio[3].end(curlConfig, "utf8");
-    child.stdin.end(rawMail, "utf8");
-  });
+  } finally {
+    await configHandle?.close().catch(() => {});
+    await fs.rm(configDirectory, { force: true, recursive: true });
+  }
 }
 
 function optionValue(argv, index, option) {
