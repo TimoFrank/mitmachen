@@ -603,8 +603,8 @@ const password = fs.readFileSync(
 if (
   !signIn.includes('data-identity-portal="signin"') ||
   !password.includes('data-identity-portal="password"') ||
-  !signIn.includes('src="/public/auth/assets/app.js?v=20260730-1"') ||
-  !password.includes('src="/public/auth/assets/action.js?v=20260730-1"')
+  !signIn.includes('src="/public/auth/assets/app.js?v=20260731-1"') ||
+  !password.includes('src="/public/auth/assets/action.js?v=20260731-1"')
 ) {
   throw new Error("Identity-Portal-Dokumente erfuellen den statischen Routingvertrag nicht.");
 }

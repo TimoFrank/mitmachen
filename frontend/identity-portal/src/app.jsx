@@ -9,6 +9,11 @@ import {
   signInWithPopup
 } from "firebase/auth";
 import * as ciap from "gcip-iap";
+import mitmachenLockupUrl from "../../../public/brand/mitmachen/lockup-horizontal-on-dark.svg";
+import versorgungMarkUrl from "../../../public/brand/versorgungs-kompass/mark-on-dark.svg";
+import stakeholderMarkUrl from "../../../public/brand/modules/stakeholder/mark-on-dark.svg";
+import hospitationMarkUrl from "../../../public/brand/modules/hospitation/mark-on-dark.svg";
+import formateMarkUrl from "../../../public/brand/modules/formate/mark-on-dark.svg";
 import "./styles.css";
 import {
   assertProductionConfig,
@@ -27,6 +32,12 @@ const progressHost = document.body.appendChild(document.createElement("div"));
 progressHost.id = "iap-progress-root";
 const progressRoot = createRoot(progressHost);
 const ALLOWED_PROVIDERS = new Set(["google.com", "password"]);
+const COMPASS_BRANDS = Object.freeze([
+  { label: "Versorgung", logoSrc: versorgungMarkUrl },
+  { label: "Stakeholder", logoSrc: stakeholderMarkUrl },
+  { label: "Hospitation", logoSrc: hospitationMarkUrl },
+  { label: "Formate", logoSrc: formateMarkUrl }
+]);
 
 function getOrCreateFirebaseApp(firebaseConfig, name) {
   const existing = getApps().find((app) => app.name === name);
@@ -117,9 +128,10 @@ function SignInPanel({ auth, onCredential, preview = false }) {
   return (
     <>
       <div className="card-heading">
-        <span className="step-label">{preview ? "Vorschau" : "Persönlicher Zugang"}</span>
-        <h2>Willkommen</h2>
-        <p>Wähle den Anmeldeweg, der für dich freigeschaltet wurde.</p>
+        <span className="step-label">
+          {preview ? "Vorschau · Anmeldung" : "Persönlicher Zugang"}
+        </span>
+        <h2>Anmelden</h2>
       </div>
       <button
         className="google-button"
@@ -187,10 +199,6 @@ function SignInPanel({ auth, onCredential, preview = false }) {
           {busy ? "Anmeldung läuft …" : "Sicher anmelden"}
         </button>
       </form>
-      <p className="access-note">
-        Noch kein Zugang? Konten werden persönlich eingeladen und nicht
-        automatisch angelegt.
-      </p>
     </>
   );
 }
@@ -198,10 +206,13 @@ function SignInPanel({ auth, onCredential, preview = false }) {
 function renderSignIn(auth, config, onCredential, preview = false) {
   root.render(
     <PortalShell
-      eyebrow="Sicher zusammenarbeiten"
-      title="Zugang zum Versorgungs-Kompass"
-      intro="Melde dich an, um im geschützten Arbeitsbereich Versorgungsangebote gemeinsam weiterzuentwickeln."
+      eyebrow="Geschützter Zugang"
+      title="Willkommen"
+      intro="Deine Plattform für Austausch, Wissen und Vernetzung."
       config={config}
+      variant="mitmachen"
+      senderLogoSrc={mitmachenLockupUrl}
+      compassBrands={COMPASS_BRANDS}
     >
       <SignInPanel
         auth={auth}
@@ -215,11 +226,14 @@ function renderSignIn(auth, config, onCredential, preview = false) {
 function renderMessage(config, options) {
   root.render(
     <PortalShell
-      eyebrow="Versorgungs-Kompass"
+      eyebrow="Geschützter Zugang"
       title={options.shellTitle}
       intro={options.shellIntro}
       config={config}
       compact
+      variant="mitmachen"
+      senderLogoSrc={mitmachenLockupUrl}
+      compassBrands={COMPASS_BRANDS}
     >
       <InlineNotice tone={options.tone} title={options.title} action={options.action}>
         {options.message}
