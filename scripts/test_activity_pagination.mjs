@@ -110,7 +110,16 @@ assert.match(
   /grant select, insert on table public\.activity_events to :"runtime_role"/i,
   "Cloud SQL muss das Activity-Ledger ausschließlich lesend und append-only der NOLOGIN-API-Laufzeitrolle bereitstellen."
 );
-assert.match(targetGrants, /revoke update, delete on table public\.activity_events from :"runtime_role"/i);
+assert.match(
+  targetGrants,
+  /revoke all privileges on table public\.activity_events from :"runtime_role" cascade/i,
+  "Cloud SQL muss bestehende Tabellenrechte und Grant Options der Laufzeitrolle vor dem Append-only-Grant entfernen."
+);
+assert.match(targetGrants, /revoke all privileges on table public\.activity_events from public/i);
+assert.match(
+  targetGrants,
+  /revoke all privileges on sequence public\.activity_events_id_seq from :"runtime_role" cascade/i
+);
 assert.doesNotMatch(
   targetGrants,
   /grant\s+[^;]*(?:update|delete)[^;]*on\s+table[^;]*public\.activity_events[^;]*to\s+:"runtime_role"/i,

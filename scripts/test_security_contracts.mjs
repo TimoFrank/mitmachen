@@ -24,6 +24,9 @@ const apiSource = fs.readFileSync(new URL("api/server.mjs", projectRoot), "utf8"
 const targetSchema = read("deploy/postgres/pre-gematik/schema.sql");
 const targetGrants = read("deploy/postgres/pre-gematik/grants.sql");
 const targetRuntimeRole = read("deploy/postgres/pre-gematik/runtime-role.sql");
+const targetActivityGrantMigration = read(
+  "deploy/postgres/pre-gematik/migrations/202607310001_restrict_activity_event_runtime_grants.sql"
+);
 
 assert.equal(roleRank("viewer"), 1);
 assert.equal(roleRank("editor"), 2);
@@ -254,6 +257,7 @@ assert.doesNotMatch(
 const normalizedTargetSchema = targetSchema.toLowerCase().replace(/\s+/g, " ");
 const normalizedTargetGrants = targetGrants.toLowerCase().replace(/\s+/g, " ");
 const normalizedTargetRuntimeRole = targetRuntimeRole.toLowerCase().replace(/\s+/g, " ");
+const normalizedTargetActivityGrantMigration = targetActivityGrantMigration.toLowerCase().replace(/\s+/g, " ");
 for (const contract of [
   "revoke create on schema public from public",
   "create role vk_app_runtime nologin",
@@ -279,8 +283,11 @@ for (const contract of [
   "grant execute on function public.pre_gematik_prepare_contact_purpose_write() to :\"runtime_role\"",
   "revoke all on function public.pre_gematik_log_contact_purpose_change() from public",
   "grant execute on function public.pre_gematik_log_contact_purpose_change() to :\"runtime_role\"",
+  "revoke all privileges on table public.activity_events from public",
+  "revoke all privileges on table public.activity_events from :\"runtime_role\" cascade",
   "grant select, insert on table public.activity_events to :\"runtime_role\"",
-  "revoke update, delete on table public.activity_events from :\"runtime_role\""
+  "revoke all privileges on sequence public.activity_events_id_seq from public",
+  "revoke all privileges on sequence public.activity_events_id_seq from :\"runtime_role\" cascade"
 ]) {
   assert.ok(normalizedTargetGrants.includes(contract), `Cloud-SQL-Grant-Vertrag fehlt: ${contract}`);
 }
@@ -289,6 +296,47 @@ assert.doesNotMatch(
   /grant\s+[^;]*(?:update|delete)[^;]*on\s+table[^;]*public\.activity_events[^;]*to\s+:"runtime_role"/i,
   "Die API-Laufzeitrolle darf das append-only Activity-Ledger nicht verändern oder löschen."
 );
+for (const contract of [
+  "current_user = pg_get_userbyid(target.relowner)",
+  "from pg_catalog.pg_auth_members membership",
+  "activity_events_id_seq grants must be restricted by the sequence owner",
+  "revoke all privileges on table public.activity_events from public",
+  "revoke all privileges on table public.activity_events from vk_app_runtime cascade",
+  "revoke all privileges (%s) on table public.activity_events from vk_app_runtime cascade",
+  "revoke all privileges on sequence public.activity_events_id_seq from public",
+  "revoke all privileges on sequence public.activity_events_id_seq from vk_app_runtime cascade",
+  "membership.admin_option",
+  "not membership.inherit_option",
+  "vk_app_runtime memberships must be non-admin and inherited",
+  "pg_catalog.aclexplode",
+  "privilege.grantee = 0",
+  "public activity_events table, column, and sequence privileges must be empty",
+  "select with grant option",
+  "insert with grant option",
+  "has_any_column_privilege('vk_app_runtime', 'public.activity_events', 'update')",
+  "has_any_column_privilege('vk_app_runtime', 'public.activity_events', 'references')",
+  "has_sequence_privilege('vk_app_runtime', 'public.activity_events_id_seq', 'update')",
+  "usage with grant option",
+  "raise exception 'vk_app_runtime activity_events privileges are not append-only'"
+]) {
+  assert.ok(
+    normalizedTargetActivityGrantMigration.includes(contract),
+    `Activity-Grant-Migration muss fail-closed bleiben: ${contract}`
+  );
+}
+for (const unsafeAttribute of [
+  "not rolcanlogin",
+  "not rolsuper",
+  "not rolcreatedb",
+  "not rolcreaterole",
+  "not rolreplication",
+  "not rolbypassrls"
+]) {
+  assert.ok(
+    normalizedTargetActivityGrantMigration.includes(unsafeAttribute),
+    `Activity-Grant-Migration prüft Rollenattribut nicht: ${unsafeAttribute}`
+  );
+}
 for (const contract of [
   "create or replace function public.pre_gematik_prepare_contact_purpose_write() returns trigger language plpgsql security invoker",
   "create or replace function public.pre_gematik_log_contact_purpose_change() returns trigger language plpgsql security invoker",
@@ -501,6 +549,34 @@ assert.doesNotMatch(valuesSource, /tag:\s*latest\b/i, "Produktionsimages duerfen
 
 const deployWorkflowSource = read(".github/workflows/deploy-pre-gematik.yml");
 const jenkinsSource = read("deploy/jenkins/Jenkinsfile.gematik");
+assert.match(
+  deployWorkflowSource,
+  /const appendOnlyTables = \["activity_events"\];[\s\S]*requested\.name = any\(\$2::text\[\]\)[\s\S]*'SELECT'[\s\S]*'INSERT'[\s\S]*not has_any_column_privilege\([^\n]+, 'UPDATE'\)[\s\S]*not has_table_privilege\([^\n]+, 'DELETE'\)/,
+  "Der Live-Readiness-Check muss activity_events als append-only prüfen."
+);
+for (const contract of [
+  "membership.admin_option",
+  "membership.inherit_option",
+  "membership.set_option",
+  "has_no_parent_memberships",
+  "const publicActivityAcl = await pool.query",
+  "pg_catalog.aclexplode",
+  "privilege.grantee = 0",
+  "'SELECT WITH GRANT OPTION'",
+  "'INSERT WITH GRANT OPTION'",
+  "not has_any_column_privilege(current_user, format('public.%I', requested.name), 'REFERENCES')",
+  "not has_table_privilege(current_user, format('public.%I', requested.name), 'TRIGGER')",
+  "not has_sequence_privilege(current_user, 'public.activity_events_id_seq', 'UPDATE')",
+  "not has_sequence_privilege(current_user, 'public.activity_events_id_seq', 'USAGE WITH GRANT OPTION')",
+  "not has_sequence_privilege(current_user, 'public.activity_events_id_seq', 'SELECT WITH GRANT OPTION')"
+]) {
+  assert.ok(deployWorkflowSource.includes(contract), `Live-Readiness-Vertrag fehlt: ${contract}`);
+}
+assert.doesNotMatch(
+  deployWorkflowSource,
+  /"activity_events", "changes"/,
+  "Der Live-Readiness-Check darf activity_events nicht mehr in den generischen CRUD-Vertrag einordnen."
+);
 const ciSource = [
   read(".github/workflows/repo-check.yml"),
   deployWorkflowSource,
