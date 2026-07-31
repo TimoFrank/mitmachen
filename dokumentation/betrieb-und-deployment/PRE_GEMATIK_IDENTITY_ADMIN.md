@@ -98,10 +98,16 @@ gesetzt, aber kein App-Zugang“:
    [`render_pre_gematik_guest_welcome_email.mjs`](../../scripts/render_pre_gematik_guest_welcome_email.mjs)
    und der Operation `RENDER_PRE_GEMATIK_GUEST_WELCOME_EMAIL` daraus
    create-only das geprüfte owner-only Paket aus Betreff, Text, HTML und EML
-   rendern und über den genehmigten persönlichen Kanal senden. Nach dem
-   manuellen iCloud-Versand Empfänger, nicht leeren Betreff, nicht leeren
-   Nachrichtentext und sichtbaren Markenlink im Ordner „Gesendet“ read-only
-   bestätigen. Ist das Prebinding nicht exakt: **keine Mail**.
+   rendern. Die EML anschließend ausschließlich mit
+   [`send_pre_gematik_guest_welcome_email.mjs`](../../scripts/send_pre_gematik_guest_welcome_email.mjs)
+   und der Operation `SEND_PRE_GEMATIK_GUEST_WELCOME_EMAIL` unverändert über
+   das gepinnte Domain-Postfach `zugang@versorgungs-kompass.de` senden. Der
+   Operator bestätigt den Einmal-Code unmittelbar vor Preview und Apply
+   nicht konsumierend als aktuell gültigen `PASSWORD_RESET` für die exakte
+   Empfängeradresse. Der mailidentitätsbasierte create-only Versandbeleg muss
+   `accepted` ausweisen; bei `unknown` gibt es ohne unabhängige
+   Zustellprüfung über seine bereits gespeicherte `Message-ID` keinen
+   Wiederholungsversand. Ist das Prebinding nicht exakt: **keine Mail**.
 4. Die Person setzt das Passwort auf
    `https://versorgungs-kompass.de/konto/passwort-festlegen`, wählt
    `Jetzt anmelden`, gelangt über `/start` zur Anmeldung und danach direkt in

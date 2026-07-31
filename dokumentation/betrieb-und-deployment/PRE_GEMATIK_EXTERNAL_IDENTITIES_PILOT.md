@@ -430,16 +430,22 @@ Renderer
 erzeugt nach einem Preview ein create-only, owner-only Mailpaket mit Betreff,
 Text, HTML und importierbarer EML-Datei. Der Renderer lehnt leere Vorlagen,
 fremde Hosts, Firebase-/Projektlinks, zusätzliche URL-Parameter, Remote-Bilder,
-Tracking, Skripte und Header-Injection ab. Einmal-Link und Kontodaten erscheinen
-nicht in seiner Standardausgabe.
+SVG-/Data-Assets, aktive Inhalte, Tracking, Skripte und Header-Injection ab.
+Die vier kanonischen Kompass-Signets werden ausschließlich als hashgepinnte,
+transparente 72×72-PNGs mit eindeutigen Content-IDs in `multipart/related`
+eingebettet; unbekannte, zusätzliche, vertauschte oder veränderte CID-Assets
+brechen Rendering und Versand fail-closed ab. Einmal-Link und Kontodaten
+erscheinen nicht in seiner Standardausgabe. Als
+Absender ist ausschließlich das überwachte Domain-Postfach
+`zugang@versorgungs-kompass.de` mit dem Anzeigenamen `#Mitmachen` zulässig.
 
 ```bash
 # Preview; erst nach vollständigem Prebinding ausführen
 node scripts/render_pre_gematik_guest_welcome_email.mjs \
   --input /absolut/owner-only/identity-platform-account.json \
   --link-file /absolut/owner-only/set-password-link.txt \
-  --sender-name "Versorgungs-Kompass Team" \
-  --sender-email owner@example.invalid \
+  --sender-name "#Mitmachen" \
+  --sender-email zugang@versorgungs-kompass.de \
   --pilot-end 2026-08-17T16:00:00Z
 
 # Create-only Mailpaket; Fingerprint exakt aus dem Preview übernehmen
@@ -447,19 +453,84 @@ node scripts/render_pre_gematik_guest_welcome_email.mjs \
   --input /absolut/owner-only/identity-platform-account.json \
   --link-file /absolut/owner-only/set-password-link.txt \
   --output-dir /absolut/owner-only/welcome-mail \
-  --sender-name "Versorgungs-Kompass Team" \
-  --sender-email owner@example.invalid \
+  --sender-name "#Mitmachen" \
+  --sender-email zugang@versorgungs-kompass.de \
   --pilot-end 2026-08-17T16:00:00Z \
   --apply \
   --confirm-operation RENDER_PRE_GEMATIK_GUEST_WELCOME_EMAIL \
   --confirm-fingerprint sha256:FINGERPRINT-AUS-PREVIEW
 ```
 
-Für den manuellen Versand aus dem persönlichen iCloud-Postfach wird
-`welcome.eml` beziehungsweise der geprüfte Betreff mit `body.html` verwendet;
-Betreff oder Nachrichtentext dürfen nicht leer sein. Nach dem Versand wird im
-Ordner „Gesendet“ read-only geprüft, dass Empfänger, Betreff, sichtbarer
-Versorgungs-Kompass-Link und Nachrichtentext vorhanden sind.
+Das Postfach wird im bestehenden ALL-INKL-KAS als eigenständiges, nicht als
+Catch-all konfiguriertes Konto angelegt. Der Transport ist exakt auf
+`w01abca0.kasserver.com:465` mit implizitem TLS und authentifiziertem Versand
+gepinnt. Das Postfach-Passwort liegt ausschließlich in einer owner-only
+JSON-Datei außerhalb von Git und wird weder als Kommandozeilenargument noch auf
+stdout ausgegeben:
+
+```json
+{
+  "version": 1,
+  "host": "w01abca0.kasserver.com",
+  "port": 465,
+  "security": "implicit_tls",
+  "username": "zugang@versorgungs-kompass.de",
+  "password": "GESCHUETZTES-POSTFACH-PASSWORT",
+  "sender_email": "zugang@versorgungs-kompass.de"
+}
+```
+
+Der direkte SMTP-Operator überträgt den bytegenau erneut validierten Inhalt von
+`welcome.eml` als Multipart-Text/HTML. Eine HTML-zu-RTF-Konvertierung oder der
+Versand aus einem persönlichen Mailkonto ist nicht zulässig, weil dabei der
+gebrandete CTA-Button verändert werden kann. Text- und HTML-Teil sind als
+Base64 mit SMTP-sicheren Zeilen kodiert. Unmittelbar vor dem Transport ergänzt
+der Operator genau einen `Date`- und einen eindeutigen `Message-ID`-Header.
+`IAP_EXTERNAL_AUTH_API_KEY` muss dabei auf den im Admin-Readback bestätigten
+Portal-Key gesetzt sein. Vor jedem Preview und Apply prüft der Operator den
+`oobCode` über
+[`accounts:resetPassword`](https://docs.cloud.google.com/identity-platform/docs/reference/rest/v1/accounts/resetPassword)
+ohne `newPassword`, also ohne ihn zu konsumieren. Nur ein aktuell gültiger
+`PASSWORD_RESET` für die exakte Empfängeradresse wird akzeptiert.
+
+```bash
+# Read-only Preview; Fingerprint übernehmen
+node scripts/send_pre_gematik_guest_welcome_email.mjs \
+  --input /absolut/owner-only/identity-platform-account.json \
+  --link-file /absolut/owner-only/set-password-link.txt \
+  --mail-file /absolut/owner-only/welcome-mail/welcome.eml \
+  --smtp-config /absolut/owner-only/smtp.json
+
+# Einmaliger Versand mit deterministischem create-only Versandbeleg
+node scripts/send_pre_gematik_guest_welcome_email.mjs \
+  --input /absolut/owner-only/identity-platform-account.json \
+  --link-file /absolut/owner-only/set-password-link.txt \
+  --mail-file /absolut/owner-only/welcome-mail/welcome.eml \
+  --smtp-config /absolut/owner-only/smtp.json \
+  --apply \
+  --confirm-operation SEND_PRE_GEMATIK_GUEST_WELCOME_EMAIL \
+  --confirm-fingerprint sha256:FINGERPRINT-AUS-PREVIEW
+```
+
+Der Operator leitet den Belegnamen ausschließlich aus der unveränderlichen
+Mail- und Envelope-Identität ab. Weder das Verschieben der SMTP-Datei noch eine
+Passwortrotation erzeugt für dieselbe E-Mail einen neuen Versandweg. Der
+Belegpfad ist nicht per Kommandozeile wählbar, sondern liegt owner-only unter
+`~/.local/state/versorgungs-kompass/pre-gematik-welcome-email`. Ein vorhandener
+Versandbeleg blockiert jede unabsichtliche Wiederholung. Bereits der
+create-only Status `sending` enthält Startzeit und `Message-ID`, damit ein
+Abbruch nach SMTP-Annahme unabhängig korreliert werden kann. Der Status
+`accepted` bedeutet, dass der Domain-SMTP-Server die Nachricht angenommen hat.
+Bei `unknown` darf nicht erneut gesendet werden, bevor Zielpostfach und Beleg
+geprüft wurden.
+
+Vor der ersten echten Einladung wird eine Nachricht mit ausschließlich
+synthetischem Link an ein kontrolliertes Testpostfach gesendet. In dessen
+zugestellten Headern werden mindestens `SPF=pass` und ein ausgerichtetes
+`DMARC=pass` bestätigt. Ob ALL-INKL für das konkrete Postfach DKIM signiert,
+muss ebenfalls anhand von `Authentication-Results` bestätigt werden; fehlt
+`DKIM=pass`, wird der Produktivversand bis zur Klärung mit dem Provider nicht
+freigegeben.
 
 Verbindlich sind:
 
