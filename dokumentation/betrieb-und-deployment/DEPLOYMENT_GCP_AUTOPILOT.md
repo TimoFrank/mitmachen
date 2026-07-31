@@ -112,7 +112,9 @@ IAP-Identity-Header und leitet Pfad und Query ohne
 Redirect an den festen HTTPS-Upstream
 `steam-capsule-341212.firebaseapp.com` weiter. SNI, Zertifikatsprüfung und
 TLS 1.2/1.3 sind erzwungen; nginx- und Backend-Zugriffslogging sind
-deaktiviert. Der nackte Pfad `/__/auth`, andere Methoden, Near-Misses,
+deaktiviert. Ein Upstream-`Set-Cookie`-Header wird nicht auf den gemeinsamen
+Apex übertragen; der Helper verwendet Browser-Web-Storage. Der nackte Pfad
+`/__/auth`, andere Methoden, Near-Misses,
 normalisierte Varianten und jeder Alias-Host sind nicht öffentlich.
 `/api` und der kanonische `/`-Catch-all bleiben auf zwei getrennten
 IAP-Backend-Services.

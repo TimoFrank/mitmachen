@@ -61,6 +61,7 @@ for (const contract of [
   /proxy_ssl_trusted_certificate \/etc\/ssl\/certs\/ca-certificates\.crt;/u,
   /proxy_set_header Host steam-capsule-341212\.firebaseapp\.com;/u,
   /proxy_redirect off;/u,
+  /proxy_hide_header Set-Cookie;/u,
   /access_log off;/u,
   /merge_slashes off;/u,
   /location \/ \{[\s\S]*return 404;/u

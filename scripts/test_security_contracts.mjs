@@ -429,7 +429,7 @@ assert.doesNotMatch(
 );
 assert.match(
   helmSource,
-  /location \^~ \/__\/auth\/[\s\S]*limit_except GET HEAD POST[\s\S]*proxy_pass_request_headers off;[\s\S]*proxy_ssl_verify on;[\s\S]*proxy_set_header Authorization "";[\s\S]*proxy_set_header Cookie "";[\s\S]*proxy_pass https:\/\/steam-capsule-341212\.firebaseapp\.com;/,
+  /location \^~ \/__\/auth\/[\s\S]*limit_except GET HEAD POST[\s\S]*proxy_pass_request_headers off;[\s\S]*proxy_hide_header Set-Cookie;[\s\S]*proxy_ssl_verify on;[\s\S]*proxy_set_header Authorization "";[\s\S]*proxy_set_header Cookie "";[\s\S]*proxy_pass https:\/\/steam-capsule-341212\.firebaseapp\.com;/,
   "Der oeffentliche Auth-Helper muss methodenbegrenzt, TLS-verifiziert, credentialfrei und auf einen festen Upstream gepinnt sein."
 );
 assert.match(

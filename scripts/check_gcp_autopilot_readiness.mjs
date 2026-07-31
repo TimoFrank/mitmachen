@@ -286,6 +286,7 @@ const contentChecks = [
       /proxy_ssl_name steam-capsule-341212\.firebaseapp\.com/,
       /proxy_ssl_verify on/,
       /proxy_redirect off/,
+      /proxy_hide_header Set-Cookie/,
       /proxy_set_header Authorization ""/,
       /proxy_set_header Cookie ""/,
       /access_log off/

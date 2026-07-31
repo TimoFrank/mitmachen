@@ -227,7 +227,9 @@ unverändertem Pfad und Query an den festen HTTPS-Upstream
 `steam-capsule-341212.firebaseapp.com` weiter. TLS-SNI und Zertifikatsprüfung
 sind erzwungen, Redirect-Rewriting ist deaktiviert und nur eine minimale
 Request-Header-Allowlist wird weitergegeben; Cookies, Authorization- und
-IAP-Identity-Header erreichen den Upstream nicht. Die Workload besitzt
+IAP-Identity-Header erreichen den Upstream nicht. Ein etwaiger
+Upstream-`Set-Cookie`-Header wird nicht auf den gemeinsamen Apex übertragen;
+der Firebase-Helper verwendet dort Browser-Web-Storage. Die Workload besitzt
 weder Cloud-IAM-Bindung noch Secrets oder Kubernetes-API-Token; Load-Balancer-
 und nginx-Zugriffslogging sind deaktiviert. Root, der nackte Pfad `/__/auth`,
 Near-Misses, normalisierte Aliase, nicht erlaubte Methoden und derselbe Prefix
