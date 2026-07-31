@@ -41,3 +41,12 @@ backups/
 *_backup_*.csv
 *_backup_*.json
 backup-versorgungs-kompass-*.sql
+
+# Local artifact build, render and audit workspaces
+/.artifact-build-*/
+/.artifact-word-update.*/
+/.artifact-revision.*/
+/.docx-memo-build.*/
+/.tmp-ppt-audit.*/
+/.tmp-template-audit-*/
+/tmp/
