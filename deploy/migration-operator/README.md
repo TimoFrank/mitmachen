@@ -118,12 +118,26 @@ angelegt. Die Storage-Migration nutzt weiterhin ausschließlich den
 kurzlebigen, in der Secret-Env bereitgestellten OAuth-Token mit den für den
 Cutover benötigten Bucket-Rechten.
 
-Nur während `guest-preview` und `guest-apply` erhält derselbe Principal
-zusätzlich `roles/identitytoolkit.viewer`. Die darin enthaltene Leseberechtigung
+Nur während `guest-preview` und `guest-apply` erhält derselbe Principal diese
+beiden zusätzlichen Rollen:
+
+- `roles/identitytoolkit.viewer`
+- `roles/serviceusage.serviceUsageConsumer`
+
+Die in `roles/identitytoolkit.viewer` enthaltene Leseberechtigung
 `firebaseauth.users.get` ist für den doppelten administrativen
 UID-/E-Mail-Readback erforderlich; sie erlaubt in diesen Phasen keine
-Kontenanlage, Link-Erzeugung oder Änderung. Die zusätzliche Bindung wird nach
-dem letzten Gast-Readback zusammen mit den übrigen temporären Rollen entfernt.
+Kontenanlage, Link-Erzeugung oder Änderung. Aus
+`roles/serviceusage.serviceUsageConsumer` wird für denselben OAuth-basierten
+Identity-Toolkit-Aufruf `serviceusage.services.use` benötigt, damit das
+Zielprojekt als Consumer für Quota und Abrechnung verwendet werden darf. Diese
+Rolle erteilt allein keine Identity-Platform-Berechtigung zum Lesen oder Ändern
+von Konten.
+
+Beide Gastrollen werden unmittelbar vor dem ersten `guest-preview` zugeordnet
+und unmittelbar nach dem letzten Gast-Readback wieder entfernt. Sie werden
+weder für Storage-, Datenbank- noch Identity-Phasen zugeordnet. Die spätere
+vollständige Cleanup-Prüfung bestätigt ihre Abwesenheit nochmals.
 
 ## 3. Geschützte Eingaben je Phase bereitstellen
 
@@ -462,9 +476,11 @@ nach 24 Stunden:
    `vk_access_enrollment_admin` jeweils nur noch die sichere, nicht erbende und
    nicht setzbare Creator-Administration des verifizierten Objekt-Owners
    besteht,
-4. alle temporären Projekt-IAM-Zuordnungen vom dedizierten Principal entfernen,
-   einschließlich `roles/identitytoolkit.viewer`, falls Gastphasen ausgeführt
-   wurden, und die IAM-Policy erneut read-only prüfen,
+4. alle temporären Projekt-IAM-Zuordnungen vom dedizierten Principal entfernen.
+   Falls Gastphasen ausgeführt wurden, dabei als Cleanup-Sicherungsnetz
+   ausdrücklich sowohl `roles/identitytoolkit.viewer` als auch
+   `roles/serviceusage.serviceUsageConsumer` entfernen. Die IAM-Policy danach
+   erneut read-only prüfen und die Abwesenheit beider Gastrollen bestätigen,
 5. `networkpolicy/vk-pre-gematik-migration-operator` und
    `serviceaccount/vk-pre-gematik-migration-operator` löschen,
 6. den Operator-Image-Digest nach der vereinbarten Nachweisfrist aus der

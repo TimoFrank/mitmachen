@@ -545,7 +545,40 @@ assert.match(
   operatorRunbook,
   /neuen[\s\S]*`current_state_fingerprint`[\s\S]*No-op/u
 );
-assert.match(operatorRunbook, /roles\/identitytoolkit\.viewer/u);
+const baseTemporaryRoleSection = operatorRunbook.match(
+  /Workload-Identity-Principal werden für höchstens 24 Stunden[\s\S]*?(?=\nNur während `guest-preview`)/u
+);
+assert.ok(baseTemporaryRoleSection);
+assert.doesNotMatch(
+  baseTemporaryRoleSection[0],
+  /roles\/(?:identitytoolkit\.viewer|serviceusage\.serviceUsageConsumer)/u
+);
+const guestTemporaryRoleSection = operatorRunbook.match(
+  /Nur während `guest-preview` und `guest-apply`[\s\S]*?(?=\n## 3\.)/u
+);
+assert.ok(guestTemporaryRoleSection);
+assert.match(guestTemporaryRoleSection[0], /roles\/identitytoolkit\.viewer/u);
+assert.match(
+  guestTemporaryRoleSection[0],
+  /roles\/serviceusage\.serviceUsageConsumer/u
+);
+assert.match(guestTemporaryRoleSection[0], /serviceusage\.services\.use/u);
+assert.match(
+  guestTemporaryRoleSection[0],
+  /unmittelbar vor dem ersten `guest-preview`[\s\S]*unmittelbar nach dem letzten Gast-Readback/u
+);
+assert.match(
+  guestTemporaryRoleSection[0],
+  /weder für Storage-, Datenbank- noch Identity-Phasen/u
+);
+const cleanupSection = operatorRunbook.match(/## 6\. Vollständiger Cleanup[\s\S]*$/u);
+assert.ok(cleanupSection);
+assert.match(cleanupSection[0], /roles\/identitytoolkit\.viewer/u);
+assert.match(
+  cleanupSection[0],
+  /roles\/serviceusage\.serviceUsageConsumer/u
+);
+assert.match(cleanupSection[0], /Abwesenheit beider Gastrollen/u);
 assert.match(operatorRunbook, /ohne Klartext-PII/u);
 
 const image = `europe-west3-docker.pkg.dev/target-project-123/migrations/operator@sha256:${"b".repeat(64)}`;
