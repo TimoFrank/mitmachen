@@ -321,6 +321,7 @@ jobs:
       id-token: write
     env:
       GCP_PROJECT_ID: ${{ vars.GCP_PROJECT_ID }}
+      GCP_PROJECT_NUMBER: ${{ vars.GCP_PROJECT_NUMBER }}
       GCP_REGION: ${{ vars.GCP_REGION }}
       GKE_CLUSTER_NAME: ${{ vars.GKE_CLUSTER_NAME }}
       GKE_LOCATION: ${{ vars.GKE_LOCATION }}
@@ -367,7 +368,7 @@ jobs:
         run: |
           set -euo pipefail
           required=(
-            GCP_PROJECT_ID GCP_REGION GKE_CLUSTER_NAME GKE_LOCATION
+            GCP_PROJECT_ID GCP_PROJECT_NUMBER GCP_REGION GKE_CLUSTER_NAME GKE_LOCATION
             WIF_PROVIDER DEPLOYER_SERVICE_ACCOUNT GAR_REPOSITORY
             API_BASE_URL FRONTEND_BASE_URL FRONTEND_BUCKET
             DB_NAME DB_USER DB_PASSWORD_SECRET_NAME
@@ -390,12 +391,20 @@ jobs:
             echo "GCP_PROJECT_ID is invalid." >&2
             exit 1
           fi
+          if [[ ! "$GCP_PROJECT_NUMBER" =~ ^[1-9][0-9]{5,19}$ ]]; then
+            echo "GCP_PROJECT_NUMBER must be the numeric Terraform project-number output." >&2
+            exit 1
+          fi
           if [[ ! "$GCP_REGION" =~ ^[a-z]+-[a-z]+[0-9]+$ ]] || [[ "$GKE_LOCATION" != "$GCP_REGION" ]]; then
             echo "GCP_REGION is invalid or GKE_LOCATION differs from the regional Terraform scaffold." >&2
             exit 1
           fi
           if [[ ! "$WIF_PROVIDER" =~ ^projects/[0-9]+/locations/global/workloadIdentityPools/[A-Za-z0-9_-]+/providers/[A-Za-z0-9_-]+$ ]]; then
             echo "WIF_PROVIDER must be a full Workload Identity Provider resource name." >&2
+            exit 1
+          fi
+          if [[ "$WIF_PROVIDER" != "projects/${GCP_PROJECT_NUMBER}/locations/global/"* ]]; then
+            echo "WIF_PROVIDER does not belong to the pinned GCP_PROJECT_NUMBER." >&2
             exit 1
           fi
           if [[ ! "$DEPLOYER_SERVICE_ACCOUNT" =~ ^[A-Za-z0-9._%+-]+@[a-z][a-z0-9-]+\.iam\.gserviceaccount\.com$ ]]; then
@@ -629,6 +638,21 @@ jobs:
         with:
           install_components: gke-gcloud-auth-plugin
 
+      - name: Verify pinned Google Cloud project number
+        shell: bash
+        run: |
+          set -euo pipefail
+          resolved_project_number="$(gcloud projects describe \
+            "$GCP_PROJECT_ID" \
+            --format='value(projectNumber)' \
+            --quiet)"
+          if [[ ! "$resolved_project_number" =~ ^[1-9][0-9]{5,19}$ ]] || \
+             [[ "$resolved_project_number" != "$GCP_PROJECT_NUMBER" ]]; then
+            echo "GCP_PROJECT_NUMBER does not match the authenticated GCP_PROJECT_ID." >&2
+            exit 1
+          fi
+          unset resolved_project_number
+
       - name: Preflight locked Identity Platform providers without mutation
         if: ${{ env.IAP_IDENTITY_MODE == 'external' }}
         shell: bash
@@ -684,11 +708,12 @@ jobs:
           login_page_host="${IAP_EXTERNAL_LOGIN_PAGE_URI#https://}"
           login_page_host="${login_page_host%%/*}"
           if ! jq --exit-status \
-            --arg project "$GCP_PROJECT_ID" \
+            --arg project_id "$GCP_PROJECT_ID" \
+            --arg project_number "$GCP_PROJECT_NUMBER" \
             --arg api_host "$API_HOST" \
             --arg login_page_host "$login_page_host" \
             --arg auth_api_key "$IAP_EXTERNAL_AUTH_API_KEY" '
-              .name == "projects/\($project)/config" and
+              .name == "projects/\($project_number)/config" and
               .signIn.email.enabled == true and
               .signIn.email.passwordRequired == true and
               (.signIn.allowDuplicateEmails != true) and
@@ -714,7 +739,7 @@ jobs:
               ($login_page_host == $api_host) and
               (
                 (.authorizedDomains // [] | sort)
-                == ([$api_host, ($project + ".firebaseapp.com"), "iap.googleapis.com"] | unique | sort)
+                == ([$api_host, ($project_id + ".firebaseapp.com"), "iap.googleapis.com"] | unique | sort)
               )
             ' "$project_config" >/dev/null; then
             echo "Identity Platform is not locked to the exact Versorgungs-Kompass, Firebase, and IAP auth domains, improved email privacy, the pinned Web API key, and admin-created email/password users without MFA, phone, anonymous, duplicates, deletion, or tenants." >&2
@@ -739,6 +764,13 @@ jobs:
                 ]
               }
           ' "$project_config")"
+          # Command substitution removes jq's trailing LF. Hash exactly the compact
+          # JSON bytes without reintroducing a line ending.
+          if [[ "$canonical_password_policy" == *$'\n'* ]] || \
+             [[ "$canonical_password_policy" == *$'\r'* ]]; then
+            echo "Canonical Identity Platform password policy contains an unexpected line ending." >&2
+            exit 1
+          fi
           actual_password_policy_sha256="sha256:$(printf '%s' "$canonical_password_policy" | sha256sum | awk '{print $1}')"
           unset canonical_password_policy
           if [[ "$actual_password_policy_sha256" != "$IDENTITY_PLATFORM_PASSWORD_POLICY_SHA256" ]]; then
@@ -747,8 +779,8 @@ jobs:
           fi
 
           if ! jq --exit-status \
-            --arg project "$GCP_PROJECT_ID" '
-              .name == "projects/\($project)/defaultSupportedIdpConfigs/google.com" and
+            --arg project_number "$GCP_PROJECT_NUMBER" '
+              .name == "projects/\($project_number)/defaultSupportedIdpConfigs/google.com" and
               .enabled == true and
               (.clientId | type == "string" and length > 0)
             ' "$google_provider" >/dev/null; then
@@ -782,43 +814,66 @@ jobs:
           fi
 
           if ! jq --exit-status \
-            --arg project "$GCP_PROJECT_ID" '
+            --arg project_number "$GCP_PROJECT_NUMBER" '
               (.nextPageToken // "") == "" and
+              ((.defaultSupportedIdpConfigs // []) | type) == "array" and
+              all(
+                (.defaultSupportedIdpConfigs // [])[];
+                ((.name | type) == "string") and
+                (.name | test(
+                  "^projects/" + $project_number
+                  + "/defaultSupportedIdpConfigs/[^/]+$"
+                ))
+              ) and
               [
                 (.defaultSupportedIdpConfigs // [])[]
                 | select(.enabled == true)
                 | .name
-              ] == ["projects/\($project)/defaultSupportedIdpConfigs/google.com"]
+              ] == ["projects/\($project_number)/defaultSupportedIdpConfigs/google.com"]
             ' "$default_providers" >/dev/null; then
             echo "Exactly the Google default provider must be enabled for the temporary Identity Platform pilot." >&2
             exit 1
           fi
-          for provider_inventory in "$oidc_providers" "$saml_providers"; do
-            if ! jq --exit-status '
+          if ! jq --exit-status \
+            --arg project_number "$GCP_PROJECT_NUMBER" '
               (.nextPageToken // "") == "" and
-              (
-                [
-                  (.oauthIdpConfigs // [])[],
-                  (.inboundSamlConfigs // [])[]
-                  | select(.enabled == true)
-                ]
-                | length
-              ) == 0
-            ' "$provider_inventory" >/dev/null; then
-              echo "Custom OIDC or SAML providers are not approved for the temporary Identity Platform pilot." >&2
-              exit 1
-            fi
-          done
+              ((.oauthIdpConfigs // []) | type) == "array" and
+              all(
+                (.oauthIdpConfigs // [])[];
+                ((.name | type) == "string") and
+                (.name | test(
+                  "^projects/" + $project_number
+                  + "/oauthIdpConfigs/[^/]+$"
+                ))
+              ) and
+              ([ (.oauthIdpConfigs // [])[] | select(.enabled == true) ] | length) == 0
+            ' "$oidc_providers" >/dev/null; then
+            echo "Custom OIDC providers are not approved for the temporary Identity Platform pilot." >&2
+            exit 1
+          fi
+          if ! jq --exit-status \
+            --arg project_number "$GCP_PROJECT_NUMBER" '
+              (.nextPageToken // "") == "" and
+              ((.inboundSamlConfigs // []) | type) == "array" and
+              all(
+                (.inboundSamlConfigs // [])[];
+                ((.name | type) == "string") and
+                (.name | test(
+                  "^projects/" + $project_number
+                  + "/inboundSamlConfigs/[^/]+$"
+                ))
+              ) and
+              ([ (.inboundSamlConfigs // [])[] | select(.enabled == true) ] | length) == 0
+            ' "$saml_providers" >/dev/null; then
+            echo "Custom SAML providers are not approved for the temporary Identity Platform pilot." >&2
+            exit 1
+          fi
 
       - name: Verify approved GCP resource identities and storage hardening
         shell: bash
         run: |
           set -euo pipefail
-          project_number="$(gcloud projects describe "$GCP_PROJECT_ID" --format='value(projectNumber)')"
-          if [[ -z "$project_number" ]] || [[ "$WIF_PROVIDER" != "projects/${project_number}/locations/global/"* ]]; then
-            echo "WIF_PROVIDER does not belong to GCP_PROJECT_ID." >&2
-            exit 1
-          fi
+          project_number="$GCP_PROJECT_NUMBER"
 
           project_policy="$(gcloud projects get-iam-policy "$GCP_PROJECT_ID" --format=json)"
           project_iap_bindings="$(jq --compact-output '

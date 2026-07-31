@@ -127,7 +127,7 @@ const contentChecks = [
       /The preparation release must expose all approved hosts and certificates before cutover/,
       /domain-cutover-probe\?source=deployment/,
       /Redirect contract failed for/,
-      /WIF_PROVIDER does not belong to GCP_PROJECT_ID/,
+      /WIF_PROVIDER does not belong to the pinned GCP_PROJECT_NUMBER/,
       /gcloud iap web set-iam-policy/,
       /A backend-specific IAP policy differs from the exact approved state; clear both resource policies in the controlled cutover before retrying/,
       /A backend-specific IAP policy does not match the exact approved principal policy/,
