@@ -152,6 +152,53 @@ frontend:
     iap:
       enabled: true
       oauthClientCredentialsSecretName: ""
+  authProxy:
+    enabled: false
+    replicaCount: 2
+    podAnnotations: {}
+    image: "nginxinc/nginx-unprivileged:1.31.2-alpine3.23@sha256:6320020c7da8714feab524e02c08c5a1958675c4e68700e93a2fd8970b065786"
+    imagePullPolicy: IfNotPresent
+    podSecurityContext:
+      runAsNonRoot: true
+      runAsUser: 101
+      runAsGroup: 101
+      fsGroup: 101
+      fsGroupChangePolicy: OnRootMismatch
+      seccompProfile:
+        type: RuntimeDefault
+    securityContext:
+      allowPrivilegeEscalation: false
+      readOnlyRootFilesystem: true
+      runAsNonRoot: true
+      runAsUser: 101
+      runAsGroup: 101
+      capabilities:
+        drop:
+          - ALL
+    serviceAccount:
+      create: true
+      name: "versorgungs-kompass-frontend-auth-proxy"
+      automountServiceAccountToken: false
+    service:
+      port: 80
+      annotations: {}
+    resources:
+      requests:
+        cpu: 25m
+        memory: 32Mi
+      limits:
+        cpu: 200m
+        memory: 96Mi
+    backendConfig:
+      name: ""
+      timeoutSec: 30
+      healthCheck:
+        requestPath: /_healthz
+        port: 8080
+        checkIntervalSec: 15
+        timeoutSec: 5
+        healthyThreshold: 1
+        unhealthyThreshold: 3
   publicEntry:
     enabled: false
     rootAliasHosts: []

@@ -36,6 +36,11 @@ test("keeps public-facing copy and assets on the branded portal", () => {
   );
 });
 
+test("keeps the Firebase Auth iframe on the canonical first-party origin", () => {
+  assert.match(signInHtml, /frame-src 'self'/u);
+  assert.doesNotMatch(signInHtml, /firebaseapp\.com/u);
+});
+
 test("scrubs the one-time action code before validation or remote work", () => {
   const scrubPosition = actionSource.indexOf(
     'history.replaceState({}, "", window.location.pathname)'

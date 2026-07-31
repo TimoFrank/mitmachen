@@ -257,6 +257,152 @@
             }
           }
         },
+        "authProxy": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "enabled",
+            "replicaCount",
+            "podAnnotations",
+            "image",
+            "imagePullPolicy",
+            "podSecurityContext",
+            "securityContext",
+            "serviceAccount",
+            "service",
+            "resources",
+            "backendConfig"
+          ],
+          "properties": {
+            "enabled": {
+              "type": "boolean"
+            },
+            "replicaCount": {
+              "type": "integer",
+              "minimum": 2
+            },
+            "podAnnotations": {
+              "type": "object"
+            },
+            "image": {
+              "const": "nginxinc/nginx-unprivileged:1.31.2-alpine3.23@sha256:6320020c7da8714feab524e02c08c5a1958675c4e68700e93a2fd8970b065786"
+            },
+            "imagePullPolicy": {
+              "const": "IfNotPresent"
+            },
+            "podSecurityContext": {
+              "const": {
+                "runAsNonRoot": true,
+                "runAsUser": 101,
+                "runAsGroup": 101,
+                "fsGroup": 101,
+                "fsGroupChangePolicy": "OnRootMismatch",
+                "seccompProfile": {
+                  "type": "RuntimeDefault"
+                }
+              }
+            },
+            "securityContext": {
+              "const": {
+                "allowPrivilegeEscalation": false,
+                "readOnlyRootFilesystem": true,
+                "runAsNonRoot": true,
+                "runAsUser": 101,
+                "runAsGroup": 101,
+                "capabilities": {
+                  "drop": [
+                    "ALL"
+                  ]
+                }
+              }
+            },
+            "serviceAccount": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["create", "name", "automountServiceAccountToken"],
+              "properties": {
+                "create": {
+                  "const": true
+                },
+                "name": {
+                  "const": "versorgungs-kompass-frontend-auth-proxy"
+                },
+                "automountServiceAccountToken": {
+                  "const": false
+                }
+              }
+            },
+            "service": {
+              "type": "object",
+              "required": ["port", "annotations"],
+              "properties": {
+                "port": {
+                  "type": "integer",
+                  "minimum": 1,
+                  "maximum": 65535
+                },
+                "annotations": {
+                  "type": "object"
+                }
+              }
+            },
+            "resources": {
+              "type": "object",
+              "required": ["requests", "limits"]
+            },
+            "backendConfig": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["name", "timeoutSec", "healthCheck"],
+              "properties": {
+                "name": {
+                  "type": "string",
+                  "pattern": "^$|^[a-z0-9]([-a-z0-9]*[a-z0-9])?$"
+                },
+                "timeoutSec": {
+                  "type": "integer",
+                  "minimum": 1
+                },
+                "healthCheck": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "requestPath",
+                    "port",
+                    "checkIntervalSec",
+                    "timeoutSec",
+                    "healthyThreshold",
+                    "unhealthyThreshold"
+                  ],
+                  "properties": {
+                    "requestPath": {
+                      "const": "/_healthz"
+                    },
+                    "port": {
+                      "const": 8080
+                    },
+                    "checkIntervalSec": {
+                      "type": "integer",
+                      "minimum": 1
+                    },
+                    "timeoutSec": {
+                      "type": "integer",
+                      "minimum": 1
+                    },
+                    "healthyThreshold": {
+                      "type": "integer",
+                      "minimum": 1
+                    },
+                    "unhealthyThreshold": {
+                      "type": "integer",
+                      "minimum": 1
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
         "publicEntry": {
           "type": "object",
           "required": ["enabled", "rootAliasHosts", "replicaCount", "image", "serviceAccount", "service", "backendConfig"],
@@ -412,6 +558,28 @@
         }
       },
       "allOf": [
+        {
+          "if": {
+            "properties": {
+              "authProxy": {
+                "properties": {
+                  "enabled": {
+                    "const": true
+                  }
+                },
+                "required": ["enabled"]
+              }
+            },
+            "required": ["authProxy"]
+          },
+          "then": {
+            "properties": {
+              "enabled": {
+                "const": true
+              }
+            }
+          }
+        },
         {
           "if": {
             "properties": {

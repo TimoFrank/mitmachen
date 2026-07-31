@@ -122,8 +122,11 @@ Passwortsetzseite
 `https://versorgungs-kompass.de/konto/passwort-festlegen`,
 `emailPrivacyConfig.enableImprovedEmailPrivacy=true` und der bytegenaue
 technische Google-OAuth-Callback
-`https://steam-capsule-341212.firebaseapp.com/__/auth/handler`. Der Firebase-
-Callback ist kein sichtbarer Einladungs- oder Login-Link.
+`https://versorgungs-kompass.de/__/auth/handler`. Der kanonische Callback wird
+ohne Redirect über einen dedizierten, tokenlosen Proxy ausschließlich an den
+festen TLS-verifizierten Firebase-Upstream weitergeleitet. Der
+Firebase-Projekthost ist nur noch eine geschützte Rollback-Konfiguration und
+kein sichtbarer Einladungs-, Login- oder primärer Callback-Link.
 
 Im IAM- und External-Modus erzeugt die Anwendung selbst weder Profile noch
 Bindings. Für Passwortgäste werden keine Pending-Anfragen erzeugt oder

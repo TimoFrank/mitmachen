@@ -467,7 +467,7 @@ if (existsSync(identityPortalConfigPath)) {
     `${artifactLabel}/public/auth/portal-config.js enthaelt keinen gueltigen Identity-Platform-Web-API-Key`
   );
   assert(
-    /authDomain:\s*"steam-capsule-341212\.firebaseapp\.com"/.test(config)
+    /authDomain:\s*"versorgungs-kompass\.de"/.test(config)
       && /projectId:\s*"steam-capsule-341212"/.test(config),
     `${artifactLabel}/public/auth/portal-config.js ist nicht auf das freigegebene Identity-Platform-Projekt gepinnt`
   );

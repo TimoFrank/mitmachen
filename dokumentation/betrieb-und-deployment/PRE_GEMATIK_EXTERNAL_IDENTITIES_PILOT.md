@@ -214,9 +214,27 @@ nicht aktiviert.
 `authorizedDomains` ist als exakte, nicht erweiterbare Menge auf
 `versorgungs-kompass.de`,
 `steam-capsule-341212.firebaseapp.com` und `iap.googleapis.com` gepinnt. Die
-Firebase-Domain bleibt der technische OAuth-Handler; `iap.googleapis.com` ist
-für den External-IAP-Anmeldefluss erforderlich. Eine fehlende oder zusätzliche
+Firebase-Domain bleibt ausschließlich für einen geprüften Rückweg
+vorregistriert; der primäre technische OAuth-Handler liegt unter
+`https://versorgungs-kompass.de/__/auth/handler`. `iap.googleapis.com` ist für
+den External-IAP-Anmeldefluss erforderlich. Eine fehlende oder zusätzliche
 Domain stoppt den Deployment-Preflight fail-closed.
+
+Der GKE Ingress veröffentlicht nur am Apex den Prefix `/__/auth/` vor dem
+IAP-geschützten Catch-all. Ein dediziertes, tokenloses
+`frontend-auth-proxy`-Deployment leitet nur `GET`, `HEAD` und `POST` mit
+unverändertem Pfad und Query an den festen HTTPS-Upstream
+`steam-capsule-341212.firebaseapp.com` weiter. TLS-SNI und Zertifikatsprüfung
+sind erzwungen, Redirect-Rewriting ist deaktiviert und nur eine minimale
+Request-Header-Allowlist wird weitergegeben; Cookies, Authorization- und
+IAP-Identity-Header erreichen den Upstream nicht. Ein etwaiger
+Upstream-`Set-Cookie`-Header wird nicht auf den gemeinsamen Apex übertragen;
+der Firebase-Helper verwendet dort Browser-Web-Storage. Die Workload besitzt
+weder Cloud-IAM-Bindung noch Secrets oder Kubernetes-API-Token; Load-Balancer-
+und nginx-Zugriffslogging sind deaktiviert. Root, der nackte Pfad `/__/auth`,
+Near-Misses, normalisierte Aliase, nicht erlaubte Methoden und derselbe Prefix
+auf `www` oder den alten Hosts bleiben geschlossen. Es existiert weder ein
+variabler Upstream noch eine Catch-all- oder Alias-Proxyroute.
 
 In den Identity-Platform-Einstellungen werden die Nutzeraktionen
 `account creation` und `account deletion` deaktiviert. Dadurch führen
@@ -248,11 +266,15 @@ Gates:
    ein Konto, Profil oder Binding existiert.
 2. `IAP_EXTERNAL_LOGIN_PAGE_URI` entspricht bytegenau
    `https://versorgungs-kompass.de/anmelden`.
-3. Der im Google-OAuth-Client freigegebene Redirect-URI entspricht bytegenau
-   `https://steam-capsule-341212.firebaseapp.com/__/auth/handler`. Dieser
-   technische Callback ist ausschließlich OAuth-Infrastruktur und darf weder
-   als Einladungslink noch als sichtbarer Login- oder Passwortsetz-Link
-   verwendet werden.
+3. Der primäre, im Google-OAuth-Client freigegebene Redirect-URI entspricht
+   bytegenau
+   `https://versorgungs-kompass.de/__/auth/handler`. Dieser technische
+   Callback ist ausschließlich OAuth-Infrastruktur und darf weder als
+   Einladungslink noch als sichtbarer Login- oder Passwortsetz-Link verwendet
+   werden. Der bisherige Redirect
+   `https://steam-capsule-341212.firebaseapp.com/__/auth/handler` bleibt nur
+   während des Piloten als inaktiver Rollback-Eintrag registriert; Login-
+   Konfiguration und Abnahmen referenzieren stets den kanonischen Redirect.
 4. Die Passwortsetzseite liegt bytegenau unter
    `https://versorgungs-kompass.de/konto/passwort-festlegen`; der
    `continue_url` jedes Passwortkontos ist bytegenau
@@ -657,7 +679,8 @@ werden.
    `emailPrivacyConfig.enableImprovedEmailPrivacy=true`, die sichtbaren
    Loginoptionen, `https://versorgungs-kompass.de/anmelden`, der exakte
    Google-Callback
-   `https://steam-capsule-341212.firebaseapp.com/__/auth/handler` und der
+   `https://versorgungs-kompass.de/__/auth/handler`, der kanonische
+   Auth-Helper-Proxy und der
    höchstens 24 Stunden alte echte Google-Login-Nachweis müssen vollständig
    sein. Noch wird keine Einladung versendet.
 4. Jedes Passwortkonto create-only mit
@@ -734,7 +757,16 @@ nicht durch spontane Konto-, IAM- oder Binding-Erweiterungen repariert.
 - [ ] `IAP_EXTERNAL_LOGIN_PAGE_URI` entspricht exakt
   `https://versorgungs-kompass.de/anmelden`.
 - [ ] Der Google-OAuth-Redirect entspricht exakt
-  `https://steam-capsule-341212.firebaseapp.com/__/auth/handler`.
+  `https://versorgungs-kompass.de/__/auth/handler`; der frühere
+  Firebase-Redirect ist ausschließlich als inaktiver Rollback-Eintrag
+  vorhanden.
+- [ ] Am Apex liefert ausschließlich Prefix `/__/auth/` den Firebase-Helper
+  über den festen TLS-verifizierten Upstream. GET, HEAD und POST funktionieren
+  ohne Redirect; alle anderen Methoden, Root/Near-Misses, normalisierten
+  Varianten und Alias-Hosts bleiben geschlossen.
+- [ ] Auth-Helper-Deployment und -Service-Account sind secret-, token- und
+  Cloud-IAM-frei; Cookies und Authorization-/IAP-Identity-Header werden entfernt und
+  nginx-/Load-Balancer-Zugriffslogging ist deaktiviert.
 - [ ] Ein realer Google-Login über die eigene Loginseite ist erfolgreich;
   `IDENTITY_PLATFORM_GOOGLE_LOGIN_VERIFIED_AT` ist nicht älter als 24 Stunden
   und `IDENTITY_PLATFORM_GOOGLE_LOGIN_EVIDENCE_SHA256` stimmt mit Client-ID,
@@ -938,9 +970,16 @@ wird zusätzlich operativ zurückgebaut:
    ungebundene Konten durchführen.
 9. Google- und E-Mail/Passwort-Provider erst entfernen, wenn kein IAP-Backend
    und kein anderer Dienst im Projekt sie nutzt.
-10. Loginseite und zugehörige Secrets, API-Keys oder temporäre
+10. Falls nur der Auth-Helper-Proxy vor dem Providerabbau zurückgerollt werden
+    muss, zuerst `authDomain` und den primären Google-OAuth-Redirect gemeinsam
+    auf den weiterhin vorregistrierten
+    `https://steam-capsule-341212.firebaseapp.com/__/auth/handler`-Rückweg
+    stellen und einen echten Google-Login nachweisen. Erst danach
+    `frontend.authProxy.enabled=false` ausrollen. Eine einseitige Änderung von
+    Browserkonfiguration, OAuth-Redirect oder Ingressroute ist unzulässig.
+11. Loginseite und zugehörige Secrets, API-Keys oder temporäre
     Operatorberechtigungen nach Zielabgleich entfernen.
-11. Sämtliche noch vorhandenen owner-only Set-password-/Recovery-Linkdateien
+12. Sämtliche noch vorhandenen owner-only Set-password-/Recovery-Linkdateien
     kontrolliert löschen.
 
 Ein Rollback gilt erst als abgeschlossen, wenn beide Backends wieder denselben

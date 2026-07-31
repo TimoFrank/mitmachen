@@ -87,6 +87,10 @@ assert.match(
 );
 assert.match(
   workflow,
+  /google_redirect_uri="https:\/\/versorgungs-kompass\.de\/__\/auth\/handler"/u
+);
+assert.doesNotMatch(
+  workflow,
   /google_redirect_uri="https:\/\/steam-capsule-341212\.firebaseapp\.com\/__\/auth\/handler"/u
 );
 assert.doesNotMatch(

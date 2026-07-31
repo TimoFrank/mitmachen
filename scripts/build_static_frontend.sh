@@ -540,7 +540,7 @@ const rendered = `/*
 window.IDENTITY_PORTAL_CONFIG = Object.freeze({
   firebase: Object.freeze({
     apiKey: ${JSON.stringify(apiKey)},
-    authDomain: ${JSON.stringify(`${projectId}.firebaseapp.com`)},
+    authDomain: "versorgungs-kompass.de",
     projectId: ${JSON.stringify(projectId)}
   }),
   allowedContinueOrigins: Object.freeze([

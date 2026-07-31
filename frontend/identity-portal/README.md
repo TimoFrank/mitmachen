@@ -51,7 +51,7 @@ Vor einem realen Build alle `REPLACE_*`-Werte in
 window.IDENTITY_PORTAL_CONFIG = Object.freeze({
   firebase: Object.freeze({
     apiKey: "AIza…",
-    authDomain: "PROJECT_ID.firebaseapp.com",
+    authDomain: "versorgungs-kompass.de",
     projectId: "PROJECT_ID"
   }),
   allowedContinueOrigins: Object.freeze([
@@ -78,11 +78,16 @@ OAuth-Client-Secrets oder personenbezogenen Soll-Roster in diese Datei gelangen.
    Provider und Selbstregistrierung deaktiviert lassen.
 4. Im Passwort-Reset-Template die benutzerdefinierte Action URL auf
    `https://versorgungs-kompass.de/konto/passwort-festlegen` setzen.
-5. Auth-Origin und Firebase-Handler-URI in den erlaubten Domains/Redirect-URIs
-   korrekt hinterlegen.
+5. `versorgungs-kompass.de` als Auth-Domain verwenden und
+   `https://versorgungs-kompass.de/__/auth/handler` im Google-OAuth-Client als
+   primären Redirect hinterlegen.
+6. Ausschließlich den kanonischen Prefix `/__/auth/` über den dedizierten
+   Auth-Helper-Proxy transparent und ohne Redirect an den festen,
+   TLS-verifizierten Firebase-Upstream weiterleiten.
 
-Die Auth-Origin darf nicht selbst von IAP geschützt sein, sonst entsteht eine
-Redirect-Schleife. API und Anwendung bleiben weiterhin hinter IAP.
+Die exakten Portalpfade und der kanonische Auth-Helper-Prefix dürfen nicht selbst
+von IAP geschützt sein, sonst entsteht eine Redirect-Schleife. API, Anwendung
+und derselbe Prefix auf allen Alias-Hosts bleiben weiterhin hinter IAP.
 
 ## Erforderliche HTTP-Header
 
@@ -90,7 +95,7 @@ Die HTML-Dateien und `portal-config.js` sollten `Cache-Control: no-store`
 erhalten. Zusätzlich:
 
 ```text
-Content-Security-Policy: default-src 'none'; base-uri 'none'; object-src 'none'; script-src 'self'; style-src 'self'; img-src 'self' data:; connect-src 'self' https://identitytoolkit.googleapis.com https://securetoken.googleapis.com https://www.googleapis.com; frame-src https://accounts.google.com https://PROJECT_ID.firebaseapp.com; frame-ancestors 'self'; form-action 'self'
+Content-Security-Policy: default-src 'none'; base-uri 'none'; object-src 'none'; script-src 'self'; style-src 'self'; img-src 'self' data:; connect-src 'self' https://identitytoolkit.googleapis.com https://securetoken.googleapis.com https://www.googleapis.com; frame-src 'self' https://accounts.google.com; frame-ancestors 'self'; form-action 'self'
 Cross-Origin-Opener-Policy: same-origin-allow-popups
 Permissions-Policy: camera=(), geolocation=(), microphone=(), payment=()
 Referrer-Policy: no-referrer
@@ -98,9 +103,10 @@ X-Content-Type-Options: nosniff
 ```
 
 Der Session-Refresher von IAP kann die Auth-Seite gleichursprünglich in einem
-Iframe laden; deshalb ist `frame-ancestors 'self'` vorgesehen. Die konkrete
-Produktions-CSP muss die exakte Firebase-Auth-Domain statt eines Wildcards
-enthalten.
+Iframe laden; deshalb sind `frame-ancestors 'self'` und der kanonische
+gleichursprüngliche Auth-Helper in `frame-src 'self'` vorgesehen. Ein
+Firebase-/GCP-Projekthost gehört nicht in die browserseitige Konfiguration oder
+CSP.
 
 Proxy- und CDN-Zugriffslogs für `/konto/passwort-festlegen/` müssen
 Query-Strings ausblenden:

@@ -756,7 +756,7 @@ jobs:
             exit 1
           fi
           google_client_id="$(jq --exit-status --raw-output '.clientId | select(type == "string" and length > 0)' "$google_provider")"
-          google_redirect_uri="https://steam-capsule-341212.firebaseapp.com/__/auth/handler"
+          google_redirect_uri="https://versorgungs-kompass.de/__/auth/handler"
           canonical_google_login_evidence="$(jq --compact-output --null-input --sort-keys \
             --arg client_id "$google_client_id" \
             --arg redirect_uri "$google_redirect_uri" \
@@ -1649,6 +1649,7 @@ jobs:
           api_service_name="${HELM_RELEASE}-api"
           frontend_service_name="${HELM_RELEASE}-frontend"
           public_frontend_service_name="${HELM_RELEASE}-frontend-public"
+          auth_proxy_service_name="${HELM_RELEASE}-frontend-auth-proxy"
 
           resolve_public_backend_config_name() {
             local expected_backend_config_name="${HELM_RELEASE}-frontend-public"
@@ -1896,6 +1897,90 @@ jobs:
               ' <<< "$url_map_state" >/dev/null
           }
 
+          auth_proxy_url_map_is_isolated() {
+            local url_map_name="$1"
+            local auth_proxy_backend="$2"
+            local url_map_state
+            url_map_state="$(gcloud compute url-maps describe "$url_map_name" \
+              --project "$GCP_PROJECT_ID" \
+              --global \
+              --format=json)" || return 1
+            jq --exit-status \
+              --arg canonical_host "versorgungs-kompass.de" \
+              --arg auth_proxy_suffix "/backendServices/${auth_proxy_backend}" '
+                def service_refs($suffix):
+                  [
+                    ..
+                    | objects
+                    | select(
+                        ((.service? // "") | type) == "string" and
+                        ((.service? // "") | endswith($suffix))
+                      )
+                  ];
+                (
+                  [
+                    .hostRules[]?
+                    | select((.hosts // []) | index($canonical_host))
+                    | .pathMatcher
+                  ]
+                  | unique
+                ) as $canonical_matchers
+                | ($canonical_matchers | length) == 1
+                and (
+                  [
+                    .hostRules[]?
+                    | select(.pathMatcher == $canonical_matchers[0])
+                    | .hosts[]?
+                  ]
+                  | unique
+                  | sort
+                ) == [$canonical_host]
+                and (
+                  [.pathMatchers[]? | select(.name == $canonical_matchers[0])]
+                ) as $canonical
+                | ($canonical | length) == 1
+                and (
+                  [
+                    .pathMatchers[]?
+                    | service_refs($auth_proxy_suffix)[]
+                  ]
+                  | length
+                ) >= 1
+                and (
+                  [
+                    .pathMatchers[]?
+                    | select(.name != $canonical_matchers[0])
+                    | service_refs($auth_proxy_suffix)[]
+                  ]
+                  | length
+                ) == 0
+                and (
+                  [
+                    ..
+                    | objects
+                    | .defaultService?
+                    | select(type == "string" and endswith($auth_proxy_suffix))
+                  ]
+                  | length
+                ) == 0
+                and (
+                  $canonical[0]
+                  | service_refs($auth_proxy_suffix)
+                  | [
+                      .[]
+                      | .paths[]?,
+                        .matchRules[]?.prefixMatch?,
+                        .matchRules[]?.fullPathMatch?
+                      | select(type == "string")
+                    ]
+                  | unique
+                  | sort
+                ) as $paths
+                | ($paths | length) >= 1
+                and all($paths[]; . == "/__/auth/" or . == "/__/auth/*")
+              ' <<< "$url_map_state" >/dev/null
+          }
+
           public_ingress_is_isolated() {
             local ingress_json="$1"
             local contract="${2:-desired}"
@@ -2056,10 +2141,12 @@ jobs:
           backend_service_id=""
           frontend_backend_service=""
           public_frontend_backend_service=""
+          auth_proxy_backend_service=""
           for attempt in {1..120}; do
             backend_service="$(resolve_backend_for_service "$api_service_name" || true)"
             frontend_backend_service="$(resolve_backend_for_service "$frontend_service_name" || true)"
             public_frontend_backend_service="$(resolve_backend_for_service "$public_frontend_service_name" || true)"
+            auth_proxy_backend_service="$(resolve_backend_for_service "$auth_proxy_service_name" || true)"
             if [[ -n "$backend_service" ]]; then
               backend_service_id="$(gcloud compute backend-services describe "$backend_service" \
                 --project "$GCP_PROJECT_ID" \
@@ -2069,9 +2156,10 @@ jobs:
             if [[ "$backend_service_id" =~ ^[0-9]+$ ]] && \
                [[ -n "$frontend_backend_service" ]] && \
                [[ -n "$public_frontend_backend_service" ]] && \
-               [[ "$frontend_backend_service" != "$backend_service" ]] && \
-               [[ "$public_frontend_backend_service" != "$backend_service" ]] && \
-               [[ "$public_frontend_backend_service" != "$frontend_backend_service" ]]; then
+               [[ -n "$auth_proxy_backend_service" ]] && \
+               [[ "$(printf '%s\n' "$backend_service" "$frontend_backend_service" \
+                    "$public_frontend_backend_service" "$auth_proxy_backend_service" \
+                    | sort --unique | wc -l | tr -d '[:space:]')" == "4" ]]; then
               break
             fi
             sleep 10
@@ -2080,10 +2168,11 @@ jobs:
           if [[ ! "$backend_service_id" =~ ^[0-9]+$ ]] || \
              [[ -z "$frontend_backend_service" ]] || \
              [[ -z "$public_frontend_backend_service" ]] || \
-             [[ "$frontend_backend_service" == "$backend_service" ]] || \
-             [[ "$public_frontend_backend_service" == "$backend_service" ]] || \
-             [[ "$public_frontend_backend_service" == "$frontend_backend_service" ]]; then
-            echo "Could not identify exactly three distinct API, protected frontend, and public frontend GKE backend services." >&2
+             [[ -z "$auth_proxy_backend_service" ]] || \
+             [[ "$(printf '%s\n' "$backend_service" "$frontend_backend_service" \
+                  "$public_frontend_backend_service" "$auth_proxy_backend_service" \
+                  | sort --unique | wc -l | tr -d '[:space:]')" != "4" ]]; then
+            echo "Could not identify exactly four distinct API, protected frontend, public frontend, and auth-helper proxy GKE backend services." >&2
             exit 1
           fi
           if [[ -f "$restore_marker" ]]; then
@@ -2102,7 +2191,8 @@ jobs:
             --arg root_alias_host "www.versorgungs-kompass.de" \
             --arg api_service "$api_service_name" \
             --arg frontend_service "$frontend_service_name" \
-            --arg public_service "$public_frontend_service_name" '
+            --arg public_service "$public_frontend_service_name" \
+            --arg auth_proxy_service "$auth_proxy_service_name" '
               def services_for($host; $path; $path_type):
                 [
                   .spec.rules[]?
@@ -2126,6 +2216,7 @@ jobs:
                 "Exact"
               ) == [$public_service] and
               services_for($root_alias_host; "/"; "Exact") == [$public_service] and
+              services_for("versorgungs-kompass.de"; "/__/auth/"; "Prefix") == [$auth_proxy_service] and
               services_for($canonical_host; "/api"; "Prefix") == [$api_service] and
               services_for($canonical_host; "/"; "Prefix") == [$frontend_service] and
               services_for($root_alias_host; "/"; "Prefix") == [$frontend_service] and
@@ -2157,9 +2248,24 @@ jobs:
                 ]
                 | sort_by(.host, .path)
               ) and
+              (
+                [
+                  .spec.rules[]? as $rule
+                  | $rule.http.paths[]?
+                  | select(.backend.service.name == $auth_proxy_service)
+                  | {host: $rule.host, path, pathType}
+                ]
+              ) == [
+                {
+                  host: "versorgungs-kompass.de",
+                  path: "/__/auth/",
+                  pathType: "Prefix"
+                }
+              ] and
               ((.spec.defaultBackend.service.name? // "") != $public_service)
+              and ((.spec.defaultBackend.service.name? // "") != $auth_proxy_service)
             ' <<< "$ingress_state" >/dev/null; then
-            echo "The rendered Ingress does not keep the public backend on the exact approved canonical and www paths." >&2
+            echo "The rendered Ingress does not keep the public entry and auth-helper proxy on their exact approved paths." >&2
             exit 1
           fi
 
@@ -2173,6 +2279,7 @@ jobs:
             local current_url_map_name="$1"
             local url_map_state
             public_url_map_is_isolated "$current_url_map_name" "$public_frontend_backend_service" || return 1
+            auth_proxy_url_map_is_isolated "$current_url_map_name" "$auth_proxy_backend_service" || return 1
             url_map_state="$(gcloud compute url-maps describe "$current_url_map_name" \
               --project "$GCP_PROJECT_ID" \
               --global \
@@ -2268,6 +2375,7 @@ jobs:
             local api_iap
             local frontend_iap
             local public_iap
+            local auth_proxy_state
             local current_url_map_name
             for attempt in {1..60}; do
               boundary_backends="$(kubectl --namespace "$K8S_NAMESPACE" get ingress "$ingress_name" \
@@ -2281,23 +2389,34 @@ jobs:
                 --project "$GCP_PROJECT_ID" --global --format='value(iap.enabled)' 2>/dev/null || true)"
               public_iap="$(gcloud compute backend-services describe "$public_frontend_backend_service" \
                 --project "$GCP_PROJECT_ID" --global --format='value(iap.enabled)' 2>/dev/null || true)"
+              auth_proxy_state="$(gcloud compute backend-services describe "$auth_proxy_backend_service" \
+                --project "$GCP_PROJECT_ID" --global --format=json 2>/dev/null || true)"
               current_url_map_name="$(kubectl --namespace "$K8S_NAMESPACE" get ingress "$ingress_name" \
                 --output jsonpath='{.metadata.annotations.ingress\.kubernetes\.io/url-map}' 2>/dev/null || true)"
               if [[ "${api_iap,,}" == "true" ]] && \
                  [[ "${frontend_iap,,}" == "true" ]] && \
                  [[ "${public_iap,,}" == "$expected_public_iap" ]] && \
+                 [[ -n "$auth_proxy_state" ]] && \
+                 jq --exit-status '
+                   (.iap.enabled // false) == false and
+                   .logConfig.enable == false
+                 ' <<< "$auth_proxy_state" >/dev/null 2>&1 && \
                  jq --exit-status \
                    --arg api "$backend_service" \
                    --arg frontend "$frontend_backend_service" \
-                   --arg public "$public_frontend_backend_service" '
+                   --arg public "$public_frontend_backend_service" \
+                   --arg auth_proxy "$auth_proxy_backend_service" '
                      .[$api] == "HEALTHY" and
                      .[$frontend] == "HEALTHY" and
-                     .[$public] == "HEALTHY"
+                     .[$public] == "HEALTHY" and
+                     .[$auth_proxy] == "HEALTHY"
                  ' <<< "$boundary_backends" >/dev/null 2>&1 && \
                  public_backend_logging_is_disabled "$public_frontend_backend_service" && \
+                 public_backend_logging_is_disabled "$auth_proxy_backend_service" && \
                  backend_health_ok "$backend_service" && \
                  backend_health_ok "$frontend_backend_service" && \
                  backend_health_ok "$public_frontend_backend_service" && \
+                 backend_health_ok "$auth_proxy_backend_service" && \
                  [[ -n "$current_url_map_name" ]] && \
                  full_url_map_is_valid "$current_url_map_name"; then
                 return 0
@@ -2308,7 +2427,7 @@ jobs:
           }
 
           if ! wait_for_boundary true; then
-            echo "The three-backend boundary did not converge to healthy protected API/frontend and the expected public IAP state." >&2
+            echo "The four-backend boundary did not converge to protected API/frontend, isolated public entry, and the tokenless auth-helper proxy." >&2
             exit 1
           fi
 
@@ -2337,12 +2456,17 @@ jobs:
 
           iap_policy_dir="$(mktemp -d)"
           public_port_forward_pid=""
+          auth_proxy_port_forward_pid=""
           restore_armed=1
 
           cleanup_iap_policy() {
             if [[ -n "$public_port_forward_pid" ]]; then
               kill "$public_port_forward_pid" >/dev/null 2>&1 || true
               wait "$public_port_forward_pid" >/dev/null 2>&1 || true
+            fi
+            if [[ -n "$auth_proxy_port_forward_pid" ]]; then
+              kill "$auth_proxy_port_forward_pid" >/dev/null 2>&1 || true
+              wait "$auth_proxy_port_forward_pid" >/dev/null 2>&1 || true
             fi
             rm -f "${iap_policy_dir}"/*.json "${iap_policy_dir}"/*.update
             rmdir "$iap_policy_dir" 2>/dev/null || true
@@ -2455,6 +2579,80 @@ jobs:
           [[ "$(curl --path-as-is --silent --request POST --output /dev/null --write-out '%{http_code}' \
             http://127.0.0.1:18083/public/auth/assets/app.js)" == "403" ]]
 
+          kubectl --namespace "$K8S_NAMESPACE" rollout status \
+            "deployment/${HELM_RELEASE}-frontend-auth-proxy" \
+            --timeout=10m
+          deployed_auth_proxy_image="$(kubectl --namespace "$K8S_NAMESPACE" get deployment \
+            "${HELM_RELEASE}-frontend-auth-proxy" \
+            --output jsonpath='{.spec.template.spec.containers[?(@.name=="nginx")].image}')"
+          expected_auth_proxy_image="nginxinc/nginx-unprivileged:1.31.2-alpine3.23@sha256:6320020c7da8714feab524e02c08c5a1958675c4e68700e93a2fd8970b065786"
+          if [[ "$deployed_auth_proxy_image" != "$expected_auth_proxy_image" ]]; then
+            echo "The auth-helper proxy Deployment is not pinned to the reviewed nginx image digest." >&2
+            exit 1
+          fi
+          auth_proxy_backend_config="$(kubectl --namespace "$K8S_NAMESPACE" get \
+            backendconfig.cloud.google.com "${HELM_RELEASE}-frontend-auth-proxy" \
+            --output=json)"
+          if ! jq --exit-status '
+            .spec.logging.enable == false and
+            .spec.iap.enabled == false and
+            .spec.healthCheck.requestPath == "/_healthz" and
+            .spec.healthCheck.port == 8080
+          ' <<< "$auth_proxy_backend_config" >/dev/null; then
+            echo "The auth-helper proxy BackendConfig is not explicitly public, log-disabled, and health-checked." >&2
+            exit 1
+          fi
+          kubectl --namespace "$K8S_NAMESPACE" port-forward \
+            "service/${auth_proxy_service_name}" \
+            18084:80 \
+            --address 127.0.0.1 >"${RUNNER_TEMP}/auth-proxy-preopen-port-forward.log" 2>&1 &
+          auth_proxy_port_forward_pid=$!
+          for attempt in {1..30}; do
+            if curl --silent --fail --max-time 2 http://127.0.0.1:18084/_healthz >/dev/null; then
+              break
+            fi
+            if [[ "$attempt" == "30" ]]; then
+              echo "The auth-helper proxy Service did not become reachable." >&2
+              exit 1
+            fi
+            sleep 1
+          done
+          auth_helper_body="${RUNNER_TEMP}/auth-helper-handler.html"
+          auth_helper_headers="${RUNNER_TEMP}/auth-helper-handler.headers"
+          auth_helper_status="$(curl --path-as-is --silent --show-error \
+            --dump-header "$auth_helper_headers" \
+            --output "$auth_helper_body" \
+            --write-out '%{http_code}' \
+            --max-time 30 \
+            "http://127.0.0.1:18084/__/auth/handler?preopen_probe=${GITHUB_RUN_ID}")"
+          if [[ "$auth_helper_status" != "200" ]] || \
+             ! grep --fixed-strings --quiet 'fireauth.oauthhelper.widget.initialize' "$auth_helper_body" || \
+             grep --ignore-case --quiet '^location:' "$auth_helper_headers"; then
+            echo "The auth-helper proxy did not transparently serve the fixed Firebase handler." >&2
+            exit 1
+          fi
+          [[ "$(curl --path-as-is --silent --head --output /dev/null --write-out '%{http_code}' \
+            http://127.0.0.1:18084/__/auth/handler)" == "200" ]]
+          [[ "$(curl --path-as-is --silent --request POST --output /dev/null --write-out '%{http_code}' \
+            http://127.0.0.1:18084/__/auth/handler)" == "200" ]]
+          for denied_method in PUT PATCH DELETE OPTIONS TRACE CONNECT; do
+            denied_method_status="$(curl --path-as-is --silent --request "$denied_method" \
+              --output /dev/null --write-out '%{http_code}' \
+              http://127.0.0.1:18084/__/auth/handler)"
+            if [[ "$denied_method_status" != "400" && \
+                  "$denied_method_status" != "403" && \
+                  "$denied_method_status" != "405" ]]; then
+              echo "The auth-helper proxy accepted ${denied_method} with HTTP ${denied_method_status}." >&2
+              exit 1
+            fi
+          done
+          for denied_auth_proxy_path in \
+            / /__/auth /__/firebase/init.json '/%5f%5f/auth/handler' \
+            '//__/auth/handler' '/__/auth/../start'; do
+            [[ "$(curl --path-as-is --silent --output /dev/null --write-out '%{http_code}' \
+              "http://127.0.0.1:18084${denied_auth_proxy_path}")" == "404" ]]
+          done
+
           public_policy="${iap_policy_dir}/${public_frontend_backend_service}-public.json"
           gcloud iap web get-iam-policy \
             --project "$GCP_PROJECT_ID" \
@@ -2466,6 +2664,20 @@ jobs:
             ((.auditConfigs // []) | length) == 0
           ' "$public_policy" >/dev/null; then
             echo "The public entry backend has an unexpected resource-specific IAP policy; refusing to mutate protected policies." >&2
+            exit 1
+          fi
+
+          auth_proxy_policy="${iap_policy_dir}/${auth_proxy_backend_service}-auth-proxy.json"
+          gcloud iap web get-iam-policy \
+            --project "$GCP_PROJECT_ID" \
+            --resource-type=backend-services \
+            --service "$auth_proxy_backend_service" \
+            --format=json > "$auth_proxy_policy"
+          if ! jq --exit-status '
+            ((.bindings // []) | length) == 0 and
+            ((.auditConfigs // []) | length) == 0
+          ' "$auth_proxy_policy" >/dev/null; then
+            echo "The public auth-helper proxy backend must not carry an IAP resource policy." >&2
             exit 1
           fi
 
@@ -2731,6 +2943,7 @@ jobs:
           echo "api_backend_service=$backend_service" >> "$GITHUB_OUTPUT"
           echo "frontend_backend_service=$frontend_backend_service" >> "$GITHUB_OUTPUT"
           echo "public_frontend_backend_service=$public_frontend_backend_service" >> "$GITHUB_OUTPUT"
+          echo "auth_proxy_backend_service=$auth_proxy_backend_service" >> "$GITHUB_OUTPUT"
           echo "public_entry_cutover=true" >> "$GITHUB_OUTPUT"
 
       - name: Verify rollout, Secret Sync, and fail-closed authentication
@@ -2743,6 +2956,8 @@ jobs:
           frontend_service_name="${HELM_RELEASE}-frontend"
           public_frontend_deployment_name="${HELM_RELEASE}-frontend-public"
           public_frontend_service_name="${HELM_RELEASE}-frontend-public"
+          auth_proxy_deployment_name="${HELM_RELEASE}-frontend-auth-proxy"
+          auth_proxy_service_name="${HELM_RELEASE}-frontend-auth-proxy"
 
           kubectl --namespace "$K8S_NAMESPACE" rollout status \
             "deployment/${deployment_name}" \
@@ -2752,6 +2967,9 @@ jobs:
             --timeout=10m
           kubectl --namespace "$K8S_NAMESPACE" rollout status \
             "deployment/${public_frontend_deployment_name}" \
+            --timeout=10m
+          kubectl --namespace "$K8S_NAMESPACE" rollout status \
+            "deployment/${auth_proxy_deployment_name}" \
             --timeout=10m
           kubectl --namespace "$K8S_NAMESPACE" get secret "$DB_PASSWORD_SECRET_NAME" >/dev/null
 
@@ -3148,6 +3366,7 @@ jobs:
           port_forward_log="${RUNNER_TEMP}/pre-gematik-api-port-forward.log"
           frontend_port_forward_log="${RUNNER_TEMP}/pre-gematik-frontend-port-forward.log"
           public_frontend_port_forward_log="${RUNNER_TEMP}/pre-gematik-public-frontend-port-forward.log"
+          auth_proxy_port_forward_log="${RUNNER_TEMP}/pre-gematik-auth-proxy-port-forward.log"
           kubectl --namespace "$K8S_NAMESPACE" port-forward \
             "service/${service_name}" 18080:80 \
             >"$port_forward_log" 2>&1 &
@@ -3160,16 +3379,22 @@ jobs:
             "service/${public_frontend_service_name}" 18083:80 \
             >"$public_frontend_port_forward_log" 2>&1 &
           public_frontend_port_forward_pid=$!
+          kubectl --namespace "$K8S_NAMESPACE" port-forward \
+            "service/${auth_proxy_service_name}" 18084:80 \
+            >"$auth_proxy_port_forward_log" 2>&1 &
+          auth_proxy_port_forward_pid=$!
           cleanup() {
             kill "$port_forward_pid" >/dev/null 2>&1 || true
             kill "$frontend_port_forward_pid" >/dev/null 2>&1 || true
             kill "$public_frontend_port_forward_pid" >/dev/null 2>&1 || true
+            kill "$auth_proxy_port_forward_pid" >/dev/null 2>&1 || true
           }
           trap cleanup EXIT
 
           api_healthy=0
           frontend_healthy=0
           public_frontend_healthy=0
+          auth_proxy_healthy=0
           for attempt in {1..30}; do
             if curl --fail --silent --show-error http://127.0.0.1:18080/api/healthz >/dev/null; then
               api_healthy=1
@@ -3180,9 +3405,13 @@ jobs:
             if curl --fail --silent --show-error http://127.0.0.1:18083/_healthz >/dev/null; then
               public_frontend_healthy=1
             fi
+            if curl --fail --silent --show-error http://127.0.0.1:18084/_healthz >/dev/null; then
+              auth_proxy_healthy=1
+            fi
             if [[ "$api_healthy" == "1" && \
                   "$frontend_healthy" == "1" && \
-                  "$public_frontend_healthy" == "1" ]]; then
+                  "$public_frontend_healthy" == "1" && \
+                  "$auth_proxy_healthy" == "1" ]]; then
               break
             fi
             sleep 2
@@ -3202,6 +3431,43 @@ jobs:
             echo "The in-cluster public-entry frontend smoke test failed." >&2
             exit 1
           fi
+          if [[ "$auth_proxy_healthy" != "1" ]]; then
+            cat "$auth_proxy_port_forward_log"
+            echo "The in-cluster auth-helper proxy smoke test failed." >&2
+            exit 1
+          fi
+
+          auth_proxy_handler_body="${RUNNER_TEMP}/pre-gematik-auth-helper.html"
+          auth_proxy_handler_headers="${RUNNER_TEMP}/pre-gematik-auth-helper.headers"
+          auth_proxy_handler_status="$(curl --path-as-is --silent --show-error \
+            --dump-header "$auth_proxy_handler_headers" \
+            --output "$auth_proxy_handler_body" \
+            --write-out '%{http_code}' \
+            "http://127.0.0.1:18084/__/auth/handler?rollout_probe=${GITHUB_RUN_ID}")"
+          if [[ "$auth_proxy_handler_status" != "200" ]] || \
+             ! grep --fixed-strings --quiet \
+               'fireauth.oauthhelper.widget.initialize' "$auth_proxy_handler_body" || \
+             grep --ignore-case --quiet '^location:' "$auth_proxy_handler_headers"; then
+            echo "The in-cluster auth-helper proxy is not transparent." >&2
+            exit 1
+          fi
+          for auth_proxy_denied_method in PUT PATCH DELETE OPTIONS TRACE; do
+            auth_proxy_denied_status="$(curl --path-as-is --silent \
+              --request "$auth_proxy_denied_method" \
+              --output /dev/null --write-out '%{http_code}' \
+              http://127.0.0.1:18084/__/auth/handler)"
+            if [[ "$auth_proxy_denied_status" != "403" && \
+                  "$auth_proxy_denied_status" != "405" ]]; then
+              echo "The in-cluster auth-helper proxy accepted ${auth_proxy_denied_method}." >&2
+              exit 1
+            fi
+          done
+          for auth_proxy_denied_path in \
+            / /__/auth /__/firebase/init.json '/%5f%5f/auth/handler' \
+            '//__/auth/handler' '/__/auth/../start'; do
+            [[ "$(curl --path-as-is --silent --output /dev/null --write-out '%{http_code}' \
+              "http://127.0.0.1:18084${auth_proxy_denied_path}")" == "404" ]]
+          done
 
           curl --fail --silent --show-error \
             http://127.0.0.1:18083/ \
@@ -3375,6 +3641,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
+          auth_helper_origin="https://versorgungs-kompass.de"
           edge_probe_headers="${RUNNER_TEMP}/public-entry-edge-probe.headers"
           edge_probe_body="${RUNNER_TEMP}/public-entry-edge-probe.html"
           edge_ready=0
@@ -3545,7 +3812,12 @@ jobs:
               '^content-type:[[:space:]]*text/html' "$signin_headers"
             grep --ignore-case --fixed-strings --quiet 'cache-control: no-store' "$signin_headers"
             grep --ignore-case --fixed-strings --quiet 'content-security-policy:' "$signin_headers"
+            grep --ignore-case --fixed-strings --quiet "frame-src 'self'" "$signin_headers"
             grep --ignore-case --fixed-strings --quiet 'x-content-type-options: nosniff' "$signin_headers"
+            if grep --ignore-case --quiet 'firebaseapp\.com\|steam-capsule-341212' "$signin_body"; then
+              echo "The branded sign-in page exposes a Firebase or project-domain implementation detail." >&2
+              exit 1
+            fi
           done
 
           head_status="$(curl --path-as-is --silent --show-error --head \
@@ -3599,6 +3871,55 @@ jobs:
                grep --ignore-case --quiet '^x-goog-iap-generated-response:' "$auth_asset_headers" || \
                grep --ignore-case --quiet '^set-cookie:' "$auth_asset_headers"; then
               echo "Approved identity asset ${allowed_auth_asset} is unavailable, stateful, or redirected." >&2
+              exit 1
+            fi
+          done
+
+          portal_config_body="${RUNNER_TEMP}/identity-portal-config.js"
+          curl --path-as-is --fail --silent --show-error \
+            --output "$portal_config_body" \
+            "${FRONTEND_BASE_URL}/public/auth/portal-config.js"
+          if ! grep --fixed-strings --quiet 'authDomain: "versorgungs-kompass.de"' "$portal_config_body" || \
+             grep --ignore-case --quiet 'firebaseapp\.com' "$portal_config_body"; then
+            echo "The browser-visible portal config does not use only the canonical first-party auth domain." >&2
+            exit 1
+          fi
+
+          auth_helper_headers="${RUNNER_TEMP}/external-auth-helper.headers"
+          auth_helper_body="${RUNNER_TEMP}/external-auth-helper.html"
+          auth_helper_status="$(curl --path-as-is --silent --show-error \
+            --dump-header "$auth_helper_headers" \
+            --output "$auth_helper_body" \
+            --write-out '%{http_code}' \
+            --max-time 30 \
+            "${auth_helper_origin}/__/auth/handler?boundary_probe=${GITHUB_RUN_ID}")"
+          if [[ "$auth_helper_status" != "200" ]] || \
+             ! grep --fixed-strings --quiet 'fireauth.oauthhelper.widget.initialize' "$auth_helper_body" || \
+             grep --ignore-case --quiet '^location:' "$auth_helper_headers" || \
+             grep --ignore-case --quiet '^x-goog-iap-generated-response:' "$auth_helper_headers"; then
+            echo "The canonical Firebase Auth helper proxy is unavailable, redirected, or IAP-protected." >&2
+            exit 1
+          fi
+          auth_helper_head_status="$(curl --path-as-is --silent --head \
+            --output /dev/null --write-out '%{http_code}' \
+            --max-time 30 "${auth_helper_origin}/__/auth/handler")"
+          [[ "$auth_helper_head_status" == "200" ]]
+          auth_helper_post_status="$(curl --path-as-is --silent --request POST \
+            --output /dev/null --write-out '%{http_code}' \
+            --max-time 30 "${auth_helper_origin}/__/auth/handler")"
+          [[ "$auth_helper_post_status" == "200" ]]
+          for denied_auth_method in PUT PATCH DELETE OPTIONS TRACE; do
+            denied_auth_headers="${RUNNER_TEMP}/auth-helper-${denied_auth_method}.headers"
+            denied_auth_status="$(curl --path-as-is --silent --request "$denied_auth_method" \
+              --dump-header "$denied_auth_headers" \
+              --output /dev/null \
+              --write-out '%{http_code}' \
+              --max-time 30 \
+              "${auth_helper_origin}/__/auth/handler")"
+            if [[ "$denied_auth_status" != "403" && \
+                  "$denied_auth_status" != "405" ]] || \
+               grep --ignore-case --quiet '^x-goog-iap-generated-response:' "$denied_auth_headers"; then
+              echo "The auth-helper proxy did not reject ${denied_auth_method} locally." >&2
               exit 1
             fi
           done
@@ -3657,6 +3978,9 @@ jobs:
             "/public/auth/assets/unknown.js"
             "/public/auth/assets/app.js/"
             "/public/auth/brand/unknown.svg"
+            "/__/auth"
+            "/__/authx/handler"
+            "/__/firebase/init.json"
           )
           protected_index=0
           for protected_path in "${protected_paths[@]}"; do
@@ -3692,6 +4016,7 @@ jobs:
             "/public/auth/portal-config.js"
             "/public/auth/assets/app.js"
             "/public/media/social/mitmachen-share-v3.png"
+            "/__/auth/handler"
           )
           www_protected_index=0
           for www_protected_path in "${www_protected_paths[@]}"; do
@@ -3726,6 +4051,9 @@ jobs:
             "//konto/passwort-festlegen"
             "/konto/%70asswort-festlegen"
             "/public/auth/assets/%61pp.js"
+            "/%5f%5f/auth/handler"
+            "//__/auth/handler"
+            "/__/auth/%2e%2e/start"
           )
           normalized_index=0
           for normalized_alias in "${normalized_aliases[@]}"; do
@@ -3741,8 +4069,9 @@ jobs:
             case "$status" in
               404)
                 if grep --fixed-strings --quiet 'data-public-entry=' "$normalized_body" || \
-                   grep --fixed-strings --quiet 'data-identity-portal=' "$normalized_body"; then
-                  echo "Normalized alias ${normalized_alias} exposed public entry or identity-portal content." >&2
+                   grep --fixed-strings --quiet 'data-identity-portal=' "$normalized_body" || \
+                   grep --fixed-strings --quiet 'fireauth.' "$normalized_body"; then
+                  echo "Normalized alias ${normalized_alias} exposed public entry, identity-portal, or auth-helper content." >&2
                   exit 1
                 fi
                 ;;
@@ -3886,6 +4215,26 @@ jobs:
                 exit 1
                 ;;
             esac
+            if [[ "$alias_origin" == "$auth_helper_origin" ]]; then
+              continue
+            fi
+            alias_auth_headers="${RUNNER_TEMP}/alias-auth-boundary.headers"
+            alias_auth_status="$(curl --path-as-is --silent --show-error \
+              --dump-header "$alias_auth_headers" \
+              --output /dev/null \
+              --write-out '%{http_code}' \
+              --max-time 30 \
+              "${alias_origin}/__/auth/handler")"
+            case "$alias_auth_status" in
+              302|401|403)
+                grep --ignore-case --quiet \
+                  '^x-goog-iap-generated-response:' "$alias_auth_headers"
+                ;;
+              *)
+                echo "Alias auth-helper path ${alias_origin}/__/auth/handler bypassed IAP with HTTP ${alias_auth_status}." >&2
+                exit 1
+                ;;
+            esac
           done
 
       - name: Mark public-entry cutover complete
@@ -3963,6 +4312,7 @@ jobs:
           API_BACKEND_SERVICE: ${{ steps.iap.outputs.api_backend_service }}
           FRONTEND_BACKEND_SERVICE: ${{ steps.iap.outputs.frontend_backend_service }}
           PUBLIC_FRONTEND_BACKEND_SERVICE: ${{ steps.iap.outputs.public_frontend_backend_service }}
+          AUTH_PROXY_BACKEND_SERVICE: ${{ steps.iap.outputs.auth_proxy_backend_service }}
         run: |
           {
             echo "## pre-gematik deployment"
@@ -3986,9 +4336,10 @@ jobs:
             echo "- API backend service: \`${API_BACKEND_SERVICE}\`"
             echo "- Protected frontend backend service: \`${FRONTEND_BACKEND_SERVICE}\`"
             echo "- Public-entry frontend backend service: \`${PUBLIC_FRONTEND_BACKEND_SERVICE}\`"
+            echo "- Public auth-helper proxy backend service: \`${AUTH_PROXY_BACKEND_SERVICE}\`"
             echo "- GCP resource identities, private bucket policy and IAP bindings: verified (values redacted)"
-            echo "- Public entry: \`/\`; custom sign-in: \`/anmelden\`; password action: \`/konto/passwort-festlegen\`; identity assets and share image: exact allowlisted paths"
-            echo "- Internal API/protected/public frontend health and target frontend config: passed"
+            echo "- Public entry: \`/\`; custom sign-in: \`/anmelden\`; password action: \`/konto/passwort-festlegen\`; Firebase Auth helper: canonical Prefix \`/__/auth/\`; identity assets and share image: exact allowlisted paths"
+            echo "- Internal API/protected/public frontend/auth-helper health and target frontend config: passed"
             echo "- Cloud SQL connection and required schema: passed"
             echo "- Unsigned-header rejection: passed"
           } >> "$GITHUB_STEP_SUMMARY"

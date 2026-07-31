@@ -23,7 +23,8 @@ ingress:
   enabled: true
   className: ""
   host: pre-gematik.example.invalid
-  aliasHosts: []
+  aliasHosts:
+    - versorgungs-kompass.de
   annotations:
     kubernetes.io/ingress.class: gce
     kubernetes.io/ingress.allow-http: "false"
@@ -97,6 +98,14 @@ frontend:
     iap:
       enabled: true
       oauthClientCredentialsSecretName: versorgungs-kompass-iap-oauth
+  authProxy:
+    enabled: true
+    serviceAccount:
+      create: true
+      name: versorgungs-kompass-frontend-auth-proxy
+      automountServiceAccountToken: false
+    backendConfig:
+      name: versorgungs-kompass-frontend-auth-proxy
   publicEntry:
     enabled: true
     image:

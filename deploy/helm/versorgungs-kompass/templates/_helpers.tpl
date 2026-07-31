@@ -85,6 +85,28 @@ app.kubernetes.io/component: frontend-public
 {{- end -}}
 {{- end -}}
 
+{{- define "versorgungs-kompass.frontendAuthProxyFullname" -}}
+{{- printf "%s-auth-proxy" (include "versorgungs-kompass.frontendFullname" .) | trunc 63 | trimSuffix "-" -}}
+{{- end -}}
+
+{{- define "versorgungs-kompass.frontendAuthProxySelectorLabels" -}}
+app.kubernetes.io/name: {{ include "versorgungs-kompass.name" . }}
+app.kubernetes.io/instance: {{ .Release.Name }}
+app.kubernetes.io/component: frontend-auth-proxy
+{{- end -}}
+
+{{- define "versorgungs-kompass.frontendAuthProxyBackendConfigName" -}}
+{{- default (include "versorgungs-kompass.frontendAuthProxyFullname" .) .Values.frontend.authProxy.backendConfig.name -}}
+{{- end -}}
+
+{{- define "versorgungs-kompass.frontendAuthProxyServiceAccountName" -}}
+{{- if .Values.frontend.authProxy.serviceAccount.create -}}
+{{- default "versorgungs-kompass-frontend-auth-proxy" .Values.frontend.authProxy.serviceAccount.name -}}
+{{- else -}}
+{{- required "frontend.authProxy.serviceAccount.name is required when frontend.authProxy.serviceAccount.create is false" .Values.frontend.authProxy.serviceAccount.name -}}
+{{- end -}}
+{{- end -}}
+
 {{- define "versorgungs-kompass.frontendServiceAccountName" -}}
 {{- if .Values.frontend.serviceAccount.create -}}
 {{- default "versorgungs-kompass-frontend" .Values.frontend.serviceAccount.name -}}

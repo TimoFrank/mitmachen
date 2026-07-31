@@ -1,4 +1,7 @@
 locals {
+  # The project Firebase domain remains authorized only as a pre-registered
+  # rollback path. The active portal uses the canonical first-party authDomain
+  # and OAuth callback through the dedicated /__/auth/ reverse proxy.
   identity_platform_authorized_domains = sort([
     var.IDENTITY_PLATFORM_AUTHORIZED_HOSTNAME,
     "${var.GCP_PROJECT_ID}.firebaseapp.com",

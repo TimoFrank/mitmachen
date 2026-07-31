@@ -1,0 +1,18 @@
+{{- if and .Values.frontend.authProxy.enabled (not .Values.frontend.enabled) -}}
+{{- fail "frontend.enabled must be true when frontend.authProxy.enabled is true" -}}
+{{- end -}}
+{{- if and .Values.frontend.authProxy.enabled (not .Values.ingress.enabled) -}}
+{{- fail "ingress.enabled must be true when frontend.authProxy.enabled is true" -}}
+{{- end -}}
+{{- if and .Values.frontend.enabled .Values.frontend.authProxy.enabled -}}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "versorgungs-kompass.frontendAuthProxyFullname" . }}-nginx
+  labels:
+    {{- include "versorgungs-kompass.labels" . | nindent 4 }}
+    app.kubernetes.io/component: frontend-auth-proxy
+data:
+  default.conf: |
+{{ .Files.Get "files/frontend-auth-proxy.conf" | indent 4 }}
+{{- end }}

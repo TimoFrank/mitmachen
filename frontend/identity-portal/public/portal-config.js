@@ -5,7 +5,7 @@
 window.IDENTITY_PORTAL_CONFIG = Object.freeze({
   firebase: Object.freeze({
     apiKey: "REPLACE_WITH_WEB_API_KEY",
-    authDomain: "REPLACE_WITH_PROJECT_ID.firebaseapp.com",
+    authDomain: "versorgungs-kompass.de",
     projectId: "REPLACE_WITH_PROJECT_ID"
   }),
   allowedContinueOrigins: Object.freeze([
