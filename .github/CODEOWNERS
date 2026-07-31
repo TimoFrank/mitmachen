@@ -14,8 +14,7 @@
 /scripts/build_static_frontend.sh @TimoFrank
 /scripts/prepare_target_frontend_config.mjs @TimoFrank
 
-# Datenvertrag und Migrationen
-/supabase/migrations/ @TimoFrank
+# PostgreSQL-Datenvertrag und Migrationen
 /deploy/postgres/ @TimoFrank
 
 # Sicherheitsgrenzen

@@ -92,7 +92,6 @@ dokumentation/            Produkt-, Architektur-, Deployment- und QA-Unterlagen
 frontend/                 führende Browser-Quellen
 public/                   gemeinsame statische Quellassets
 scripts/                  Build-, Test- und Betriebswerkzeuge
-supabase/                 Schema, Migrationen und Betriebsnachweise
 tests/                    Browser- und Integrationsprüfungen
 ```
 

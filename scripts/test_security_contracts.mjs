@@ -21,10 +21,9 @@ const walk = (directory) => fs.readdirSync(directory, { withFileTypes: true }).f
   return entry.isDirectory() ? walk(fullPath) : entry.isFile() ? [fullPath] : [];
 });
 const apiSource = fs.readFileSync(new URL("api/server.mjs", projectRoot), "utf8");
-const hardeningMigrationPath = walk(path.join(projectPath, "supabase", "migrations"))
-  .find((file) => file.endsWith("_reconcile_security_and_protected_storage.sql"));
-assert.ok(hardeningMigrationPath, "Die idempotente Supabase-Reconciliation-Migration fehlt.");
-const hardeningMigration = fs.readFileSync(hardeningMigrationPath, "utf8");
+const targetSchema = read("deploy/postgres/pre-gematik/schema.sql");
+const targetGrants = read("deploy/postgres/pre-gematik/grants.sql");
+const targetRuntimeRole = read("deploy/postgres/pre-gematik/runtime-role.sql");
 
 assert.equal(roleRank("viewer"), 1);
 assert.equal(roleRank("editor"), 2);
@@ -252,29 +251,55 @@ assert.doesNotMatch(
   "Gateway-Identity-Header duerfen nicht aus dem Browser akzeptiert werden."
 );
 
-const normalizedMigration = hardeningMigration.toLowerCase().replace(/\s+/g, " ");
+const normalizedTargetSchema = targetSchema.toLowerCase().replace(/\s+/g, " ");
+const normalizedTargetGrants = targetGrants.toLowerCase().replace(/\s+/g, " ");
+const normalizedTargetRuntimeRole = targetRuntimeRole.toLowerCase().replace(/\s+/g, " ");
 for (const contract of [
-  "revoke all on schema private from public, anon",
-  "grant usage on schema private to authenticated, service_role",
-  "create or replace function public.current_profile_role() returns text language sql stable security invoker set search_path = ''",
-  "revoke all on function public.handle_new_user() from public, anon, authenticated, service_role",
-  "revoke all on function public.rls_auto_enable() from public, anon, authenticated, service_role",
-  "create or replace function public.create_notification_event",
-  "returns uuid language sql security invoker set search_path = ''",
-  "create or replace function public.touch_updated_at() returns trigger language plpgsql security invoker set search_path = ''",
-  "alter table private.protected_source_snapshots force row level security",
-  "revoke all on table private.protected_source_snapshots from public, anon, authenticated, service_role",
-  "protected archives deny browser access",
-  "bucket_id not in ('stakeholder-logos', 'protected-source-assets')",
-  "profile images team read",
-  "alter default privileges in schema public revoke execute on functions from public, anon, authenticated"
+  "revoke create on schema public from public",
+  "create role vk_app_runtime nologin",
+  "alter role vk_app_runtime nologin",
+  "rolcanlogin",
+  "rolsuper",
+  "rolcreatedb",
+  "rolcreaterole",
+  "rolreplication",
+  "rolbypassrls"
 ]) {
-  assert.ok(normalizedMigration.includes(contract), `Supabase-Haertungsvertrag fehlt: ${contract}`);
+  assert.ok(normalizedTargetRuntimeRole.includes(contract), `Cloud-SQL-Laufzeitrollenvertrag fehlt: ${contract}`);
+}
+for (const contract of [
+  "revoke create on schema public from :\"runtime_role\"",
+  "grant usage on schema public to :\"runtime_role\"",
+  "grant select on table public.identity_bindings to :\"runtime_role\"",
+  "revoke all privileges on table public.test_access_allowlist from :\"runtime_role\"",
+  "grant select (request_id, issuer, subject, verified_email, status, expires_at) on public.identity_enrollment_requests to :\"runtime_role\"",
+  "grant insert (issuer, subject, verified_email, expires_at) on public.identity_enrollment_requests to :\"runtime_role\"",
+  "grant update (last_seen_at) on public.identity_enrollment_requests to :\"runtime_role\"",
+  "revoke all on function public.pre_gematik_prepare_contact_purpose_write() from public",
+  "grant execute on function public.pre_gematik_prepare_contact_purpose_write() to :\"runtime_role\"",
+  "revoke all on function public.pre_gematik_log_contact_purpose_change() from public",
+  "grant execute on function public.pre_gematik_log_contact_purpose_change() to :\"runtime_role\"",
+  "grant select, insert on table public.activity_events to :\"runtime_role\"",
+  "revoke update, delete on table public.activity_events from :\"runtime_role\""
+]) {
+  assert.ok(normalizedTargetGrants.includes(contract), `Cloud-SQL-Grant-Vertrag fehlt: ${contract}`);
 }
 assert.doesNotMatch(
-  normalizedMigration,
-  /update public\.login_aliases|alter table public\.profiles alter column active|revoke all on public\.login_aliases/,
-  "Die enge Reconciliation darf weder Login-Aliase noch fachliche Profilaktivierung veraendern."
+  targetGrants,
+  /grant\s+[^;]*(?:update|delete)[^;]*on\s+table[^;]*public\.activity_events[^;]*to\s+:"runtime_role"/i,
+  "Die API-Laufzeitrolle darf das append-only Activity-Ledger nicht verändern oder löschen."
+);
+for (const contract of [
+  "create or replace function public.pre_gematik_prepare_contact_purpose_write() returns trigger language plpgsql security invoker",
+  "create or replace function public.pre_gematik_log_contact_purpose_change() returns trigger language plpgsql security invoker",
+  "create or replace function public.pre_gematik_log_hospitation_observation_change() returns trigger language plpgsql security invoker"
+]) {
+  assert.ok(normalizedTargetSchema.includes(contract), `Cloud-SQL-Funktionsvertrag fehlt: ${contract}`);
+}
+assert.doesNotMatch(
+  `${targetSchema}\n${targetGrants}\n${targetRuntimeRole}`,
+  /\b(?:anon|authenticated|service_role)\b|auth\.uid\s*\(|create\s+policy|row\s+level\s+security/i,
+  "Cloud-SQL-Artefakte dürfen keine ausrangierten Supabase-Rollen- oder RLS-Verträge enthalten."
 );
 
 const frontendHtmlFiles = walk(path.join(projectPath, "frontend")).filter((file) => file.endsWith(".html"));
@@ -558,10 +583,6 @@ assert.match(
   "Der GitHub-GKE-Pfad muss HIGH/CRITICAL-Imagebefunde vor dem Deployment blockieren."
 );
 
-const supabaseConfig = read("supabase/config.toml");
-assert.match(supabaseConfig, /enable_signup\s*=\s*false/, "Der Supabase-Uebergang darf keine offene Registrierung erlauben.");
-assert.match(supabaseConfig, /enable_anonymous_sign_ins\s*=\s*false/, "Anonyme Supabase-Sitzungen muessen deaktiviert sein.");
-
 const terraformSql = read("deploy/terraform/gcp-autopilot/sql.tf");
 const terraformVariables = read("deploy/terraform/gcp-autopilot/variables.tf");
 assert.match(
@@ -576,4 +597,4 @@ assert.match(
 );
 assert.match(terraformSql, /retained_backups\s*=\s*14/, "Cloud SQL benoetigt eine definierte Backup-Aufbewahrung.");
 
-console.log("Security Contracts OK: Identity/RBAC, Browsergrenzen, Supply Chain, Uploads, Transaktionen, Supabase, Helm/GKE und Resilienz sind fail-closed abgesichert.");
+console.log("Security Contracts OK: Identity/RBAC, Browsergrenzen, Supply Chain, Uploads, Transaktionen, Cloud SQL, Helm/GKE und Resilienz sind fail-closed abgesichert.");

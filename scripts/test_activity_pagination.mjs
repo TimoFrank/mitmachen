@@ -90,17 +90,31 @@ for (const pattern of [
   assert.match(apiSource, pattern, `Der serverseitige Aktivitaetsvertrag fehlt: ${pattern}`);
 }
 
-for (const relativePath of [
-  "supabase/schema.sql",
-  "supabase/migrations/20260716131500_harden_activity_event_ledger.sql"
-]) {
-  const sql = fs.readFileSync(new URL(relativePath, projectRoot), "utf8");
-  assert.match(sql, /changes_activity_event_contact_fkey/);
-  assert.match(sql, /foreign key \(contact_id, activity_event_id\)/);
-  assert.match(sql, /activity_events_contact_reference_check/);
-  assert.match(sql, /current_profile_role\(\)\) = 'admin'/);
-  assert.match(sql, /current_profile_role\(\)\) in \('viewer', 'editor'\)/);
-  assert.match(sql, /c\.status <> 'archived'/);
-}
+const targetSchema = fs.readFileSync(
+  new URL("deploy/postgres/pre-gematik/schema.sql", projectRoot),
+  "utf8"
+);
+const targetGrants = fs.readFileSync(
+  new URL("deploy/postgres/pre-gematik/grants.sql", projectRoot),
+  "utf8"
+);
+assert.match(targetSchema, /changes_canonical_reference_pair_check/);
+assert.match(targetSchema, /changes_activity_event_contact_fkey/);
+assert.match(targetSchema, /foreign key \(contact_id, activity_event_id\)/);
+assert.match(targetSchema, /activity_events_contact_reference_check/);
+assert.match(targetSchema, /pre_gematik_activity_contact_references_match\("references", contact_id\)/);
+assert.match(targetSchema, /contact_id text references public\.contacts\(id\) on delete restrict/);
+assert.doesNotMatch(targetSchema, /auth\.uid\s*\(|create\s+policy|row\s+level\s+security/i);
+assert.match(
+  targetGrants,
+  /grant select, insert on table public\.activity_events to :"runtime_role"/i,
+  "Cloud SQL muss das Activity-Ledger ausschließlich lesend und append-only der NOLOGIN-API-Laufzeitrolle bereitstellen."
+);
+assert.match(targetGrants, /revoke update, delete on table public\.activity_events from :"runtime_role"/i);
+assert.doesNotMatch(
+  targetGrants,
+  /grant\s+[^;]*(?:update|delete)[^;]*on\s+table[^;]*public\.activity_events[^;]*to\s+:"runtime_role"/i,
+  "Die API-Laufzeitrolle darf das Activity-Ledger weder verändern noch löschen."
+);
 
 console.log("Activity Pagination Test OK: Browser nutzt nur das API; Pagination, Filter, Cursor und Sichtbarkeit bleiben serverseitig abgesichert.");

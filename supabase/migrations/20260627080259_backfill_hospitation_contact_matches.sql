@@ -1,2 +1,0 @@
--- Schema-only migration: no operation.
--- Operational contact and appointment mappings are maintained only in protected storage.

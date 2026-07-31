@@ -2,21 +2,21 @@ import assert from "node:assert/strict";
 import fs from "node:fs";
 
 const projectRoot = new URL("../", import.meta.url);
-const migrationName = "20260716143001_add_format_participation_workflow.sql";
-const consentMigrationName = "20260728040114_guard_format_invitation_consent.sql";
 const preGematikMigrationName = "202607280001_add_format_participation_workflow.sql";
-const schema = fs.readFileSync(new URL("supabase/schema.sql", projectRoot), "utf8");
-const migration = fs.readFileSync(new URL(`supabase/migrations/${migrationName}`, projectRoot), "utf8");
-const consentMigration = fs.readFileSync(
-  new URL(`supabase/migrations/${consentMigrationName}`, projectRoot),
-  "utf8"
-);
 const preGematikSchema = fs.readFileSync(
   new URL("deploy/postgres/pre-gematik/schema.sql", projectRoot),
   "utf8"
 );
 const preGematikMigration = fs.readFileSync(
   new URL(`deploy/postgres/pre-gematik/migrations/${preGematikMigrationName}`, projectRoot),
+  "utf8"
+);
+const preGematikGrants = fs.readFileSync(
+  new URL("deploy/postgres/pre-gematik/grants.sql", projectRoot),
+  "utf8"
+);
+const preGematikRuntimeRole = fs.readFileSync(
+  new URL("deploy/postgres/pre-gematik/runtime-role.sql", projectRoot),
   "utf8"
 );
 const api = fs.readFileSync(new URL("api/server.mjs", projectRoot), "utf8");
@@ -33,7 +33,7 @@ const compact = (value) => String(value || "")
   .trim()
   .toLowerCase();
 
-for (const [label, sql] of [["Schema", schema], ["Migration", migration]]) {
+for (const [label, sql] of [["Pre-gematik-Schema", preGematikSchema], ["Pre-gematik-Migration", preGematikMigration]]) {
   const normalized = compact(sql);
   for (const column of ["invited_at", "responded_at", "participated_at", "cancelled_at", "status_changed_at"]) {
     assert.ok(normalized.includes(column), `${label}: Statuszeitpunkt ${column} fehlt.`);
@@ -59,26 +59,27 @@ for (const [label, sql] of [["Schema", schema], ["Migration", migration]]) {
   }
   assert.match(
     sql,
-    /revoke\s+all\s+on\s+function\s+public\.log_format_participation_status_change\(\)\s+from\s+public\s*,\s*anon\s*,\s*authenticated/i,
-    `${label}: Die privilegierte Triggerfunktion darf nicht direkt aufrufbar sein.`
-  );
-  assert.ok(
-    normalized.includes("and updated_by =(select auth.uid())") || normalized.includes("and updated_by=(select auth.uid())"),
-    `${label}: RLS muss die letzte Änderung an die authentifizierte Person binden.`
+    /revoke\s+all\s+on\s+function\s+public\.log_format_participation_status_change\(\)\s+from\s+public/i,
+    `${label}: Die Triggerfunktion darf nicht über die PostgreSQL-PUBLIC-Rolle direkt aufrufbar sein.`
   );
 }
 
-assert.match(schema, /unique\s*\(\s*format_id\s*,\s*contact_id\s*\)/i, "Doppelte Kontakt-Format-Beziehungen müssen verhindert werden.");
-assert.doesNotMatch(migration, /delete\s+from\s+public\.format_participants/i, "Die Migration darf bestehende Beziehungen nicht löschen.");
-assert.match(migration, /update\s+public\.format_participants[\s\S]*status_changed_at/i, "Bestehende Teilnehmerdaten benötigen eine kompatible Zeitstempel-Ableitung.");
+assert.match(preGematikSchema, /unique\s*\(\s*format_id\s*,\s*contact_id\s*\)/i, "Doppelte Kontakt-Format-Beziehungen müssen verhindert werden.");
+assert.doesNotMatch(preGematikMigration, /delete\s+from\s+public\.format_participants/i, "Die Migration darf bestehende Beziehungen nicht löschen.");
+assert.match(preGematikMigration, /new\.status_changed_at\s*:=\s*changed_at/i, "Statuswechsel benötigen eine transaktionale Zeitstempel-Ableitung.");
+assert.match(
+  preGematikGrants,
+  /grant select, insert, update, delete on table[\s\S]*public\.format_participants,[\s\S]*to :"runtime_role"/i,
+  "Formatbeteiligungen dürfen in Cloud SQL nur über die API-Laufzeitrolle geschrieben werden."
+);
+assert.match(preGematikRuntimeRole, /create role vk_app_runtime nologin/i);
+assert.doesNotMatch(`${preGematikSchema}\n${preGematikMigration}\n${preGematikGrants}`, /auth\.uid\s*\(|create\s+policy|row\s+level\s+security/i);
 
 for (const field of ["invited_at", "responded_at", "participated_at", "cancelled_at", "status_changed_at"]) {
   assert.ok(api.includes(`"${field}"`), `Serververtrag enthält ${field} nicht.`);
 }
 
 for (const [label, sql] of [
-  ["Supabase-Schema", schema],
-  ["Supabase-Consent-Migration", consentMigration],
   ["Pre-gematik-Schema", preGematikSchema],
   ["Pre-gematik-Migration", preGematikMigration]
 ]) {
@@ -112,10 +113,7 @@ for (const [label, sql] of [
   );
 }
 
-for (const [label, sql] of [
-  ["Supabase-Consent-Migration", consentMigration],
-  ["Pre-gematik-Migration", preGematikMigration]
-]) {
+for (const [label, sql] of [["Pre-gematik-Migration", preGematikMigration]]) {
   const preflightStart = sql.indexOf("do $format_consent_preflight$");
   const functionStart = sql.indexOf(
     "create or replace function public.prepare_format_participation_write()"
@@ -209,4 +207,4 @@ assert.match(app, /data-format-profile-section/, "Der Kontaktüberblick benötig
 assert.match(app, /data-format-profile-link-form/, "Kontakte müssen im Profil mit vorhandenen Formaten verknüpft werden können.");
 assert.match(app, /formatContactFilterId/, "Alle Formate muss einen vorausgewählten Kontaktfilter setzen.");
 
-console.log("Format Participation Schema Test OK: Beziehung, Statuszeiten, Aktivitäten, RLS und Profilintegration sind abgesichert.");
+console.log("Format Participation Schema Test OK: Beziehung, Statuszeiten, Aktivitäten, Cloud-SQL/API-Grenze und Profilintegration sind abgesichert.");

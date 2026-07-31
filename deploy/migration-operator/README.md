@@ -1,75 +1,54 @@
-# Einmaliger GKE-Migrationsoperator
+# Kurzlebiger GKE-Access-Operator
 
-Dieser Operator ist der eng begrenzte Ausführungsweg für die einmalige Migration
-von Supabase nach `pre-gematik`, wenn Cloud SQL ausschließlich eine private IP
-hat. Nach dem Datenimport führt derselbe gehärtete Ausführungsweg auch die
-getrennten IAP-Identity-Preview-/Apply-Phasen sowie das kontrollierte
-Passwortgast-Prebinding aus. Er läuft als kurzlebiger Job im GKE-Netz und ist
-**kein** Bestandteil des
-Anwendungs-Deployments. Weder Job noch ServiceAccount oder Migrations-Secrets
-dürfen nach der Abnahme bestehen bleiben.
+Dieser Operator ist der eng begrenzte Ausführungsweg für die Phasen
+`identity-preview`, `identity-apply`, `guest-preview` und `guest-apply` gegen
+die private Cloud-SQL-Instanz von `pre-gematik`. Er läuft als kurzlebiger Job
+im GKE-Netz und ist kein Bestandteil des Anwendungs-Deployments.
 
-Der lokale Standard des verwalteten Cloud SQL Auth Proxy bleibt `sql-data`.
-Nur der Job setzt über die Umgebungsvariable
-`CLOUD_SQL_AUTH_PROXY_CONNECT_MODE=private-ip` den privaten IP-Pfad. Jeder
-andere Wert wird vor einem Datenbankzugriff abgewiesen. Preview und Apply
-verwenden im Cluster denselben binär und per SHA-256 gepinnten Proxy sowie den
-frischen GCP-/Backup-Gate.
+Datenbank- und Dateiimporte sind abgeschlossen und aus Image, Quellcode,
+Konfiguration und Clustervertrag entfernt. Der Verzeichnisname
+`migration-operator` sowie die Kubernetes-Ressourcennamen bleiben vorerst als
+Kompatibilitätsnamen erhalten. Sie erteilen keine Berechtigung für einen
+Datenimport.
 
 ## Sicherheitsgrenzen
 
-- Das Operator-Image wird nur als AMD64-Image mit unveränderlichem Digest aus
-  der regionalen Artifact Registry des Zielprojekts akzeptiert.
+- Das Operator-Image wird nur als Linux/AMD64-Image mit unveränderlichem Digest
+  aus der regionalen Artifact Registry des bestätigten Zielprojekts akzeptiert.
 - Der Container läuft als UID/GID `65532`, ohne Linux-Capabilities, ohne
   Privilege Escalation und mit schreibgeschütztem Root-Dateisystem.
-- Secret-Projektionen werden vor Benutzung in ein kurzlebiges Volume kopiert.
-  Erst die Kopie gehört dem Operator und hat Modus `0600`; das erfüllt die
-  bestehenden Schutzprüfungen für CA, Storage-Apply-Manifest,
-  `iap-bindings.json`, `guest-access.json` und das optionale
-  Logo-Remediation-Bundle. Dessen Manifest bestimmt eine begrenzte Liste
-  sicherer PNG-Dateinamen; nur diese Dateien werden in ein Verzeichnis mit
-  Modus `0700` übernommen und anschließend vollständig gegen Hashes, Snapshot,
-  Projektpaar, PNG-Struktur und Renderer-Beleg geprüft.
+- Zulässige fachliche Eingaben sind ausschließlich `iap-bindings.json` oder
+  `guest-access.json`. Die Kubernetes-Secret-Projektion wird vor Benutzung in
+  ein kurzlebiges owner-only Volume kopiert.
 - Ergebnisdateien liegen unter `/protected-output/run`, gehören dem Operator
-  und haben Modus `0600`. Kubernetes-Logs enthalten nur eine generische
-  Erfolgs- oder Fehlermeldung. Ergebnisse müssen vor dem Löschen des Jobs in
-  den bereits geschützten lokalen Cutover-Ordner kopiert werden. Insbesondere
-  erscheinen E-Mail, UID, Anzeigename, Profil-ID, Subject und
-  Aktivierungs-/Reset-Links weder im Pod-Log noch in `status.json` oder dem
-  maschinenlesbaren Gastphasen-Report. Die dort enthaltenen Fingerprints sind
-  jedoch verkettbare, aus personenbezogenem Zustand abgeleitete Nachweise und
-  bleiben deshalb owner-only und aufbewahrungsbegrenzt.
-- `backoffLimit: 0` verhindert einen automatischen zweiten Importversuch. Ein
-  unbekannter Commit-Ausgang wird immer manuell anhand der konkreten Import-ID
-  geprüft; der Job wird nicht einfach erneut gestartet.
-- Die NetworkPolicy verweigert sämtlichen Ingress und erlaubt nur DNS, HTTPS,
-  PostgreSQL auf Port 5432 und die beiden GKE-Metadatenserver-Pfade. Der
-  öffentliche PostgreSQL-Egress wird ausschließlich für die gepinnte,
-  `verify-full` geprüfte Supabase-Quelle benötigt; Zielprojekt und Zielinstanz
-  bleiben unabhängig davon durch Gate und Proxy-Bindung festgelegt.
-- Der dedizierte Workload-Identity-Principal erhält nur vorübergehend die unten
-  genannten Leserechte und Cloud-SQL-Verbindungsrechte. Er ersetzt niemals die
-  Laufzeitidentität der API.
+  und haben Modus `0600`. Kubernetes-Logs enthalten nur generische Statuszeilen.
+- `backoffLimit: 0` verhindert automatische Wiederholungen. Bei einem
+  unbekannten Commit-Ausgang wird zuerst der vollständige Zustand mit einer
+  neuen Preview-Phase geprüft.
+- Die NetworkPolicy verweigert sämtlichen Ingress. Egress ist auf DNS, HTTPS,
+  den privaten Cloud-SQL-Auth-Proxy-Pfad auf Port `3307` und die beiden
+  GKE-Metadatenserver-Pfade begrenzt. Direkter PostgreSQL-Egress auf Port `5432`
+  ist nicht erlaubt.
+- Der dedizierte Workload-Identity-Principal erhält nur vorübergehend die exakt
+  dokumentierten Lese-, Identity-Platform- und Cloud-SQL-Verbindungsrechte. Er
+  ersetzt niemals die Laufzeitidentität der API.
+- Kurzlebige Datenbanklogins sind exakt den vorgesehenen `NOLOGIN`-Rollen
+  `vk_identity_admin` beziehungsweise `vk_access_enrollment_admin` zugeordnet.
 
 ## Harte Startbedingungen
 
 Nicht starten beziehungsweise sofort abbrechen, wenn einer dieser Punkte fehlt:
 
-1. aktueller, verschlüsselter logischer Supabase-Dump im geschützten Ordner,
-2. erfolgreicher Restore-Test in einer isolierten Instanz,
-3. aktive Schreibsperre der Supabase-Quelle für den finalen Doppellauf,
-4. konkretes erfolgreiches Cloud-SQL-Vorimport-Backup,
-5. zwei identische Storage-Previews und zwei identische Datenbank-Previews,
-6. keine referenzierte Datei in Quarantäne,
-7. geprüfte Projekt-, Bucket-IAM-, Proxy- und Daten-Fingerprints,
-8. bestätigter Synthetic-Target- und Bootstrap-Profil-Nachweis,
-9. ein aus GKE über IPv4 erreichbarer offizieller Supabase-Endpunkt.
+1. geschlossenes Wartungsfenster und gesperrter Anwendungszugriff,
+2. konkretes erfolgreiches Cloud-SQL-Backup unmittelbar vor der Änderung,
+3. unabhängig geprüfte Projekt-, Instanz- und Proxy-Fingerprints,
+4. kurzlebiger Login aus dem jeweils geschützten Prepare-Schritt,
+5. vollständige owner-only Soll-Datei außerhalb des Git-Worktrees,
+6. zwei identische Previews mit identischen Eingabe-, Ist- und
+   Sollzustands-Fingerprints,
+7. fachliche Freigabe der erwarteten Änderungen.
 
-Ein bestätigter Quarantäne-Zähler ist kein Ersatz für Punkt 6. Referenzierte
-unsichere Dateien werden zuerst bereinigt oder durch sichere, geprüfte Dateien
-ersetzt; danach werden Preview und Fingerprints neu erzeugt.
-
-## 1. Image bauen und unveränderlich festlegen
+## 1. Image und Proxy unveränderlich festlegen
 
 Vom Repository-Root aus wird ausschließlich Linux/AMD64 gebaut:
 
@@ -77,15 +56,15 @@ Vom Repository-Root aus wird ausschließlich Linux/AMD64 gebaut:
 docker buildx build \
   --platform linux/amd64 \
   --file deploy/migration-operator/Dockerfile \
-  --tag REGION-docker.pkg.dev/PROJEKT/REPOSITORY/vk-migration-operator:RUN-ID \
+  --tag REGION-docker.pkg.dev/PROJEKT/REPOSITORY/vk-access-operator:RUN-ID \
   --push \
   .
 ```
 
 Anschließend den Registry-Digest auflösen und nur die Form
-`REGION-docker.pkg.dev/PROJEKT/REPOSITORY/IMAGE@sha256:…` weiterverwenden.
-Der Proxy-Pin wird aus genau diesem Image, nicht aus einer lokalen anderen
-Proxy-Version, ermittelt:
+`REGION-docker.pkg.dev/PROJEKT/REPOSITORY/IMAGE@sha256:…` weiterverwenden. Der
+Proxy-Pin wird aus genau diesem Image und nicht aus einer lokalen anderen
+Proxy-Version ermittelt:
 
 ```bash
 docker run --rm --platform linux/amd64 \
@@ -95,15 +74,16 @@ docker run --rm --platform linux/amd64 \
 ```
 
 Das Ergebnis wird als `sha256:<64-hex>` in die geschützte Operator-Env-Datei
-übernommen. Tag, Image-Digest und Proxy-Pin werden im Cutover-Protokoll
-festgehalten. Das Image wird nicht mit einem beweglichen Tag ausgeführt.
+übernommen. Commit, Tag, Image-Digest, Proxy-Pin und Zeitpunkt werden im
+Abnahmeprotokoll festgehalten. Das Image wird nie über einen beweglichen Tag
+ausgeführt.
 
-## 2. Dedizierte Identität zeitlich begrenzt bereitstellen
+## 2. Kurzlebige Identität und IAM bereitstellen
 
-Vor jedem schreibenden Befehl zuerst Projekt, Cluster, Region und Namespace
-read-only anzeigen und gegen das Cutover-Protokoll prüfen. Dann
+Vor jedem schreibenden Befehl Projekt, Cluster, Region und Namespace read-only
+anzeigen und gegen das Abnahmeprotokoll prüfen. Danach
 `serviceaccount.yaml` und `networkpolicy.yaml` anwenden. Dem daraus abgeleiteten
-Workload-Identity-Principal werden für höchstens 24 Stunden diese Rollen im
+Workload-Identity-Principal werden für höchstens 24 Stunden diese Basisrollen im
 Zielprojekt zugeordnet:
 
 - `roles/container.clusterViewer`
@@ -113,10 +93,8 @@ Zielprojekt zugeordnet:
 
 `roles/cloudsql.viewer` deckt zugleich die Projekt- und Backup-Leseprüfung ab.
 Nach der Zuordnung muss `npm run check:pre-gematik-migration-gcp` mit derselben
-Identität erfolgreich sein. Keine Schlüsseldatei und kein GSA-Key werden
-angelegt. Die Storage-Migration nutzt weiterhin ausschließlich den
-kurzlebigen, in der Secret-Env bereitgestellten OAuth-Token mit den für den
-Cutover benötigten Bucket-Rechten.
+Identität erfolgreich sein. Es wird weder eine Schlüsseldatei noch ein GSA-Key
+angelegt.
 
 Nur während `guest-preview` und `guest-apply` erhält derselbe Principal diese
 beiden zusätzlichen Rollen:
@@ -124,140 +102,96 @@ beiden zusätzlichen Rollen:
 - `roles/identitytoolkit.viewer`
 - `roles/serviceusage.serviceUsageConsumer`
 
-Die in `roles/identitytoolkit.viewer` enthaltene Leseberechtigung
-`firebaseauth.users.get` ist für den doppelten administrativen
-UID-/E-Mail-Readback erforderlich; sie erlaubt in diesen Phasen keine
-Kontenanlage, Link-Erzeugung oder Änderung. Aus
-`roles/serviceusage.serviceUsageConsumer` wird für denselben OAuth-basierten
-Identity-Toolkit-Aufruf `serviceusage.services.use` benötigt, damit das
-Zielprojekt als Consumer für Quota und Abrechnung verwendet werden darf. Diese
-Rolle erteilt allein keine Identity-Platform-Berechtigung zum Lesen oder Ändern
-von Konten.
+Aus `roles/identitytoolkit.viewer` wird `firebaseauth.users.get` für den
+doppelten UID-/E-Mail-Readback benötigt. Die Rolle erlaubt in diesem Ablauf
+keine Kontenanlage, Link-Erzeugung oder Änderung. Aus
+`roles/serviceusage.serviceUsageConsumer` wird ausschließlich
+`serviceusage.services.use` benötigt, damit der Identity-Toolkit-Aufruf das
+bestätigte Zielprojekt als Consumer für Quota und Abrechnung verwenden darf.
 
 Beide Gastrollen werden unmittelbar vor dem ersten `guest-preview` zugeordnet
-und unmittelbar nach dem letzten Gast-Readback wieder entfernt. Sie werden
-weder für Storage-, Datenbank- noch Identity-Phasen zugeordnet. Die spätere
-vollständige Cleanup-Prüfung bestätigt ihre Abwesenheit nochmals.
+und unmittelbar nach dem letzten Gast-Readback wieder entfernt. Sie gelten
+nicht für Identity-Phasen. Die abschließende IAM-Prüfung bestätigt ihre
+Abwesenheit erneut.
 
-## 3. Geschützte Eingaben je Phase bereitstellen
+## 3. Phasenminimale geschützte Eingaben
 
-Die bestehende Datei `config/pre-gematik/migration.env.example` dient nur als
-Namens-Checkliste. Für Kubernetes wird außerhalb des Repositorys eine
-**separate** Env-Datei in einem Verzeichnis mit Modus `0700` angelegt; die Datei
-selbst hat Modus `0600` und wird nie in Git übernommen. Sie verwendet exakt das
-von `kubectl --from-env-file` erwartete Format `KEY=VALUE`: Werte haben keine
-äußeren Shell-Anführungszeichen. Insbesondere stehen die Datenbank-URLs nicht
-zwischen `'…'` oder `"…"`; Benutzername, Passwort, CA-Pfad und sonstige
-URL-Sonderzeichen sind stattdessen korrekt percent-encodiert. Die gemeinsame,
-für eine lokale Shell gedachte Beispiel-Datei darf deshalb nicht unverändert
-an `kubectl` übergeben werden. Zusätzlich enthält die Kubernetes-Env-Datei:
+[`config/pre-gematik/migration.env.example`](../../config/pre-gematik/migration.env.example)
+ist ausschließlich eine Namens-Checkliste für eine lokale Shell. Für Kubernetes
+wird außerhalb des Repositorys eine separate Env-Datei in einem Verzeichnis mit
+Modus `0700` angelegt; die Datei selbst hat Modus `0600` und wird nie in Git
+übernommen.
+
+Die Kubernetes-Datei verwendet exakt das von `kubectl --from-env-file`
+erwartete Format `KEY=VALUE`. Werte besitzen keine äußeren Shell-Anführungszeichen.
+Sonderzeichen in Datenbank-URLs werden korrekt percent-encodiert. Die gemeinsame,
+für eine lokale Shell gedachte Beispieldatei darf deshalb nie unverändert an
+`kubectl` übergeben werden.
+
+Gemeinsame Werte jeder Phase sind:
 
 ```text
-MIGRATION_OPERATOR_PHASE=storage-preview
+MIGRATION_OPERATOR_PHASE=identity-preview
 CLOUD_SQL_AUTH_PROXY_SHA256=sha256:<PIN-DES-IMAGE-PROXYS>
-CONFIRM_STORAGE_PREVIEW_FINGERPRINT=sha256:<NUR-FUER-STORAGE-APPLY>
-CONFIRM_STORAGE_MANIFEST_FINGERPRINT=sha256:<NUR-FUER-DB-APPLY>
-CONFIRM_SOURCE_SNAPSHOT_FINGERPRINT=sha256:<NUR-FUER-DB-APPLY>
-CONFIRM_QUARANTINED_OBJECT_COUNT=<GEPRUEFTER-ZAEHLER>
-CONFIRM_BOOTSTRAP_PROFILE_FINGERPRINT=sha256:<NUR-WENN-PREVIEW-MELDET>
-LOGO_REMEDIATION_MANIFEST_PATH=/protected-input/run/logo-remediation-preview.json
-LOGO_REMEDIATION_OBJECT_DIRECTORY=/protected-input/run/logo-remediation-objects
-CONFIRM_IDENTITY_PREVIEW_FINGERPRINT=sha256:<NUR-FUER-IDENTITY-APPLY>
-CONFIRM_IDENTITY_BINDING_COUNT=1
-CONFIRM_IDENTITY_ACTIVE_BINDING_COUNT=1
-GUEST_ACCESS_RECONCILE_PROFILE_DISPLAY_NAME_AND_PREBIND=false
-CONFIRM_GUEST_ACCESS_OPERATION=PREBIND_IDENTITY_PLATFORM_PASSWORD_GUEST
-CONFIRM_GUEST_ACCESS_INPUT_FINGERPRINT=sha256:<NUR-FUER-GUEST-APPLY>
-CONFIRM_GUEST_ACCESS_CURRENT_STATE_FINGERPRINT=sha256:<NUR-FUER-GUEST-APPLY>
+CLOUD_SQL_AUTH_PROXY_CONNECT_MODE=private-ip
 ```
 
-Die beiden `LOGO_REMEDIATION_*`-Werte werden nur gesetzt, wenn ein geprüftes
-Bundle benötigt wird, und dann immer gemeinsam mit exakt diesen festen Pfaden.
-Andere Operator-Pfade sowie nur ein gesetzter Wert werden vor dem Start
-abgewiesen. Preview und Apply verwenden dasselbe unveränderte Bundle; dessen
-Fingerprint geht in Storage-Snapshot, Storage-Manifest, Zielobjekt-Metadaten
-und Recovery-Journal ein.
+### Identity-Phasen
 
-`SOURCE_DATABASE_URL` muss weiter genau einen Parameter `sslrootcert`
-enthalten; der Operator ersetzt nur dessen Pfad durch seine owner-only Kopie.
-Wenn der direkte Supabase-Datenbankhost ausschließlich eine IPv6-Adresse
-liefert, ist er aus einem normalen IPv4-GKE-VPC nicht erreichbar. Dann wird der
-vorher separat getestete offizielle Session-Pooler mit IPv4 und tenantgebundenem
-Benutzernamen verwendet. Der bestehende Source-Identity-Guard akzeptiert nur
-den exakten Projekthost oder einen offiziellen `*.pooler.supabase.com`-Host mit
-passendem Projekt-Suffix im Benutzernamen; TLS bleibt `verify-full`.
-`TARGET_DATABASE_URL` bleibt die geschützte Loopback-Credential-Vorlage mit
-`sslmode=disable`. Keine Zugangsdaten werden als Kommandozeilenargumente
-übergeben.
-
-Für `identity-preview` und `identity-apply` kommt die separat erzeugte
-`identity-operator.env` hinzu. Sie enthält ausschließlich die geschützte
-Loopback-Credential-Vorlage des kurzlebigen Logins und den Ziel-Fingerprint.
-Der Login muss exakt der `NOLOGIN`-Rolle `vk_identity_admin` zugeordnet sein;
-`postgres`, `cloudsqlsuperuser` oder weitere Mitgliedschaften werden vom
-Provisionierungswerkzeug abgewiesen. Vorbereitung und Cleanup stehen im
+Die separat erzeugte `identity-operator.env` enthält ausschließlich die
+geschützte Loopback-Credential-Vorlage des kurzlebigen Logins und den
+Ziel-Fingerprint. Der Login muss exakt der `NOLOGIN`-Rolle
+`vk_identity_admin` zugeordnet sein. `postgres`, `cloudsqlsuperuser` oder
+weitere Mitgliedschaften werden abgewiesen. Vorbereitung, Prüfung und Cleanup
+stehen im
 [Identity-Admin-Runbook](../../dokumentation/betrieb-und-deployment/PRE_GEMATIK_IDENTITY_ADMIN.md).
 
-Für `guest-preview` und `guest-apply` kommen stattdessen die owner-only,
-create-only mit
-[`prepare_pre_gematik_test_access_operator.mjs`](../../scripts/prepare_pre_gematik_test_access_operator.mjs)
-erzeugte `test-access-operator.env` des kurzlebigen Logins sowie eine getrennte
-Datei mit `IAP_EXTERNAL_AUTH_API_KEY` hinzu. Rollen-Bootstrap, Login-Anlage und
-exakte Mitgliedschaft folgen dem ausführbaren Abschnitt
-[Passwortgast-Access-Rolle und Login create-only](../../dokumentation/betrieb-und-deployment/PRE_GEMATIK_IDENTITY_ADMIN.md#2a-passwortgast-access-rolle-und-login-create-only).
-Der Login muss exklusiv
-`vk_access_enrollment_admin` erben; der Operator setzt seinen Repository-Anker
-selbst auf `/workspace` und überschreibt das erwartete Identity-Platform-Projekt
-mit `EXPECTED_TARGET_PROJECT_ID`. Gastphasen starten nur, wenn dieser Wert
-zusätzlich exakt `GCP_PROJECT_ID` des GCP-/Backup-Gates entspricht. Weder Pfade
-noch Projektbestätigung können aus `guest-access.json` oder zusätzlichen
-Kommandozeilenargumenten übernommen werden.
+Für `identity-apply` kommen die unmittelbar geprüften Preview-Bestätigungen in
+die phasenminimale `operator.env`:
 
-`GUEST_ACCESS_RECONCILE_PROFILE_DISPLAY_NAME_AND_PREBIND` ist in jeder
-Gastphase verpflichtend und akzeptiert ausschließlich `true` oder `false`.
-`false` aktiviert nur das unveränderte Standard-Prebinding auf ein in allen vom
-Gastzugriffsvertrag geprüften Kernfeldern exakt passendes Bestandsprofil. `true`
-aktiviert die separate Operation
-`RECONCILE_PROFILE_DISPLAY_NAME_AND_PREBIND_IDENTITY_PLATFORM_PASSWORD_GUEST`:
-Sie ist nur zulässig, wenn genau ein aktives Profil bei identischer ID, E-Mail
-und Rolle ausschließlich im sauberen Anzeigenamen abweicht und noch weder
-Binding noch Enrollment-Request existiert. Der geschützte Soll-Anzeigename in
-`guest-access.json` muss zuvor dem doppelt read-back-verifizierten
-Identity-Platform-Konto entsprechen. Andere Profiländerungen, ein Teilzustand
-oder ein Wechsel des Modus zwischen Preview und Apply sind `NO-GO`.
-Beim Apply muss `CONFIRM_GUEST_ACCESS_OPERATION` zusätzlich exakt aus dem
-geprüften Preview übernommen werden. Der Operator vergleicht diese unabhängige
-Bestätigung mit dem aus dem Modus abgeleiteten Operationsnamen und verweigert
-einen Moduswechsel auch dann, wenn Ist- und Soll-Fingerprint bei einem bereits
-vollständigen No-op zufällig identisch wären.
-
-Die Env-Datei wird ohne Ausgabe ihrer Inhalte als kurzlebiges Secret angelegt.
-Der Befehl muss fehlschlagen, falls ein gleichnamiges Secret noch existiert;
-dies verhindert eine unbeabsichtigte Wiederverwendung. Bewusst kein
-`kubectl apply`: So entsteht keine zusätzliche last-applied-Annotation mit
-einer weiteren base64-Kopie der Secret-Daten.
-
-```bash
-kubectl --namespace pre-gematik create secret generic \
-  vk-pre-gematik-migration-environment \
-  --from-env-file=/ABSOLUT/GESCHUETZT/operator.env
+```text
+CONFIRM_IDENTITY_PREVIEW_FINGERPRINT=sha256:<EINGABE-FINGERPRINT>
+CONFIRM_IDENTITY_CURRENT_STATE_FINGERPRINT=sha256:<IST-FINGERPRINT>
+CONFIRM_IDENTITY_BINDING_COUNT=1
+CONFIRM_IDENTITY_ACTIVE_BINDING_COUNT=1
+ALLOW_IDENTITY_SUBJECT_REMAPS=false
 ```
 
-Für Identity-Phasen wird das Secret stattdessen mit zwei voneinander getrennten
-owner-only Dateien erzeugt:
+Ein Subject-Remap setzt `ALLOW_IDENTITY_SUBJECT_REMAPS=true` in Preview und
+Apply. Nur Apply erhält zusätzlich den exakt geprüften positiven
+`CONFIRM_IDENTITY_SUBJECT_REMAP_COUNT`. Der Wert `0` ist ausschließlich für den
+separat geprüften, vollständig unveränderten Post-Apply-No-op zulässig.
+
+Die Environment-Eingabe wird create-only aus zwei getrennten owner-only Dateien
+zusammengesetzt:
 
 ```bash
 kubectl --namespace pre-gematik create secret generic \
   vk-pre-gematik-migration-environment \
   --from-env-file=/ABSOLUT/GESCHUETZT/operator.env \
   --from-env-file=/ABSOLUT/GESCHUETZT/identity-run/identity-operator.env
+
+kubectl --namespace pre-gematik create secret generic \
+  vk-pre-gematik-migration-input \
+  --from-file=iap-bindings.json=/ABSOLUT/GESCHUETZT/iap-bindings.json
 ```
 
-Für Gastphasen wird eine neue, phasenminimale `operator.env` erzeugt. Sie
-enthält Gate, Proxy-Pin, `EXPECTED_TARGET_PROJECT_ID`, Phase, Modus und nur beim
-Apply die beiden Gast-Fingerprints, aber keine Supabase-, Storage-, Source-DB-
-oder Identity-Admin-Credentials. Mit ihr werden nur die drei dafür notwendigen
-Env-Dateien zusammengeführt:
+### Guest-Phasen
+
+`guest-preview` und `guest-apply` verwenden stattdessen die owner-only,
+create-only mit
+[`prepare_pre_gematik_test_access_operator.mjs`](../../scripts/prepare_pre_gematik_test_access_operator.mjs)
+erzeugte `test-access-operator.env` sowie die getrennte
+`identity-platform-readback.env`. Der Datenbanklogin muss exklusiv
+`vk_access_enrollment_admin` erben. Der Operator setzt den Repository-Anker
+selbst auf `/workspace` und überschreibt das erwartete Identity-Platform-Projekt
+mit `EXPECTED_TARGET_PROJECT_ID`. Dieser Wert muss zusätzlich exakt
+`GCP_PROJECT_ID` des GCP-/Backup-Gates entsprechen.
+
+Die phasenminimale `operator.env` enthält Gate, Proxy-Pin, Zielprojekt, Phase,
+Modus und nur bei Apply die bestätigten Gast-Fingerprints. Sie enthält keine
+Identity-Admin- oder anderen phasenfremden Credentials. Zusammengeführt werden
+exakt diese drei Dateien:
 
 ```bash
 kubectl --namespace pre-gematik create secret generic \
@@ -265,152 +199,39 @@ kubectl --namespace pre-gematik create secret generic \
   --from-env-file=/ABSOLUT/GESCHUETZT/operator.env \
   --from-env-file=/ABSOLUT/GESCHUETZT/access-run/test-access-operator.env \
   --from-env-file=/ABSOLUT/GESCHUETZT/identity-platform-readback.env
-```
 
-Für Datenbankphasen wird ein zweites Secret angelegt. Beim Apply kommt das
-zuvor aus dem Storage-Apply-Job abgerufene Manifest hinzu:
-
-```bash
-kubectl --namespace pre-gematik create secret generic \
-  vk-pre-gematik-migration-input \
-  --from-file=supabase-root-ca.crt=/ABSOLUT/GESCHUETZT/supabase-root-ca.crt \
-  --from-file=storage-apply.json=/ABSOLUT/GESCHUETZT/storage-apply.json
-```
-
-Beim Datenbank-Preview wird `--from-file=storage-apply.json=…` ausgelassen.
-Für Storage-Phasen darf das Input-Secret nur dann ganz fehlen, wenn kein
-Logo-Remediation-Bundle benötigt wird. Andernfalls wird für jeden Storage-Lauf
-ein neues Secret erstellt. Es enthält exakt das Manifest und die darin
-genannten, bereits visuell geprüften PNG-Dateien; weitere Zwischenstände oder
-ursprüngliche SVG/XML/PNG-Dateien werden nicht aufgenommen:
-
-```bash
-kubectl --namespace pre-gematik create secret generic \
-  vk-pre-gematik-migration-input \
-  --from-file=logo-remediation-preview.json=/ABSOLUT/GESCHUETZT/logo-remediation-preview.json \
-  --from-file=01.resvg.png=/ABSOLUT/GESCHUETZT/01.resvg.png \
-  --from-file=02.resvg.png=/ABSOLUT/GESCHUETZT/02.resvg.png
-```
-
-Die PNG-Zeilen werden vollständig für alle im Manifest genannten
-`outputFile`-Werte ergänzt. Die Beispielnamen sind keine fachlichen
-Objektnamen. Das Secret muss unter der Kubernetes-Größengrenze bleiben; das
-freigegebene Acht-Dateien-Bundle erfüllt diese Bedingung. Der Operator kopiert
-nur die im Manifest referenzierten Schlüssel und verwirft keine Prüfung an die
-Secret-Projektion.
-
-Identity-Phasen verwenden statt CA, Storage-Manifest und Logo-Bundle
-ausschließlich die vollständige, geschützte Soll-Liste:
-
-```bash
-kubectl --namespace pre-gematik create secret generic \
-  vk-pre-gematik-migration-input \
-  --from-file=iap-bindings.json=/ABSOLUT/GESCHUETZT/iap-bindings.json
-```
-
-Gastphasen erhalten ausschließlich das vollständige, owner-only
-Soll-Dokument. Der Secret-Schlüssel und der intern gestagte Pfad sind fest:
-
-```bash
 kubectl --namespace pre-gematik create secret generic \
   vk-pre-gematik-migration-input \
   --from-file=guest-access.json=/ABSOLUT/GESCHUETZT/guest-access.json
 ```
 
-Das Dokument enthält Klartext-PII und wird nie per `kubectl get secret`,
-`describe`, Shell-Ausgabe oder allgemeinem Log inspiziert. Der Operator löst
-die Kubernetes-Projektion innerhalb des read-only Mounts auf, kopiert genau
-diese reguläre Datei create-only nach
-`/protected-input/run/guest-access.json`, setzt `0600` und übergibt nur diesen
-festen Pfad.
+`GUEST_ACCESS_RECONCILE_PROFILE_DISPLAY_NAME_AND_PREBIND` ist in jeder
+Gastphase verpflichtend und akzeptiert exakt `true` oder `false`. `false`
+aktiviert nur das unveränderte Standard-Prebinding auf ein in allen geprüften
+Kernfeldern passendes Bestandsprofil. `true` erlaubt nur den separat geprüften
+Anzeigename-Reconcile bei gleicher Profil-ID, E-Mail und Rolle sowie noch nicht
+vorhandenem Binding und Enrollment-Request. Andere Profiländerungen, ein
+Teilzustand oder ein Moduswechsel zwischen Preview und Apply sind `NO-GO`.
 
-## 4. Phasen ausführen
+Bei Apply muss `CONFIRM_GUEST_ACCESS_OPERATION` exakt aus demselben Preview
+übernommen werden. Hinzu kommen
+`CONFIRM_GUEST_ACCESS_INPUT_FINGERPRINT` und
+`CONFIRM_GUEST_ACCESS_CURRENT_STATE_FINGERPRINT`. Der Operator vergleicht die
+unabhängige Operationsbestätigung mit dem aus dem Modus abgeleiteten Namen.
 
-Verbindliche Reihenfolge nach aktivierter Quell-Schreibsperre:
+Alle Secrets werden ohne Ausgabe ihres Inhalts create-only angelegt. Bewusst
+kein `kubectl apply`: So entsteht keine zusätzliche last-applied-Annotation mit
+einer weiteren base64-Kopie der Secret-Daten. Ein vorhandenes gleichnamiges
+Secret bedeutet Abbruch; es wird nie stillschweigend wiederverwendet.
+Secret-Inhalte werden nicht mit `kubectl get`, `describe`, Shell-Ausgabe oder
+allgemeinen Logs inspiziert.
 
-1. `storage-preview` zweimal; Snapshot- und Manifest-Fingerprint müssen jeweils
-   identisch sein. Bei Logo-Remediation müssen zusätzlich Remediation-
-   Fingerprint und Anzahl identisch sein und die Quarantäne muss `0` bleiben.
-2. `database-preview` zweimal; Source-Snapshot-, Target-Klassifikation- und
-   Bootstrap-Profil-Fingerprint müssen jeweils identisch sein.
-3. `storage-apply` einmal mit den geprüften Bestätigungswerten und demselben
-   unveränderten Logo-Remediation-Bundle.
-4. `database-apply` einmal mit dem abgerufenen Storage-Apply-Manifest.
-5. `identity-preview` zweimal gegen den importierten Profilbestand; Eingabe-,
-   Ist- und Sollzustands-Fingerprint müssen jeweils identisch sein.
-6. `identity-apply` einmal mit dem unmittelbar bestätigten Preview-Fingerprint
-   sowie der bestätigten Gesamtzahl und Zahl aktiver Bindungen. Für den
-   aktuellen persönlichen Pilot werden beide Werte aus dem vollständigen,
-   geschützten Roster und nicht aus dieser Dokumentation übernommen.
-7. Nach dem Subject-Remap bestätigt `identity-preview` den vollständigen neuen
-   Zustand mit `remap_count=0`, ausschließlich unveränderten Zeilen und
-   identischem Ist-/Sollzustands-Fingerprint. Ein anschließend ausdrücklich
-   bestätigter `identity-apply` verwendet den neuen Ist-Fingerprint und
-   `CONFIRM_IDENTITY_SUBJECT_REMAP_COUNT=0`; er muss ohne `INSERT` oder `UPDATE`
-   denselben No-op melden. Ein letzter Preview bleibt unverändert.
+## 4. Preview, Apply und Readback
 
-Der geschützte Rollback-Roster wird vor dem Forward-Remap als vollständig
-unveränderter Remap-No-op und nach dem Forward-Apply zweimal als tatsächlicher
-umgekehrter Subject-Remap previewt. Der Wert `0` darf nie einen Preview mit
-einem positiven `remap_count` bestätigen; der Operator gleicht den
-geschützten Zähler innerhalb derselben serialisierbaren Transaktion exakt ab.
-Der Profilbestand wird dabei mit dem `SELECT`-only-Vertrag der
-`vk_identity_admin`-Rolle ohne `FOR SHARE` gelesen. PostgreSQL 16 würde für
-diese Zeilensperre ein absichtlich nicht vorhandenes Schreibrecht auf
-`profiles` verlangen. Advisory Lock, bestätigter Ist-Fingerprint und
-vollständige Abschlussprüfung bleiben unverändert; weder Grant noch
-Schreibumfang werden erweitert.
-
-Zwischen 4 und 5 wird die statische `NOLOGIN`-Rolle kontrolliert gebootstrappt
-und der kurzlebige Login exakt dieser Custom-Rolle zugeordnet. Der Dienst bleibt
-bis nach Identity-Abnahme geschlossen. Identity-Phasen benötigen keine
-Supabase-Verbindung und kopieren deshalb keine Source-CA; Zielproxy, Instanz-,
-Projekt- und Backup-Gate bleiben trotzdem identisch verbindlich.
-
-Ein Passwortgast wird nach der administrativen, create-only Kontoanlage und
-vor jedem Linkversand in derselben gehärteten Job-Hülle abgenommen:
-
-1. `guest-preview` zweimal mit demselben `guest-access.json` und demselben
-   expliziten Reconcile-Modus. `input_fingerprint`,
-   `current_state_fingerprint`, `expected_state_fingerprint`, Operation und
-   `result` müssen identisch sein.
-2. `guest-apply` mit
-   `CONFIRM_GUEST_ACCESS_OPERATION`,
-   `CONFIRM_GUEST_ACCESS_INPUT_FINGERPRINT` und
-   `CONFIRM_GUEST_ACCESS_CURRENT_STATE_FINGERPRINT` genau aus diesem Preview.
-   Alle CLI-Bestätigungen werden ausschließlich vom Operator aus diesen
-   geschützten Env-Werten und festen Konstanten aufgebaut; es gibt keinen
-   interaktiven oder frei ergänzbaren Argumentpfad.
-3. Nach erfolgreichem COMMIT erneut `guest-preview`. Erwartet sind
-   `result=unchanged`, `profile_binding_complete=true` und identische Ist-/Soll-
-   Fingerprints. Im Reconcile-Modus muss zusätzlich
-   `profile_display_name_matches_identity=true` sein.
-4. Für den vorgeschriebenen No-op-Nachweis nochmals dieselbe Phase
-   `guest-apply` ausführen, jetzt aber mit dem **neuen**
-   `current_state_fingerprint` aus Schritt 3. Der Reconcile-Modus bleibt
-   unverändert. Das Ergebnis muss `result=unchanged` sein und darf kein weiteres
-   Profil-`UPDATE` oder Binding-`INSERT` bewirken.
-5. Ein letzter `guest-preview` bestätigt denselben vollständigen Zustand. Erst
-   danach darf die owner-only Linkdatei in das geprüfte Mailpaket übernommen
-   werden.
-
-Die Wiederholung in Schritt 4 ist ein bewusst bestätigter No-op nach einem
-erfolgreichen Readback, kein automatischer Retry. Bei unbekanntem COMMIT-Ausgang
-oder fehlender Evidenz wird `guest-apply` nicht blind wiederholt; zuerst wird
-mit einer neuen `guest-preview`-Phase der tatsächliche Zustand festgestellt.
-Standardmodus, Anzeigename-Reconcile, Neunutzeranlage und Widerruf werden nie
-gegeneinander ausgetauscht. Die beiden neuen GKE-Phasen exponieren absichtlich
-weder `--create-profile-and-prebind` noch `--revoke`.
-
-Für jeden Storage-Lauf wird unmittelbar vorher ein neuer kurzlebiger Google-
-OAuth-Access-Token mit ausreichender Restlaufzeit ausgestellt. Der Operator
-erneuert ihn nicht automatisch; ein abgelaufener Token führt fail-closed zum
-Abbruch und niemals zu einem automatischen Wiederholungsversuch.
-
-Vor jeder Phase das vorherige Job-Objekt und die beiden kurzlebigen Secrets
-gezielt löschen, die Env-Datei für die neue Phase aktualisieren und Secrets neu
-anlegen. Das Job-Manifest wird lokal fail-closed gegen Zielprojekt, Region und
-Image-Digest gerendert:
+Vor jeder Phase werden der vorherige Job und die beiden kurzlebigen Secrets erst
+nach gesicherter Evidenz gezielt gelöscht. Danach werden nur die Eingaben der
+neuen Phase create-only bereitgestellt. Das Job-Manifest wird lokal fail-closed
+gegen Zielprojekt, Region und Image-Digest gerendert:
 
 ```bash
 node deploy/migration-operator/render-job.mjs \
@@ -420,19 +241,53 @@ node deploy/migration-operator/render-job.mjs \
   | kubectl apply --filename=-
 ```
 
-Der Operator schreibt danach `status.json` und hält den Container maximal
-15 Minuten ausschließlich für die geschützte Evidenzübergabe offen. Der Job
-wird erst nach der unten beschriebenen Bestätigung erfolgreich oder
-fehlgeschlagen beendet. Bei `Failed` nicht erneut starten. Zuerst Status und
-geschützten Report sichern und den konkreten Fehler klassifizieren.
+### Identity-Vertrag
 
-## 5. Ergebnisse vor jedem Cleanup abrufen
+1. `identity-preview` zweimal mit demselben vollständigen
+   `iap-bindings.json` ausführen. Eingabe-, Ist- und Soll-Fingerprint, Operation
+   und Zähler müssen identisch sein.
+2. `identity-apply` genau einmal mit Fingerprints, Gesamtzahl, Zahl aktiver
+   Bindungen und gegebenenfalls dem bestätigten positiven Remap-Zähler aus
+   diesem Preview ausführen.
+3. Danach ein neues `identity-preview` ausführen. Erwartet wird der vollständige
+   neue Zustand ohne Drift. Bei einem Remap muss `remap_count=0` gelten.
+4. Der ausdrücklich bestätigte No-op verwendet den neuen Ist-Fingerprint und
+   bei aktiviertem Remap `CONFIRM_IDENTITY_SUBJECT_REMAP_COUNT=0`. Er darf kein
+   `INSERT` oder `UPDATE` erzeugen. Ein letzter Preview bleibt unverändert.
 
-Den exakten Podnamen read-only aus dem Job ermitteln. Sobald das generische Log
-`outputs are ready` meldet, das gesamte owner-only Ergebnisverzeichnis in einen
-neuen, vorher noch nicht vorhandenen lokalen Phasenordner kopieren. Der Pod
-bleibt dafür absichtlich `Running`; ein bereits beendeter Container kann sein
-`emptyDir` nicht mehr sicher per `kubectl cp` herausgeben.
+Der vollständige Rollback-Roster wird vor einem Subject-Remap als unveränderter
+No-op und nach dem Apply zweimal als tatsächlicher Rückweg previewt. Ein
+positiver Remap-Zähler darf nie durch `0` bestätigt werden.
+
+### Guest-Vertrag
+
+1. `guest-preview` zweimal mit demselben `guest-access.json` und demselben
+   Reconcile-Modus ausführen. Eingabe-, Ist- und Soll-Fingerprint, Operation,
+   Ergebnis und Zähler müssen identisch sein.
+2. `guest-apply` genau einmal mit Operation, Eingabe-Fingerprint und
+   Ist-Fingerprint aus diesem Preview ausführen.
+3. Danach ein neues `guest-preview` ausführen. Erwartet werden
+   `result=unchanged`, ein vollständiges Profil-Binding und identische Ist- und
+   Soll-Fingerprints. Im Reconcile-Modus muss zusätzlich der Anzeigename passen.
+4. Der ausdrücklich bestätigte No-op verwendet in derselben `guest-apply`-Phase
+   den neuen Ist-Fingerprint aus Schritt 3. Er muss `result=unchanged` liefern
+   und darf weder ein Profil aktualisieren noch ein Binding anlegen. Ein letzter
+   Preview bleibt unverändert.
+
+Die Wiederholungen sind bestätigte No-ops nach einem erfolgreichen Readback und
+keine automatischen Retries. Bei unbekanntem Commit-Ausgang oder fehlender
+Evidenz wird Apply nie blind wiederholt. Zuerst ermittelt eine neue
+Preview-Phase den tatsächlichen Zustand. Standardmodus, Anzeigename-Reconcile,
+Neunutzeranlage und Widerruf werden nicht gegeneinander ausgetauscht; der
+Operator exponiert weder `--create-profile-and-prebind` noch `--revoke`.
+
+## 5. Geschützte Evidenzübergabe
+
+Der Operator schreibt `status.json` und das owner-only Phasenlog. Danach hält
+er den Container maximal 15 Minuten ausschließlich für die geschützte
+Evidenzübergabe offen. Den exakten Podnamen read-only ermitteln und das gesamte
+Ergebnisverzeichnis in einen neuen, vorher nicht vorhandenen lokalen
+Phasenordner kopieren:
 
 ```bash
 kubectl --namespace pre-gematik get pods \
@@ -443,14 +298,9 @@ kubectl --namespace pre-gematik cp \
   /ABSOLUT/GESCHUETZT/PHASE-RUN
 ```
 
-Danach lokal Besitzer und Modi prüfen. Erwartet werden `status.json` und das
-Phasenlog; bei Storage kommen Preview-/Apply-Manifest sowie beim Apply das
-Recovery-Journal hinzu. Bei Gastphasen enthält ausschließlich das geschützte
-Phasenlog den JSON-Report ohne Klartext-PII mit Operation, Ergebnis, Zählern und
-den weiterhin schutzbedürftigen Fingerprints. Erst wenn die lokale Kopie
-vollständig und owner-only ist, wird
-genau im noch laufenden Operator-Container eine leere Datei mit Modus `0600`
-als Übergabebestätigung angelegt:
+Erst nach lokaler Prüfung von Besitzer, Modus, `status.json`, Phasenlog und
+Vollständigkeit wird genau im noch laufenden Container die leere
+Übergabebestätigung mit Modus `0600` angelegt:
 
 ```bash
 kubectl --namespace pre-gematik exec PODNAME -- \
@@ -462,42 +312,42 @@ kubectl --namespace pre-gematik wait \
   job/vk-pre-gematik-migration-operator
 ```
 
-Wenn `status.json` `succeeded: false` meldet, ist statt `Complete` anschließend
-`Failed` erwartet. Die Evidenz wird trotzdem zuerst bestätigt und gesichert.
-Erst nach Prüfung von `status.json` und Phasenlog darf die nächste Phase
-vorbereitet werden. Ohne Bestätigung endet der Job nach 15 Minuten fail-closed;
-das ist kein Grund für einen ungeprüften Wiederholungsversuch.
+Wenn `status.json` `succeeded: false` meldet, ist anschließend `Failed` statt
+`Complete` zu erwarten. Die Evidenz wird trotzdem zuerst gesichert und
+bestätigt. Ohne Bestätigung endet der Job nach 15 Minuten fail-closed. Das ist
+kein Grund für einen ungeprüften Wiederholungsversuch.
 
 ## 6. Vollständiger Cleanup
 
-Nach erfolgreicher Datenbank-Reconciliation und Anwendungsabnahme, spätestens
-nach 24 Stunden:
+Nach erfolgreicher Abnahme, spätestens nach 24 Stunden:
 
 1. exakt `job/vk-pre-gematik-migration-operator` löschen,
 2. exakt die Secrets `vk-pre-gematik-migration-environment` und
    `vk-pre-gematik-migration-input` löschen,
-3. den kurzlebigen Cloud-SQL-Identity-Login und, falls Gastphasen liefen, exakt
-   den in `test-access-operator-name.txt` gepinnten `vk_access_operator_*`-Login
-   löschen. Read-only bestätigen, dass an `vk_identity_admin` beziehungsweise
-   `vk_access_enrollment_admin` jeweils nur noch die sichere, nicht erbende und
-   nicht setzbare Creator-Administration des verifizierten Objekt-Owners
-   besteht,
-4. alle temporären Projekt-IAM-Zuordnungen vom dedizierten Principal entfernen.
-   Falls Gastphasen ausgeführt wurden, dabei als Cleanup-Sicherungsnetz
-   ausdrücklich sowohl `roles/identitytoolkit.viewer` als auch
-   `roles/serviceusage.serviceUsageConsumer` entfernen. Die IAM-Policy danach
-   erneut read-only prüfen und die Abwesenheit beider Gastrollen bestätigen,
-5. `networkpolicy/vk-pre-gematik-migration-operator` und
+3. den kurzlebigen Cloud-SQL-Identity-Login und bei Gastphasen exakt den in
+   `test-access-operator-name.txt` gepinnten `vk_access_operator_*`-Login
+   löschen; read-only bestätigen, dass die verbleibenden Mitgliedschaften der
+   Rollen `vk_identity_admin` und `vk_access_enrollment_admin` dem geprüften
+   Rollenvertrag entsprechen,
+4. alle temporären Projekt-IAM-Zuordnungen vom dedizierten Principal entfernen;
+   nach Gastphasen ausdrücklich `roles/identitytoolkit.viewer` und
+   `roles/serviceusage.serviceUsageConsumer` entfernen und ihre Abwesenheit in
+   der erneut gelesenen IAM-Policy bestätigen,
+5. im normalen Phasencleanup
+   `networkpolicy/vk-pre-gematik-migration-operator` und
    `serviceaccount/vk-pre-gematik-migration-operator` löschen,
-6. den Operator-Image-Digest nach der vereinbarten Nachweisfrist aus der
+6. den Operator-Image-Digest nach der vereinbarten Nachweisfrist gezielt aus der
    Registry entfernen; nie ein anderes Image über einen Tag-Selektor löschen,
-7. OAuth-Token ablaufen lassen beziehungsweise widerrufen und sämtliche
-   geschützten Credential-Dateien vernichten. Dazu gehören insbesondere
-   `test-access-operator.env`, Create-User-Flags, Loginname, Manifest und
-   `identity-platform-readback.env`; Cutover-Nachweise und Recovery-Journal
-   gemäß der
+7. geschützte Credential-Dateien vernichten und Abnahmenachweise gemäß der
    dokumentierten Aufbewahrung geschützt behalten.
 
-Zum Abschluss müssen die normale API-Workload-IAM-Policy, die vier exakten
-Bucket-Policies und das Projekt-IAM wieder dem Vorher-Nachweis entsprechen. Der
-Anwendungs-Deployment-Workflow kennt und startet diesen Operator nicht.
+Für den bis 30. September 2026 verlängerten Pilot ist derzeit ausdrücklich nur
+eine inerte Kompatibilitätsausnahme für ServiceAccount und NetworkPolicy
+dokumentiert. Es bestehen dazu weder Job noch Operator-Secrets oder Pods. Vor
+jeder erneuten Phase muss die NetworkPolicy dem aktuellen Access-Vertrag ohne
+direkten PostgreSQL-Egress entsprechen. Ohne erneute Aufbewahrungsentscheidung
+werden auch diese beiden Kompatibilitätsressourcen spätestens beim Pilot-Cleanup
+entfernt. Temporäre Projekt-IAM-Zuordnungen und kurzlebige Logins sind von dieser
+Ausnahme nie umfasst.
+
+Der Anwendungs-Deployment-Workflow kennt und startet diesen Operator nicht.

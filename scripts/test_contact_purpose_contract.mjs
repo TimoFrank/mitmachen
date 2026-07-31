@@ -10,11 +10,7 @@ const preMigration = fs.readFileSync(
   "utf8"
 );
 const preGrants = fs.readFileSync(new URL("deploy/postgres/pre-gematik/grants.sql", root), "utf8");
-const supabaseSchema = fs.readFileSync(new URL("supabase/schema.sql", root), "utf8");
-const supabaseMigration = fs.readFileSync(
-  new URL("supabase/migrations/20260727000200_add_contact_relationship_basis_and_ehc_consent.sql", root),
-  "utf8"
-);
+const preRuntimeRole = fs.readFileSync(new URL("deploy/postgres/pre-gematik/runtime-role.sql", root), "utf8");
 const syntheticSeedGenerator = fs.readFileSync(
   new URL("scripts/generate_pre_gematik_synthetic_seed.mjs", root),
   "utf8"
@@ -379,15 +375,13 @@ for (const field of [
   for (const [label, source] of [
     ["API", api],
     ["Pre-gematik-Schema", preSchema],
-    ["Pre-gematik-Migration", preMigration],
-    ["Supabase-Schema", supabaseSchema],
-    ["Supabase-Migration", supabaseMigration]
+    ["Pre-gematik-Migration", preMigration]
   ]) {
     assert.match(source, new RegExp(`\\b${field}\\b`), `${label} fehlt: ${field}`);
   }
 }
 
-for (const sql of [preSchema, preMigration, supabaseSchema, supabaseMigration]) {
+for (const sql of [preSchema, preMigration]) {
   assert.match(sql, /relationship_basis[^;]*default 'review_required'/is);
   assert.match(sql, /ehc_consent_status[^;]*default 'not_requested'/is);
   assert.match(sql, /survalyzer_ehc/i);
@@ -397,29 +391,18 @@ for (const sql of [preSchema, preMigration, supabaseSchema, supabaseMigration]) 
   assert.match(sql, /new\.relationship_basis_recorded_by\s*:=\s*new\.updated_by/i);
   assert.match(sql, /new\.ehc_consent_recorded_by\s*:=\s*new\.updated_by/i);
 }
-for (const migration of [preMigration, supabaseMigration]) {
-  assert.doesNotMatch(
-    migration,
-    /update\s+public\.contacts[\s\S]*?ehc_consent_status/i,
-    "Bestehende Kontakte dürfen nicht automatisch als EHC klassifiziert werden."
-  );
-}
+assert.doesNotMatch(
+  preMigration,
+  /update\s+public\.contacts[\s\S]*?ehc_consent_status/i,
+  "Bestehende Kontakte dürfen nicht automatisch als EHC klassifiziert werden."
+);
 assert.match(preGrants, /grant execute on function public\.pre_gematik_prepare_contact_purpose_write\(\)/i);
 assert.match(preGrants, /grant execute on function public\.pre_gematik_log_contact_purpose_change\(\)/i);
-
-for (const sql of [supabaseSchema, supabaseMigration]) {
-  assert.match(sql, /function public\.can_access_ehc_contact\(target_contact_id text\)/i);
-  assert.match(sql, /contact\.owner_id\s*=\s*auth\.uid\(\)/i);
-  assert.match(sql, /contact_owner\.profile_id\s*=\s*auth\.uid\(\)/i);
-  assert.match(sql, /contacts authenticated read active[\s\S]*can_access_ehc_contact\(id\)/i);
-  assert.match(sql, /changes authenticated read[\s\S]*can_access_ehc_contact\(contact_id\)/i);
-  assert.match(sql, /activity events active profiles read[\s\S]*can_access_contact_activity/i);
-  assert.match(sql, /contact notes team read[\s\S]*can_access_ehc_contact\(contact_id\)/i);
-  assert.match(sql, /contact attachments team read[\s\S]*can_access_ehc_contact\(contact_id\)/i);
-  assert.match(sql, /contact images team read[\s\S]*can_access_ehc_contact/i);
-  assert.match(sql, /hospitations authenticated read active[\s\S]*can_access_contact_reference\(contact_id\)/i);
-  assert.match(sql, /format participants authenticated read[\s\S]*can_access_ehc_contact\(contact_id\)/i);
-}
+assert.match(preRuntimeRole, /create role vk_app_runtime nologin/i);
+assert.match(preRuntimeRole, /rolcanlogin[\s\S]*rolsuper[\s\S]*rolbypassrls/i);
+assert.doesNotMatch(`${preSchema}\n${preMigration}\n${preGrants}`, /auth\.uid\s*\(|create\s+policy|row\s+level\s+security/i);
+assert.match(api, /function requestHasEhcContactAccess\(/);
+assert.match(api, /async function assertEhcContactAccess\(/);
 
 assert.match(syntheticSeedGenerator, /relationship_basis:\s*source\.relationshipBasis\s*\|\|\s*"review_required"/);
 assert.match(syntheticSeedGenerator, /ehc_consent_status:\s*source\.ehcConsentStatus\s*\|\|\s*"not_requested"/);
@@ -456,4 +439,4 @@ assert.match(patchSource, /select \* from contacts where id = \$1 limit 1 for up
 assert.match(patchSource, /requestHasEhcContactAccess\(request,\s*currentRow,\s*effectiveOldOwnerIds\)/);
 assert.match(patchSource, /CONTACT_PURPOSE_AUDIT_FIELDS/);
 
-console.log("Contact Purpose Contract OK: Zweckachsen, EHC-Projektion, RLS und alle bekannten Identitäts-/Existenzpfade sind abgesichert.");
+console.log("Contact Purpose Contract OK: Zweckachsen, EHC-Projektion, Cloud-SQL-Rolle und alle bekannten API-Identitäts-/Existenzpfade sind abgesichert.");
