@@ -3940,6 +3940,40 @@ jobs:
             exit 1
           fi
 
+          rejected_auth_aliases=(
+            "/__/auth/%68andler"
+            "/__/auth/handler%2ejs"
+            "/__/auth//handler"
+            "/__/auth/handler/"
+            "/__/auth/handler;probe"
+            "/__/auth/%252e%252e/start"
+            "/__/auth/foo/%252e%252e/handler"
+            "/__/auth/%2e%2e%2fstart"
+            "/__/auth/%5chandler"
+            "/__/auth/action"
+          )
+          rejected_auth_index=0
+          for rejected_auth_alias in "${rejected_auth_aliases[@]}"; do
+            rejected_auth_index=$((rejected_auth_index + 1))
+            rejected_auth_headers="${RUNNER_TEMP}/rejected-auth-alias-${rejected_auth_index}.headers"
+            rejected_auth_body="${RUNNER_TEMP}/rejected-auth-alias-${rejected_auth_index}.body"
+            rejected_auth_status="$(curl --path-as-is --silent --show-error \
+              --dump-header "$rejected_auth_headers" \
+              --output "$rejected_auth_body" \
+              --write-out '%{http_code}' \
+              --max-time 30 \
+              "${auth_helper_origin}${rejected_auth_alias}")"
+            if [[ "$rejected_auth_status" != "404" ]] || \
+               grep --fixed-strings --quiet 'data-public-entry=' "$rejected_auth_body" || \
+               grep --fixed-strings --quiet 'data-identity-portal=' "$rejected_auth_body" || \
+               grep --fixed-strings --quiet 'fireauth.' "$rejected_auth_body" || \
+               grep --ignore-case --extended-regexp --quiet \
+                 '^(location|set-cookie|x-goog-iap[^:]*):' "$rejected_auth_headers"; then
+              echo "Rejected auth alias ${rejected_auth_alias} did not fail locally with a stateless, content-free HTTP 404." >&2
+              exit 1
+            fi
+          done
+
           post_headers="${RUNNER_TEMP}/public-entry-post.headers"
           post_status="$(curl --path-as-is --silent --show-error \
             --request POST \
@@ -4068,7 +4102,6 @@ jobs:
             "/public/auth/assets/%61pp.js"
             "/%5f%5f/auth/handler"
             "//__/auth/handler"
-            "/__/auth/%2e%2e/start"
           )
           normalized_index=0
           for normalized_alias in "${normalized_aliases[@]}"; do
@@ -4098,6 +4131,68 @@ jobs:
                 ;;
               *)
                 echo "Normalized alias ${normalized_alias} bypassed the exact public boundary with HTTP ${status}." >&2
+                exit 1
+                ;;
+            esac
+          done
+
+          # Google External Application Load Balancers canonicalize dot path
+          # segments before URL-map, backend, and IAP evaluation. Pin that
+          # unavoidable GFE response to the protected /__/start target, then
+          # prove the canonical target is still behind IAP.
+          auth_traversal_redirect_aliases=(
+            "/__/auth/%2e%2e/start"
+            "/__/auth/%2E%2E/start"
+            "/__/auth/%2e./start"
+            "/__/auth/.%2e/start"
+            "/__/auth/../start"
+          )
+          auth_traversal_index=0
+          for auth_traversal_alias in "${auth_traversal_redirect_aliases[@]}"; do
+            auth_traversal_index=$((auth_traversal_index + 1))
+            auth_traversal_headers="${RUNNER_TEMP}/auth-traversal-${auth_traversal_index}.headers"
+            auth_traversal_body="${RUNNER_TEMP}/auth-traversal-${auth_traversal_index}.body"
+            auth_traversal_status="$(curl --path-as-is --silent --show-error \
+              --dump-header "$auth_traversal_headers" \
+              --output "$auth_traversal_body" \
+              --write-out '%{http_code}' \
+              --max-time 30 \
+              "${auth_helper_origin}${auth_traversal_alias}")"
+            auth_traversal_location="$(awk '
+              BEGIN { IGNORECASE = 1 }
+              /^location:/ {
+                sub(/^[^:]+:[[:space:]]*/, "")
+                sub(/\r$/, "")
+                print
+                exit
+              }
+            ' "$auth_traversal_headers")"
+            if [[ "$auth_traversal_status" != "302" ]] || \
+               [[ "$auth_traversal_location" != "${auth_helper_origin}/__/start" ]] || \
+               [[ -s "$auth_traversal_body" ]] || \
+               grep --ignore-case --extended-regexp --quiet \
+                 '^(set-cookie|x-goog-iap[^:]*):' "$auth_traversal_headers"; then
+              echo "Auth traversal alias ${auth_traversal_alias} did not return only GFE's exact protected-path redirect." >&2
+              exit 1
+            fi
+
+            auth_traversal_target_headers="${RUNNER_TEMP}/auth-traversal-target-${auth_traversal_index}.headers"
+            auth_traversal_target_status="$(curl --path-as-is --silent --show-error \
+              --dump-header "$auth_traversal_target_headers" \
+              --output /dev/null \
+              --write-out '%{http_code}' \
+              --max-time 30 \
+              "${auth_helper_origin}/__/start")"
+            case "$auth_traversal_target_status" in
+              302|401|403)
+                if ! grep --ignore-case --quiet \
+                  '^x-goog-iap-generated-response:' "$auth_traversal_target_headers"; then
+                  echo "Canonical auth traversal target /__/start is not protected by IAP." >&2
+                  exit 1
+                fi
+                ;;
+              *)
+                echo "Canonical auth traversal target /__/start bypassed IAP with HTTP ${auth_traversal_target_status}." >&2
                 exit 1
                 ;;
             esac

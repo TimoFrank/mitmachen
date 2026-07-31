@@ -1293,11 +1293,23 @@ const authHelperBoundaryBlock = externalBoundaryScript.match(
 const bareAuthBoundaryBlock = externalBoundaryScript.match(
   /bare_auth_headers=[\s\S]*?The bare Firebase Auth namespace must fail closed[\s\S]*?\n\s*fi/
 )?.[0];
+const rejectedAuthAliasesBlock = externalBoundaryScript.match(
+  /rejected_auth_aliases=\([\s\S]*?\n\s*\)/
+)?.[0];
+const rejectedAuthBoundaryBlock = externalBoundaryScript.match(
+  /rejected_auth_aliases=\([\s\S]*?\n\s*done/
+)?.[0];
 const normalizedAliasesBlock = externalBoundaryScript.match(
   /normalized_aliases=\([\s\S]*?\n\s*\)/
 )?.[0];
 const normalizedBoundaryBlock = externalBoundaryScript.match(
   /normalized_aliases=\([\s\S]*?\n\s*done/
+)?.[0];
+const authTraversalAliasesBlock = externalBoundaryScript.match(
+  /auth_traversal_redirect_aliases=\([\s\S]*?\n\s*\)/
+)?.[0];
+const authTraversalBoundaryBlock = externalBoundaryScript.match(
+  /auth_traversal_redirect_aliases=\([\s\S]*?\n\s*done/
 )?.[0];
 const matrixAliasesBlock = externalBoundaryScript.match(
   /matrix_aliases=\([\s\S]*?\n\s*\)/
@@ -1308,8 +1320,12 @@ const matrixBoundaryBlock = externalBoundaryScript.match(
 assert.ok(protectedPathsBlock, "Die Protected-Path-Matrix fehlt.");
 assert.ok(authHelperBoundaryBlock, "Der Auth-Handler-Vertrag fehlt.");
 assert.ok(bareAuthBoundaryBlock, "Der exakte Bare-Auth-404-Vertrag fehlt.");
+assert.ok(rejectedAuthAliasesBlock, "Die Auth-Proxy-Near-Miss-Matrix fehlt.");
+assert.ok(rejectedAuthBoundaryBlock, "Der lokale Auth-Proxy-404-Vertrag fehlt.");
 assert.ok(normalizedAliasesBlock, "Die sichere Near-Miss-Matrix fehlt.");
 assert.ok(normalizedBoundaryBlock, "Der sichere Near-Miss-Vertrag fehlt.");
+assert.ok(authTraversalAliasesBlock, "Die GFE-Auth-Traversal-Matrix fehlt.");
+assert.ok(authTraversalBoundaryBlock, "Der GFE-Auth-Traversal-Vertrag fehlt.");
 assert.ok(matrixAliasesBlock, "Die Matrix-Parameter-Matrix fehlt.");
 assert.ok(matrixBoundaryBlock, "Der Matrix-Parameter-Vertrag fehlt.");
 for (const authHelperContract of [
@@ -1351,6 +1367,71 @@ assert.doesNotMatch(
   bareAuthBoundaryBlock,
   /\$\{auth_helper_origin\}\/__\/auth\//,
   "Der Bare-Auth-Probe darf nicht versehentlich den Handler oder einen breiteren Prefix pruefen."
+);
+for (const rejectedAuthAlias of [
+  "/__/auth/%68andler",
+  "/__/auth/handler%2ejs",
+  "/__/auth//handler",
+  "/__/auth/handler/",
+  "/__/auth/handler;probe",
+  "/__/auth/%252e%252e/start",
+  "/__/auth/foo/%252e%252e/handler",
+  "/__/auth/%2e%2e%2fstart",
+  "/__/auth/%5chandler",
+  "/__/auth/action"
+]) {
+  assert.ok(
+    rejectedAuthAliasesBlock.includes(`"${rejectedAuthAlias}"`),
+    `Der lokal abzuweisende Auth-Alias fehlt: ${rejectedAuthAlias}`
+  );
+}
+for (const rejectedAuthContract of [
+  '"${auth_helper_origin}${rejected_auth_alias}"',
+  'rejected_auth_status" != "404"',
+  "data-public-entry=",
+  "data-identity-portal=",
+  "fireauth.",
+  "location|set-cookie|x-goog-iap"
+]) {
+  assert.ok(
+    rejectedAuthBoundaryBlock.includes(rejectedAuthContract),
+    `Der lokale Auth-Alias-404-Vertrag ist unvollstaendig: ${rejectedAuthContract}`
+  );
+}
+assert.doesNotMatch(
+  normalizedAliasesBlock,
+  /"\/__\/auth\/%2e%2e\/start"/,
+  "Der von GFE kanonisierte Auth-Traversal-Pfad darf nicht den generischen IAP-Marker-Vertrag verwenden."
+);
+for (const authTraversalAlias of [
+  "/__/auth/%2e%2e/start",
+  "/__/auth/%2E%2E/start",
+  "/__/auth/%2e./start",
+  "/__/auth/.%2e/start",
+  "/__/auth/../start"
+]) {
+  assert.ok(
+    authTraversalAliasesBlock.includes(`"${authTraversalAlias}"`),
+    `Der GFE-kanonisierte Auth-Traversal-Alias fehlt: ${authTraversalAlias}`
+  );
+}
+for (const authTraversalContract of [
+  'auth_traversal_status" != "302"',
+  'auth_traversal_location" != "${auth_helper_origin}/__/start"',
+  '[[ -s "$auth_traversal_body" ]]',
+  "set-cookie|x-goog-iap",
+  '"${auth_helper_origin}/__/start"',
+  "302|401|403",
+  "x-goog-iap-generated-response:"
+]) {
+  assert.ok(
+    authTraversalBoundaryBlock.includes(authTraversalContract),
+    `Der GFE-Auth-Traversal-Vertrag ist unvollstaendig: ${authTraversalContract}`
+  );
+}
+assert.ok(
+  !authTraversalBoundaryBlock.includes("--location"),
+  "Der Traversal-Smoke muss Redirect und geschuetztes Ziel als getrennte Sicherheitsgrenzen pruefen."
 );
 assert.doesNotMatch(
   protectedPathsBlock,
