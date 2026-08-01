@@ -68,6 +68,25 @@ test("Desktop-Auslieferung: Pages startet direkt in der App-Startseite", async (
     { lineCount: 1, fits: true },
     { lineCount: 1, fits: true }
   ]);
+  const homeTypeMetrics = await page.locator(".home-page").evaluate((home) => {
+    const number = (value) => Number.parseFloat(value) || 0;
+    const cue = home.querySelector(".home-scroll-cue");
+    const intro = home.querySelector(".home-destinations__intro");
+    const titles = [...home.querySelectorAll(".home-destination-link strong")];
+    const copies = [...home.querySelectorAll(".home-destination-link__copy")];
+    return {
+      cueFontSize: cue ? number(getComputedStyle(cue).fontSize) : 0,
+      cueHeight: cue?.getBoundingClientRect().height || 0,
+      introFontSize: intro ? number(getComputedStyle(intro).fontSize) : 0,
+      minimumTitleFontSize: Math.min(...titles.map((node) => number(getComputedStyle(node).fontSize))),
+      minimumCopyFontSize: Math.min(...copies.map((node) => number(getComputedStyle(node).fontSize)))
+    };
+  });
+  expect(homeTypeMetrics.cueFontSize).toBeGreaterThanOrEqual(14);
+  expect(homeTypeMetrics.cueHeight).toBeGreaterThanOrEqual(48);
+  expect(homeTypeMetrics.introFontSize).toBeGreaterThanOrEqual(14);
+  expect(homeTypeMetrics.minimumTitleFontSize).toBeGreaterThanOrEqual(17);
+  expect(homeTypeMetrics.minimumCopyFontSize).toBeGreaterThanOrEqual(14);
   expect(await destinations.evaluateAll((links) => links.map((link) => link.getAttribute("href")))).toEqual([
     "#map",
     "#stakeholders",
@@ -87,13 +106,13 @@ test("Desktop-Auslieferung: Pages startet direkt in der App-Startseite", async (
   ]);
   for (const name of await compassNames.all()) {
     await expect(name).toHaveCSS("animation-name", "homeCompassRotate");
-    await expect(name).toHaveCSS("animation-duration", "5s");
+    await expect(name).toHaveCSS("animation-duration", "10s");
     await expect(name).toHaveCSS("animation-iteration-count", "infinite");
   }
   await expect(compassNames.nth(0)).toHaveCSS("animation-delay", "0s");
-  await expect(compassNames.nth(1)).toHaveCSS("animation-delay", "-3.75s");
-  await expect(compassNames.nth(2)).toHaveCSS("animation-delay", "-2.5s");
-  await expect(compassNames.nth(3)).toHaveCSS("animation-delay", "-1.25s");
+  await expect(compassNames.nth(1)).toHaveCSS("animation-delay", "-7.5s");
+  await expect(compassNames.nth(2)).toHaveCSS("animation-delay", "-5s");
+  await expect(compassNames.nth(3)).toHaveCSS("animation-delay", "-2.5s");
   const nameMetrics = await compassNames.evaluateAll((nodes) => {
     const stage = nodes[0]?.closest(".home-compass-rotation__stage")?.getBoundingClientRect();
     return nodes.map((node) => {
