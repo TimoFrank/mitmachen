@@ -24,12 +24,6 @@ async function expectCleanHomeSidebar(page) {
 
 test("Desktop-Auslieferung: Pages startet direkt in der App-Startseite", async ({ page }, testInfo) => {
   await page.emulateMedia({ reducedMotion: "no-preference" });
-  await page.addInitScript(() => {
-    window.__homeRevealAnimationStarts = 0;
-    document.addEventListener("animationstart", (event) => {
-      if (event.animationName === "homeSetCharacter") window.__homeRevealAnimationStarts += 1;
-    }, true);
-  });
   await page.goto("/dist/pages/index.html");
 
   await expect(page).toHaveURL(/\/dist\/pages\/index\.html$/);
@@ -81,27 +75,57 @@ test("Desktop-Auslieferung: Pages startet direkt in der App-Startseite", async (
     "#formats"
   ]);
 
-  const heading = page.locator(".home-reveal-heading");
-  await expect(heading.locator(".home-reveal-heading__line")).toHaveCount(3);
-  await expect(heading).not.toHaveClass(/is-static/);
-  await expect.poll(() => page.evaluate(() => window.__homeRevealAnimationStarts)).toBeGreaterThan(0);
-  await expect(heading).toHaveClass(/is-complete/, { timeout: 5_000 });
-  await expect(heading.locator(".home-reveal-heading__char")).not.toHaveCount(0);
+  const heading = page.locator(".home-welcome-heading");
+  await expect(heading).toHaveText("Willkommen.");
+  const rotation = page.locator("[data-home-compass-rotation]");
+  const compassNames = rotation.locator("[data-home-compass-name]");
+  await expect(compassNames).toHaveText([
+    "Versorgungs-Kompass",
+    "Stakeholder-Kompass",
+    "Hospitations-Kompass",
+    "Format-Kompass"
+  ]);
+  await expect(compassNames.first()).toHaveCSS("animation-name", "homeCompassRotate");
+  await expect(compassNames.first()).toHaveCSS("animation-duration", "1.25s");
+  await expect(compassNames.first()).toHaveCSS("animation-iteration-count", "1");
+  await expect(compassNames.last()).toHaveCSS("animation-name", "homeCompassRotateFinal");
+  const nameMetrics = await compassNames.evaluateAll((nodes) => {
+    const stage = nodes[0]?.closest(".home-compass-rotation__stage")?.getBoundingClientRect();
+    return nodes.map((node) => {
+      const range = document.createRange();
+      range.selectNodeContents(node);
+      const lineTops = new Set(Array.from(range.getClientRects()).map((rect) => Math.round(rect.top)));
+      return {
+        fitsStage: stage ? node.getBoundingClientRect().width <= stage.width + 1 : false,
+        lineCount: lineTops.size
+      };
+    });
+  });
+  expect(nameMetrics).toEqual([
+    { fitsStage: true, lineCount: 1 },
+    { fitsStage: true, lineCount: 1 },
+    { fitsStage: true, lineCount: 1 },
+    { fitsStage: true, lineCount: 1 }
+  ]);
+  await expect(rotation.locator(".home-compass-rotation__control")).toHaveCount(0);
 
   const heroSpacing = await page.locator(".home-hero").evaluate((hero) => {
     const brand = hero.querySelector(".home-hero__brand")?.getBoundingClientRect();
-    const title = hero.querySelector(".home-reveal-heading")?.getBoundingClientRect();
+    const title = hero.querySelector(".home-welcome-heading")?.getBoundingClientRect();
+    const rotation = hero.querySelector(".home-compass-rotation")?.getBoundingClientRect();
     const cue = hero.querySelector(".home-scroll-cue")?.getBoundingClientRect();
     return {
       brandWidth: brand?.width || 0,
       brandToTitle: brand && title ? title.top - brand.bottom : 0,
-      titleToCue: title && cue ? cue.top - title.bottom : 0
+      titleToRotation: title && rotation ? rotation.top - title.bottom : 0,
+      rotationToCue: rotation && cue ? cue.top - rotation.bottom : 0
     };
   });
   const isMobileProject = testInfo.project.name.includes("mobile");
   expect(heroSpacing.brandWidth).toBeGreaterThan(isMobileProject ? 250 : 340);
   expect(heroSpacing.brandToTitle).toBeGreaterThanOrEqual(isMobileProject ? 34 : 44);
-  expect(heroSpacing.titleToCue).toBeGreaterThanOrEqual(38);
+  expect(heroSpacing.titleToRotation).toBeGreaterThanOrEqual(isMobileProject ? 13 : 19);
+  expect(heroSpacing.rotationToCue).toBeGreaterThanOrEqual(27);
   await expect(page.locator(".home-hero .home-destinations__intro")).toHaveCount(0);
   await expect(page.locator("#home-destinations > .home-destinations__intro")).toHaveText(
     "Wähle den Kompass, in dem du weiterarbeiten möchtest."
@@ -112,11 +136,22 @@ test("Desktop-Auslieferung: reduzierte Bewegung zeigt die Startüberschrift ruhi
   await page.emulateMedia({ reducedMotion: "reduce" });
   await page.goto("/dist/pages/index.html");
 
-  const heading = page.locator(".home-reveal-heading");
-  await expect(heading).toHaveClass(/is-static/);
-  await expect(heading.locator(".home-reveal-heading__line")).toHaveCount(3);
-  await expect(heading.locator(".home-reveal-heading__char").first()).toHaveCSS("animation-name", "none");
-  await expect(heading.locator(".home-reveal-heading__char").first()).toHaveCSS("opacity", "1");
+  await expect(page.locator(".home-welcome-heading")).toHaveText("Willkommen.");
+  const rotation = page.locator("[data-home-compass-rotation]");
+  await expect(rotation.locator(".home-compass-rotation__control")).toHaveCount(0);
+  const compassNames = rotation.locator("[data-home-compass-name]");
+  await expect(compassNames).toHaveText([
+    "Versorgungs-Kompass",
+    "Stakeholder-Kompass",
+    "Hospitations-Kompass",
+    "Format-Kompass"
+  ]);
+  for (const name of await compassNames.all()) {
+    await expect(name).toBeVisible();
+    await expect(name).toHaveCSS("animation-name", "none");
+    await expect(name).toHaveCSS("opacity", "1");
+    await expect(name).toHaveCSS("transform", "none");
+  }
 });
 
 test("Startkarte öffnet den passenden Navigationsbereich auf Desktop", async ({ page }, testInfo) => {

@@ -5664,71 +5664,91 @@
         margin-bottom: 48px;
       }
 
-      .home-reveal-heading {
-        position: relative;
+      .home-welcome-heading {
         width: min(980px, 100%);
         max-width: 980px;
         margin: 0;
         color: var(--text-primary);
-        font-size: clamp(4.1rem, 6vw, 5.8rem);
-        font-weight: 900;
-        letter-spacing: -0.068em;
-        line-height: 0.91;
+        font-size: clamp(3.8rem, 5.8vw, 5.6rem);
+        font-weight: 850;
+        letter-spacing: -0.045em;
+        line-height: 0.98;
         text-align: center;
       }
 
-      .home-reveal-heading__measure {
-        display: block;
-        pointer-events: none;
+      .home-compass-rotation {
+        width: min(760px, 100%);
+        display: grid;
+        justify-items: center;
+        margin-top: 20px;
       }
 
-      .home-reveal-heading.is-prepared .home-reveal-heading__measure {
-        visibility: hidden;
+      .home-compass-rotation__stage {
+        width: 100%;
+        min-height: 1.16em;
+        display: grid;
+        place-items: center;
+        overflow: hidden;
+        font-size: clamp(1.45rem, 7.3vw, 3.4rem);
       }
 
-      .home-reveal-heading__visual {
-        display: none;
-      }
-
-      .home-reveal-heading.is-prepared .home-reveal-heading__visual {
-        position: absolute;
-        inset: 0;
-        display: block;
-      }
-
-      .home-reveal-heading__line {
-        display: block;
-        white-space: nowrap;
-      }
-
-      .home-reveal-heading__word {
-        display: inline-block;
-        white-space: nowrap;
-      }
-
-      .home-reveal-heading__char {
-        display: inline-block;
+      .home-compass-rotation__item {
+        grid-area: 1 / 1;
         opacity: 0;
-        filter: blur(5px);
-        transform: translateY(0.22em) scale(0.97);
-        will-change: opacity, filter, transform;
+        color: var(--module-care-strong);
+        font-size: 1em;
+        font-weight: 820;
+        letter-spacing: -0.035em;
+        line-height: 1.16;
+        white-space: nowrap;
+        transform: translateY(7px);
+        animation: homeCompassRotate 1.25s cubic-bezier(0.22, 1, 0.36, 1) both;
+        will-change: opacity, transform;
       }
 
-      .home-reveal-heading.is-static .home-reveal-heading__char,
-      .home-reveal-heading.is-complete .home-reveal-heading__char {
-        opacity: 1;
-        filter: none;
-        transform: translateY(0);
+      .home-compass-rotation__item--stakeholders {
+        color: var(--module-stakeholders-strong);
+        animation-delay: 1.25s;
       }
 
-      .home-reveal-heading.is-playing .home-reveal-heading__char {
-        animation: homeSetCharacter 420ms cubic-bezier(0.22, 1, 0.36, 1) forwards;
+      .home-compass-rotation__item--planning {
+        color: var(--module-planning-strong);
+        animation-delay: 2.5s;
       }
 
-      @keyframes homeSetCharacter {
-        to {
+      .home-compass-rotation__item--formats {
+        color: var(--module-formats-strong);
+        animation-name: homeCompassRotateFinal;
+        animation-delay: 3.75s;
+      }
+
+      @keyframes homeCompassRotate {
+        0% {
+          opacity: 0;
+          transform: translateY(7px);
+        }
+
+        14%,
+        78% {
           opacity: 1;
-          filter: none;
+          transform: translateY(0);
+        }
+
+        100% {
+          opacity: 0;
+          transform: translateY(-7px);
+        }
+      }
+
+      @keyframes homeCompassRotateFinal {
+        0% {
+          opacity: 0;
+          transform: translateY(7px);
+        }
+
+        14%,
+        100% {
+          opacity: 1;
           transform: translateY(0);
         }
       }
@@ -5738,7 +5758,7 @@
         display: inline-flex;
         align-items: center;
         gap: 10px;
-        margin-top: 42px;
+        margin-top: 28px;
         padding: 11px 17px;
         border: 1px solid #c9d8ef;
         border-radius: 999px;
@@ -5915,13 +5935,13 @@
           margin-bottom: 38px;
         }
 
-        .home-reveal-heading {
-          font-size: clamp(2.1rem, 10vw, 3.6rem);
-          line-height: 0.92;
+        .home-welcome-heading {
+          font-size: clamp(2.8rem, 12vw, 3.6rem);
+          line-height: 0.98;
         }
 
-        .home-reveal-heading__line {
-          white-space: normal;
+        .home-compass-rotation {
+          margin-top: 14px;
         }
 
         .home-destinations-section {
@@ -5959,11 +5979,37 @@
         }
 
         .global-status,
-        .global-status__icon,
-        .home-reveal-heading__char {
+        .global-status__icon {
           animation: none !important;
           opacity: 1;
           filter: none;
+          transform: none;
+        }
+
+        .home-compass-rotation__stage {
+          min-height: 0;
+          display: flex;
+          flex-wrap: wrap;
+          justify-content: center;
+          gap: 8px;
+          overflow: visible;
+          font-size: 1rem;
+        }
+
+        .home-compass-rotation__item {
+          position: static;
+          display: inline-flex;
+          align-items: center;
+          min-height: 34px;
+          padding: 7px 10px;
+          border: 1px solid #d7e1f0;
+          border-radius: 999px;
+          opacity: 1;
+          background: rgba(255, 255, 255, 0.72);
+          font-size: clamp(0.72rem, 2.2vw, 0.86rem);
+          font-weight: 760;
+          letter-spacing: -0.01em;
+          animation: none !important;
           transform: none;
         }
       }

@@ -275,7 +275,14 @@ EOF
       cp "$ROOT_DIR/public/$asset" "$STAGE_DIR/public/$asset"
     fi
   done
-  for asset in mark.svg mark-on-dark.svg lockup-horizontal.svg; do
+  for asset in \
+    mark.svg \
+    mark-on-dark.svg \
+    lockup-horizontal.svg \
+    flechtwerk-mark.svg \
+    flechtwerk-mark-on-dark.svg \
+    flechtwerk-lockup-horizontal.svg \
+    flechtwerk-lockup-horizontal-on-dark.svg; do
     cp "$ROOT_DIR/public/brand/mitmachen/$asset" "$STAGE_DIR/public/brand/mitmachen/$asset"
   done
   for asset in app-icon-32.png app-icon-180.png app-icon-192.png app-icon-512.png; do
