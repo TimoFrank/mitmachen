@@ -37,7 +37,7 @@
         --card-padding: 16px;
         --section-gap: 16px;
         --row-height: 44px;
-        --page-header-logo-height: 36px;
+        --page-header-logo-height: 42px;
         --page-header-gap: 16px;
         --toolbar-control-height: 48px;
         --table-header-height: 44px;
@@ -21297,7 +21297,7 @@
       }
 
       .app-shell[data-active-view="map"] .filter-toolbar {
-        display: none;
+        display: none !important;
       }
 
       .app-shell[data-active-view="imports"] .summary,
@@ -24683,13 +24683,13 @@
 
       @media (max-width: 760px) {
         .app-shell:is([data-active-view="team"], [data-active-view="onboarding"]) .workspace-brand {
-          min-height: 34px;
+          min-height: var(--page-header-logo-height);
         }
 
         .app-shell:is([data-active-view="team"], [data-active-view="onboarding"]) .workspace-brand img {
-          width: 34px;
-          max-width: 34px;
-          height: 34px;
+          width: var(--page-header-logo-height);
+          max-width: var(--page-header-logo-height);
+          height: var(--page-header-logo-height);
         }
       }
 
@@ -43303,7 +43303,7 @@
       .workspace-brand {
         display: flex;
         min-width: 0;
-        min-height: 30px;
+        min-height: var(--page-header-logo-height);
         align-items: center;
         justify-content: flex-end;
       }
@@ -43315,8 +43315,8 @@
       .workspace-brand img {
         display: block;
         width: auto;
-        max-width: min(190px, 24vw);
-        height: 30px;
+        max-width: min(300px, 32vw);
+        height: var(--page-header-logo-height);
         object-fit: contain;
         object-position: right center;
       }
@@ -43613,8 +43613,8 @@
         }
 
         .workspace-heading-row {
-          grid-template-columns: minmax(0, 1fr) 32px;
-          min-height: 56px;
+          grid-template-columns: minmax(0, 1fr) var(--page-header-logo-height);
+          min-height: 64px;
           gap: 12px;
           padding: 10px 12px;
         }
@@ -43624,13 +43624,13 @@
         }
 
         .workspace-brand {
-          min-height: 30px;
+          min-height: var(--page-header-logo-height);
         }
 
         .workspace-brand img {
-          width: 30px;
-          max-width: 30px;
-          height: 30px;
+          width: var(--page-header-logo-height);
+          max-width: var(--page-header-logo-height);
+          height: var(--page-header-logo-height);
         }
 
         .app-shell[data-active-view="patients"] #patient-mode-actions .experts-mode-nav--header {

@@ -5554,11 +5554,11 @@ test("Karte: Kartenansicht und Controls rendern", async ({ page }, testInfo) => 
   await expect(visibleMapMarker).toBeVisible({ timeout: 20_000 });
   await expect(mapFrame.locator(".map-box > .map-controls")).toHaveCount(0);
   await expect(mapFrame.locator(".panel .body .map-controls--legacy")).toBeHidden();
+  await expect(page.locator('.app-shell[data-active-view="map"] .filter-toolbar')).toBeHidden();
+  await expect(page.locator(".controls-stack > .search-shell")).toBeVisible();
+  await expect(page.locator("#filter-panel-button")).toBeHidden();
+  await expect(page.locator("#view-select-button")).toBeHidden();
   if (testInfo.project.name.includes("mobile")) {
-    await expect(page.locator('.app-shell[data-active-view="map"] .filter-toolbar')).toBeHidden();
-    await expect(page.locator(".controls-stack > .search-shell")).toBeVisible();
-    await expect(page.locator("#filter-panel-button")).toBeHidden();
-    await expect(page.locator("#view-select-button")).toBeHidden();
     await expect(mapFrame.locator(".mobile-map-filter-bar")).toBeVisible();
     await expect(mapFrame.locator(".mobile-map-quick-filters")).toBeVisible();
     await expect(mapFrame.locator("#mobile-sector-filter")).toBeVisible();
@@ -5617,9 +5617,6 @@ test("Karte: Kartenansicht und Controls rendern", async ({ page }, testInfo) => 
       expect(horizontalOverflow).toBeLessThanOrEqual(1);
     }
   } else {
-    await expect(page.locator('.app-shell[data-active-view="map"] .filter-toolbar')).toBeVisible();
-    await expect(page.locator("#filter-panel-button")).toBeVisible();
-    await expect(page.locator("#view-select-button")).toBeVisible();
     await expect(mapFrame.locator("#filters")).toBeVisible();
     await expect(mapFrame.locator("#filters .map-filter-dropdown")).toHaveCount(3);
     await expect(mapFrame.locator("#filters .map-filter-trigger").first()).toBeVisible();
