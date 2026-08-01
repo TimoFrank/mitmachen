@@ -67,6 +67,8 @@ assert.doesNotMatch(
   /update\s+public\.contacts[\s\S]*mitmachen_consent_note/i,
   "Die Migration darf keinen Nachweisvermerk erfinden oder automatisch auffüllen."
 );
+assert.match(grants, /grant execute on function public\.pre_gematik_prepare_contact_purpose_write\(\) to :"runtime_role"/i);
+assert.match(grants, /grant execute on function public\.pre_gematik_log_contact_purpose_change\(\) to :"runtime_role"/i);
 assert.match(
   api,
   /changedFields\.filter\(\(field\)\s*=>\s*!CONTACT_PURPOSE_AUDIT_FIELDS\.has\(field\)\)/,

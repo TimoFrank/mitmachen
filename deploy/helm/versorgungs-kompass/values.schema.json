@@ -2,12 +2,7 @@
   "$schema": "https://json-schema.org/draft-07/schema#",
   "title": "Versorgungs-Kompass Helm values",
   "type": "object",
-  "required": [
-    "image",
-    "config",
-    "frontend",
-    "passwordResetBroker"
-  ],
+  "required": ["image", "config", "frontend", "typo3Connector", "passwordResetBroker"],
   "properties": {
     "image": {
       "type": "object",
@@ -219,6 +214,255 @@
                 "properties": {
                   "securityPolicyName": {
                     "minLength": 1
+                  }
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "typo3Connector": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "enabled",
+        "formUid",
+        "sourceUrl",
+        "formVersion",
+        "privacyNoticeVersion",
+        "consentTextVersion",
+        "bodyLimitBytes",
+        "clockSkewSeconds",
+        "currentKey",
+        "previousKey",
+        "service",
+        "backendConfig"
+      ],
+      "properties": {
+        "enabled": {
+          "type": "boolean"
+        },
+        "formUid": {
+          "const": 41
+        },
+        "sourceUrl": {
+          "const": "https://www.gematik.de/mitmachen/versorgungs-netzwerk"
+        },
+        "formVersion": {
+          "type": "string",
+          "maxLength": 120
+        },
+        "privacyNoticeVersion": {
+          "type": "string",
+          "maxLength": 120
+        },
+        "consentTextVersion": {
+          "type": "string",
+          "maxLength": 120
+        },
+        "bodyLimitBytes": {
+          "const": 24000
+        },
+        "clockSkewSeconds": {
+          "const": 300
+        },
+        "currentKey": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["id", "secretName", "secretKey"],
+          "properties": {
+            "id": {
+              "type": "string",
+              "pattern": "^(|[A-Za-z0-9][A-Za-z0-9._-]{0,63})$"
+            },
+            "secretName": {
+              "type": "string",
+              "maxLength": 253,
+              "pattern": "^(|[a-z0-9](?:[-.a-z0-9]*[a-z0-9])?)$"
+            },
+            "secretKey": {
+              "type": "string",
+              "maxLength": 253,
+              "pattern": "^(|[A-Za-z0-9._-]+)$"
+            }
+          }
+        },
+        "previousKey": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["enabled", "id", "secretName", "secretKey"],
+          "properties": {
+            "enabled": {
+              "type": "boolean"
+            },
+            "id": {
+              "type": "string",
+              "pattern": "^(|[A-Za-z0-9][A-Za-z0-9._-]{0,63})$"
+            },
+            "secretName": {
+              "type": "string",
+              "maxLength": 253,
+              "pattern": "^(|[a-z0-9](?:[-.a-z0-9]*[a-z0-9])?)$"
+            },
+            "secretKey": {
+              "type": "string",
+              "maxLength": 253,
+              "pattern": "^(|[A-Za-z0-9._-]+)$"
+            }
+          },
+          "allOf": [
+            {
+              "if": {
+                "properties": {
+                  "enabled": {
+                    "const": true
+                  }
+                },
+                "required": ["enabled"]
+              },
+              "then": {
+                "properties": {
+                  "id": {
+                    "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]{0,63}$"
+                  },
+                  "secretName": {
+                    "minLength": 1
+                  },
+                  "secretKey": {
+                    "minLength": 1
+                  }
+                }
+              }
+            }
+          ]
+        },
+        "service": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["port", "annotations"],
+          "properties": {
+            "port": {
+              "const": 80
+            },
+            "annotations": {
+              "type": "object",
+              "additionalProperties": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        "backendConfig": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "enabled",
+            "name",
+            "timeoutSec",
+            "connectionDrainingTimeoutSec",
+            "healthCheck"
+          ],
+          "properties": {
+            "enabled": {
+              "type": "boolean"
+            },
+            "name": {
+              "type": "string",
+              "maxLength": 63,
+              "pattern": "^$|^[a-z0-9]([-a-z0-9]*[a-z0-9])?$"
+            },
+            "timeoutSec": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 86400
+            },
+            "connectionDrainingTimeoutSec": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 3600
+            },
+            "healthCheck": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "type",
+                "requestPath",
+                "port",
+                "checkIntervalSec",
+                "timeoutSec",
+                "healthyThreshold",
+                "unhealthyThreshold"
+              ],
+              "properties": {
+                "type": {
+                  "const": "HTTP"
+                },
+                "requestPath": {
+                  "const": "/api/readyz"
+                },
+                "port": {
+                  "const": 8080
+                },
+                "checkIntervalSec": {
+                  "type": "integer",
+                  "minimum": 1
+                },
+                "timeoutSec": {
+                  "type": "integer",
+                  "minimum": 1
+                },
+                "healthyThreshold": {
+                  "type": "integer",
+                  "minimum": 1
+                },
+                "unhealthyThreshold": {
+                  "type": "integer",
+                  "minimum": 1
+                }
+              }
+            }
+          }
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "enabled": {
+                "const": true
+              }
+            },
+            "required": ["enabled"]
+          },
+          "then": {
+            "properties": {
+              "formVersion": {
+                "pattern": "^\\S(?:.*\\S)?$"
+              },
+              "privacyNoticeVersion": {
+                "pattern": "^\\S(?:.*\\S)?$"
+              },
+              "consentTextVersion": {
+                "pattern": "^\\S(?:.*\\S)?$"
+              },
+              "currentKey": {
+                "properties": {
+                  "id": {
+                    "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]{0,63}$"
+                  },
+                  "secretName": {
+                    "minLength": 1
+                  },
+                  "secretKey": {
+                    "minLength": 1
+                  }
+                }
+              },
+              "backendConfig": {
+                "properties": {
+                  "enabled": {
+                    "const": true
                   }
                 }
               }

@@ -5,7 +5,7 @@ metadata:
   namespace: pre-gematik
   labels:
     app.kubernetes.io/name: versorgungs-kompass
-    app.kubernetes.io/component: migration-operator
+    app.kubernetes.io/component: identity-operator
 spec:
   backoffLimit: 0
   activeDeadlineSeconds: 3600
@@ -13,7 +13,7 @@ spec:
     metadata:
       labels:
         app.kubernetes.io/name: versorgungs-kompass
-        app.kubernetes.io/component: migration-operator
+        app.kubernetes.io/component: identity-operator
     spec:
       restartPolicy: Never
       serviceAccountName: vk-pre-gematik-migration-operator
@@ -78,7 +78,6 @@ spec:
         - name: secret-input
           secret:
             secretName: vk-pre-gematik-migration-input
-            optional: true
             defaultMode: 0440
         - name: protected-input
           emptyDir:

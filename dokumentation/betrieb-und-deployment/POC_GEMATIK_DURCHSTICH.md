@@ -1,7 +1,7 @@
 # Gematik-PoC: interner Nutzungspilot
 
 Status: Vorbereitung des internen Nutzungspiloten
-Stand: 23. Juli 2026
+Stand: 1. August 2026
 
 ## Zweck
 
@@ -20,7 +20,7 @@ gematik OIDC-Identität -> bestehendes oder neu angelegtes Profil
 
 | Bereich | Stand |
 | --- | --- |
-| Quellstand | `poc-v0.1.0-rc.2` bezeichnet den bereitgestellten RC-Stand |
+| Quellstand | `poc-v0.1.0-rc.3` bezeichnet den eingefrorenen RC-Stand |
 | Anwendung | Target-Frontend, API-Container und Helm-Chart sind vorbereitet |
 | Anmeldung | OIDC wird von der API geprüft; unbekannte Identitäten werden abgewiesen |
 | Daten | Schema und Datenklassen sind bekannt; der bisherige Importweg muss an die gematik-Datenbank und den gewählten Dateispeicher angebunden werden |
@@ -90,6 +90,6 @@ Der Durchstich ist abgeschlossen, wenn:
 
 - [Deployment-Runbook für Kubernetes](DEPLOYMENT_GEMATIK_K8S.md)
 - [Datenbank und Datenübernahme](../../deploy/postgres/poc-gematik/README.md)
-- [Bestehender Datenvertrag und Herkunft](SUPABASE_CLOUD_SQL_MIGRATION.md)
+- [Aktueller Datenweg und historischer Providerwechsel](SUPABASE_CLOUD_SQL_MIGRATION.md)
 - [API-Vertrag](../architektur/API_CONTRACT.md)
 - [Sicherheitsrichtlinie](../../SECURITY.md)

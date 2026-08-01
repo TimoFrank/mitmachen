@@ -1,0 +1,2394 @@
+<!doctype html>
+<html lang="de">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="color-scheme" content="light" />
+    <link rel="icon" href="assets/01-flechtwerk-mark.svg" type="image/svg+xml" />
+    <title>#Mitmachen – Logo- und Markenstudie</title>
+    <style>
+      :root {
+        --navy: #08164f;
+        --navy-deep: #040a27;
+        --navy-soft: #142669;
+        --green: #00a846;
+        --green-dark: #008f43;
+        --mint: #35f28a;
+        --blue: #2f6fec;
+        --ink: #111c42;
+        --ink-soft: #52617d;
+        --paper: #f4f7fb;
+        --white: #ffffff;
+        --line: #dce3ef;
+        --shadow: 0 24px 70px rgba(8, 22, 79, 0.1);
+        font-family: Inter, "SF Pro Text", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      html {
+        min-width: 320px;
+        scroll-behavior: smooth;
+        background: var(--paper);
+      }
+
+      body {
+        min-width: 320px;
+        margin: 0;
+        background:
+          radial-gradient(circle at 10% 42%, rgba(47, 111, 236, 0.08), transparent 28rem),
+          var(--paper);
+        color: var(--ink);
+        -webkit-font-smoothing: antialiased;
+      }
+
+      img {
+        display: block;
+        max-width: 100%;
+      }
+
+      a {
+        color: inherit;
+      }
+
+      .hero {
+        position: relative;
+        min-height: 720px;
+        overflow: hidden;
+        background:
+          radial-gradient(circle at 82% 25%, rgba(53, 242, 138, 0.16), transparent 25rem),
+          radial-gradient(circle at 62% 115%, rgba(47, 111, 236, 0.25), transparent 36rem),
+          linear-gradient(132deg, var(--navy-deep), var(--navy) 58%, #0b3562);
+        color: var(--white);
+      }
+
+      .hero::before,
+      .hero::after {
+        position: absolute;
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        border-radius: 50%;
+        content: "";
+        pointer-events: none;
+      }
+
+      .hero::before {
+        width: 580px;
+        height: 580px;
+        right: -130px;
+        top: 40px;
+        box-shadow:
+          0 0 0 72px rgba(255, 255, 255, 0.018),
+          0 0 0 144px rgba(255, 255, 255, 0.012);
+      }
+
+      .hero::after {
+        width: 270px;
+        height: 270px;
+        left: -120px;
+        bottom: -100px;
+      }
+
+      .hero__nav,
+      .hero__grid,
+      .section,
+      .footer__inner {
+        width: min(1240px, calc(100% - 48px));
+        margin-inline: auto;
+      }
+
+      .hero__nav {
+        position: relative;
+        z-index: 2;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding-top: 28px;
+      }
+
+      .hero__nav-brand {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        font-size: 0.78rem;
+        font-weight: 800;
+        letter-spacing: 0.13em;
+        text-transform: uppercase;
+      }
+
+      .hero__nav-brand img {
+        width: 32px;
+        height: 32px;
+      }
+
+      .hero__meta {
+        color: rgba(255, 255, 255, 0.58);
+        font-size: 0.75rem;
+        font-weight: 750;
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+      }
+
+      .hero__grid {
+        position: relative;
+        z-index: 1;
+        display: grid;
+        grid-template-columns: minmax(0, 1.08fr) minmax(340px, 0.92fr);
+        gap: clamp(42px, 8vw, 112px);
+        align-items: center;
+        min-height: 620px;
+        padding-block: 70px 84px;
+      }
+
+      .eyebrow {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        margin: 0 0 22px;
+        color: var(--green-dark);
+        font-size: 0.76rem;
+        font-weight: 850;
+        letter-spacing: 0.13em;
+        text-transform: uppercase;
+      }
+
+      .eyebrow::before {
+        width: 30px;
+        height: 3px;
+        border-radius: 999px;
+        background: currentColor;
+        content: "";
+      }
+
+      .hero .eyebrow {
+        color: var(--mint);
+      }
+
+      .hero h1 {
+        max-width: 760px;
+        margin: 0;
+        font-size: clamp(3.8rem, 7.4vw, 7.4rem);
+        font-weight: 900;
+        letter-spacing: -0.07em;
+        line-height: 0.88;
+      }
+
+      .hero h1 span {
+        color: var(--mint);
+      }
+
+      .hero__lead {
+        max-width: 680px;
+        margin: 30px 0 0;
+        color: rgba(255, 255, 255, 0.72);
+        font-size: clamp(1.05rem, 1.6vw, 1.32rem);
+        line-height: 1.62;
+      }
+
+      .hero__principles {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 9px;
+        margin-top: 32px;
+      }
+
+      .hero__principles span {
+        padding: 9px 13px;
+        border: 1px solid rgba(255, 255, 255, 0.14);
+        border-radius: 999px;
+        background: rgba(255, 255, 255, 0.05);
+        color: rgba(255, 255, 255, 0.78);
+        font-size: 0.75rem;
+        font-weight: 750;
+      }
+
+      .hero-mark {
+        position: relative;
+        display: grid;
+        width: min(100%, 470px);
+        aspect-ratio: 1;
+        place-items: center;
+        justify-self: end;
+      }
+
+      .hero-mark__orbit {
+        position: absolute;
+        inset: 3%;
+        border: 1px solid rgba(255, 255, 255, 0.12);
+        border-radius: 50%;
+      }
+
+      .hero-mark__orbit::before,
+      .hero-mark__orbit::after {
+        position: absolute;
+        width: 14px;
+        height: 14px;
+        border: 4px solid var(--navy);
+        border-radius: 50%;
+        background: var(--mint);
+        content: "";
+      }
+
+      .hero-mark__orbit::before {
+        right: 10%;
+        top: 10%;
+      }
+
+      .hero-mark__orbit::after {
+        left: 3%;
+        bottom: 22%;
+        background: #70a3ff;
+      }
+
+      .hero-mark__tile {
+        position: relative;
+        display: grid;
+        width: 68%;
+        aspect-ratio: 1;
+        place-items: center;
+        border: 1px solid rgba(255, 255, 255, 0.14);
+        border-radius: 31%;
+        background: rgba(255, 255, 255, 0.075);
+        box-shadow:
+          inset 0 1px 0 rgba(255, 255, 255, 0.12),
+          0 34px 90px rgba(0, 0, 0, 0.32);
+        transform: rotate(-5deg);
+        backdrop-filter: blur(14px);
+      }
+
+      .hero-mark__tile img {
+        width: 67%;
+        transform: rotate(5deg);
+        filter: drop-shadow(0 16px 28px rgba(0, 0, 0, 0.24));
+      }
+
+      .hero-mark__label {
+        position: absolute;
+        right: 1%;
+        bottom: 6%;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 10px 13px;
+        border: 1px solid rgba(255, 255, 255, 0.13);
+        border-radius: 999px;
+        background: rgba(4, 10, 39, 0.58);
+        color: rgba(255, 255, 255, 0.74);
+        font-size: 0.72rem;
+        font-weight: 750;
+        backdrop-filter: blur(10px);
+      }
+
+      .hero-mark__label i {
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        background: var(--mint);
+        box-shadow: 0 0 16px rgba(53, 242, 138, 0.9);
+      }
+
+      main {
+        overflow: hidden;
+      }
+
+      .section {
+        padding-block: 112px;
+      }
+
+      .section + .section {
+        border-top: 1px solid var(--line);
+      }
+
+      .section__head {
+        display: grid;
+        grid-template-columns: minmax(0, 0.92fr) minmax(320px, 0.72fr);
+        gap: clamp(32px, 6vw, 90px);
+        align-items: end;
+        margin-bottom: 52px;
+      }
+
+      .section__head h2 {
+        margin: 0;
+        font-size: clamp(2.45rem, 5vw, 4.9rem);
+        font-weight: 900;
+        letter-spacing: -0.06em;
+        line-height: 0.96;
+      }
+
+      .section__intro {
+        margin: 0;
+        color: var(--ink-soft);
+        font-size: 1.02rem;
+        line-height: 1.68;
+      }
+
+      .baseline {
+        display: grid;
+        grid-template-columns: minmax(0, 0.78fr) minmax(0, 1.22fr);
+        overflow: hidden;
+        border: 1px solid var(--line);
+        border-radius: 28px;
+        background: var(--white);
+        box-shadow: var(--shadow);
+      }
+
+      .baseline__visual {
+        display: grid;
+        min-height: 360px;
+        place-items: center;
+        padding: 44px;
+        background:
+          linear-gradient(rgba(8, 22, 79, 0.035) 1px, transparent 1px),
+          linear-gradient(90deg, rgba(8, 22, 79, 0.035) 1px, transparent 1px),
+          #f9fbfe;
+        background-size: 24px 24px;
+      }
+
+      .baseline__visual img {
+        width: min(100%, 430px);
+      }
+
+      .baseline__copy {
+        padding: clamp(38px, 6vw, 74px);
+        background: var(--white);
+      }
+
+      .baseline__copy h3 {
+        margin: 0 0 16px;
+        font-size: 1.7rem;
+        letter-spacing: -0.035em;
+      }
+
+      .baseline__copy > p {
+        margin: 0;
+        color: var(--ink-soft);
+        line-height: 1.72;
+      }
+
+      .baseline__facts {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 12px;
+        margin-top: 34px;
+      }
+
+      .fact {
+        padding: 17px;
+        border: 1px solid var(--line);
+        border-radius: 16px;
+        background: var(--paper);
+      }
+
+      .fact strong {
+        display: block;
+        margin-bottom: 5px;
+        color: var(--navy);
+        font-size: 1.16rem;
+      }
+
+      .fact span {
+        color: var(--ink-soft);
+        font-size: 0.78rem;
+        line-height: 1.35;
+      }
+
+      .exploration-grid {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 18px;
+      }
+
+      .exploration-card {
+        --variant: var(--green);
+        position: relative;
+        overflow: hidden;
+        min-width: 0;
+        border: 1px solid var(--line);
+        border-radius: 22px;
+        background: var(--white);
+        box-shadow: 0 16px 42px rgba(8, 22, 79, 0.065);
+      }
+
+      .exploration-card--lead {
+        border-color: color-mix(in srgb, var(--variant) 55%, white);
+        box-shadow: 0 18px 46px color-mix(in srgb, var(--variant) 16%, transparent);
+      }
+
+      .exploration-card__stage {
+        position: relative;
+        display: grid;
+        min-height: 142px;
+        align-items: center;
+        padding: 42px 22px 22px;
+        background:
+          radial-gradient(circle at 100% 0%, color-mix(in srgb, var(--variant) 16%, transparent), transparent 10rem),
+          linear-gradient(145deg, #fbfcff, #f3f7fc);
+      }
+
+      .exploration-card__number,
+      .exploration-card__family {
+        position: absolute;
+        top: 14px;
+        color: var(--navy);
+        font-size: 0.63rem;
+        font-weight: 850;
+        letter-spacing: 0.09em;
+        text-transform: uppercase;
+      }
+
+      .exploration-card__number {
+        left: 16px;
+      }
+
+      .exploration-card__family {
+        right: 16px;
+        color: color-mix(in srgb, var(--variant) 82%, var(--navy));
+      }
+
+      .exploration-card__lockup {
+        display: flex;
+        min-width: 0;
+        align-items: center;
+        gap: 12px;
+        color: var(--navy);
+      }
+
+      .exploration-card__lockup img {
+        width: 54px;
+        height: 54px;
+        flex: 0 0 auto;
+        filter: drop-shadow(0 7px 12px rgba(8, 22, 79, 0.1));
+      }
+
+      .exploration-card__lockup span {
+        overflow: hidden;
+        font-size: clamp(1.15rem, 1.8vw, 1.5rem);
+        font-weight: 900;
+        letter-spacing: -0.055em;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+      .exploration-card__body {
+        display: flex;
+        min-height: 154px;
+        flex-direction: column;
+        padding: 21px 22px 20px;
+        border-top: 1px solid var(--line);
+      }
+
+      .exploration-card__body h3 {
+        margin: 0;
+        color: var(--navy);
+        font-size: 1.06rem;
+        letter-spacing: -0.035em;
+      }
+
+      .exploration-card__body p {
+        min-height: 56px;
+        flex: 1;
+        margin: 8px 0 15px;
+        color: var(--ink-soft);
+        font-size: 0.78rem;
+        line-height: 1.48;
+      }
+
+      .exploration-card__footer {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+      }
+
+      .exploration-card__idea {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        color: var(--ink-soft);
+        font-size: 0.63rem;
+        font-weight: 800;
+      }
+
+      .exploration-card__idea::before {
+        width: 7px;
+        height: 7px;
+        border-radius: 50%;
+        background: var(--variant);
+        box-shadow: 0 0 0 4px color-mix(in srgb, var(--variant) 12%, transparent);
+        content: "";
+      }
+
+      .exploration-card__download {
+        padding: 6px 8px;
+        border: 1px solid var(--line);
+        border-radius: 999px;
+        color: var(--navy);
+        font-size: 0.61rem;
+        font-weight: 850;
+        letter-spacing: 0.04em;
+        text-decoration: none;
+        text-transform: uppercase;
+        white-space: nowrap;
+      }
+
+      .micro-board {
+        margin-top: 24px;
+        padding: 24px;
+        border: 1px solid var(--line);
+        border-radius: 22px;
+        background: var(--navy);
+        color: var(--white);
+      }
+
+      .micro-board__head {
+        display: flex;
+        align-items: baseline;
+        justify-content: space-between;
+        gap: 20px;
+        margin-bottom: 20px;
+      }
+
+      .micro-board__head strong {
+        font-size: 0.86rem;
+        letter-spacing: -0.01em;
+      }
+
+      .micro-board__head span {
+        color: rgba(255, 255, 255, 0.55);
+        font-size: 0.68rem;
+      }
+
+      .micro-board__grid {
+        display: grid;
+        grid-template-columns: repeat(10, minmax(0, 1fr));
+        gap: 8px;
+      }
+
+      .micro-board__item {
+        display: grid;
+        min-width: 0;
+        place-items: center;
+        gap: 8px;
+        padding: 13px 6px 9px;
+        border: 1px solid rgba(255, 255, 255, 0.09);
+        border-radius: 12px;
+        background: rgba(255, 255, 255, 0.045);
+        color: rgba(255, 255, 255, 0.58);
+        font-size: 0.6rem;
+        font-weight: 800;
+      }
+
+      .micro-board__item img {
+        width: 32px;
+        height: 32px;
+        padding: 2px;
+        border-radius: 8px;
+        background: var(--white);
+      }
+
+      .concept-grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 24px;
+      }
+
+      .concept-card {
+        position: relative;
+        overflow: hidden;
+        border: 1px solid var(--line);
+        border-radius: 26px;
+        background: var(--white);
+        box-shadow: 0 18px 46px rgba(8, 22, 79, 0.07);
+      }
+
+      .concept-card--lead {
+        border-color: rgba(0, 168, 70, 0.42);
+        box-shadow: 0 24px 70px rgba(0, 143, 67, 0.13);
+      }
+
+      .concept-card__stage {
+        position: relative;
+        display: grid;
+        min-height: 320px;
+        grid-template-columns: 1fr 112px;
+        gap: 28px;
+        align-items: center;
+        padding: 46px;
+        background:
+          radial-gradient(circle at 100% 0%, rgba(0, 168, 70, 0.1), transparent 17rem),
+          #f9fbfe;
+      }
+
+      .concept-card:nth-child(2) .concept-card__stage {
+        background:
+          radial-gradient(circle at 100% 0%, rgba(47, 111, 236, 0.1), transparent 17rem),
+          #f9fbfe;
+      }
+
+      .concept-card:nth-child(3) .concept-card__stage {
+        background:
+          radial-gradient(circle at 100% 0%, rgba(0, 168, 70, 0.14), transparent 18rem),
+          #f9fbfe;
+      }
+
+      .concept-card:nth-child(4) .concept-card__stage {
+        background:
+          radial-gradient(circle at 100% 0%, rgba(244, 171, 69, 0.16), transparent 18rem),
+          #f9fbfe;
+      }
+
+      .concept-card__lockup {
+        width: 100%;
+      }
+
+      .concept-card__mark {
+        width: 100%;
+        filter: drop-shadow(0 12px 18px rgba(8, 22, 79, 0.12));
+      }
+
+      .concept-card__number {
+        position: absolute;
+        top: 18px;
+        left: 18px;
+        display: grid;
+        width: 32px;
+        height: 32px;
+        place-items: center;
+        border: 1px solid var(--line);
+        border-radius: 50%;
+        background: rgba(255, 255, 255, 0.84);
+        color: var(--navy);
+        font-size: 0.72rem;
+        font-weight: 850;
+        backdrop-filter: blur(8px);
+      }
+
+      .concept-card__badge {
+        position: absolute;
+        top: 19px;
+        right: 19px;
+        padding: 7px 10px;
+        border-radius: 999px;
+        background: var(--navy);
+        color: var(--white);
+        font-size: 0.65rem;
+        font-weight: 850;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+      }
+
+      .concept-card--lead .concept-card__badge {
+        background: var(--green);
+      }
+
+      .concept-card__body {
+        padding: 30px 34px 34px;
+        border-top: 1px solid var(--line);
+      }
+
+      .concept-card__body h3 {
+        margin: 0;
+        color: var(--navy);
+        font-size: 1.55rem;
+        letter-spacing: -0.04em;
+      }
+
+      .concept-card__tagline {
+        margin: 7px 0 14px;
+        color: var(--green-dark);
+        font-size: 0.8rem;
+        font-weight: 850;
+      }
+
+      .concept-card__body > p:last-of-type {
+        min-height: 76px;
+        margin: 0;
+        color: var(--ink-soft);
+        font-size: 0.92rem;
+        line-height: 1.62;
+      }
+
+      .chips {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 7px;
+        margin-top: 22px;
+      }
+
+      .chip {
+        padding: 7px 10px;
+        border: 1px solid var(--line);
+        border-radius: 999px;
+        background: var(--paper);
+        color: #475571;
+        font-size: 0.68rem;
+        font-weight: 750;
+      }
+
+      .recommendation {
+        display: grid;
+        grid-template-columns: minmax(0, 1.05fr) minmax(320px, 0.95fr);
+        gap: 24px;
+      }
+
+      .recommendation__lead,
+      .recommendation__stress {
+        overflow: hidden;
+        border-radius: 28px;
+      }
+
+      .recommendation__lead {
+        position: relative;
+        padding: clamp(40px, 6vw, 72px);
+        background:
+          radial-gradient(circle at 95% 0%, rgba(53, 242, 138, 0.2), transparent 22rem),
+          linear-gradient(135deg, var(--navy-deep), var(--navy) 72%);
+        color: var(--white);
+      }
+
+      .recommendation__lead::after {
+        position: absolute;
+        right: -70px;
+        bottom: -110px;
+        width: 300px;
+        height: 300px;
+        border: 1px solid rgba(255, 255, 255, 0.09);
+        border-radius: 50%;
+        box-shadow: 0 0 0 52px rgba(255, 255, 255, 0.025);
+        content: "";
+      }
+
+      .recommendation__lead img {
+        position: relative;
+        z-index: 1;
+        width: min(100%, 520px);
+        margin-bottom: 50px;
+      }
+
+      .recommendation__lead h3 {
+        position: relative;
+        z-index: 1;
+        max-width: 580px;
+        margin: 0;
+        font-size: clamp(2.3rem, 4vw, 4.2rem);
+        letter-spacing: -0.06em;
+        line-height: 0.98;
+      }
+
+      .recommendation__lead p {
+        position: relative;
+        z-index: 1;
+        max-width: 620px;
+        margin: 24px 0 0;
+        color: rgba(255, 255, 255, 0.68);
+        line-height: 1.72;
+      }
+
+      .recommendation__stress {
+        display: grid;
+        gap: 1px;
+        border: 1px solid var(--line);
+        background: var(--line);
+      }
+
+      .stress-panel {
+        padding: 32px;
+        background: var(--white);
+      }
+
+      .stress-panel--dark {
+        background: var(--navy);
+        color: var(--white);
+      }
+
+      .stress-panel h4 {
+        margin: 0 0 24px;
+        color: var(--ink-soft);
+        font-size: 0.68rem;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+      }
+
+      .stress-panel--dark h4 {
+        color: rgba(255, 255, 255, 0.55);
+      }
+
+      .size-test {
+        display: flex;
+        align-items: end;
+        gap: 22px;
+      }
+
+      .size-test__item {
+        display: grid;
+        gap: 8px;
+        justify-items: center;
+        color: var(--ink-soft);
+        font-size: 0.65rem;
+        font-weight: 750;
+      }
+
+      .size-test__item img {
+        width: var(--size);
+        height: var(--size);
+      }
+
+      .mono-test {
+        display: grid;
+        grid-template-columns: 96px 1fr;
+        gap: 22px;
+        align-items: center;
+      }
+
+      .mono-test img {
+        width: 96px;
+      }
+
+      .mono-test p {
+        margin: 0;
+        color: var(--ink-soft);
+        font-size: 0.86rem;
+        line-height: 1.55;
+      }
+
+      .inverse-test img {
+        width: min(100%, 430px);
+      }
+
+      .applications {
+        display: grid;
+        grid-template-columns: 1fr 1.12fr 0.88fr;
+        gap: 18px;
+      }
+
+      .application {
+        position: relative;
+        min-height: 360px;
+        overflow: hidden;
+        border: 1px solid var(--line);
+        border-radius: 24px;
+        background: var(--white);
+        box-shadow: 0 18px 48px rgba(8, 22, 79, 0.07);
+      }
+
+      .application__label {
+        position: absolute;
+        z-index: 2;
+        top: 16px;
+        left: 16px;
+        padding: 7px 10px;
+        border: 1px solid rgba(8, 22, 79, 0.1);
+        border-radius: 999px;
+        background: rgba(255, 255, 255, 0.84);
+        color: var(--navy);
+        font-size: 0.67rem;
+        font-weight: 850;
+        backdrop-filter: blur(8px);
+      }
+
+      .application--sticker {
+        display: grid;
+        place-items: center;
+        background:
+          linear-gradient(135deg, rgba(8, 22, 79, 0.04), transparent),
+          #e9edf4;
+      }
+
+      .sticker-sheet {
+        position: relative;
+        width: 270px;
+        height: 270px;
+        transform: rotate(-7deg);
+      }
+
+      .sticker {
+        position: absolute;
+        display: grid;
+        place-items: center;
+        box-shadow: 0 20px 34px rgba(8, 22, 79, 0.18);
+      }
+
+      .sticker--round {
+        inset: 24px 20px 32px 28px;
+        border: 9px solid var(--white);
+        border-radius: 50%;
+        background: var(--navy);
+      }
+
+      .sticker--round img {
+        width: 57%;
+      }
+
+      .sticker--mini {
+        right: -8px;
+        bottom: 0;
+        width: 82px;
+        height: 82px;
+        border: 6px solid var(--white);
+        border-radius: 26px;
+        background: var(--green);
+        transform: rotate(14deg);
+      }
+
+      .sticker--mini img {
+        width: 56px;
+        filter: brightness(0) invert(1);
+      }
+
+      .application--card {
+        display: grid;
+        place-items: center;
+        background:
+          radial-gradient(circle at 88% 16%, rgba(0, 168, 70, 0.14), transparent 12rem),
+          #edf2f9;
+      }
+
+      .business-card {
+        position: relative;
+        width: min(88%, 430px);
+        aspect-ratio: 1.72;
+        overflow: hidden;
+        border-radius: 14px;
+        background: var(--white);
+        padding: 34px 36px;
+        box-shadow: 0 25px 50px rgba(8, 22, 79, 0.18);
+        transform: rotate(3deg);
+      }
+
+      .business-card::after {
+        position: absolute;
+        right: -64px;
+        bottom: -84px;
+        width: 210px;
+        height: 210px;
+        border-radius: 50%;
+        background: var(--green);
+        content: "";
+        opacity: 0.12;
+      }
+
+      .business-card > img {
+        width: 230px;
+      }
+
+      .business-card__person {
+        position: absolute;
+        left: 36px;
+        bottom: 34px;
+      }
+
+      .business-card__person strong,
+      .business-card__person span {
+        display: block;
+      }
+
+      .business-card__person strong {
+        color: var(--navy);
+        font-size: 0.91rem;
+      }
+
+      .business-card__person span {
+        margin-top: 4px;
+        color: var(--ink-soft);
+        font-size: 0.68rem;
+      }
+
+      .application--shirt {
+        display: grid;
+        place-items: center;
+        background:
+          linear-gradient(135deg, rgba(255, 255, 255, 0.05), transparent),
+          #d7dde7;
+      }
+
+      .shirt {
+        position: relative;
+        width: 250px;
+        height: 288px;
+        background: var(--navy);
+        clip-path: polygon(29% 0, 40% 8%, 60% 8%, 71% 0, 100% 19%, 86% 39%, 76% 32%, 76% 100%, 24% 100%, 24% 32%, 14% 39%, 0 19%);
+        filter: drop-shadow(0 26px 22px rgba(8, 22, 79, 0.22));
+      }
+
+      .shirt::before {
+        position: absolute;
+        top: -8px;
+        left: 50%;
+        width: 54px;
+        height: 30px;
+        border-radius: 0 0 28px 28px;
+        background: #d7dde7;
+        content: "";
+        transform: translateX(-50%);
+      }
+
+      .shirt img {
+        position: absolute;
+        top: 89px;
+        left: 50%;
+        width: 86px;
+        transform: translateX(-50%);
+      }
+
+      .application--slide {
+        grid-column: span 2;
+        min-height: 390px;
+        padding: 44px;
+        background:
+          radial-gradient(circle at 92% 13%, rgba(53, 242, 138, 0.18), transparent 20rem),
+          linear-gradient(135deg, var(--navy-deep), var(--navy) 68%);
+        color: var(--white);
+      }
+
+      .slide__logo {
+        width: 330px;
+      }
+
+      .slide__copy {
+        position: absolute;
+        left: 44px;
+        bottom: 45px;
+      }
+
+      .slide__copy span {
+        color: var(--mint);
+        font-size: 0.72rem;
+        font-weight: 850;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+      }
+
+      .slide__copy h3 {
+        max-width: 670px;
+        margin: 12px 0 0;
+        font-size: clamp(2.2rem, 4vw, 4.4rem);
+        letter-spacing: -0.055em;
+        line-height: 0.96;
+      }
+
+      .slide__mark {
+        position: absolute;
+        right: 48px;
+        bottom: 42px;
+        width: 180px;
+        opacity: 0.16;
+      }
+
+      .application--badge {
+        display: grid;
+        place-items: center;
+        background:
+          linear-gradient(135deg, #eef2f8, #e5eaf2);
+      }
+
+      .event-badge {
+        position: relative;
+        width: 230px;
+        min-height: 300px;
+        overflow: hidden;
+        border-radius: 17px;
+        background: var(--white);
+        padding: 30px 26px;
+        box-shadow: 0 24px 48px rgba(8, 22, 79, 0.17);
+        transform: rotate(-2deg);
+      }
+
+      .event-badge::before {
+        position: absolute;
+        top: -8px;
+        left: 50%;
+        width: 72px;
+        height: 20px;
+        border-radius: 0 0 12px 12px;
+        background: #c8d0dc;
+        content: "";
+        transform: translateX(-50%);
+      }
+
+      .event-badge img {
+        width: 170px;
+        margin-top: 10px;
+      }
+
+      .event-badge__role {
+        display: inline-block;
+        margin-top: 34px;
+        padding: 7px 9px;
+        border-radius: 7px;
+        background: rgba(0, 168, 70, 0.11);
+        color: var(--green-dark);
+        font-size: 0.64rem;
+        font-weight: 850;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+      }
+
+      .event-badge strong {
+        display: block;
+        margin-top: 13px;
+        color: var(--navy);
+        font-size: 1.35rem;
+      }
+
+      .event-badge small {
+        display: block;
+        margin-top: 5px;
+        color: var(--ink-soft);
+        font-size: 0.72rem;
+      }
+
+      .scorecard {
+        overflow: hidden;
+        border: 1px solid var(--line);
+        border-radius: 24px;
+        background: var(--white);
+        box-shadow: 0 16px 44px rgba(8, 22, 79, 0.06);
+      }
+
+      .scorecard table {
+        width: 100%;
+        border-collapse: collapse;
+      }
+
+      .scorecard th,
+      .scorecard td {
+        padding: 18px 20px;
+        border-bottom: 1px solid var(--line);
+        text-align: center;
+      }
+
+      .scorecard th {
+        background: #f8fafe;
+        color: var(--ink-soft);
+        font-size: 0.68rem;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+      }
+
+      .scorecard th:first-child,
+      .scorecard td:first-child {
+        text-align: left;
+      }
+
+      .scorecard td {
+        color: var(--ink-soft);
+        font-size: 0.86rem;
+      }
+
+      .scorecard td:first-child {
+        color: var(--navy);
+        font-weight: 850;
+      }
+
+      .scorecard tr:last-child td {
+        border-bottom: 0;
+      }
+
+      .scorecard tr.is-lead td {
+        background: rgba(0, 168, 70, 0.055);
+      }
+
+      .score {
+        display: inline-grid;
+        width: 29px;
+        height: 29px;
+        place-items: center;
+        border-radius: 50%;
+        background: var(--paper);
+        color: var(--navy);
+        font-weight: 850;
+      }
+
+      .is-lead .score {
+        background: rgba(0, 168, 70, 0.14);
+        color: var(--green-dark);
+      }
+
+      .rules {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 14px;
+        margin-top: 26px;
+      }
+
+      .rule {
+        min-height: 190px;
+        padding: 28px;
+        border: 1px solid var(--line);
+        border-radius: 20px;
+        background: var(--white);
+      }
+
+      .rule__number {
+        display: grid;
+        width: 34px;
+        height: 34px;
+        margin-bottom: 24px;
+        place-items: center;
+        border-radius: 10px;
+        background: var(--navy);
+        color: var(--white);
+        font-size: 0.75rem;
+        font-weight: 850;
+      }
+
+      .rule h3 {
+        margin: 0 0 8px;
+        color: var(--navy);
+        font-size: 1rem;
+      }
+
+      .rule p {
+        margin: 0;
+        color: var(--ink-soft);
+        font-size: 0.82rem;
+        line-height: 1.54;
+      }
+
+      .footer {
+        padding-block: 54px;
+        background: var(--navy-deep);
+        color: var(--white);
+      }
+
+      .footer__inner {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 32px;
+      }
+
+      .footer__brand {
+        display: flex;
+        align-items: center;
+        gap: 14px;
+      }
+
+      .footer__brand img {
+        width: 42px;
+        height: 42px;
+      }
+
+      .footer__brand strong,
+      .footer__brand span {
+        display: block;
+      }
+
+      .footer__brand strong {
+        font-size: 0.93rem;
+      }
+
+      .footer__brand span,
+      .footer__note {
+        margin-top: 4px;
+        color: rgba(255, 255, 255, 0.52);
+        font-size: 0.72rem;
+      }
+
+      .footer__note {
+        max-width: 480px;
+        margin: 0;
+        text-align: right;
+        line-height: 1.55;
+      }
+
+      @media (max-width: 980px) {
+        .hero {
+          min-height: auto;
+        }
+
+        .hero__grid,
+        .section__head,
+        .recommendation {
+          grid-template-columns: 1fr;
+        }
+
+        .hero__grid {
+          gap: 20px;
+          padding-block: 78px 92px;
+        }
+
+        .hero-mark {
+          width: min(72vw, 430px);
+          justify-self: center;
+        }
+
+        .hero h1 {
+          max-width: 860px;
+        }
+
+        .section__head {
+          align-items: start;
+        }
+
+        .section__intro {
+          max-width: 740px;
+        }
+
+        .baseline {
+          grid-template-columns: 1fr;
+        }
+
+        .baseline__visual {
+          min-height: 290px;
+        }
+
+        .exploration-grid {
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+
+        .micro-board__grid {
+          grid-template-columns: repeat(5, minmax(0, 1fr));
+        }
+
+        .concept-card__stage {
+          grid-template-columns: 1fr 92px;
+          padding-inline: 34px;
+        }
+
+        .applications {
+          grid-template-columns: 1fr 1fr;
+        }
+
+        .application--slide {
+          grid-column: span 2;
+        }
+
+        .rules {
+          grid-template-columns: 1fr 1fr;
+        }
+      }
+
+      @media (max-width: 720px) {
+        .hero__nav,
+        .hero__grid,
+        .section,
+        .footer__inner {
+          width: min(100% - 30px, 1240px);
+        }
+
+        .hero__nav {
+          padding-top: 20px;
+        }
+
+        .hero__meta {
+          display: none;
+        }
+
+        .hero__grid {
+          padding-block: 64px 72px;
+        }
+
+        .hero h1 {
+          font-size: clamp(3.3rem, 17vw, 5.2rem);
+        }
+
+        .hero__lead {
+          font-size: 1rem;
+        }
+
+        .hero-mark {
+          width: min(88vw, 390px);
+          margin-top: 12px;
+        }
+
+        .section {
+          padding-block: 76px;
+        }
+
+        .section__head {
+          margin-bottom: 34px;
+        }
+
+        .section__head h2 {
+          font-size: clamp(2.25rem, 12vw, 3.5rem);
+        }
+
+        .baseline__visual {
+          min-height: 230px;
+          padding: 32px;
+        }
+
+        .baseline__copy {
+          padding: 32px 26px;
+        }
+
+        .baseline__facts {
+          grid-template-columns: 1fr;
+        }
+
+        .exploration-grid {
+          gap: 12px;
+        }
+
+        .exploration-card {
+          border-radius: 18px;
+        }
+
+        .exploration-card__stage {
+          min-height: 128px;
+          padding: 40px 14px 16px;
+        }
+
+        .exploration-card__family {
+          display: none;
+        }
+
+        .exploration-card__lockup {
+          gap: 8px;
+        }
+
+        .exploration-card__lockup img {
+          width: 44px;
+          height: 44px;
+        }
+
+        .exploration-card__lockup span {
+          font-size: 1.03rem;
+        }
+
+        .exploration-card__body {
+          min-height: 168px;
+          padding: 17px 15px 16px;
+        }
+
+        .exploration-card__body h3 {
+          font-size: 0.96rem;
+        }
+
+        .exploration-card__body p {
+          min-height: 66px;
+          font-size: 0.7rem;
+        }
+
+        .exploration-card__idea {
+          min-width: 0;
+          line-height: 1.15;
+          white-space: normal;
+        }
+
+        .micro-board {
+          padding: 18px;
+        }
+
+        .micro-board__head {
+          align-items: flex-start;
+          flex-direction: column;
+          gap: 4px;
+        }
+
+        .micro-board__grid {
+          grid-template-columns: repeat(4, minmax(0, 1fr));
+        }
+
+        .concept-grid {
+          grid-template-columns: 1fr;
+        }
+
+        .concept-card__stage {
+          min-height: 250px;
+          grid-template-columns: 1fr 68px;
+          gap: 16px;
+          padding: 56px 24px 30px;
+        }
+
+        .concept-card__body {
+          padding: 26px;
+        }
+
+        .concept-card__body > p:last-of-type {
+          min-height: 0;
+        }
+
+        .recommendation__lead {
+          padding: 40px 28px 46px;
+        }
+
+        .recommendation__lead img {
+          margin-bottom: 34px;
+        }
+
+        .size-test {
+          gap: 14px;
+        }
+
+        .size-test__item:first-child {
+          display: none;
+        }
+
+        .mono-test {
+          grid-template-columns: 74px 1fr;
+        }
+
+        .mono-test img {
+          width: 74px;
+        }
+
+        .applications {
+          grid-template-columns: 1fr;
+        }
+
+        .application--slide {
+          grid-column: auto;
+          min-height: 420px;
+          padding: 30px;
+        }
+
+        .slide__logo {
+          width: 250px;
+        }
+
+        .slide__copy {
+          right: 30px;
+          left: 30px;
+          bottom: 36px;
+        }
+
+        .slide__copy h3 {
+          font-size: 2.7rem;
+        }
+
+        .slide__mark {
+          right: -22px;
+          bottom: 30px;
+          width: 150px;
+        }
+
+        .scorecard {
+          overflow-x: auto;
+        }
+
+        .scorecard table {
+          min-width: 700px;
+        }
+
+        .rules {
+          grid-template-columns: 1fr;
+        }
+
+        .rule {
+          min-height: 0;
+        }
+
+        .footer__inner {
+          align-items: flex-start;
+          flex-direction: column;
+        }
+
+        .footer__note {
+          text-align: left;
+        }
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        html {
+          scroll-behavior: auto;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <header class="hero">
+      <nav class="hero__nav" aria-label="Studienkopf">
+        <div class="hero__nav-brand">
+          <img src="assets/01-flechtwerk-mark-on-dark.svg" alt="" />
+          <span>#Mitmachen Markenstudie</span>
+        </div>
+        <span class="hero__meta">Entwurfsstand · 1. August 2026</span>
+      </nav>
+
+      <div class="hero__grid">
+        <div>
+          <p class="eyebrow">Vom Hashtag zur echten Marke</p>
+          <h1>Ein Zeichen,<br />das zum <span>Mitmachen</span><br />einlädt.</h1>
+          <p class="hero__lead">
+            Zwanzig eigenständige Hashtag-Signets für eine Marke, die sofort funktioniert – von ruhig und
+            systemisch bis laut, menschlich, verspielt und experimentell.
+          </p>
+          <div class="hero__principles" aria-label="Leitprinzipien">
+            <span>allein erkennbar</span>
+            <span>einfarbig reproduzierbar</span>
+            <span>nahbar statt institutionell</span>
+            <span>eigenständig neben gematik</span>
+          </div>
+        </div>
+
+        <div class="hero-mark" aria-label="Flechtwerk-Signet als Leitentwurf">
+          <span class="hero-mark__orbit"></span>
+          <div class="hero-mark__tile">
+            <img src="assets/01-flechtwerk-mark-on-dark.svg" alt="#Mitmachen Flechtwerk-Signet" />
+          </div>
+          <span class="hero-mark__label"><i></i>Lead-Entwurf · Flechtwerk</span>
+        </div>
+      </div>
+    </header>
+
+    <main>
+      <section class="section" aria-labelledby="ausgangslage-title">
+        <div class="section__head">
+          <div>
+            <p class="eyebrow">01 · Ausgangslage</p>
+            <h2 id="ausgangslage-title">Klarer Absender.<br />Noch kein eigenes Zeichen.</h2>
+          </div>
+          <p class="section__intro">
+            Das heutige Logo ist freundlich, robust und digital gut nutzbar. Seine Wiedererkennung entsteht aber
+            fast nur durch Navy und Grün. Ohne Farbe bleibt ein generischer Hashtag; die Arial-Wortmarke ist nicht
+            proprietär und für Print oder PowerPoint nicht vollständig fontstabil.
+          </p>
+        </div>
+
+        <div class="baseline">
+          <div class="baseline__visual">
+            <img src="../../../../public/brand/mitmachen/lockup-horizontal.svg" alt="Bisheriges #Mitmachen-Logo" />
+          </div>
+          <div class="baseline__copy">
+            <h3>Was unbedingt bleiben soll</h3>
+            <p>
+              Der Hashtag als verständlicher Kern, die kräftige runde Strichsprache, die leichte Neigung und die
+              Verbindung von vertrauensvollem Dunkelblau mit einem aktivierenden Grün. Neu hinzukommen muss eine
+              charakteristische Geometrie, die auch als schwarze Folie, Stick oder Stempel wiedererkannt wird.
+            </p>
+            <div class="baseline__facts">
+              <div class="fact"><strong>26–42 px</strong><span>reale Signetgrößen im Produkt</span></div>
+              <div class="fact"><strong>1200 × 630</strong><span>Social- und Event-Kommunikation</span></div>
+              <div class="fact"><strong>1 Farbe</strong><span>Pflicht für Textil, Plot und Siebdruck</span></div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="section" aria-labelledby="exploration-title">
+        <div class="section__head">
+          <div>
+            <p class="eyebrow">02 · Zwanzig Richtungen</p>
+            <h2 id="exploration-title">Zwanzig Arten,<br />„mitmachen“ zu zeigen.</h2>
+          </div>
+          <p class="section__intro">
+            Die Varianten verändern nicht nur Farbe oder Strichstärke, sondern die eigentliche Markenidee:
+            Verflechtung, Dialog, Bewegung, Gleichheit, Energie, Wachstum und die offene Einladung, selbst etwas
+            beizutragen. Alle bleiben als Hashtag lesbar und werden bewusst mit „Mitmachen“ kombiniert.
+          </p>
+        </div>
+
+        <div class="exploration-grid">
+          <article class="exploration-card exploration-card--lead" style="--variant: #00a846">
+            <div class="exploration-card__stage">
+              <span class="exploration-card__number">01</span><span class="exploration-card__family">Kernsystem</span>
+              <div class="exploration-card__lockup" role="img" aria-label="#Mitmachen – Flechtwerk">
+                <img src="assets/01-flechtwerk-mark.svg" alt="" /><span>Mitmachen</span>
+              </div>
+            </div>
+            <div class="exploration-card__body">
+              <h3>Flechtwerk</h3>
+              <p>Vier Bänder tragen einander und machen Zusammenarbeit bereits in der Kreuzung sichtbar.</p>
+              <div class="exploration-card__footer">
+                <span class="exploration-card__idea">Verflechtung</span>
+                <a class="exploration-card__download" href="assets/01-flechtwerk-mark.svg" download>SVG ↓</a>
+              </div>
+            </div>
+          </article>
+
+          <article class="exploration-card" style="--variant: #2f6fec">
+            <div class="exploration-card__stage">
+              <span class="exploration-card__number">02</span><span class="exploration-card__family">Kernsystem</span>
+              <div class="exploration-card__lockup" role="img" aria-label="#Mitmachen – Aktiver Knoten">
+                <img src="assets/02-aktiver-knoten-mark.svg" alt="" /><span>Mitmachen</span>
+              </div>
+            </div>
+            <div class="exploration-card__body">
+              <h3>Aktiver Knoten</h3>
+              <p>Ein einzelner Beitrag aktiviert das gemeinsame Raster und wird zum wiederholbaren Markendetail.</p>
+              <div class="exploration-card__footer">
+                <span class="exploration-card__idea">Aktivierung</span>
+                <a class="exploration-card__download" href="assets/02-aktiver-knoten-mark.svg" download>SVG ↓</a>
+              </div>
+            </div>
+          </article>
+
+          <article class="exploration-card" style="--variant: #00a846">
+            <div class="exploration-card__stage">
+              <span class="exploration-card__number">03</span><span class="exploration-card__family">Kernsystem</span>
+              <div class="exploration-card__lockup" role="img" aria-label="#Mitmachen – Raumzeichen">
+                <img src="assets/03-raumzeichen-mark.svg" alt="" /><span>Mitmachen</span>
+              </div>
+            </div>
+            <div class="exploration-card__body">
+              <h3>Raumzeichen</h3>
+              <p>Der Hashtag wird zum Negativraum: ein maximal robustes Token für App, Sticker und Pin.</p>
+              <div class="exploration-card__footer">
+                <span class="exploration-card__idea">Negativraum</span>
+                <a class="exploration-card__download" href="assets/03-raumzeichen-mark.svg" download>SVG ↓</a>
+              </div>
+            </div>
+          </article>
+
+          <article class="exploration-card" style="--variant: #f2a53b">
+            <div class="exploration-card__stage">
+              <span class="exploration-card__number">04</span><span class="exploration-card__family">Kernsystem</span>
+              <div class="exploration-card__lockup" role="img" aria-label="#Mitmachen – Handzeichen">
+                <img src="assets/04-handzeichen-mark.svg" alt="" /><span>Mitmachen</span>
+              </div>
+            </div>
+            <div class="exploration-card__body">
+              <h3>Handzeichen</h3>
+              <p>Kontrolliert geschnittene Flächen wirken persönlich, physisch und bewusst nicht perfekt.</p>
+              <div class="exploration-card__footer">
+                <span class="exploration-card__idea">Handgemacht</span>
+                <a class="exploration-card__download" href="assets/04-handzeichen-mark.svg" download>SVG ↓</a>
+              </div>
+            </div>
+          </article>
+
+          <article class="exploration-card" style="--variant: #2f6fec">
+            <div class="exploration-card__stage">
+              <span class="exploration-card__number">05</span><span class="exploration-card__family">Dialog</span>
+              <div class="exploration-card__lockup" role="img" aria-label="#Mitmachen – Dialogfeld">
+                <img src="assets/05-dialogfeld-mark.svg" alt="" /><span>Mitmachen</span>
+              </div>
+            </div>
+            <div class="exploration-card__body">
+              <h3>Dialogfeld</h3>
+              <p>Das Zeichen sitzt in einer offenen Sprechblase und verbindet Beteiligung direkt mit Austausch.</p>
+              <div class="exploration-card__footer">
+                <span class="exploration-card__idea">Gespräch</span>
+                <a class="exploration-card__download" href="assets/05-dialogfeld-mark.svg" download>SVG ↓</a>
+              </div>
+            </div>
+          </article>
+
+          <article class="exploration-card" style="--variant: #35bfa1">
+            <div class="exploration-card__stage">
+              <span class="exploration-card__number">06</span><span class="exploration-card__family">Dialog</span>
+              <div class="exploration-card__lockup" role="img" aria-label="#Mitmachen – Resonanz">
+                <img src="assets/06-resonanz-mark.svg" alt="" /><span>Mitmachen</span>
+              </div>
+            </div>
+            <div class="exploration-card__body">
+              <h3>Resonanz</h3>
+              <p>Eine Stimme bleibt nicht allein: Wellen tragen den Impuls sichtbar nach außen.</p>
+              <div class="exploration-card__footer">
+                <span class="exploration-card__idea">Reichweite</span>
+                <a class="exploration-card__download" href="assets/06-resonanz-mark.svg" download>SVG ↓</a>
+              </div>
+            </div>
+          </article>
+
+          <article class="exploration-card" style="--variant: #00a846">
+            <div class="exploration-card__stage">
+              <span class="exploration-card__number">07</span><span class="exploration-card__family">Bewegung</span>
+              <div class="exploration-card__lockup" role="img" aria-label="#Mitmachen – Vorwärtsimpuls">
+                <img src="assets/07-vorwaertsimpuls-mark.svg" alt="" /><span>Mitmachen</span>
+              </div>
+            </div>
+            <div class="exploration-card__body">
+              <h3>Vorwärtsimpuls</h3>
+              <p>Die Querachsen werden zu Pfeilen – aus Aufmerksamkeit entsteht konkrete Bewegung.</p>
+              <div class="exploration-card__footer">
+                <span class="exploration-card__idea">Handlung</span>
+                <a class="exploration-card__download" href="assets/07-vorwaertsimpuls-mark.svg" download>SVG ↓</a>
+              </div>
+            </div>
+          </article>
+
+          <article class="exploration-card" style="--variant: #00a846">
+            <div class="exploration-card__stage">
+              <span class="exploration-card__number">08</span><span class="exploration-card__family">Verbindung</span>
+              <div class="exploration-card__lockup" role="img" aria-label="#Mitmachen – Brückenschlag">
+                <img src="assets/08-brueckenschlag-mark.svg" alt="" /><span>Mitmachen</span>
+              </div>
+            </div>
+            <div class="exploration-card__body">
+              <h3>Brückenschlag</h3>
+              <p>Zwei gespannte Bögen verbinden Perspektiven, ohne ihre Eigenständigkeit aufzulösen.</p>
+              <div class="exploration-card__footer">
+                <span class="exploration-card__idea">Verbinden</span>
+                <a class="exploration-card__download" href="assets/08-brueckenschlag-mark.svg" download>SVG ↓</a>
+              </div>
+            </div>
+          </article>
+
+          <article class="exploration-card" style="--variant: #8b5cf6">
+            <div class="exploration-card__stage">
+              <span class="exploration-card__number">09</span><span class="exploration-card__family">Gemeinschaft</span>
+              <div class="exploration-card__lockup" role="img" aria-label="#Mitmachen – Rundtisch">
+                <img src="assets/09-rundtisch-mark.svg" alt="" /><span>Mitmachen</span>
+              </div>
+            </div>
+            <div class="exploration-card__body">
+              <h3>Rundtisch</h3>
+              <p>Vier gleichwertige Plätze umgeben das gemeinsame Zeichen – offen, demokratisch und nahbar.</p>
+              <div class="exploration-card__footer">
+                <span class="exploration-card__idea">Gleichheit</span>
+                <a class="exploration-card__download" href="assets/09-rundtisch-mark.svg" download>SVG ↓</a>
+              </div>
+            </div>
+          </article>
+
+          <article class="exploration-card" style="--variant: #35bfa1">
+            <div class="exploration-card__stage">
+              <span class="exploration-card__number">10</span><span class="exploration-card__family">Gemeinschaft</span>
+              <div class="exploration-card__lockup" role="img" aria-label="#Mitmachen – Mosaik">
+                <img src="assets/10-mosaik-mark.svg" alt="" /><span>Mitmachen</span>
+              </div>
+            </div>
+            <div class="exploration-card__body">
+              <h3>Mosaik</h3>
+              <p>Viele unterschiedliche Kacheln fügen sich zu einer klaren gemeinsamen Silhouette.</p>
+              <div class="exploration-card__footer">
+                <span class="exploration-card__idea">Vielfalt</span>
+                <a class="exploration-card__download" href="assets/10-mosaik-mark.svg" download>SVG ↓</a>
+              </div>
+            </div>
+          </article>
+
+          <article class="exploration-card" style="--variant: #f2a53b">
+            <div class="exploration-card__stage">
+              <span class="exploration-card__number">11</span><span class="exploration-card__family">Gemeinschaft</span>
+              <div class="exploration-card__lockup" role="img" aria-label="#Mitmachen – Baukasten">
+                <img src="assets/11-baukasten-mark.svg" alt="" /><span>Mitmachen</span>
+              </div>
+            </div>
+            <div class="exploration-card__body">
+              <h3>Baukasten</h3>
+              <p>Sichtbare Module erzählen Co-Creation: Das Zeichen ist gebaut, nicht einfach nur gesetzt.</p>
+              <div class="exploration-card__footer">
+                <span class="exploration-card__idea">Co-Creation</span>
+                <a class="exploration-card__download" href="assets/11-baukasten-mark.svg" download>SVG ↓</a>
+              </div>
+            </div>
+          </article>
+
+          <article class="exploration-card" style="--variant: #2f6fec">
+            <div class="exploration-card__stage">
+              <span class="exploration-card__number">12</span><span class="exploration-card__family">Gemeinschaft</span>
+              <div class="exploration-card__lockup" role="img" aria-label="#Mitmachen – Schwarm">
+                <img src="assets/12-schwarm-mark.svg" alt="" /><span>Mitmachen</span>
+              </div>
+            </div>
+            <div class="exploration-card__body">
+              <h3>Schwarm</h3>
+              <p>Viele einzelne Punkte organisieren sich selbst und werden als Gemeinschaft eindeutig lesbar.</p>
+              <div class="exploration-card__footer">
+                <span class="exploration-card__idea">Viele werden eins</span>
+                <a class="exploration-card__download" href="assets/12-schwarm-mark.svg" download>SVG ↓</a>
+              </div>
+            </div>
+          </article>
+
+          <article class="exploration-card" style="--variant: #8b5cf6">
+            <div class="exploration-card__stage">
+              <span class="exploration-card__number">13</span><span class="exploration-card__family">Energie</span>
+              <div class="exploration-card__lockup" role="img" aria-label="#Mitmachen – Magnetfeld">
+                <img src="assets/13-magnetfeld-mark.svg" alt="" /><span>Mitmachen</span>
+              </div>
+            </div>
+            <div class="exploration-card__body">
+              <h3>Magnetfeld</h3>
+              <p>Beiträge werden von beiden Seiten angezogen und verdichten sich im gemeinsamen Feld.</p>
+              <div class="exploration-card__footer">
+                <span class="exploration-card__idea">Anziehung</span>
+                <a class="exploration-card__download" href="assets/13-magnetfeld-mark.svg" download>SVG ↓</a>
+              </div>
+            </div>
+          </article>
+
+          <article class="exploration-card" style="--variant: #2f6fec">
+            <div class="exploration-card__stage">
+              <span class="exploration-card__number">14</span><span class="exploration-card__family">Energie</span>
+              <div class="exploration-card__lockup" role="img" aria-label="#Mitmachen – Pulsschlag">
+                <img src="assets/14-pulsschlag-mark.svg" alt="" /><span>Mitmachen</span>
+              </div>
+            </div>
+            <div class="exploration-card__body">
+              <h3>Pulsschlag</h3>
+              <p>Eine lebendige Linie durchquert die Ordnung und macht Beteiligung als Energie sichtbar.</p>
+              <div class="exploration-card__footer">
+                <span class="exploration-card__idea">Lebendigkeit</span>
+                <a class="exploration-card__download" href="assets/14-pulsschlag-mark.svg" download>SVG ↓</a>
+              </div>
+            </div>
+          </article>
+
+          <article class="exploration-card" style="--variant: #35bfa1">
+            <div class="exploration-card__stage">
+              <span class="exploration-card__number">15</span><span class="exploration-card__family">Energie</span>
+              <div class="exploration-card__lockup" role="img" aria-label="#Mitmachen – Offene Form">
+                <img src="assets/15-offene-form-mark.svg" alt="" /><span>Mitmachen</span>
+              </div>
+            </div>
+            <div class="exploration-card__body">
+              <h3>Offene Form</h3>
+              <p>Sichtbare Andockpunkte lassen Platz für neue Stimmen und die nächste Verbindung.</p>
+              <div class="exploration-card__footer">
+                <span class="exploration-card__idea">Einladung</span>
+                <a class="exploration-card__download" href="assets/15-offene-form-mark.svg" download>SVG ↓</a>
+              </div>
+            </div>
+          </article>
+
+          <article class="exploration-card" style="--variant: #00a846">
+            <div class="exploration-card__stage">
+              <span class="exploration-card__number">16</span><span class="exploration-card__family">Zukunft</span>
+              <div class="exploration-card__lockup" role="img" aria-label="#Mitmachen – Wachsende Idee">
+                <img src="assets/16-wachsende-idee-mark.svg" alt="" /><span>Mitmachen</span>
+              </div>
+            </div>
+            <div class="exploration-card__body">
+              <h3>Wachsende Idee</h3>
+              <p>Blätter und Wurzeln machen aus dem Hashtag ein Zeichen für langfristige Entwicklung.</p>
+              <div class="exploration-card__footer">
+                <span class="exploration-card__idea">Wachstum</span>
+                <a class="exploration-card__download" href="assets/16-wachsende-idee-mark.svg" download>SVG ↓</a>
+              </div>
+            </div>
+          </article>
+
+          <article class="exploration-card" style="--variant: #f2a53b">
+            <div class="exploration-card__stage">
+              <span class="exploration-card__number">17</span><span class="exploration-card__family">Experiment</span>
+              <div class="exploration-card__lockup" role="img" aria-label="#Mitmachen – Kompasspunkt">
+                <img src="assets/17-kompasspunkt-mark.svg" alt="" /><span>Mitmachen</span>
+              </div>
+            </div>
+            <div class="exploration-card__body">
+              <h3>Kompasspunkt</h3>
+              <p>Gerichtete Achsen treffen sich in einem Zentrum: verschiedene Wege, ein gemeinsamer Punkt.</p>
+              <div class="exploration-card__footer">
+                <span class="exploration-card__idea">Orientierung</span>
+                <a class="exploration-card__download" href="assets/17-kompasspunkt-mark.svg" download>SVG ↓</a>
+              </div>
+            </div>
+          </article>
+
+          <article class="exploration-card" style="--variant: #f35b62">
+            <div class="exploration-card__stage">
+              <span class="exploration-card__number">18</span><span class="exploration-card__family">Experiment</span>
+              <div class="exploration-card__lockup" role="img" aria-label="#Mitmachen – Kettenreaktion">
+                <img src="assets/18-kettenreaktion-mark.svg" alt="" /><span>Mitmachen</span>
+              </div>
+            </div>
+            <div class="exploration-card__body">
+              <h3>Kettenreaktion</h3>
+              <p>Versetzte Dominosteine zeigen: Ein kleiner erster Impuls kann das ganze System bewegen.</p>
+              <div class="exploration-card__footer">
+                <span class="exploration-card__idea">Wirkungskette</span>
+                <a class="exploration-card__download" href="assets/18-kettenreaktion-mark.svg" download>SVG ↓</a>
+              </div>
+            </div>
+          </article>
+
+          <article class="exploration-card" style="--variant: #f35b62">
+            <div class="exploration-card__stage">
+              <span class="exploration-card__number">19</span><span class="exploration-card__family">Experiment</span>
+              <div class="exploration-card__lockup" role="img" aria-label="#Mitmachen – Konfetti-Kern">
+                <img src="assets/19-konfetti-kern-mark.svg" alt="" /><span>Mitmachen</span>
+              </div>
+            </div>
+            <div class="exploration-card__body">
+              <h3>Konfetti-Kern</h3>
+              <p>Ein stabiles Zentrum setzt Farbe, Freude und Energie für Events und Aktivierungen frei.</p>
+              <div class="exploration-card__footer">
+                <span class="exploration-card__idea">Feiern</span>
+                <a class="exploration-card__download" href="assets/19-konfetti-kern-mark.svg" download>SVG ↓</a>
+              </div>
+            </div>
+          </article>
+
+          <article class="exploration-card" style="--variant: #f2a53b">
+            <div class="exploration-card__stage">
+              <span class="exploration-card__number">20</span><span class="exploration-card__family">Experiment</span>
+              <div class="exploration-card__lockup" role="img" aria-label="#Mitmachen – Unvollendet">
+                <img src="assets/20-unvollendet-mark.svg" alt="" /><span>Mitmachen</span>
+              </div>
+            </div>
+            <div class="exploration-card__body">
+              <h3>Unvollendet</h3>
+              <p>Eine offene Stelle wartet sichtbar auf Ergänzung – das Signet selbst braucht Beteiligung.</p>
+              <div class="exploration-card__footer">
+                <span class="exploration-card__idea">Offene Aufgabe</span>
+                <a class="exploration-card__download" href="assets/20-unvollendet-mark.svg" download>SVG ↓</a>
+              </div>
+            </div>
+          </article>
+        </div>
+
+        <div class="micro-board" aria-label="Alle zwanzig Signets im 32-Pixel-Vergleich">
+          <div class="micro-board__head">
+            <strong>Kleingrößen-Realitätscheck · 32 px</strong>
+            <span>Direktvergleich ohne Wortmarke</span>
+          </div>
+          <div class="micro-board__grid">
+            <div class="micro-board__item"><img src="assets/01-flechtwerk-mark.svg" alt="" /><span>01</span></div>
+            <div class="micro-board__item"><img src="assets/02-aktiver-knoten-mark.svg" alt="" /><span>02</span></div>
+            <div class="micro-board__item"><img src="assets/03-raumzeichen-mark.svg" alt="" /><span>03</span></div>
+            <div class="micro-board__item"><img src="assets/04-handzeichen-mark.svg" alt="" /><span>04</span></div>
+            <div class="micro-board__item"><img src="assets/05-dialogfeld-mark.svg" alt="" /><span>05</span></div>
+            <div class="micro-board__item"><img src="assets/06-resonanz-mark.svg" alt="" /><span>06</span></div>
+            <div class="micro-board__item"><img src="assets/07-vorwaertsimpuls-mark.svg" alt="" /><span>07</span></div>
+            <div class="micro-board__item"><img src="assets/08-brueckenschlag-mark.svg" alt="" /><span>08</span></div>
+            <div class="micro-board__item"><img src="assets/09-rundtisch-mark.svg" alt="" /><span>09</span></div>
+            <div class="micro-board__item"><img src="assets/10-mosaik-mark.svg" alt="" /><span>10</span></div>
+            <div class="micro-board__item"><img src="assets/11-baukasten-mark.svg" alt="" /><span>11</span></div>
+            <div class="micro-board__item"><img src="assets/12-schwarm-mark.svg" alt="" /><span>12</span></div>
+            <div class="micro-board__item"><img src="assets/13-magnetfeld-mark.svg" alt="" /><span>13</span></div>
+            <div class="micro-board__item"><img src="assets/14-pulsschlag-mark.svg" alt="" /><span>14</span></div>
+            <div class="micro-board__item"><img src="assets/15-offene-form-mark.svg" alt="" /><span>15</span></div>
+            <div class="micro-board__item"><img src="assets/16-wachsende-idee-mark.svg" alt="" /><span>16</span></div>
+            <div class="micro-board__item"><img src="assets/17-kompasspunkt-mark.svg" alt="" /><span>17</span></div>
+            <div class="micro-board__item"><img src="assets/18-kettenreaktion-mark.svg" alt="" /><span>18</span></div>
+            <div class="micro-board__item"><img src="assets/19-konfetti-kern-mark.svg" alt="" /><span>19</span></div>
+            <div class="micro-board__item"><img src="assets/20-unvollendet-mark.svg" alt="" /><span>20</span></div>
+          </div>
+        </div>
+      </section>
+
+      <section class="section" aria-labelledby="richtungen-title">
+        <div class="section__head">
+          <div>
+            <p class="eyebrow">03 · Vier Fokusentwürfe</p>
+            <h2 id="richtungen-title">Vier Richtungen.<br />Tiefer ausgearbeitet.</h2>
+          </div>
+          <p class="section__intro">
+            Flechtwerk, Aktiver Knoten, Raumzeichen und Handzeichen bilden die systemischen Anker der Exploration.
+            Für diese vier liegen bereits vollständige Lockups, ausführliche Begründungen und erste
+            Anwendungstests vor.
+          </p>
+        </div>
+
+        <div class="concept-grid">
+          <article class="concept-card concept-card--lead">
+            <div class="concept-card__stage">
+              <span class="concept-card__number">01</span>
+              <span class="concept-card__badge">Empfehlung</span>
+              <img class="concept-card__lockup" src="assets/01-flechtwerk-lockup.svg" alt="#Mitmachen Flechtwerk Logo" />
+              <img class="concept-card__mark" src="assets/01-flechtwerk-mark.svg" alt="Flechtwerk-Signet" />
+            </div>
+            <div class="concept-card__body">
+              <h3>Flechtwerk</h3>
+              <p class="concept-card__tagline">Gemeinsam verwoben.</p>
+              <p>
+                Vier Bänder wechseln an den Kreuzungen sichtbar zwischen Über- und Unterführung. So wird
+                Zusammenarbeit zur Form – ohne Hierarchie und selbst einfarbig unverwechselbar.
+              </p>
+              <div class="chips">
+                <span class="chip">markenfähig</span><span class="chip">1c stark</span><span class="chip">Textil</span
+                ><span class="chip">digital</span>
+              </div>
+            </div>
+          </article>
+
+          <article class="concept-card">
+            <div class="concept-card__stage">
+              <span class="concept-card__number">02</span>
+              <span class="concept-card__badge">Digital</span>
+              <img
+                class="concept-card__lockup"
+                src="assets/02-aktiver-knoten-lockup.svg"
+                alt="#Mitmachen Aktiver Knoten Logo"
+              />
+              <img class="concept-card__mark" src="assets/02-aktiver-knoten-mark.svg" alt="Aktiver-Knoten-Signet" />
+            </div>
+            <div class="concept-card__body">
+              <h3>Aktiver Knoten</h3>
+              <p class="concept-card__tagline">Du machst den Unterschied.</p>
+              <p>
+                Ein freigestellter grüner Knoten aktiviert das gemeinsame Raster. Dieselbe Raute wird zum i-Punkt
+                der Wortmarke – ein kleines, wiederholbares Markendetail mit starker Animationseignung.
+              </p>
+              <div class="chips">
+                <span class="chip">App</span><span class="chip">Animation</span><span class="chip">Netzwerk</span
+                ><span class="chip">präzise</span>
+              </div>
+            </div>
+          </article>
+
+          <article class="concept-card">
+            <div class="concept-card__stage">
+              <span class="concept-card__number">03</span>
+              <span class="concept-card__badge">Merch</span>
+              <img
+                class="concept-card__lockup"
+                src="assets/03-raumzeichen-lockup.svg"
+                alt="#Mitmachen Raumzeichen Logo"
+              />
+              <img class="concept-card__mark" src="assets/03-raumzeichen-mark.svg" alt="Raumzeichen-Signet" />
+            </div>
+            <div class="concept-card__body">
+              <h3>Raumzeichen</h3>
+              <p class="concept-card__tagline">Raum zum Mitmachen.</p>
+              <p>
+                Der Hashtag wird als Negativraum aus einer grünen Superellipse geschnitten. Das ergibt ein sofort
+                einsetzbares Token für App-Icon, Sticker, Pin und Bühnenzeichen.
+              </p>
+              <div class="chips">
+                <span class="chip">Sticker</span><span class="chip">App-Icon</span><span class="chip">Pin</span
+                ><span class="chip">maximal robust</span>
+              </div>
+            </div>
+          </article>
+
+          <article class="concept-card">
+            <div class="concept-card__stage">
+              <span class="concept-card__number">04</span>
+              <span class="concept-card__badge">Heritage</span>
+              <img
+                class="concept-card__lockup"
+                src="assets/04-handzeichen-lockup.svg"
+                alt="#Mitmachen Handzeichen Logo"
+              />
+              <img class="concept-card__mark" src="assets/04-handzeichen-mark.svg" alt="Handzeichen-Signet" />
+            </div>
+            <div class="concept-card__body">
+              <h3>Handzeichen</h3>
+              <p class="concept-card__tagline">Persönlich. Direkt. Unübersehbar.</p>
+              <p>
+                Kontrolliert handgeschnittene Flächen übertragen die menschliche, physische Qualität von
+                #Gesundheit in eine neue Form – ohne dessen grünen Kreis oder Rundtext zu kopieren.
+              </p>
+              <div class="chips">
+                <span class="chip">emotional</span><span class="chip">Event</span><span class="chip">Shirt</span
+                ><span class="chip">Heritage</span>
+              </div>
+            </div>
+          </article>
+        </div>
+      </section>
+
+      <section class="section" aria-labelledby="empfehlung-title">
+        <div class="section__head">
+          <div>
+            <p class="eyebrow">04 · Empfehlung</p>
+            <h2 id="empfehlung-title">Flechtwerk hat das größte Markenpotenzial.</h2>
+          </div>
+          <p class="section__intro">
+            Es erzählt die richtige Geschichte, bleibt in einem einzigen Strichsystem und erzeugt seine
+            Eigenständigkeit nicht durch einen zusätzlichen Container. Damit kann das Signet im Produkt leise und
+            auf einer Bühne sehr groß auftreten.
+          </p>
+        </div>
+
+        <div class="recommendation">
+          <div class="recommendation__lead">
+            <img src="assets/01-flechtwerk-lockup-on-dark.svg" alt="#Mitmachen Flechtwerk Logo auf Dunkelblau" />
+            <h3>Kein Mensch macht Versorgung allein.</h3>
+            <p>
+              Die Bänder tragen einander. Genau darin liegt die Markenidee: Wissen, Perspektiven und Menschen
+              werden nicht nur nebeneinandergestellt, sondern sichtbar miteinander verwoben.
+            </p>
+            <p>
+              Der Name steht in Source Sans 3 v3.052, Gewicht 650, als ruhig gesetztes „Mitmachen“. Native
+              Unterschneidung und gefüllte Vektorpfade sichern ein professionelles, fontunabhängiges Ergebnis.
+            </p>
+          </div>
+
+          <div class="recommendation__stress">
+            <div class="stress-panel">
+              <h4>Kleingrößentest</h4>
+              <div class="size-test">
+                <div class="size-test__item" style="--size: 16px">
+                  <img src="assets/01-flechtwerk-mark.svg" alt="" /><span>16 px</span>
+                </div>
+                <div class="size-test__item" style="--size: 24px">
+                  <img src="assets/01-flechtwerk-mark.svg" alt="" /><span>24 px</span>
+                </div>
+                <div class="size-test__item" style="--size: 32px">
+                  <img src="assets/01-flechtwerk-mark.svg" alt="" /><span>32 px</span>
+                </div>
+                <div class="size-test__item" style="--size: 64px">
+                  <img src="assets/01-flechtwerk-mark.svg" alt="" /><span>64 px</span>
+                </div>
+              </div>
+            </div>
+            <div class="stress-panel">
+              <h4>Einfarbig</h4>
+              <div class="mono-test">
+                <img src="assets/01-flechtwerk-mark-mono.svg" alt="Einfarbiges Flechtwerk-Signet" />
+                <p>
+                  Die vier Freistellungen erhalten das Flechtprinzip auch ohne Farbe – wichtig für Folienplot,
+                  Stickerei, Stempel und Siebdruck.
+                </p>
+              </div>
+            </div>
+            <div class="stress-panel stress-panel--dark">
+              <h4>Inverse Variante</h4>
+              <div class="inverse-test">
+                <img src="assets/01-flechtwerk-lockup-on-dark.svg" alt="#Mitmachen Flechtwerk invers" />
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="section" aria-labelledby="anwendungen-title">
+        <div class="section__head">
+          <div>
+            <p class="eyebrow">05 · Anwendung</p>
+            <h2 id="anwendungen-title">Eine Marke für Bildschirm und Begegnung.</h2>
+          </div>
+          <p class="section__intro">
+            Die Marke braucht kein separates Eventlogo und keine Merchandising-Sonderform. Das gleiche Signet
+            skaliert vom 24-Pixel-Navigationspunkt bis zum 2-Meter-Bühnenzeichen; der Schriftzug bleibt der ruhige,
+            verlässliche Absender.
+          </p>
+        </div>
+
+        <div class="applications">
+          <article class="application application--sticker">
+            <span class="application__label">Sticker · Pin</span>
+            <div class="sticker-sheet" aria-label="Runder und quadratischer #Mitmachen-Sticker">
+              <div class="sticker sticker--round">
+                <img src="assets/01-flechtwerk-mark-on-dark.svg" alt="" />
+              </div>
+              <div class="sticker sticker--mini">
+                <img src="assets/01-flechtwerk-mark-mono.svg" alt="" />
+              </div>
+            </div>
+          </article>
+
+          <article class="application application--card">
+            <span class="application__label">Visitenkarte</span>
+            <div class="business-card">
+              <img src="assets/01-flechtwerk-lockup.svg" alt="#Mitmachen" />
+              <div class="business-card__person">
+                <strong>Timo Frank</strong>
+                <span>Gemeinsam Versorgung besser machen.</span>
+              </div>
+            </div>
+          </article>
+
+          <article class="application application--shirt">
+            <span class="application__label">T-Shirt · Siebdruck</span>
+            <div class="shirt">
+              <img src="assets/01-flechtwerk-mark-on-dark.svg" alt="#Mitmachen Signet auf T-Shirt" />
+            </div>
+          </article>
+
+          <article class="application application--slide">
+            <span class="application__label">PowerPoint · Bühne</span>
+            <img class="slide__logo" src="assets/01-flechtwerk-lockup-on-dark.svg" alt="#Mitmachen" />
+            <div class="slide__copy">
+              <span>#Mitmachen Forum 2027</span>
+              <h3>Gemeinsam Versorgung besser machen.</h3>
+            </div>
+            <img class="slide__mark" src="assets/01-flechtwerk-mark-on-dark.svg" alt="" />
+          </article>
+
+          <article class="application application--badge">
+            <span class="application__label">Veranstaltung</span>
+            <div class="event-badge">
+              <img src="assets/01-flechtwerk-lockup.svg" alt="#Mitmachen" />
+              <span class="event-badge__role">Teilnehmer</span>
+              <strong>Timo Frank</strong>
+              <small>Berlin · Versorgung vernetzen</small>
+            </div>
+          </article>
+        </div>
+      </section>
+
+      <section class="section" aria-labelledby="bewertung-title">
+        <div class="section__head">
+          <div>
+            <p class="eyebrow">06 · Entscheidung</p>
+            <h2 id="bewertung-title">Nicht nur schön.<br />Systematisch belastbar.</h2>
+          </div>
+          <p class="section__intro">
+            Bewertet wurden Eigenständigkeit, reale Kleingrößen, einfarbige Produktion, Merchandise-Wirkung und
+            strategischer Fit zur offenen Beteiligungsmarke. Fünf Punkte markieren die stärkste Ausprägung.
+          </p>
+        </div>
+
+        <div class="scorecard">
+          <table>
+            <thead>
+              <tr>
+                <th>Richtung</th>
+                <th>Eigenständig</th>
+                <th>Kleinformat</th>
+                <th>1c / Produktion</th>
+                <th>Merchandise</th>
+                <th>Strategischer Fit</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr class="is-lead">
+                <td>01 · Flechtwerk</td>
+                <td><span class="score">5</span></td>
+                <td><span class="score">4</span></td>
+                <td><span class="score">5</span></td>
+                <td><span class="score">5</span></td>
+                <td><span class="score">5</span></td>
+              </tr>
+              <tr>
+                <td>02 · Aktiver Knoten</td>
+                <td><span class="score">4</span></td>
+                <td><span class="score">5</span></td>
+                <td><span class="score">4</span></td>
+                <td><span class="score">4</span></td>
+                <td><span class="score">5</span></td>
+              </tr>
+              <tr>
+                <td>03 · Raumzeichen</td>
+                <td><span class="score">4</span></td>
+                <td><span class="score">5</span></td>
+                <td><span class="score">5</span></td>
+                <td><span class="score">5</span></td>
+                <td><span class="score">4</span></td>
+              </tr>
+              <tr>
+                <td>04 · Handzeichen</td>
+                <td><span class="score">4</span></td>
+                <td><span class="score">3</span></td>
+                <td><span class="score">4</span></td>
+                <td><span class="score">5</span></td>
+                <td><span class="score">4</span></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="rules">
+          <article class="rule">
+            <span class="rule__number">01</span>
+            <h3>Signet plus Name</h3>
+            <p>Neben dem als Hashtag lesbaren Signet steht „Mitmachen“ – nie ein zweiter typografischer Hashtag.</p>
+          </article>
+          <article class="rule">
+            <span class="rule__number">02</span>
+            <h3>Einfarbig zuerst</h3>
+            <p>Jede Produktionsform muss in Schwarz oder Weiß funktionieren; Farbe verstärkt, ersetzt aber keine Form.</p>
+          </article>
+          <article class="rule">
+            <span class="rule__number">03</span>
+            <h3>Getrenntes Co-Branding</h3>
+            <p>#Mitmachen, Produktmarken und institutioneller Absender bleiben räumlich eigenständig.</p>
+          </article>
+          <article class="rule">
+            <span class="rule__number">04</span>
+            <h3>Kurven statt Fonts</h3>
+            <p>
+              Die definierte Wortmarke wird für Druck und Präsentationen vollständig als Vektorpfade ausgeliefert.
+              <a href="WORTMARKE.md">Spezifikation öffnen.</a>
+            </p>
+          </article>
+        </div>
+      </section>
+    </main>
+
+    <footer class="footer">
+      <div class="footer__inner">
+        <div class="footer__brand">
+          <img src="assets/01-flechtwerk-mark-on-dark.svg" alt="" />
+          <div>
+            <strong>#Mitmachen Markenstudie</strong>
+            <span>Lead: Flechtwerk · Vektorbasierter Konzeptstand</span>
+          </div>
+        </div>
+        <p class="footer__note">
+          Flechtwerk und die neue Wortmarke sind als gemeinsame Richtung ausgearbeitet. Vor einem vollständigen
+          Marken-Rollout folgen noch Micro-Signet, Produktionsmaster, Schutzraum, Farbwerte und Markenrecherche.
+        </p>
+      </div>
+    </footer>
+  </body>
+</html>

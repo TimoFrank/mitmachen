@@ -118,29 +118,93 @@ main {
   margin-bottom: 34px;
 }
 
-.home-hero h1 {
-  width: min(1120px, 100%);
-  max-width: 1120px;
+.home-welcome-heading {
+  width: min(980px, 100%);
+  max-width: 980px;
   margin: 0;
   color: var(--text-primary);
-  font-size: clamp(4.2rem, 6.5vw, 6.2rem);
-  font-weight: 900;
-  letter-spacing: -0.068em;
-  line-height: 0.96;
+  font-size: clamp(3.8rem, 5.8vw, 5.6rem);
+  font-weight: 850;
+  letter-spacing: -0.045em;
+  line-height: 0.98;
   text-align: center;
 }
 
-.home-hero h1 span {
-  display: block;
+.home-compass-rotation {
+  width: min(760px, 100%);
+  display: grid;
+  justify-items: center;
+  margin-top: 20px;
 }
 
-.home-hero__lead {
-  max-width: 680px;
-  margin: 18px auto 0;
-  color: #53617a;
-  font-size: clamp(0.96rem, 1.25vw, 1.08rem);
-  font-weight: 620;
-  line-height: 1.55;
+.home-compass-rotation__stage {
+  width: 100%;
+  min-height: 1.16em;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  font-size: clamp(1.45rem, 7.3vw, 3.4rem);
+}
+
+.home-compass-rotation__item {
+  grid-area: 1 / 1;
+  opacity: 0;
+  color: var(--module-care-strong);
+  font-size: 1em;
+  font-weight: 820;
+  letter-spacing: -0.035em;
+  line-height: 1.16;
+  white-space: nowrap;
+  transform: translateY(7px);
+  animation: homeCompassRotate 1.25s cubic-bezier(0.22, 1, 0.36, 1) both;
+  will-change: opacity, transform;
+}
+
+.home-compass-rotation__item--stakeholders {
+  color: var(--module-stakeholders-strong);
+  animation-delay: 1.25s;
+}
+
+.home-compass-rotation__item--planning {
+  color: var(--module-planning-strong);
+  animation-delay: 2.5s;
+}
+
+.home-compass-rotation__item--formats {
+  color: var(--module-formats-strong);
+  animation-name: homeCompassRotateFinal;
+  animation-delay: 3.75s;
+}
+
+@keyframes homeCompassRotate {
+  0% {
+    opacity: 0;
+    transform: translateY(7px);
+  }
+
+  14%,
+  78% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+
+  100% {
+    opacity: 0;
+    transform: translateY(-7px);
+  }
+}
+
+@keyframes homeCompassRotateFinal {
+  0% {
+    opacity: 0;
+    transform: translateY(7px);
+  }
+
+  14%,
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 .entry-actions {
@@ -149,13 +213,6 @@ main {
   align-items: center;
   gap: 9px;
   margin-top: 28px;
-}
-
-.entry-actions__note {
-  margin: 0;
-  color: var(--text-muted);
-  font-size: 0.76rem;
-  font-weight: 650;
 }
 
 .gsi-material-button {
@@ -284,22 +341,6 @@ main {
 .access-notice[tabindex]:focus-visible {
   outline: 2px solid #d46a75;
   outline-offset: 3px;
-}
-
-.home-scroll-cue {
-  min-height: 44px;
-  display: inline-flex;
-  align-items: center;
-  gap: 10px;
-  margin-top: 24px;
-  padding: 11px 17px;
-  border: 1px solid #c9d8ef;
-  border-radius: 999px;
-  background: rgba(255, 255, 255, 0.82);
-  color: var(--primary);
-  font-size: 0.8rem;
-  font-weight: 850;
-  text-decoration: none;
 }
 
 .home-destinations-section {
@@ -494,17 +535,17 @@ a:focus-visible,
     margin-bottom: 28px;
   }
 
-  .home-hero h1 {
-    font-size: clamp(2.15rem, 9vw, 3.9rem);
+  .home-welcome-heading {
+    font-size: clamp(2.8rem, 12vw, 3.6rem);
     line-height: 0.98;
+  }
+
+  .home-compass-rotation {
+    margin-top: 14px;
   }
 
   .entry-actions {
     margin-top: 26px;
-  }
-
-  .home-scroll-cue {
-    margin-top: 22px;
   }
 
   .home-destinations-section {
@@ -556,8 +597,8 @@ a:focus-visible,
     margin-bottom: 20px;
   }
 
-  .home-hero h1 {
-    font-size: clamp(2rem, 8vw, 3.2rem);
+  .home-welcome-heading {
+    font-size: clamp(2.55rem, 10vw, 3.2rem);
   }
 
   .entry-actions {
@@ -574,5 +615,32 @@ a:focus-visible,
   *::before,
   *::after {
     transition-duration: 0.01ms !important;
+  }
+
+  .home-compass-rotation__stage {
+    min-height: 0;
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 8px;
+    overflow: visible;
+    font-size: 1rem;
+  }
+
+  .home-compass-rotation__item {
+    position: static;
+    display: inline-flex;
+    align-items: center;
+    min-height: 34px;
+    padding: 7px 10px;
+    border: 1px solid #d7e1f0;
+    border-radius: 999px;
+    opacity: 1;
+    background: rgba(255, 255, 255, 0.72);
+    font-size: clamp(0.72rem, 2.2vw, 0.86rem);
+    font-weight: 760;
+    letter-spacing: -0.01em;
+    animation: none !important;
+    transform: none;
   }
 }

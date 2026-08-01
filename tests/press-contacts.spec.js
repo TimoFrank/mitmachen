@@ -127,13 +127,16 @@ test("Presse lässt sich über Tabellenköpfe sortieren und nach Kontaktart filt
   await gotoAuthenticated(page, `${APP_PATH}#press`, { backendFixture: fixture });
 
   const rows = page.locator(PRESS_ROWS);
-  const nameSort = page.locator('#press-table-head [data-press-sort="name"]');
+  const nameHeader = page.locator('#press-table-head [data-press-column="name"]');
+  const nameSort = nameHeader.locator('[data-press-sort="name"]');
   await expect(rows).toHaveCount(20);
-  await expect(nameSort).toHaveAttribute("aria-sort", "ascending");
+  await expect(nameHeader).toHaveAttribute("role", "columnheader");
+  await expect(nameHeader).toHaveAttribute("aria-sort", "ascending");
+  await expect(nameSort).not.toHaveAttribute("aria-sort", /.*/);
   await expect(rows.first()).toContainText(people[0].name);
 
   await nameSort.click();
-  await expect(nameSort).toHaveAttribute("aria-sort", "descending");
+  await expect(nameHeader).toHaveAttribute("aria-sort", "descending");
   await expect(rows.first()).toContainText(people.at(-1).name);
 
   const contactTypeFilter = page.locator(

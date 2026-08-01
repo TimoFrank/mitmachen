@@ -36,6 +36,8 @@ regexes = [
   '''^\s*const visibleOrganizationColumnsStorageKey = "versorgungs-kompass-visible-organization-columns-v1";\s*$''',
   '''^\s*const visiblePatientPersonColumnsStorageKey = "versorgungs-kompass-visible-patient-person-columns-v1";\s*$''',
   '''^\s*const visiblePatientOrganizationColumnsStorageKey = "versorgungs-kompass-visible-patient-organization-columns-v1";\s*$''',
+  '''^\s*const visiblePatientPersonColumnsStorageKey = "versorgungs-kompass-visible-patient-person-columns-v2";\s*$''',
+  '''^\s*const visiblePatientOrganizationColumnsStorageKey = "versorgungs-kompass-visible-patient-organization-columns-v2";\s*$''',
   '''^\s*const visibleStakeholderOrganizationColumnsStorageKey = "versorgungs-kompass-visible-stakeholder-organization-columns-v1";\s*$''',
   '''^\s*const visibleHospitationObservationColumnsStorageKey = "versorgungs-kompass-visible-hospitation-observation-columns-v1";\s*$'''
 ]

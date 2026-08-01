@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-labelledby="title description">
+  <title id="title">#Mitmachen – Schwarm Signet</title>
+  <desc id="description">Viele einzelne Punkte organisieren sich zu einem gemeinsamen Hashtag.</desc>
+  <g fill="none" stroke-linecap="round" stroke-width="6" stroke-dasharray="1 8">
+    <path d="m24 7-5 50M45 7l-5 50" stroke="#08164F"/>
+    <path d="M7 23h50M6 42h50" stroke="#00A846"/>
+  </g>
+  <circle cx="22" cy="24" r="4" fill="#2F6FEC"/>
+  <circle cx="41.5" cy="23" r="4" fill="#35BFA1"/>
+  <circle cx="20" cy="42" r="4" fill="#F2A53B"/>
+  <circle cx="39.5" cy="42" r="4" fill="#8B5CF6"/>
+</svg>

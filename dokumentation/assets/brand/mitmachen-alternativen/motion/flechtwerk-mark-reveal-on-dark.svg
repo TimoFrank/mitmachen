@@ -1,0 +1,63 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-labelledby="fmdarkreveal-title fmdarkreveal-description">
+  <title id="fmdarkreveal-title">#Mitmachen – animiertes Flechtwerk-Signet für dunkle Flächen</title>
+  <desc id="fmdarkreveal-description">Vier weiß-grüne Bänder weben sich nacheinander zu einem Hashtag zusammen.</desc>
+  <style>
+    .fmdarkreveal-mask {
+      transform: scale(1);
+      transform-box: fill-box;
+    }
+
+    .fmdarkreveal-v1 { transform-origin: center top; }
+    .fmdarkreveal-h1 { transform-origin: left center; }
+    .fmdarkreveal-v2 { transform-origin: center bottom; }
+    .fmdarkreveal-h2 { transform-origin: right center; }
+
+    @media (prefers-reduced-motion: no-preference) {
+      .fmdarkreveal-v1 {
+        animation: fmdarkreveal-y 600ms cubic-bezier(.33, 0, .2, 1) 80ms both;
+      }
+
+      .fmdarkreveal-h1 {
+        animation: fmdarkreveal-x 600ms cubic-bezier(.33, 0, .2, 1) 180ms both;
+      }
+
+      .fmdarkreveal-v2 {
+        animation: fmdarkreveal-y 600ms cubic-bezier(.33, 0, .2, 1) 280ms both;
+      }
+
+      .fmdarkreveal-h2 {
+        animation: fmdarkreveal-x 600ms cubic-bezier(.33, 0, .2, 1) 380ms both;
+      }
+    }
+
+    @keyframes fmdarkreveal-y {
+      from { transform: scaleY(0); }
+      to { transform: scaleY(1); }
+    }
+
+    @keyframes fmdarkreveal-x {
+      from { transform: scaleX(0); }
+      to { transform: scaleX(1); }
+    }
+  </style>
+  <defs>
+    <mask id="fmdarkreveal-v1-mask" maskUnits="userSpaceOnUse" x="0" y="0" width="64" height="64">
+      <rect class="fmdarkreveal-mask fmdarkreveal-v1" width="64" height="64" fill="#fff"/>
+    </mask>
+    <mask id="fmdarkreveal-h1-mask" maskUnits="userSpaceOnUse" x="0" y="0" width="64" height="64">
+      <rect class="fmdarkreveal-mask fmdarkreveal-h1" width="64" height="64" fill="#fff"/>
+    </mask>
+    <mask id="fmdarkreveal-v2-mask" maskUnits="userSpaceOnUse" x="0" y="0" width="64" height="64">
+      <rect class="fmdarkreveal-mask fmdarkreveal-v2" width="64" height="64" fill="#fff"/>
+    </mask>
+    <mask id="fmdarkreveal-h2-mask" maskUnits="userSpaceOnUse" x="0" y="0" width="64" height="64">
+      <rect class="fmdarkreveal-mask fmdarkreveal-h2" width="64" height="64" fill="#fff"/>
+    </mask>
+  </defs>
+  <g fill="none" stroke-width="8" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M23 8 20.2 35M18.9 47 18 56" stroke="#FFFFFF" mask="url(#fmdarkreveal-v1-mask)"/>
+    <path d="M9 23.5h6.5M27.5 23.5H55" stroke="#35F28A" mask="url(#fmdarkreveal-h1-mask)"/>
+    <path d="M46 8 45 17.5M43.8 29.5 41 56" stroke="#FFFFFF" mask="url(#fmdarkreveal-v2-mask)"/>
+    <path d="M8 41h28M48 41h6" stroke="#35F28A" mask="url(#fmdarkreveal-h2-mask)"/>
+  </g>
+</svg>

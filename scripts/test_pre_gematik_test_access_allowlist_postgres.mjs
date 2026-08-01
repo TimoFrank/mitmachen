@@ -422,11 +422,45 @@ try {
   const accessClient = new Client({ connectionString: accessAdminUrl });
   await accessClient.connect();
   try {
+    const offboardFingerprint = accessDocumentFingerprint(offboardDocument);
+    const offboardPreview = await executeAccessTransaction({
+      client: accessClient,
+      document: offboardDocument,
+      fingerprint: offboardFingerprint,
+      apply: false,
+      expectedDatabase: "postgres",
+      log: () => {}
+    });
+    await assert.rejects(
+      executeAccessTransaction({
+        client: accessClient,
+        document: offboardDocument,
+        fingerprint: offboardFingerprint,
+        apply: true,
+        confirmedCurrentStateFingerprint: `sha256:${"0".repeat(64)}`,
+        expectedDatabase: "postgres",
+        log: () => {}
+      }),
+      (error) => /current_state_fingerprint/u.test(error?.message || ""),
+      "Apply muss einen vom Preview abweichenden Istzustands-Fingerprint ablehnen."
+    );
+    const stateAfterRejectedApply = await adminPool.query(
+      `select binding.active as binding_active, profile.active as profile_active
+         from public.identity_bindings binding
+         join public.profiles profile on profile.id = binding.profile_id
+        where binding.subject = 'manual-auto-subject'`
+    );
+    assert.deepEqual(
+      stateAfterRejectedApply.rows,
+      [{ binding_active: true, profile_active: true }],
+      "Ein abgewiesener Istzustands-Fingerprint darf keine Teiländerung hinterlassen."
+    );
     await executeAccessTransaction({
       client: accessClient,
       document: offboardDocument,
-      fingerprint: accessDocumentFingerprint(offboardDocument),
+      fingerprint: offboardFingerprint,
       apply: true,
+      confirmedCurrentStateFingerprint: offboardPreview.currentStateFingerprint,
       expectedDatabase: "postgres",
       log: () => {}
     });

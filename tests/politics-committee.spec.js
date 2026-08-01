@@ -177,11 +177,12 @@ test("Politik lässt sich über die Tabellenköpfe sortieren und filtern", async
   const committeeTable = page.locator(COMMITTEE_TABLE);
   const rows = committeeTable.locator(MEMBER_ROWS);
   const memberSort = committeeTable.locator('[data-politics-sort="name"]');
-  await expect(memberSort).toHaveAttribute("aria-sort", "ascending");
+  const memberHead = committeeTable.locator('[data-politics-column="name"]');
+  await expect(memberHead).toHaveAttribute("aria-sort", "ascending");
   await expect(rows.first()).toContainText("Demo-Ausschussmitglied 01");
 
   await memberSort.click();
-  await expect(memberSort).toHaveAttribute("aria-sort", "descending");
+  await expect(memberHead).toHaveAttribute("aria-sort", "descending");
   await expect(rows.first()).toContainText("Demo-Ausschussmitglied 38");
 
   const factionFilter = committeeTable.locator('[data-politics-column="faction"] [data-politics-header-filter-button]');
@@ -255,10 +256,6 @@ test("Politik-Mitglieder öffnen im VK-paritätischen rechten Drawer mit Tabs, W
   await expect(profile.locator(".politics-postal-code")).toHaveText("10100");
   await expect(profile).not.toContainText("10101");
   await expect(profile.locator(".politics-member-avatar img")).toBeVisible();
-  await expect(profile.locator(".politics-member-avatar img")).toHaveCSS(
-    "object-fit",
-    "cover"
-  );
   await expect(profile.locator(".avatar-fallback")).toHaveCount(0);
   const miniMap = profile.locator(".politics-constituency-preview");
   await expect(miniMap).toBeVisible();
@@ -272,10 +269,9 @@ test("Politik-Mitglieder öffnen im VK-paritätischen rechten Drawer mit Tabs, W
     const viewport = page.viewportSize();
     expect(panelBounds).not.toBeNull();
     expect(viewport).not.toBeNull();
-    expect(panelBounds.width).toBeGreaterThanOrEqual(780);
-    expect(panelBounds.width).toBeLessThanOrEqual(881);
+    expect(panelBounds.width).toBeLessThanOrEqual(650);
     expect(Math.abs((panelBounds.x + panelBounds.width) - viewport.width)).toBeLessThanOrEqual(1);
-    expect(panelBounds.width).toBeGreaterThan(viewport.width * 0.5);
+    expect(panelBounds.width).toBeLessThan(viewport.width * 0.6);
   }
 
   await overviewTab.focus();

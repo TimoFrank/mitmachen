@@ -30,6 +30,16 @@ data:
   ATTACHMENT_UPLOAD_MODE: {{ .Values.config.attachmentUploadMode | quote }}
   IMAGE_UPLOAD_MODE: {{ .Values.config.imageUploadMode | quote }}
   API_LOG_REQUESTS: {{ .Values.config.logRequests | quote }}
+  TYPO3_CONNECTOR_ENABLED: {{ ternary "1" "0" .Values.typo3Connector.enabled | quote }}
+  TYPO3_CONNECTOR_KEY_ID: {{ .Values.typo3Connector.currentKey.id | quote }}
+  TYPO3_CONNECTOR_PREVIOUS_KEY_ID: {{ ternary .Values.typo3Connector.previousKey.id "" .Values.typo3Connector.previousKey.enabled | quote }}
+  TYPO3_CONNECTOR_FORM_UID: {{ .Values.typo3Connector.formUid | quote }}
+  TYPO3_CONNECTOR_SOURCE_URL: {{ .Values.typo3Connector.sourceUrl | quote }}
+  TYPO3_CONNECTOR_FORM_VERSION: {{ .Values.typo3Connector.formVersion | quote }}
+  TYPO3_CONNECTOR_PRIVACY_NOTICE_VERSION: {{ .Values.typo3Connector.privacyNoticeVersion | quote }}
+  TYPO3_CONNECTOR_CONSENT_TEXT_VERSION: {{ .Values.typo3Connector.consentTextVersion | quote }}
+  TYPO3_CONNECTOR_BODY_LIMIT_BYTES: {{ .Values.typo3Connector.bodyLimitBytes | quote }}
+  TYPO3_CONNECTOR_CLOCK_SKEW_SECONDS: {{ .Values.typo3Connector.clockSkewSeconds | quote }}
   DB_HOST: {{ .Values.database.host | quote }}
   DB_PORT: {{ .Values.database.port | quote }}
   DB_NAME: {{ .Values.database.name | quote }}

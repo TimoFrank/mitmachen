@@ -171,13 +171,16 @@ test("Benachrichtigungsfilter sind Tabs mit roving tabindex", async ({ page }) =
   await expect(unread).toHaveAttribute("aria-selected", "true");
 });
 
-test("Experten-, Patienten- und Stakeholderlisten haben eine dynamische ARIA-Tabellenstruktur", async ({ page }, testInfo) => {
+test("Experten-, alle Patientenmodi und Stakeholderlisten haben eine dynamische ARIA-Tabellenstruktur", async ({ page }, testInfo) => {
   test.skip(testInfo.project.name === "chromium-mobile", "Die mobile Darstellung nutzt semantische Karten statt Tabellen.");
   await gotoAuthenticated(page, "/frontend/app/versorgungs-kompass.html#experts", { role: "admin" });
 
-  const assertSemanticTable = async (name) => {
-    const table = page.getByRole("table", { name });
+  const assertSemanticTable = async (nameOrLocator) => {
+    const table = typeof nameOrLocator === "string"
+      ? page.getByRole("table", { name: nameOrLocator })
+      : nameOrLocator;
     await expect(table).toBeVisible();
+    await expect(table).toHaveAccessibleName(/\S/);
     await expect(table).toHaveAttribute("aria-colcount", /[1-9]\d*/);
     await expect(table).toHaveAttribute("aria-rowcount", /[1-9]\d*/);
     await expect(table.locator(":scope > .thead")).toHaveAttribute("role", "row");
@@ -191,8 +194,25 @@ test("Experten-, Patienten- und Stakeholderlisten haben eine dynamische ARIA-Tab
 
   await page.locator('[data-view-tab="patients"]').click();
   await expect(page.locator('[data-view-panel="patients"]')).toBeVisible();
-  await page.locator('[data-patient-mode="organizations"]').click();
-  await assertSemanticTable("Patienten-Organisationen");
+  await expect(page.getByRole("heading", { level: 1, name: "Patienten", exact: true })).toBeVisible();
+  await expect(page.locator("[data-workspace-brand]:visible")).toHaveCount(1);
+
+  const patientModes = [
+    { mode: "people", panel: "patient-people-table" },
+    { mode: "organizations", panel: "patient-organizations-table" },
+    { mode: "indications", panel: "patient-indications-table" }
+  ];
+  for (const { mode, panel } of patientModes) {
+    const tab = page.locator(`#patient-mode-actions [data-patient-mode="${mode}"]`);
+    await expect(tab).toHaveAttribute("role", "tab");
+    await expect(tab).toHaveAttribute("aria-controls", panel);
+    if (await tab.getAttribute("aria-selected") !== "true") {
+      await tab.click();
+    }
+    await expect(tab).toHaveAttribute("aria-selected", "true");
+    await expect(page.locator(`#${panel}`)).toBeVisible();
+    await assertSemanticTable(page.locator(`#${panel} [role="table"]`));
+  }
 
   await page.locator('[data-view-tab="stakeholders"]').first().click();
   await expect(page.locator('[data-view-panel="stakeholders"]')).toBeVisible();

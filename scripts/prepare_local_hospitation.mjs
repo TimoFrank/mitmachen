@@ -29,6 +29,7 @@ html = replaceOnce(html, "<head>", '<head>\n    <base href="../app/" />', "head"
 
 const sharedBootstrap = [
   '    <script src="../data/runtime-config.js"></script>',
+  '    <script src="./versorgungs-kompass-routes.js"></script>',
   '    <script src="../login/auth-config.js"></script>',
   '    <script src="../login/auth-guard.js"></script>'
 ].join("\n");

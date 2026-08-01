@@ -52,6 +52,22 @@ spec:
                   name: {{ .Values.secrets.databasePasswordSecretName | quote }}
                   key: {{ .Values.secrets.databasePasswordSecretKey | quote }}
                   optional: false
+            {{- if .Values.typo3Connector.enabled }}
+            - name: TYPO3_CONNECTOR_HMAC_SECRET_BASE64
+              valueFrom:
+                secretKeyRef:
+                  name: {{ required "typo3Connector.currentKey.secretName is required when the connector is enabled" .Values.typo3Connector.currentKey.secretName | quote }}
+                  key: {{ required "typo3Connector.currentKey.secretKey is required when the connector is enabled" .Values.typo3Connector.currentKey.secretKey | quote }}
+                  optional: false
+            {{- if .Values.typo3Connector.previousKey.enabled }}
+            - name: TYPO3_CONNECTOR_PREVIOUS_HMAC_SECRET_BASE64
+              valueFrom:
+                secretKeyRef:
+                  name: {{ required "typo3Connector.previousKey.secretName is required when the previous key is enabled" .Values.typo3Connector.previousKey.secretName | quote }}
+                  key: {{ required "typo3Connector.previousKey.secretKey is required when the previous key is enabled" .Values.typo3Connector.previousKey.secretKey | quote }}
+                  optional: false
+            {{- end }}
+            {{- end }}
           {{- if .Values.database.sslCaSecretName }}
           volumeMounts:
             - name: postgres-ca

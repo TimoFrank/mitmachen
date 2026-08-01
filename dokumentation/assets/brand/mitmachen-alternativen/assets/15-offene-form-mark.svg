@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-labelledby="title description">
+  <title id="title">#Mitmachen – Offene Form Signet</title>
+  <desc id="description">Ein bewusst geöffnetes Hashtag mit sichtbaren Andockpunkten lädt zur Ergänzung ein.</desc>
+  <g fill="none" stroke-linecap="round" stroke-width="6.5">
+    <path d="m24 7-1.3 14M21.6 32 19 57M46 7l-1.5 15M43.2 34 41 57" stroke="#08164F"/>
+    <path d="M7 24h13M31 24h26M6 43h12M29 43h27" stroke="#00A846"/>
+  </g>
+  <g fill="#35F28A" stroke="#fff" stroke-width="1.5">
+    <circle cx="22.2" cy="26.5" r="4"/><circle cx="43.8" cy="28" r="4"/>
+    <circle cx="22" cy="43" r="4"/><circle cx="39.5" cy="43" r="4"/>
+  </g>
+</svg>

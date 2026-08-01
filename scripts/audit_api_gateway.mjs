@@ -118,6 +118,7 @@ function assertActivityEventWriteBoundary() {
     || !/revoke\s+all\s+privileges\s+on\s+table\s+public\.activity_events\s+from\s+public\s*;/i.test(grants)
     || !/revoke\s+all\s+privileges\s+on\s+table\s+public\.activity_events\s+from\s+:"runtime_role"\s+cascade\s*;/i.test(grants)
     || !/grant\s+select\s*,\s*insert\s+on\s+table\s+public\.activity_events\s+to\s+:"runtime_role"\s*;/i.test(grants)
+    || !/revoke\s+update\s*,\s*delete\s+on\s+table\s+public\.activity_events\s+from\s+:"runtime_role"\s*;/i.test(grants)
     || !/revoke\s+all\s+privileges\s+on\s+sequence\s+public\.activity_events_id_seq\s+from\s+public\s*;/i.test(grants)
     || !/revoke\s+all\s+privileges\s+on\s+sequence\s+public\.activity_events_id_seq\s+from\s+:"runtime_role"\s+cascade\s*;/i.test(grants)
     || !/grant\s+usage\s*,\s*select\s+on\s+sequence[\s\S]{0,120}?public\.activity_events_id_seq[\s\S]{0,180}?to\s+:"runtime_role"\s*;/i.test(grants)) {

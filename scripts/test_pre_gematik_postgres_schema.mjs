@@ -38,6 +38,7 @@ const expectedMigrationFiles = Object.freeze([
   "202607270001_add_hospitation_scheduled_on.sql",
   "202607270002_add_contact_relationship_basis_and_ehc_consent.sql",
   "202607280001_add_format_participation_workflow.sql",
+  "202607300001_add_network_registration_intake.sql",
   "202607310001_restrict_activity_event_runtime_grants.sql"
 ]);
 const migrationFiles = readdirSync(migrationsUrl)
@@ -61,9 +62,9 @@ function replaceSchemaFragmentExactlyOnce(source, pattern, replacement, descript
 }
 
 // Reconstruct the exact capabilities that existed immediately before the
-// nine versioned migrations. Keeping this derived from today's full schema
+// ten versioned migrations. Keeping this derived from today's full schema
 // makes the upgrade smoke exercise all current tables while deliberately
-// removing only the nine capabilities supplied by those migrations.
+// removing only the ten capabilities supplied by those migrations.
 let legacyUpgradeSchemaSql = replaceSchemaFragmentExactlyOnce(
   schemaSql,
   /  if new\.updated_at is not distinct from old\.updated_at then\n    new\.updated_at := now\(\);\n  end if;/u,
@@ -166,6 +167,18 @@ legacyUpgradeSchemaSql = replaceSchemaFragmentExactlyOnce(
   "\n",
   "Formatbeteiligungs-Trigger vor Migration 008"
 );
+legacyUpgradeSchemaSql = replaceSchemaFragmentExactlyOnce(
+  legacyUpgradeSchemaSql,
+  /\ncreate table if not exists public\.network_registrations \([\s\S]*?\ncreate index if not exists network_registrations_retention_review_idx\n  on public\.network_registrations \(retention_review_at, id\)\n  where status <> 'uebernommen';\n/u,
+  "\n",
+  "TYPO3-Registrierungsintake vor Migration 009"
+);
+legacyUpgradeSchemaSql = replaceSchemaFragmentExactlyOnce(
+  legacyUpgradeSchemaSql,
+  /\ndrop trigger if exists network_registrations_pre_gematik_touch_updated_at on public\.network_registrations;\ncreate trigger network_registrations_pre_gematik_touch_updated_at before update on public\.network_registrations\nfor each row execute function public\.pre_gematik_touch_updated_at\(\);\n/u,
+  "\n",
+  "TYPO3-Registrierungsintake-Trigger vor Migration 009"
+);
 assert.doesNotMatch(legacyUpgradeSchemaSql, /public\.identity_bindings|identity_bindings_/u);
 assert.doesNotMatch(
   legacyUpgradeSchemaSql,
@@ -179,6 +192,11 @@ assert.doesNotMatch(
 assert.doesNotMatch(
   legacyUpgradeSchemaSql,
   /prepare_format_participation_write|log_format_participation_status_change|format_participants_(?:prepare_workflow|log_status_change)/u
+);
+assert.doesNotMatch(
+  legacyUpgradeSchemaSql,
+  /network_registrations/u,
+  "Die Upgrade-Baseline darf den TYPO3-Intake aus Migration 009 nicht vorwegnehmen."
 );
 assert.match(
   legacyUpgradeSchemaSql,
@@ -292,6 +310,18 @@ const supplementalContract = {
   ],
   test_access_objects: [
     "scope_ref", "entity_type", "entity_id", "created_by", "created_at", "updated_at"
+  ],
+  network_registrations: [
+    "id", "submission_id", "schema_version", "source_system", "source_form_uid",
+    "source_record_uid", "source_payload_sha256", "received_at", "submitted_at",
+    "status", "onboarding_stage", "salutation", "title", "first_name", "last_name",
+    "email", "organization", "sector", "message", "email_permission_status",
+    "email_permission_requested_at", "consent_contact_version",
+    "email_permission_confirmed_at", "email_permission_evidence_ref",
+    "privacy_notice_version", "privacy_notice_presented_at", "form_version",
+    "language", "source_url", "privacy_check_status", "retention_review_at",
+    "duplicate_hint", "contact_id", "organization_id", "processed_at", "processed_by",
+    "processing_note", "created_at", "updated_at"
   ],
   import_runs: [
     "id", "file_name", "status", "total_rows", "valid_rows", "imported_contacts",
@@ -415,6 +445,16 @@ assert.doesNotMatch(schemaSql, /\bauth\.|\bstorage\.|\bservice_role\b|\bauthenti
 assert.match(schemaSql, /kein freigegebenes gematik-zielschema/i);
 assert.match(schemaSql, /create table if not exists public\.import_runs/i);
 assert.match(schemaSql, /create table if not exists public\.hospitation_observation_changes/i);
+assert.match(
+  tableBody("network_registrations"),
+  /source_form_uid\s*=\s*41/iu,
+  "Die Intake-Tabelle darf ausschließlich Powermail-Formular UID 41 aufnehmen."
+);
+assert.match(
+  tableBody("network_registrations"),
+  /source_url\s*=\s*'https:\/\/www\.gematik\.de\/mitmachen\/versorgungs-netzwerk'/iu,
+  "Die Intake-Tabelle muss die exakte freigegebene Formularquelle erzwingen."
+);
 assert.match(schemaSql, /drop trigger if exists hospitation_observations_pre_gematik_log_change/i);
 assert.match(runtimeRoleSql, /create\s+role\s+vk_app_runtime\s+nologin/i);
 assert.match(runtimeRoleSql, /alter\s+role\s+vk_app_runtime\s+nologin/i);
@@ -451,6 +491,16 @@ assert.match(grantsSql, /to\s+:"runtime_role"/i);
 assert.match(grantsSql, /rolcanlogin/i);
 assert.doesNotMatch(grantsSql, /\bgrant\s+(?:all|create|alter|drop|truncate|references|trigger)\b|alter\s+default\s+privileges/i,
   "App-User darf ausschließlich die dokumentierten Laufzeitrechte erhalten.");
+assert.match(
+  grantsSql,
+  /grant\s+select,\s*insert\s+on\s+table\s+public\.network_registrations\s+to\s+:"runtime_role"/i,
+  "Der Connector braucht auf seiner Staging-Tabelle ausschließlich SELECT und INSERT."
+);
+assert.doesNotMatch(
+  grantsSql,
+  /grant\s+[^;]*(?:update|delete)[^;]*public\.network_registrations/iu,
+  "Die Laufzeitrolle darf Registrierungsintakes weder verändern noch löschen."
+);
 for (const table of Object.keys({ ...apiTableFields, ...supplementalContract })) {
   assert.match(grantsSql, new RegExp(`public\\.${table}\\b`, "i"), `grants.sql vergisst die API-Tabelle ${table}.`);
 }
@@ -526,6 +576,117 @@ async function databaseSmoke(pool) {
         'Praxis', 'contract-editor', array['Pre-Integration'], 'active', 'pre-gematik-admin', 'pre-gematik-admin'
       )
     `);
+    const networkIntake = await client.query(`
+      insert into network_registrations (
+        submission_id,
+        schema_version,
+        source_system,
+        source_form_uid,
+        source_record_uid,
+        source_payload_sha256,
+        received_at,
+        submitted_at,
+        email,
+        email_permission_status,
+        privacy_notice_version,
+        privacy_notice_presented_at,
+        form_version,
+        source_url
+      ) values (
+        '00000000-0000-4000-8000-000000000041',
+        'mitmachen-typo3-registration-v1',
+        'typo3_powermail',
+        41,
+        900001,
+        repeat('a', 64),
+        now(),
+        now() - interval '1 minute',
+        'intake@example.invalid',
+        'not_requested',
+        'privacy-contract-v1',
+        now() - interval '2 minutes',
+        'powermail-41-contract-v1',
+        'https://www.gematik.de/mitmachen/versorgungs-netzwerk'
+      )
+      returning id, first_name, last_name, email_permission_status, retention_review_at > received_at as retention_scheduled
+    `);
+    assert.deepEqual(networkIntake.rows[0], {
+      id: networkIntake.rows[0].id,
+      first_name: null,
+      last_name: null,
+      email_permission_status: "not_requested",
+      retention_scheduled: true
+    }, "Der Intake muss optionale Namen, fehlende E-Mail-Erlaubnis und die Aufbewahrungsprüfung korrekt abbilden.");
+    assert.ok(networkIntake.rows[0].id);
+
+    const pendingNetworkIntake = await client.query(`
+      insert into network_registrations (
+        submission_id,
+        schema_version,
+        source_system,
+        source_form_uid,
+        source_record_uid,
+        source_payload_sha256,
+        received_at,
+        submitted_at,
+        email,
+        email_permission_status,
+        email_permission_requested_at,
+        consent_contact_version,
+        privacy_notice_version,
+        privacy_notice_presented_at,
+        form_version,
+        source_url
+      ) values (
+        '00000000-0000-4000-8000-000000000042',
+        'mitmachen-typo3-registration-v1',
+        'typo3_powermail',
+        41,
+        900002,
+        repeat('b', 64),
+        now(),
+        now() - interval '1 minute',
+        'pending-intake@example.invalid',
+        'pending',
+        now() - interval '1 minute',
+        'email-contact-contract-v1',
+        'privacy-contract-v1',
+        now() - interval '2 minutes',
+        'powermail-41-contract-v1',
+        'https://www.gematik.de/mitmachen/versorgungs-netzwerk'
+      )
+      returning email_permission_status, email_permission_confirmed_at
+    `);
+    assert.deepEqual(pendingNetworkIntake.rows[0], {
+      email_permission_status: "pending",
+      email_permission_confirmed_at: null
+    }, "Eine Formularauswahl darf vor DOI ausschließlich als pending angelegt werden.");
+
+    await client.query("savepoint network_intake_granted_without_doi");
+    await assert.rejects(
+      client.query(`
+        insert into network_registrations (
+          submission_id, schema_version, source_system, source_form_uid,
+          source_record_uid, source_payload_sha256, received_at, submitted_at,
+          email, email_permission_status, email_permission_requested_at,
+          consent_contact_version, privacy_notice_version,
+          privacy_notice_presented_at, form_version, source_url
+        ) values (
+          '00000000-0000-4000-8000-000000000043',
+          'mitmachen-typo3-registration-v1', 'typo3_powermail', 41, 900003,
+          repeat('c', 64), now(), now() - interval '1 minute',
+          'invalid-grant@example.invalid', 'granted', now() - interval '1 minute',
+          'email-contact-contract-v1', 'privacy-contract-v1',
+          now() - interval '2 minutes', 'powermail-41-contract-v1',
+          'https://www.gematik.de/mitmachen/versorgungs-netzwerk'
+        )
+      `),
+      (error) => error?.code === "23514"
+        && error?.constraint === "network_registrations_email_permission_doi_check",
+      "granted muss ohne DOI-Zeitpunkt und Evidenzreferenz abgewiesen werden."
+    );
+    await client.query("rollback to savepoint network_intake_granted_without_doi");
+
     await client.query(`
       insert into contact_owners (contact_id, profile_id, assigned_by)
       values ('contact-contract', 'contract-editor', 'pre-gematik-admin')
@@ -879,7 +1040,8 @@ async function databaseSmoke(pool) {
     const populatedTables = [
       ...Object.keys(apiTableFields),
       "import_runs",
-      "hospitation_observation_changes"
+      "hospitation_observation_changes",
+      "network_registrations"
     ];
     for (const table of populatedTables) {
       const count = await client.query(`select count(*)::int as count from "${table}"`);
@@ -1011,6 +1173,14 @@ async function assertRuntimeRoleContract(adminPool, appPool, runtimeRole, appUse
       has_table_privilege(current_user, 'public.test_access_objects', 'INSERT') as test_object_insert,
       has_table_privilege(current_user, 'public.test_access_objects', 'UPDATE') as test_object_update,
       has_table_privilege(current_user, 'public.test_access_objects', 'DELETE') as test_object_delete,
+      has_table_privilege(current_user, 'public.network_registrations', 'SELECT') as network_registration_select,
+      has_table_privilege(current_user, 'public.network_registrations', 'INSERT') as network_registration_insert,
+      has_table_privilege(current_user, 'public.network_registrations', 'UPDATE') as network_registration_update,
+      has_table_privilege(current_user, 'public.network_registrations', 'DELETE') as network_registration_delete,
+      has_table_privilege(current_user, 'public.activity_events', 'SELECT') as activity_event_select,
+      has_table_privilege(current_user, 'public.activity_events', 'INSERT') as activity_event_insert,
+      has_table_privilege(current_user, 'public.activity_events', 'UPDATE') as activity_event_update,
+      has_table_privilege(current_user, 'public.activity_events', 'DELETE') as activity_event_delete,
       has_column_privilege(
         current_user,
         'public.test_access_objects',
@@ -1079,6 +1249,14 @@ async function assertRuntimeRoleContract(adminPool, appPool, runtimeRole, appUse
     test_object_insert: false,
     test_object_update: false,
     test_object_delete: false,
+    network_registration_select: true,
+    network_registration_insert: true,
+    network_registration_update: false,
+    network_registration_delete: false,
+    activity_event_select: true,
+    activity_event_insert: true,
+    activity_event_update: false,
+    activity_event_delete: false,
     test_object_entity_select: true,
     test_object_created_by_select: false,
     test_object_scope_insert: true,
@@ -1468,6 +1646,14 @@ async function migrationUpgradeDataSnapshot(pool) {
               from public.hospitations hospitation
              where hospitation.id like 'upgrade-%'
           ) snapshot_row
+      ), '[]'::jsonb),
+      'networkRegistrations', coalesce((
+        select jsonb_agg(to_jsonb(snapshot_row) order by snapshot_row.source_record_uid)
+          from (
+            select registration.*, registration.xmin::text as row_xmin
+              from public.network_registrations registration
+             where registration.source_record_uid between 910000 and 919999
+          ) snapshot_row
       ), '[]'::jsonb)
     ) as snapshot
   `);
@@ -1480,6 +1666,9 @@ async function migrationUpgradeSemanticSnapshot(pool) {
       to_regclass('public.identity_bindings')::text as identity_table,
       to_regclass('public.identity_bindings_active_profile_idx')::text as identity_active_index,
       to_regclass('public.test_access_allowlist')::text as allowlist_table,
+      to_regclass('public.network_registrations')::text as network_registration_table,
+      to_regclass('public.network_registrations_status_submitted_idx')::text as network_registration_status_index,
+      to_regclass('public.network_registrations_retention_review_idx')::text as network_registration_retention_index,
       to_regprocedure(
         'public.pre_gematik_consume_test_access_allowlist(uuid,text,text,text,timestamptz,timestamptz)'
       )::text as allowlist_function,
@@ -1517,6 +1706,17 @@ async function migrationUpgradeSemanticSnapshot(pool) {
            )
            and not trigger_state.tgisinternal
       ) as format_participation_triggers,
+      (
+        select array_agg(pg_get_constraintdef(constraint_state.oid, true) order by constraint_state.conname)
+          from pg_catalog.pg_constraint constraint_state
+         where constraint_state.conrelid = 'public.network_registrations'::regclass
+      ) as network_registration_constraints,
+      (
+        select array_agg(pg_get_triggerdef(trigger_state.oid, true) order by trigger_state.tgname)
+          from pg_catalog.pg_trigger trigger_state
+         where trigger_state.tgrelid = 'public.network_registrations'::regclass
+           and not trigger_state.tgisinternal
+      ) as network_registration_triggers,
       to_regprocedure('public.prepare_format_participation_write()')::text as format_prepare_function,
       to_regprocedure('public.log_format_participation_status_change()')::text as format_log_function,
       pg_get_functiondef('public.pre_gematik_touch_updated_at()'::regprocedure) as touch_function,
@@ -1524,6 +1724,10 @@ async function migrationUpgradeSemanticSnapshot(pool) {
       has_table_privilege('vk_app_runtime', 'public.identity_bindings', 'INSERT') as runtime_insert,
       has_table_privilege('vk_app_runtime', 'public.identity_bindings', 'UPDATE') as runtime_update,
       has_table_privilege('vk_app_runtime', 'public.identity_bindings', 'DELETE') as runtime_delete,
+      has_table_privilege('vk_app_runtime', 'public.network_registrations', 'SELECT') as runtime_network_select,
+      has_table_privilege('vk_app_runtime', 'public.network_registrations', 'INSERT') as runtime_network_insert,
+      has_table_privilege('vk_app_runtime', 'public.network_registrations', 'UPDATE') as runtime_network_update,
+      has_table_privilege('vk_app_runtime', 'public.network_registrations', 'DELETE') as runtime_network_delete,
       has_function_privilege('vk_app_runtime', 'public.pre_gematik_touch_updated_at()', 'EXECUTE') as runtime_execute,
       has_function_privilege(
         'vk_app_runtime',
@@ -1662,6 +1866,11 @@ async function assertVersionedMigrationUpgrade(connectionString, containerName) 
     );
     assert.equal(legacyIdentity.rows[0].table_name, null,
       "Die Legacy-Baseline darf Migration 001 nicht vorwegnehmen.");
+    const legacyNetworkRegistration = await upgradePool.query(
+      "select to_regclass('public.network_registrations')::text as table_name"
+    );
+    assert.equal(legacyNetworkRegistration.rows[0].table_name, null,
+      "Die Legacy-Baseline darf Migration 009 nicht vorwegnehmen.");
     const legacyLogoConstraint = await upgradePool.query(`
       select count(*)::int as count
         from pg_catalog.pg_constraint constraint_state
@@ -1736,7 +1945,7 @@ async function assertVersionedMigrationUpgrade(connectionString, containerName) 
     await assert.rejects(
       applyVersionedMigrations(upgradePool, migrationsBeforeFormatWorkflow),
       /PUBLIC activity_events table, column, and sequence privileges must be empty/u,
-      "Migration 009 muss fremd-grantierte PUBLIC-Rechte fail-closed ablehnen."
+      "Migration 010 muss fremd-grantierte PUBLIC-Rechte fail-closed ablehnen."
     );
     await upgradePool.query(`
       set role ${foreignGrantor};
@@ -1754,7 +1963,7 @@ async function assertVersionedMigrationUpgrade(connectionString, containerName) 
     await assert.rejects(
       applyVersionedMigrations(upgradePool, migrationsBeforeFormatWorkflow),
       /vk_app_runtime memberships must be non-admin and inherited/u,
-      "Migration 009 muss delegierbare Runtime-Mitgliedschaften fail-closed ablehnen."
+      "Migration 010 muss delegierbare Runtime-Mitgliedschaften fail-closed ablehnen."
     );
     await upgradePool.query(`
       grant vk_app_runtime to current_user
@@ -1869,6 +2078,31 @@ async function assertVersionedMigrationUpgrade(connectionString, containerName) 
     assert.equal(firstSemantics.format_log_function, "log_format_participation_status_change()");
     assert.equal(firstSemantics.format_participation_triggers.length, 2,
       "Migration 008 muss Vorbereitung und Aktivitätsprotokoll der Formatbeteiligung aktivieren.");
+    assert.equal(firstSemantics.network_registration_table, "network_registrations",
+      "Migration 009 muss die TYPO3-Staging-Tabelle anlegen.");
+    assert.equal(firstSemantics.network_registration_status_index, "network_registrations_status_submitted_idx");
+    assert.equal(firstSemantics.network_registration_retention_index, "network_registrations_retention_review_idx");
+    assert.equal(firstSemantics.network_registration_triggers.length, 1,
+      "Migration 009 muss genau einen updated_at-Trigger für den Intake anlegen.");
+    const networkRegistrationConstraintContract = firstSemantics.network_registration_constraints.join("\n");
+    assert.match(networkRegistrationConstraintContract, /UNIQUE \(submission_id\)/iu);
+    assert.match(
+      networkRegistrationConstraintContract,
+      /UNIQUE \(source_system, source_form_uid, source_record_uid\)/iu
+    );
+    assert.match(networkRegistrationConstraintContract, /email_permission_status = 'granted'/iu);
+    assert.match(networkRegistrationConstraintContract, /email_permission_confirmed_at IS NOT NULL/iu);
+    assert.deepEqual({
+      select: firstSemantics.runtime_network_select,
+      insert: firstSemantics.runtime_network_insert,
+      update: firstSemantics.runtime_network_update,
+      delete: firstSemantics.runtime_network_delete
+    }, {
+      select: true,
+      insert: true,
+      update: false,
+      delete: false
+    }, "Migration 009 muss die Runtime auf SELECT und INSERT für den Intake begrenzen.");
     assert.equal(firstSemantics.runtime_format_log_execute, false,
       "Die privilegierte Format-Triggerfunktion darf für die Laufzeitrolle nicht direkt aufrufbar sein.");
     assert.equal(firstSemantics.runtime_has_no_parent_memberships, true,
@@ -1903,7 +2137,7 @@ async function assertVersionedMigrationUpgrade(connectionString, containerName) 
       activity_sequence_update: false,
       activity_sequence_usage_grant_option: false,
       activity_sequence_select_grant_option: false
-    }, "Migration 009 muss bestehende Activity-Rechte auf append-only SELECT/INSERT verengen.");
+    }, "Migration 010 muss bestehende Activity-Rechte auf append-only SELECT/INSERT verengen.");
     assert.match(firstSemantics.touch_function, /if new\.updated_at is not distinct from old\.updated_at then/iu,
       "Migration 002 muss explizite updated_at-Werte bewahren.");
     assert.deepEqual({
@@ -2020,14 +2254,73 @@ async function assertVersionedMigrationUpgrade(connectionString, containerName) 
     assert.equal(explicitBinding.rows[0].updated_at.toISOString(), explicitBindingTimestamp.toISOString(),
       "Der neue Identity-Trigger muss explizite updated_at-Werte ebenfalls bewahren.");
 
+    await upgradePool.query(`
+      insert into public.network_registrations (
+        submission_id,
+        schema_version,
+        source_system,
+        source_form_uid,
+        source_record_uid,
+        source_payload_sha256,
+        received_at,
+        submitted_at,
+        email,
+        email_permission_status,
+        email_permission_requested_at,
+        consent_contact_version,
+        privacy_notice_version,
+        privacy_notice_presented_at,
+        form_version,
+        source_url
+      ) values (
+        '00000000-0000-4000-8000-000000000091',
+        'mitmachen-typo3-registration-v1',
+        'typo3_powermail',
+        41,
+        910001,
+        repeat('d', 64),
+        now(),
+        now() - interval '1 minute',
+        'upgrade-intake@example.invalid',
+        'pending',
+        now() - interval '1 minute',
+        'email-contact-upgrade-v1',
+        'privacy-upgrade-v1',
+        now() - interval '2 minutes',
+        'powermail-41-upgrade-v1',
+        'https://www.gematik.de/mitmachen/versorgungs-netzwerk'
+      )
+    `);
+    await assertSqlState(
+      upgradePool,
+      `insert into public.network_registrations (
+         submission_id, schema_version, source_system, source_form_uid,
+         source_record_uid, source_payload_sha256, received_at, submitted_at,
+         email, email_permission_status, email_permission_requested_at,
+         consent_contact_version, privacy_notice_version,
+         privacy_notice_presented_at, form_version, source_url
+       ) values (
+         '00000000-0000-4000-8000-000000000092',
+         'mitmachen-typo3-registration-v1', 'typo3_powermail', 41, 910002,
+         repeat('e', 64), now(), now() - interval '1 minute',
+         'upgrade-granted@example.invalid', 'granted', now() - interval '1 minute',
+         'email-contact-upgrade-v1', 'privacy-upgrade-v1',
+         now() - interval '2 minutes', 'powermail-41-upgrade-v1',
+         'https://www.gematik.de/mitmachen/versorgungs-netzwerk'
+       )`,
+      [],
+      "23514",
+      "Migration 009 darf granted ohne DOI-Evidenz nicht zulassen."
+    );
+
     const dataBeforeSecondPass = await migrationUpgradeDataSnapshot(upgradePool);
     await applyVersionedMigrations(upgradePool);
     const dataAfterSecondPass = await migrationUpgradeDataSnapshot(upgradePool);
     const secondSemantics = await migrationUpgradeSemanticSnapshot(upgradePool);
     assert.deepEqual(dataAfterSecondPass, dataBeforeSecondPass,
-      "Der zweite Lauf aller neun Migrationen darf einschliesslich xmin keine Daten erneut veraendern.");
+      "Der zweite Lauf aller zehn Migrationen darf einschliesslich xmin keine Daten erneut veraendern.");
     assert.deepEqual(secondSemantics, firstSemantics,
-      "Der zweite Lauf aller neun Migrationen muss denselben logischen Tabellen-, Constraint-, Trigger- und Rechtezustand ergeben.");
+      "Der zweite Lauf aller zehn Migrationen muss denselben logischen Tabellen-, Constraint-, Trigger- und Rechtezustand ergeben.");
 
     const secondExplicitTimestamp = new Date("2003-04-05T06:07:08.901Z");
     const secondExplicit = await upgradePool.query(`
@@ -2497,7 +2790,7 @@ try {
     await databaseSmoke(pool);
     console.log("Externe Test-DB verwendet: runtime-role.sql und grants.sql wurden statisch, aber nicht mit temporären Rollen ausgeführt.");
   }
-  console.log("PostgreSQL 16 contract OK: Vollschema und neun Upgrade-Migrationen zweifach/idempotent; Legacy-Logo-Bereinigung, Identity-/Allowlist-Grenzen, getrennte NOLOGIN-Identity-Administration, explicit updated_at, Hospitationstag, Zweckachsen, Formatbeteiligungs-Workflow, append-only Activity-Rechte, Laufzeitrolle und relationaler Smoke-Test erfolgreich.");
+  console.log("PostgreSQL 16 contract OK: Vollschema und zehn Upgrade-Migrationen zweifach/idempotent; Legacy-Logo-Bereinigung, Identity-/Allowlist-Grenzen, TYPO3-Intake, getrennte NOLOGIN-Identity-Administration, explicit updated_at, Hospitationstag, Zweckachsen, Formatbeteiligungs-Workflow, append-only Activity-Rechte, Laufzeitrolle und relationaler Smoke-Test erfolgreich.");
 } finally {
   if (pool) await pool.end().catch(() => {});
   if (containerName) {

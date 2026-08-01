@@ -102,10 +102,40 @@ function assertMissing(directory, ...relativePaths) {
   }
 }
 
+const compassBrandDirectories = [
+  "public/brand/versorgungs-kompass",
+  "public/brand/modules/stakeholder",
+  "public/brand/modules/hospitation",
+  "public/brand/modules/formate"
+];
+
+function assertCompassBrandAssets(directory, profile) {
+  for (const brandDirectory of compassBrandDirectories) {
+    for (const asset of ["mark.svg", "lockup-horizontal.svg"]) {
+      const relativePath = path.join(brandDirectory, asset);
+      const artifactPath = path.join(directory, relativePath);
+      const canonicalPath = path.join(root, relativePath);
+      assert.equal(
+        fs.existsSync(artifactPath),
+        true,
+        `${profile}/${relativePath} muss fuer den responsiven Logo-Slot enthalten sein`
+      );
+      if (fs.existsSync(artifactPath)) {
+        assert.deepEqual(
+          fs.readFileSync(artifactPath),
+          fs.readFileSync(canonicalPath),
+          `${profile}/${relativePath} muss bytegleich mit dem kanonischen Markenasset sein`
+        );
+      }
+    }
+  }
+}
+
 try {
   build("--profile", "pages", "--output", pagesDir);
   execFileSync(process.execPath, [publicAudit, "--artifact-root", pagesDir], { cwd: root, stdio: "pipe" });
   const firstPagesFingerprint = fingerprint(pagesDir);
+  assertCompassBrandAssets(pagesDir, "Pages");
 
   assert.equal(fs.existsSync(path.join(pagesDir, "demo", "index.html")), true, "Pages muss die oeffentliche Demo enthalten");
   assert.equal(fs.existsSync(path.join(pagesDir, "politik-offline.html")), true, "Pages muss das eigenstaendige Politik-Offline-Modul enthalten");
@@ -186,6 +216,7 @@ try {
     "auth-config.js",
     "auth-guard.js",
     "auth-login.js",
+    "public/auth",
     "demo/demo.css",
     "demo/demo-app.js",
     "data/versorgungs-kompass-data.js",
@@ -631,6 +662,7 @@ try {
     "--identity-platform-project-id", identityPlatformProjectId
   );
   execFileSync(process.execPath, [targetAudit, "--artifact-root", targetDir], { cwd: root, stdio: "pipe" });
+  assertCompassBrandAssets(targetDir, "Target");
 
   const preparedExternalLoginPageUri = "https://versorgungs-kompass.de/anmelden";
   buildWithEnvironment(
@@ -806,9 +838,14 @@ try {
   );
   assert.equal((targetPublicIndexHtml.match(/\/api\//g) || []).length, 0);
   assert.match(targetPublicIndexHtml, /data-public-login-button/);
-  assert.match(targetPublicIndexHtml, /Google oder einem persönlich freigeschalteten E-Mail-Konto/);
-  assert.doesNotMatch(targetPublicIndexHtml, /data-google-sso-button/);
-  assert.match(targetPublicIndexHtml, /Willkommen im Versorgungs-Kompass/);
+  assert.doesNotMatch(targetPublicIndexHtml, /data-google-sso-button|Mit Google anmelden/);
+  assert.doesNotMatch(targetPublicIndexHtml, /data-public-action-note|Google oder einem persönlich freigeschalteten E-Mail-Konto/);
+  assert.match(targetPublicIndexHtml, /<h1[^>]*>Willkommen\.<\/h1>/);
+  assert.match(targetPublicIndexHtml, /data-home-compass-rotation/);
+  for (const compassName of ["Versorgungs-Kompass", "Stakeholder-Kompass", "Hospitations-Kompass", "Format-Kompass"]) {
+    assert.match(targetPublicIndexHtml, new RegExp(compassName));
+  }
+  assert.doesNotMatch(targetPublicIndexHtml, /home-compass-rotation__control|home-scroll-cue|Bereiche ansehen/);
   assert.match(targetPublicIndexHtml, /id="zugriff-verweigert"/);
   assert.ok(targetPublicIndexHtml.includes(`<link rel="canonical" href="${apiBaseUrl}/" />`));
   assert.match(targetPublicIndexHtml, /<meta property="og:title" content="#Mitmachen" \/>/);
@@ -897,10 +934,11 @@ try {
   execFileSync(process.execPath, [targetAudit, "--artifact-root", targetDir], { cwd: root, stdio: "pipe" });
   const targetIndexHtml = fs.readFileSync(path.join(targetDir, "index.html"), "utf8");
   assert.match(targetIndexHtml, /<aside class="module-sidebar"/);
-  assert.match(targetIndexHtml, /<h1 id="welcome-title">Gemeinsam Versorgung gestalten\.<\/h1>/);
+  assert.match(targetIndexHtml, /<h1[^>]*id="welcome-title"[^>]*>Willkommen\.<\/h1>/);
+  assert.match(targetIndexHtml, /data-home-compass-rotation/);
   assert.match(targetIndexHtml, /href="\/versorgung\/karte"/);
   assert.match(targetIndexHtml, /href="\.\/mitmachen\/mitmachen\.css"/);
-  assert.match(targetIndexHtml, /src="\.\/public\/brand\/mitmachen\/lockup-horizontal\.svg"/);
+  assert.match(targetIndexHtml, /src="\.\/public\/brand\/mitmachen\/flechtwerk-lockup-horizontal\.svg"/);
   assert.doesNotMatch(targetIndexHtml, /dokumentation\//, "Der Live-Einstieg darf nicht auf nicht ausgelieferte Repository-Dokumentation verweisen");
   const targetNestedEntryHtml = fs.readFileSync(path.join(targetDir, "mitmachen", "index.html"), "utf8");
   for (const [label, entryHtml] of [

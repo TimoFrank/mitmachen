@@ -82,7 +82,13 @@ test("Phase 4: #Mitmachen führt in vier Module und Pages über die gemeinsame S
   await page.goto("/frontend/pages/mitmachen/index.html");
 
   await expect(page).toHaveTitle(/#Mitmachen/);
-  await expect(page.getByRole("heading", { level: 1 })).toHaveText("Gemeinsam Versorgung gestalten.");
+  await expect(page.getByRole("heading", { level: 1 })).toHaveText("Willkommen.");
+  await expect(page.locator("[data-home-compass-name]")).toHaveText([
+    "Versorgungs-Kompass",
+    "Stakeholder-Kompass",
+    "Hospitations-Kompass",
+    "Format-Kompass"
+  ]);
   await expect(page.locator(".concept-notice")).toHaveCount(0);
   await expect(page.locator(".destinations > li")).toHaveCount(4);
   await expect(page.locator(".destinations strong")).toHaveText(["Versorgung", "Stakeholder", "Hospitation", "Formate"]);
@@ -181,7 +187,13 @@ test("Phase 4: die vier Module bleiben ohne JavaScript vollständig lesbar", asy
   const context = await browser.newContext({ javaScriptEnabled: false, viewport: { width: 390, height: 844 } });
   const page = await context.newPage();
   await page.goto(`${baseURL}/dist/pages/index.html`);
-  await expect(page.getByRole("heading", { level: 1 })).toHaveAccessibleName("Gemeinsam Versorgung gestalten");
+  await expect(page.getByRole("heading", { level: 1 })).toHaveAccessibleName("Willkommen.");
+  await expect(page.locator("[data-home-compass-name]")).toHaveText([
+    "Versorgungs-Kompass",
+    "Stakeholder-Kompass",
+    "Hospitations-Kompass",
+    "Format-Kompass"
+  ]);
   const moduleLink = page.getByRole("link", { name: "Bereiche ansehen" });
   await expect(moduleLink).toHaveAttribute("href", "#home-destinations");
   await expect(page.locator(".home-destinations strong")).toHaveText([

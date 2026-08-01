@@ -2,6 +2,16 @@
 
 Stand: 31.07.2026
 Zweck: kopierfähige Übersicht für interne Folien, Security-Reviews und Go-live-Abnahmen
+Status: historischer Security-Snapshot; keine aktuelle Betriebs- oder Providerfreigabe
+
+> **Einordnung nach dem Repository-Decommission vom 31. Juli 2026:** Die
+> Supabase-bezogenen Prüfungen, Pfade und offenen Gates unten dokumentieren den
+> damaligen Befund und bleiben als Security-Evidenz erhalten. Aktuell nutzt die
+> geschützte Anwendung ausschließlich Cloud SQL/PostgreSQL und GCS; ein
+> Supabase-Laufzeit- oder Rückfallpfad ist nicht mehr zulässig. Die Stilllegung
+> möglicherweise noch vorhandener Provider-Ressourcen ist ein separater
+> Betriebsvorgang und kein Anwendungs-Go-live-Gate. Verweise auf entfernte
+> Repository-Pfade sind über die Git-Historie nachvollziehbar.
 
 ## Management-Aussage
 
@@ -75,7 +85,7 @@ Nicht durch Autopilot mitigiert werden insbesondere Authentisierung/RBAC, XSS/In
 ## Noch gemeinsam extern abzuhaken
 
 - [ ] **Zwei-App-Scope:** Pages weiterhin nur mit synthetischen CRM-/Fachdaten und dem kuratierten öffentlichen Bundestags-Snapshot sowie ohne Target-Konfiguration, echte Sitzung, Supabase oder Registrierungsannahme verifizieren; Target ausschließlich API-only ausliefern.
-- [ ] **Registrierungsroute:** Die Konzeptdemo ohne Intake-Aufruf belassen; einen realen Prozess und `POST /api/network-registrations` erst gemeinsam nach Route-Policy, OIDC/IAP, Idempotenz, Limits, Datenschutz und Backendausfalltests aktivieren.
+- [ ] **Registrierungsroute:** Die Konzeptdemo ohne Intake-Aufruf belassen; den getrennten HMAC-M2M-Pfad `POST /api/connectors/typo3/mitmachen-registrations` erst nach Formular-, Datenschutz-, Secret-, Ingress-, Idempotenz-, Limit- und Backendausfallabnahme aktivieren.
 - [x] **Legacy-Backend:** Supabase-Projekt pausiert (`INACTIVE`) und nicht gelöscht; 5/5 Nutzer gesperrt; 0 Sessions und 0 aktive Refresh Tokens; aktiver Repository- und GKE-Laufzeitpfad ohne Supabase. Historische Evidenz und negative Regressionswächter bleiben erhalten.
 - [x] **Wiederanlauf/Archiv:** Gemeinsamer Restore bestanden; 542 Objekte mit 14.090.082 Bytes vollständig event-held. Direktrestorefenster 90 Tage; Recovery-Archiv bis zu einer gesonderten dokumentierten Aufbewahrungs- oder Löschentscheidung erhalten.
 - [ ] **Identity/Gateway:** fremde Identity- und Authorization-Header vor Auth entfernen; nur verifizierten Kontext neu etablieren; direkten API-Zugriff sperren; TLS auf jedem Hop.
@@ -85,6 +95,8 @@ Nicht durch Autopilot mitigiert werden insbesondere Authentisierung/RBAC, XSS/In
 - [ ] **Monitoring/Resilienz:** zentralen Log-Sink und Alerts aktivieren; verteilte Rate Limits, Überlast, Pod-Abbruch und Software-Rollback testen. Der gemeinsame Datenrestore ist bereits bestanden.
 - [ ] **Browser:** CSP, HSTS, Frame-, Cache-, Referrer-, Permissions-, COOP/CORP- und same-origin-Regeln am realen Ingress messen.
 - [ ] **Cutover:** Staging-End-to-End, Canary, Go/No-Go, Monitoringfenster und Rollback des Cloud-SQL-/API-Zielpfads protokollieren. Der Supabase-Legacypfad bleibt pausiert und aus Repository sowie GKE entfernt; die getrennte Pages-Demo bleibt synthetisch.
+
+Historischer Hinweis zum damaligen Supabase-Übergang: Der frühere Live-Nachweis prüfte Data-API-/Rollen-Grants und RLS getrennt, weil diese Schutzschichten unabhängig voneinander konfiguriert wurden. Für den aktuellen Zielbetrieb ist stattdessen ausschließlich der Cloud-SQL-/GCS-Vertrag maßgeblich.
 
 ## Lokal erbrachter Nachweis
 
@@ -98,5 +110,6 @@ Nicht durch Autopilot mitigiert werden insbesondere Authentisierung/RBAC, XSS/In
 | Container | Build/Fail-closed-Start geprüft; Non-Root; Trivy 0 HIGH und 0 CRITICAL |
 | Deploymentartefakte | Helm lint/render, Nginx-Header, PostgreSQL 16 und Terraform validate erfolgreich; GKE-Live-Bestand mit 0 Supabase-Referenzen |
 | Legacy-Backend/Recovery | Projekt `INACTIVE`; 5/5 Nutzer gesperrt; 0 Sessions und 0 aktive Refresh Tokens; Restore bestanden; 542 Archivobjekte, 14.090.082 Bytes, vollständig event-held; Direktrestorefenster 90 Tage |
+| Historischer Supabase-Isolationstest | Inaktive Identität ohne Zugriff; aktiver Viewer liest; RPC-/Audit-Spoofing verweigert beziehungsweise serverseitig überschrieben |
 
 Der [vollständige Nachweis](OWASP_TOP_10_2025_MITIGATION_NACHWEIS.md) bleibt die führende Quelle für Priorität, Schweregrad, Datei-/Zeilenbezug, konkrete Mitigation, Abnahmekriterium und empfohlenen sicheren Test.

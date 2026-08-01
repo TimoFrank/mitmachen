@@ -1,0 +1,55 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" role="img" aria-labelledby="title">
+  <title id="title">#Mitmachen Flechtwerk-Signet mit doppelt skizziertem Kreis</title>
+  <style>
+    .circle {
+      stroke-dasharray: 100 100;
+      stroke-dashoffset: 0;
+    }
+
+    @media (prefers-reduced-motion: no-preference) {
+      .circle--outer {
+        stroke-dashoffset: 100;
+        animation: draw-circle 980ms cubic-bezier(.33, 1, .68, 1) 120ms forwards;
+      }
+
+      .circle--inner {
+        stroke-dashoffset: 100;
+        animation: draw-circle 900ms cubic-bezier(.33, 1, .68, 1) 390ms forwards;
+      }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      .circle {
+        animation: none;
+        stroke-dashoffset: 0;
+      }
+    }
+
+    @keyframes draw-circle {
+      to { stroke-dashoffset: 0; }
+    }
+  </style>
+  <g transform="translate(20 20) scale(1.375)" fill="none" stroke-width="8" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M23 8 20.2 35M18.9 47 18 56" stroke="#08164F"/>
+    <path d="M9 23.5h6.5M27.5 23.5H55" stroke="#00A846"/>
+    <path d="M46 8 45 17.5M43.8 29.5 41 56" stroke="#08164F"/>
+    <path d="M8 41h28M48 41h6" stroke="#00A846"/>
+  </g>
+  <g fill="none" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+    <path
+      class="circle circle--outer"
+      pathLength="100"
+      d="M105.3 27.7C120 48.8 120.3 77.3 105.9 98.7C89.8 120.3 59.4 123.8 35 110.9C11.5 98.6 3.8 69.4 13.9 44.8C24.2 19.8 53.6 7.5 79.8 13.4C91 16 99.2 20.6 105.3 27.7"
+      stroke="#08164F"
+      stroke-width="2.7"
+      opacity=".8"
+    />
+    <path
+      class="circle circle--inner"
+      pathLength="100"
+      d="M106.7 31.7C118.7 53.9 117.3 79.7 102.7 99.4C86.4 120.3 57.3 122.2 34.7 109C13.1 96.3 7 69.6 16.2 47C25.8 23.5 52.5 11.8 76.8 15.7"
+      stroke="#00A846"
+      stroke-width="2.4"
+    />
+  </g>
+</svg>

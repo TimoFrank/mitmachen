@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-labelledby="title description">
+  <title id="title">#Mitmachen – Kettenreaktion Signet</title>
+  <desc id="description">Viele leicht versetzte Dominosteine bilden gemeinsam einen dynamischen Hashtag.</desc>
+  <g fill="#08164F">
+    <rect x="19" y="3" width="8" height="13" rx="3" transform="rotate(5 23 9.5)"/>
+    <rect x="18" y="18" width="8" height="13" rx="3" transform="rotate(5 22 24.5)"/>
+    <rect x="16" y="34" width="8" height="13" rx="3" transform="rotate(5 20 40.5)"/>
+    <rect x="14" y="49" width="8" height="13" rx="3" transform="rotate(5 18 55.5)"/>
+    <rect x="42" y="3" width="8" height="13" rx="3" transform="rotate(5 46 9.5)"/>
+    <rect x="40" y="18" width="8" height="13" rx="3" transform="rotate(5 44 24.5)"/>
+    <rect x="39" y="34" width="8" height="13" rx="3" transform="rotate(5 43 40.5)"/>
+  </g>
+  <g fill="#00A846">
+    <rect x="3" y="19" width="13" height="8" rx="3" transform="rotate(-4 9.5 23)"/>
+    <rect x="18" y="18" width="13" height="8" rx="3" transform="rotate(-4 24.5 22)"/>
+    <rect x="34" y="17" width="13" height="8" rx="3" transform="rotate(-4 40.5 21)"/>
+    <rect x="49" y="16" width="13" height="8" rx="3" transform="rotate(-4 55.5 20)"/>
+    <rect x="2" y="39" width="13" height="8" rx="3" transform="rotate(-4 8.5 43)"/>
+    <rect x="17" y="38" width="13" height="8" rx="3" transform="rotate(-4 23.5 42)"/>
+    <rect x="33" y="37" width="13" height="8" rx="3" transform="rotate(-4 39.5 41)"/>
+  </g>
+  <rect x="48" y="38" width="13" height="8" rx="3" transform="rotate(18 54.5 42)" fill="#F35B62"/>
+  <rect x="37" y="49" width="8" height="13" rx="3" transform="rotate(18 41 55.5)" fill="#2F6FEC"/>
+</svg>

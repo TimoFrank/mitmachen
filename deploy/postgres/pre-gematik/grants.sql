@@ -41,7 +41,8 @@ revoke all privileges on table public.test_access_allowlist from :"runtime_role"
 
 revoke all privileges on table
   public.identity_enrollment_requests,
-  public.test_access_objects
+  public.test_access_objects,
+  public.network_registrations
 from :"runtime_role";
 
 grant select (request_id, issuer, subject, verified_email, status, expires_at)
@@ -55,6 +56,8 @@ grant select (scope_ref, entity_type, entity_id)
   on public.test_access_objects to :"runtime_role";
 grant insert (scope_ref, entity_type, entity_id, created_by)
   on public.test_access_objects to :"runtime_role";
+
+grant select, insert on table public.network_registrations to :"runtime_role";
 
 grant select, insert, update, delete on table
   public.profiles,
@@ -88,9 +91,14 @@ grant select, insert, update, delete on table
   public.notification_recipients
 to :"runtime_role";
 
+-- Das Activity-Ledger ist append-only. Die API darf Ereignisse lesen und
+-- anlegen, aber auch bei einer kompromittierten Laufzeitrolle nie umschreiben
+-- oder löschen. Die expliziten REVOKEs machen Wiederholungen nach älteren
+-- Grant-Ständen ebenfalls sicher.
 revoke all privileges on table public.activity_events from public;
 revoke all privileges on table public.activity_events from :"runtime_role" cascade;
 grant select, insert on table public.activity_events to :"runtime_role";
+revoke update, delete on table public.activity_events from :"runtime_role";
 
 revoke all privileges on sequence public.activity_events_id_seq from public;
 revoke all privileges on sequence public.activity_events_id_seq from :"runtime_role" cascade;

@@ -1,0 +1,63 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-labelledby="fmreveal-title fmreveal-description">
+  <title id="fmreveal-title">#Mitmachen – animiertes Flechtwerk-Signet</title>
+  <desc id="fmreveal-description">Vier Bänder weben sich nacheinander zu einem Hashtag zusammen.</desc>
+  <style>
+    .fmreveal-mask {
+      transform: scale(1);
+      transform-box: fill-box;
+    }
+
+    .fmreveal-v1 { transform-origin: center top; }
+    .fmreveal-h1 { transform-origin: left center; }
+    .fmreveal-v2 { transform-origin: center bottom; }
+    .fmreveal-h2 { transform-origin: right center; }
+
+    @media (prefers-reduced-motion: no-preference) {
+      .fmreveal-v1 {
+        animation: fmreveal-y 600ms cubic-bezier(.33, 0, .2, 1) 80ms both;
+      }
+
+      .fmreveal-h1 {
+        animation: fmreveal-x 600ms cubic-bezier(.33, 0, .2, 1) 180ms both;
+      }
+
+      .fmreveal-v2 {
+        animation: fmreveal-y 600ms cubic-bezier(.33, 0, .2, 1) 280ms both;
+      }
+
+      .fmreveal-h2 {
+        animation: fmreveal-x 600ms cubic-bezier(.33, 0, .2, 1) 380ms both;
+      }
+    }
+
+    @keyframes fmreveal-y {
+      from { transform: scaleY(0); }
+      to { transform: scaleY(1); }
+    }
+
+    @keyframes fmreveal-x {
+      from { transform: scaleX(0); }
+      to { transform: scaleX(1); }
+    }
+  </style>
+  <defs>
+    <mask id="fmreveal-v1-mask" maskUnits="userSpaceOnUse" x="0" y="0" width="64" height="64">
+      <rect class="fmreveal-mask fmreveal-v1" width="64" height="64" fill="#fff"/>
+    </mask>
+    <mask id="fmreveal-h1-mask" maskUnits="userSpaceOnUse" x="0" y="0" width="64" height="64">
+      <rect class="fmreveal-mask fmreveal-h1" width="64" height="64" fill="#fff"/>
+    </mask>
+    <mask id="fmreveal-v2-mask" maskUnits="userSpaceOnUse" x="0" y="0" width="64" height="64">
+      <rect class="fmreveal-mask fmreveal-v2" width="64" height="64" fill="#fff"/>
+    </mask>
+    <mask id="fmreveal-h2-mask" maskUnits="userSpaceOnUse" x="0" y="0" width="64" height="64">
+      <rect class="fmreveal-mask fmreveal-h2" width="64" height="64" fill="#fff"/>
+    </mask>
+  </defs>
+  <g fill="none" stroke-width="8" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M23 8 20.2 35M18.9 47 18 56" stroke="#08164F" mask="url(#fmreveal-v1-mask)"/>
+    <path d="M9 23.5h6.5M27.5 23.5H55" stroke="#00A846" mask="url(#fmreveal-h1-mask)"/>
+    <path d="M46 8 45 17.5M43.8 29.5 41 56" stroke="#08164F" mask="url(#fmreveal-v2-mask)"/>
+    <path d="M8 41h28M48 41h6" stroke="#00A846" mask="url(#fmreveal-h2-mask)"/>
+  </g>
+</svg>

@@ -36,6 +36,7 @@ Alle Antworten sind JSON. Listen liefern `{ "items": [...] }`.
 | --- | --- | --- |
 | `GET` | `/healthz` | Lokaler Healthcheck für Container und Jenkins-Smoke |
 | `GET` | `/readyz` | Readiness mit Datenbank- und `identity_bindings`-Prüfung |
+| `POST` | `/api/connectors/typo3/mitmachen-registrations` | Exakter HMAC-authentisierter M2M-Intake für Powermail-Formular UID `41`; kein Browserendpunkt |
 | `GET` | `/api/session` | Aktuelles Gateway-/SSO-Profil, Rollenmatrix und Auth-Modus laden |
 | `GET` | `/api/organization-primary-systems?organizationIds=:ids` | Primärsysteme für eine oder mehrere Organisationen laden |
 | `POST` | `/api/organization-primary-systems` | Primärsystem einer Organisation anlegen |
@@ -216,9 +217,28 @@ Dasselbe bereits protokollierte Manifest darf nach späteren Änderungen am Ziel
 
 Die synthetische GitHub-Pages-Demo sendet keine Registrierungen und enthält weder Projekt-URL noch Backend-Key. Die separate #Mitmachen-Konzeptdemo bleibt auch im Target technisch inert: Sie ruft keine Intake-Route auf, speichert keine Eingaben und ist keine produktive Dateneingangsstrecke.
 
-`POST /api/network-registrations` ist nur ein dokumentiertes Vorbereitungsgate für einen möglichen späteren geschützten Intake, kein freigegebener Backendvertrag. Die aktuelle Konzeptdemo baut diesen Request ausdrücklich nicht auf; automatisierte Tests sichern null Netzwerkaufrufe ab. Ein Handler darf erst zusammen mit einem realen, ausdrücklich freigegebenen Prozess implementiert und aktiviert werden. Es gibt weder einen Supabase-, LocalStorage- noch Demo-Daten-Fallback und auch keine lokale Warteschlange.
+`POST /api/connectors/typo3/mitmachen-registrations` ist als eigener
+Server-zu-Server-Vertrag implementiert und standardmäßig deaktiviert. Der
+Powermail-Worker sendet höchstens 24.000 Byte JSON mit stabiler
+`submission_id`. Key-ID, Unix-Zeitstempel und SHA-256 des unveränderten Bodys
+werden mit HMAC-SHA-256 signiert. Die API akzeptiert nur das Zeitfenster von
+±300 Sekunden, aktuelle oder vorherige konfigurierte Key-ID, Formular UID
+`41`, die exakte Quell-URL sowie die freigegebenen Formular-, Datenschutz- und
+optionalen Einwilligungstext-Versionen.
 
-Vor einer Aktivierung müssen API-Handler und Route-Policy gemeinsam implementiert und abgenommen werden. Dazu gehören mindestens Feld- und Längen-Allowlisten, serverseitige Formular- und Einwilligungsversionen, Idempotenz über `submission_id`, Rate Limit und Missbrauchsschutz, Auditierung ohne Klartext-PII in Logs sowie eine festgelegte Betriebs- und Datenschutzverantwortung. Der Browser erhält keine Tabellen- oder Storage-Rechte. Die interne Admin-App darf Registrierungen ebenfalls nur über geschützte `/api/...`-Routen und mit der erforderlichen Rolle lesen oder bearbeiten.
+Der alte Powermail-Marker `datenschutzhinweis` ist kein Eingabefeld dieses
+Vertrags. Nur `mitmachen_email_einwilligung` steuert die optionale
+Kommunikationsanfrage: `false` wird als `not_requested`, `true` ausschließlich
+als `pending` gespeichert. `granted` entsteht erst durch einen späteren
+Double-Opt-in-Nachweis.
+
+Eine neue Einreichung liefert HTTP `201`, ein identischer Replay HTTP `200`.
+Dieselbe UUID oder Powermail-Quellreferenz mit abweichendem normalisiertem
+Payload endet mit HTTP `409`. Das Intake erzeugt keinen Kontakt und keine
+Organisation. Es gibt weder einen Supabase-, LocalStorage- noch
+Demo-Daten-Fallback. Installation, Signaturdetails, Key-Rotation und
+Aktivierungsgates beschreibt
+[TYPO3-#Mitmachen-Connector](./TYPO3_MITMACHEN_CONNECTOR.md).
 
 ## DTO-Richtung
 
@@ -228,7 +248,7 @@ Vor einer Aktivierung müssen API-Handler und Route-Policy gemeinsam implementie
 
 Bei schreibenden Kontakt- und Organisationsendpunkten werden bekannte Aliase kanonisiert. Ein leerer Wert wird als `null` gespeichert. Unbekannte Werte sowie `Digital Health` werden mit HTTP `400` abgelehnt; es gibt keinen impliziten Fallback auf `Praxis`. Beim Lesen wird ein bestehender Wert `Digital Health` nicht als Sektor an den Browser ausgeliefert. Die UI erzeugt Sektoroptionen aus dem Katalog und nicht aus den aktuell vorhandenen Datensätzen.
 
-Die API gibt Frontend-DTOs zurück, keine Supabase-Rohzeilen. Beispiele:
+Die API gibt Frontend-DTOs zurück, keine Datenbank-Rohzeilen. Beispiele:
 
 - Kontaktfelder wie `organizationId`, `postalCode`, `themes`, `owner`, `ownerId`, `relationshipBasis`, `relationshipBasisEffectiveAt`, `relationshipBasisRecordedBy`, `relationshipBasisNote`, `mitmachenConsentStatus`, `mitmachenConsentEffectiveAt`, `mitmachenConsentSource`, `mitmachenConsentTextVersion`, `mitmachenConsentRecordedBy`, `mitmachenConsentNote`, `ehcConsentStatus`, `ehcConsentEffectiveAt`, `ehcConsentSource`, `ehcConsentTextVersion`, `ehcConsentRecordedBy`, `ehcConsentNote`, `profileAccess` und `contactChannelAccess`
 - Organisationsfelder wie `organizationType`, `postalCode`, `contactCount`
@@ -257,7 +277,7 @@ Ein Kontakt ist EHC-only, wenn `ehcConsentStatus = granted` und `mitmachenConsen
 
 Für Aktivitätsereignisse gibt es bewusst keinen generischen schreibenden Browser- oder HTTP-Endpunkt. `POST`, `PUT`, `PATCH` und `DELETE` auf `/api/activities` sind nicht Teil des Vertrags. Fachliche Servermutationen können künftig den privaten internen Writer aufrufen; Ereignisschlüssel, Objektbezug und Änderungsdetails werden dabei aus dem bereits validierten Domainvorgang erzeugt. Der Akteur stammt ausschließlich aus der serverseitig authentifizierten Session. Browserdaten werden nicht als frei formulierbare Audit-Ereignisse übernommen.
 
-Die Cloud-SQL-Laufzeitrolle ist `NOLOGIN` und wird nur dem API-Dienst zugeordnet. Für `activity_events` besitzt sie `SELECT`, `INSERT` und die erforderlichen Sequenzrechte; `UPDATE` und `DELETE` sind ausdrücklich entzogen. Der Browser hat keinen direkten Datenbankzugriff. So bleibt das Ledger append-only und die API-RBAC-Grenze ist der einzige fachliche Laufzeitpfad.
+Für `activity_events` setzt die aktuelle Laufzeit die Route- und Rollenmatrix der API sowie die PostgreSQL-Laufzeitgrants durch. Die `NOLOGIN`-Laufzeitrolle wird nur dem API-Dienst zugeordnet und besitzt für das Ledger ausschließlich `SELECT`, `INSERT` und die erforderlichen Sequenzrechte; `UPDATE` und `DELETE` sind ausdrücklich entzogen. Es gibt keinen generischen schreibenden Browser- oder HTTP-Endpunkt: Neue Ereignisse entstehen nur im bereits autorisierten serverinternen Fachvorgang. Die früheren Supabase-Policies sind ausschließlich historische Migrationsevidenz und weder Repository- noch Laufzeitkontrolle.
 
 `GET /api/activities` führt serverseitig neue Zeilen aus `activity_events` und bestehende Zeilen aus `changes` chronologisch zusammen. Historische Änderungen werden konservativ fachlich dekoriert; nicht eindeutig ableitbare Einträge bleiben als klar gekennzeichnete Legacy-Datensätze lesbar. Solange die Migration für `activity_events` in einer Umgebung noch fehlt, kann die API den bisherigen `changes`-Verlauf bereitstellen. Das ist eine serverseitige Datenkompatibilität und kein Browser-Fallback.
 

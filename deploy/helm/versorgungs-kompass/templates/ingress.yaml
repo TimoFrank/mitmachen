@@ -108,6 +108,15 @@ spec:
                 port:
                   name: http
           {{- end }}
+          {{- if and $.Values.typo3Connector.enabled (eq $host $.Values.ingress.host) }}
+          - path: /api/connectors/typo3/mitmachen-registrations
+            pathType: Exact
+            backend:
+              service:
+                name: {{ include "versorgungs-kompass.typo3ConnectorFullname" $ }}
+                port:
+                  name: http
+          {{- end }}
           {{- if and $.Values.frontend.publicEntry.enabled (or (eq $host $.Values.ingress.host) (hasKey $publicRootAliasHostSet $host)) }}
           - path: /
             pathType: Exact

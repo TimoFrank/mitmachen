@@ -5,6 +5,10 @@
     window.location.href
   );
   const appBaseUrl = new URL("./", scriptUrl);
+  const patientRoutePath = "stakeholder/patienten";
+  const legacyPatientOrganizationsPath = "stakeholder/patientenverbaende";
+  const legacyPatientOrganizationsAlias = "stakeholders/patientenverbaende";
+  const patientViews = new Set(["people", "organizations", "indications"]);
 
   const staticRouteEntries = [
     ["home", "start"],
@@ -14,13 +18,13 @@
     ["analytics", "versorgung/auswertung"],
     ["quality", "versorgung/datenqualitaet"],
     ["activities", "versorgung/aktivitaeten"],
-    ["patients", "stakeholder/patienten"],
+    ["patients", patientRoutePath],
     ["politics", "stakeholder/politik"],
     ["press", "stakeholder/presse"],
     ["stakeholders", "stakeholder"],
     ["stakeholders/kv", "stakeholder/kassenaerztliche-vereinigungen"],
     ["stakeholders/krankenkassen", "stakeholder/krankenkassen"],
-    ["stakeholders/patientenverbaende", "stakeholder/patientenverbaende"],
+    [legacyPatientOrganizationsAlias, patientRoutePath],
     ["stakeholders/krankenhausgesellschaften", "stakeholder/krankenhausgesellschaften"],
     ["stakeholders/aerztliche-berufsverbaende", "stakeholder/aerztliche-berufsverbaende"],
     ["experts", "stakeholder/expertenkreis"],
@@ -98,8 +102,18 @@
     };
   }
 
+  function canonicalRouteToken(routeToken = "home") {
+    const { token, query } = splitRouteToken(routeToken || "home");
+    if (token !== legacyPatientOrganizationsAlias) {
+      return `${token}${query ? `?${query}` : ""}`;
+    }
+    const params = new URLSearchParams(query);
+    params.set("view", "organizations");
+    return `patients?${params.toString()}`;
+  }
+
   function pathForRouteToken(routeToken = "home") {
-    const { token, query } = splitRouteToken(routeToken);
+    const { token, query } = splitRouteToken(canonicalRouteToken(routeToken));
     if (routePathByToken.has(token)) {
       return { path: routePathByToken.get(token), query };
     }
@@ -142,6 +156,14 @@
     const relativePath = relativeAppPath(pathname);
     if (!relativePath || relativePath === "versorgungs-kompass.html") return "";
 
+    if (relativePath === legacyPatientOrganizationsPath) {
+      return "patients?view=organizations";
+    }
+    if (relativePath === patientRoutePath) {
+      const view = new URLSearchParams(search).get("view");
+      return patientViews.has(view) ? `patients?view=${view}` : "patients";
+    }
+
     const staticToken = routeTokenByPath.get(relativePath);
     if (staticToken) return staticToken;
 
@@ -175,11 +197,12 @@
   }
 
   function urlForRouteToken(routeToken = "home", options = {}) {
+    const canonicalToken = canonicalRouteToken(routeToken);
     if (!cleanUrlsEnabled()) {
-      return `#${String(routeToken || "home").replace(/^#/, "")}`;
+      return `#${canonicalToken}`;
     }
 
-    const { path, query } = pathForRouteToken(routeToken);
+    const { path, query } = pathForRouteToken(canonicalToken);
     const target = new URL(path, appBaseUrl);
     const searchParams = persistentSearchParams(options.search);
     const routeSearch = new URLSearchParams(query);
@@ -198,6 +221,7 @@
   function isApplicationPath(pathname = "") {
     const relativePath = relativeAppPath(pathname);
     if (relativePath === "versorgungs-kompass.html") return true;
+    if (relativePath === legacyPatientOrganizationsPath) return true;
     if (routeTokenByPath.has(relativePath) || importTabByPath.has(relativePath)) return true;
     if (/^personen\/(?:versorgung|expertenkreis|stakeholder|patienten|politik|presse)\/[^/]+$/.test(relativePath)) return true;
     return /^organisationen\/(?:versorgung|expertenkreis|patienten|stakeholder|presse)\/[^/]+$/.test(relativePath);

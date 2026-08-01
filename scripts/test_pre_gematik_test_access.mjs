@@ -217,6 +217,7 @@ assert.equal(previewPlan.requestUpdates.length, 1);
 assert.equal(previewPlan.requestedCount, 2);
 assert.equal(previewPlan.activeRequestedCount, 2);
 assert.equal(previewPlan.unknownExistingCount, 0);
+assert.match(previewPlan.currentStateFingerprint, /^sha256:[a-f0-9]{64}$/u);
 assert.match(previewPlan.expectedStateFingerprint, /^sha256:[a-f0-9]{64}$/u);
 
 safeFailure(
@@ -388,6 +389,47 @@ safeFailure(
 
 const previewOptions = parseAccessArguments(["--input", "/protected/test-access-v2.json"]);
 validateAccessConfirmations(previewOptions, canonical, accessDocumentFingerprint(canonical));
+const confirmedCurrentStateFingerprint = `sha256:${"1".repeat(64)}`;
+const applyOptions = parseAccessArguments([
+  "--input", "/protected/test-access-v2.json",
+  "--apply",
+  "--confirm-environment", "pre-gematik",
+  "--confirm-database", "versorgungs_kompass",
+  "--confirm-operation", "APPLY_PRE_GEMATIK_TEST_ACCESS_V2",
+  "--confirm-fingerprint", accessDocumentFingerprint(canonical),
+  "--confirm-current-state-fingerprint", confirmedCurrentStateFingerprint,
+  "--confirm-binding-count", "2",
+  "--confirm-enrollment-count", "1",
+  "--confirm-active-binding-count", "2",
+  "--allow-active-bindings"
+]);
+validateAccessConfirmations(applyOptions, canonical, accessDocumentFingerprint(canonical));
+assert.equal(
+  applyOptions.confirmCurrentStateFingerprint,
+  confirmedCurrentStateFingerprint
+);
+safeFailure(
+  () => validateAccessConfirmations(
+    parseAccessArguments([
+      "--input", "/protected/test-access-v2.json",
+      "--confirm-current-state-fingerprint", confirmedCurrentStateFingerprint
+    ]),
+    canonical,
+    accessDocumentFingerprint(canonical)
+  ),
+  /nur mit --apply/u
+);
+safeFailure(
+  () => validateAccessConfirmations(
+    {
+      ...applyOptions,
+      confirmCurrentStateFingerprint: ""
+    },
+    canonical,
+    accessDocumentFingerprint(canonical)
+  ),
+  /Bestaetigungen/u
+);
 safeFailure(
   () => validateAccessConfirmations(
     parseAccessArguments([
@@ -397,6 +439,7 @@ safeFailure(
       "--confirm-database", "versorgungs_kompass",
       "--confirm-operation", "APPLY_PRE_GEMATIK_TEST_ACCESS_V2",
       "--confirm-fingerprint", accessDocumentFingerprint(canonical),
+      "--confirm-current-state-fingerprint", confirmedCurrentStateFingerprint,
       "--confirm-binding-count", "2",
       "--confirm-enrollment-count", "",
       "--confirm-active-binding-count", "2",

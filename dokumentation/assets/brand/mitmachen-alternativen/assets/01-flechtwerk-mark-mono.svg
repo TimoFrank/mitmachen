@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-labelledby="title description">
+  <title id="title">#Mitmachen – Flechtwerk Signet einfarbig</title>
+  <desc id="description">Ein einfarbiger, gewebter Hashtag mit vier sichtbaren Über- und Unterführungen.</desc>
+  <g fill="none" stroke="#08164F" stroke-width="8" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M23 8 20.2 35M18.9 47 18 56"/>
+    <path d="M46 8 45 17.5M43.8 29.5 41 56"/>
+    <path d="M9 23.5h6.5M27.5 23.5H55"/>
+    <path d="M8 41h28M48 41h6"/>
+  </g>
+</svg>

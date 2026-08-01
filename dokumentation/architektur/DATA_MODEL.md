@@ -1,17 +1,19 @@
 # Datenmodell Versorgungs-Kompass
 
-Stand: 31. Juli 2026, abgeleitet aus `deploy/postgres/pre-gematik/schema.sql`, den versionierten Zielmigrationen, `api/server.mjs`, `frontend/data/sector-registry.js` und `api/care-sector-model.mjs`.
+Stand: 31. Juli 2026, abgeleitet aus `deploy/postgres/pre-gematik/schema.sql`, `deploy/postgres/pre-gematik/grants.sql`, den versionierten Zielmigrationen, `api/server.mjs`, `frontend/data/sector-registry.js`, `frontend/data/data-service.js` und `api/care-sector-model.mjs`.
 
-Cloud SQL beziehungsweise Shared PostgreSQL ist der alleinige aktive relationale Datenpfad. Frühere Quellschemata und Importwerkzeuge sind aus dem aktuellen Repository entfernt; ihre Herkunft bleibt über Git-Historie und geschützte Recovery-Evidenz nachvollziehbar.
+Für die geschützte GCP-Anwendung ist Cloud SQL/PostgreSQL die alleinige relationale Datenquelle; private Objekte liegen ausschließlich in GCS. Das frühere Supabase-Schema und die zugehörigen Importwerkzeuge sind aus dem aktuellen Repository entfernt und nur noch stillgelegte Migrationshistorie. Der [historische Providerwechsel](../betrieb-und-deployment/SUPABASE_CLOUD_SQL_MIGRATION.md), die Git-Historie und die geschützte Recovery-Evidenz erhalten den Herkunftsnachweis.
 
 ## Überblick
 
-Der produktive Ziel-Datenbestand liegt in Shared PostgreSQL. Die App nutzt fachlich diese Tabellen:
+Das führende relationale Modell liegt in PostgreSQL. Die aktuelle GCP-Laufzeit verwendet dafür Cloud SQL; ein späterer gematik-Zielbetrieb übernimmt dasselbe fachliche Modell in die dort freigegebene PostgreSQL-Plattform. Die App nutzt unter anderem diese Tabellen:
 
 - `profiles`
+- `identity_bindings`
 - `contacts`
 - `organizations`
 - `organization_primary_systems`
+- `network_registrations`
 - `formats`
 - `format_participants`
 - `hospitation_slots`
@@ -30,6 +32,7 @@ Nicht im aktuellen Schema vorhanden sind eigene Tabellen für `imports`, `topics
 
 ```mermaid
 erDiagram
+  profiles ||--o{ identity_bindings : "profile_id"
   profiles ||--o{ contacts : "owner_id"
   organizations ||--o{ contacts : "organization_id"
   organizations ||--o{ organization_primary_systems : "organization_id"
@@ -95,7 +98,7 @@ Regeln für Lesen und Schreiben:
 
 Zweck:
 
-- Stabile Anwendungsprofile für extern authentisierte Nutzer.
+- Interne Nutzerprofile, die über eine aktive, serverseitig geprüfte OIDC-/IAP-Bindung authentisierten Identitäten zugeordnet werden.
 - Rollensteuerung für Admin, Editor und Viewer.
 - Owner-Auswahl in Kontakten.
 
@@ -103,7 +106,7 @@ Wichtigste Felder:
 
 | Feld | Bedeutung |
 | --- | --- |
-| `id` | Stabile UUID der Anwendung, Primärschlüssel. Externe Subjects werden getrennt in `identity_bindings` zugeordnet. |
+| `id` | Stabile interne Text-ID und Primärschlüssel; externe Identitäten werden separat über `identity_bindings` zugeordnet. |
 | `email` | Login-/Kontaktadresse. |
 | `display_name` | Anzeigename in App und Owner-Auswahl. |
 | `initials` | Kurzlabel/Avatar. |
@@ -131,13 +134,13 @@ Kritische Felder:
 Automatisch gesetzt:
 
 - `created_at` und `updated_at` haben Defaults.
-- Ein externes Login legt kein Profil automatisch an. Profil und `identity_bindings` werden über den geprüften administrativen Enrollment-/Binding-Prozess provisioniert.
+- Profile und `identity_bindings` werden ausschließlich über den geprüften administrativen Enrollment-/Binding-Prozess provisioniert; ein erster externer Login legt kein aktives Profil an.
 
 Dürfen Nutzer bearbeiten:
 
 - Nutzer dürfen das eigene Profil für `display_name`, `initials`, `avatar_url`, `team` und `bio` aktualisieren.
 - `email`, `role` und `active` sind nicht durch die Profil-UI editierbar.
-- Admins pflegen Rollen weiterhin außerhalb der Profilseite über den geschützten Cloud-SQL-/API-Administrationsprozess.
+- Admins pflegen Rollen weiterhin außerhalb der Profilseite über den geschützten PostgreSQL-/API-Administrationsprozess.
 
 ## Tabelle `contacts`
 
@@ -287,7 +290,7 @@ UI-Nutzung:
 
 Migrationslogik:
 
-- Das Ziel-Schema unter `deploy/postgres/pre-gematik/` definiert `organizations` und `contacts.organization_id` als aktuellen Vertrag.
+- Die historische Provider-Migration `20260516_create_organizations.sql` führte `organizations` und `contacts.organization_id` ein. Die aktuelle, führende Definition steht in `deploy/postgres/pre-gematik/schema.sql`; die frühere Datei ist nur noch über die Git-Historie nachvollziehbar.
 - Bestehende eindeutige `contacts.organization`-Freitextwerte werden getrimmt, mit zusammengefassten Leerzeichen normalisiert und als erste Organisationen angelegt.
 - Unsichere Dubletten wie "UKB" und "Universitätsklinikum Bonn" werden nicht automatisch zusammengeführt.
 - Danach werden Kontakte per normalisiertem Freitext auf die neue Organisation verlinkt.
@@ -330,18 +333,59 @@ Rechte:
 
 - Viewer lesen Einträge aktiver Organisationen.
 - Editor/Admin dürfen Einträge aktiver Organisationen anlegen, bearbeiten und löschen.
-- Die API-Autorisierung prüft zusätzlich den Status der zugehörigen Organisation.
+- Die API-Autorisierung berücksichtigt den Status der zugehörigen Organisation.
 
-## Vorbereitung eines späteren Registrierungs-Intakes
+## Tabelle `network_registrations`
 
-Das aktuelle Cloud-SQL-Schema besitzt keine aktive Intake-Tabelle. Die
-#Mitmachen-Konzeptdemo ist technisch inert und baut keinen Request an
-`POST /api/network-registrations` auf. Ein späterer Registrierungsprozess
-benötigt einen getrennt freigegebenen serverseitigen Vertrag mit
-Authentisierung, Idempotenz, Rate Limit, Datenschutzinformation,
-E-Mail-Bestätigung, Aufbewahrungsregeln und sicherem Backendausfall. Kontakte
-und Organisationen werden bis dahin nicht aus einem öffentlichen Formular
-angelegt.
+Zweck:
+
+- Datensparsame Staging-Tabelle für den HMAC-authentisierten
+  TYPO3-/Powermail-Connector des Formulars UID `41`; die Repo-Konzeptdemo
+  schreibt weiterhin keine Daten.
+- Trennung ungeklärter Eingänge vom aktiven Kontakt- und Organisationsbestand.
+- Strukturierte Erfassung der vorhandenen Formularfelder und der getrennten
+  Nachweise für Datenschutzhinweis und optionale E-Mail-Kommunikation.
+
+Wichtigste Felder:
+
+| Feld | Bedeutung |
+| --- | --- |
+| `submission_id` | Vom TYPO3-Listener einmal erzeugte UUIDv4 für idempotente Retries. |
+| `source_system`, `source_form_uid`, `source_record_uid` | Eindeutige Referenz auf `typo3_powermail`, Formular UID `41` und den Powermail-Datensatz. |
+| `source_payload_sha256` | Fingerprint des normalisierten Payloads zur Erkennung abweichender Wiederholungen. |
+| `received_at`, `submitted_at` | Serverzeit des Intake und eingefrorener Powermail-Absendezeitpunkt. |
+| `status`, `onboarding_stage` | Getrennter Prüf- und Zuordnungsstatus; Standard ist `neu`/`registered`. |
+| `salutation`, `title`, `first_name`, `last_name`, `email` | Im Formular vorhandene Personendaten; nur E-Mail ist Pflicht. |
+| `organization`, `sector`, `message` | Optionale Kontextangaben des Formulars. |
+| `privacy_notice_version`, `privacy_notice_presented_at`, `form_version` | Versionierter Nachweis des angezeigten Formular- und Datenschutzhinweises. |
+| `email_permission_status`, `email_permission_requested_at`, `consent_contact_version` | Optionale Kommunikationsanfrage; beim Intake ausschließlich `not_requested` oder `pending`. |
+| `email_permission_confirmed_at`, `email_permission_evidence_ref` | Späterer DOI-Nachweis; `granted` ist ohne beide Werte durch einen Datenbank-Constraint unmöglich. |
+| `retention_review_at` | Zeitpunkt, zu dem die weitere Aufbewahrung fachlich geprüft werden muss. |
+| `contact_id`, `organization_id`, `processed_at`, `processed_by` | Nachvollziehbare Zuordnung nach der Admin-Prüfung. |
+
+Sicherheitsmodell:
+
+- Ausschließlich der exakte serverseitige Connector-Pfad schreibt in die
+  Tabelle. Er prüft HMAC, Zeitfenster, Bodygröße, Feld-Allowlist, Quelle und
+  alle Versionen vor der Transaktion.
+- Die Cloud-SQL-Laufzeitrolle besitzt `SELECT` und `INSERT`, aber kein
+  `UPDATE` oder `DELETE` auf der Intake-Tabelle. Der aktuelle API-Router bietet
+  keine generische Lese- oder Bearbeitungsroute für Browser an.
+- `submission_id` und die Kombination aus Quellsystem, Formular und
+  Quelldatensatz sind jeweils eindeutig. Identische Retries erzeugen keine
+  zweite Zeile; abweichende Wiederholungen enden mit Konflikt.
+- Der vorhandene Powermail-Marker `datenschutzhinweis` ist kein
+  Einwilligungsfeld des Payloads. Nur der neue optionale Marker
+  `mitmachen_email_einwilligung` kann `pending` auslösen.
+- Kontakte und Organisationen werden nicht direkt aus dem öffentlichen Formular heraus angelegt.
+
+Bewusste Grenze:
+
+- Das Schema kann einen späteren DOI-Nachweis sicher abbilden. Automatischer
+  E-Mail-Versand und Bestätigungslink gehören nicht zu diesem Connector.
+- Der Connector und seine getrennte Ingress-Strecke sind standardmäßig
+  deaktiviert. Aktivierung erfordert die dokumentierte fachliche, rechtliche,
+  sicherheitsbezogene und betriebliche Abnahme.
 
 ## Tabellen `stakeholder_types`, `stakeholder_organizations`, `stakeholder_people`
 
@@ -650,12 +694,13 @@ Indizes und Idempotenz:
 - Zusammengesetzter Objektindex auf `entity_type`, `entity_id` und `occurred_at`.
 - Partieller Unique-Index auf `legacy_source`, `legacy_id` verhindert eine doppelte Übernahme derselben historischen Zeile.
 
-API-RBAC und Schreibmodell:
+Zugriffs- und Schreibmodell:
 
 - Admins dürfen alle Ereignisse lesen. Viewer und Editoren sehen nur Ereignisse ohne Kontaktbezug oder Ereignisse aktiver Kontakte; Aktivitäten archivierter Kontakte bleiben verborgen.
 - Für EHC-only-Kontakte gilt dieselbe nicht identifizierende Zugriffsprojektion auch im globalen Verlauf und im Kontaktverlauf. Nicht autorisierte Nutzer dürfen insbesondere weder Kontaktstammdaten noch Werte aus Profilführungs- oder Einwilligungsnachweisen über Aktivitätsfelder erhalten.
-- Browser-Clients besitzen keinen direkten Datenbankzugriff; Lesen und Schreiben laufen ausschließlich über die autorisierte API.
-- Die `NOLOGIN`-Laufzeitrolle besitzt für `activity_events` nur `SELECT`, `INSERT` und die erforderlichen Sequenzrechte. Update und Delete bleiben gesperrt, damit das Ledger append-only ist.
+- Browser-Clients besitzen keine Datenbankrechte und greifen ausschließlich über die geschützte API zu. Diese bietet keinen generischen Activity-Writer und keine Update- oder Delete-Route für Ereignisse an.
+- Neue Ereignisse schreibt ausschließlich der serverinterne Writer innerhalb eines bereits autorisierten Fachvorgangs. Datenbank-Credentials werden nie an das Frontend ausgeliefert.
+- Die `NOLOGIN`-Laufzeitrolle besitzt für `activity_events` nur `SELECT`, `INSERT` und die erforderlichen Sequenzrechte. `UPDATE` und `DELETE` bleiben gesperrt, damit das Ledger append-only ist.
 - Fachliche Mutationen schreiben Domainänderung, Audit-Zeilen, kanonisches Ereignis und die Verknüpfung der Audit-Zeilen in einer Transaktion. `actor_id`, Objekt- und Kontaktbezug stammen aus dem validierten Servervorgang, nicht aus frei formulierbaren Browserdaten.
 
 Trennung von `activity_events.changes` und `public.changes`:
@@ -756,28 +801,33 @@ Dürfen Nutzer bearbeiten:
 
 - Jeder angemeldete Nutzer nur die eigenen Einstellungen.
 
-## Views und Funktionen
+## Historisch stillgelegter Alias-Login
+
+Das frühere Provider-Modell enthielt `login_aliases` und eine Edge Function für die Anmeldung mit Kurzkennung. Beides ist weder Teil des aktuellen PostgreSQL-Schemas noch des Laufzeitvertrags. Die Anmeldung erfolgt ausschließlich über die freigegebene OIDC-/IAP-Identität; `identity_bindings` ordnet deren verifiziertes Paar aus Issuer und Subject einem internen Profil zu. Es gibt keinen Alias-, Passwort- oder Provider-Fallback im Repository.
+
+## Ausgewählte Funktionen
 
 | Objekt | Zweck |
 | --- | --- |
-| `public.pre_gematik_touch_updated_at()` | Aktualisiert `updated_at` bei Updates. |
+| `public.pre_gematik_touch_updated_at()` | Aktualisiert `updated_at` bei Änderungen in PostgreSQL. |
 | `public.pre_gematik_prepare_contact_purpose_write()` | Validiert und ergänzt zweckbezogene Kontaktänderungen serverseitig. |
 | `public.pre_gematik_log_contact_purpose_change()` | Schreibt den zugehörigen Auditnachweis transaktional. |
 
-## Storage `profile-images`
+## GCS-Objektpfad `profile-images`
 
 Zweck:
 
-- Ablage von Profilbildern in einem privaten Google-Cloud-Storage-Bucket.
+- Ablage privater Profilbilder im konfigurierten GCS-Bucket.
+- Objektpfad: `profile-images/<profile-id>/avatar-<uuid>.<jpg|png|webp>`.
 - Der Objektpfad wird serverseitig an die stabile Profil-ID gebunden.
 - Erlaubte Typen: `image/jpeg`, `image/png`, `image/webp`.
 - Größenlimit: 5 MB.
 
 Zugriffshinweise:
 
-- Der Bucket ist privat, nutzt Uniform Bucket-Level Access und Public Access Prevention.
-- Lesen, Hochladen, Ersetzen und Löschen erfolgen ausschließlich über die autorisierte API und deren Workload Identity.
-- Dauerhafte öffentliche Profilbild-URLs werden nicht gespeichert.
+- Der Bucket ist privat, nutzt Uniform Bucket-Level Access und Public Access Prevention; es gibt keine anonyme Leseberechtigung.
+- Lesen, Upload, Ersetzen und Löschen erfolgen ausschließlich autorisiert über die geschützte API und deren Workload-Identität.
+- In PostgreSQL wird eine `gs://`-Referenz gespeichert. Der Browser erhält weder Bucket-Rechte noch eine dauerhafte öffentliche Objekt-URL.
 
 ## Storage `stakeholder-logos`
 
@@ -786,19 +836,20 @@ Zugriffshinweise:
 - Nur der API-Workload besitzt Objekt-Leserechte. Frontend, GitHub-Pages-Demo und Deployment-Identität erhalten keinen Zugriff auf Logo-Inhalte.
 - Die API akzeptiert ausschließlich den freigegebenen Bildvertrag und liefert SVG mit restriktiver Content Security Policy aus. Unsichere, strukturell ungültige oder übergroße Quelldateien werden vor einer Migration quarantänisiert und nicht still übernommen.
 
-## Rollen- und Rechtehinweise
+## API- und Datenbankrechte
 
-- Der Browser besitzt keinen direkten Datenbankzugriff. Jede fachliche Operation läuft über die API.
-- Die Cloud-SQL-Laufzeitrolle ist `NOLOGIN`, wird nur dem kurzlebigen API-Login zugeordnet und erhält explizite Grants.
-- Viewer dürfen nicht schreiben. Editor/Admin dürfen nur die im API-Policy-Manifest freigegebenen Mutationen ausführen.
-- Admins dürfen archivieren beziehungsweise wiederherstellen und geschützte Administrationsprozesse anstoßen.
+- Der Browser greift ausschließlich über `/api/...` zu und besitzt keine Datenbank- oder Bucket-Credentials.
+- Die API erzwingt die vollständige Route-, Rollen-, Ownership- und Archivmatrix serverseitig; Viewer dürfen nicht schreiben.
+- Die feste PostgreSQL-`NOLOGIN`-Laufzeitrolle erhält nur die in `deploy/postgres/pre-gematik/grants.sql` definierten Objekt- und Funktionsrechte. `PUBLIC` besitzt kein Erstellungsrecht im Anwendungsschema.
+- Administrative Rollen und kurzlebige Operatorzugänge bleiben vom Laufzeitkonto getrennt und werden nie an das Frontend ausgeliefert.
+- Editor und Admin dürfen nur die im API-Policy-Manifest freigegebenen Mutationen ausführen; administrative Prozesse bleiben zusätzlich geschützt.
 - `activity_events` bleibt append-only: Die Laufzeitrolle besitzt `SELECT` und `INSERT`, aber kein `UPDATE` oder `DELETE`.
 
 ## Kontaktanlage Sprint E
 
 Die Kontaktanlage verwendet weiterhin `contacts`; es gibt keine neue Datenquelle und kein neues Bulk-Datenmodell.
 
-- Einzelkontakt und Online-Tabelle schreiben über `window.dataService.createContact()` an die geschützte API `/api/contacts`.
+- Einzelkontakt und Online-Tabelle schreiben über `window.dataService.createContact()` und die geschützte `/api/contacts`-Route nach PostgreSQL.
 - Pflichtfeld in der UI ist `name`.
 - Defaults: `priority = Mittel`, `status = active`, `owner_id` wird gesetzt, wenn ein Profil ausgewählt ist; sonst bleibt Owner leer.
 - Online-Tabelle validiert je Zeile: fehlender Name, ungültige E-Mail, grob ungültige Telefonnummer und unbekannter Sektor sind Fehler.

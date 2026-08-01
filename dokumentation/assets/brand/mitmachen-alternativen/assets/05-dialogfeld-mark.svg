@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-labelledby="title description">
+  <title id="title">#Mitmachen – Dialogfeld Signet</title>
+  <desc id="description">Ein Hashtag in einer offenen Sprechblase als Zeichen für Dialog und Beteiligung.</desc>
+  <path d="M14 6h36c5 0 8 3 8 8v27c0 5-3 8-8 8H34L21 59V49h-7c-5 0-8-3-8-8V14c0-5 3-8 8-8Z" fill="#EAF3FC" stroke="#08164F" stroke-width="4" stroke-linejoin="round"/>
+  <g fill="none" stroke-width="6" stroke-linecap="round">
+    <path d="m25 16-3 26m18-26-3 26" stroke="#08164F"/>
+    <path d="M17 25h30M15 36h30" stroke="#00A846"/>
+  </g>
+</svg>

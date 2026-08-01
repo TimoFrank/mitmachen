@@ -20,6 +20,7 @@ import {
   canonicalVerifiedEmail,
   consumeAllowlistedIapIdentity,
   enrollVerifiedIapIdentity,
+  submitExternalIapEnrollment,
   submitIapAutoEnrollment,
   submitIapEnrollment
 } from "../api/test-access-enrollment.mjs";
@@ -29,6 +30,12 @@ const projectRoot = new URL("../", import.meta.url);
 const apiSource = readFileSync(new URL("api/server.mjs", projectRoot), "utf8");
 const enrollmentSource = readFileSync(new URL("api/test-access-enrollment.mjs", projectRoot), "utf8");
 const frontendSource = readFileSync(new URL("frontend/app/versorgungs-kompass.js", projectRoot), "utf8");
+const externalEnrollmentClientSources = [
+  "frontend/app/versorgungs-kompass.js",
+  "frontend/data/data-service.js",
+  "frontend/login/auth-guard.js",
+  "frontend/login/auth-login.js"
+].map((path) => readFileSync(new URL(path, projectRoot), "utf8")).join("\n");
 
 for (const [method, pathname, role, writeClass] of [
   ["GET", "/api/contacts", "viewer", WRITE_CLASSES.READ],
@@ -45,7 +52,8 @@ for (const [method, pathname, role, writeClass] of [
   ["POST", "/api/contact-notes", "editor", WRITE_CLASSES.RESTRICTED],
   ["POST", "/api/stakeholder-import", "admin", WRITE_CLASSES.RESTRICTED],
   ["DELETE", "/api/hospitations/hospitation-1", "admin", WRITE_CLASSES.RESTRICTED],
-  ["GET", "/api/export", "admin", WRITE_CLASSES.RESTRICTED]
+  ["GET", "/api/export", "admin", WRITE_CLASSES.RESTRICTED],
+  ["POST", "/api/auth/external-enrollment", "public", WRITE_CLASSES.RESTRICTED]
 ]) {
   const policy = policyForRequest(method, pathname);
   assert.equal(policy?.role, role, `${method} ${pathname}: Rollenstufe stimmt nicht.`);
@@ -53,11 +61,16 @@ for (const [method, pathname, role, writeClass] of [
 }
 assert.equal(policyForRequest("POST", "/api/unknown-write"), null, "Unbekannte Writes muessen fail-closed bleiben.");
 assert.equal(policyForRequest("POST", "/api/auth/auto-enrollment"), null, "Auto-Enrollment muss fail-closed entfernt sein.");
-assert.equal(policyForRequest("POST", "/api/auth/enrollment"), null, "Manuelles Enrollment muss fail-closed entfernt sein.");
+assert.equal(policyForRequest("POST", "/api/auth/enrollment"), null, "Altes generisches Enrollment muss fail-closed entfernt sein.");
 assert.equal(
   normalizedRequestLogPath("/api/auth/auto-enrollment"),
   "/api/:unmatched",
   "Entferntes Auto-Enrollment muss nur noch als unbekannte API-Route protokolliert werden."
+);
+assert.equal(
+  normalizedRequestLogPath("/api/auth/external-enrollment"),
+  "/api/auth/external-enrollment",
+  "Die External-Enrollment-Route muss ohne Nutzeridentifikatoren protokolliert werden."
 );
 
 const iapAudience = "/projects/123/global/backendServices/456";
@@ -709,6 +722,138 @@ await assert.rejects(
 assert.equal(bodyVerifyCalls, 0, "Clientseitige Identitaetsdaten muessen vor jeder Identity-Verarbeitung abgewiesen werden.");
 assert.equal(forgedPoolConnections, 0);
 
+const externalPasswordSubject = "securetoken.google.com/versorgungs-kompass-test:password-user-1";
+const externalPasswordPayload = {
+  iss: IAP_IDENTITY_ISSUER,
+  sub: externalPasswordSubject,
+  email: "securetoken.google.com/versorgungs-kompass-test:tester@example.invalid"
+};
+const externalPasswordRequest = Readable.from([]);
+const externalPasswordPool = fakeEnrollmentPool();
+const externalPasswordResult = await submitExternalIapEnrollment(externalPasswordRequest, {
+  identityMode: "external",
+  verifyIapJwt: async (request) => {
+    request.iapExternalIdentity = Object.freeze({
+      subject: externalPasswordSubject,
+      email: "Tester@Example.invalid",
+      provider: "password",
+      tenantId: ""
+    });
+    return externalPasswordPayload;
+  },
+  pool: externalPasswordPool,
+  now: fixedNow
+});
+assert.deepEqual(externalPasswordResult, {
+  requestId: externalPasswordPool.state.enrollment.request_id,
+  status: "pending",
+  expiresAt: "2026-07-25T10:00:00.000Z"
+});
+assert.deepEqual(externalPasswordPool.state.storedIdentity, {
+  issuer: IAP_IDENTITY_ISSUER,
+  subject: externalPasswordSubject,
+  email: "tester@example.invalid"
+});
+assert.deepEqual(
+  Object.keys(externalPasswordResult).sort(),
+  ["expiresAt", "requestId", "status"],
+  "External-Enrollment darf weder Subject noch E-Mail-Adresse offenlegen."
+);
+
+const nonExternalRequest = Readable.from([]);
+let nonExternalVerifyCalls = 0;
+await assert.rejects(
+  submitExternalIapEnrollment(nonExternalRequest, {
+    identityMode: "iam",
+    verifyIapJwt: async () => {
+      nonExternalVerifyCalls += 1;
+      return externalPasswordPayload;
+    },
+    pool: noDatabasePool
+  }),
+  (error) => error.status === 404 && error.message === "Not found"
+);
+assert.equal(nonExternalVerifyCalls, 0, "Die Route darf ausserhalb des External-Modus keine Identity-Pruefung starten.");
+assert.equal(forgedPoolConnections, 0);
+
+const externalGoogleRequest = Readable.from([]);
+const externalGooglePool = fakeEnrollmentPool();
+await assert.rejects(
+  submitExternalIapEnrollment(externalGoogleRequest, {
+    identityMode: "external",
+    verifyIapJwt: async (request) => {
+      request.iapExternalIdentity = Object.freeze({
+        subject: externalPasswordSubject,
+        email: "tester@example.invalid",
+        provider: "google.com",
+        tenantId: ""
+      });
+      return externalPasswordPayload;
+    },
+    pool: externalGooglePool
+  }),
+  (error) => error.status === 403
+);
+assert.equal(
+  externalGooglePool.state.connectCount,
+  0,
+  "Google-Konten duerfen den ausschließlich fuer vorab angelegte Passwortkonten bestimmten Pending-Pfad nicht nutzen."
+);
+
+const mismatchedExternalRequest = Readable.from([]);
+const mismatchedExternalPool = fakeEnrollmentPool();
+await assert.rejects(
+  submitExternalIapEnrollment(mismatchedExternalRequest, {
+    identityMode: "external",
+    verifyIapJwt: async (request) => {
+      request.iapExternalIdentity = Object.freeze({
+        subject: `${externalPasswordSubject}-attacker`,
+        email: "tester@example.invalid",
+        provider: "password",
+        tenantId: ""
+      });
+      return externalPasswordPayload;
+    },
+    pool: mismatchedExternalPool
+  }),
+  (error) => error.status === 401
+);
+assert.equal(mismatchedExternalPool.state.connectCount, 0);
+
+let externalForgedPoolConnections = 0;
+const externalNoDatabasePool = {
+  async connect() {
+    externalForgedPoolConnections += 1;
+    throw new Error("Datenbank darf fuer ein ungeprueftes External-IAP-JWT nicht erreicht werden.");
+  }
+};
+await assert.rejects(
+  submitExternalIapEnrollment(Readable.from([]), {
+    identityMode: "external",
+    verifyIapJwt: async () => {
+      throw Object.assign(new Error("IAP-JWT-Signatur ist ungueltig."), { status: 401 });
+    },
+    pool: externalNoDatabasePool
+  }),
+  (error) => error.status === 401
+);
+assert.equal(externalForgedPoolConnections, 0);
+
+let externalBodyVerifyCalls = 0;
+await assert.rejects(
+  submitExternalIapEnrollment(Readable.from([Buffer.from("{}")]), {
+    identityMode: "external",
+    verifyIapJwt: async () => {
+      externalBodyVerifyCalls += 1;
+      return externalPasswordPayload;
+    },
+    pool: externalNoDatabasePool
+  }),
+  (error) => error.status === 400
+);
+assert.equal(externalBodyVerifyCalls, 0);
+assert.equal(externalForgedPoolConnections, 0);
+
 for (const contract of [
   "select p.*, binding.access_scope, binding.scope_ref",
   "assertAccessScopePermission(profile, policy);",
@@ -728,11 +873,24 @@ for (const removedRuntimeContract of [
   'url.pathname === "/api/auth/auto-enrollment"',
   'url.pathname === "/api/auth/enrollment"',
   "submitIapAutoEnrollment(request",
-  "submitIapEnrollment(request",
   "API_AUTH_AUTO_ENROLLMENT_ENABLED"
 ]) {
   assert.ok(!apiSource.includes(removedRuntimeContract), `Entfernter Enrollment-Runtimevertrag ist noch aktiv: ${removedRuntimeContract}`);
 }
+for (const externalEnrollmentContract of [
+  'url.pathname === "/api/auth/external-enrollment"',
+  "submitExternalIapEnrollment(request",
+  "identityMode: IAP_IDENTITY_MODE"
+]) {
+  assert.ok(
+    apiSource.includes(externalEnrollmentContract),
+    `Der explizite External-Pending-Enrollment-Vertrag fehlt: ${externalEnrollmentContract}`
+  );
+}
+assert.ok(
+  !externalEnrollmentClientSources.includes("/api/auth/external-enrollment"),
+  "External-Enrollment darf nicht automatisch oder per Self-Service-UI ausgeloest werden."
+);
 assert.match(
   apiSource,
   /url\.pathname === "\/api\/auth\/bootstrap"[\s\S]*API_AUTH_MODE === "iap"[\s\S]*resolveRequestProfile\(request\)[\s\S]*status\) === 403[\s\S]*redirectResponse\(response, "\/#zugriff-verweigert"\)/u,
@@ -791,4 +949,4 @@ assert.doesNotMatch(
   "Die opake Auto-Enrollment-Antwort darf keine Identity- oder Profildaten enthalten."
 );
 
-console.log("API Test Access OK: Self-Service-Enrollment ist entfernt; vorprovisionierte Bindungen und Testobjekt-Grenzen bleiben fail-closed.");
+console.log("API Test Access OK: External-Pending-Enrollment bleibt signiert, manuell freigabepflichtig und ohne automatische Rollenvergabe.");

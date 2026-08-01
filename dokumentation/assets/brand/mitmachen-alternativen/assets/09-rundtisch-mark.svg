@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-labelledby="title description">
+  <title id="title">#Mitmachen – Rundtisch Signet</title>
+  <desc id="description">Ein kleiner Hashtag steht in einem offenen Kreis mit vier gleichwertigen Plätzen.</desc>
+  <g fill="none" stroke-linecap="round">
+    <path d="M19 8A26 26 0 0 1 46 9M56 20a26 26 0 0 1-1 27M45 56a26 26 0 0 1-27-1M8 44A26 26 0 0 1 9 18" stroke="#08164F" stroke-width="4.5"/>
+    <path d="m26 19-3 27m17-27-3 27" stroke="#08164F" stroke-width="5.5"/>
+    <path d="M18 28h30M17 39h30" stroke="#00A846" stroke-width="5.5"/>
+  </g>
+  <circle cx="13" cy="12" r="4" fill="#35BFA1"/>
+  <circle cx="52" cy="13" r="4" fill="#2F6FEC"/>
+  <circle cx="52" cy="52" r="4" fill="#8B5CF6"/>
+  <circle cx="12" cy="51" r="4" fill="#F2A53B"/>
+</svg>

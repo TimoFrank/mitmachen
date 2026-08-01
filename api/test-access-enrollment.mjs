@@ -61,6 +61,28 @@ function verifiedIapIdentity(payload = {}) {
   return Object.freeze({ issuer, subject, email });
 }
 
+function verifiedExternalIapPasswordIdentity(payload = {}, externalIdentity = {}) {
+  const issuer = String(payload.iss || "").trim();
+  const payloadSubject = typeof payload.sub === "string" ? payload.sub : "";
+  const subject = typeof externalIdentity.subject === "string" ? externalIdentity.subject : "";
+  const provider = typeof externalIdentity.provider === "string" ? externalIdentity.provider : "";
+  const email = canonicalVerifiedEmail(externalIdentity.email);
+  if (
+    issuer !== IAP_IDENTITY_ISSUER
+    || !subject
+    || subject !== payloadSubject
+    || subject !== subject.trim()
+    || subject.length > 512
+    || /[\u0000-\u001f\u007f]/u.test(subject)
+  ) {
+    throw httpError(401, "Signierte externe IAP-Identitaet ist ungueltig.");
+  }
+  if (provider !== "password") {
+    throw httpError(403, "Diese Identitaet ist fuer den manuellen Testzugang nicht freigegeben.");
+  }
+  return Object.freeze({ issuer, subject, email });
+}
+
 async function acquireEnrollmentLocks(client, identity) {
   await client.query("set local lock_timeout = '5s'");
   await client.query("set local statement_timeout = '15s'");
@@ -164,8 +186,7 @@ export async function consumeAllowlistedIapIdentity(pool, payload, options = {})
   }
 }
 
-export async function enrollVerifiedIapIdentity(pool, payload, options = {}) {
-  const identity = verifiedIapIdentity(payload);
+async function enrollIapIdentity(pool, identity, options = {}) {
   const now = options.now instanceof Date ? options.now : new Date();
   if (!Number.isFinite(now.getTime())) throw new TypeError("Enrollment-Zeitpunkt ist ungueltig.");
   const expiresAt = new Date(now.getTime() + ENROLLMENT_TTL_MS);
@@ -246,10 +267,27 @@ export async function enrollVerifiedIapIdentity(pool, payload, options = {}) {
   }
 }
 
+export async function enrollVerifiedIapIdentity(pool, payload, options = {}) {
+  return enrollIapIdentity(pool, verifiedIapIdentity(payload), options);
+}
+
 export async function submitIapEnrollment(request, { verifyIapJwt, pool, ...options }) {
   await assertEmptyEnrollmentRequest(request);
   const payload = await verifyIapJwt(request);
   return enrollVerifiedIapIdentity(pool, payload, options);
+}
+
+export async function submitExternalIapEnrollment(
+  request,
+  { verifyIapJwt, pool, identityMode, ...options }
+) {
+  if (identityMode !== "external") {
+    throw httpError(404, "Not found");
+  }
+  await assertEmptyEnrollmentRequest(request);
+  const payload = await verifyIapJwt(request);
+  const identity = verifiedExternalIapPasswordIdentity(payload, request.iapExternalIdentity);
+  return enrollIapIdentity(pool, identity, options);
 }
 
 export async function submitIapAutoEnrollment(request, { verifyIapJwt, pool, ...options }) {
