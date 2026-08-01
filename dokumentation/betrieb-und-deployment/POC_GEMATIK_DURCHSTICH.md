@@ -7,6 +7,8 @@ Stand: 1. August 2026
 
 Ein festgelegter Release Candidate des Versorgungs-Kompasses wird über die Software Factory in einem internen Kubernetes-Namespace bereitgestellt. Ein bestätigter Datenstand aus der geschützten Anwendung `mitmachen.timo-frank.de` wird separat übernommen, damit ein kleiner Kreis aus gematik und Fachteam die Anwendung im bestehenden fachlichen Kontext erproben kann.
 
+Der Versorgungs-Kompass ist dabei eine interne Anwendung für gematik-Mitarbeitende, keine TI-Anwendung und kein Gegenstand eines TI-Zulassungsverfahrens. Gesundheits-, Patienten- und identifizierende Falldaten sind ausgeschlossen.
+
 Der PoC bleibt ein zeitlich begrenzter technischer und fachlicher Durchstich. Die Daten sind kein Bestandteil des Repositories, des Container-Images oder der Build-Artefakte.
 
 ```text
@@ -20,9 +22,9 @@ gematik OIDC-Identität -> bestehendes oder neu angelegtes Profil
 
 | Bereich | Stand |
 | --- | --- |
-| Quellstand | `poc-v0.1.0-rc.3` bezeichnet den eingefrorenen RC-Stand |
-| Anwendung | Target-Frontend, API-Container und Helm-Chart sind vorbereitet |
-| Anmeldung | OIDC wird von der API geprüft; unbekannte Identitäten werden abgewiesen |
+| Quellstand | `poc-v0.1.0-rc.4` ist der vorgesehene nächste RC-Tag; er entsteht erst auf dem integrierten, grün geprüften `main`-Commit |
+| Anwendung | Providerneutraler OIDC-Target-Build, API-Container und Helm-Chart sind vorbereitet |
+| Anmeldung | Der unterstützte Identity-Gateway-Vertrag ist beschrieben; Bestätigung durch die Plattformverantwortlichen und ein authentifizierter Smoke stehen noch aus |
 | Daten | Schema und Datenklassen sind bekannt; der bisherige Importweg muss an die gematik-Datenbank und den gewählten Dateispeicher angebunden werden |
 | Plattform | Namespace, Registry, interne URL, OIDC-Werte, Datenbank und Zugriffsweg für die Übernahme sind noch festzulegen |
 
@@ -42,6 +44,8 @@ gematik OIDC-Identität -> bestehendes oder neu angelegtes Profil
 | Zeitraum | gemeinsamer Termin zur Bewertung oder Beendigung des Piloten |
 
 Für den ersten Durchstich genügt eine API-Instanz. Neue Datei- und Bild-Uploads bleiben deaktiviert. Fehlt ein passender Objektspeicher, wird zunächst nur der strukturierte Datenbestand übernommen; Datei-Verweise werden dabei nicht als funktionierend ausgewiesen.
+
+Der Stand ist damit als portal-freies RC4-Artefakt übergabefähig, aber noch nicht für ein Deployment oder den Pilotstart freigegeben. Dafür muss die gematik-Plattform bestätigen, dass ihr Identity-Gateway den im Deployment-Runbook beschriebenen Bearer-Token-Vertrag erfüllt. Ein Cookie-only-Gateway oder eine browserseitige OAuth-/PKCE-Anmeldung wäre ein anderer Plattformadapter und erfordert vor dem Pilotstart einen neuen RC.
 
 ## Was das Entwicklungsteam liefert
 
@@ -67,13 +71,15 @@ Vor dem Start werden für Anwendung und Plattform je eine Kontaktperson benannt.
 
 Die Übernahme verwendet einen einmaligen, bestätigten Snapshot des aktuellen geschützten Bestands. Importiert werden nur die vereinbarten Fachtabellen; persönliche IAP-Zuordnungen, Systemtabellen und Zugangsdaten werden nicht übernommen. OIDC-Subjects und Profilzuordnungen bleiben in einer geschützten Operator-Sitzung und außerhalb von Git und Jenkins-Artefakten.
 
-Zugriff erhalten nur benannte Personen aus gematik und Fachteam, die den übernommenen Inhalt einschließlich freier Notizen und Hospitationsbeobachtungen für ihre Arbeit sehen dürfen. Admin ist keine Standardrolle. Patienten- oder identifizierende Falldaten sind nicht Teil des PoC.
+Zugriff erhalten nur benannte Personen aus gematik und Fachteam, die den übernommenen Inhalt einschließlich freier Notizen und Hospitationsbeobachtungen für ihre Arbeit sehen dürfen. Admin ist keine Standardrolle. Gesundheits-, Patienten- oder identifizierende Falldaten sind nicht Teil des PoC.
 
 Während des Testzeitraums ist der gematik-PoC der gemeinsame bearbeitbare Bestand. `mitmachen.timo-frank.de` bleibt geschützte Ausgangs- und Rückfallquelle, wird aber nicht parallel für dieselben fachlichen Änderungen genutzt. Eine automatische oder wechselseitige Synchronisation ist nicht vorgesehen.
 
 ## Release und parallele Weiterentwicklung
 
 Der RC-Tag bleibt unverändert. Frontend und API werden aus demselben Commit gebaut und über Manifest beziehungsweise Image-Digest eindeutig zugeordnet. Änderungen auf `main`, in Feature-Branches, in lokalen Varianten oder auf GitHub Pages können parallel weiterlaufen. Diese Wege verwenden keine Echtdaten aus dem PoC. Benötigt der PoC eine Softwareänderung, entsteht ein neuer RC-Tag.
+
+Bis zur Integration der OIDC-Buildkorrektur bleibt `poc-v0.1.0-rc.3` der bestehende eingefrorene Referenzstand. Der Tag `poc-v0.1.0-rc.4` wird nicht auf einem Feature-Branch erzeugt, sondern erst nach erfolgreicher RC-QA auf dem nachgewiesenen `origin/main`-Commit.
 
 ## Erfolgskriterien
 

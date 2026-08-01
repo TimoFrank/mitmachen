@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { appendFileSync, mkdirSync, mkdtempSync, readFileSync, rmSync } from "node:fs";
+import { appendFileSync, existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync } from "node:fs";
 import path from "node:path";
 import { spawnSync } from "node:child_process";
 import { generateFrontendSbom } from "./generate_frontend_sbom.mjs";
@@ -22,10 +22,14 @@ try {
     "--profile", "target",
     "--output", targetRoot,
     "--api-base-url", "https://target.example.invalid",
-    "--auth-mode", "oidc",
-    "--identity-platform-api-key", `AIza${"A".repeat(35)}`,
-    "--identity-platform-project-id", "steam-capsule-341212"
+    "--auth-mode", "oidc"
   ]);
+
+  assert.equal(
+    existsSync(path.join(targetRoot, "public", "auth")),
+    false,
+    "Das interne OIDC-Artefakt darf kein GCP Identity Portal enthalten."
+  );
 
   const bom = generateFrontendSbom({ output: sbomPath, artifactRoot: targetRoot });
   assert.equal(bom.bomFormat, "CycloneDX");

@@ -48,7 +48,7 @@ Grundlage ist die Allowlist der 29 Fachtabellen im [historischen Herkunfts- und 
 - Supabase- und GCP-Systemtabellen,
 - Zugangsdaten und technische Kontrollarchive,
 - Demo-Datensätze sowie
-- Patienten- oder identifizierende Falldaten.
+- Gesundheits-, Patienten- oder identifizierende Falldaten.
 
 Wenn die Zielplattform zunächst keinen passenden privaten Objektspeicher anbietet, werden Dateiobjekte und ihre Zielreferenzen nicht als Teil des ersten Imports behandelt. Die strukturierten CRM-Daten bleiben trotzdem nutzbar. Neue Bild- und Datei-Uploads bleiben im ersten PoC deaktiviert.
 

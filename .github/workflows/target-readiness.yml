@@ -58,12 +58,32 @@ jobs:
           cache: npm
 
       - name: Install dependencies
-        run: |
-          npm ci
-          npm ci --prefix frontend/identity-portal
+        run: npm ci
 
       - name: Check PoC RC contracts
         run: npm run check:poc-rc
+
+      - name: Build internal OIDC target without GCP portal
+        shell: bash
+        env:
+          API_BASE_URL: https://poc.example.invalid
+          TARGET_AUTH_MODE: oidc
+        run: |
+          set -euo pipefail
+          test ! -d frontend/identity-portal/node_modules
+          unset IDENTITY_PLATFORM_API_KEY IDENTITY_PLATFORM_PROJECT_ID
+          unset IAP_EXTERNAL_AUTH_API_KEY IAP_EXTERNAL_LOGIN_PAGE_URI IAP_GCIP_PROJECT_ID IAP_IDENTITY_MODE
+          npm run build:target
+          node scripts/audit_target_assets.mjs --artifact-root dist/target
+          node scripts/audit_api_gateway.mjs --production-config dist/target/data/runtime-config.js
+          test ! -e dist/target/public/auth
+          test ! -d frontend/identity-portal/node_modules
+          if grep --recursive --extended-regexp --ignore-case \
+            'steam-capsule-341212|firebaseapp[.]com|identitytoolkit[.]googleapis[.]com|securetoken[.]googleapis[.]com|IDENTITY_PLATFORM|IAP_GCIP|IAP_EXTERNAL_AUTH_API_KEY|AIza[0-9A-Za-z_-]{35}' \
+            dist/target; then
+            echo "The internal OIDC artifact contains GCP Identity Platform markers." >&2
+            exit 1
+          fi
 
       - name: Build and smoke-test API container
         shell: bash
@@ -82,9 +102,11 @@ jobs:
             --read-only \
             --tmpfs /tmp:rw,noexec,nosuid,size=64m \
             --publish 127.0.0.1:18081:8080 \
-            --env API_AUTH_MODE=iap \
+            --env API_AUTH_MODE=oidc \
             --env ALLOWED_ORIGIN=https://poc.example.invalid \
-            --env IAP_JWT_AUDIENCE=/projects/123456789/global/backendServices/123456789 \
+            --env OIDC_ISSUER=https://identity.example.invalid/issuer \
+            --env OIDC_AUDIENCE=versorgungs-kompass \
+            --env OIDC_JWKS_URL=https://identity.example.invalid/.well-known/jwks.json \
             "$image_name"
 
           for attempt in {1..30}; do
