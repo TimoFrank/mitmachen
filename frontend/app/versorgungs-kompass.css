@@ -37,6 +37,11 @@
         --card-padding: 16px;
         --section-gap: 16px;
         --row-height: 44px;
+        --page-header-logo-height: 36px;
+        --page-header-gap: 16px;
+        --toolbar-control-height: 48px;
+        --table-header-height: 44px;
+        --table-cell-padding-inline: 10px;
         --radius-sm: 6px;
         --radius-md: 8px;
         --radius-lg: 12px;
@@ -43183,5 +43188,940 @@
 
         .press-page-header__count {
           grid-column: 2;
+        }
+      }
+
+      /* Gemeinsame Marken-Kopfzeile: Seitentitel links, Modulmarke rechts. */
+      .app-shell:not([data-active-view="home"]) .workspace-header.workspace-header--unified {
+        --workspace-header-rgb: var(--module-care-rgb);
+        display: grid;
+        grid-template-columns: minmax(0, 1fr);
+        align-items: stretch;
+        gap: 10px;
+        padding: 0 0 12px;
+      }
+
+      .workspace-header--unified[data-workspace-module="stakeholders"] {
+        --workspace-header-rgb: var(--module-stakeholders-rgb);
+      }
+
+      .workspace-header--unified[data-workspace-module="planning"] {
+        --workspace-header-rgb: var(--module-planning-rgb);
+      }
+
+      .workspace-header--unified[data-workspace-module="formats"] {
+        --workspace-header-rgb: var(--module-formats-rgb);
+      }
+
+      .workspace-header--unified[data-workspace-module="mitmachen"] {
+        --workspace-header-rgb: 25, 184, 106;
+      }
+
+      .workspace-heading-row {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto;
+        min-height: 64px;
+        align-items: center;
+        gap: var(--page-header-gap);
+        padding: 12px 16px;
+        border: 1px solid rgba(var(--workspace-header-rgb), 0.3);
+        border-radius: var(--radius-lg);
+        background:
+          linear-gradient(110deg, rgba(var(--workspace-header-rgb), 0.11), rgba(var(--workspace-header-rgb), 0.035) 48%, transparent 76%),
+          var(--surface);
+        box-shadow: var(--shadow-sm);
+      }
+
+      .app-shell .workspace-header.workspace-header--unified .workspace-copy {
+        display: block;
+        min-width: 0;
+        margin: 0;
+      }
+
+      .app-shell[data-active-view="press"] .workspace-header.workspace-header--unified > .workspace-heading-row {
+        display: grid !important;
+      }
+
+      .app-shell[data-active-view="press"] .workspace-header.workspace-header--unified > .workspace-actions:has(.permission-banner.is-visible) {
+        display: flex !important;
+      }
+
+      .workspace-header--unified .workspace-copy h1 {
+        margin: 0;
+        color: var(--text-primary);
+        font-size: var(--font-size-lg);
+        font-weight: 850;
+        line-height: var(--line-height-tight);
+        letter-spacing: -0.015em;
+      }
+
+      .workspace-header--unified .workspace-copy p {
+        display: none;
+      }
+
+      .workspace-brand {
+        display: flex;
+        min-width: 0;
+        min-height: 30px;
+        align-items: center;
+        justify-content: flex-end;
+      }
+
+      .workspace-brand[hidden] {
+        display: none;
+      }
+
+      .workspace-brand img {
+        display: block;
+        width: auto;
+        max-width: min(190px, 24vw);
+        height: 30px;
+        object-fit: contain;
+        object-position: right center;
+      }
+
+      .workspace-header--unified > .workspace-expert-switcher,
+      .workspace-header--unified > .workspace-header-search,
+      .workspace-header--unified > .workspace-actions {
+        grid-column: 1 / -1;
+      }
+
+      .workspace-header--unified > .workspace-actions {
+        min-width: 0;
+      }
+
+      .app-shell[data-active-view="patients"] #patient-mode-actions .experts-mode-nav--header {
+        width: min(100%, 820px);
+        min-height: 54px;
+        justify-content: flex-start;
+        padding: 4px;
+      }
+
+      .app-shell[data-active-view="patients"] #patient-mode-actions .settings-tab-button {
+        min-height: 44px;
+        padding: 6px 12px;
+      }
+
+      .app-shell[data-active-view="patients"] #patient-mode-actions [data-patient-mode="organizations"] {
+        flex-grow: 1.7;
+      }
+
+      .app-shell .workspace-header.workspace-header--unified #analytics-mode-actions,
+      .app-shell .workspace-header.workspace-header--unified #expert-mode-actions,
+      .app-shell .workspace-header.workspace-header--unified #patient-mode-actions {
+        width: min(100%, 820px);
+        max-width: 820px;
+      }
+
+      .app-shell .workspace-header.workspace-header--unified #analytics-mode-actions .experts-mode-nav--header,
+      .app-shell .workspace-header.workspace-header--unified #expert-mode-actions .experts-mode-nav--header,
+      .app-shell .workspace-header.workspace-header--unified #patient-mode-actions .experts-mode-nav--header {
+        width: 100%;
+        max-width: 820px;
+        min-height: 54px;
+        justify-content: flex-start;
+      }
+
+      .app-shell .crm-shell > #summary-grid {
+        width: 100%;
+        max-width: 100%;
+        margin: 0 0 12px;
+        padding: 0;
+      }
+
+      .app-shell .crm-shell > #summary-grid:empty {
+        display: none;
+      }
+
+      .app-shell:not([data-standalone-module="hospitation-documentation"]) #hospitation-command-row {
+        display: none;
+      }
+
+      .questionnaire-toolbar.questionnaire-toolbar--actions-only {
+        display: flex;
+        min-height: 44px;
+        align-items: center;
+        justify-content: flex-end;
+        gap: 8px;
+        padding: 0 0 12px;
+        border: 0;
+        border-radius: 0;
+        background: transparent;
+        box-shadow: none;
+      }
+
+      .questionnaire-toolbar--actions-only .questionnaire-toolbar__actions {
+        width: auto;
+        margin-left: auto;
+      }
+
+      .observation-page-header--actions-only {
+        min-height: 44px;
+      }
+
+      .observation-page-header--actions-only .observation-page-header__top {
+        grid-template-columns: minmax(0, 1fr);
+        justify-items: end;
+      }
+
+      .hospitation-dashboard-page-actions {
+        grid-column: 1 / -1;
+        display: flex;
+        min-height: 44px;
+        align-items: center;
+        justify-content: flex-end;
+        gap: 8px;
+      }
+
+      .app-shell .crm-shell > .controls {
+        margin: 0;
+        padding: 0 0 12px;
+      }
+
+      .app-shell .crm-shell > .controls .controls-stack {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr);
+        gap: 8px;
+        padding: 0;
+        border: 0;
+        border-radius: 0;
+        background: transparent;
+        box-shadow: none;
+      }
+
+      .workspace-header--unified > .workspace-actions:not(:has(.permission-banner.is-visible)) {
+        display: none;
+      }
+
+      .app-shell[data-active-view="activities"] .controls {
+        display: block;
+      }
+
+      .app-shell .crm-shell > .controls .controls-stack .search-shell {
+        width: 100%;
+        min-height: var(--toolbar-control-height);
+        padding: 0 12px;
+        gap: 10px;
+        border: 1px solid var(--border-strong);
+        border-radius: var(--radius-md);
+        background: var(--surface);
+        box-shadow: var(--shadow-sm);
+      }
+
+      .app-shell .crm-shell > .controls .controls-stack .search-shell:hover,
+      .app-shell .crm-shell > .controls .controls-stack .search-shell:focus-within {
+        border-color: var(--primary);
+        background: var(--surface);
+        box-shadow: 0 0 0 3px rgba(21, 95, 228, 0.12), var(--shadow-sm);
+      }
+
+      .app-shell .crm-shell > .controls .controls-stack .search-shell svg {
+        width: 20px;
+        height: 20px;
+        padding: 0;
+        border: 0;
+        border-radius: 0;
+        background: transparent;
+        color: var(--primary);
+      }
+
+      .app-shell .crm-shell > .controls .controls-stack .search-input {
+        font-size: var(--font-size-md);
+        font-weight: 650;
+      }
+
+      .app-shell .crm-shell > .controls .filter-toolbar {
+        display: flex;
+        min-height: 36px;
+        align-items: center;
+        justify-content: flex-end;
+        gap: 8px;
+      }
+
+      .app-shell .crm-shell > .controls .filter-toolbar[hidden],
+      .app-shell .crm-shell > .controls .filter-shell[hidden] {
+        display: none;
+      }
+
+      .filter-panel .filter-field[hidden] {
+        display: none;
+      }
+
+      .app-shell .crm-shell > .controls .active-filter-row {
+        flex: 1 1 auto;
+        min-width: 0;
+      }
+
+      .app-shell .crm-shell > .controls .filter-results {
+        margin-right: auto;
+        color: var(--text-secondary);
+        font-variant-numeric: tabular-nums;
+      }
+
+      .view-card .table-command-row {
+        min-height: 54px;
+        padding: 8px 12px;
+        border-bottom: 1px solid var(--border);
+        background: var(--surface);
+      }
+
+      .view-card > .table-wrap {
+        border: 1px solid var(--border);
+        border-right: 0;
+        border-left: 0;
+        background: var(--surface);
+      }
+
+      .view-card .thead {
+        min-height: var(--table-header-height);
+        background: var(--surface-muted);
+        color: var(--text-secondary);
+        font-size: var(--font-size-xs);
+        letter-spacing: 0.04em;
+      }
+
+      .view-card .thead > div,
+      .view-card .row > div {
+        padding-inline: var(--table-cell-padding-inline);
+        border-right-color: var(--border);
+      }
+
+      .view-card .row {
+        min-height: var(--row-height);
+        border-bottom-color: var(--border);
+      }
+
+      .view-card > .table-footer {
+        min-height: 58px;
+        padding: 10px 12px;
+        border-top: 1px solid var(--border);
+        background: var(--surface-muted);
+      }
+
+      .view-card .pagination-button {
+        min-width: 36px;
+        height: 36px;
+        border-color: var(--border);
+        border-radius: var(--radius-sm);
+        background: var(--surface);
+        color: var(--text-secondary);
+        box-shadow: none;
+      }
+
+      .view-card .pagination-button.is-active {
+        border-color: var(--primary);
+        background: var(--primary);
+        color: var(--surface);
+        box-shadow: none;
+      }
+
+      .patient-indications-table {
+        min-width: 980px;
+      }
+
+      .patient-indications-table .thead,
+      .patient-indications-table .patient-indication-row {
+        grid-template-columns:
+          minmax(250px, 1.05fr)
+          minmax(360px, 1.7fr)
+          minmax(190px, 0.72fr)
+          minmax(150px, 0.58fr);
+      }
+
+      .patient-indication-row {
+        border-left: 3px solid var(--patient-indication-color, var(--primary));
+      }
+
+      .patient-indication-table-title {
+        display: grid;
+        grid-template-columns: 34px minmax(0, 1fr);
+        align-items: center;
+        gap: 9px;
+        min-width: 0;
+        color: var(--patient-indication-color, var(--text-primary));
+        line-height: 1.3;
+      }
+
+      .patient-indication-table-title .patient-indication-card__icon {
+        width: 34px;
+        height: 34px;
+        border-radius: var(--radius-sm);
+      }
+
+      .patient-indication-table-title .patient-indication-card__icon svg {
+        width: 19px;
+        height: 19px;
+      }
+
+      .patient-indication-description {
+        color: var(--text-secondary);
+        font-size: var(--font-size-sm);
+        line-height: var(--line-height-normal);
+      }
+
+      .patient-indications-table .patient-indication-result {
+        width: 100%;
+        min-height: 36px;
+      }
+
+      @media (max-width: 760px) {
+        .app-shell:not([data-active-view="home"]) .workspace-header.workspace-header--unified {
+          grid-template-columns: minmax(0, 1fr);
+          gap: 8px;
+          padding-bottom: 10px;
+        }
+
+        .workspace-heading-row {
+          grid-template-columns: minmax(0, 1fr) 32px;
+          min-height: 56px;
+          gap: 12px;
+          padding: 10px 12px;
+        }
+
+        .workspace-header--unified .workspace-copy h1 {
+          font-size: 1.05rem;
+        }
+
+        .workspace-brand {
+          min-height: 30px;
+        }
+
+        .workspace-brand img {
+          width: 30px;
+          max-width: 30px;
+          height: 30px;
+        }
+
+        .app-shell[data-active-view="patients"] #patient-mode-actions .experts-mode-nav--header {
+          display: grid;
+          grid-template-columns: minmax(74px, 0.8fr) minmax(142px, 1.7fr) minmax(84px, 0.9fr);
+          gap: 3px;
+          width: 100%;
+          min-height: 62px;
+        }
+
+        .app-shell[data-active-view="patients"] #patient-mode-actions .settings-tab-button {
+          width: 100%;
+          min-height: 52px;
+          padding: 4px;
+        }
+
+        .app-shell[data-active-view="patients"] #patient-mode-actions .experts-mode-label {
+          display: block;
+          overflow: visible;
+          text-overflow: clip;
+          white-space: normal;
+          line-height: 1.15;
+        }
+
+        .app-shell .crm-shell > .controls {
+          padding-bottom: 10px;
+        }
+
+        .app-shell .crm-shell > .controls .controls-stack .search-shell {
+          min-height: 46px;
+        }
+
+        .app-shell .crm-shell > .controls .filter-toolbar {
+          align-items: stretch;
+          flex-wrap: wrap;
+        }
+
+        .app-shell .crm-shell > .controls .active-filter-row {
+          flex-basis: 100%;
+        }
+
+        .app-shell .crm-shell > .controls .filter-results {
+          display: flex;
+          min-height: 36px;
+          align-items: center;
+        }
+
+        .patient-indications-table,
+        .table-wrap > .patient-indications-table {
+          width: 100%;
+          min-width: 0;
+        }
+
+        .patient-indications-table .thead {
+          display: none;
+        }
+
+        .patient-indications-table .patient-indication-row {
+          display: grid;
+          grid-template-columns: minmax(0, 1fr);
+          gap: 0;
+          margin: 10px;
+          border: 1px solid var(--border);
+          border-left: 3px solid var(--patient-indication-color, var(--primary));
+          border-radius: var(--radius-md);
+          overflow: hidden;
+        }
+
+        .patient-indications-table .patient-indication-row > div {
+          display: grid;
+          grid-template-columns: minmax(0, 1fr);
+          gap: 5px;
+          padding: 10px 12px;
+          border-right: 0;
+          border-bottom: 1px solid var(--border);
+        }
+
+        .patient-indications-table .patient-indication-row > div:last-child {
+          border-bottom: 0;
+        }
+
+        .patient-indications-table [data-patient-indication-field="description"]::before,
+        .patient-indications-table [data-patient-indication-field="organizations"]::before,
+        .patient-indications-table [data-patient-indication-field="people"]::before {
+          color: var(--text-muted);
+          font-size: 0.68rem;
+          font-weight: 850;
+          letter-spacing: 0.04em;
+          text-transform: uppercase;
+        }
+
+        .patient-indications-table [data-patient-indication-field="description"]::before {
+          content: "Kurzbeschreibung";
+        }
+
+        .patient-indications-table [data-patient-indication-field="organizations"]::before {
+          content: "Organisationen / Verbände";
+        }
+
+        .patient-indications-table [data-patient-indication-field="people"]::before {
+          content: "Personen";
+        }
+      }
+
+      /* Einheitliche Werkzeugzeilen direkt unter der Markenleiste. */
+      .app-shell .crm-shell > .controls .controls-stack {
+        display: grid;
+        grid-template-columns: auto minmax(0, 1fr);
+        align-items: center;
+        column-gap: 10px;
+        row-gap: 8px;
+      }
+
+      .app-shell .crm-shell > .controls .controls-stack > .search-shell {
+        grid-column: 2;
+        grid-row: 1;
+        min-height: 48px;
+      }
+
+      .workspace-primary-actions {
+        grid-column: 1;
+        grid-row: 1;
+        display: flex;
+        min-width: 0;
+        align-items: center;
+        justify-content: flex-start;
+        gap: 8px;
+      }
+
+      .workspace-primary-actions:not(:has(> :not([hidden]):not(.is-role-hidden):not([aria-hidden="true"]))) {
+        display: none;
+      }
+
+      .workspace-primary-actions > .action-button {
+        min-width: 164px;
+        min-height: 48px;
+        justify-content: center;
+        white-space: nowrap;
+      }
+
+      .workspace-primary-actions > [hidden],
+      .workspace-secondary-actions > [hidden] {
+        display: none !important;
+      }
+
+      .workspace-secondary-actions {
+        order: 3;
+        display: none;
+        min-width: 0;
+        align-items: center;
+        justify-content: flex-end;
+        gap: 8px;
+        margin-left: auto;
+      }
+
+      .app-shell[data-active-view="hospitations"] .workspace-secondary-actions {
+        display: flex;
+      }
+
+      .app-shell .crm-shell > .controls .controls-stack:not(:has(> .workspace-primary-actions > :not([hidden]):not(.is-role-hidden):not([aria-hidden="true"]))) > .search-shell {
+        grid-column: 1 / -1;
+      }
+
+      .app-shell .crm-shell > .controls .controls-stack > .filter-toolbar {
+        grid-column: 1 / -1;
+        grid-row: 2;
+      }
+
+      .app-shell .crm-shell > .controls .filter-toolbar > .filter-results {
+        order: 1;
+        margin-right: auto;
+      }
+
+      .app-shell .crm-shell > .controls .filter-toolbar > .active-filter-row {
+        order: 2;
+      }
+
+      .app-shell .crm-shell > .controls .filter-toolbar > .active-filter-row:has(.active-filter-list:empty) {
+        display: none;
+      }
+
+      .app-shell .crm-shell > .controls .filter-toolbar > .filter-shell {
+        order: 4;
+        margin-left: auto;
+      }
+
+      .table-command-actions:empty,
+      .formats-command-actions:not(:has(> :not([hidden]))) {
+        display: none;
+      }
+
+      .formats-command-row {
+        justify-content: flex-start;
+      }
+
+      .format-status-legend {
+        margin-right: auto;
+      }
+
+      .dataset-toolbar {
+        display: flex;
+        min-height: 52px;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        padding: 8px 12px;
+        border-bottom: 1px solid var(--border);
+        background: var(--surface);
+      }
+
+      .dataset-toolbar__meta {
+        color: var(--text-secondary);
+        font-size: var(--font-size-sm);
+        font-weight: 800;
+        font-variant-numeric: tabular-nums;
+      }
+
+      .dataset-toolbar__summary {
+        display: flex;
+        min-width: 0;
+        align-items: center;
+        gap: 10px;
+      }
+
+      .dataset-toolbar__scope {
+        color: var(--text-primary);
+        font-size: var(--font-size-sm);
+        font-weight: 850;
+      }
+
+      .dataset-toolbar__actions {
+        display: flex;
+        align-items: center;
+        justify-content: flex-end;
+        gap: 8px;
+      }
+
+      .team-directory__header {
+        grid-template-columns: minmax(0, 1fr) auto;
+        align-items: center;
+        gap: 10px;
+      }
+
+      .team-search {
+        width: 100%;
+        min-height: 48px;
+        grid-template-columns: 20px minmax(0, 1fr) 32px;
+        gap: 10px;
+        padding: 0 8px 0 12px;
+        border-radius: var(--radius-md);
+        box-shadow: var(--shadow-sm);
+      }
+
+      .team-search:hover,
+      .team-search:focus-within {
+        border-color: var(--primary);
+        box-shadow: 0 0 0 3px rgba(21, 95, 228, 0.12), var(--shadow-sm);
+      }
+
+      .team-search__icon {
+        color: var(--primary);
+      }
+
+      .team-search__icon svg {
+        width: 20px;
+        height: 20px;
+      }
+
+      #view-hospitations .hospitation-appointments-action-row:not(.observation-action-row) {
+        display: flex;
+        min-height: 48px;
+        align-items: center;
+        justify-content: flex-end;
+        gap: 10px;
+        padding: 0;
+      }
+
+      #view-hospitations .hospitation-appointments-action-row:not(.observation-action-row) > .hospitation-appointments-action-row__left {
+        margin-right: auto;
+      }
+
+      #view-hospitations .hospitation-appointments-action-row:not(.observation-action-row) > .hospitation-appointments-action-row__left:not(:has(> :not([hidden]))) {
+        display: none;
+      }
+
+      #view-hospitations .hospitation-appointments-action-row:not(.observation-action-row) > .hospitation-appointments-action-row__center {
+        display: none;
+      }
+
+      .observation-page-header--actions-only,
+      .observation-page-header--actions-only .observation-page-header__top {
+        min-height: 0;
+      }
+
+      .observation-page-header__top {
+        grid-template-columns: minmax(0, 1fr);
+      }
+
+      .observation-primary-toolbar {
+        display: grid;
+        grid-template-columns: auto minmax(0, 1fr);
+        align-items: center;
+        gap: 10px;
+        width: 100%;
+        min-width: 0;
+      }
+
+      .observation-header-search {
+        grid-column: 2;
+        grid-row: 1;
+        width: 100%;
+        min-height: 48px;
+        gap: 10px;
+        padding: 0 12px;
+        border-radius: var(--radius-md);
+        box-shadow: var(--shadow-sm);
+      }
+
+      .observation-header-search:hover,
+      .observation-header-search:focus-within {
+        border-color: var(--primary);
+        box-shadow: 0 0 0 3px rgba(21, 95, 228, 0.12), var(--shadow-sm);
+      }
+
+      .observation-header-search svg {
+        width: 20px;
+        height: 20px;
+        stroke: var(--primary);
+      }
+
+      #view-hospitations .observation-action-row {
+        display: flex;
+        min-height: 44px;
+        align-items: center;
+        justify-content: flex-end;
+        gap: 8px;
+        margin-top: 0;
+        padding: 0;
+      }
+
+      #view-hospitations .observation-action-row > .hospitation-appointments-action-row__center {
+        display: none;
+      }
+
+      #view-hospitations .observation-action-row > .observation-action-row__right {
+        width: auto;
+        margin-left: auto;
+      }
+
+      @media (max-width: 760px) {
+        .app-shell .crm-shell > .controls .controls-stack,
+        .observation-primary-toolbar {
+          grid-template-columns: minmax(0, 1fr);
+        }
+
+        .app-shell .crm-shell > .controls .controls-stack > .search-shell,
+        .app-shell .crm-shell > .controls .controls-stack:not(:has(> .workspace-primary-actions > :not([hidden]):not(.is-role-hidden):not([aria-hidden="true"]))) > .search-shell,
+        .observation-header-search,
+        .workspace-primary-actions,
+        .app-shell .crm-shell > .controls .controls-stack > .filter-toolbar {
+          grid-column: 1;
+          grid-row: auto;
+        }
+
+        .workspace-primary-actions,
+        .workspace-primary-actions > .action-button {
+          width: 100%;
+        }
+
+        .workspace-secondary-actions {
+          width: 100%;
+          flex-wrap: wrap;
+        }
+
+        .dataset-toolbar {
+          display: flex;
+          min-height: 48px;
+          align-items: center;
+          flex-wrap: wrap;
+          gap: 8px;
+          padding: 8px 10px;
+          border: 0;
+          border-bottom: 1px solid var(--border);
+          border-radius: 0;
+          box-shadow: none;
+        }
+
+        .dataset-toolbar__actions {
+          width: 100%;
+          justify-content: flex-end;
+          flex-wrap: wrap;
+        }
+
+        .team-directory__header {
+          grid-template-columns: minmax(0, 1fr);
+        }
+
+        .observation-header-search {
+          min-height: 46px;
+        }
+
+        #view-hospitations .observation-action-row,
+        #view-hospitations .observation-action-row > .observation-action-row__right {
+          width: 100%;
+          max-width: 100%;
+        }
+
+        #view-hospitations .observation-action-row > .observation-action-row__right {
+          justify-content: flex-end;
+        }
+
+        #view-hospitations .hospitation-appointments-action-row:not(.observation-action-row) {
+          align-items: stretch;
+          flex-direction: column;
+        }
+
+        #view-hospitations .hospitation-appointments-action-row:not(.observation-action-row) > .hospitation-appointments-action-row__right {
+          width: 100%;
+        }
+      }
+
+      /* Tabellennahe Steuerleisten fuer Kontakte und Hospitationstermine. */
+      #view-contacts #contact-table-toolbar > .filter-toolbar[hidden],
+      #results-count[hidden],
+      #hospitation-table-toolbar-meta[hidden] {
+        display: none !important;
+      }
+
+      #view-contacts .view-card:has(#filter-panel:not([hidden])) {
+        overflow: visible;
+      }
+
+      #view-hospitations #hospitation-appointments-panel {
+        gap: 10px;
+      }
+
+      #view-hospitations .hospitation-table-toolbar,
+      #view-hospitations .hospitation-table-toolbar:not(:has(.hospitation-bulk-toolbar:not([hidden]))) {
+        position: relative;
+        z-index: 24;
+        display: flex;
+        min-height: 54px;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        padding: 8px 12px;
+        border: 1px solid var(--border);
+        border-radius: var(--radius-md);
+        background: var(--surface);
+        box-shadow: var(--shadow-sm);
+      }
+
+      #view-hospitations .hospitation-table-toolbar > .hospitation-appointments-action-row__left {
+        display: flex;
+        min-width: 0;
+        flex: 1 1 auto;
+        align-items: center;
+        margin-right: 0;
+      }
+
+      #view-hospitations .hospitation-table-toolbar > .hospitation-appointments-action-row__right {
+        display: flex;
+        min-width: 0;
+        flex: 0 1 auto;
+        align-items: center;
+        justify-content: flex-end;
+      }
+
+      #view-hospitations .hospitation-table-toolbar .workspace-secondary-actions {
+        display: flex;
+        width: auto;
+        min-width: 0;
+        align-items: center;
+        justify-content: flex-end;
+        gap: 8px;
+        margin: 0;
+      }
+
+      #view-hospitations .hospitation-table-toolbar__meta {
+        color: var(--text-secondary);
+        white-space: nowrap;
+      }
+
+      #view-hospitations .hospitation-table-toolbar .hospitation-command-view-toggle {
+        margin: 0;
+      }
+
+      #view-hospitations .hospitation-table-toolbar:has(.hospitation-bulk-toolbar:not([hidden])) .hospitation-table-toolbar__meta,
+      #view-hospitations .hospitation-table-toolbar:has(.hospitation-bulk-toolbar:not([hidden])) > .hospitation-appointments-action-row__right {
+        display: none;
+      }
+
+      @media (max-width: 760px) {
+        #view-hospitations .hospitation-table-toolbar,
+        #view-hospitations .hospitation-table-toolbar:not(:has(.hospitation-bulk-toolbar:not([hidden]))) {
+          align-items: stretch;
+          flex-direction: column;
+          gap: 8px;
+          padding: 10px;
+        }
+
+        #view-hospitations .hospitation-table-toolbar > .hospitation-appointments-action-row__left,
+        #view-hospitations .hospitation-table-toolbar > .hospitation-appointments-action-row__right,
+        #view-hospitations .hospitation-table-toolbar .workspace-secondary-actions {
+          width: 100%;
+        }
+
+        #view-hospitations .hospitation-table-toolbar .workspace-secondary-actions {
+          justify-content: space-between;
+          flex-wrap: wrap;
+        }
+
+        #view-hospitations .hospitation-table-toolbar .hospitation-export-button {
+          width: auto;
+          min-width: 72px;
+          min-height: 44px;
+          padding: 0 10px;
+          font-size: var(--font-size-xs);
+        }
+
+        #view-hospitations .hospitation-table-toolbar .hospitation-export-button svg {
+          width: 17px;
+          height: 17px;
+        }
+
+        #view-hospitations .hospitation-table-toolbar .hospitation-view-toggle {
+          flex: 0 1 auto;
+          min-height: 44px;
+          padding: 0;
+        }
+
+        #view-hospitations .hospitation-table-toolbar .hospitation-view-toggle button {
+          min-height: 44px;
         }
       }

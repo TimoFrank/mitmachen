@@ -15,7 +15,7 @@ function onboardingPreviewUrl(profileId = PROFILE_VIEWER, hash = "#contacts") {
 async function revealProfileSwitcher(page) {
   const shell = page.locator(".app-shell");
   const switcher = page.locator("#demo-profile-switcher");
-  const trigger = page.getByRole("button", { name: /Demo-Profil wechseln/ });
+  const trigger = page.getByRole("button", { name: /Profil wechseln/ });
   const desktopLayout = await page.evaluate(() => window.matchMedia("(min-width: 761px)").matches);
 
   if (desktopLayout) {
@@ -34,7 +34,7 @@ async function revealProfileSwitcher(page) {
   await expect(switcher).toBeVisible();
   await expect(switcher).toHaveAttribute("aria-labelledby", "demo-profile-switcher-title");
   await expect(page.getByRole("group", { name: "Ansicht wechseln" })).toBeVisible();
-  return { desktopLayout, select: switcher.getByRole("combobox", { name: "Demo-Profil" }), switcher, trigger };
+  return { desktopLayout, select: switcher.getByRole("combobox", { name: "Profil" }), switcher, trigger };
 }
 
 test.describe("Pages-Profilwechsel", () => {
@@ -133,11 +133,11 @@ test.describe("Pages-Profilwechsel", () => {
       await page.locator("#sidebar-collapse-button").click();
     }
 
-    const trigger = page.getByRole("button", { name: /Demo-Profil wechseln/ });
+    const trigger = page.getByRole("button", { name: /Profil wechseln/ });
     const switcher = page.locator("#demo-profile-switcher");
     const avatar = page.locator("#sidebar-user-badge");
     await expect(trigger).toBeVisible();
-    await expect(trigger).toHaveAccessibleName(/Demo-Profil wechseln, aktuell .+, Rolle Admin/);
+    await expect(trigger).toHaveAccessibleName(/Profil wechseln, aktuell .+, Rolle Admin/);
     await expect(trigger).toHaveAttribute("title", / · Admin$/);
     await expect(trigger).toHaveAttribute("aria-controls", "demo-profile-switcher");
     await expect(trigger).toHaveAttribute("aria-expanded", "false");
@@ -155,7 +155,7 @@ test.describe("Pages-Profilwechsel", () => {
     await page.mouse.click(avatarBox.x + avatarBox.width / 2, avatarBox.y + avatarBox.height / 2);
     await expect(trigger).toHaveAttribute("aria-expanded", "true");
     await expect(switcher).toBeVisible();
-    await expect(switcher.getByRole("combobox", { name: "Demo-Profil" })).toBeFocused();
+    await expect(switcher.getByRole("combobox", { name: "Profil" })).toBeFocused();
 
     await page.keyboard.press("Escape");
     await expect(switcher).toBeHidden();

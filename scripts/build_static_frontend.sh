@@ -282,13 +282,13 @@ EOF
     cp "$ROOT_DIR/public/brand/mitmachen/icons/$asset" "$STAGE_DIR/public/brand/mitmachen/icons/$asset"
   done
   for module in stakeholder hospitation formate; do
-    for asset in mark.svg mark-on-dark.svg; do
+    for asset in mark.svg mark-on-dark.svg lockup-horizontal.svg; do
       cp "$ROOT_DIR/public/brand/modules/$module/$asset" "$STAGE_DIR/public/brand/modules/$module/$asset"
     done
   done
-  cp "$ROOT_DIR/public/brand/modules/stakeholder/lockup-horizontal.svg" "$STAGE_DIR/public/brand/modules/stakeholder/lockup-horizontal.svg"
-  cp "$ROOT_DIR/public/brand/versorgungs-kompass/mark.svg" "$STAGE_DIR/public/brand/versorgungs-kompass/mark.svg"
-  cp "$ROOT_DIR/public/brand/versorgungs-kompass/mark-on-dark.svg" "$STAGE_DIR/public/brand/versorgungs-kompass/mark-on-dark.svg"
+  for asset in mark.svg mark-on-dark.svg lockup-horizontal.svg; do
+    cp "$ROOT_DIR/public/brand/versorgungs-kompass/$asset" "$STAGE_DIR/public/brand/versorgungs-kompass/$asset"
+  done
   cp "$ROOT_DIR/public/media/demo/mitmachen/versorgungs-netzwerk-concept.svg" "$STAGE_DIR/public/media/demo/mitmachen/versorgungs-netzwerk-concept.svg"
   cp "$ROOT_DIR/public/media/social/mitmachen-share-v1.png" "$STAGE_DIR/public/media/social/mitmachen-share-v1.png"
   cp "$ROOT_DIR/public/media/social/mitmachen-share-v2.png" "$STAGE_DIR/public/media/social/mitmachen-share-v2.png"
@@ -681,8 +681,9 @@ build_target() {
   cp "$ROOT_DIR/public/brand/gematik/gematik-logo-standard.png" "$STAGE_DIR/public/brand/gematik/gematik-logo-standard.png"
   cp -R "$ROOT_DIR/public/brand/mitmachen/." "$STAGE_DIR/public/brand/mitmachen/"
   cp -R "$ROOT_DIR/public/brand/modules/." "$STAGE_DIR/public/brand/modules/"
-  cp "$ROOT_DIR/public/brand/versorgungs-kompass/mark.svg" "$STAGE_DIR/public/brand/versorgungs-kompass/mark.svg"
-  cp "$ROOT_DIR/public/brand/versorgungs-kompass/mark-on-dark.svg" "$STAGE_DIR/public/brand/versorgungs-kompass/mark-on-dark.svg"
+  for asset in mark.svg mark-on-dark.svg lockup-horizontal.svg; do
+    cp "$ROOT_DIR/public/brand/versorgungs-kompass/$asset" "$STAGE_DIR/public/brand/versorgungs-kompass/$asset"
+  done
   for asset in app-icon-32.png app-icon-180.png app-icon-192.png app-icon-512.png; do
     cp "$ROOT_DIR/public/brand/versorgungs-kompass/icons/$asset" "$STAGE_DIR/public/brand/versorgungs-kompass/icons/$asset"
   done

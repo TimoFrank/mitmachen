@@ -402,31 +402,17 @@
           </div>
           <span class="visually-hidden">Die angeforderte Ansicht wird geladen.</span>
         </section>
-        <div class="workspace-header">
-          <div class="workspace-copy">
-            <h2 id="workspace-view-title">Kontakte</h2>
-            <p id="workspace-view-subtitle">Willkommen im Versorgungs-Kompass</p>
-          </div>
-          <picture class="workspace-brand" data-workspace-brand hidden>
-            <source id="workspace-brand-source" media="(max-width: 760px)" srcset="../../public/brand/mitmachen/mark.svg" />
-            <img id="workspace-brand-image" src="../../public/brand/mitmachen/lockup-horizontal.svg" alt="#Mitmachen" />
-          </picture>
-          <header class="press-page-header" id="press-page-header" aria-labelledby="press-page-title">
-            <div class="politics-context__mark press-page-header__mark" aria-hidden="true">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9">
-                <path d="M4 5h14a2 2 0 0 1 2 2v12H6a2 2 0 0 1-2-2V5Z"></path>
-                <path d="M8 9h4M8 13h8M8 17h6"></path>
-                <path d="M20 9h-2v8a2 2 0 0 0 2 2"></path>
-              </svg>
+        <div class="workspace-header workspace-header--unified">
+          <div class="workspace-heading-row">
+            <div class="workspace-copy">
+              <h1 id="workspace-view-title">Kontakte</h1>
+              <p id="workspace-view-subtitle">Pflege und Suche der Versorgungskontakte.</p>
             </div>
-            <h2 class="press-page-header__title" id="press-page-title">Pressekontakte</h2>
-            <span class="politics-status-pill press-page-header__count" id="press-contact-count">Kontakte werden geladen</span>
-            <img
-              class="press-page-header__brand"
-              src="../../public/brand/modules/stakeholder/lockup-horizontal.svg"
-              alt="Stakeholder-Kompass"
-            />
-          </header>
+            <picture class="workspace-brand" data-workspace-brand>
+              <source id="workspace-brand-source" media="(max-width: 760px)" srcset="../../public/brand/versorgungs-kompass/mark.svg" />
+              <img id="workspace-brand-image" src="../../public/brand/versorgungs-kompass/lockup-horizontal.svg" alt="Versorgungs-Kompass" />
+            </picture>
+          </div>
           <div class="workspace-expert-switcher" id="analytics-mode-actions" hidden>
             <div class="settings-tab-nav experts-mode-nav experts-mode-nav--header" role="tablist" aria-label="Auswertung">
               <button class="settings-tab-button is-active" type="button" role="tab" data-analytics-mode="analytics" aria-selected="true" aria-controls="view-analytics">
@@ -468,7 +454,6 @@
           <div class="workspace-header-search" id="expert-header-search" hidden></div>
           <div class="workspace-header-search" id="stakeholder-header-search" hidden></div>
           <div class="workspace-actions">
-            <div class="summary summary--compact" id="summary-grid"></div>
             <div class="permission-banner" id="permission-banner" aria-live="polite">
               <span class="permission-banner__icon" aria-hidden="true">i</span>
               <span id="permission-banner-text">Rollenrechte werden geladen.</span>
@@ -478,6 +463,17 @@
 
         <div class="controls">
           <div class="controls-stack">
+            <div class="workspace-primary-actions" id="workspace-primary-actions" aria-label="Primäre Aktion">
+              <button class="action-button action-button--primary" type="button" id="new-contact-button" hidden><span class="action-button__icon">+</span>Neuer Kontakt</button>
+              <button class="action-button action-button--primary" type="button" id="new-organization-button" hidden><span class="action-button__icon">+</span>Neue Organisation</button>
+              <button class="action-button action-button--primary" type="button" id="new-expert-contact-button" hidden><span class="action-button__icon">+</span>Neuer Kontakt</button>
+              <button class="action-button action-button--primary" type="button" id="new-expert-organization-button" hidden><span class="action-button__icon">+</span>Neue Organisation</button>
+              <button class="action-button action-button--primary" type="button" id="new-patient-contact-button" hidden><span class="action-button__icon">+</span>Neue Person</button>
+              <button class="action-button action-button--primary" type="button" id="new-patient-organization-button" hidden><span class="action-button__icon">+</span>Neue Organisation</button>
+              <button class="action-button action-button--primary" type="button" id="new-format-button" hidden><span class="action-button__icon">+</span>Neues Format</button>
+              <button class="action-button action-button--primary" type="button" id="new-hospitation-request-button" hidden><span class="action-button__icon">+</span>Neuer Termin</button>
+            </div>
+
             <label class="search-shell" aria-label="Kontakte durchsuchen">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" aria-hidden="true">
                 <circle cx="11" cy="11" r="7"></circle>
@@ -573,6 +569,7 @@
           </div>
           <section class="contact-content-search-results" id="contact-content-search-results" aria-label="Treffer in Kontakten, Notizen und Anhängen" aria-live="polite" hidden></section>
         </div>
+        <div class="summary summary--compact" id="summary-grid"></div>
 
         <div class="view-shell">
           <section class="view-panel home-page" id="view-home" data-view-panel="home" aria-labelledby="home-welcome-title">
@@ -656,7 +653,7 @@
           </section>
           <section class="view-panel" id="view-contacts" data-view-panel="contacts">
             <div class="view-card">
-              <div class="table-command-row">
+              <div class="table-command-row table-command-row--contacts" id="contact-table-toolbar">
                 <div class="bulk-toolbar" id="bulk-toolbar" hidden>
                   <span class="bulk-toolbar__count" id="bulk-selection-count">0 Kontakte ausgewählt</span>
                   <button class="bulk-toolbar__link" type="button" id="bulk-clear-selection">Auswahl aufheben</button>
@@ -683,7 +680,6 @@
                       <span class="contact-list-switcher__count" id="favorite-contact-count">0</span>
                     </button>
                   </div>
-                  <button class="action-button action-button--primary" type="button" id="new-contact-button"><span class="action-button__icon">+</span>Neuer Kontakt</button>
                 </div>
                 <div class="view-select-shell">
                   <button class="view-select-button" type="button" id="view-select-button" aria-expanded="false" aria-controls="view-select-menu">
@@ -778,7 +774,6 @@
                 <div class="table-command-actions organization-column-actions" id="organization-column-actions"></div>
                 <div class="table-command-spacer" aria-hidden="true"></div>
                 <div class="table-command-actions" id="organization-command-actions">
-                  <button class="action-button action-button--primary" type="button" id="new-organization-button"><span class="action-button__icon">+</span>Neue Organisation</button>
                   <button class="action-button" type="button" id="organization-matching-worklist-button">Dubletten</button>
                 </div>
               </div>
@@ -822,9 +817,8 @@
 
           <section class="view-panel" id="view-activities" data-view-panel="activities">
             <div class="view-card activities-workspace">
-              <div class="activities-toolbar">
-                <div class="activities-search-slot" id="activities-search-slot"></div>
-                <div class="activities-meta" id="activities-meta">Aktivitäten werden geladen</div>
+              <div class="dataset-toolbar activities-toolbar">
+                <div class="dataset-toolbar__meta activities-meta" id="activities-meta">Aktivitäten werden geladen</div>
               </div>
               <div class="activities-command-row">
                 <div class="activities-filters" aria-label="Aktivitäten filtern">
@@ -876,8 +870,6 @@
                   <button class="action-button action-button--compact" type="button" id="expert-bulk-export">Exportieren</button>
                 </div>
                 <div class="table-command-actions" id="expert-command-actions">
-                  <button class="action-button action-button--primary" type="button" id="new-expert-contact-button"><span class="action-button__icon">+</span>Neuer Kontakt</button>
-                  <button class="action-button" type="button" id="new-expert-organization-button"><span class="action-button__icon">+</span>Neue Organisation</button>
                   <button class="action-button" type="button" id="expert-duplicates-button">Dubletten</button>
                 </div>
                 <div class="table-command-spacer" aria-hidden="true"></div>
@@ -933,10 +925,7 @@
           <section class="view-panel" id="view-patients" data-view-panel="patients">
             <div class="view-card experts-workspace patients-workspace">
               <div class="table-command-row table-command-row--experts table-command-row--patient-actions">
-                <div class="table-command-actions" id="patient-command-actions">
-                  <button class="action-button action-button--primary" type="button" id="new-patient-contact-button"><span class="action-button__icon">+</span>Neuer Kontakt</button>
-                  <button class="action-button" type="button" id="new-patient-organization-button"><span class="action-button__icon">+</span>Neue Organisation</button>
-                </div>
+                <div class="table-command-actions" id="patient-command-actions"></div>
                 <div class="table-command-spacer" aria-hidden="true"></div>
                 <div class="table-command-actions expert-column-actions" id="patient-column-actions"></div>
               </div>
@@ -976,45 +965,34 @@
 
           <section class="view-panel" id="view-politics" data-view-panel="politics">
             <div class="view-card politics-workspace">
-              <header class="politics-context">
-                <div class="politics-context__mark" aria-hidden="true">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9">
-                    <path d="M3 9h18"></path>
-                    <path d="M5 9v9M9.5 9v9M14.5 9v9M19 9v9"></path>
-                    <path d="M2 21h20M12 3 3 7v2h18V7l-9-4Z"></path>
-                  </svg>
+              <div class="dataset-toolbar politics-context" aria-label="Ausschussliste">
+                <div class="dataset-toolbar__summary">
+                  <span class="dataset-toolbar__scope">Ausschuss für Gesundheit</span>
+                  <span class="dataset-toolbar__meta" id="politics-member-count">Mitglieder werden geladen</span>
                 </div>
-                <div class="politics-context__copy">
-                  <span class="politics-context__eyebrow">Deutscher Bundestag</span>
-                  <h3>Ausschuss für Gesundheit</h3>
-                  <p>Ordentliche Mitglieder der 21. Wahlperiode, direkt aus der offiziellen Ausschussübersicht.</p>
+                <div class="dataset-toolbar__actions politics-context__actions">
+                  <button class="action-button politics-map-open" id="politics-map-open" type="button">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                      <path d="M9 18 3 21V6l6-3 6 3 6-3v15l-6 3-6-3Z"></path>
+                      <path d="M9 3v15M15 6v15"></path>
+                    </svg>
+                    Auf Karte anzeigen
+                  </button>
+                  <a
+                    class="politics-source-link"
+                    id="politics-committee-source"
+                    href="https://www.bundestag.de/ausschuesse/gesundheit/"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    Quelle öffnen
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                      <path d="M14 5h5v5M10 14 19 5"></path>
+                      <path d="M19 13v6H5V5h6"></path>
+                    </svg>
+                  </a>
                 </div>
-                <div class="politics-context__meta">
-                  <span class="politics-status-pill" id="politics-member-count">Mitglieder werden geladen</span>
-                  <div class="politics-context__actions">
-                    <button class="action-button politics-map-open" id="politics-map-open" type="button">
-                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
-                        <path d="M9 18 3 21V6l6-3 6 3 6-3v15l-6 3-6-3Z"></path>
-                        <path d="M9 3v15M15 6v15"></path>
-                      </svg>
-                      Auf Karte anzeigen
-                    </button>
-                    <a
-                      class="politics-source-link"
-                      id="politics-committee-source"
-                      href="https://www.bundestag.de/ausschuesse/gesundheit/"
-                      target="_blank"
-                      rel="noopener noreferrer"
-                    >
-                      Quelle öffnen
-                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
-                        <path d="M14 5h5v5M10 14 19 5"></path>
-                        <path d="M19 13v6H5V5h6"></path>
-                      </svg>
-                    </a>
-                  </div>
-                </div>
-              </header>
+              </div>
 
               <div class="politics-data-notice" id="politics-data-notice" role="status" aria-live="polite" hidden></div>
 
@@ -1063,6 +1041,10 @@
 
           <section class="view-panel" id="view-press" data-view-panel="press">
             <div class="view-card politics-workspace press-workspace">
+              <div class="dataset-toolbar press-context" aria-label="Pressekontaktliste">
+                <span class="dataset-toolbar__meta" id="press-contact-count">Kontakte werden geladen</span>
+              </div>
+
               <div class="politics-data-notice press-data-notice" id="press-data-notice" role="status" aria-live="polite" hidden></div>
 
               <div class="table-wrap politics-table-wrap press-table-wrap" id="press-table-wrap">
@@ -1095,12 +1077,8 @@
 
           <section class="view-panel" id="view-stakeholders" data-view-panel="stakeholders">
             <div class="view-card stakeholders-workspace">
-              <div class="table-command-row table-command-row--stakeholders">
-                <div class="table-command-spacer" aria-hidden="true"></div>
-                <div class="table-command-actions stakeholder-column-actions" id="stakeholder-command-actions"></div>
-              </div>
               <div class="table-wrap">
-                <section class="table organizations-table stakeholder-organizations-table" id="stakeholder-organizations-table" aria-label="Stakeholder-Organisationen" data-stakeholder-table="organizations" role="tabpanel">
+                <section class="table organizations-table stakeholder-organizations-table" id="stakeholder-organizations-table" aria-label="Stakeholder-Organisationen" data-stakeholder-table="organizations">
                   <div class="semantic-table" data-semantic-table role="table" aria-label="Stakeholder-Organisationen">
                     <div class="thead" id="stakeholder-organizations-table-head"></div>
                     <div id="stakeholder-organization-list"></div>
@@ -1127,13 +1105,6 @@
           <section class="view-panel" id="view-framework" data-view-panel="framework">
             <div class="framework-workspace">
               <div class="framework-overview">
-                <section class="dashboard-card hospitation-dashboard-preview-card framework-header" aria-labelledby="framework-title">
-                  <div class="hospitation-dashboard-preview-copy">
-                    <strong id="framework-title">Hospitationsframework</strong>
-                    <p>Vor Ort beobachten, qualitativ auswerten und daraus belastbares Versorgungswissen ableiten.</p>
-                  </div>
-                </section>
-
                 <section class="dashboard-card framework-model-section" aria-labelledby="framework-model-title">
                   <div class="framework-model-heading">
                     <h4 id="framework-model-title">Von Beobachtung zum nächsten Schritt</h4>
@@ -1380,7 +1351,6 @@
             <div class="formats-workspace">
               <div class="formats-command-row" aria-label="Formataktionen">
                 <div class="formats-command-actions">
-                  <button class="action-button action-button--primary" type="button" id="new-format-button"><span class="action-button__icon">+</span>Neues Format</button>
                   <div class="format-contact-filter" id="format-contact-filter" hidden>
                     <span>Kontakt: <strong id="format-contact-filter-name"></strong></span>
                     <button type="button" id="format-contact-filter-clear">Filter aufheben</button>
@@ -1418,71 +1388,53 @@
 
           <section class="view-panel" id="view-hospitations" data-view-panel="hospitations">
             <div class="formats-workspace hospitations-workspace">
-              <div class="dashboard-card hospitation-dashboard-preview-card hospitation-appointments-header" id="hospitation-command-row" aria-label="Hospitationsaktionen">
-                <div class="hospitation-appointments-header__top">
-                  <div class="hospitation-dashboard-preview-copy">
-                    <strong>Hospitations-Termine</strong>
-                    <p>Termine planen, vorbereiten und anschließend dokumentieren.</p>
-                  </div>
-                  <div class="hospitation-appointments-header__tools">
-                    <div class="hospitation-header-search-slot" id="hospitation-header-search-slot" hidden></div>
-                    <button class="hospitation-header-search-button" type="button" id="hospitation-header-search-toggle" aria-label="Hospitationen durchsuchen" aria-controls="hospitation-header-search-slot" aria-expanded="false" title="Suchen">
-                      <svg viewBox="0 0 24 24" aria-hidden="true">
-                        <circle cx="11" cy="11" r="7"></circle>
-                        <path d="m20 20-3.5-3.5"></path>
-                      </svg>
-                    </button>
-                  </div>
-                </div>
-              </div>
-              <section class="hospitation-tab-panel" id="hospitation-appointments-panel" data-hospitation-tab-panel="appointments" role="tabpanel">
-                <div class="hospitation-appointments-action-row">
+              <section class="hospitation-tab-panel" id="hospitation-appointments-panel" data-hospitation-tab-panel="appointments" aria-label="Hospitations-Termine">
+                <div class="hospitation-appointments-action-row hospitation-table-toolbar" id="hospitation-table-toolbar" role="group" aria-label="Terminliste und Ansichtsoptionen">
                   <div class="hospitation-appointments-action-row__left">
+                    <div class="dataset-toolbar__meta hospitation-table-toolbar__meta" id="hospitation-table-toolbar-meta" aria-live="polite" aria-atomic="true">0 von 0 Terminen</div>
                     <div class="bulk-toolbar hospitation-bulk-toolbar" id="hospitation-bulk-toolbar" hidden>
                       <span class="bulk-toolbar__count" id="hospitation-bulk-selection-count">0 Termine ausgewählt</span>
                       <button class="bulk-toolbar__link" type="button" id="hospitation-bulk-clear-selection">Auswahl aufheben</button>
                       <span class="bulk-toolbar__divider" aria-hidden="true"></span>
                       <button class="action-button action-button--compact action-button--danger-soft" type="button" id="hospitation-bulk-archive">Archivieren</button>
                     </div>
-                    <div class="formats-command-actions">
-                      <button class="action-button action-button--primary" type="button" id="new-hospitation-request-button"><span class="action-button__icon">+</span>Neuer Termin</button>
-                    </div>
                   </div>
-                  <div class="hospitation-appointments-action-row__center"></div>
                   <div class="hospitation-appointments-action-row__right">
-                    <div class="hospitation-export-actions" role="group" aria-label="Hospitations-Termine exportieren">
-                      <button class="action-button action-button--compact hospitation-export-button" type="button" data-hospitation-export="docx" title="Erstellt beim Download neu aus dem aktuellen Datenstand">
-                        <svg viewBox="0 0 24 24" aria-hidden="true">
-                          <path d="M7 3.5h6.5L18 8v12.5H7z"></path>
-                          <path d="M13.5 3.5V8H18"></path>
-                          <path d="M9.2 14.2l.9 3.1 1.1-3.1 1.1 3.1.9-3.1"></path>
-                        </svg>
-                        Word
-                      </button>
-                      <button class="action-button action-button--compact hospitation-export-button" type="button" data-hospitation-export="pdf" title="Erstellt beim Download neu aus dem aktuellen Datenstand">
-                        <svg viewBox="0 0 24 24" aria-hidden="true">
-                          <path d="M7 3.5h6.5L18 8v12.5H7z"></path>
-                          <path d="M13.5 3.5V8H18"></path>
-                          <path d="M9.2 16.9v-3h1.4a1 1 0 0 1 0 2H9.2m4 1v-3h1.1c1.6 0 1.6 3 0 3h-1.1m4.1 0v-3h2"></path>
-                        </svg>
-                        PDF
-                      </button>
-                    </div>
-                    <div class="hospitation-view-toggle hospitation-command-view-toggle" id="hospitation-schedule-view-toggle" role="group" aria-label="Terminansicht">
-                      <button class="is-active" type="button" data-hospitation-schedule-view="list" aria-pressed="true">Liste</button>
-                      <button type="button" data-hospitation-schedule-view="calendar" aria-pressed="false">Kalender</button>
+                    <div class="workspace-secondary-actions" id="workspace-secondary-actions" aria-label="Weitere Aktionen">
+                      <div class="hospitation-export-actions" role="group" aria-label="Hospitations-Termine exportieren">
+                        <button class="action-button action-button--compact hospitation-export-button" type="button" data-hospitation-export="docx" title="Erstellt beim Download neu aus dem aktuellen Datenstand">
+                          <svg viewBox="0 0 24 24" aria-hidden="true">
+                            <path d="M7 3.5h6.5L18 8v12.5H7z"></path>
+                            <path d="M13.5 3.5V8H18"></path>
+                            <path d="M9.2 14.2l.9 3.1 1.1-3.1 1.1 3.1.9-3.1"></path>
+                          </svg>
+                          Word
+                        </button>
+                        <button class="action-button action-button--compact hospitation-export-button" type="button" data-hospitation-export="pdf" title="Erstellt beim Download neu aus dem aktuellen Datenstand">
+                          <svg viewBox="0 0 24 24" aria-hidden="true">
+                            <path d="M7 3.5h6.5L18 8v12.5H7z"></path>
+                            <path d="M13.5 3.5V8H18"></path>
+                            <path d="M9.2 16.9v-3h1.4a1 1 0 0 1 0 2H9.2m4 1v-3h1.1c1.6 0 1.6 3 0 3h-1.1m4.1 0v-3h2"></path>
+                          </svg>
+                          PDF
+                        </button>
+                      </div>
+                      <div class="hospitation-view-toggle hospitation-command-view-toggle" id="hospitation-schedule-view-toggle" role="group" aria-label="Terminansicht">
+                        <button class="is-active" type="button" data-hospitation-schedule-view="list" aria-pressed="true" aria-controls="hospitation-list">Liste</button>
+                        <button type="button" data-hospitation-schedule-view="calendar" aria-pressed="false" aria-controls="hospitation-list">Kalender</button>
+                      </div>
                     </div>
                   </div>
                 </div>
                 <div class="hospitation-list" id="hospitation-list"></div>
               </section>
-              <section class="hospitation-tab-panel" id="hospitation-dashboard-panel" data-hospitation-tab-panel="dashboard" role="tabpanel" hidden>
+              <section class="hospitation-tab-panel" id="hospitation-dashboard-panel" data-hospitation-tab-panel="dashboard" aria-label="Hospitations-Dashboard" hidden>
                 <div class="dashboard-grid hospitation-dashboard" id="hospitation-dashboard"></div>
               </section>
-              <section class="hospitation-tab-panel" id="hospitation-observations-panel" data-hospitation-tab-panel="observations" role="tabpanel" hidden>
+              <section class="hospitation-tab-panel" id="hospitation-observations-panel" data-hospitation-tab-panel="observations" aria-label="Hospitations-Beobachtungen" hidden>
                 <div class="hospitation-observations-workbench" id="hospitation-observations-workbench"></div>
               </section>
-              <section class="hospitation-tab-panel" id="hospitation-patterns-panel" data-hospitation-tab-panel="patterns" role="tabpanel" hidden>
+              <section class="hospitation-tab-panel" id="hospitation-patterns-panel" data-hospitation-tab-panel="patterns" aria-label="Hospitations-Muster" hidden>
                 <div class="hospitation-patterns-workbench" id="hospitation-patterns-workbench"></div>
               </section>
             </div>
@@ -1490,11 +1442,7 @@
 
           <section class="view-panel" id="view-questionnaire" data-view-panel="questionnaire">
             <form class="questionnaire-workspace" id="hospitation-questionnaire-form">
-              <div class="dashboard-card hospitation-dashboard-preview-card questionnaire-toolbar" aria-label="Fragebogenaktionen">
-                <div class="hospitation-dashboard-preview-copy questionnaire-toolbar__copy">
-                  <strong data-questionnaire-copy>Hospitations-Fragebogen</strong>
-                  <p>Beobachtungen Schritt für Schritt festhalten und einordnen.</p>
-                </div>
+              <div class="dashboard-card hospitation-dashboard-preview-card questionnaire-toolbar questionnaire-toolbar--actions-only" aria-label="Fragebogen herunterladen">
                 <div class="hospitation-dashboard-preview-actions questionnaire-toolbar__actions">
                   <a class="action-button questionnaire-download-link" href="../../public/hospitation/mitmachen-hospitations-framework.docx" download="Mitmachen-Hospitations-Framework.docx">
                     <span class="action-button__icon" aria-hidden="true">
@@ -1795,13 +1743,6 @@
 
           <section class="view-panel" id="view-analytics" data-view-panel="analytics">
             <div class="view-card analytics-shell">
-              <div class="analytics-head">
-                <div>
-                  <h3>Auswertung</h3>
-                </div>
-              <div class="analytics-actions">
-                </div>
-              </div>
               <div class="dashboard-grid">
                 <div class="dashboard-cluster-title">Verteilung</div>
                 <article class="dashboard-card dashboard-card--distribution-main">

@@ -262,13 +262,16 @@ const requiredFiles = new Set([
   "public/brand/mitmachen/lockup-horizontal.svg",
   "public/brand/mitmachen/mark-on-dark.svg",
   "public/brand/mitmachen/mark.svg",
+  "public/brand/modules/formate/lockup-horizontal.svg",
   "public/brand/modules/formate/mark-on-dark.svg",
   "public/brand/modules/formate/mark.svg",
+  "public/brand/modules/hospitation/lockup-horizontal.svg",
   "public/brand/modules/hospitation/mark-on-dark.svg",
   "public/brand/modules/hospitation/mark.svg",
   "public/brand/modules/stakeholder/lockup-horizontal.svg",
   "public/brand/modules/stakeholder/mark-on-dark.svg",
   "public/brand/modules/stakeholder/mark.svg",
+  "public/brand/versorgungs-kompass/lockup-horizontal.svg",
   "public/brand/versorgungs-kompass/mark-on-dark.svg",
   "public/brand/versorgungs-kompass/mark.svg",
   "public/demo-profile-admin.svg",
@@ -617,6 +620,8 @@ if (existsSync(offlinePoliticsPath)) {
 const appHtmlPath = join(artifactRoot, "versorgungs-kompass.html");
 if (existsSync(appHtmlPath)) {
   const appHtml = readFileSync(appHtmlPath, "utf8");
+  const appScriptPath = join(artifactRoot, "versorgungs-kompass.js");
+  const appAssetSources = `${appHtml}\n${existsSync(appScriptPath) ? readFileSync(appScriptPath, "utf8") : ""}`;
   const publicPoliticsPosition = appHtml.indexOf("./data/public-politics-directory.js");
   const demoDataPosition = appHtml.indexOf("./data/demo-data.js");
   const demoApiPosition = appHtml.indexOf("./data/demo-api.js");
@@ -636,12 +641,15 @@ if (existsSync(appHtmlPath)) {
   }
   for (const mark of [
     "public/brand/versorgungs-kompass/mark.svg",
+    "public/brand/versorgungs-kompass/lockup-horizontal.svg",
     "public/brand/modules/stakeholder/lockup-horizontal.svg",
     "public/brand/modules/stakeholder/mark.svg",
+    "public/brand/modules/hospitation/lockup-horizontal.svg",
     "public/brand/modules/hospitation/mark.svg",
+    "public/brand/modules/formate/lockup-horizontal.svg",
     "public/brand/modules/formate/mark.svg"
   ]) {
-    assert(appHtml.includes(mark), `${artifactLabel}/versorgungs-kompass.html referenziert das Signet ${mark} nicht`);
+    assert(appAssetSources.includes(mark), `${artifactLabel}/versorgungs-kompass.html oder versorgungs-kompass.js referenziert das Signet ${mark} nicht`);
   }
   for (const label of ["Versorgung", "Auswertung", "Aktivitäten", "Stakeholder", "Expertenkreis", "Hospitationen", "Beobachtungen", "Fragebogen", "Dashboard", "Formate", "Teams"]) {
     assert(appHtml.includes(label), `${artifactLabel}/versorgungs-kompass.html enthaelt den Voll-App-Bereich ${label} nicht`);

@@ -1017,16 +1017,16 @@ test("Hospitation: Framework-Modul rendern", async ({ page }, testInfo) => {
   await gotoAuthenticated(page, "/frontend/app/versorgungs-kompass.html#framework");
 
   await expect(page.locator(".app-shell")).toHaveAttribute("data-active-view", "framework", { timeout: 15000 });
-  await expect(page.locator(".workspace-header")).toBeHidden();
+  await expect(page.locator(".workspace-header")).toBeVisible();
+  await expect(page.locator("[data-workspace-brand]:visible")).toHaveCount(1);
   await expect(page.locator('[data-sidebar-section="planning"]')).toHaveClass(/is-active-section/);
   await expect(page.locator('[data-view-tab="framework"]')).toHaveClass(/is-active/);
   const frameworkView = page.locator("#view-framework");
   await expect(frameworkView).toBeVisible();
-  await expect(frameworkView).toContainText("Hospitationsframework");
+  await expect(page.locator("#workspace-view-title")).toHaveText("Hospitationsframework");
+  await expect(page.locator("#workspace-view-subtitle")).toHaveText("Vor Ort beobachten, qualitativ auswerten und daraus belastbares Versorgungswissen ableiten.");
   await expect(frameworkView).toContainText("Von Beobachtung zum nächsten Schritt");
-  await expect(frameworkView.locator(".framework-header")).toHaveClass(/hospitation-dashboard-preview-card/);
-  await expect(frameworkView.locator(".framework-header strong")).toHaveText("Hospitationsframework");
-  await expect(frameworkView.locator(".framework-header .hospitation-dashboard-preview-copy > span")).toHaveCount(0);
+  await expect(frameworkView.locator(".framework-header")).toHaveCount(0);
   await expect(frameworkView.locator(".framework-overview")).toBeVisible();
   await expect(frameworkView.locator(".framework-summary-card")).toHaveCount(0);
   await expect(frameworkView.locator(".framework-section-card")).toHaveCount(4);
@@ -1501,14 +1501,17 @@ test("Hospitation: Musterseite zeigt alle abgeleiteten Muster", async ({ page },
 test("Hospitation: Fragebogen-Modul rendern", async ({ page }, testInfo) => {
   await gotoAuthenticated(page, "/frontend/app/versorgungs-kompass.html#questionnaire");
 
-  await expect(page.locator(".workspace-header")).toBeHidden();
+  await expect(page.locator(".workspace-header")).toBeVisible();
+  await expect(page.locator("[data-workspace-brand]:visible")).toHaveCount(1);
   await expect(page.locator('[data-sidebar-section="planning"]')).toHaveClass(/is-active-section/);
   await expect(page.locator('[data-view-tab="questionnaire"]')).toHaveClass(/is-active/);
+  await expect(page.locator("#workspace-view-title")).toHaveText("Hospitations-Fragebogen");
+  await expect(page.locator("#workspace-view-subtitle")).toHaveText("Beobachtungen Schritt für Schritt festhalten und einordnen.");
   await expect(page.locator("#hospitation-questionnaire-form")).toBeVisible();
   const questionnaireHeader = page.locator("#view-questionnaire .questionnaire-toolbar");
-  await expect(questionnaireHeader).toHaveClass(/hospitation-dashboard-preview-card/);
-  await expect(questionnaireHeader.locator(".hospitation-dashboard-preview-copy strong")).toHaveText("Hospitations-Fragebogen");
-  await expect(questionnaireHeader.locator(".hospitation-dashboard-preview-copy p")).toHaveText("Beobachtungen Schritt für Schritt festhalten und einordnen.");
+  await expect(questionnaireHeader).toBeVisible();
+  await expect(questionnaireHeader.locator("h2")).toHaveCount(0);
+  await expect(questionnaireHeader.locator(".questionnaire-download-link")).toHaveCount(2);
   const questionnaireOrganization = page.locator("#questionnaire-organization");
   const questionnaireContact = page.locator("#questionnaire-contact");
   const questionnaireSector = page.locator("#questionnaire-setting");
@@ -1838,7 +1841,7 @@ test("Hospitation: Fragebogen-Modul rendern", async ({ page }, testInfo) => {
   await expect(questionnaireDrawer).toContainText("ePA für alle");
   await questionnaireDrawer.getByRole("tab", { name: "Notizen" }).click();
   await expect(questionnaireDrawer).toContainText("Interne Notiz aus dem Fragebogen");
-  await expect(page.locator(".controls")).toBeHidden();
+  await expect(page.locator(".controls")).toBeVisible();
 
   await attachScreenshot(page, testInfo, "planung-fragebogen");
 });
@@ -4447,6 +4450,7 @@ test("Hospitationen: leerer Terminbereich führt zum ersten Termin", async ({ pa
 
 test("Hospitationen: Dokumentationsdrawer mit Reitern", async ({ page }, testInfo) => {
   test.setTimeout(90000);
+  await page.clock.setFixedTime(new Date("2026-07-01T12:00:00+02:00"));
   await gotoAuthenticated(page, "/frontend/app/versorgungs-kompass.html#hospitations");
 
   await expect(page.locator("#new-hospitation-request-button")).toContainText("Neuer Termin");
@@ -4685,32 +4689,21 @@ test("Hospitationen: Dokumentationsdrawer mit Reitern", async ({ page }, testInf
 
   await expect(page.locator('[data-hospitation-tab="documentation"]')).toHaveCount(0);
   const hospitationCommandRow = page.locator("#hospitation-command-row");
-  await expect(hospitationCommandRow).toBeVisible();
-  await expect(hospitationCommandRow).toHaveClass(/hospitation-dashboard-preview-card/);
-  await expect(hospitationCommandRow.locator(".hospitation-dashboard-preview-copy strong")).toHaveText("Hospitations-Termine");
-  await expect(hospitationCommandRow.locator(".hospitation-dashboard-preview-copy p")).toHaveText("Termine planen, vorbereiten und anschließend dokumentieren.");
+  await expect(page.locator("#workspace-view-title")).toHaveText("Hospitationen");
+  await expect(page.locator("#workspace-view-subtitle")).toHaveText("Termine planen und Versorgungskontakte dokumentieren.");
+  await expect(hospitationCommandRow).toHaveCount(0);
   await expect(hospitationCommandRow.locator(".hospitation-appointments-header__mode")).toHaveCount(0);
   await expect(hospitationCommandRow.locator("#new-hospitation-request-button")).toHaveCount(0);
   const hospitationActionRow = page.locator("#hospitation-appointments-panel > .hospitation-appointments-action-row");
-  await expect(hospitationActionRow.locator(".hospitation-appointments-action-row__left #new-hospitation-request-button")).toBeVisible();
+  await expect(page.locator(".workspace-primary-actions #new-hospitation-request-button")).toBeVisible();
   await expect(hospitationActionRow.locator("[data-hospitation-data-mode-switch]")).toHaveCount(0);
-  await expect(hospitationActionRow.locator(".hospitation-appointments-action-row__right #hospitation-schedule-view-toggle")).toBeVisible();
-  const headerSearchButton = hospitationCommandRow.locator("#hospitation-header-search-toggle");
-  const headerSearchSlot = hospitationCommandRow.locator("#hospitation-header-search-slot");
-  await expect(headerSearchButton).toBeVisible();
-  await expect(headerSearchButton).toHaveCSS("width", "44px");
-  await expect(headerSearchButton.locator("svg")).toHaveCSS("width", "22px");
-  await expect(headerSearchButton).toHaveAttribute("aria-expanded", "false");
-  await expect(headerSearchSlot).toBeHidden();
-  await expect(page.locator(".controls")).toBeHidden();
-  await headerSearchButton.click();
-  await expect(headerSearchButton).toHaveAttribute("aria-expanded", "true");
-  await expect(headerSearchSlot.locator(".search-shell")).toBeVisible();
-  await expect(headerSearchSlot.locator(".search-shell")).toHaveCSS("min-height", "44px");
-  await expect(page.locator("#search")).toBeFocused();
-  await headerSearchButton.click();
-  await expect(headerSearchButton).toHaveAttribute("aria-expanded", "false");
-  await expect(headerSearchSlot).toBeHidden();
+  await expect(page.locator("#workspace-secondary-actions #hospitation-schedule-view-toggle")).toBeVisible();
+  await expect(hospitationCommandRow.locator("#hospitation-header-search-toggle")).toHaveCount(0);
+  await expect(hospitationCommandRow.locator("#hospitation-header-search-slot")).toHaveCount(0);
+  await expect(page.locator(".controls")).toBeVisible();
+  await expect(page.locator(".controls #search")).toBeVisible();
+  await expect(page.locator(".controls #search")).toHaveCount(1);
+  await expect(page.locator(".controls .search-shell")).toHaveCSS("min-height", "48px");
   await expect(page.locator("#new-hospitation-request-button")).toBeVisible();
   await expect(page.locator("#new-hospitation-booking-button")).toHaveCount(0);
   await expect(page.locator("#new-hospitation-slot-button")).toHaveCount(0);
@@ -4734,7 +4727,7 @@ test("Hospitationen: Dokumentationsdrawer mit Reitern", async ({ page }, testInf
   } else {
     const demoCalendar = page.locator("#hospitation-list .hospitation-calendar");
     await expect(demoCalendar).toBeVisible();
-    const currentMonthLabel = new Intl.DateTimeFormat("de-DE", { month: "long", year: "numeric" }).format(new Date());
+    const currentMonthLabel = await page.evaluate(() => new Intl.DateTimeFormat("de-DE", { month: "long", year: "numeric" }).format(new Date()));
     await expect(demoCalendar.locator(".hospitation-calendar-title")).toContainText(currentMonthLabel);
     await expect(demoCalendar).toContainText("Demo-Kontakt 01");
     await expect(demoCalendar.locator(".hospitation-calendar-grid + .hospitation-calendar-legend")).toHaveCount(1);
@@ -5250,11 +5243,13 @@ test("Hospitationen: Dokumentationsdrawer mit Reitern", async ({ page }, testInf
   await expect(page).toHaveURL(/#hospitations:dashboard$/);
   await expect(page.locator('[data-view-tab="hospitations:dashboard"]')).toHaveClass(/is-active/);
   await expect(page.locator('[data-view-tab="hospitations"]')).not.toHaveClass(/is-active/);
+  await expect(page.locator("#workspace-view-title")).toHaveText("Dashboard");
+  await expect(page).toHaveTitle("Dashboard · #Mitmachen");
   const dashboard = page.locator("#hospitation-dashboard");
   await expect(dashboard).toBeVisible();
   await expect(page.locator("#hospitation-mode-actions")).toBeHidden();
   await expect(page.locator(".controls")).toBeHidden();
-  await expect(page.locator("#hospitation-command-row")).toBeHidden();
+  await expect(page.locator("#hospitation-command-row")).toHaveCount(0);
   if (testInfo.project.name.includes("mobile")) {
     const mobileGroups = dashboard.locator("[data-hospitation-dashboard-mobile-group]");
     await expect(mobileGroups).toHaveCount(3);
@@ -5269,9 +5264,8 @@ test("Hospitationen: Dokumentationsdrawer mit Reitern", async ({ page }, testInf
     await attachScreenshot(page, testInfo, "planung-dashboard-mobile");
     return;
   }
-  await expect(dashboard.locator(".hospitation-dashboard-preview-copy strong")).toHaveText("Dashboard");
-  await expect(dashboard).toContainText("Das Dashboard konzentriert sich auf die aktuell relevanten Hospitationsdaten.");
-  await expect(dashboard).toContainText("Musterbildung bleibt weiterhin Teil des Hospitations-Frameworks.");
+  await expect(dashboard.locator(".hospitation-dashboard-preview-copy strong")).toHaveCount(0);
+  await expect(dashboard.locator("[data-hospitation-dashboard-layout-toggle]")).toBeVisible();
   await expect(dashboard.getByRole("button", { name: /^(Echte Daten|Demo)$/ })).toHaveCount(0);
   await expect(dashboard).not.toContainText("Dashboard-Daten");
   await expect(dashboard).not.toContainText("Echte Dokumentationen");

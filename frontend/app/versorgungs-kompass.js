@@ -864,10 +864,10 @@
         { id: "settings", label: "Einstellungen" }
       ];
       const hospitationTabItems = [
-        { id: "appointments", label: "Termine" },
-        { id: "observations", label: "Beobachtungen" },
-        { id: "patterns", label: "Muster" },
-        { id: "dashboard", label: "Dashboard" }
+        { id: "appointments", label: "Termine", title: "Hospitationen", subtitle: "Termine planen und Versorgungskontakte dokumentieren." },
+        { id: "observations", label: "Beobachtungen", title: "Beobachtungen", subtitle: "Beobachtungen aus Hospitationen erfassen, strukturieren und weiterbearbeiten." },
+        { id: "patterns", label: "Muster", title: "Muster", subtitle: "Wiederkehrende Beobachtungen bündeln und als belastbare Muster einordnen." },
+        { id: "dashboard", label: "Dashboard", title: "Dashboard", subtitle: "Hospitationswissen, Beobachtungen und Muster im Überblick auswerten." }
       ];
       function normalizeHospitationTab(tab = "") {
         const normalized = String(tab || "").trim();
@@ -980,6 +980,7 @@
       const contactContentSearchResultsNode = document.getElementById("contact-content-search-results");
       const controlsRoot = document.querySelector(".controls");
       const controlsStack = document.querySelector(".controls-stack");
+      const workspacePrimaryActions = document.getElementById("workspace-primary-actions");
       const list = document.getElementById("contact-list");
       const organizationList = document.getElementById("organization-list");
       const activitiesList = document.getElementById("activities-list");
@@ -1035,6 +1036,7 @@
       const hospitationBulkSelectionCount = document.getElementById("hospitation-bulk-selection-count");
       const hospitationBulkClearSelection = document.getElementById("hospitation-bulk-clear-selection");
       const hospitationBulkArchiveButton = document.getElementById("hospitation-bulk-archive");
+      const hospitationTableToolbarMeta = document.getElementById("hospitation-table-toolbar-meta");
       const hospitationScheduleViewToggle = document.getElementById("hospitation-schedule-view-toggle");
       const hospitationExportButtons = [...document.querySelectorAll("[data-hospitation-export]")];
       const hospitationHeaderSearchToggle = document.getElementById("hospitation-header-search-toggle");
@@ -1151,6 +1153,7 @@
       const summaryGrid = document.getElementById("summary-grid");
       const resultsCount = document.getElementById("results-count");
       const filterToolbar = document.querySelector(".filter-toolbar");
+      const filterShell = document.querySelector(".filter-shell");
       const activeFilterRow = document.querySelector(".active-filter-row");
       const paginationMeta = document.getElementById("pagination-meta");
       const pagination = document.getElementById("pagination");
@@ -1476,11 +1479,8 @@
       viewShell?.appendChild(profileModal);
       viewShell?.appendChild(personProfilePage);
       viewShell?.appendChild(organizationProfilePage);
-      if (newContactButton) contactCommandActions?.append(newContactButton);
       if (archiveViewButton && contactMatchingWorklistButton) contactSecondaryActions?.append(archiveViewButton, contactMatchingWorklistButton);
-      if (newOrganizationButton && organizationMatchingWorklistButton) {
-        organizationCommandActions?.append(newOrganizationButton, organizationMatchingWorklistButton);
-      }
+      if (organizationMatchingWorklistButton) organizationCommandActions?.append(organizationMatchingWorklistButton);
       const importDrawer = document.getElementById("import-drawer");
       const importOverlay = document.getElementById("import-overlay");
       const importClose = document.getElementById("import-close");
@@ -5555,10 +5555,10 @@
         politics: { title: "Politik", subtitle: "Mitglieder des Ausschusses für Gesundheit im Deutschen Bundestag." },
         press: { title: "Presse", subtitle: "Relevante Pressekontakte aus Redaktionen, Institutionen und Verbänden im Gesundheitswesen." },
         stakeholders: { title: "Stakeholder", subtitle: "Stakeholder-Organisationen, Kontakte und Kartenbezug." },
-        framework: { title: "Framework", subtitle: "Überblick über Beobachtungen, Muster, Hypothesen und nächste Schritte." },
+        framework: { title: "Hospitationsframework", subtitle: "Vor Ort beobachten, qualitativ auswerten und daraus belastbares Versorgungswissen ableiten." },
         formats: { title: "Formate", subtitle: "Einladungslisten für Roundtables, Fachgespräche und Veranstaltungen planen." },
         hospitations: { title: "Hospitationen", subtitle: "Termine planen und Versorgungskontakte dokumentieren." },
-        questionnaire: { title: "Fragebogen", subtitle: "Beobachtungen aus Hospitationen codieren." },
+        questionnaire: { title: "Hospitations-Fragebogen", subtitle: "Beobachtungen Schritt für Schritt festhalten und einordnen." },
         map: { title: "Karte", subtitle: "Regionale Verteilung und Standortkontext der aktuellen Auswahl." },
         analytics: { title: "Auswertung", subtitle: "Reporting, regionale Abdeckung und Netzwerktransparenz." },
         quality: { title: "Datenqualität", subtitle: "Pflegehinweise, Datenlücken und konkrete Arbeitslisten." },
@@ -8961,7 +8961,7 @@
           trigger.setAttribute("aria-controls", switcher.id);
           trigger.setAttribute("aria-expanded", "false");
           trigger.innerHTML = `
-            <span class="visually-hidden">Demo-Profil wechseln</span>
+            <span class="visually-hidden">Profil wechseln</span>
             <span class="sidebar-profile-switcher-indicator" aria-hidden="true">
               <svg viewBox="0 0 16 16" fill="none">
                 <path d="m4 6 4 4 4-4"></path>
@@ -8988,20 +8988,20 @@
         trigger.setAttribute(
           "aria-label",
           selectedProfile?.label
-            ? `Demo-Profil wechseln, aktuell ${selectedProfile.label}, Rolle ${roleLabel(selectedProfile.role)}`
-            : "Demo-Profil wechseln"
+            ? `Profil wechseln, aktuell ${selectedProfile.label}, Rolle ${roleLabel(selectedProfile.role)}`
+            : "Profil wechseln"
         );
         trigger.setAttribute(
           "title",
           selectedProfile?.label
-            ? `Demo-Profil wechseln · ${selectedProfile.label} · ${roleLabel(selectedProfile.role)}`
-            : "Demo-Profil wechseln"
+            ? `Profil wechseln · ${selectedProfile.label} · ${roleLabel(selectedProfile.role)}`
+            : "Profil wechseln"
         );
         if (trigger.hidden) closeDemoProfileSwitcher();
         switcher.innerHTML = `
           <h3 class="demo-profile-switcher-title" id="demo-profile-switcher-title">Ansicht wechseln</h3>
           <div class="demo-profile-select-shell">
-            <label class="visually-hidden" for="demo-profile-select">Demo-Profil</label>
+            <label class="visually-hidden" for="demo-profile-select">Profil</label>
             <select id="demo-profile-select">
               ${profiles.map((profile) => `<option value="${escapeHtml(profile.id)}" ${profile.id === selectedProfileId ? "selected" : ""}>${escapeHtml(`${profile.label} · ${roleLabel(profile.role)}`)}</option>`).join("")}
             </select>
@@ -19454,6 +19454,10 @@
       function renderHospitationAppointments() {
         const entries = hospitationScheduleEntries({ archived: hospitationArchiveView });
         const archivedCount = hospitationScheduleEntries({ archived: true }).length;
+        const totalEntries = hospitationArchiveView ? archivedHospitationRecords().length : activeHospitationRecords().length;
+        if (hospitationTableToolbarMeta) {
+          hospitationTableToolbarMeta.textContent = `${entries.length} von ${totalEntries} ${totalEntries === 1 ? "Termin" : "Terminen"}`;
+        }
         const hasActiveAppointments = activeHospitationRecords().length > 0;
         pruneHospitationSelection(entries);
         updateHospitationBulkToolbar();
@@ -20306,15 +20310,7 @@
           nextSteps: source.pipeline.nextSteps.length
         };
         hospitationPatternsWorkbench.innerHTML = `
-          <section class="hospitation-patterns-page" aria-labelledby="hospitation-patterns-title">
-            <header class="dashboard-card hospitation-dashboard-preview-card observation-page-header hospitation-patterns-header" aria-label="Muster">
-              <div class="observation-page-header__top">
-                <div class="hospitation-dashboard-preview-copy observation-page-header__copy">
-                  <strong id="hospitation-patterns-title" role="heading" aria-level="2">Muster</strong>
-                  <p>Muster auswählen und die zugrunde liegenden Beobachtungen direkt prüfen.</p>
-                </div>
-              </div>
-            </header>
+          <section class="hospitation-patterns-page" aria-labelledby="workspace-view-title">
             ${renderHospitationFrameworkReminder(frameworkMetrics, "patterns")}
             ${patterns.length
               ? `<div class="hospitation-pattern-table-scroll" data-hospitation-pattern-table>
@@ -20630,6 +20626,14 @@
               <button class="action-button action-button--compact hospitation-dashboard-layout-button ${hospitationDashboardLayoutEditMode ? "is-active" : ""}" type="button" data-hospitation-dashboard-layout-toggle aria-label="Layout anpassen" aria-pressed="${hospitationDashboardLayoutEditMode ? "true" : "false"}">Layout</button>
               ${hospitationDashboardLayoutEditMode ? `<button class="action-button action-button--compact" type="button" data-hospitation-dashboard-reset-layout>Zurücksetzen</button>` : ""}
         `;
+        if (!isHospitationDocumentationStandalone) {
+          if (!layoutActions) return "";
+          return `
+            <div class="hospitation-dashboard-page-actions" role="group" aria-label="Dashboard-Layout">
+              ${layoutActions}
+            </div>
+          `;
+        }
         return `
           <article class="dashboard-card hospitation-dashboard-preview-card">
             <div class="hospitation-dashboard-preview-copy">
@@ -23757,30 +23761,23 @@
         const matrixObservationCount = rows.length - uncoded;
         const hospitationsWithoutObservations = Math.max(0, activeHospitationCount - observedHospitationCount);
         const canCreate = canEditContacts();
-        const searchVisible = hospitationObservationSearchOpen || Boolean(hospitationObservationFilters.query);
         hospitationObservationsWorkbench.innerHTML = `
-          <div class="dashboard-card hospitation-dashboard-preview-card observation-page-header" aria-label="Beobachtungsaktionen">
+          <div class="observation-page-header observation-page-header--actions-only" aria-label="Beobachtungsaktionen">
             <div class="observation-page-header__top">
-              <div class="hospitation-dashboard-preview-copy observation-page-header__copy"><strong>Beobachtungen</strong><p>Qualitative Befunde über Hospitationen hinweg vergleichen und pflegen.</p></div>
-              <div class="observation-page-header__tools">
-                <div class="observation-header-search-slot" ${searchVisible ? "" : "hidden"}>
-                  <label class="observation-header-search">
-                    <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"></circle><path d="m20 20-3.5-3.5"></path></svg>
-                    <input type="search" data-observation-query value="${escapeHtml(hospitationObservationFilters.query)}" placeholder="Beobachtungen, Kontext, Produkte oder Rollen suchen" aria-label="Beobachtungen durchsuchen">
-                    ${hospitationObservationFilters.query ? `<button class="observation-search-clear" type="button" data-observation-search-clear aria-label="Suche leeren">×</button>` : ""}
-                  </label>
+              <div class="observation-primary-toolbar">
+                <div class="workspace-primary-actions" aria-label="Primäre Aktion">
+                  <button class="action-button action-button--primary" type="button" data-observation-new ${canCreate ? "" : "disabled"} title="${escapeHtml(canEditContacts() ? "Neue Beobachtung anlegen" : viewerCreateDisabledMessage("das Anlegen von Beobachtungen"))}"><span class="action-button__icon">+</span>Neue Beobachtung</button>
                 </div>
-                <button class="hospitation-header-search-button ${searchVisible ? "is-active" : ""}" type="button" data-observation-search-toggle aria-label="Beobachtungen durchsuchen" aria-expanded="${searchVisible ? "true" : "false"}" title="Suchen">
+                <label class="observation-header-search">
                   <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"></circle><path d="m20 20-3.5-3.5"></path></svg>
-                </button>
+                  <input type="search" data-observation-query value="${escapeHtml(hospitationObservationFilters.query)}" placeholder="Beobachtungen, Kontext, Produkte oder Rollen suchen" aria-label="Beobachtungen durchsuchen">
+                  ${hospitationObservationFilters.query ? `<button class="observation-search-clear" type="button" data-observation-search-clear aria-label="Suche leeren">×</button>` : ""}
+                </label>
               </div>
             </div>
           </div>
           ${renderHospitationFrameworkReminder(frameworkMetrics, "observations")}
           <div class="hospitation-appointments-action-row observation-action-row">
-            <div class="observation-action-row__left">
-              <button class="action-button action-button--primary" type="button" data-observation-new ${canCreate ? "" : "disabled"} title="${escapeHtml(canEditContacts() ? "Neue Beobachtung anlegen" : viewerCreateDisabledMessage("das Anlegen von Beobachtungen"))}"><span class="action-button__icon">+</span>Neue Beobachtung</button>
-            </div>
             <div class="hospitation-appointments-action-row__center"></div>
             <div class="observation-action-row__right">
               <div class="hospitation-export-actions" role="group" aria-label="Beobachtungen exportieren">
@@ -24051,21 +24048,16 @@
       }
 
       function hospitationHeaderSearchVisible(activeTab = activeHospitationTab) {
-        const hasSearchValue = Boolean(searchInput?.value.trim());
-        return activeView === "hospitations" && activeTab === "appointments" && (hospitationHeaderSearchOpen || hasSearchValue);
+        return activeView === "hospitations" && activeTab === "appointments";
       }
 
       function updateHospitationHeaderSearch(activeTab = activeHospitationTab, options = {}) {
         const visible = hospitationHeaderSearchVisible(activeTab);
-        if (hospitationHeaderSearchSlot) {
-          hospitationHeaderSearchSlot.hidden = !visible;
-          if (visible && searchShell && searchShell.parentElement !== hospitationHeaderSearchSlot) {
-            hospitationHeaderSearchSlot.append(searchShell);
-          }
-        }
+        if (hospitationHeaderSearchSlot) hospitationHeaderSearchSlot.hidden = true;
         if (hospitationHeaderSearchToggle) {
-          hospitationHeaderSearchToggle.classList.toggle("is-active", visible);
-          hospitationHeaderSearchToggle.setAttribute("aria-expanded", visible ? "true" : "false");
+          hospitationHeaderSearchToggle.hidden = true;
+          hospitationHeaderSearchToggle.classList.remove("is-active");
+          hospitationHeaderSearchToggle.setAttribute("aria-expanded", "false");
         }
         if (searchShell && activeView === "hospitations") {
           searchShell.hidden = !visible;
@@ -24084,7 +24076,7 @@
         if (newHospitationRequestButton && activeView === "hospitations") {
           newHospitationRequestButton.hidden = dashboardActive || !canEditContacts();
         }
-        if (controlsRoot) controlsRoot.hidden = activeView === "hospitations";
+        if (controlsRoot) controlsRoot.hidden = activeView === "hospitations" && activeTab !== "appointments";
         updateHospitationHeaderSearch(activeTab);
       }
 
@@ -24092,6 +24084,7 @@
         if (activeView !== "hospitations") return;
         const activeTab = hospitationTabItems.some((item) => item.id === activeHospitationTab) ? activeHospitationTab : "appointments";
         activeHospitationTab = activeTab;
+        renderViewChrome();
         hospitationTabButtons.forEach((button) => {
           const active = button.dataset.hospitationTab === activeTab;
           button.classList.toggle("is-active", active);
@@ -31002,7 +30995,7 @@
 
       function pressSourceCheckedLabel(person = {}) {
         const source = String(person.source || "");
-        if (/synthetisch/i.test(source)) return "Synthetische Demoquelle";
+        if (/synthetisch/i.test(source)) return "Synthetische Quelle";
         const match = /Gepr(?:ü|ue)ft:\s*(\d{4})-(\d{2})-(\d{2})/i.exec(source);
         const sourceKind = /sekund(?:ä|ae)r/i.test(source)
           ? "Sekundärquelle"
@@ -31115,14 +31108,8 @@
 
         pressTableWrap.hidden = false;
         const total = activePressPeople().length;
-        const isPublicDemo = String(window.VERSORGUNGS_COMPASS_CONFIG?.dataMode || "").toLowerCase() === "demo";
         pressContactCount.textContent = `${total} ${total === 1 ? "Pressekontakt" : "Pressekontakte"}`;
-        setPressNotice(
-          isPublicDemo
-            ? "Diese öffentliche Demo enthält ausschließlich frei erfundene Presseorganisationen und Kontakte."
-            : "Kuratierte Auswahl öffentlich ausgewiesener beruflicher Kontakte. Bitte Rolle und Quelle vor jeder Ansprache erneut prüfen.",
-          "info"
-        );
+        setPressNotice();
 
         if (!items.length) {
           pressContactList.innerHTML = `<div class="empty">Keine Pressekontakte passen zur aktuellen Suche oder den Spaltenfiltern.</div>`;
@@ -37940,9 +37927,53 @@
         openOrganizationDetail(id, items, { mode: "preview", returnTo });
       }
 
+      function workspaceBrandConfig(view = activeView) {
+        const group = sidebarGroupForView(view);
+        if (group === "stakeholders") {
+          return {
+            group,
+            name: "Stakeholder-Kompass",
+            lockup: "../../public/brand/modules/stakeholder/lockup-horizontal.svg",
+            mark: "../../public/brand/modules/stakeholder/mark.svg"
+          };
+        }
+        if (group === "planning") {
+          return {
+            group,
+            name: "Hospitations-Kompass",
+            lockup: "../../public/brand/modules/hospitation/lockup-horizontal.svg",
+            mark: "../../public/brand/modules/hospitation/mark.svg"
+          };
+        }
+        if (group === "formats") {
+          return {
+            group,
+            name: "Format-Kompass",
+            lockup: "../../public/brand/modules/formate/lockup-horizontal.svg",
+            mark: "../../public/brand/modules/formate/mark.svg"
+          };
+        }
+        if (group === "care") {
+          return {
+            group,
+            name: "Versorgungs-Kompass",
+            lockup: "../../public/brand/versorgungs-kompass/lockup-horizontal.svg",
+            mark: "../../public/brand/versorgungs-kompass/mark.svg"
+          };
+        }
+        return {
+          group: "mitmachen",
+          name: "#Mitmachen",
+          lockup: "../../public/brand/mitmachen/lockup-horizontal.svg",
+          mark: "../../public/brand/mitmachen/mark.svg"
+        };
+      }
+
       function renderViewChrome() {
-        const view = isAnalyticsView(activeView)
-          ? { title: "Auswertung", subtitle: "Reporting und Datenqualität in einem gemeinsamen Arbeitsbereich." }
+        const view = activeView === "hospitations"
+          ? hospitationTabItems.find((item) => item.id === activeHospitationTab) || viewLabels.hospitations
+          : activeView === "profile" && activeProfileTab === "imports"
+            ? settingsTabItems.find((item) => item.id === activeSettingsTab) || viewLabels.settings
           : activeView === "profile"
             ? profileTabItems.find((item) => item.id === activeProfileTab) || viewLabels.profile
             : activeView === "personProfile"
@@ -37959,19 +37990,14 @@
         if (topbarViewMeta) topbarViewMeta.textContent = greetingLabel;
         if (workspaceViewTitle) workspaceViewTitle.textContent = view.title;
         if (workspaceViewSubtitle) workspaceViewSubtitle.textContent = view.subtitle;
-        const onboardingBrand = activeView === "onboarding" || onboardingActive;
-        const showWorkspaceBrand = activeView === "team" || onboardingBrand;
-        if (workspaceBrand) workspaceBrand.hidden = !showWorkspaceBrand;
-        if (workspaceBrandSource) {
-          workspaceBrandSource.srcset = onboardingBrand
-            ? "../../public/brand/versorgungs-kompass/mark.svg"
-            : "../../public/brand/mitmachen/mark.svg";
-        }
+        const brand = workspaceBrandConfig(activeView);
+        if (workspaceBrand) workspaceBrand.hidden = activeView === "home";
+        const workspaceHeader = workspaceBrand?.closest(".workspace-header--unified");
+        if (workspaceHeader) workspaceHeader.dataset.workspaceModule = brand.group;
+        if (workspaceBrandSource) workspaceBrandSource.srcset = brand.mark;
         if (workspaceBrandImage) {
-          workspaceBrandImage.src = onboardingBrand
-            ? "../../public/brand/versorgungs-kompass/mark.svg"
-            : "../../public/brand/mitmachen/lockup-horizontal.svg";
-          workspaceBrandImage.alt = onboardingBrand ? "Versorgungs-Kompass" : "#Mitmachen";
+          workspaceBrandImage.src = brand.lockup;
+          workspaceBrandImage.alt = brand.name;
         }
         if (mainContent) mainContent.setAttribute("aria-label", view.title);
         if (!isHospitationDocumentationStandalone) document.title = `${view.title} · #Mitmachen`;
@@ -40521,8 +40547,12 @@
               : isContactsDuplicatesMode ? filteredExpertMatchCandidates("contact") : filteredContacts();
         if (contactListSwitcher) contactListSwitcher.hidden = !isContactsView || isContactsDuplicatesMode;
         renderContactListModeSwitcher();
-        resultsCount.textContent = isInitialDataLoading && isContactsView ? "Kontakte werden geladen" : hitCountLabel(items);
-        resultsCount.hidden = isHomeView || isOnboardingView || isPressView || isProfileRecordView || isFrameworkView || isQuestionnaireView || (isInitialDataLoading && isContactsView ? false : isFormatsView || isAnyDuplicateMode ? false : !hasActiveSearchOrFilters());
+        const currentResultLabel = isInitialDataLoading && isContactsView ? "Kontakte werden geladen" : hitCountLabel(items);
+        resultsCount.textContent = currentResultLabel;
+        resultsCount.hidden = isHomeView || isOnboardingView || isPressView || isHospitationsView || isProfileRecordView || isFrameworkView || isQuestionnaireView;
+        if (hospitationTableToolbarMeta) {
+          hospitationTableToolbarMeta.hidden = !isHospitationsView || activeHospitationTab !== "appointments";
+        }
         archiveViewButton.textContent = archiveViewButtonLabel();
         const searchPlaceholder = isAnyDuplicateMode
           ? "Dubletten suchen..."
@@ -40568,25 +40598,28 @@
         if (searchShell) {
           if (expertHeaderSearch) expertHeaderSearch.hidden = true;
           if (stakeholderHeaderSearch) stakeholderHeaderSearch.hidden = true;
-          if (isActivitiesView && activitySearchSlot) {
-            if (searchShell.parentElement !== activitySearchSlot) activitySearchSlot.append(searchShell);
-          } else if (isHospitationsView && hospitationHeaderSearchSlot) {
-            if (searchShell.parentElement !== hospitationHeaderSearchSlot) hospitationHeaderSearchSlot.append(searchShell);
-          } else if (controlsStack && searchShell.parentElement !== controlsStack) {
-            controlsStack.prepend(searchShell);
+          if (controlsStack && searchShell.parentElement !== controlsStack) {
+            if (workspacePrimaryActions?.parentElement === controlsStack) workspacePrimaryActions.after(searchShell);
+            else controlsStack.prepend(searchShell);
           }
           searchShell.hidden = searchHidden;
         } else if (expertHeaderSearch) {
           expertHeaderSearch.hidden = true;
           if (stakeholderHeaderSearch) stakeholderHeaderSearch.hidden = true;
         }
-        if (hospitationHeaderSearchSlot) hospitationHeaderSearchSlot.hidden = !isHospitationHeaderSearchVisible;
+        const filterToolbarTarget = isContactsView && !isContactsDuplicatesMode ? contactCommandRow : controlsStack;
+        if (filterToolbarTarget && filterToolbar && filterToolbar.parentElement !== filterToolbarTarget) {
+          if (filterToolbarTarget === contactCommandRow) contactCommandActions?.after(filterToolbar);
+          else filterToolbarTarget.append(filterToolbar);
+        }
+        if (hospitationHeaderSearchSlot) hospitationHeaderSearchSlot.hidden = true;
         if (hospitationHeaderSearchToggle) {
-          hospitationHeaderSearchToggle.classList.toggle("is-active", isHospitationHeaderSearchVisible);
-          hospitationHeaderSearchToggle.setAttribute("aria-expanded", isHospitationHeaderSearchVisible ? "true" : "false");
+          hospitationHeaderSearchToggle.hidden = true;
+          hospitationHeaderSearchToggle.classList.remove("is-active");
+          hospitationHeaderSearchToggle.setAttribute("aria-expanded", "false");
         }
         syncSearchClearButton();
-        if (controlsRoot) controlsRoot.hidden = isHomeView || isOnboardingView || isHospitationsView || isFrameworkView || isQuestionnaireView || (isPoliticsView && politicsDataState !== "ready") || (isPressView && pressDataState !== "ready");
+        if (controlsRoot) controlsRoot.hidden = isHomeView || isOnboardingView || activeView === "analytics" || activeView === "quality" || activeView === "profile" || isNotificationsView || isProfileRecordView || isFrameworkView || isQuestionnaireView || (isHospitationsView && !isHospitationHeaderSearchVisible) || (isPoliticsView && politicsDataState !== "ready") || (isPressView && pressDataState !== "ready");
         newContactButton.hidden = !isContactsView;
         newOrganizationButton.hidden = !isOrganizationsView;
         if (contactMatchingWorklistButton) contactMatchingWorklistButton.hidden = !isContactsView;
@@ -40627,16 +40660,18 @@
         columnMenuShell.hidden = !(isContactsView || isOrganizationsView || isExpertsView || isPatientsView) || isAnyDuplicateMode || isPatientIndicationsMode;
         if (viewSelectShell) viewSelectShell.hidden = isHomeView || isOnboardingView || isExpertsView || isPatientsView || isPoliticsView || isPressView || isHospitationsView || isFrameworkView || isQuestionnaireView || isStakeholdersView || isActivitiesView || isNotificationsView || isCareDuplicatesMode || isProfileRecordView;
         filterPanel.querySelector('[data-filter-field="category"] summary').textContent = isPatientsView ? "Indikation" : isExpertsView ? "Gruppe" : "Sektor";
-        if (filterToolbar) filterToolbar.hidden = isHomeView || isOnboardingView || isPoliticsView || isPressView || isFormatsView || isHospitationsView || isFrameworkView || isQuestionnaireView || isStakeholdersView || isActivitiesView || isNotificationsView || isAnyDuplicateMode || isProfileRecordView || isPatientIndicationsMode;
+        if (filterToolbar) filterToolbar.hidden = isHomeView || isOnboardingView || isPoliticsView || isPressView || isHospitationsView || isFrameworkView || isQuestionnaireView || isActivitiesView || isNotificationsView || isAnyDuplicateMode || isProfileRecordView;
+        if (filterShell) filterShell.hidden = isPatientIndicationsMode || isFormatsView || isHospitationsView || isStakeholdersView || isActivitiesView;
+        if (activeFilterRow) activeFilterRow.hidden = isFormatsView || isHospitationsView || isStakeholdersView || isActivitiesView;
         patientPageSizeSelect?.closest(".page-size-shell")?.toggleAttribute("hidden", isPatientIndicationsMode);
         if (isHomeView || isOnboardingView || isPoliticsView || isPressView || isHospitationsView || isFrameworkView || isQuestionnaireView || isStakeholdersView || isActivitiesView || isNotificationsView || isAnyDuplicateMode || isProfileRecordView || isPatientIndicationsMode) setFilterPanelOpen(false);
         if (columnMenuShell) {
-          if (isOrganizationsView) organizationColumnActions?.append(filterToolbar, viewSelectShell, columnMenuShell);
-          else if (isPatientsView) patientColumnActions?.append(filterToolbar, viewSelectShell, columnMenuShell);
-          else if (isExpertsView) expertColumnActions?.append(filterToolbar, viewSelectShell, columnMenuShell);
-          else if (isStakeholdersView) stakeholderCommandActions?.append(filterToolbar, viewSelectShell);
+          if (isOrganizationsView) organizationColumnActions?.append(viewSelectShell, columnMenuShell);
+          else if (isPatientsView) patientColumnActions?.append(viewSelectShell, columnMenuShell);
+          else if (isExpertsView) expertColumnActions?.append(viewSelectShell, columnMenuShell);
+          else if (isStakeholdersView) stakeholderCommandActions?.append(viewSelectShell);
           else if (isContactsView) contactCommandActions?.after(filterToolbar, viewSelectShell, columnMenuShell);
-          else if (isFormatsView || isHospitationsView || isFrameworkView || isQuestionnaireView || isActivitiesView || isNotificationsView) contactCommandActions?.after(filterToolbar, viewSelectShell, columnMenuShell);
+          else if (isFormatsView || isHospitationsView || isFrameworkView || isQuestionnaireView || isActivitiesView || isNotificationsView) contactCommandActions?.after(viewSelectShell, columnMenuShell);
           else filterToolbar?.prepend(viewSelectShell);
         }
         bulkToolbar.hidden = !isContactsView || isContactsDuplicatesMode || selectedContactIds.size === 0;
