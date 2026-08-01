@@ -101,7 +101,14 @@ npm run verify:publication
 
 `verified` ist nur nach einer passenden DB- oder API-Stichprobe zulässig. Wenn Datenmigrationen, Schema-/Migrationsdateien oder datengetriebene Fachinhalte betroffen sind, darf `not_affected` nicht genutzt werden. Ein Abschluss darf "sichtbar", "verfügbar" oder "live" nur sagen, wenn die betroffene Auslieferung und der passende Backend-Nachweis erfolgreich geprüft wurden.
 
-Für `POST /api/network-registrations` gilt bis zur fachlichen und betrieblichen Freigabe ein negatives Gate: Die #Mitmachen-Konzeptdemo darf keinen Request aufbauen; der Test weist null Intake-Aufrufe, null lokale Speicherung und eine reine Demo-Bestätigung nach. Erst ein autorisierter realer Prozess mit OIDC-/IAP-Session, Route-Policy, Idempotenz und sicherem Backendausfall darf diesen Vertrag ersetzen und den Status `verified` erhalten.
+Für die #Mitmachen-Konzeptdemo gilt weiterhin ein negatives Browser-Gate: Sie
+darf keinen Intake-Request aufbauen und nichts lokal speichern. Der getrennte
+M2M-Pfad `POST /api/connectors/typo3/mitmachen-registrations` wird nur über die
+TYPO3-Outbox verwendet und bleibt bis zur fachlichen sowie betrieblichen
+Freigabe standardmäßig deaktiviert. Seine blockierenden Tests prüfen HMAC und
+Rotation, Zeitfenster, Größen- und Feld-Allowlist, Formular- und
+Textversionen, `not_requested`/`pending`, Idempotenz, Datenbank-Constraints,
+minimale Grants, Retry-Klassifikation und die getrennte Ingress-Strecke.
 
 ## Standard-Auth-Testmodus
 

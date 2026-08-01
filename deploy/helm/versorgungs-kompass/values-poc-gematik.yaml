@@ -8,7 +8,7 @@ replicaCount: 1
 
 image:
   repository: registry.example.invalid/versorgungs-kompass-api
-  tag: poc-v0.1.0-rc.2
+  tag: poc-v0.1.0-rc.3
   digest: ""
 
 # Das institutionelle Gateway soll statisches Frontend und /api same-origin

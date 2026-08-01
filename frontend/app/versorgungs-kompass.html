@@ -19,7 +19,7 @@
     <script src="./versorgungs-kompass-routes.js"></script>
     <script src="../login/auth-config.js"></script>
     <script src="../login/auth-guard.js"></script>
-    <link rel="icon" type="image/svg+xml" href="../../public/brand/mitmachen/mark.svg" />
+    <link rel="icon" type="image/svg+xml" href="../../public/brand/mitmachen/flechtwerk-mark.svg" />
     <link rel="stylesheet" href="./versorgungs-kompass.css" />
     <noscript>
       <link rel="stylesheet" href="./versorgungs-kompass-no-script.css" data-no-script-home />
@@ -158,12 +158,6 @@
                     <path d="M12 8v6M9 11h6"></path>
                   </svg>
                   <span>Krankenkassen</span>
-                </button>
-                <button class="primary-tab primary-tab--nested" type="button" data-view-tab="stakeholders" data-stakeholder-type-route="patient-associations" title="Patientenverbände">
-                  <svg viewBox="0 0 24 24" fill="none" stroke-width="2" aria-hidden="true">
-                    <path d="M20.8 5.4a4.8 4.8 0 0 0-6.8 0L12 7.3l-2-1.9a4.8 4.8 0 1 0-6.8 6.8L12 21l8.8-8.8a4.8 4.8 0 0 0 0-6.8Z"></path>
-                  </svg>
-                  <span>Patientenverbände</span>
                 </button>
                 <button class="primary-tab primary-tab--nested" type="button" data-view-tab="stakeholders" data-stakeholder-type-route="hospital-associations" title="Krankenhausgesellschaften">
                   <svg viewBox="0 0 24 24" fill="none" stroke-width="2" aria-hidden="true">
@@ -425,11 +419,11 @@
           </div>
           <div class="workspace-expert-switcher" id="expert-mode-actions" hidden>
             <div class="settings-tab-nav experts-mode-nav experts-mode-nav--header" role="tablist" aria-label="Expertenkreis-Listen">
-              <button class="settings-tab-button is-active" type="button" role="tab" data-expert-mode="contacts" aria-selected="true" aria-controls="expert-contacts-table">
+              <button class="settings-tab-button is-active" id="expert-mode-contacts" type="button" role="tab" data-expert-mode="contacts" aria-selected="true" aria-controls="expert-contacts-table">
                 <span class="experts-mode-label">Kontakte </span>
                 <span class="experts-mode-count">0</span>
               </button>
-              <button class="settings-tab-button" type="button" role="tab" data-expert-mode="organizations" aria-selected="false" aria-controls="expert-organizations-table">
+              <button class="settings-tab-button" id="expert-mode-organizations" type="button" role="tab" data-expert-mode="organizations" aria-selected="false" aria-controls="expert-organizations-table">
                 <span class="experts-mode-label">Organisationen </span>
                 <span class="experts-mode-count">0</span>
               </button>
@@ -437,16 +431,16 @@
           </div>
           <div class="workspace-expert-switcher" id="patient-mode-actions" hidden>
             <div class="settings-tab-nav experts-mode-nav experts-mode-nav--header" role="tablist" aria-label="Patienten-Listen">
-              <button class="settings-tab-button is-active" type="button" role="tab" data-patient-mode="indications" aria-selected="true" aria-controls="patient-indications-panel">
-                <span class="experts-mode-label">Indikationen </span>
-                <span class="experts-mode-count">0</span>
-              </button>
-              <button class="settings-tab-button" type="button" role="tab" data-patient-mode="organizations" aria-selected="false" aria-controls="patient-organizations-table">
-                <span class="experts-mode-label">Organisationen </span>
-                <span class="experts-mode-count">0</span>
-              </button>
-              <button class="settings-tab-button" type="button" role="tab" data-patient-mode="people" aria-selected="false" aria-controls="patient-people-table">
+              <button class="settings-tab-button is-active" id="patient-mode-people" type="button" role="tab" data-patient-mode="people" aria-selected="true" aria-controls="patient-people-table" tabindex="0">
                 <span class="experts-mode-label">Personen </span>
+                <span class="experts-mode-count">0</span>
+              </button>
+              <button class="settings-tab-button" id="patient-mode-organizations" type="button" role="tab" data-patient-mode="organizations" aria-selected="false" aria-controls="patient-organizations-table" tabindex="-1">
+                <span class="experts-mode-label">Patientenorganisationen &amp; Verbände </span>
+                <span class="experts-mode-count">0</span>
+              </button>
+              <button class="settings-tab-button" id="patient-mode-indications" type="button" role="tab" data-patient-mode="indications" aria-selected="false" aria-controls="patient-indications-table" tabindex="-1">
+                <span class="experts-mode-label">Indikationen </span>
                 <span class="experts-mode-count">0</span>
               </button>
             </div>
@@ -460,7 +454,6 @@
             </div>
           </div>
         </div>
-
         <div class="controls">
           <div class="controls-stack">
             <div class="workspace-primary-actions" id="workspace-primary-actions" aria-label="Primäre Aktion">
@@ -685,47 +678,47 @@
                   </div>
                 </div>
                 <div class="view-select-shell">
-                  <button class="view-select-button" type="button" id="view-select-button" aria-expanded="false" aria-controls="view-select-menu">
-                    <svg class="view-select-button__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                      <path d="M16 21v-2a4 4 0 0 0-4-4H7a4 4 0 0 0-4 4v2"></path>
-                      <circle cx="9.5" cy="7" r="4"></circle>
-                      <path d="M19 8v6"></path>
-                      <path d="M22 11h-6"></path>
-                    </svg>
-                    <span id="view-select-label">Owner: Alle</span>
-                    <span aria-hidden="true">⌄</span>
-                  </button>
-                  <div class="view-select-menu" id="view-select-menu" hidden>
-                    <div class="view-select-section">
-                      <div class="view-select-title">Standardansichten</div>
-                      <button class="view-select-option is-active" type="button" data-standard-view="all">Alle Kontakte</button>
-                      <button class="view-select-option" type="button" data-standard-view="unowned">Ohne Owner</button>
-                    </div>
-                    <div class="view-select-section">
-                      <div class="view-select-title">Gespeicherte Ansichten</div>
-                      <div class="saved-view-list" id="view-select-saved-views"></div>
-                    </div>
-                    <div class="view-select-section">
-                      <div class="view-select-title">Owner</div>
-                      <div class="view-select-owner-list" id="view-select-owner-list"></div>
-                    </div>
-                  </div>
-                </div>
-                <div class="column-menu-shell" id="column-menu-shell">
-                  <button class="action-button action-button--compact" type="button" id="columns-button" aria-expanded="false" aria-controls="columns-menu">
-                    <span class="action-button__icon" aria-hidden="true">
-                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                        <rect x="3" y="4" width="18" height="16" rx="2"></rect>
-                        <path d="M9 4v16"></path>
-                        <path d="M15 4v16"></path>
+                    <button class="view-select-button" type="button" id="view-select-button" aria-expanded="false" aria-controls="view-select-menu">
+                      <svg class="view-select-button__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                        <path d="M16 21v-2a4 4 0 0 0-4-4H7a4 4 0 0 0-4 4v2"></path>
+                        <circle cx="9.5" cy="7" r="4"></circle>
+                        <path d="M19 8v6"></path>
+                        <path d="M22 11h-6"></path>
                       </svg>
-                    </span>
-                    Spalten
-                  </button>
-                  <div class="column-menu" id="columns-menu" hidden>
-                    <div class="column-menu__title">Sichtbare Spalten</div>
-                    <div class="column-menu__options" id="column-options"></div>
+                      <span id="view-select-label">Owner: Alle</span>
+                      <span aria-hidden="true">⌄</span>
+                    </button>
+                    <div class="view-select-menu" id="view-select-menu" hidden>
+                      <div class="view-select-section">
+                        <div class="view-select-title">Standardansichten</div>
+                        <button class="view-select-option is-active" type="button" data-standard-view="all">Alle Kontakte</button>
+                        <button class="view-select-option" type="button" data-standard-view="unowned">Ohne Owner</button>
+                      </div>
+                      <div class="view-select-section">
+                        <div class="view-select-title">Gespeicherte Ansichten</div>
+                        <div class="saved-view-list" id="view-select-saved-views"></div>
+                      </div>
+                      <div class="view-select-section">
+                        <div class="view-select-title">Owner</div>
+                        <div class="view-select-owner-list" id="view-select-owner-list"></div>
+                      </div>
+                    </div>
                   </div>
+                  <div class="column-menu-shell" id="column-menu-shell">
+                    <button class="action-button action-button--compact" type="button" id="columns-button" aria-expanded="false" aria-controls="columns-menu">
+                      <span class="action-button__icon" aria-hidden="true">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                          <rect x="3" y="4" width="18" height="16" rx="2"></rect>
+                          <path d="M9 4v16"></path>
+                          <path d="M15 4v16"></path>
+                        </svg>
+                      </span>
+                      Spalten
+                    </button>
+                    <div class="column-menu" id="columns-menu" hidden>
+                      <div class="column-menu__title">Sichtbare Spalten</div>
+                      <div class="column-menu__options" id="column-options"></div>
+                    </div>
                 </div>
               </div>
               <div class="table-wrap">
@@ -781,7 +774,7 @@
                 </div>
               </div>
               <div class="table-wrap">
-                <section class="table organizations-table" aria-labelledby="organisationen-title">
+                <section class="table organizations-table" aria-labelledby="workspace-view-title">
                   <div class="thead" id="organizations-table-head">
                     <div class="cell--organization">Organisation</div>
                     <div class="cell--sector">Sektor</div>
@@ -879,13 +872,13 @@
                 <div class="table-command-actions expert-column-actions" id="expert-column-actions"></div>
               </div>
               <div class="table-wrap">
-                <section class="table contacts-table experts-table" id="expert-contacts-table" aria-label="Expertenkreis-Kontakte" data-expert-table="contacts" role="tabpanel">
+                <section class="table contacts-table experts-table" id="expert-contacts-table" aria-labelledby="expert-mode-contacts" data-expert-table="contacts" role="tabpanel">
                   <div class="semantic-table" data-semantic-table role="table" aria-label="Expertenkreis-Kontakte">
                     <div class="thead" id="experts-table-head"></div>
                     <div id="expert-list"></div>
                   </div>
                 </section>
-                <section class="table organizations-table expert-organizations-table" id="expert-organizations-table" aria-label="Expertenkreis-Organisationen" data-expert-table="organizations" role="tabpanel" hidden>
+                <section class="table organizations-table expert-organizations-table" id="expert-organizations-table" aria-labelledby="expert-mode-organizations" data-expert-table="organizations" role="tabpanel" hidden>
                   <div class="semantic-table" data-semantic-table role="table" aria-label="Expertenkreis-Organisationen">
                     <div class="thead" id="expert-organizations-table-head"></div>
                     <div id="expert-organization-list"></div>
@@ -933,20 +926,23 @@
                 <div class="table-command-actions expert-column-actions" id="patient-column-actions"></div>
               </div>
               <div class="table-wrap">
-                <section class="table contacts-table patient-people-table" id="patient-people-table" aria-label="Patienten-Personen" data-patient-table="people" role="tabpanel" hidden>
-                  <div class="semantic-table" data-semantic-table role="table" aria-label="Patienten-Personen">
+                <section class="table contacts-table patient-people-table" id="patient-people-table" aria-label="Patientenvertretungen" aria-labelledby="patient-mode-people" data-patient-table="people" role="tabpanel">
+                  <div class="semantic-table" data-semantic-table role="table" aria-label="Patientenvertretungen">
                     <div class="thead" id="patient-people-table-head"></div>
                     <div id="patient-people-list"></div>
                   </div>
                 </section>
-                <section class="table organizations-table patient-organizations-table" id="patient-organizations-table" aria-label="Patienten-Organisationen" data-patient-table="organizations" role="tabpanel">
-                  <div class="semantic-table" data-semantic-table role="table" aria-label="Patienten-Organisationen">
+                <section class="table organizations-table patient-organizations-table" id="patient-organizations-table" aria-label="Patientenorganisationen und Verbände" aria-labelledby="patient-mode-organizations" data-patient-table="organizations" role="tabpanel" hidden>
+                  <div class="semantic-table" data-semantic-table role="table" aria-label="Patientenorganisationen und Verbände">
                     <div class="thead" id="patient-organizations-table-head"></div>
                     <div id="patient-organization-list"></div>
                   </div>
                 </section>
-                <section class="patient-indications-panel" id="patient-indications-panel" aria-label="Patienten-Indikationen" data-patient-table="indications" role="tabpanel" hidden>
-                  <div class="patient-indications-list" id="patient-indications-list"></div>
+                <section class="table patient-indications-table" id="patient-indications-table" aria-label="Indikationen" aria-labelledby="patient-mode-indications" data-patient-table="indications" role="tabpanel" hidden>
+                  <div class="semantic-table" data-semantic-table role="table" aria-label="Indikationen">
+                    <div class="thead" id="patient-indications-table-head"></div>
+                    <div id="patient-indications-list"></div>
+                  </div>
                 </section>
               </div>
               <div class="table-footer">
@@ -2188,7 +2184,7 @@
                           <path d="M12 15V3"></path>
                         </svg>
                       </div>
-                      <h3>Dateiimport</h3>
+                      <h3>Versorgungskontakte importieren</h3>
                       <p>Kontakte aus CSV, Excel, Word oder PDF importieren.</p>
                       <button class="action-button action-button--primary" type="button" id="imports-start-file">Import starten</button>
                     </article>
@@ -2223,7 +2219,7 @@
                           <path d="M15 3v18"></path>
                         </svg>
                       </div>
-                      <h3>Online-Erfassung</h3>
+                      <h3>Kontakte tabellarisch erfassen</h3>
                       <p>Mehrere Kontakte direkt in einer Tabelle erfassen und anlegen.</p>
                       <button class="action-button" type="button" id="imports-open-table">Tabelle öffnen</button>
                     </article>
@@ -2241,7 +2237,7 @@
                           <path d="M12 7v5l3 2"></path>
                         </svg>
                       </div>
-                      <h3>Importhistorie</h3>
+                      <h3>Importe prüfen</h3>
                       <p>Vergangene Importe einsehen und Ergebnisse prüfen.</p>
                       <button class="action-button" type="button" id="imports-show-history">Importe anzeigen</button>
                     </article>
@@ -2570,8 +2566,7 @@
               </div>
             </div>
             <div class="profile-tab-panel" id="profile-tab-changelog" role="tabpanel" data-profile-tab-panel="changelog" hidden>
-              <div class="about-workspace">
-                <h3 class="about-version-heading">Changelog</h3>
+              <div class="about-workspace" aria-label="Versionsverlauf">
                 <div class="about-version-list" id="about-version-list" aria-label="Versionsverlauf"></div>
               </div>
             </div>

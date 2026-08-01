@@ -1,131 +1,106 @@
-# Versorgungs-Netzwerk – Konzeptdemo und möglicher späterer Intake
+# Versorgungs-Netzwerk – Registrierung und TYPO3-Kopplung
 
-Stand: 20.07.2026
+Stand: 30.07.2026
 
-Die Repo-Seite `frontend/pages/mitmachen/versorgungs-netzwerk.html` ist ausschließlich eine technisch inerte Konzeptdemo. Sie zeigt ein mögliches zukünftiges Wunschszenario, bildet den realen Prozess auf der gematik-Website nicht ab und übermittelt oder speichert keine Formulardaten.
+Das reale #Mitmachen-Formular wird in TYPO3 mit Powermail betrieben. Die
+implementierte Kopplung übernimmt Einreichungen aus dem Powermail-Formular UID
+`41` serverseitig in eine getrennte Intake-Tabelle des Versorgungs-Kompasses.
+Sie legt weder automatisch Kontakte noch Organisationen an.
 
-Der nachfolgende Vertrag dokumentiert nur eine mögliche spätere Kopplung der geschützten Realanwendung. Er ist weder ein freigegebener Live-Intake noch der aktuelle öffentliche Registrierungsweg der gematik. Aktuelle Beteiligungsmöglichkeiten liegen unter <https://www.gematik.de/mitmachen>.
+Die Repo-Seite
+`frontend/pages/mitmachen/versorgungs-netzwerk.html` bleibt eine technisch
+inerte Konzeptdemo. Sie sendet keine Registrierung, speichert keine Eingabe im
+Browser und kennt kein Connector-Secret. Auch das öffentliche Pages-Artefakt
+bleibt vollständig vom Real-Intake getrennt.
 
-## Zwei-App-Abgrenzung
+## Datenfluss
 
-- Die öffentliche GitHub-Pages-Anwendung ist eine dauerhaft bestehende Produktdemo. CRM-/Fachdaten sind synthetisch und im Demo-Artefakt gebündelt; nur das Politik-Modul enthält einen getrennt kuratierten öffentlichen Bundestags-Snapshot. Die Anwendung sendet keine Registrierung.
-- Die #Mitmachen- und Versorgungs-Netzwerk-Seiten im Repo sind davon getrennte Konzeptdemos. Auch im Target-Artefakt bleiben ihre Formulare inert, bis ein realer Prozess fachlich ersetzt und ausdrücklich freigegeben wurde.
-- Die Realanwendung ist ein separates Target-Artefakt. Sie authentisiert im GKE-Vorbereitungspfad über IAP und im gematik-Zielbetrieb über OIDC. Jeder fachliche Browserzugriff läuft ausschließlich über `/api/...`.
-- Pages und Realanwendung teilen weder Laufzeitkonfiguration noch Sitzung, Supabase-Client, Backend-Key oder persistente Browserdaten.
-
-## Zielbild
-
-Ein institutionell betriebenes Formular kann später über die geschützte API an einen freigegebenen Intake-Service gekoppelt werden. Das Formular schreibt nie direkt in den produktiven CRM-Bestand. Führende Eingangsschicht ist die Target-API; eine Anbindung an ein nachgelagertes gematik Backend erfolgt ausschließlich serverseitig.
-
-Die Realanwendung zeigt neue Registrierungen nach Freigabe im Bereich `Importe` als Prüf-Inbox. Erst die Übernahme durch einen Admin legt einen aktiven Kontakt und optional eine Organisation an.
-
-## Aktueller Route-Status: nicht an die Konzeptdemo gekoppelt
-
-Die Konzeptdemo ruft `POST /api/network-registrations` nicht auf. Ein möglicher späterer Handler bleibt ein separates Freigabegate und darf erst nach Austausch der Demo durch einen fachlich, rechtlich, sicherheitsbezogen und betrieblich freigegebenen Prozess aktiviert werden.
-
-Insbesondere unzulässig sind:
-
-- direkter Browserzugriff auf Supabase, Tabellen, Storage oder einen externen Intake-Service,
-- Speicherung der Eingabe in LocalStorage, IndexedDB oder einer Browser-Warteschlange,
-- Umschalten auf synthetische Demo-Daten nach einem API- oder Authentisierungsfehler,
-- eine Erfolgsmeldung, bevor das Backend die Registrierung bestätigt hat.
-
-## Minimaler Server-zu-Server-Vertrag nach Freigabe
-
-Die folgenden `/versorgungs-netzwerk/...`-Pfade beschreiben eine mögliche nachgelagerte Backendkopplung. Sie sind kein Browservertrag. Die Target-API kapselt sie hinter `/api/...`, setzt Authentisierung und Rollen durch und gibt nur validierte DTOs zurück.
-
-### Öffentlicher Eingang
-
-`POST /versorgungs-netzwerk/registrierungen`
-
-Pflichtlogik im Backend:
-
-- Pflichtfelder, E-Mail-Format und Datenschutzeinwilligung validieren.
-- Honeypot/Captcha, Rate-Limit und erlaubte Herkunft prüfen.
-- Rohmeldung, Formularversion, Quelle und Consent-Zeitpunkt speichern.
-- Dublettenhinweise berechnen, aber noch keinen CRM-Kontakt erzeugen.
-- `submission_id` idempotent verarbeiten und Nachweiszeitpunkte serverseitig setzen.
-- Keine Klartext-PII, Tokens oder Request-Bodies in Sicherheits- und Zugriffslogs schreiben.
-
-### Interner Abruf für den Versorgungs-Kompass
-
-`GET /versorgungs-netzwerk/registrierungen?status=neu`
-
-Antwortform:
-
-```json
-{
-  "items": [
-    {
-      "id": "reg_123",
-      "submitted_at": "2026-05-20T10:15:00Z",
-      "status": "neu",
-      "email": "kontakt@example.org",
-      "salutation": "Frau",
-      "title": "Dr. med.",
-      "first_name": "Lea",
-      "last_name": "Muster",
-      "organization": "Hausarztpraxis Musterstadt",
-      "sector": "Praxis",
-      "city": "Musterstadt",
-      "federal_state": "Nordrhein-Westfalen",
-      "role": "Praxisinhaberin",
-      "message": "Wir möchten Einblicke geben.",
-      "consent_text_version": "mitmachen-versorgungs-netzwerk-v1",
-      "consent_accepted_at": "2026-05-20T10:15:00Z",
-      "source_url": "https://www.gematik.de/mitmachen/versorgungs-netzwerk",
-      "duplicate_hint": ""
-    }
-  ]
-}
+```text
+Powermail UID 41
+  → TYPO3-Event-Listener
+  → lokale referenzbasierte Outbox
+  → Retry-Kommando
+  → HMAC-signierter M2M-POST
+  → Cloud-SQL-Tabelle network_registrations
+  → spätere fachliche Prüfung und Zuordnung
 ```
 
-### Statusänderung
+Der exakte Eingang ist
+`POST /api/connectors/typo3/mitmachen-registrations`. Andere Methoden und
+abweichende Pfade bleiben durch die zentrale Route-Policy gesperrt. Das GKE-
+Deployment verwendet für diesen einzelnen Pfad einen separaten Backend-Service
+ohne IAP; der übrige `/api`-Bereich bleibt unverändert hinter IAP. Die fehlende
+IAP-Session wird ausschließlich durch die verpflichtende HMAC-Prüfung dieses
+M2M-Endpunkts ersetzt.
 
-`PATCH /versorgungs-netzwerk/registrierungen/{id}`
+Der Connector ist in TYPO3 und im Helm-Deployment standardmäßig deaktiviert.
+Eine Codebereitstellung allein aktiviert deshalb keinen Datentransfer. Die
+vollständige technische Spezifikation, Installation und Aktivierungscheckliste
+stehen unter
+[TYPO3-#Mitmachen-Connector](./TYPO3_MITMACHEN_CONNECTOR.md).
 
-Der Versorgungs-Kompass sendet mindestens:
+## Datenschutz- und Einwilligungsgrenze
 
-```json
-{
-  "status": "uebernommen",
-  "processed_at": "2026-05-20T10:30:00Z",
-  "processed_by": "admin@example.invalid",
-  "contact_id": "contact-local-example"
-}
-```
+Die Verarbeitung der Registrierung wird über einen Datenschutzhinweis
+transparent gemacht. Sie darf nicht von einer als Einwilligung bezeichneten
+Pflicht-Checkbox abhängig sein.
 
-Unterstützte Statuswerte für V1:
+Der bestehende Powermail-Marker `datenschutzhinweis` wird vom Connector bewusst
+ignoriert und niemals als freiwillige Kommunikationsfreigabe interpretiert.
+Vor der Aktivierung muss die heutige Pflicht-Checkbox im realen Formular durch
+einen reinen Hinweis ersetzt werden.
 
-- `neu`
-- `uebernommen`
-- `verknuepft`
-- `zurueckgestellt`
-- `abgelehnt`
+Eine zusätzliche E-Mail-Kommunikation darf nur über das neue, optionale und
+standardmäßig nicht ausgewählte Feld mit dem Marker
+`mitmachen_email_einwilligung` angefragt werden:
 
-## Frontend-Konfiguration
+- nicht ausgewählt oder nicht vorhanden: `email_permission_status =
+  not_requested`
+- ausgewählt: `email_permission_status = pending`
+- `granted` entsteht ausschließlich durch einen späteren belastbaren
+  Double-Opt-in-Nachweis
 
-Nur das geschützte Target-Artefakt erhält eine Runtime-Konfiguration für die Realanwendung:
+Eine fehlende optionale Kommunikationsfreigabe blockiert die operative
+Bearbeitung der Registrierung nicht. Die Verarbeitung erzeugt beim Intake
+keine aktive #Mitmachen-Einwilligung am Kontakt.
 
-```js
-window.VERSORGUNGS_COMPASS_CONFIG = {
-  dataMode: "api",
-  authMode: "oidc", // "iap" nur für die getrennte GKE-Pre-Integration
-  apiBaseUrl: "https://target.example.invalid",
-  apiCredentials: "include",
-  requireApiGateway: true
-};
-```
+## Betriebsgrenze
 
-Die Pages-Demo erhält diese Konfiguration nicht. Auch die im Target enthaltene Konzeptseite bleibt technisch inert und nutzt die Runtime-Konfiguration nicht für eine Registrierung. Die Konfiguration gilt ausschließlich für die geschützte interne Anwendung und einen später separat freigegebenen Intake-Vertrag; Registrierungen und Statusänderungen werden weder synthetisch ersetzt noch lokal im Browser gespeichert.
+Der TYPO3-Listener schreibt nur technische Referenzen und eingefrorene
+Versionswerte in die lokale Outbox. Personenbezogene Inhalte bleiben bis zur
+Zustellung im bereits vorhandenen Powermail-Datensatz. Netzwerkfehler, HTTP
+`429` und Serverfehler werden mit begrenztem Backoff wiederholt; erfolgreiche
+`2xx`-Antworten schließen den Eintrag ab, andere `4xx`-Antworten markieren ihn
+als permanent fehlerhaft.
+
+Die CRM-Seite verarbeitet eine stabile UUID und einen normalisierten
+Payload-Fingerprint idempotent:
+
+- erste identische Einreichung: HTTP `201`
+- identische Wiederholung: HTTP `200` ohne zweite Zeile
+- gleiche UUID oder gleiche Powermail-Referenz mit abweichenden Daten:
+  HTTP `409`
+
+In Request- und Fehlerlogs erscheinen weder E-Mail-Adresse, Namen, Nachricht,
+Payload noch HMAC-Secret. Monitoring verwendet nur technische Summen,
+HTTP-Status und kontrollierte Fehlercodes.
 
 ## Freigabegate
 
-Vor Aktivierung von `POST /api/network-registrations` sind mindestens nachzuweisen:
+Vor der produktiven Aktivierung müssen mindestens belegt sein:
 
-- Route-Policy, OIDC-/IAP-Authentisierung und erforderliche Fachrolle,
-- Request-Allowlist, Längen- und Mengenlimits sowie ein generisches Fehlerschema,
-- Idempotenz, Rate Limit, Missbrauchsschutz und sichere Wiederholbarkeit,
-- versionierter Datenschutztext, Einwilligungsnachweis und festgelegte Aufbewahrung,
-- serverseitige Auditierung, Betriebsmonitoring und Alarmierung ohne PII-Leakage,
-- Negativtests für fehlende Route, fehlende Session, falsche Rolle, unbekannte Felder, Wiederholung und Backendausfall.
+- abgestimmte Formular-, Datenschutzhinweis- und optionale
+  Einwilligungstext-Version,
+- Entfernung der bisherigen Pflicht-Einwilligung zur bloßen Verarbeitung und
+  Anlage des optionalen Markers,
+- angewendete Cloud-SQL-Migration und überprüfte minimale Tabellenrechte,
+- getrennte Connector-Ingress-Strecke, TLS und unveränderte IAP-Absicherung des
+  übrigen API-Bereichs,
+- gemeinsam erzeugtes Secret mit mindestens 32 zufälligen Byte, getrennte
+  Secret-Ablage auf beiden Seiten und getestete Rotation,
+- aktiver TYPO3-Worker, Alarmierung für wachsende Retry-/Fehlerbestände und
+  dokumentierte Aufbewahrungsprüfung,
+- synthetischer End-to-End-Smoke ohne echte personenbezogene Daten.
+
+Bis diese Nachweise vorliegen, bleiben beide Aktivierungsschalter aus. Die
+Implementierung ist damit bereitstellbar, aber nicht automatisch live.

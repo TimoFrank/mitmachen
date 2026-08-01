@@ -1,0 +1,31 @@
+services:
+  _defaults:
+    autowire: true
+    autoconfigure: true
+    public: false
+
+  Gematik\MitmachenConnector\:
+    resource: '../Classes/*'
+    exclude:
+      - '../Classes/Configuration/ConfigurationException.php'
+      - '../Classes/Configuration/DeliveryConfiguration.php'
+      - '../Classes/Configuration/EnqueueConfiguration.php'
+      - '../Classes/Domain/Model/*'
+
+  Gematik\MitmachenConnector\Infrastructure\OutboxRepositoryInterface:
+    alias: Gematik\MitmachenConnector\Infrastructure\OutboxRepository
+
+  Gematik\MitmachenConnector\Infrastructure\PowermailSubmissionRepositoryInterface:
+    alias: Gematik\MitmachenConnector\Infrastructure\PowermailSubmissionRepository
+
+  Gematik\MitmachenConnector\EventListener\EnqueuePowermailSubmissionListener:
+    tags:
+      - name: event.listener
+        identifier: 'gematik/mitmachen-connector/enqueue-powermail-submission'
+        event: In2code\Powermail\Events\FormControllerCreateActionAfterMailDbSavedEvent
+
+  Gematik\MitmachenConnector\Command\DeliverRegistrationsCommand:
+    tags:
+      - name: console.command
+        command: 'mitmachen:deliver-registrations'
+        description: 'Deliver due #Mitmachen Powermail registrations from the local outbox'

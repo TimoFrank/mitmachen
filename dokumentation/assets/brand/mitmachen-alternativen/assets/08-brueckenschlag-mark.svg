@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-labelledby="title description">
+  <title id="title">#Mitmachen – Brückenschlag Signet</title>
+  <desc id="description">Zwei geschwungene Querbänder verbinden die tragenden Linien des Hashtags wie Brücken.</desc>
+  <g fill="none" stroke-linecap="round" stroke-linejoin="round">
+    <path d="m23 10-5 44m27-44-5 44" stroke="#08164F" stroke-width="7"/>
+    <path d="M7 28Q31 13 57 28M6 46q25-15 50 0" stroke="#00A846" stroke-width="7"/>
+  </g>
+  <circle cx="31.5" cy="20.5" r="3.2" fill="#35F28A"/>
+  <circle cx="31" cy="38.5" r="3.2" fill="#2F6FEC"/>
+</svg>

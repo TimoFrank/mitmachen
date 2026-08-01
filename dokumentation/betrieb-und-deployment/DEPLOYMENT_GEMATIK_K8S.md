@@ -1,7 +1,7 @@
 # Deployment des Gematik-PoC auf Kubernetes
 
 Status: technisches Runbook
-Stand: 23. Juli 2026
+Stand: 1. August 2026
 
 ## Ziel
 
@@ -89,7 +89,7 @@ Ein Release Candidate erhält einen annotierten Tag nach dem Muster `poc-v<Versi
 
 ```bash
 git status --short
-git checkout poc-v0.1.0-rc.2
+git checkout poc-v0.1.0-rc.3
 git rev-parse HEAD
 npm ci
 npm run check:poc-rc
@@ -123,7 +123,7 @@ node scripts/audit_target_assets.mjs --artifact-root dist/target
 
 docker build \
   -f api/Dockerfile \
-  -t "<registry>/<repository>:poc-v0.1.0-rc.2" \
+  -t "<registry>/<repository>:poc-v0.1.0-rc.3" \
   .
 ```
 
@@ -141,7 +141,7 @@ Das [PoC-Datenbank-Runbook](../../deploy/postgres/poc-gematik/README.md) beschre
 4. gematik-OIDC-Subjects den vorgesehenen Profilen zuordnen und
 5. kurzlebige Adminzugänge wieder entfernen.
 
-Der vorhandene Supabase-zu-GCP-Lauf dokumentiert Datenklassen und Prüfungen, ist aber kein direkt ausführbarer Import in eine beliebige gematik-Plattform. Der aktuelle schreibführende Bestand liegt in Cloud SQL. Der Zieladapter wird deshalb erst nach Kenntnis des Datenbankzugangs und des Objektspeichers festgelegt.
+Der historische Supabase-zu-GCP-Lauf dokumentiert Datenklassen und Prüfungen, ist aber weder im aktuellen Repository ausführbar noch ein Importverfahren für eine beliebige gematik-Plattform. Der alleinige aktuelle Laufzeitbestand liegt in Cloud SQL und GCS. Der Zieladapter wird deshalb erst nach Kenntnis des Datenbankzugangs und des Objektspeichers festgelegt.
 
 ## 5. Helm-Konfiguration prüfen
 

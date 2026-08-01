@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="500" height="96" viewBox="0 0 500 96" role="img" aria-labelledby="title description">
+  <title id="title">#Mitmachen – Raumzeichen Logo</title>
+  <desc id="description">Grünes Raumzeichen-Signet mit kompakter dunkelblauer Wortmarke.</desc>
+  <defs>
+    <mask id="lockup-raum-cutout" maskUnits="userSpaceOnUse" x="0" y="0" width="64" height="64">
+      <rect width="64" height="64" fill="#fff"/>
+      <g fill="none" stroke="#000" stroke-width="7.5" stroke-linecap="round">
+        <path d="M24 12 20 52M44 12l-4 40"/>
+        <path d="M13 25h39M11 41h39"/>
+      </g>
+    </mask>
+  </defs>
+  <g transform="translate(8 16)">
+    <path d="M20 3h24c10.5 0 17 6.5 17 17v21.5c0 8-3 13.5-10.5 17.5L46 61H20C9.5 61 3 54.5 3 44V20C3 9.5 9.5 3 20 3Z" fill="#00A846" mask="url(#lockup-raum-cutout)"/>
+  </g>
+  <text x="98" y="70" fill="#08164F" font-family="Arial Black, Arial, Helvetica, sans-serif" font-size="54" font-weight="900" letter-spacing="-2.1">Mitmachen</text>
+</svg>

@@ -403,14 +403,19 @@ if (existsSync(publicIndexPath)) {
   assert(
     (html.match(/href=[\"']\/start[\"']/gi) || []).length === 1
       && /data-public-login-button/.test(html)
-      && /Google oder einem persönlich freigeschalteten E-Mail-Konto/.test(html),
-    `${artifactLabel}/public-index.html muss den providerneutralen CTA ueber den geschuetzten IAP-Einstieg enthalten`
+      && !/data-public-action-note|Google oder einem persönlich freigeschalteten E-Mail-Konto/.test(html),
+    `${artifactLabel}/public-index.html muss ausschließlich den providerneutralen CTA ueber den geschuetzten IAP-Einstieg enthalten`
   );
   assert(
-    /Willkommen im Versorgungs-Kompass/.test(html)
-      && /Wähle den Bereich, in dem du arbeiten möchtest\./.test(html)
+    /<h1[^>]*>Willkommen\.<\/h1>/.test(html)
+      && /data-home-compass-rotation/.test(html)
+      && ["Versorgungs-Kompass", "Stakeholder-Kompass", "Hospitations-Kompass", "Format-Kompass"].every((name) => html.includes(name))
       && /home-hero__brand/.test(html),
-    `${artifactLabel}/public-index.html muss Wording und große #Mitmachen-Marke der eingeloggten Startseite übernehmen`
+    `${artifactLabel}/public-index.html muss Begrüßung, vier Kompasse und große #Mitmachen-Marke der eingeloggten Startseite übernehmen`
+  );
+  assert(
+    !/home-compass-rotation__control|home-scroll-cue|Bereiche ansehen/.test(html),
+    `${artifactLabel}/public-index.html darf im nicht eingeloggten Zustand weder Animationssteuerung noch Bereichs-CTA enthalten`
   );
   for (const area of ["Versorgung", "Stakeholder", "Hospitation", "Formate"]) {
     assert(html.includes(`<strong>${area}</strong>`), `${artifactLabel}/public-index.html beschreibt den Bereich ${area} nicht`);

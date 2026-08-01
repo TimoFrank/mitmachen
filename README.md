@@ -73,6 +73,8 @@
 
 GitHub Pages veröffentlicht die öffentliche Demo. Die GKE-Demo läuft getrennt unter versorgungs-kompass.de; die bisherige Adresse mitmachen.timo-frank.de bleibt als HTTPS-Weiterleitung erhalten. Für den Zielbetrieb wird ein festgelegter Release Candidate gebaut und ein freigegebener Datenstand aus der geschützten Anwendung übernommen. Die Veröffentlichungswege können unabhängig voneinander weiterentwickelt werden. Der aktuelle PoC-Umfang und die benötigten Ressourcen stehen im [PoC-Durchstich](dokumentation/betrieb-und-deployment/POC_GEMATIK_DURCHSTICH.md).
 
+Die geschützte GCP-Anwendung nutzt ausschließlich PostgreSQL in Cloud SQL als Datenbank und private GCS-Buckets als Objektspeicher. Supabase-Laufzeitcode, Schemaquellen und Migrationswerkzeuge gehören nicht mehr zum aktuellen Repository. Das Inventarisieren, Sperren und Löschen eventuell noch vorhandener Supabase-Projekte, Edge Functions, Schlüssel oder Sicherungen ist ein separater, protokollierter Betriebsvorgang; das Entfernen aus Git nimmt diese Provider-Ressourcen nicht automatisch außer Betrieb.
+
 ## Repository
 
 ```text
@@ -86,7 +88,7 @@ config/
 deploy/
   helm/                   Kubernetes-Ressourcen
   jenkins/                Referenzpipeline für die Software Factory
-  postgres/               Datenbank-Runbooks
+  postgres/               PostgreSQL-Schema, Rollen und Datenbank-Runbooks
   terraform/              GCP-Pre-Integrationsinfrastruktur
 dokumentation/            Produkt-, Architektur-, Deployment- und QA-Unterlagen
 frontend/                 führende Browser-Quellen

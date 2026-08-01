@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-labelledby="title description">
+  <title id="title">#Mitmachen – Konfetti-Kern Signet</title>
+  <desc id="description">Ein kräftiger Hashtag setzt farbige Ideen und Energie als Konfetti frei.</desc>
+  <g fill="none" stroke-linecap="round" stroke-width="7">
+    <path d="m24 10-5 45M45 10l-5 45" stroke="#08164F"/>
+    <path d="M8 25h47M7 42h47" stroke="#00A846"/>
+  </g>
+  <g>
+    <circle cx="7" cy="10" r="3" fill="#F35B62"/><circle cx="57" cy="54" r="3" fill="#2F6FEC"/>
+    <rect x="52" y="5" width="6" height="6" rx="1.5" transform="rotate(18 55 8)" fill="#F2A53B"/>
+    <rect x="3" y="50" width="6" height="6" rx="1.5" transform="rotate(-18 6 53)" fill="#8B5CF6"/>
+    <path d="m10 15 6-2-2 6Z" fill="#35BFA1"/><path d="m54 44 6 2-5 4Z" fill="#35F28A"/>
+    <path d="M31 3v6M32 55v6M3 31h6M55 31h6" fill="none" stroke="#2F6FEC" stroke-width="2.5" stroke-linecap="round"/>
+  </g>
+</svg>

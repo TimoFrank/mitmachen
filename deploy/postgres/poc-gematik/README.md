@@ -42,7 +42,7 @@ Der synthetische Seed wird in dieser Datenbank nicht angewendet. Die API selbst 
 
 ## 2. Datenumfang festlegen
 
-Grundlage ist die bestehende Allowlist der 29 Fachtabellen im [Migrationsvertrag](../../../dokumentation/betrieb-und-deployment/SUPABASE_CLOUD_SQL_MIGRATION.md). Vor dem Import werden mindestens ausgeschlossen:
+Grundlage ist die Allowlist der 29 Fachtabellen im [historischen Herkunfts- und Tabellenvertrag](../../../dokumentation/betrieb-und-deployment/SUPABASE_CLOUD_SQL_MIGRATION.md). Vor dem Import werden mindestens ausgeschlossen:
 
 - IAP- und andere alte Anmeldezuordnungen,
 - Supabase- und GCP-Systemtabellen,
@@ -54,7 +54,7 @@ Wenn die Zielplattform zunächst keinen passenden privaten Objektspeicher anbiet
 
 ## 3. Geschützten Snapshot importieren
 
-Die bestehende Migration enthält den Tabellenvertrag, Prüfungen und Fingerprints, ihr Ausführungsweg ist jedoch auf Supabase, Cloud SQL, GCS und IAP zugeschnitten. Sie darf nicht unverändert gegen die gematik-Datenbank ausgeführt werden.
+Der historische Providerwechsel dokumentiert den Tabellenvertrag, Prüfungen und Fingerprints. Sein provider-spezifischer Ausführungsweg wurde aus dem aktuellen Repository entfernt und darf nicht gegen die gematik-Datenbank ausgeführt werden.
 
 Sobald die IT den Zielzugang und den vorgesehenen Objektspeicher genannt hat, wird ein dünner Zieladapter ergänzt. Er muss:
 

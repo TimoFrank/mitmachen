@@ -13,7 +13,7 @@ Für den befristeten internen Durchstich gemäß [`../poc-gematik/README.md`](..
 - `schema.sql`: idempotenter PostgreSQL-16-Bootstrap für eine frische Pre-Integrationsdatenbank.
 - `runtime-role.sql`: idempotente Anlage der festen `NOLOGIN`-Rolle `vk_app_runtime`; entzieht `PUBLIC` zusätzlich das Erstellen von Objekten im Schema `public`.
 - `grants.sql`: idempotente Least-Privilege-Laufzeitrechte für eine bereits angelegte `NOLOGIN`-Rolle; benötigt eine verpflichtende `psql`-Variable.
-- `identity-admin-role.sql`: geheimnisfreier, fail-closed Bootstrap der separaten `NOLOGIN`-Rolle `vk_identity_admin`; vor v2 darf sie ausschließlich Profile lesen und IAP-Identity-Bindungen lesen/anlegen/aktivieren. Sobald das Enrollment-v2-Schema existiert, bleibt sie bewusst read-only und verweist operativ auf den v2-Zugriffsoperator. Der Rollen-Bootstrap läuft nur als bestehender Objekt-Owner und verweigert unerwartete Mitglieder, Elternrollen, Objektbesitz oder unsichere Attribute. Dauerhaft erlaubt ist ausschließlich dessen von PostgreSQL 16 angelegte Creator-Administration mit `ADMIN OPTION`, `INHERIT FALSE` und `SET FALSE`.
+- `identity-admin-role.sql`: geheimnisfreier, fail-closed Bootstrap der separaten `NOLOGIN`-Rolle `vk_identity_admin`; vor v2 darf sie ausschließlich Profile lesen und IAP-Identity-Bindungen lesen/anlegen/aktivieren. Sobald das Enrollment-v2-Schema existiert, darf sie neben Lesen ausschließlich die Spalte `subject` für einen ausdrücklich bestätigten IAM-/Identity-Platform-Remap ändern; Aktivität, Profil, Rolle und Scope bleiben unveränderbar und neue Testkonten laufen über den v2-Zugriffsoperator. Der Rollen-Bootstrap läuft nur als bestehender Objekt-Owner und verweigert unerwartete Mitglieder, Elternrollen, Objektbesitz oder unsichere Attribute. Dauerhaft erlaubt ist ausschließlich dessen von PostgreSQL 16 angelegte Creator-Administration mit `ADMIN OPTION`, `INHERIT FALSE` und `SET FALSE`.
 - `access-enrollment-admin-role.sql`: separater v2-Bootstrap für die `NOLOGIN`-Rolle `vk_access_enrollment_admin`. Sie besitzt nur spaltenweise Profil-/Binding-Schreibrechte und darf geschützte Enrollment-Requests ausschließlich auf `applied` setzen; Fachdaten, Löschungen, Subject-Remaps, DDL und Rollenverwaltung bleiben ausgeschlossen.
 - `access-allowlist-admin-role.sql`: überträgt die gehärtete Auto-Enrollment-Funktion an den dedizierten `NOLOGIN`-Owner `vk_allowlist_executor`, verengt dessen Tabellenrechte auf eine atomare Consumption und richtet die getrennte create-only/revoke-Operatorrolle `vk_access_allowlist_admin` ein. Erst nach erfolgreicher Prüfung erhält `vk_app_runtime` das Funktions-`EXECUTE`.
 - `seed.example.sql`: optionaler, ausschließlich synthetischer Admin-Seed. Er enthält die reservierte Beispieldomain `example.invalid` und keine echten Personen- oder Kontaktdaten.
@@ -23,14 +23,15 @@ Für den befristeten internen Durchstich gemäß [`../poc-gematik/README.md`](..
 
 `seed.synthetic.sql` wird aus `frontend/data/demo-data.js` durch `scripts/generate_pre_gematik_synthetic_seed.mjs` erzeugt. Der Generator neutralisiert Profile, E-Mail-Adressen, Telefone und Bildreferenzen, verwendet ausschließlich reservierte `demo-*`-IDs und normalisiert alle 64 Kontakte für den Karten-Smoke-Test auf `active`.
 
-Das Schema wurde aus dem aktiven Vertrag in `api/server.mjs`, dem Datenmodell und den historischen Plain-PostgreSQL-/Supabase-Quellen abgeleitet. Die historischen Quellen bleiben Quellen; dieses Artefakt führt weder Supabase Auth noch Supabase-Rollen, Storage-Tabellen, Grants oder Row Level Security fort.
+Das Schema wurde aus dem aktiven Vertrag in `api/server.mjs`, dem Datenmodell und den historischen Plain-PostgreSQL-/Supabase-Quellen abgeleitet. Die provider-spezifischen Quellen sind nur noch über die Git-Historie nachvollziehbar; dieses aktuelle Artefakt führt weder Supabase Auth noch Supabase-Rollen, Storage-Tabellen, Grants oder Row Level Security fort.
 
 ## Bewusste Grenzen
 
 - Anwendung und Container führen **keine automatische Migration beim Start** aus.
 - `schema.sql` ist ein Bootstrap für eine neue, leere Pre-Integrationsdatenbank. Spätere Änderungen benötigen versionierte Migrationen; das erneute Anwenden ersetzt keine Migrationsstrategie.
 - Berechtigungen für Cloud SQL, Datenbankrollen und Secrets werden außerhalb dieses Schemas über GCP IAM, Secret Manager und bewusst angelegte PostgreSQL-Rollen geregelt.
-- Öffentliche `network_registrations`, Rate Limits und `login_aliases` sind nicht enthalten, weil die aktuelle Node-API sie nicht bedient. Ein öffentlicher Intake benötigt einen eigenen freigegebenen Sicherheits- und Datenschutzpfad.
+- `network_registrations` ist ausschließlich die datensparsame Staging-Tabelle des serverseitig HMAC-authentifizierten TYPO3-/Powermail-Connectors. Sie ist weder ein öffentliches Browser-API noch ein Ersatz für Rate Limits, DOI, fachliche Prüfung oder die spätere Übernahme in `contacts` und `organizations`.
+- `login_aliases` ist nicht enthalten, weil die aktuelle Node-API diese Tabelle nicht bedient.
 - Das Schema enthält keine echten Seeds. Für Tests sind ausschließlich synthetische oder anonymisierte Daten zulässig.
 - Der synthetische Fachdaten-Seed ist ausschließlich ein Testartefakt für `pre-gematik`. Er ist kein Migrationsweg für einen bestehenden Datenbestand oder den gematik-PoC.
 - Der API-Export ist kein Datenbankbackup. Für die Pre-Integration bleiben Cloud-SQL-Backup und ein getesteter Restore erforderlich.
@@ -50,7 +51,13 @@ psql "$PRE_GEMATIK_SCHEMA_DATABASE_URL" -v ON_ERROR_STOP=1 -f runtime-role.sql
 psql "$PRE_GEMATIK_SCHEMA_DATABASE_URL" -v ON_ERROR_STOP=1 -v runtime_role=vk_app_runtime -f grants.sql
 ```
 
-`runtime-role.sql` kann gefahrlos erneut angewendet werden. Es stellt `vk_app_runtime` als Rolle ohne Login her und entzieht der impliziten PostgreSQL-Rolle `PUBLIC` das Recht `CREATE` auf dem Schema `public`. `grants.sql` quotiert `runtime_role` als PostgreSQL-Identifier, prüft Existenz und `NOLOGIN` und vergibt nur `USAGE` auf das Schema, DML auf die explizit aufgeführten Tabellen, `USAGE/SELECT` auf die drei Identity-Sequenzen sowie `EXECUTE` auf die vier allgemeinen Laufzeitfunktionen. Es entzieht der Runtime ausdrücklich sämtliche Rechte auf `test_access_allowlist`; das einzige Auto-Enrollment-`EXECUTE` wird anschließend durch den verifizierten Funktions-Owner in `access-allowlist-admin-role.sql` vergeben. Es vergibt insbesondere kein `CREATE`, `ALTER`, `DROP` oder Rollenverwaltungsrecht. Nach jeder späteren Schema-Migration muss die Rechtezuordnung bewusst erneut geprüft und bei neuen Objekten erweitert werden.
+`runtime-role.sql` kann gefahrlos erneut angewendet werden. Es stellt `vk_app_runtime` als Rolle ohne Login her und entzieht der impliziten PostgreSQL-Rolle `PUBLIC` das Recht `CREATE` auf dem Schema `public`. `grants.sql` quotiert `runtime_role` als PostgreSQL-Identifier, prüft Existenz und `NOLOGIN` und vergibt nur `USAGE` auf das Schema, DML auf die explizit aufgeführten Tabellen, `USAGE/SELECT` auf die drei Identity-Sequenzen sowie `EXECUTE` auf die explizit aufgeführten Laufzeitfunktionen. Für `network_registrations` gilt enger `SELECT`+`INSERT`; `UPDATE` und `DELETE` bleiben der Laufzeitrolle entzogen. Außerdem entzieht das Skript der Runtime ausdrücklich sämtliche Rechte auf `test_access_allowlist`; das einzige Auto-Enrollment-`EXECUTE` wird anschließend durch den verifizierten Funktions-Owner in `access-allowlist-admin-role.sql` vergeben. Es vergibt insbesondere kein `CREATE`, `ALTER`, `DROP` oder Rollenverwaltungsrecht. Nach jeder späteren Schema-Migration muss die Rechtezuordnung bewusst erneut geprüft und bei neuen Objekten erweitert werden.
+
+## TYPO3-#Mitmachen-Intake
+
+Migration `migrations/202607300001_add_network_registration_intake.sql` ergänzt für bestehende Instanzen `public.network_registrations`. Die Tabelle speichert nur die für Prüfung und Zuordnung erforderlichen Formularfelder, versionierte Datenschutz-/Einwilligungsnachweise, einen Payload-Fingerprint und stabile TYPO3-Quell-IDs. `submission_id` sowie `(source_system, source_form_uid, source_record_uid)` sind eindeutig und ermöglichen idempotente Wiederholungen.
+
+Eine optionale E-Mail-Erlaubnis startet bei ausgewählter Checkbox ausschließlich als `pending`; `granted` verlangt zusätzlich DOI-Zeitpunkt und Evidenzreferenz. Ohne Auswahl wird `not_requested` gespeichert. Der Standard für `retention_review_at` liegt sechs Monate nach dem Datenbank-Intake und ist eine Prüffrist, keine automatische Löschung und keine abschließend freigegebene Aufbewahrungsdauer. Bearbeitung, DOI, Dublettenklärung, Übernahme und Löschung benötigen einen getrennt berechtigten Admin-/Betriebsprozess; die Node-Laufzeit kann Intake-Datensätze weder ändern noch löschen.
 
 Die Befehle oben sind ausschließlich für eine frische Datenbank bestimmt. Für eine bereits bestehende Instanz gilt stattdessen das Verfahren in [`migrations/README.md`](migrations/README.md): Vorimport-Backup und Restore-Pfad bestätigen, ausstehenden Migrationspfad prüfen, Migrationen in aufsteigender Reihenfolge anwenden, Laufzeitrechte erneut abgleichen und anschließend Vertrags- sowie Anwendungstests ausführen. Das erneute Anwenden von `schema.sql` ersetzt diesen Ablauf nicht.
 
@@ -104,6 +111,26 @@ Mitgliedschaft `vk_access_enrollment_admin` ist.
 Die vollständigen ausführbaren Befehle für Rollenimport, Credential-Erzeugung,
 Cloud-SQL-User-Anlage, exakten Rollenabgleich und User-Cleanup stehen im
 [Identity-Admin-Runbook](../../../dokumentation/betrieb-und-deployment/PRE_GEMATIK_IDENTITY_ADMIN.md#2a-passwortgast-access-rolle-und-login-create-only).
+
+Im befristeten External-Identities-Pilot entsteht die benötigte Pending-Anfrage
+ausschließlich in einem geschlossenen, zweiphasigen Ablauf. Zuerst legt ein
+Administrator das persönliche Passwortkonto in Identity Platform an, bestätigt
+die E-Mail und nimmt es in das geschützte Roster auf. Nach dem Subject-Remap der
+bestehenden Google-Nutzer und der Umschaltung beider IAP-Backends auf
+`IAP_IDENTITY_MODE=external` authentifiziert sich dieses Passwortkonto im
+weiterhin geschlossenen Wartungsfenster. Ein absichtlich ausgeführter
+Empty-Body-`POST /api/auth/external-enrollment` antwortet mit `202`,
+`requestId`, `status: "pending"` und `expiresAt`; die opake `requestId` wird
+geschützt übernommen.
+
+Der Endpunkt hat weder UI noch automatischen Frontend-Aufruf. Er liefert im
+IAM-Modus `404` und lehnt Google-Identitäten, unbekannte oder inkonsistente
+Claims sowie nicht leere Bodies fail-closed ab. Er erstellt kein Profil und
+kein Binding. Erst der nachfolgende v2-Operator erzeugt als neue
+Berechtigungsobjekte genau ein Viewer-/Editor-Profil und genau eine
+`test_only`-Bindung aus dem verifizierten Request und markiert diesen in
+derselben serialisierbaren Transaktion als `applied`. Der Dienst wird erst nach
+Preview, Apply und read-only Abnahme geöffnet.
 
 Das geschützte JSON-Vollzustandsdokument liegt außerhalb des Git-Worktrees und
 verwendet Version 2:
@@ -169,6 +196,7 @@ node scripts/provision_pre_gematik_test_access.mjs \
   --confirm-database versorgungs_kompass \
   --confirm-operation APPLY_PRE_GEMATIK_TEST_ACCESS_V2 \
   --confirm-fingerprint sha256:PREVIEW-FINGERPRINT \
+  --confirm-current-state-fingerprint sha256:CURRENT-STATE-FROM-SAME-PREVIEW \
   --confirm-binding-count 2 \
   --confirm-enrollment-count 1 \
   --confirm-active-binding-count 2 \
@@ -176,9 +204,19 @@ node scripts/provision_pre_gematik_test_access.mjs \
 ```
 
 Preview und Apply geben ausschließlich Mengen und SHA-256-Fingerprints aus.
+Der Apply bestätigt sowohl den Eingabe-Fingerprint als auch den
+`current_state_fingerprint` desselben unmittelbar freigegebenen Preview-Laufs.
+Letzterer bindet den unveränderten Bestand der direkten und bereits über v2
+verwalteten Bindungen; jede zwischen Preview und Apply eingetretene
+Aktivitäts-, Profil- oder Binding-Drift bricht fail-closed ab.
 Nach dem kontrollierten Apply wird der Cloud-SQL-Login unverzüglich gelöscht;
 ein unsicheres oder unbekanntes COMMIT-Ergebnis darf nicht automatisch
 wiederholt werden.
+
+Der aktuell genehmigte Echtdaten-Pilot endet
+`2026-09-30T16:00:00Z`. Ein späterer Ablaufwert für den
+External-Identity-Zugang setzt deshalb eine getrennt genehmigte Verlängerung
+des Datenpiloten voraus; der Zugangsoperator verlängert dessen Laufzeit nicht.
 
 ### Allowlist-basiertes Auto-Enrollment
 
@@ -236,7 +274,7 @@ des Git-Worktrees. Ein Eintrag hat diese Form:
     "bio": null
   },
   "access_scope": "test_only",
-  "scope_ref": "pre-gematik-external-test-2026-08",
+  "scope_ref": "pre-gematik-external-test-2026-09",
   "expires_at": "2026-09-30T16:00:00.000Z",
   "desired_state": "active",
   "revoke_reason": null

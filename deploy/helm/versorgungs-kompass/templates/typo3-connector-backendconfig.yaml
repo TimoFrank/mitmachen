@@ -1,0 +1,23 @@
+{{- if and .Values.typo3Connector.enabled .Values.typo3Connector.backendConfig.enabled -}}
+apiVersion: cloud.google.com/v1
+kind: BackendConfig
+metadata:
+  name: {{ include "versorgungs-kompass.typo3ConnectorBackendConfigName" . }}
+  labels:
+    {{- include "versorgungs-kompass.labels" . | nindent 4 }}
+    app.kubernetes.io/component: typo3-connector
+spec:
+  timeoutSec: {{ .Values.typo3Connector.backendConfig.timeoutSec }}
+  connectionDraining:
+    drainingTimeoutSec: {{ .Values.typo3Connector.backendConfig.connectionDrainingTimeoutSec }}
+  healthCheck:
+    type: {{ .Values.typo3Connector.backendConfig.healthCheck.type | quote }}
+    requestPath: {{ .Values.typo3Connector.backendConfig.healthCheck.requestPath | quote }}
+    port: {{ .Values.typo3Connector.backendConfig.healthCheck.port }}
+    checkIntervalSec: {{ .Values.typo3Connector.backendConfig.healthCheck.checkIntervalSec }}
+    timeoutSec: {{ .Values.typo3Connector.backendConfig.healthCheck.timeoutSec }}
+    healthyThreshold: {{ .Values.typo3Connector.backendConfig.healthCheck.healthyThreshold }}
+    unhealthyThreshold: {{ .Values.typo3Connector.backendConfig.healthCheck.unhealthyThreshold }}
+  iap:
+    enabled: false
+{{- end }}

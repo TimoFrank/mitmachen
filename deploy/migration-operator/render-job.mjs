@@ -22,7 +22,7 @@ export function renderJob({ image, projectId, region }) {
   const templatePath = fileURLToPath(new URL("job.template.yaml", import.meta.url));
   const template = readFileSync(templatePath, "utf8");
   if (template.split(PLACEHOLDER).length !== 2) {
-    throw new Error("The migration Job template has an invalid image placeholder contract.");
+    throw new Error("The identity Job template has an invalid image placeholder contract.");
   }
   return template.replace(PLACEHOLDER, image);
 }
@@ -50,7 +50,7 @@ if (process.argv[1] === fileURLToPath(import.meta.url)) {
       region: values["--region"]
     }));
   } catch {
-    process.stderr.write("The migration Job could not be rendered safely.\n");
+    process.stderr.write("The identity Job could not be rendered safely.\n");
     process.exitCode = 2;
   }
 }

@@ -1,0 +1,77 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-labelledby="fmloop-title fmloop-description">
+  <title id="fmloop-title">#Mitmachen – Flechtwerk-Signet als ruhiger Loop</title>
+  <desc id="fmloop-description">Das vollständige Hashtag ruht, löst sich kurz auf und webt sich erneut zusammen.</desc>
+  <style>
+    .fmloop-mask {
+      transform: scale(1);
+      transform-box: fill-box;
+    }
+
+    .fmloop-v1 { transform-origin: center top; }
+    .fmloop-h1 { transform-origin: left center; }
+    .fmloop-v2 { transform-origin: center bottom; }
+    .fmloop-h2 { transform-origin: right center; }
+
+    @media (prefers-reduced-motion: no-preference) {
+      .fmloop-v1 {
+        animation: fmloop-v1-motion 4.8s cubic-bezier(.33, 0, .2, 1) infinite;
+      }
+
+      .fmloop-h1 {
+        animation: fmloop-h1-motion 4.8s cubic-bezier(.33, 0, .2, 1) infinite;
+      }
+
+      .fmloop-v2 {
+        animation: fmloop-v2-motion 4.8s cubic-bezier(.33, 0, .2, 1) infinite;
+      }
+
+      .fmloop-h2 {
+        animation: fmloop-h2-motion 4.8s cubic-bezier(.33, 0, .2, 1) infinite;
+      }
+    }
+
+    @keyframes fmloop-v1-motion {
+      0%, 38.5% { transform: scaleY(1); }
+      49%, 53.1% { transform: scaleY(0); }
+      65.6%, 100% { transform: scaleY(1); }
+    }
+
+    @keyframes fmloop-h1-motion {
+      0%, 36.5% { transform: scaleX(1); }
+      45%, 55.2% { transform: scaleX(0); }
+      67.7%, 100% { transform: scaleX(1); }
+    }
+
+    @keyframes fmloop-v2-motion {
+      0%, 34.5% { transform: scaleY(1); }
+      43%, 57.3% { transform: scaleY(0); }
+      69.8%, 100% { transform: scaleY(1); }
+    }
+
+    @keyframes fmloop-h2-motion {
+      0%, 32.3% { transform: scaleX(1); }
+      41%, 59.4% { transform: scaleX(0); }
+      71.9%, 100% { transform: scaleX(1); }
+    }
+  </style>
+  <defs>
+    <mask id="fmloop-v1-mask" maskUnits="userSpaceOnUse" x="0" y="0" width="64" height="64">
+      <rect class="fmloop-mask fmloop-v1" width="64" height="64" fill="#fff"/>
+    </mask>
+    <mask id="fmloop-h1-mask" maskUnits="userSpaceOnUse" x="0" y="0" width="64" height="64">
+      <rect class="fmloop-mask fmloop-h1" width="64" height="64" fill="#fff"/>
+    </mask>
+    <mask id="fmloop-v2-mask" maskUnits="userSpaceOnUse" x="0" y="0" width="64" height="64">
+      <rect class="fmloop-mask fmloop-v2" width="64" height="64" fill="#fff"/>
+    </mask>
+    <mask id="fmloop-h2-mask" maskUnits="userSpaceOnUse" x="0" y="0" width="64" height="64">
+      <rect class="fmloop-mask fmloop-h2" width="64" height="64" fill="#fff"/>
+    </mask>
+  </defs>
+  <g fill="none" stroke-width="8" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M23 8 20.2 35M18.9 47 18 56" stroke="#08164F" mask="url(#fmloop-v1-mask)"/>
+    <path d="M9 23.5h6.5M27.5 23.5H55" stroke="#00A846" mask="url(#fmloop-h1-mask)"/>
+    <path d="M46 8 45 17.5M43.8 29.5 41 56" stroke="#08164F" mask="url(#fmloop-v2-mask)"/>
+    <path d="M8 41h28M48 41h6" stroke="#00A846" mask="url(#fmloop-h2-mask)"/>
+  </g>
+</svg>

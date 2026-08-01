@@ -1,0 +1,1558 @@
+<!doctype html>
+<html lang="de">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="color-scheme" content="light" />
+    <link rel="icon" href="../assets/01-flechtwerk-mark.svg" type="image/svg+xml" />
+    <title>#Mitmachen – Flechtwerk Motion-Kit</title>
+    <style>
+      :root {
+        --navy: #08164f;
+        --navy-deep: #040a27;
+        --green: #00a846;
+        --green-dark: #008f43;
+        --mint: #35f28a;
+        --ink: #111c42;
+        --ink-soft: #5a6781;
+        --paper: #f4f7fb;
+        --white: #ffffff;
+        --line: #dce3ef;
+        font-family: Inter, "SF Pro Text", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      html {
+        min-width: 320px;
+        background: var(--paper);
+        scroll-behavior: smooth;
+      }
+
+      body {
+        min-width: 320px;
+        margin: 0;
+        background:
+          radial-gradient(circle at 8% 48%, rgba(47, 111, 236, 0.08), transparent 28rem),
+          var(--paper);
+        color: var(--ink);
+        -webkit-font-smoothing: antialiased;
+      }
+
+      img,
+      video {
+        display: block;
+        max-width: 100%;
+      }
+
+      button,
+      a {
+        font: inherit;
+      }
+
+      a {
+        color: inherit;
+      }
+
+      .hero {
+        position: relative;
+        min-height: 740px;
+        overflow: hidden;
+        background:
+          radial-gradient(circle at 82% 26%, rgba(53, 242, 138, 0.16), transparent 23rem),
+          radial-gradient(circle at 50% 118%, rgba(47, 111, 236, 0.27), transparent 38rem),
+          linear-gradient(135deg, var(--navy-deep), var(--navy) 62%, #0a365f);
+        color: var(--white);
+      }
+
+      .hero::before {
+        position: absolute;
+        width: 660px;
+        height: 660px;
+        right: -150px;
+        top: 20px;
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        border-radius: 50%;
+        box-shadow:
+          0 0 0 80px rgba(255, 255, 255, 0.018),
+          0 0 0 160px rgba(255, 255, 255, 0.012);
+        content: "";
+      }
+
+      .shell {
+        width: min(1240px, calc(100% - 48px));
+        margin-inline: auto;
+      }
+
+      .hero__nav {
+        position: relative;
+        z-index: 2;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding-top: 28px;
+      }
+
+      .hero__brand {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        font-size: 0.75rem;
+        font-weight: 850;
+        letter-spacing: 0.13em;
+        text-transform: uppercase;
+      }
+
+      .hero__brand img {
+        width: 32px;
+        height: 32px;
+      }
+
+      .hero__meta {
+        color: rgba(255, 255, 255, 0.56);
+        font-size: 0.7rem;
+        font-weight: 800;
+        letter-spacing: 0.11em;
+        text-transform: uppercase;
+      }
+
+      .hero__grid {
+        position: relative;
+        z-index: 1;
+        display: grid;
+        grid-template-columns: minmax(0, 0.92fr) minmax(480px, 1.08fr);
+        gap: clamp(48px, 7vw, 100px);
+        align-items: center;
+        min-height: 650px;
+        padding-block: 82px 96px;
+      }
+
+      .eyebrow {
+        display: flex;
+        align-items: center;
+        gap: 11px;
+        margin: 0 0 20px;
+        color: var(--green-dark);
+        font-size: 0.72rem;
+        font-weight: 900;
+        letter-spacing: 0.13em;
+        text-transform: uppercase;
+      }
+
+      .eyebrow::before {
+        width: 30px;
+        height: 3px;
+        border-radius: 999px;
+        background: currentColor;
+        content: "";
+      }
+
+      .hero .eyebrow {
+        color: var(--mint);
+      }
+
+      h1 {
+        margin: 0;
+        font-size: clamp(4rem, 7.5vw, 7.5rem);
+        font-weight: 930;
+        letter-spacing: -0.07em;
+        line-height: 0.88;
+      }
+
+      h1 span {
+        color: var(--mint);
+      }
+
+      .hero__lead {
+        max-width: 640px;
+        margin: 28px 0 0;
+        color: rgba(255, 255, 255, 0.7);
+        font-size: clamp(1.02rem, 1.5vw, 1.22rem);
+        line-height: 1.65;
+      }
+
+      .hero__controls {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        margin-top: 32px;
+      }
+
+      .button {
+        min-height: 44px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 9px;
+        border: 1px solid rgba(255, 255, 255, 0.17);
+        border-radius: 999px;
+        background: rgba(255, 255, 255, 0.07);
+        color: var(--white);
+        padding: 0 17px;
+        font-size: 0.75rem;
+        font-weight: 850;
+        cursor: pointer;
+        backdrop-filter: blur(10px);
+      }
+
+      .button:hover,
+      .button:focus-visible {
+        border-color: rgba(53, 242, 138, 0.72);
+        background: rgba(53, 242, 138, 0.12);
+        outline: none;
+      }
+
+      .button--primary {
+        border-color: var(--mint);
+        background: var(--mint);
+        color: var(--navy);
+      }
+
+      .button--primary:hover,
+      .button--primary:focus-visible {
+        background: #6dffa8;
+      }
+
+      .button--paper {
+        border-color: var(--line);
+        background: var(--white);
+        color: var(--navy);
+        box-shadow: 0 8px 24px rgba(8, 22, 79, 0.07);
+        backdrop-filter: none;
+      }
+
+      .button--paper:hover,
+      .button--paper:focus-visible {
+        border-color: rgba(0, 168, 70, 0.52);
+        background: rgba(0, 168, 70, 0.07);
+      }
+
+      .button:disabled {
+        opacity: 0.48;
+        cursor: default;
+      }
+
+      .motion-stage {
+        position: relative;
+        display: grid;
+        width: 100%;
+        min-height: 370px;
+        place-items: center;
+        border: 1px solid rgba(255, 255, 255, 0.14);
+        border-radius: 34px;
+        background: rgba(255, 255, 255, 0.065);
+        box-shadow:
+          inset 0 1px 0 rgba(255, 255, 255, 0.11),
+          0 34px 90px rgba(0, 0, 0, 0.24);
+        backdrop-filter: blur(16px);
+      }
+
+      .motion-stage::before,
+      .motion-stage::after {
+        position: absolute;
+        border-radius: 50%;
+        content: "";
+      }
+
+      .motion-stage::before {
+        width: 290px;
+        height: 290px;
+        border: 1px solid rgba(255, 255, 255, 0.09);
+      }
+
+      .motion-stage::after {
+        width: 10px;
+        height: 10px;
+        right: 11%;
+        top: 15%;
+        border: 4px solid var(--navy);
+        background: var(--mint);
+      }
+
+      .motion-stage img {
+        position: relative;
+        z-index: 1;
+        width: min(82%, 560px);
+      }
+
+      .motion-stage__caption {
+        position: absolute;
+        right: 18px;
+        bottom: 18px;
+        padding: 8px 11px;
+        border: 1px solid rgba(255, 255, 255, 0.13);
+        border-radius: 999px;
+        background: rgba(4, 10, 39, 0.48);
+        color: rgba(255, 255, 255, 0.68);
+        font-size: 0.66rem;
+        font-weight: 800;
+      }
+
+      main {
+        overflow: hidden;
+      }
+
+      .section {
+        padding-block: 108px;
+      }
+
+      .section + .section {
+        border-top: 1px solid var(--line);
+      }
+
+      .section__head {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) minmax(320px, 0.72fr);
+        gap: clamp(36px, 6vw, 90px);
+        align-items: end;
+        margin-bottom: 46px;
+      }
+
+      .section__head h2 {
+        margin: 0;
+        font-size: clamp(2.5rem, 5vw, 4.8rem);
+        font-weight: 930;
+        letter-spacing: -0.06em;
+        line-height: 0.96;
+      }
+
+      .section__intro {
+        margin: 0;
+        color: var(--ink-soft);
+        line-height: 1.7;
+      }
+
+      .section__aside {
+        display: grid;
+        gap: 18px;
+        justify-items: start;
+      }
+
+      .timeline {
+        display: grid;
+        grid-template-columns: repeat(5, minmax(0, 1fr));
+        gap: 12px;
+      }
+
+      .timeline__step {
+        position: relative;
+        min-height: 210px;
+        padding: 24px;
+        overflow: hidden;
+        border: 1px solid var(--line);
+        border-radius: 20px;
+        background: var(--white);
+      }
+
+      .timeline__step::after {
+        position: absolute;
+        right: -36px;
+        bottom: -42px;
+        width: 112px;
+        height: 112px;
+        border-radius: 50%;
+        background: rgba(0, 168, 70, 0.055);
+        content: "";
+      }
+
+      .timeline__time {
+        display: block;
+        margin-bottom: 30px;
+        color: var(--green-dark);
+        font-size: 0.69rem;
+        font-weight: 900;
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+      }
+
+      .timeline__step h3 {
+        margin: 0 0 10px;
+        color: var(--navy);
+        font-size: 1rem;
+      }
+
+      .timeline__step p {
+        margin: 0;
+        color: var(--ink-soft);
+        font-size: 0.8rem;
+        line-height: 1.55;
+      }
+
+      .circle-grid {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 18px;
+      }
+
+      .circle-card {
+        overflow: hidden;
+        border: 1px solid var(--line);
+        border-radius: 26px;
+        background: var(--white);
+        box-shadow: 0 18px 50px rgba(8, 22, 79, 0.07);
+      }
+
+      .circle-card--recommended {
+        border-color: rgba(0, 168, 70, 0.5);
+        box-shadow:
+          0 18px 50px rgba(8, 22, 79, 0.07),
+          inset 0 0 0 1px rgba(0, 168, 70, 0.14);
+      }
+
+      .circle-card__stage {
+        position: relative;
+        display: grid;
+        min-height: 360px;
+        place-items: center;
+        overflow: hidden;
+        background:
+          linear-gradient(rgba(8, 22, 79, 0.035) 1px, transparent 1px),
+          linear-gradient(90deg, rgba(8, 22, 79, 0.035) 1px, transparent 1px),
+          #f9fbfe;
+        background-size: 24px 24px;
+      }
+
+      .circle-card--dark .circle-card__stage {
+        background:
+          radial-gradient(circle at 50% 42%, rgba(53, 242, 138, 0.13), transparent 42%),
+          var(--navy);
+      }
+
+      .circle-card__stage img {
+        position: relative;
+        z-index: 1;
+        width: min(72%, 292px);
+        aspect-ratio: 1;
+      }
+
+      .circle-card__type,
+      .circle-card__status {
+        position: absolute;
+        z-index: 2;
+        top: 16px;
+        border-radius: 999px;
+        font-size: 0.62rem;
+        font-weight: 900;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+      }
+
+      .circle-card__type {
+        left: 16px;
+        padding: 7px 10px;
+        border: 1px solid var(--line);
+        background: rgba(255, 255, 255, 0.86);
+        color: var(--navy);
+      }
+
+      .circle-card__status {
+        right: 16px;
+        padding: 8px 11px;
+        background: var(--green);
+        color: var(--white);
+      }
+
+      .circle-card--dark .circle-card__type {
+        border-color: rgba(255, 255, 255, 0.15);
+        background: rgba(4, 10, 39, 0.55);
+        color: rgba(255, 255, 255, 0.84);
+      }
+
+      .circle-card__body {
+        padding: 26px;
+      }
+
+      .circle-card__index {
+        display: block;
+        margin-bottom: 20px;
+        color: var(--green-dark);
+        font-size: 0.68rem;
+        font-weight: 900;
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+      }
+
+      .circle-card__body h3 {
+        margin: 0 0 9px;
+        color: var(--navy);
+        font-size: 1.2rem;
+      }
+
+      .circle-card__body p {
+        margin: 0;
+        color: var(--ink-soft);
+        font-size: 0.84rem;
+        line-height: 1.58;
+      }
+
+      .circle-card__meta {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 7px;
+        margin-top: 18px;
+      }
+
+      .circle-card__meta span {
+        padding: 6px 9px;
+        border: 1px solid var(--line);
+        border-radius: 999px;
+        background: var(--paper);
+        color: #4e5c76;
+        font-size: 0.64rem;
+        font-weight: 800;
+      }
+
+      .format-grid {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 18px;
+      }
+
+      .format-card {
+        overflow: hidden;
+        border: 1px solid var(--line);
+        border-radius: 24px;
+        background: var(--white);
+        box-shadow: 0 16px 46px rgba(8, 22, 79, 0.07);
+      }
+
+      .format-card--wide {
+        grid-column: span 2;
+      }
+
+      .format-card__media {
+        position: relative;
+        display: grid;
+        min-height: 330px;
+        place-items: center;
+        overflow: hidden;
+        background: var(--navy);
+      }
+
+      .format-card--wide .format-card__media {
+        min-height: 420px;
+      }
+
+      .format-card__media--light {
+        background:
+          linear-gradient(rgba(8, 22, 79, 0.035) 1px, transparent 1px),
+          linear-gradient(90deg, rgba(8, 22, 79, 0.035) 1px, transparent 1px),
+          #f9fbfe;
+        background-size: 24px 24px;
+      }
+
+      .format-card__media img[data-motion],
+      .format-card__media .static-poster {
+        width: min(58%, 230px);
+      }
+
+      .format-card--wide .format-card__media img[data-motion],
+      .format-card--wide .format-card__media .static-poster {
+        width: min(74%, 680px);
+      }
+
+      .format-card__media video {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+      }
+
+      .format-card__type {
+        position: absolute;
+        top: 16px;
+        left: 16px;
+        z-index: 2;
+        padding: 7px 10px;
+        border: 1px solid rgba(255, 255, 255, 0.13);
+        border-radius: 999px;
+        background: rgba(4, 10, 39, 0.48);
+        color: rgba(255, 255, 255, 0.83);
+        font-size: 0.66rem;
+        font-weight: 900;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        backdrop-filter: blur(8px);
+      }
+
+      .format-card__media--light .format-card__type {
+        border-color: var(--line);
+        background: rgba(255, 255, 255, 0.8);
+        color: var(--navy);
+      }
+
+      .format-card__body {
+        padding: 26px;
+      }
+
+      .format-card__body h3 {
+        margin: 0 0 9px;
+        color: var(--navy);
+        font-size: 1.18rem;
+      }
+
+      .format-card__body p {
+        margin: 0;
+        color: var(--ink-soft);
+        font-size: 0.84rem;
+        line-height: 1.58;
+      }
+
+      .format-card__meta {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 7px;
+        margin-top: 17px;
+      }
+
+      .format-card__meta span {
+        padding: 6px 9px;
+        border: 1px solid var(--line);
+        border-radius: 999px;
+        background: var(--paper);
+        color: #4e5c76;
+        font-size: 0.64rem;
+        font-weight: 800;
+      }
+
+      .static-poster {
+        display: none;
+      }
+
+      body.is-static .format-card__media > [data-motion],
+      body.is-static .format-card__media > video {
+        display: none;
+      }
+
+      body.is-static .static-poster {
+        display: block;
+      }
+
+      .implementation {
+        display: grid;
+        grid-template-columns: minmax(0, 0.8fr) minmax(0, 1.2fr);
+        gap: 22px;
+      }
+
+      .principles,
+      .code-panel {
+        border: 1px solid var(--line);
+        border-radius: 24px;
+        background: var(--white);
+      }
+
+      .principles {
+        padding: 34px;
+      }
+
+      .principle {
+        display: grid;
+        grid-template-columns: 38px 1fr;
+        gap: 16px;
+        padding-block: 18px;
+        border-bottom: 1px solid var(--line);
+      }
+
+      .principle:first-child {
+        padding-top: 0;
+      }
+
+      .principle:last-child {
+        padding-bottom: 0;
+        border-bottom: 0;
+      }
+
+      .principle__icon {
+        display: grid;
+        width: 38px;
+        height: 38px;
+        place-items: center;
+        border-radius: 12px;
+        background: var(--navy);
+        color: var(--white);
+        font-size: 0.72rem;
+        font-weight: 900;
+      }
+
+      .principle h3 {
+        margin: 0 0 6px;
+        color: var(--navy);
+        font-size: 0.94rem;
+      }
+
+      .principle p {
+        margin: 0;
+        color: var(--ink-soft);
+        font-size: 0.8rem;
+        line-height: 1.52;
+      }
+
+      .code-panel {
+        overflow: hidden;
+      }
+
+      .code-panel__tabs {
+        display: flex;
+        gap: 1px;
+        padding: 10px;
+        background: #eef2f8;
+      }
+
+      .code-panel__tab {
+        border: 0;
+        border-radius: 9px;
+        background: transparent;
+        color: var(--ink-soft);
+        padding: 9px 12px;
+        font-size: 0.7rem;
+        font-weight: 850;
+        cursor: pointer;
+      }
+
+      .code-panel__tab.is-active {
+        background: var(--white);
+        color: var(--navy);
+        box-shadow: 0 4px 13px rgba(8, 22, 79, 0.08);
+      }
+
+      pre {
+        min-height: 310px;
+        margin: 0;
+        overflow: auto;
+        padding: 30px;
+        background: var(--navy-deep);
+        color: #d7e2ff;
+        font: 0.78rem/1.72 "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+        white-space: pre-wrap;
+      }
+
+      .code-panel__snippet[hidden] {
+        display: none;
+      }
+
+      .downloads {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 12px;
+      }
+
+      .download {
+        display: grid;
+        min-height: 132px;
+        gap: 16px;
+        grid-template-columns: 42px 1fr;
+        align-items: start;
+        border: 1px solid var(--line);
+        border-radius: 18px;
+        background: var(--white);
+        padding: 22px;
+        text-decoration: none;
+        transition:
+          border-color 160ms ease,
+          transform 160ms ease;
+      }
+
+      .download:hover,
+      .download:focus-visible {
+        border-color: rgba(0, 168, 70, 0.5);
+        outline: none;
+        transform: translateY(-2px);
+      }
+
+      .download__icon {
+        display: grid;
+        width: 42px;
+        height: 42px;
+        place-items: center;
+        border-radius: 13px;
+        background: rgba(0, 168, 70, 0.11);
+        color: var(--green-dark);
+        font-size: 0.67rem;
+        font-weight: 900;
+      }
+
+      .download strong,
+      .download span {
+        display: block;
+      }
+
+      .download strong {
+        color: var(--navy);
+        font-size: 0.88rem;
+      }
+
+      .download span {
+        margin-top: 6px;
+        color: var(--ink-soft);
+        font-size: 0.7rem;
+        line-height: 1.45;
+      }
+
+      .footer {
+        padding-block: 50px;
+        background: var(--navy-deep);
+        color: var(--white);
+      }
+
+      .footer__inner {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 32px;
+      }
+
+      .footer__brand {
+        display: flex;
+        align-items: center;
+        gap: 13px;
+      }
+
+      .footer__brand img {
+        width: 40px;
+        height: 40px;
+      }
+
+      .footer__brand strong,
+      .footer__brand span {
+        display: block;
+      }
+
+      .footer__brand strong {
+        font-size: 0.9rem;
+      }
+
+      .footer__brand span,
+      .footer__note {
+        margin-top: 4px;
+        color: rgba(255, 255, 255, 0.52);
+        font-size: 0.7rem;
+      }
+
+      .footer__note {
+        max-width: 480px;
+        margin: 0;
+        text-align: right;
+        line-height: 1.55;
+      }
+
+      @media (max-width: 980px) {
+        .hero__grid,
+        .section__head,
+        .implementation {
+          grid-template-columns: 1fr;
+        }
+
+        .hero__grid {
+          padding-block: 76px 90px;
+        }
+
+        .motion-stage {
+          width: min(100%, 760px);
+          justify-self: center;
+        }
+
+        .timeline {
+          grid-template-columns: repeat(2, 1fr);
+        }
+
+        .timeline__step:last-child {
+          grid-column: span 2;
+        }
+
+        .format-grid {
+          grid-template-columns: 1fr 1fr;
+        }
+
+        .circle-grid {
+          grid-template-columns: 1fr 1fr;
+        }
+
+        .circle-card:last-child {
+          width: calc((100% - 18px) / 2);
+          grid-column: 1 / -1;
+          justify-self: center;
+        }
+
+        .format-card--wide {
+          grid-column: span 2;
+        }
+
+        .downloads {
+          grid-template-columns: 1fr 1fr;
+        }
+      }
+
+      @media (max-width: 700px) {
+        .shell {
+          width: min(100% - 30px, 1240px);
+        }
+
+        .hero__nav {
+          padding-top: 20px;
+        }
+
+        .hero__meta {
+          display: none;
+        }
+
+        .hero__grid {
+          gap: 44px;
+          padding-block: 62px 74px;
+        }
+
+        h1 {
+          font-size: clamp(3rem, 16vw, 4.6rem);
+        }
+
+        .motion-stage {
+          min-height: 270px;
+          border-radius: 24px;
+        }
+
+        .motion-stage::before {
+          width: 210px;
+          height: 210px;
+        }
+
+        .section {
+          padding-block: 74px;
+        }
+
+        .section__head {
+          margin-bottom: 32px;
+        }
+
+        .section__head h2 {
+          font-size: clamp(2.3rem, 12vw, 3.5rem);
+        }
+
+        .timeline,
+        .circle-grid,
+        .format-grid,
+        .downloads {
+          grid-template-columns: 1fr;
+        }
+
+        .timeline__step:last-child,
+        .format-card--wide {
+          grid-column: auto;
+        }
+
+        .circle-card:last-child {
+          width: auto;
+          grid-column: auto;
+        }
+
+        .format-card__media,
+        .format-card--wide .format-card__media {
+          min-height: 310px;
+        }
+
+        .principles {
+          padding: 26px;
+        }
+
+        pre {
+          min-height: 370px;
+          padding: 24px;
+          font-size: 0.7rem;
+        }
+
+        .footer__inner {
+          align-items: flex-start;
+          flex-direction: column;
+        }
+
+        .footer__note {
+          text-align: left;
+        }
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        html {
+          scroll-behavior: auto;
+        }
+
+        .download {
+          transition: none;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <header class="hero">
+      <nav class="hero__nav shell" aria-label="Motion-Kit Kopf">
+        <div class="hero__brand">
+          <img src="../assets/01-flechtwerk-mark-on-dark.svg" alt="" />
+          <span>#Mitmachen Motion-Kit</span>
+        </div>
+        <span class="hero__meta">Motion Identity · Einweben</span>
+      </nav>
+
+      <div class="hero__grid shell">
+        <div>
+          <p class="eyebrow">Vom Zeichen zur Bewegung</p>
+          <h1>Vier Bänder.<br />Eine <span>gemeinsame</span><br />Bewegung.</h1>
+          <p class="hero__lead">
+            Das Flechtwerk wird nicht einfach eingeblendet: Seine vier Bänder kommen aus unterschiedlichen
+            Richtungen, greifen ineinander und stehen anschließend ruhig als gemeinsames Zeichen.
+          </p>
+          <div class="hero__controls">
+            <button class="button button--primary" id="replayMotion" type="button">↻ Animation wiederholen</button>
+            <button class="button" id="toggleMotion" type="button" aria-pressed="false">Bewegung reduzieren</button>
+          </div>
+        </div>
+
+        <div class="motion-stage">
+          <img
+            id="heroMotion"
+            data-motion
+            data-animated-src="flechtwerk-lockup-reveal-on-dark.svg"
+            data-static-src="../assets/01-flechtwerk-lockup-on-dark.svg"
+            src="flechtwerk-lockup-reveal-on-dark.svg"
+            width="410"
+            height="96"
+            alt="#Mitmachen"
+          />
+          <span class="motion-stage__caption">Signature Reveal · 1,42 s + Hold</span>
+        </div>
+      </div>
+    </header>
+
+    <main>
+      <section class="section shell" aria-labelledby="sequence-title">
+        <div class="section__head">
+          <div>
+            <p class="eyebrow">01 · Choreografie</p>
+            <h2 id="sequence-title">Einweben statt Effekt.</h2>
+          </div>
+          <p class="section__intro">
+            Die Richtung jedes Bandes ist fest mit der Marke verbunden. Kein Bounce, keine Rotation, kein Glow:
+            Nur die Flechtlogik wird sichtbar gemacht. Diese Reihenfolge bleibt in Website, GIF und Video identisch.
+          </p>
+        </div>
+
+        <div class="timeline">
+          <article class="timeline__step">
+            <span class="timeline__time">80–680 ms</span>
+            <h3>Linkes Navy-Band</h3>
+            <p>Es legt die erste tragende Achse von oben nach unten frei.</p>
+          </article>
+          <article class="timeline__step">
+            <span class="timeline__time">180–780 ms</span>
+            <h3>Oberes Grün</h3>
+            <p>Der erste Beitrag kommt sichtbar von links in das Flechtwerk.</p>
+          </article>
+          <article class="timeline__step">
+            <span class="timeline__time">280–880 ms</span>
+            <h3>Rechtes Navy-Band</h3>
+            <p>Die zweite Achse entsteht bewusst in Gegenrichtung von unten.</p>
+          </article>
+          <article class="timeline__step">
+            <span class="timeline__time">380–980 ms</span>
+            <h3>Unteres Grün</h3>
+            <p>Das letzte Band schließt das Zeichen von rechts nach links.</p>
+          </article>
+          <article class="timeline__step">
+            <span class="timeline__time">820–1420 ms</span>
+            <h3>Schriftzug</h3>
+            <p>Mitmachen folgt als professionell gesetzte Einheit und konkurriert nicht mit dem Signet.</p>
+          </article>
+        </div>
+      </section>
+
+      <section class="section shell" aria-labelledby="circles-title">
+        <div class="section__head">
+          <div>
+            <p class="eyebrow">02 · Handkreis</p>
+            <h2 id="circles-title">Wie mit einem Stift umkreist.</h2>
+          </div>
+          <div class="section__aside">
+            <p class="section__intro">
+              Der Kreis ist kein perfekter Ring, sondern eine persönliche Geste: locker, leicht verschoben und mit
+              sichtbarem Anfang und Ende. Das Flechtwerk bleibt dabei vollständig ruhig und klar.
+            </p>
+            <button class="button button--paper" id="replayCircles" type="button">↻ Kreiszüge wiederholen</button>
+          </div>
+        </div>
+
+        <div class="circle-grid">
+          <article class="circle-card circle-card--recommended">
+            <div class="circle-card__stage">
+              <span class="circle-card__type">Einzelzug · Hell</span>
+              <span class="circle-card__status">Empfehlung</span>
+              <img
+                data-circle-motion
+                data-animated-src="flechtwerk-circle-loose.svg"
+                data-static-src="flechtwerk-circle-loose-static.svg"
+                src="flechtwerk-circle-loose.svg"
+                width="128"
+                height="128"
+                alt="#Mitmachen Flechtwerk-Signet mit locker gezeichnetem Kreis"
+              />
+            </div>
+            <div class="circle-card__body">
+              <span class="circle-card__index">Variante A</span>
+              <h3>Offene Einladung</h3>
+              <p>
+                Ein souveräner Einzelstrich mit kleiner Öffnung oben rechts. Am ruhigsten, klarsten und deshalb die
+                stärkste Kandidatin für die eigentliche Markenbewegung.
+              </p>
+              <div class="circle-card__meta"><span>1,05 s</span><span>one-shot</span><span>ab 64 px</span></div>
+            </div>
+          </article>
+
+          <article class="circle-card">
+            <div class="circle-card__stage">
+              <span class="circle-card__type">Doppelzug · Hell</span>
+              <img
+                data-circle-motion
+                data-animated-src="flechtwerk-circle-double.svg"
+                data-static-src="flechtwerk-circle-double-static.svg"
+                src="flechtwerk-circle-double.svg"
+                width="128"
+                height="128"
+                alt="#Mitmachen Flechtwerk-Signet mit doppelt skizziertem Kreis"
+              />
+            </div>
+            <div class="circle-card__body">
+              <span class="circle-card__index">Variante B</span>
+              <h3>Skizzen-Doppelspur</h3>
+              <p>
+                Zwei bewusst nicht deckungsgleiche Linien wirken wie eine spontane Markierung im Workshop. Wärmer
+                und menschlicher, aber auch etwas lebhafter als der Einzelzug.
+              </p>
+              <div class="circle-card__meta"><span>1,29 s</span><span>Kampagne</span><span>ab 80 px</span></div>
+            </div>
+          </article>
+
+          <article class="circle-card circle-card--dark">
+            <div class="circle-card__stage">
+              <span class="circle-card__type">Orbit · Navy</span>
+              <img
+                data-circle-motion
+                data-animated-src="flechtwerk-circle-orbit-on-dark.svg"
+                data-static-src="flechtwerk-circle-orbit-on-dark-static.svg"
+                src="flechtwerk-circle-orbit-on-dark.svg"
+                width="128"
+                height="128"
+                alt="#Mitmachen Flechtwerk-Signet mit offen gezeichnetem Kreis auf dunkler Fläche"
+              />
+            </div>
+            <div class="circle-card__body">
+              <span class="circle-card__index">Variante C</span>
+              <h3>Freier Orbit</h3>
+              <p>
+                Der energischste Zug läuft leicht über den Start hinaus und bleibt sichtbar offen. Besonders stark
+                für Veranstaltung, Bühne, Social Media und Video.
+              </p>
+              <div class="circle-card__meta"><span>1,12 s</span><span>Dark Mode</span><span>Event</span></div>
+            </div>
+          </article>
+        </div>
+      </section>
+
+      <section class="section shell" aria-labelledby="formats-title">
+        <div class="section__head">
+          <div>
+            <p class="eyebrow">03 · Formate</p>
+            <h2 id="formats-title">Ein Motion-System, mehrere Ausgaben.</h2>
+          </div>
+          <p class="section__intro">
+            Animiertes SVG bleibt die schärfste und kleinste Webquelle. GIF ist für E-Mail und einfache Einbettung
+            optimiert. MP4 dient Präsentation, Social Media und Video-Schnitt; WebM ergänzt echte Transparenz.
+          </p>
+        </div>
+
+        <div class="format-grid">
+          <article class="format-card">
+            <div class="format-card__media">
+              <span class="format-card__type">SVG · Ambient Loop</span>
+              <img
+                data-motion
+                data-animated-src="flechtwerk-mark-loop-on-dark.svg"
+                data-static-src="../assets/01-flechtwerk-mark-on-dark.svg"
+                src="flechtwerk-mark-loop-on-dark.svg"
+                width="64"
+                height="64"
+                alt="#Mitmachen Flechtwerk-Signet"
+              />
+              <img class="static-poster" src="../assets/01-flechtwerk-mark-on-dark.svg" alt="" />
+            </div>
+            <div class="format-card__body">
+              <h3>Web-Signet</h3>
+              <p>Transparente, skalierbare SVG-Datei. Der Loop hält länger ruhig als er sich bewegt.</p>
+              <div class="format-card__meta"><span>4,8 s</span><span>Reduced Motion</span><span>Vektor</span></div>
+            </div>
+          </article>
+
+          <article class="format-card">
+            <div class="format-card__media">
+              <span class="format-card__type">GIF · Navy</span>
+              <img
+                data-motion
+                src="exports/flechtwerk-signet-loop-dark-640.gif"
+                width="640"
+                height="640"
+                alt="#Mitmachen Flechtwerk-Animation als GIF"
+              />
+              <img
+                class="static-poster"
+                src="exports/flechtwerk-signet-poster-dark-1080.png"
+                alt="#Mitmachen Flechtwerk-Signet"
+              />
+            </div>
+            <div class="format-card__body">
+              <h3>GIF für E-Mail & einfache Einbettung</h3>
+              <p>Flache 64-Farben-Palette ohne Dithering; erster Frame zeigt bereits das vollständige Logo.</p>
+              <div class="format-card__meta"><span>640 × 640</span><span>20 fps</span><span>32 KB</span></div>
+            </div>
+          </article>
+
+          <article class="format-card">
+            <div class="format-card__media">
+              <span class="format-card__type">MP4 · Square</span>
+              <video
+                data-motion
+                autoplay
+                muted
+                loop
+                playsinline
+                preload="metadata"
+                poster="exports/flechtwerk-signet-poster-dark-1080.png"
+              >
+                <source src="exports/flechtwerk-signet-loop-dark-1080.mp4" type="video/mp4" />
+              </video>
+              <img
+                class="static-poster"
+                src="exports/flechtwerk-signet-poster-dark-1080.png"
+                alt="#Mitmachen Flechtwerk-Signet"
+              />
+            </div>
+            <div class="format-card__body">
+              <h3>Video für Social & Präsentation</h3>
+              <p>H.264, quadratisch, ohne Audio und mit Faststart. Läuft in PowerPoint und gängigen Plattformen.</p>
+              <div class="format-card__meta"><span>1080 × 1080</span><span>30 fps</span><span>H.264</span></div>
+            </div>
+          </article>
+
+          <article class="format-card format-card--wide">
+            <div class="format-card__media">
+              <span class="format-card__type">MP4 · Video Bumper</span>
+              <video
+                data-motion
+                autoplay
+                muted
+                playsinline
+                preload="metadata"
+                poster="exports/flechtwerk-lockup-poster-dark-1920x1080.png"
+              >
+                <source src="exports/flechtwerk-lockup-reveal-dark-1920x1080.mp4" type="video/mp4" />
+              </video>
+              <img
+                class="static-poster"
+                src="exports/flechtwerk-lockup-poster-dark-1920x1080.png"
+                alt="#Mitmachen Flechtwerk-Logo"
+              />
+            </div>
+            <div class="format-card__body">
+              <h3>16:9 Markenintro</h3>
+              <p>Einmaliger Aufbau in 1,42 Sekunden, danach ruhiger Hold für Schnitt, Bühne und PowerPoint.</p>
+              <div class="format-card__meta"><span>1920 × 1080</span><span>3,2 s</span><span>ohne Audio</span></div>
+            </div>
+          </article>
+
+          <article class="format-card">
+            <div class="format-card__media format-card__media--light">
+              <span class="format-card__type">SVG · Light</span>
+              <img
+                data-motion
+                data-animated-src="flechtwerk-mark-reveal.svg"
+                data-static-src="../assets/01-flechtwerk-mark.svg"
+                src="flechtwerk-mark-reveal.svg"
+                width="64"
+                height="64"
+                alt="#Mitmachen Flechtwerk-Signet"
+              />
+              <img class="static-poster" src="../assets/01-flechtwerk-mark.svg" alt="" />
+            </div>
+            <div class="format-card__body">
+              <h3>Helle Website-Fläche</h3>
+              <p>Einmaliges Signet-Reveal für Hero, Kampagneneinstieg oder Ladeabschluss – danach statisch.</p>
+              <div class="format-card__meta"><span>transparent</span><span>one-shot</span><span>≤ 1 KB gzip</span></div>
+            </div>
+          </article>
+        </div>
+      </section>
+
+      <section class="section shell" aria-labelledby="implementation-title">
+        <div class="section__head">
+          <div>
+            <p class="eyebrow">04 · Website-Einbau</p>
+            <h2 id="implementation-title">Bewegung bleibt optional.</h2>
+          </div>
+          <p class="section__intro">
+            Das Endbild ist immer die korrekte statische Marke. Nutzerinnen und Nutzer mit reduzierter Bewegung
+            sehen sie sofort; Videos starten nur stumm und pausieren außerhalb des sichtbaren Bereichs.
+          </p>
+        </div>
+
+        <div class="implementation">
+          <div class="principles">
+            <article class="principle">
+              <span class="principle__icon">1×</span>
+              <div>
+                <h3>Website-Intro nur einmal</h3>
+                <p>Nicht bei jedem Seitenwechsel, Hover oder Navigationszustand neu abspielen.</p>
+              </div>
+            </article>
+            <article class="principle">
+              <span class="principle__icon">32</span>
+              <div>
+                <h3>Unter 32 px statisch</h3>
+                <p>Bei kleinen Navigationsmarken bleibt die Flechtfuge ohne Bewegung am klarsten.</p>
+              </div>
+            </article>
+            <article class="principle">
+              <span class="principle__icon">A11y</span>
+              <div>
+                <h3>Reduced Motion eingebaut</h3>
+                <p>Die SVGs animieren ausschließlich bei `prefers-reduced-motion: no-preference`.</p>
+              </div>
+            </article>
+            <article class="principle">
+              <span class="principle__icon">0</span>
+              <div>
+                <h3>Keine Layout-Verschiebung</h3>
+                <p>Breite, Höhe oder `aspect-ratio` werden beim Einbinden immer reserviert.</p>
+              </div>
+            </article>
+          </div>
+
+          <div class="code-panel">
+            <div class="code-panel__tabs" role="tablist" aria-label="Codebeispiele">
+              <button class="code-panel__tab is-active" type="button" role="tab" aria-selected="true" data-tab="svg">
+                SVG
+              </button>
+              <button class="code-panel__tab" type="button" role="tab" aria-selected="false" data-tab="video">
+                Video
+              </button>
+              <button class="code-panel__tab" type="button" role="tab" aria-selected="false" data-tab="email">
+                E-Mail
+              </button>
+            </div>
+            <pre class="code-panel__snippet" data-panel="svg"><code>&lt;img
+  src="/brand/motion/flechtwerk-lockup-reveal.svg"
+  width="410"
+  height="96"
+  alt="#Mitmachen"
+/&gt;
+
+&lt;!-- Dekorativ neben vorhandenem Namen: --&gt;
+&lt;img
+  src="/brand/motion/flechtwerk-mark-reveal.svg"
+  width="64"
+  height="64"
+  alt=""
+  aria-hidden="true"
+/&gt;</code></pre>
+            <pre class="code-panel__snippet" data-panel="video" hidden><code>&lt;video
+  autoplay
+  muted
+  loop
+  playsinline
+  preload="metadata"
+  poster="/brand/motion/flechtwerk-poster.png"
+&gt;
+  &lt;source
+    src="/brand/motion/flechtwerk-loop.mp4"
+    type="video/mp4"
+  /&gt;
+  &lt;img
+    src="/brand/motion/flechtwerk-poster.png"
+    alt="#Mitmachen"
+  /&gt;
+&lt;/video&gt;</code></pre>
+            <pre class="code-panel__snippet" data-panel="email" hidden><code>&lt;img
+  src="https://example.org/flechtwerk-loop.gif"
+  width="512"
+  height="512"
+  alt="#Mitmachen"
+  style="display:block;border:0"
+/&gt;
+
+&lt;!-- Das vollständige Logo steht bereits im
+     ersten Frame, falls Animation deaktiviert ist. --&gt;</code></pre>
+          </div>
+        </div>
+      </section>
+
+      <section class="section shell" aria-labelledby="downloads-title">
+        <div class="section__head">
+          <div>
+            <p class="eyebrow">05 · Dateien</p>
+            <h2 id="downloads-title">Direkt einsetzbare Master.</h2>
+          </div>
+          <p class="section__intro">
+            Statische Markenmaster und Reveal-Endzustände verwenden dieselben gefüllten Source-Sans-3-Vektorpfade.
+            Alle Motion-Dateien liegen separat, sodass die Animation bewusst pro Einsatz gewählt und jederzeit
+            durch das statische Endbild ersetzt werden kann.
+          </p>
+        </div>
+
+        <div class="downloads">
+          <a class="download" href="flechtwerk-circle-loose.svg">
+            <span class="download__icon">SVG</span>
+            <span><strong>Handkreis · Offene Einladung</strong><span>128 × 128 ViewBox · Empfehlung · one-shot</span></span>
+          </a>
+          <a class="download" href="flechtwerk-circle-double.svg">
+            <span class="download__icon">SVG</span>
+            <span><strong>Handkreis · Doppelspur</strong><span>128 × 128 ViewBox · Kampagne · one-shot</span></span>
+          </a>
+          <a class="download" href="flechtwerk-circle-orbit-on-dark.svg">
+            <span class="download__icon">SVG</span>
+            <span><strong>Handkreis · Orbit Dunkel</strong><span>128 × 128 ViewBox · Event · one-shot</span></span>
+          </a>
+          <a class="download" href="flechtwerk-lockup-reveal.svg">
+            <span class="download__icon">SVG</span>
+            <span><strong>Lockup Reveal · Hell</strong><span>410 × 96 · transparent · one-shot</span></span>
+          </a>
+          <a class="download" href="flechtwerk-lockup-reveal-on-dark.svg">
+            <span class="download__icon">SVG</span>
+            <span><strong>Lockup Reveal · Dunkel</strong><span>410 × 96 · transparent · one-shot</span></span>
+          </a>
+          <a class="download" href="flechtwerk-mark-loop.svg">
+            <span class="download__icon">SVG</span>
+            <span><strong>Signet Loop · Hell</strong><span>64 × 64 ViewBox · transparent</span></span>
+          </a>
+          <a class="download" href="exports/flechtwerk-signet-loop-dark-640.gif">
+            <span class="download__icon">GIF</span>
+            <span><strong>Signet Loop · Navy</strong><span>640 × 640 · 20 fps · E-Mail</span></span>
+          </a>
+          <a class="download" href="exports/flechtwerk-signet-loop-dark-1080.mp4">
+            <span class="download__icon">MP4</span>
+            <span><strong>Signet Loop · Square</strong><span>1080 × 1080 · H.264 · Social</span></span>
+          </a>
+          <a class="download" href="exports/flechtwerk-signet-loop-alpha-1080.webm">
+            <span class="download__icon">WEBM</span>
+            <span><strong>Signet Loop · Alpha</strong><span>1080 × 1080 · VP9 · transparent</span></span>
+          </a>
+          <a class="download" href="exports/flechtwerk-lockup-reveal-dark-1920x1080.mp4">
+            <span class="download__icon">MP4</span>
+            <span><strong>Lockup Video-Bumper</strong><span>1920 × 1080 · H.264 · 3,2 s</span></span>
+          </a>
+          <a class="download" href="exports/flechtwerk-signet-poster-dark-1080.png">
+            <span class="download__icon">PNG</span>
+            <span><strong>Signet Poster</strong><span>1080 × 1080 · statischer Fallback</span></span>
+          </a>
+          <a class="download" href="exports/flechtwerk-lockup-poster-dark-1920x1080.png">
+            <span class="download__icon">PNG</span>
+            <span><strong>Lockup Poster</strong><span>1920 × 1080 · statischer Fallback</span></span>
+          </a>
+        </div>
+      </section>
+    </main>
+
+    <footer class="footer">
+      <div class="footer__inner shell">
+        <div class="footer__brand">
+          <img src="../assets/01-flechtwerk-mark-on-dark.svg" alt="" />
+          <div>
+            <strong>#Mitmachen Motion-Kit</strong>
+            <span>Signature Motion: Einweben · Handkreis · ohne Audio</span>
+          </div>
+        </div>
+        <p class="footer__note">
+          Animierte Assets ergänzen die statische Marke, ersetzen sie aber nicht. Navigation, kleine Signets und
+          Reduced-Motion-Kontexte bleiben bewusst unbewegt.
+        </p>
+      </div>
+    </footer>
+
+    <script>
+      const motionPreference = window.matchMedia("(prefers-reduced-motion: reduce)");
+      const replayButton = document.querySelector("#replayMotion");
+      const circleReplayButton = document.querySelector("#replayCircles");
+      const toggleButton = document.querySelector("#toggleMotion");
+      const animatedImages = [...document.querySelectorAll("img[data-animated-src]")];
+      const circleImages = [...document.querySelectorAll("img[data-circle-motion]")];
+      const videos = [...document.querySelectorAll("video[data-motion]")];
+      let manualStatic = motionPreference.matches;
+
+      function cacheBustedSource(source) {
+        const separator = source.includes("?") ? "&" : "?";
+        return `${source}${separator}replay=${Date.now()}`;
+      }
+
+      function applyMotionMode({ replay = false } = {}) {
+        document.body.classList.toggle("is-static", manualStatic);
+        toggleButton.setAttribute("aria-pressed", String(manualStatic));
+        toggleButton.textContent = manualStatic ? "Bewegung aktivieren" : "Bewegung reduzieren";
+        replayButton.disabled = manualStatic;
+        circleReplayButton.disabled = manualStatic;
+
+        for (const image of animatedImages) {
+          const target = manualStatic ? image.dataset.staticSrc : image.dataset.animatedSrc;
+          image.src = replay && !manualStatic ? cacheBustedSource(target) : target;
+        }
+
+        for (const video of videos) {
+          if (manualStatic) {
+            video.pause();
+          } else {
+            video.currentTime = 0;
+            video.play().catch(() => {});
+          }
+        }
+      }
+
+      replayButton.addEventListener("click", () => applyMotionMode({ replay: true }));
+      circleReplayButton.addEventListener("click", () => {
+        if (manualStatic) return;
+        for (const image of circleImages) {
+          image.src = cacheBustedSource(image.dataset.animatedSrc);
+        }
+      });
+      toggleButton.addEventListener("click", () => {
+        manualStatic = !manualStatic;
+        applyMotionMode({ replay: !manualStatic });
+      });
+
+      motionPreference.addEventListener("change", (event) => {
+        manualStatic = event.matches;
+        applyMotionMode({ replay: !manualStatic });
+      });
+
+      const observer = new IntersectionObserver(
+        (entries) => {
+          for (const entry of entries) {
+            const video = entry.target;
+            if (manualStatic || !entry.isIntersecting) video.pause();
+            else video.play().catch(() => {});
+          }
+        },
+        { threshold: 0.2 }
+      );
+      videos.forEach((video) => observer.observe(video));
+
+      const tabs = [...document.querySelectorAll("[data-tab]")];
+      const panels = [...document.querySelectorAll("[data-panel]")];
+      tabs.forEach((tab) => {
+        tab.addEventListener("click", () => {
+          const target = tab.dataset.tab;
+          tabs.forEach((item) => {
+            const active = item === tab;
+            item.classList.toggle("is-active", active);
+            item.setAttribute("aria-selected", String(active));
+          });
+          panels.forEach((panel) => {
+            panel.hidden = panel.dataset.panel !== target;
+          });
+        });
+      });
+
+      applyMotionMode();
+    </script>
+  </body>
+</html>

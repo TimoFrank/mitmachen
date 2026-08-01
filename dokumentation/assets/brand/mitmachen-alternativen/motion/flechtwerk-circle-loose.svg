@@ -1,0 +1,44 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" role="img" aria-labelledby="title">
+  <title id="title">#Mitmachen Flechtwerk-Signet mit locker gezeichnetem Kreis</title>
+  <style>
+    .circle {
+      stroke-dasharray: 100 100;
+      stroke-dashoffset: 0;
+    }
+
+    @media (prefers-reduced-motion: no-preference) {
+      .circle {
+        stroke-dashoffset: 100;
+        animation: draw-circle 1050ms cubic-bezier(.33, 1, .68, 1) 140ms forwards;
+      }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      .circle {
+        animation: none;
+        stroke-dashoffset: 0;
+      }
+    }
+
+    @keyframes draw-circle {
+      to { stroke-dashoffset: 0; }
+    }
+  </style>
+  <g transform="translate(20 20) scale(1.375)" fill="none" stroke-width="8" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M23 8 20.2 35M18.9 47 18 56" stroke="#08164F"/>
+    <path d="M9 23.5h6.5M27.5 23.5H55" stroke="#00A846"/>
+    <path d="M46 8 45 17.5M43.8 29.5 41 56" stroke="#08164F"/>
+    <path d="M8 41h28M48 41h6" stroke="#00A846"/>
+  </g>
+  <path
+    class="circle"
+    pathLength="100"
+    d="M103.2 24.8C120.8 43.2 123.5 73.6 110.4 95.5C96.3 118.2 64.5 125 38.6 114.7C13.8 104.8 2.7 78.4 9.4 52.8C15.8 28 39.8 9.8 65.1 9.3C76.5 9 85.6 12.3 92.5 17"
+    fill="none"
+    stroke="#00A846"
+    stroke-width="3.4"
+    stroke-linecap="round"
+    stroke-linejoin="round"
+    aria-hidden="true"
+  />
+</svg>

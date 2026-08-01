@@ -41,7 +41,15 @@ import {
   validateAllowedOriginConfiguration,
   validateIdentityConfiguration
 } from "./security-policy.mjs";
-import { canonicalIapSubject } from "./test-access-enrollment.mjs";
+import {
+  canonicalIapSubject,
+  submitExternalIapEnrollment
+} from "./test-access-enrollment.mjs";
+import {
+  TYPO3_REGISTRATION_CONNECTOR_PATH,
+  receiveTypo3Registration,
+  typo3ConnectorConfiguration
+} from "./typo3-registration-connector.mjs";
 
 const ActivityModel = globalThis.ActivityModel;
 
@@ -527,6 +535,7 @@ const STAKEHOLDER_PEOPLE_FIELDS = [
 const PORT = Number(process.env.PORT || 8081);
 const ALLOWED_ORIGIN = validateAllowedOriginConfiguration(process.env);
 const LOG_REQUESTS = process.env.API_LOG_REQUESTS === "1";
+const TYPO3_CONNECTOR_CONFIGURATION = typo3ConnectorConfiguration(process.env);
 const PROFILE_IMAGE_BUCKET = process.env.PROFILE_IMAGE_BUCKET || "";
 const CONTACT_IMAGE_BUCKET = process.env.CONTACT_IMAGE_BUCKET || "";
 const CONTACT_NOTE_ATTACHMENT_BUCKET = process.env.CONTACT_NOTE_ATTACHMENT_BUCKET || "";
@@ -3258,7 +3267,7 @@ function corsHeaders() {
     "access-control-allow-credentials": "true",
     // Identitaetsheader werden ausschliesslich vom vorgeschalteten Gateway
     // gesetzt und duerfen niemals aus dem Browser-CORS-Kontext kommen.
-    "access-control-allow-headers": "authorization, content-type, x-request-id",
+    "access-control-allow-headers": "authorization, content-type, x-request-id, x-requested-with",
     "access-control-allow-methods": "GET, POST, PUT, PATCH, DELETE, OPTIONS",
     vary: "origin"
   };
@@ -10172,6 +10181,14 @@ async function handle(request, response) {
       await getPool().query("select entity_type, entity_id, scope_ref from public.test_access_objects limit 0");
       return jsonResponse(response, 200, { ok: true });
     }
+    if (request.method === "POST" && url.pathname === TYPO3_REGISTRATION_CONNECTOR_PATH) {
+      const result = await receiveTypo3Registration(
+        request,
+        getPool(),
+        TYPO3_CONNECTOR_CONFIGURATION
+      );
+      return jsonResponse(response, result.status, result.body);
+    }
     if (request.method === "GET" && url.pathname === "/api/auth/bootstrap") {
       if (API_AUTH_MODE === "iap") {
         try {
@@ -10184,6 +10201,13 @@ async function handle(request, response) {
         }
       }
       return redirectResponse(response, validatedIapBootstrapReturnUrl(url));
+    }
+    if (request.method === "POST" && url.pathname === "/api/auth/external-enrollment") {
+      return jsonResponse(response, 202, await submitExternalIapEnrollment(request, {
+        verifyIapJwt,
+        pool: getPool(),
+        identityMode: IAP_IDENTITY_MODE
+      }));
     }
     if (request.method === "GET" && url.pathname === "/api/session") {
       return jsonResponse(response, 200, await getSession(request));

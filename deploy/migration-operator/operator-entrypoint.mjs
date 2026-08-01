@@ -404,7 +404,8 @@ export async function main(environment = process.env) {
 
   const childEnvironment = {
     ...environment,
-    CLOUD_SQL_AUTH_PROXY_EXECUTABLE: PROXY_EXECUTABLE
+    CLOUD_SQL_AUTH_PROXY_EXECUTABLE: PROXY_EXECUTABLE,
+    PRE_GEMATIK_IDENTITY_REPOSITORY_ROOT: WORKSPACE
   };
   if (execution.managedTarget) {
     if (environment.CLOUD_SQL_AUTH_PROXY_CONNECT_MODE !== "private-ip") {
@@ -421,7 +422,6 @@ export async function main(environment = process.env) {
         execution.guestAccessTargetProject;
     }
   }
-
   const startedAt = new Date().toISOString();
   const outcome = await runChild(execution, childEnvironment);
   const succeeded = outcome.code === 0 && outcome.signal === null;

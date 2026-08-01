@@ -3258,7 +3258,7 @@ jobs:
             --iap=disabled \
             --quiet >/dev/null
           if ! wait_for_boundary false; then
-            echo "The final boundary must keep API/frontend IAP enabled, keep all backends healthy, and disable IAP only on public entry." >&2
+            echo "The final boundary must keep API/frontend IAP enabled, keep all backends healthy, disable IAP only on public entry, and retain the hardened password-reset backend in external mode." >&2
             exit 1
           fi
 
@@ -4274,6 +4274,11 @@ jobs:
               echo "The branded sign-in page exposes a Firebase or project-domain implementation detail." >&2
               exit 1
             fi
+            grep --ignore-case --extended-regexp --quiet \
+              '^content-type:[[:space:]]*text/html' "$signin_headers"
+            grep --ignore-case --fixed-strings --quiet 'cache-control: no-store' "$signin_headers"
+            grep --ignore-case --fixed-strings --quiet 'content-security-policy:' "$signin_headers"
+            grep --ignore-case --fixed-strings --quiet 'x-content-type-options: nosniff' "$signin_headers"
           done
 
           head_status="$(curl --path-as-is --silent --show-error --head \

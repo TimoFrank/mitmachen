@@ -67,6 +67,27 @@ passwordResetBroker:
       cpu: 250m
       memory: 128Mi
 
+typo3Connector:
+  enabled: false
+  formUid: 41
+  sourceUrl: https://www.gematik.de/mitmachen/versorgungs-netzwerk
+  formVersion: ""
+  privacyNoticeVersion: ""
+  consentTextVersion: ""
+  bodyLimitBytes: 24000
+  clockSkewSeconds: 300
+  currentKey:
+    id: ""
+    secretName: vk-pre-gematik-typo3-connector-hmac
+    secretKey: current-hmac-secret-base64
+  previousKey:
+    enabled: false
+    id: ""
+    secretName: vk-pre-gematik-typo3-connector-hmac
+    secretKey: previous-hmac-secret-base64
+  backendConfig:
+    enabled: true
+    name: versorgungs-kompass-typo3-connector
 config:
   allowedOrigin: https://pre-gematik.example.invalid
   apiAuthMode: iap

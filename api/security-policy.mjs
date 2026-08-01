@@ -25,6 +25,22 @@ function route(methods, pattern, role, id, writeClass = WRITE_CLASSES.RESTRICTED
 export const ROUTE_POLICIES = Object.freeze([
   route(["GET"], /^\/(?:api\/)?(?:healthz|readyz)$/, "public", "health", WRITE_CLASSES.READ),
   route(["GET"], /^\/api\/auth\/bootstrap$/, "public", "auth.bootstrap", WRITE_CLASSES.READ),
+  route(
+    ["POST"],
+    /^\/api\/auth\/external-enrollment$/,
+    "public",
+    "auth.external-enrollment",
+    WRITE_CLASSES.RESTRICTED
+  ),
+  // Dieser exakte M2M-Endpunkt hat keine Benutzer-Session. Der Handler erzwingt
+  // stattdessen Timestamp, Key-ID und HMAC ueber die unveraenderten Body-Bytes.
+  route(
+    ["POST"],
+    /^\/api\/connectors\/typo3\/mitmachen-registrations$/,
+    "public",
+    "connector.typo3.registration.create",
+    WRITE_CLASSES.RESTRICTED
+  ),
   route(["GET"], /^\/api\/session$/, "viewer", "session.read", WRITE_CLASSES.READ),
   route(["GET"], /^\/api\/ops\/(?:summary|checks)$/, "admin", "operations.read"),
   route(["GET"], /^\/api\/export$/, "admin", "data.export"),

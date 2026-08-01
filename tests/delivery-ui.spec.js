@@ -32,6 +32,7 @@ test("Desktop-Auslieferung: Pages startet direkt in der App-Startseite", async (
   await expect(page.locator(".app-sidebar")).toBeVisible();
   await expect(page.locator('[data-view-panel="home"]')).toBeVisible();
   await expectCleanHomeSidebar(page);
+  await expect(page.locator("#global-status")).toBeHidden();
   const destinations = page.locator(".home-destination-link");
   await expect(destinations).toHaveCount(4);
   await expect(destinations.locator("strong")).toHaveText([

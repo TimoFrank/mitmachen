@@ -37,6 +37,7 @@ for (const [method, pathname, expectedRole, expectedId] of [
   ["GET", "/healthz", "public", "health"],
   ["GET", "/api/contacts", "viewer", "collection.read"],
   ["GET", "/api/politics/health-committee", "viewer", "politics.health-committee.read"],
+  ["POST", "/api/connectors/typo3/mitmachen-registrations", "public", "connector.typo3.registration.create"],
   ["POST", "/api/contacts", "editor", "test-object.create"],
   ["GET", "/api/export", "admin", "data.export"],
   ["POST", "/api/stakeholder-import", "admin", "bulk.import"],
@@ -48,6 +49,11 @@ for (const [method, pathname, expectedRole, expectedId] of [
   assert.equal(policy?.id, expectedId, `${method} ${pathname} muss eine nachvollziehbare Policy-ID besitzen.`);
 }
 assert.equal(policyForRequest("POST", "/api/export"), null, "Nicht freigegebene Methoden muessen fail-closed bleiben.");
+assert.equal(
+  policyForRequest("GET", "/api/connectors/typo3/mitmachen-registrations"),
+  null,
+  "Der TYPO3-Connector darf ausschliesslich den exakten POST-Endpunkt verwenden."
+);
 assert.equal(policyForRequest("GET", "/api/unbekannt"), null, "Neue Routen muessen bis zur Policy-Entscheidung gesperrt bleiben.");
 
 for (const [method, pathname, expectedRole] of [
@@ -60,6 +66,7 @@ for (const [method, pathname, expectedRole] of [
   ["GET", "/api/contact-notes", "viewer"],
   ["GET", "/api/contact-note-attachments", "viewer"],
   ["GET", "/api/politics/health-committee", "viewer"],
+  ["POST", "/api/connectors/typo3/mitmachen-registrations", "public"],
   ["GET", "/api/contact-note-attachments/attachment-1/content", "viewer"],
   ["GET", "/api/organizations/organization-1", "viewer"],
   ["GET", "/api/formats/format-1", "viewer"],
@@ -286,6 +293,7 @@ for (const contract of [
   "revoke all privileges on table public.activity_events from public",
   "revoke all privileges on table public.activity_events from :\"runtime_role\" cascade",
   "grant select, insert on table public.activity_events to :\"runtime_role\"",
+  "revoke update, delete on table public.activity_events from :\"runtime_role\"",
   "revoke all privileges on sequence public.activity_events_id_seq from public",
   "revoke all privileges on sequence public.activity_events_id_seq from :\"runtime_role\" cascade"
 ]) {

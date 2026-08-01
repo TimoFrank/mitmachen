@@ -435,22 +435,32 @@ try {
   await frame.getByText("Hospitations-Termine", { exact: true }).waitFor({ state: "visible", timeout: 15_000 });
   await frame.getByText("Termine planen, vorbereiten und anschließend dokumentieren.", { exact: true }).waitFor({ state: "visible" });
 
-  const toolbarLocators = [
-    frame.locator("#new-hospitation-request-button"),
+  const primaryActionBox = await frame.locator("#new-hospitation-request-button").boundingBox();
+  const tableToolbarBox = await frame.locator("#hospitation-table-toolbar").boundingBox();
+  const tableToolbarMetaBox = await frame.locator("#hospitation-table-toolbar-meta").boundingBox();
+  assert.ok(primaryActionBox, "Die Primaeraktion Neuer Termin ist nicht sichtbar.");
+  assert.ok(tableToolbarBox, "Die Tabellen-Werkzeugzeile ist nicht sichtbar.");
+  assert.ok(tableToolbarMetaBox, "Die Terminanzahl in der Tabellen-Werkzeugzeile ist nicht sichtbar.");
+  assert.ok(
+    primaryActionBox.y + primaryActionBox.height <= tableToolbarBox.y,
+    "Die Tabellenaktionen liegen nicht unterhalb der primaeren Such- und Aktionszeile."
+  );
+
+  const tableToolbarLocators = [
     frame.locator('[data-hospitation-export="docx"]'),
     frame.locator('[data-hospitation-export="pdf"]'),
     frame.locator("#hospitation-schedule-view-toggle")
   ];
-  const toolbarBoxes = await Promise.all(toolbarLocators.map((locator) => locator.boundingBox()));
-  toolbarBoxes.forEach((box, index) => assert.ok(box, `Toolbar-Element ${index + 1} ist nicht sichtbar.`));
-  const centerLines = toolbarBoxes.map((box) => box.y + box.height / 2);
+  const tableToolbarBoxes = await Promise.all(tableToolbarLocators.map((locator) => locator.boundingBox()));
+  tableToolbarBoxes.forEach((box, index) => assert.ok(box, `Tabellenaktion ${index + 1} ist nicht sichtbar.`));
+  const centerLines = [tableToolbarMetaBox, ...tableToolbarBoxes].map((box) => box.y + box.height / 2);
   assert.ok(
     Math.max(...centerLines) - Math.min(...centerLines) <= 1.5,
-    `Toolbar-Elemente liegen nicht auf einer Höhe: ${centerLines.join(", ")}`
+    `Terminanzahl und Tabellenaktionen liegen nicht auf einer Höhe: ${centerLines.join(", ")}`
   );
   assert.ok(
-    toolbarBoxes.every((box) => Math.abs(box.height - toolbarBoxes[0].height) <= 1),
-    `Toolbar-Elemente sind unterschiedlich hoch: ${toolbarBoxes.map((box) => box.height).join(", ")}`
+    tableToolbarBoxes.every((box) => Math.abs(box.height - tableToolbarBoxes[0].height) <= 1),
+    `Tabellenaktionen sind unterschiedlich hoch: ${tableToolbarBoxes.map((box) => box.height).join(", ")}`
   );
 
   assert.equal(await frame.getByText("Nur lokal", { exact: true }).count(), 0, "Der Hinweis Nur lokal ist noch vorhanden.");

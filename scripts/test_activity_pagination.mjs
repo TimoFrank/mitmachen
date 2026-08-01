@@ -116,6 +116,7 @@ assert.match(
   "Cloud SQL muss bestehende Tabellenrechte und Grant Options der Laufzeitrolle vor dem Append-only-Grant entfernen."
 );
 assert.match(targetGrants, /revoke all privileges on table public\.activity_events from public/i);
+assert.match(targetGrants, /revoke update, delete on table public\.activity_events from :"runtime_role"/i);
 assert.match(
   targetGrants,
   /revoke all privileges on sequence public\.activity_events_id_seq from :"runtime_role" cascade/i

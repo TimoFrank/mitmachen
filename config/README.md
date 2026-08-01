@@ -14,7 +14,7 @@ Technisch gibt es derzeit genau zwei GitHub-Environments: `github-pages` für di
 
 Die Profile enthalten keine Secrets. Reale Deploymentwerte für `pre-gematik` werden ausschließlich als GitHub-Environment-Variablen beziehungsweise geschützte Environment-Secrets gepflegt; [`variables.env.example`](pre-gematik/variables.env.example) zeigt nur sichere Platzhalter und die für das Deployment erlaubten Variablennamen.
 
-Die Datenübernahme ist vom Release getrennt. [`migration.env.example`](pre-gematik/migration.env.example) gehört ausschließlich zum bestehenden GCP-Pfad und zeigt nur Platzhalter. Für den gematik-PoC werden Datenbankzugänge, OIDC-Subjects, Snapshot- und Bucketwerte nur in einer geschützten Operator-Sitzung gesetzt. Der wiederverwendbare Umfang und die noch plattformspezifischen Schritte stehen im [Datenvertrag](../dokumentation/betrieb-und-deployment/SUPABASE_CLOUD_SQL_MIGRATION.md).
+Die Datenpflege ist vom Release getrennt. Der operative Datenbestand liegt ausschließlich in Cloud SQL/PostgreSQL; private Anwendungsobjekte liegen ausschließlich in GCS. Für den gematik-PoC werden Datenbankzugänge, OIDC-Subjects, Snapshot- und Bucketwerte nur in einer geschützten Operator-Sitzung gesetzt. Der abgeschlossene Providerwechsel bleibt als [historischer Herkunfts- und Prüfvertrag](../dokumentation/betrieb-und-deployment/SUPABASE_CLOUD_SQL_MIGRATION.md) nachvollziehbar, ist aber kein aktuelles Import-Runbook. Eine gegebenenfalls noch ausstehende Abschaltung externer Provider-Ressourcen erfolgt separat vom Repository- und Releaseprozess.
 
 Security-Konfigurationen liegen gebündelt unter [`security/`](security/README.md). Toolbedingt verbleibt nur `.semgrepignore` im Repository-Root.
 

@@ -618,7 +618,9 @@ try {
               pg_has_role(current_user, $1, 'member') as runtime_member,
               has_schema_privilege(current_user, 'public', 'create') as can_create_in_public,
               has_table_privilege(current_user, 'public.import_runs', 'select,insert,update,delete') as import_run_access,
-              has_table_privilege(current_user, 'public.activity_events', 'select,insert,update,delete') as activity_access,
+              has_table_privilege(current_user, 'public.activity_events', 'select,insert') as activity_append_access,
+              has_table_privilege(current_user, 'public.activity_events', 'update') as activity_update_access,
+              has_table_privilege(current_user, 'public.activity_events', 'delete') as activity_delete_access,
               (select rolsuper from pg_catalog.pg_roles where rolname = current_user) as is_superuser`,
       [runtimeRoleName]
     );
@@ -628,7 +630,9 @@ try {
       runtime_member: true,
       can_create_in_public: false,
       import_run_access: true,
-      activity_access: true,
+      activity_append_access: true,
+      activity_update_access: false,
+      activity_delete_access: false,
       is_superuser: false
     }, "Die Test-API muss über die echte Least-Privilege-Laufzeitrolle statt über den Datenbank-Owner laufen.");
     await assert.rejects(

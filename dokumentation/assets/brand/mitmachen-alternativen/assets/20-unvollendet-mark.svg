@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-labelledby="title description">
+  <title id="title">#Mitmachen – Unvollendet Signet</title>
+  <desc id="description">Ein fast vollständiger Hashtag zeigt eine offene Kontur und ein bereitliegendes Ergänzungsstück.</desc>
+  <g fill="none" stroke-linecap="round" stroke-width="6.5">
+    <path d="m24 7-2 19m-1 10-2 21M46 7l-5 50" stroke="#08164F"/>
+    <path d="M7 24h49M6 43h31" stroke="#00A846"/>
+    <path d="M44 43h12" stroke="#00A846" stroke-dasharray="2 6"/>
+  </g>
+  <path d="M17 30h9v9h-9Z" fill="none" stroke="#2F6FEC" stroke-width="2.5" stroke-dasharray="3 3"/>
+  <rect x="45" y="38" width="10" height="10" rx="3" transform="rotate(9 50 43)" fill="#F2A53B" stroke="#fff" stroke-width="2"/>
+  <path d="M50 40v6M47 43h6" stroke="#08164F" stroke-width="1.8" stroke-linecap="round"/>
+</svg>

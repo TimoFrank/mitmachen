@@ -5,12 +5,12 @@ metadata:
   namespace: pre-gematik
   labels:
     app.kubernetes.io/name: versorgungs-kompass
-    app.kubernetes.io/component: migration-operator
+    app.kubernetes.io/component: identity-operator
 spec:
   podSelector:
     matchLabels:
       app.kubernetes.io/name: versorgungs-kompass
-      app.kubernetes.io/component: migration-operator
+      app.kubernetes.io/component: identity-operator
   policyTypes:
     - Ingress
     - Egress

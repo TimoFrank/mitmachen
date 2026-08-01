@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-labelledby="title description">
+  <title id="title">#Mitmachen – Resonanz Signet</title>
+  <desc id="description">Ein kompakter Hashtag sendet sichtbare Resonanzwellen nach außen.</desc>
+  <g fill="none" stroke-linecap="round">
+    <path d="M9 17C5 21 3 26 3 32s2 11 6 15M55 17c4 4 6 9 6 15s-2 11-6 15" stroke="#2F6FEC" stroke-width="3.5"/>
+    <path d="M14 22c-2 3-3 6-3 10s1 7 3 10M50 22c2 3 3 6 3 10s-1 7-3 10" stroke="#35BFA1" stroke-width="3.5"/>
+    <path d="m26 14-3 36m17-36-3 36" stroke="#08164F" stroke-width="6"/>
+    <path d="M18 25h29M17 39h29" stroke="#00A846" stroke-width="6"/>
+  </g>
+  <circle cx="9" cy="17" r="2.5" fill="#2F6FEC"/>
+  <circle cx="55" cy="47" r="2.5" fill="#35BFA1"/>
+</svg>

@@ -349,8 +349,8 @@
       const visibleColumnsStorageKey = "versorgungs-kompass-visible-contact-columns-v2";
       const visibleOrganizationColumnsStorageKey = "versorgungs-kompass-visible-organization-columns-v1";
       const visibleExpertContactColumnsStorageKey = "versorgungs-kompass-visible-expert-contact-columns-v1";
-      const visiblePatientPersonColumnsStorageKey = "versorgungs-kompass-visible-patient-person-columns-v1";
-      const visiblePatientOrganizationColumnsStorageKey = "versorgungs-kompass-visible-patient-organization-columns-v1";
+      const visiblePatientPersonColumnsStorageKey = "versorgungs-kompass-visible-patient-person-columns-v2";
+      const visiblePatientOrganizationColumnsStorageKey = "versorgungs-kompass-visible-patient-organization-columns-v2";
       const visibleStakeholderOrganizationColumnsStorageKey = "versorgungs-kompass-visible-stakeholder-organization-columns-v1";
       const visibleStakeholderPeopleColumnsStorageKey = "versorgungs-kompass-visible-stakeholder-people-columns-v1";
       const visibleHospitationObservationColumnsStorageKey = "versorgungs-kompass-visible-hospitation-observation-columns-v1";
@@ -415,21 +415,24 @@
       const expertOrganizationTableColumns = organizationTableColumns.map((column) =>
         column.key === "sector" ? { ...column, label: "Gruppe" } : column
       );
-      const defaultPatientPersonColumnKeys = ["name", "organization", "indication", "role", "location"];
+      const defaultPatientPersonColumnKeys = ["name", "organization", "role", "indication", "location", "updated"];
       const patientPersonTableColumns = [
         { key: "name", label: "Person", template: "minmax(200px, 1.04fr)", required: true },
-        { key: "organization", label: "Organisation", template: "minmax(210px, 0.96fr)" },
-        { key: "indication", label: "Indikation", template: "minmax(170px, 0.78fr)" },
-        { key: "role", label: "Rolle", template: "minmax(170px, 0.78fr)" },
+        { key: "organization", label: "Organisation / Verband", template: "minmax(210px, 0.96fr)" },
+        { key: "role", label: "Rolle / Funktion", template: "minmax(170px, 0.78fr)" },
+        { key: "indication", label: "Indikation", template: "minmax(180px, 0.82fr)" },
         { key: "location", label: "Ort", template: "minmax(130px, 0.58fr)" },
         { key: "state", label: "Bundesland", template: "minmax(150px, 0.64fr)" },
+        { key: "updated", label: "Aktualisiert", template: "minmax(128px, 0.56fr)" },
         { key: "source", label: "Quelle", template: "minmax(180px, 0.8fr)" }
       ];
-      const defaultPatientOrganizationColumnKeys = ["organization", "sector", "people", "location", "updated"];
+      const defaultPatientOrganizationColumnKeys = ["organization", "organizationType", "sector", "people", "memberCount", "location", "updated"];
       const patientOrganizationTableColumns = [
-        { key: "organization", label: "Organisation", template: "minmax(260px, 1.35fr)", required: true },
+        { key: "organization", label: "Organisation / Verband", template: "minmax(260px, 1.35fr)", required: true },
+        { key: "organizationType", label: "Typ", template: "minmax(150px, 0.68fr)" },
         { key: "sector", label: "Indikation", template: "minmax(180px, 0.82fr)" },
         { key: "people", label: "Kontakte", template: "minmax(110px, 0.48fr)" },
+        { key: "memberCount", label: "Mitglieder", template: "minmax(120px, 0.52fr)" },
         { key: "location", label: "Sitz", template: "minmax(145px, 0.64fr)" },
         { key: "state", label: "Bundesland", template: "minmax(155px, 0.68fr)" },
         { key: "updated", label: "Aktualisiert", template: "minmax(128px, 0.56fr)" },
@@ -988,7 +991,6 @@
       const activityKindFilter = document.getElementById("activity-kind-filter");
       const activityUserFilter = document.getElementById("activity-user-filter");
       const activityRangeFilter = document.getElementById("activity-range-filter");
-      const activitySearchSlot = document.getElementById("activities-search-slot");
       const notificationsList = document.getElementById("notifications-list");
       const notificationsMeta = document.getElementById("notifications-meta");
       const notificationFilterButtons = [...document.querySelectorAll("[data-notification-filter]")];
@@ -1074,7 +1076,8 @@
       const patientOrganizationsTable = document.getElementById("patient-organizations-table");
       const patientOrganizationsTableHead = document.getElementById("patient-organizations-table-head");
       const patientOrganizationList = document.getElementById("patient-organization-list");
-      const patientIndicationsPanel = document.getElementById("patient-indications-panel");
+      const patientIndicationsTable = document.getElementById("patient-indications-table");
+      const patientIndicationsTableHead = document.getElementById("patient-indications-table-head");
       const patientIndicationsList = document.getElementById("patient-indications-list");
       const expertMatchingTableHead = document.getElementById("expert-matching-table-head");
       const expertMatchingList = document.getElementById("expert-matching-list");
@@ -1519,7 +1522,7 @@
       let activeOrganizationId = null;
       let activeExpertId = null;
       let activeExpertOrganizationId = null;
-      let activePatientMode = "indications";
+      let activePatientMode = "people";
       let activePatientPersonId = null;
       let activePatientOrganizationId = null;
       let activeStakeholderPersonId = null;
@@ -1614,7 +1617,6 @@
       let activeHospitationPatternKey = "";
       let hospitationObservationEditMode = false;
       let hospitationObservationCreateMode = false;
-      let hospitationObservationSearchOpen = false;
       let hospitationObservationSortKey = "date";
       let hospitationObservationSortDirection = "desc";
       const hospitationObservationTableColumns = [
@@ -1658,7 +1660,6 @@
       let hospitationDateSortDirection = "desc";
       let hospitationLoadErrorMessage = "";
       let hospitationDataState = "loading";
-      let hospitationHeaderSearchOpen = false;
       let hospitationDashboardPreviewDetailId = "";
       let hospitationDashboardDetailPanel = "";
       let hospitationDashboardLayoutEditMode = false;
@@ -1694,6 +1695,41 @@
       let favoriteContactsOnly = false;
       let currentPage = 1;
       let pageSize = 20;
+      const patientStateByMode = {
+        people: {
+          query: "",
+          page: 1,
+          categories: [],
+          states: [],
+          organizationCities: [],
+          sources: [],
+          qualities: [],
+          missingFields: [],
+          updatedRanges: []
+        },
+        organizations: {
+          query: "",
+          page: 1,
+          categories: [],
+          states: [],
+          organizationCities: [],
+          sources: [],
+          qualities: [],
+          missingFields: [],
+          updatedRanges: []
+        },
+        indications: {
+          query: "",
+          page: 1,
+          categories: [],
+          states: [],
+          organizationCities: [],
+          sources: [],
+          qualities: [],
+          missingFields: [],
+          updatedRanges: []
+        }
+      };
       let activities = [];
       let activitiesLoaded = false;
       let activitiesLoading = false;
@@ -5548,7 +5584,7 @@
         activities: { title: "Aktivitäten", subtitle: "Fachlicher Verlauf von Stammdaten, Zuständigkeiten, Einwilligungen, Hospitationen, Formaten und Dokumenten." },
         notifications: { title: "Benachrichtigungen", subtitle: "Persönliche Änderungen und neue Produktinformationen." },
         experts: { title: "Expertenkreis", subtitle: "Interoperabilitätskontakte und Organisationen getrennt vom Versorgungsdatenbestand." },
-        patients: { title: "Patienten", subtitle: "Personen und Organisationen nach Indikation." },
+        patients: { title: "Patienten", subtitle: "Patientenvertretungen, Organisationen und Verbände nach Indikation." },
         politics: { title: "Politik", subtitle: "Mitglieder des Ausschusses für Gesundheit im Deutschen Bundestag." },
         press: { title: "Presse", subtitle: "Relevante Pressekontakte aus Redaktionen, Institutionen und Verbänden im Gesundheitswesen." },
         stakeholders: { title: "Stakeholder", subtitle: "Stakeholder-Organisationen, Kontakte und Kartenbezug." },
@@ -6681,6 +6717,75 @@
           .sort((a, b) => a.localeCompare(b, "de"));
       }
 
+      function normalizePatientMode(mode = "") {
+        return ["people", "organizations", "indications"].includes(mode) ? mode : "people";
+      }
+
+      function emptyPatientModeState() {
+        return {
+          query: "",
+          page: 1,
+          categories: [],
+          states: [],
+          organizationCities: [],
+          sources: [],
+          qualities: [],
+          missingFields: [],
+          updatedRanges: []
+        };
+      }
+
+      function capturePatientModeState(mode = activePatientMode) {
+        const normalizedMode = normalizePatientMode(mode);
+        patientStateByMode[normalizedMode] = {
+          query: searchInput?.value || "",
+          page: Math.max(1, Number(currentPage) || 1),
+          categories: [...selectedCategories],
+          states: [...selectedStates],
+          organizationCities: [...selectedOrganizationCities],
+          sources: [...selectedSources],
+          qualities: [...selectedQualities],
+          missingFields: [...selectedMissingFields],
+          updatedRanges: [...selectedUpdatedRanges]
+        };
+      }
+
+      function restorePatientModeState(mode = activePatientMode) {
+        const normalizedMode = normalizePatientMode(mode);
+        const state = patientStateByMode[normalizedMode] || emptyPatientModeState();
+        if (searchInput) searchInput.value = state.query || "";
+        currentPage = Math.max(1, Number(state.page) || 1);
+        selectedCategories = [...(state.categories || [])];
+        selectedStates = [...(state.states || [])];
+        selectedOrganizationCities = [...(state.organizationCities || [])];
+        selectedSources = [...(state.sources || [])];
+        selectedQualities = [...(state.qualities || [])];
+        selectedMissingFields = [...(state.missingFields || [])];
+        selectedUpdatedRanges = [...(state.updatedRanges || [])];
+        pendingFilterDraft = null;
+        syncSearchClearButton();
+      }
+
+      function resetPatientModeState(mode = "people") {
+        const normalizedMode = normalizePatientMode(mode);
+        patientStateByMode[normalizedMode] = emptyPatientModeState();
+      }
+
+      function activatePatientMode(mode = "people", { updateRoute = false, replaceRoute = false } = {}) {
+        const normalizedMode = normalizePatientMode(mode);
+        if (activeView === "patients" && normalizedMode !== activePatientMode) {
+          capturePatientModeState(activePatientMode);
+        }
+        activePatientMode = normalizedMode;
+        restorePatientModeState(normalizedMode);
+        activePatientPersonId = null;
+        activePatientOrganizationId = null;
+        closeDetail();
+        if (updateRoute && activeView === "patients") {
+          updateRouteHash("patients", { replace: replaceRoute });
+        }
+      }
+
       function activeExpertContactsTotal() {
         return expertContacts.filter((contact) => contact.status !== "archived").length;
       }
@@ -6751,7 +6856,15 @@
       }
 
       function patientOrganizationLocation(organization) {
-        return meaningfulOrEmpty(organization.city);
+        return [meaningfulOrEmpty(organization.postalCode), meaningfulOrEmpty(organization.city)].filter(Boolean).join(" ");
+      }
+
+      function patientOrganizationTypeLabel(organization = {}) {
+        const rawType = meaningfulOrEmpty(organization.organizationType || organization.organization_type);
+        const normalized = rawType.toLowerCase();
+        if (["association", "verband", "patient association", "patient-association"].includes(normalized)) return "Verband";
+        if (["self-help", "self help", "selbsthilfe"].includes(normalized)) return "Selbsthilfeorganisation";
+        return rawType || "Patientenorganisation";
       }
 
       function patientPersonOrganization(person) {
@@ -7565,19 +7678,19 @@
       function renderPatientTablesVisibility() {
         if (appShell) appShell.dataset.patientMode = activePatientMode;
         const counts = {
-          people: filteredPatientPeople().length,
-          organizations: filteredPatientOrganizations().length,
-          indications: filteredPatientIndications().length
+          people: activePatientPeopleTotal(),
+          organizations: activePatientOrganizationsTotal(),
+          indications: activePatientIndicationsTotal()
         };
         const labels = {
           people: "Personen",
-          organizations: "Organisationen",
+          organizations: "Patientenorganisationen & Verbände",
           indications: "Indikationen"
         };
         patientModeButtons.forEach((button) => {
-          const mode = button.dataset.patientMode || "organizations";
+          const mode = button.dataset.patientMode || "people";
           const active = mode === activePatientMode;
-          const label = labels[mode] || "Organisationen";
+          const label = labels[mode] || "Personen";
           const count = counts[mode] || 0;
           button.replaceChildren();
           const labelNode = document.createElement("span");
@@ -7619,6 +7732,7 @@
         if (key === "role") return `<div class="contact-subline contact-subline--primary">${escapeHtml(person.role || "-")}</div>`;
         if (key === "location") return `<div class="contact-subline contact-subline--primary">${escapeHtml(patientPersonLocation(person) || "-")}</div>`;
         if (key === "state") return `<div class="contact-subline contact-subline--primary">${escapeHtml(person.state || organization?.state || "-")}</div>`;
+        if (key === "updated") return `<span class="contact-date">${escapeHtml(formatDateLabel(person.updatedAt || person.createdAt) || "-")}</span>`;
         if (key === "source") return `<div class="contact-subline contact-subline--primary">${escapeHtml(meaningfulOrEmpty(person.source) || "-")}</div>`;
         return "";
       }
@@ -7640,7 +7754,7 @@
         renderColumnMenu();
         if (!items.length) {
           renderPatientPeopleTableHead(columns);
-          patientPeopleList.innerHTML = `<div class="empty">Noch keine Patienten-Personen hinterlegt. Echte Personen erscheinen hier, sobald sie aus Patientenverbänden gepflegt oder importiert wurden.</div>`;
+          patientPeopleList.innerHTML = `<div class="empty">Keine Personen gefunden. Passe Suche oder Filter an oder lege eine neue Patientenvertretung an.</div>`;
           patientPaginationMeta.textContent = "0-0 von 0 Personen";
           patientPagination.innerHTML = "";
           return;
@@ -7723,6 +7837,7 @@
             </div>
           `;
         }
+        if (key === "organizationType") return `<div class="contact-subline contact-subline--primary">${escapeHtml(patientOrganizationTypeLabel(organization))}</div>`;
         if (key === "sector") return patientIndicationBadgeMarkup(organization.sector);
         if (key === "people") {
           const peopleCount = patientOrganizationPeople(organization).length;
@@ -7730,6 +7845,7 @@
             ? `<button class="organization-contact-link" type="button" data-open-patient-organization-people="${escapeHtml(organization.id)}" aria-label="${escapeHtml(`${peopleCount} ${peopleCount === 1 ? "Kontakt" : "Kontakte"} von ${organization.name} anzeigen`)}">${peopleCount} ${peopleCount === 1 ? "Kontakt" : "Kontakte"}</button>`
             : `<span class="contact-subline contact-subline--muted">Keine Kontakte</span>`;
         }
+        if (key === "memberCount") return `<div class="contact-subline contact-subline--primary">${escapeHtml(stakeholderMemberCountLabel(organization))}</div>`;
         if (key === "location") return `<div class="contact-subline contact-subline--primary">${escapeHtml(patientOrganizationLocation(organization) || "-")}</div>`;
         if (key === "state") return `<div class="contact-subline contact-subline--primary">${escapeHtml(organization.state || "-")}</div>`;
         if (key === "updated") return `<span class="contact-date">${escapeHtml(formatDateLabel(organization.updatedAt || organization.createdAt) || "-")}</span>`;
@@ -7762,13 +7878,13 @@
         renderColumnMenu();
         if (!items.length) {
           renderPatientOrganizationsTableHead(columns);
-          patientOrganizationList.innerHTML = `<div class="empty">Noch keine Patientenorganisationen in diesem Modul sichtbar.</div>`;
-          patientPaginationMeta.textContent = "0-0 von 0 Organisationen";
+          patientOrganizationList.innerHTML = `<div class="empty">Keine Patientenorganisationen oder Verbände gefunden.</div>`;
+          patientPaginationMeta.textContent = "0-0 von 0 Organisationen und Verbänden";
           patientPagination.innerHTML = "";
           return;
         }
         const { totalPages, startIndex, endIndex, pageItems } = paginatedItems(items);
-        patientPaginationMeta.textContent = `${startIndex + 1}-${endIndex} von ${items.length} Organisationen`;
+        patientPaginationMeta.textContent = `${startIndex + 1}-${endIndex} von ${items.length} Organisationen und Verbänden`;
         renderPatientOrganizationsTableHead(columns);
         patientOrganizationList.innerHTML = pageItems
           .map((organization) => {
@@ -7779,7 +7895,8 @@
                   <div class="cell--organization">${patientOrganizationTableCellMarkup(organization, "organization")}</div>
                   <div class="organization-mobile-meta">
                     <span class="organization-mobile-sector">${patientIndicationBadgeMarkup(organization.sector)}</span>
-                    <span class="organization-mobile-state">${escapeHtml(organization.state || "-")}</span>
+                    <span class="organization-mobile-state">${escapeHtml(patientOrganizationTypeLabel(organization))}</span>
+                    <span class="organization-mobile-state">${escapeHtml(patientOrganizationLocation(organization) || organization.state || "-")}</span>
                     <span class="organization-mobile-state">${peopleCount} ${peopleCount === 1 ? "Kontakt" : "Kontakte"}</span>
                   </div>
                 </article>
@@ -7823,10 +7940,12 @@
             event.stopPropagation();
             const organization = patientOrganizations.find((item) => item.id === button.dataset.openPatientOrganizationPeople);
             if (!organization) return;
-            activePatientMode = "people";
-            searchInput.value = organization.name;
-            currentPage = 1;
-            closeDetail();
+            capturePatientModeState("organizations");
+            patientStateByMode.people = {
+              ...emptyPatientModeState(),
+              query: organization.name
+            };
+            activatePatientMode("people", { updateRoute: true });
             updateView();
           });
         });
@@ -7844,32 +7963,46 @@
         });
       }
 
+      function renderPatientIndicationsTableHead() {
+        if (!patientIndicationsTableHead) return;
+        patientIndicationsTableHead.innerHTML = [
+          '<div class="cell--indication"><span class="column-head__label">Indikation</span></div>',
+          '<div class="cell--description"><span class="column-head__label">Kurzbeschreibung</span></div>',
+          '<div class="cell--organizations"><span class="column-head__label">Organisationen / Verbände</span></div>',
+          '<div class="cell--people"><span class="column-head__label">Personen</span></div>'
+        ].join("");
+      }
+
       function renderPatientIndicationsPanel(items) {
-        if (!patientIndicationsList || !patientPagination || !patientPaginationMeta) return;
+        if (!patientIndicationsTable || !patientIndicationsList || !patientPagination || !patientPaginationMeta) return;
         activePatientMode = "indications";
         renderPatientTablesVisibility();
+        renderPatientIndicationsTableHead();
         if (!items.length) {
           patientIndicationsList.innerHTML = `<div class="empty">Keine Indikationen gefunden.</div>`;
-          patientPaginationMeta.textContent = "0 von 0 Indikationen";
+          patientPaginationMeta.textContent = "0-0 von 0 Indikationen";
           patientPagination.innerHTML = "";
           return;
         }
-        patientIndicationsList.innerHTML = items
+        const { totalPages, startIndex, endIndex, pageItems } = paginatedItems(items);
+        patientIndicationsList.innerHTML = pageItems
           .map((indication) => `
-            <article class="patient-indication-card" data-patient-indication-card="${escapeHtml(indication.name)}" style="${patientIndicationBadgeStyle(indication.name)}">
-              <div class="patient-indication-card__head">
-                <div class="patient-indication-card__title">
+            <article class="row patient-indication-row" data-patient-indication-row="${escapeHtml(indication.name)}" style="${patientIndicationBadgeStyle(indication.name)}">
+              <div class="cell--indication" data-patient-indication-field="indication">
+                <div class="patient-indication-table-title">
                   ${patientIndicationIconMarkup(indication.name)}
-                  <h3>${escapeHtml(indication.name)}</h3>
+                  <strong>${escapeHtml(indication.name)}</strong>
                 </div>
               </div>
-              <p>${escapeHtml(indication.description)}</p>
-              <div class="patient-indication-card__actions" aria-label="Zugeordnete Einträge">
+              <div class="cell--description patient-indication-description" data-patient-indication-field="description">${escapeHtml(indication.description)}</div>
+              <div class="cell--organizations" data-patient-indication-field="organizations">
                 <button class="patient-indication-result" type="button" data-open-patient-indication="organizations" data-patient-indication-name="${escapeHtml(indication.name)}" ${indication.organizationCount ? "" : "disabled"}>
                   <strong>${escapeHtml(indication.organizationCount)}</strong>
-                  <span>${indication.organizationCount === 1 ? "Organisation" : "Organisationen"}</span>
+                  <span>${indication.organizationCount === 1 ? "Organisation / Verband" : "Organisationen / Verbände"}</span>
                   <span aria-hidden="true">→</span>
                 </button>
+              </div>
+              <div class="cell--people" data-patient-indication-field="people">
                 <button class="patient-indication-result" type="button" data-open-patient-indication="people" data-patient-indication-name="${escapeHtml(indication.name)}" ${indication.personCount ? "" : "disabled"}>
                   <strong>${escapeHtml(indication.personCount)}</strong>
                   <span>${indication.personCount === 1 ? "Person" : "Personen"}</span>
@@ -7884,18 +8017,36 @@
             const indicationName = button.dataset.patientIndicationName || "";
             const nextMode = button.dataset.openPatientIndication === "people" ? "people" : "organizations";
             if (!indicationName) return;
-            selectedCategories = [indicationName];
-            selectedStates = [];
-            selectedOrganizationCities = [];
-            searchInput.value = "";
-            activePatientMode = nextMode;
-            currentPage = 1;
-            closeDetail();
+            capturePatientModeState("indications");
+            patientStateByMode[nextMode] = {
+              ...emptyPatientModeState(),
+              categories: [indicationName]
+            };
+            activatePatientMode(nextMode, { updateRoute: true });
             updateView();
           });
         });
-        patientPaginationMeta.textContent = `${items.length} von ${activePatientIndicationsTotal()} Indikationen`;
-        patientPagination.innerHTML = "";
+        patientPaginationMeta.textContent = `${startIndex + 1}-${endIndex} von ${items.length} Indikationen`;
+        patientPagination.innerHTML = [
+          `<button class="pagination-button" type="button" data-patient-indication-page-nav="prev" ${currentPage === 1 ? "disabled" : ""} aria-label="Vorherige Seite">‹</button>`,
+          ...Array.from({ length: totalPages }, (_, index) => {
+            const page = index + 1;
+            return `<button class="pagination-button ${page === currentPage ? "is-active" : ""}" type="button" data-patient-indication-page="${page}">${page}</button>`;
+          }),
+          `<button class="pagination-button" type="button" data-patient-indication-page-nav="next" ${currentPage === totalPages ? "disabled" : ""} aria-label="Nächste Seite">›</button>`
+        ].join("");
+        patientPagination.querySelectorAll("[data-patient-indication-page]").forEach((button) => {
+          button.addEventListener("click", () => {
+            currentPage = Number(button.dataset.patientIndicationPage);
+            renderPatientIndicationsPanel(items);
+          });
+        });
+        patientPagination.querySelectorAll("[data-patient-indication-page-nav]").forEach((button) => {
+          button.addEventListener("click", () => {
+            currentPage += button.dataset.patientIndicationPageNav === "next" ? 1 : -1;
+            renderPatientIndicationsPanel(items);
+          });
+        });
       }
 
       function activeStakeholderOrganizationsTotal() {
@@ -9749,7 +9900,7 @@
             if (details.open) renderTeamOwnerContacts(details);
           });
         });
-        renderedTeamViewSignature = renderSignature;
+        renderedTeamViewSignature = teamViewRenderSignature(profiles);
       }
 
       teamSearchInput?.addEventListener("input", () => {
@@ -13525,7 +13676,7 @@
         if (activeView === "patients") {
           if (activePatientMode === "indications") return `${items.length} von ${activePatientIndicationsTotal()} Indikationen`;
           if (activePatientMode === "people") return `${items.length} von ${activePatientPeopleTotal()} Personen`;
-          return `${items.length} von ${activePatientOrganizationsTotal()} Organisationen`;
+          return `${items.length} von ${activePatientOrganizationsTotal()} Organisationen / Verbänden`;
         }
         if (activeView === "stakeholders") {
           const config = stakeholderTypeConfig();
@@ -14976,6 +15127,8 @@
         if (consentField) consentField.hidden = activeView !== "contacts";
         const themeField = filterPanel.querySelector('[data-filter-field="theme"]');
         if (themeField) themeField.hidden = isPatientsView;
+        const priorityField = filterPanel.querySelector('[data-filter-field="priority"]');
+        if (priorityField) priorityField.hidden = isPatientsView;
         const qualityField = filterPanel.querySelector('[data-filter-field="quality"]');
         if (qualityField) qualityField.hidden = !canAdministerData();
 
@@ -20161,7 +20314,7 @@
         return `
           <section class="dashboard-card hospitation-pattern-framework-reminder" data-hospitation-framework-reminder data-hospitation-framework-focus="${escapeHtml(focus)}" aria-labelledby="${escapeHtml(titleId)}">
             <div class="hospitation-pattern-framework-reminder__intro">
-              <strong id="${escapeHtml(titleId)}" role="heading" aria-level="3">Framework</strong>
+              <strong id="${escapeHtml(titleId)}">Framework</strong>
               <span>Von Beobachtung zum nächsten Schritt</span>
             </div>
             <div class="hospitation-pattern-framework-reminder__flow" role="list" aria-label="Vier Schritte des Hospitations-Frameworks">
@@ -23814,20 +23967,13 @@
         if (!root) return;
         root.querySelector("[data-observation-query]")?.addEventListener("input", (event) => {
           hospitationObservationFilters.query = event.currentTarget.value;
-          hospitationObservationSearchOpen = true;
           renderHospitationObservationsWorkbench();
           const input = hospitationObservationsWorkbench.querySelector("[data-observation-query]");
           input?.focus();
           input?.setSelectionRange(input.value.length, input.value.length);
         });
-        root.querySelector("[data-observation-search-toggle]")?.addEventListener("click", () => {
-          hospitationObservationSearchOpen = !hospitationObservationSearchOpen;
-          renderHospitationObservationsWorkbench();
-          if (hospitationObservationSearchOpen) window.requestAnimationFrame(() => hospitationObservationsWorkbench.querySelector("[data-observation-query]")?.focus());
-        });
         root.querySelector("[data-observation-search-clear]")?.addEventListener("click", () => {
           hospitationObservationFilters.query = "";
-          hospitationObservationSearchOpen = true;
           renderHospitationObservationsWorkbench();
           window.requestAnimationFrame(() => hospitationObservationsWorkbench.querySelector("[data-observation-query]")?.focus());
         });
@@ -30646,10 +30792,10 @@
           setPoliticsDisplayMode("table");
           politicsTableWrap.hidden = true;
           politicsMemberCount.textContent = "Geschützte Ansicht";
-          politicsResultsMeta.textContent = "Keine realen Personendaten in der öffentlichen Demo";
+          politicsResultsMeta.textContent = "Ausschussliste in dieser Ansicht nicht verfügbar";
           if (politicsSourceMeta) politicsSourceMeta.textContent = "Offizielle Quelle: Deutscher Bundestag";
           setPoliticsNotice(
-            "In der öffentlichen Demo werden keine realen Personendaten angezeigt. Die aktuelle Ausschussbesetzung steht in der geschützten Anwendung zur Verfügung.",
+            "Die aktuelle Ausschussbesetzung steht in der geschützten Anwendung zur Verfügung.",
             "info"
           );
           return;
@@ -38187,6 +38333,7 @@
         if (String(routeView).startsWith("person/")) return routeView;
         if (routeView === "organizationProfile") return organizationProfileRoute();
         if (String(routeView).startsWith("organization/")) return routeView;
+        if (routeView === "patients") return `patients?view=${normalizePatientMode(activePatientMode)}`;
         if (routeView === "hospitations" || String(routeView).startsWith("hospitations:")) {
           return hospitationRouteForTab(String(routeView).split(":")[1] || activeHospitationTab);
         }
@@ -38281,6 +38428,9 @@
         if (requestedView !== view) updateRouteHash(view, { replace: true });
         const previousView = activeView;
         const viewChanged = activeView !== view;
+        if (viewChanged && previousView === "patients") {
+          capturePatientModeState(activePatientMode);
+        }
         if (viewChanged) currentPage = 1;
         if (viewChanged && detailDrawer?.classList.contains("is-open")) {
           closeDetail();
@@ -40353,6 +40503,7 @@
               const sortControl = cell.querySelector("[aria-sort]");
               if (sortControl) {
                 cell.setAttribute("aria-sort", sortControl.getAttribute("aria-sort"));
+                sortControl.removeAttribute("aria-sort");
               } else {
                 cell.removeAttribute("aria-sort");
               }
@@ -41238,12 +41389,7 @@
             }
             return;
           }
-          if (targetView === "patients") {
-            activePatientMode = "indications";
-            selectedCategories = [];
-            selectedStates = [];
-            clearSearchInput({ update: false });
-          }
+          if (targetView === "patients") activatePatientMode("people");
           setActiveView(targetView);
           updateRouteHash(targetView);
           updateView();
@@ -41281,22 +41427,9 @@
       });
       patientModeButtons.forEach((button) => {
         button.addEventListener("click", () => {
-          const nextPatientMode = button.dataset.patientMode || "organizations";
+          const nextPatientMode = button.dataset.patientMode || "people";
           if (!["people", "organizations", "indications"].includes(nextPatientMode) || nextPatientMode === activePatientMode) return;
-          activePatientMode = nextPatientMode;
-          selectedOrganizationCities = [];
-          selectedSources = [];
-          selectedQualities = [];
-          selectedMissingFields = [];
-          selectedUpdatedRanges = [];
-          if (nextPatientMode === "indications") {
-            selectedCategories = [];
-            selectedStates = [];
-          }
-          currentPage = 1;
-          activePatientPersonId = null;
-          activePatientOrganizationId = null;
-          closeDetail();
+          activatePatientMode(nextPatientMode, { updateRoute: true });
           updateView();
         });
       });
@@ -41614,12 +41747,6 @@
       newHospitationRequestButton?.addEventListener("click", () => openHospitationEditor("request"));
       hospitationExportButtons.forEach((button) => {
         button.addEventListener("click", () => exportHospitationDocument(button.dataset.hospitationExport === "pdf" ? "pdf" : "docx"));
-      });
-      hospitationHeaderSearchToggle?.addEventListener("click", () => {
-        const shouldOpen = !hospitationHeaderSearchVisible(activeHospitationTab) || !hospitationHeaderSearchOpen;
-        hospitationHeaderSearchOpen = shouldOpen;
-        renderViewChrome();
-        updateHospitationHeaderSearch(activeHospitationTab, { focus: shouldOpen || Boolean(searchInput?.value.trim()) });
       });
       hospitationBulkClearSelection?.addEventListener("click", () => {
         selectedHospitationEntryKeys.clear();
@@ -42618,6 +42745,17 @@
       function routeViewFromToken(routeToken = "") {
         const hashView = String(routeToken || "").replace(/^#/, "");
         activePoliticsMemberId = "";
+        const patientRoute = /^patients(?:\?(.*))?$/.exec(hashView);
+        if (patientRoute) {
+          const requestedMode = new URLSearchParams(patientRoute[1] || "").get("view") || "people";
+          const nextMode = normalizePatientMode(requestedMode);
+          if (nextMode !== activePatientMode) activatePatientMode(nextMode);
+          return "patients";
+        }
+        if (hashView === "stakeholders/patientenverbaende") {
+          if (activePatientMode !== "organizations") activatePatientMode("organizations");
+          return "patients";
+        }
         if (!hashView && isHospitationDocumentationStandalone) {
           activeHospitationTab = "appointments";
           return "hospitations";
@@ -42725,7 +42863,10 @@
           updateView();
           return;
         }
-        if (canonicalizeLegacy && CLEAN_URLS_ENABLED) {
+        const patientRouteNeedsCanonicalization = nextView === "patients" && routeToken !== routeTokenForView("patients");
+        const legacyPatientPathActive = CLEAN_URLS_ENABLED
+          && /\/stakeholder\/patientenverbaende\/?$/.test(window.location.pathname);
+        if ((canonicalizeLegacy && CLEAN_URLS_ENABLED) || patientRouteNeedsCanonicalization || legacyPatientPathActive) {
           updateRouteHash(
             activePoliticsMemberId
               ? personProfileRoute("politics", activePoliticsMemberId, { returnTo: "politics" })
@@ -43273,7 +43414,7 @@
           return;
         }
         try {
-          if (CLEAN_URLS_ENABLED || initialTargetView === "stakeholders") {
+          if (CLEAN_URLS_ENABLED || initialTargetView === "stakeholders" || initialTargetView === "patients") {
             updateRouteHash(
               activePoliticsMemberId
                 ? personProfileRoute("politics", activePoliticsMemberId, { returnTo: "politics" })

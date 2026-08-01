@@ -69,6 +69,42 @@ passwordResetBroker:
       cpu: 250m
       memory: 128Mi
 
+typo3Connector:
+  enabled: false
+  formUid: 41
+  sourceUrl: "https://www.gematik.de/mitmachen/versorgungs-netzwerk"
+  formVersion: ""
+  privacyNoticeVersion: ""
+  consentTextVersion: ""
+  bodyLimitBytes: 24000
+  clockSkewSeconds: 300
+  currentKey:
+    id: ""
+    # Verweist auf ein bestehendes Kubernetes Secret. Der Secret-Wert muss
+    # kanonisches Base64 mit mindestens 32 Byte Entropie enthalten.
+    secretName: ""
+    secretKey: "hmac-secret-base64"
+  previousKey:
+    enabled: false
+    id: ""
+    secretName: ""
+    secretKey: "hmac-secret-base64"
+  service:
+    port: 80
+    annotations: {}
+  backendConfig:
+    enabled: true
+    name: ""
+    timeoutSec: 30
+    connectionDrainingTimeoutSec: 0
+    healthCheck:
+      type: HTTP
+      requestPath: /api/readyz
+      port: 8080
+      checkIntervalSec: 15
+      timeoutSec: 5
+      healthyThreshold: 1
+      unhealthyThreshold: 3
 config:
   allowedOrigin: "https://versorgungs-kompass.example.internal"
   apiAuthMode: "oidc"

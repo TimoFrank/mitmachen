@@ -24,6 +24,7 @@ import { renderJob } from "../deploy/migration-operator/render-job.mjs";
 const root = new URL("../", import.meta.url);
 const dockerfile = readFileSync(new URL("deploy/migration-operator/Dockerfile", root), "utf8");
 const dockerignore = readFileSync(new URL("deploy/migration-operator/Dockerfile.dockerignore", root), "utf8");
+const operatorEntrypoint = readFileSync(new URL("deploy/migration-operator/operator-entrypoint.mjs", root), "utf8");
 const jobTemplate = readFileSync(new URL("deploy/migration-operator/job.template.yaml", root), "utf8");
 const operatorRunbook = readFileSync(new URL("deploy/migration-operator/README.md", root), "utf8");
 const operatorSource = readFileSync(
@@ -396,6 +397,8 @@ assert.match(jobTemplate, /CLOUD_SQL_AUTH_PROXY_CONNECT_MODE[\s\S]*value: privat
 assert.match(jobTemplate, /MIGRATION_OPERATOR_REQUIRE_EVIDENCE_ACK[\s\S]*value: "true"/u);
 assert.match(jobTemplate, /secretRef:\s+name: vk-pre-gematik-migration-environment/u);
 assert.match(jobTemplate, /secretName: vk-pre-gematik-migration-input/u);
+assert.match(jobTemplate, /app\.kubernetes\.io\/component: identity-operator/u);
+assert.doesNotMatch(jobTemplate, /optional: true/u);
 assert.doesNotMatch(jobTemplate, /service_role|postgresql:\/\/|password:/iu);
 assert.match(serviceAccount, /automountServiceAccountToken: false/u);
 assert.match(networkPolicy, /ingress: \[\]/u);

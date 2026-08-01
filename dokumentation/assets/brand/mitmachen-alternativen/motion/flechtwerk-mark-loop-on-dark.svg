@@ -1,0 +1,77 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-labelledby="fmdarkloop-title fmdarkloop-description">
+  <title id="fmdarkloop-title">#Mitmachen – Flechtwerk-Signet als ruhiger Loop für dunkle Flächen</title>
+  <desc id="fmdarkloop-description">Das vollständige weiß-grüne Hashtag ruht, löst sich kurz auf und webt sich erneut zusammen.</desc>
+  <style>
+    .fmdarkloop-mask {
+      transform: scale(1);
+      transform-box: fill-box;
+    }
+
+    .fmdarkloop-v1 { transform-origin: center top; }
+    .fmdarkloop-h1 { transform-origin: left center; }
+    .fmdarkloop-v2 { transform-origin: center bottom; }
+    .fmdarkloop-h2 { transform-origin: right center; }
+
+    @media (prefers-reduced-motion: no-preference) {
+      .fmdarkloop-v1 {
+        animation: fmdarkloop-v1-motion 4.8s cubic-bezier(.33, 0, .2, 1) infinite;
+      }
+
+      .fmdarkloop-h1 {
+        animation: fmdarkloop-h1-motion 4.8s cubic-bezier(.33, 0, .2, 1) infinite;
+      }
+
+      .fmdarkloop-v2 {
+        animation: fmdarkloop-v2-motion 4.8s cubic-bezier(.33, 0, .2, 1) infinite;
+      }
+
+      .fmdarkloop-h2 {
+        animation: fmdarkloop-h2-motion 4.8s cubic-bezier(.33, 0, .2, 1) infinite;
+      }
+    }
+
+    @keyframes fmdarkloop-v1-motion {
+      0%, 38.5% { transform: scaleY(1); }
+      49%, 53.1% { transform: scaleY(0); }
+      65.6%, 100% { transform: scaleY(1); }
+    }
+
+    @keyframes fmdarkloop-h1-motion {
+      0%, 36.5% { transform: scaleX(1); }
+      45%, 55.2% { transform: scaleX(0); }
+      67.7%, 100% { transform: scaleX(1); }
+    }
+
+    @keyframes fmdarkloop-v2-motion {
+      0%, 34.5% { transform: scaleY(1); }
+      43%, 57.3% { transform: scaleY(0); }
+      69.8%, 100% { transform: scaleY(1); }
+    }
+
+    @keyframes fmdarkloop-h2-motion {
+      0%, 32.3% { transform: scaleX(1); }
+      41%, 59.4% { transform: scaleX(0); }
+      71.9%, 100% { transform: scaleX(1); }
+    }
+  </style>
+  <defs>
+    <mask id="fmdarkloop-v1-mask" maskUnits="userSpaceOnUse" x="0" y="0" width="64" height="64">
+      <rect class="fmdarkloop-mask fmdarkloop-v1" width="64" height="64" fill="#fff"/>
+    </mask>
+    <mask id="fmdarkloop-h1-mask" maskUnits="userSpaceOnUse" x="0" y="0" width="64" height="64">
+      <rect class="fmdarkloop-mask fmdarkloop-h1" width="64" height="64" fill="#fff"/>
+    </mask>
+    <mask id="fmdarkloop-v2-mask" maskUnits="userSpaceOnUse" x="0" y="0" width="64" height="64">
+      <rect class="fmdarkloop-mask fmdarkloop-v2" width="64" height="64" fill="#fff"/>
+    </mask>
+    <mask id="fmdarkloop-h2-mask" maskUnits="userSpaceOnUse" x="0" y="0" width="64" height="64">
+      <rect class="fmdarkloop-mask fmdarkloop-h2" width="64" height="64" fill="#fff"/>
+    </mask>
+  </defs>
+  <g fill="none" stroke-width="8" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M23 8 20.2 35M18.9 47 18 56" stroke="#FFFFFF" mask="url(#fmdarkloop-v1-mask)"/>
+    <path d="M9 23.5h6.5M27.5 23.5H55" stroke="#35F28A" mask="url(#fmdarkloop-h1-mask)"/>
+    <path d="M46 8 45 17.5M43.8 29.5 41 56" stroke="#FFFFFF" mask="url(#fmdarkloop-v2-mask)"/>
+    <path d="M8 41h28M48 41h6" stroke="#35F28A" mask="url(#fmdarkloop-h2-mask)"/>
+  </g>
+</svg>

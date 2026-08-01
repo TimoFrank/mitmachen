@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-labelledby="title description">
+  <title id="title">#Mitmachen – Wachsende Idee Signet</title>
+  <desc id="description">Aus den tragenden Linien des Hashtags wachsen Blätter und Wurzeln.</desc>
+  <g fill="none" stroke-linecap="round" stroke-linejoin="round">
+    <path d="m24 12-5 43M45 12l-5 43" stroke="#00A846" stroke-width="7"/>
+    <path d="M7 25h49M6 42h49" stroke="#08164F" stroke-width="7"/>
+    <path d="m19 54-6 5m7-5 4 6m16-6-5 6m6-6 6 5" stroke="#00A846" stroke-width="3"/>
+  </g>
+  <ellipse cx="19" cy="9" rx="7" ry="4" transform="rotate(28 19 9)" fill="#35BFA1"/>
+  <ellipse cx="29" cy="8" rx="7" ry="4" transform="rotate(-31 29 8)" fill="#35F28A"/>
+  <ellipse cx="41" cy="8" rx="7" ry="4" transform="rotate(28 41 8)" fill="#35BFA1"/>
+  <ellipse cx="51" cy="9" rx="7" ry="4" transform="rotate(-31 51 9)" fill="#35F28A"/>
+</svg>

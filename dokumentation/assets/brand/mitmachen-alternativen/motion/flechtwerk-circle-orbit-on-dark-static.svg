@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" role="img" aria-labelledby="title">
+  <title id="title">#Mitmachen Flechtwerk-Signet mit offen gezeichnetem Kreis für dunkle Flächen</title>
+  <g transform="translate(20 20) scale(1.375)" fill="none" stroke-width="8" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M23 8 20.2 35M18.9 47 18 56" stroke="#FFFFFF"/>
+    <path d="M9 23.5h6.5M27.5 23.5H55" stroke="#35F28A"/>
+    <path d="M46 8 45 17.5M43.8 29.5 41 56" stroke="#FFFFFF"/>
+    <path d="M8 41h28M48 41h6" stroke="#35F28A"/>
+  </g>
+  <path
+    d="M26 106C11 94 5 75 7 55C10 28 28 10 55 6C83 2 108 15 119 39C131 64 120 94 98 109C76 124 48 123 27 109C21 105 17 100 14 95C13 91 16 89 20 92C27 98 33 102 40 105"
+    fill="none"
+    stroke="#35F28A"
+    stroke-width="3.6"
+    stroke-linecap="round"
+    stroke-linejoin="round"
+    aria-hidden="true"
+  />
+</svg>

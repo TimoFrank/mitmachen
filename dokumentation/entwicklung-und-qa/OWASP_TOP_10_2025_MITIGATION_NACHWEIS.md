@@ -3,13 +3,26 @@
 Stand: 31.07.2026
 Prüfmodus: defensiv; Repository-, Decommission-, Restore-, Archiv- und GKE-Bestandsprüfung
 Arbeitsbranch: `timo/supabase-decommission`
+
+Der eng begrenzte Supabase-Live-Härtungsnachweis vom 19. Juli 2026 bleibt als historische Evidenz erhalten; er ist keine aktuelle Betriebsfreigabe und ändert den nachfolgenden Stand vom 31. Juli nicht.
 Referenz: [OWASP Top 10:2025](https://owasp.org/Top10/2025/0x00_2025-Introduction/)
+
+> **Historischer Evidenznachweis:** Dieses Dokument hält Befunde, Mitigationen
+> und Live-Prüfungen vom 19. Juli 2026 unverändert nachvollziehbar. Seit dem
+> Repository-Decommission vom 31. Juli 2026 sind Cloud SQL/PostgreSQL und GCS
+> die einzigen Laufzeit-Datenquellen; Supabase ist kein Anwendungs- oder
+> Rückfallpfad mehr. Providerseitig verbliebene Projekte, Functions, Sessions,
+> Schlüssel oder Sicherungen werden unabhängig vom Repository operativ
+> inventarisiert und stillgelegt. Pfade zu entfernten Provider-Artefakten sind
+> historische Fundstellen und bleiben über die Git-Historie prüfbar.
 
 ## Freigabeaussage
 
 **Repository-Readiness: grün.** Alle zehn OWASP-Kategorien wurden behandelt. Die bestätigten Anwendungs- und Repository-Befunde sind entweder technisch geschlossen, in Produktion fail-closed deaktiviert oder mit einer konkreten externen Abnahmebedingung versehen.
 
 **Produktiv-/Go-live-Freigabe: noch gelb.** Der Legacy-Backend-Rückbau ist abgeschlossen: Das Supabase-Projekt ist seit 31.07.2026 pausiert (`INACTIVE`), aber nicht gelöscht; alle 5 Auth-Nutzer sind gesperrt, aktive Sessions und Refresh Tokens stehen jeweils bei 0. Supabase-Code, Edge Functions und Einmalmigrationen wurden aus dem aktiven Repository entfernt; der Live-GKE-Bestand enthält keine Supabase-Referenzen. Offen bleiben davon unabhängige Plattform- und Betriebsabnahmen für Gateway, externe Identity, Cloud SQL, Ingress und Monitoring.
+
+Die damalige Supabase-Reconciliation wurde live angewendet und ihre eng abgegrenzten DB-/Storage-Wirkungen wurden geprüft. GKE, Cloud SQL, Gateway und externe Identity waren nicht Teil dieses historischen Prüfzyklus.
 
 **Wiederanlauf und Aufbewahrung:** Der gemeinsame Restore-Test war erfolgreich. Das externe Recovery-Archiv umfasst 542 Objekte mit 14.090.082 Bytes; alle Objekte stehen unter Event-based Hold und werden nicht automatisch gelöscht. Das plattformseitige direkte Restorefenster für das pausierte Projekt beträgt 90 Tage. Das Projekt bleibt während der bis 30.09.2026 verlängerten Pilotierung pausiert; die Archive bleiben auch danach erhalten.
 
@@ -149,7 +162,7 @@ Diese Anwendungsrisiken wurden deshalb unabhängig von Autopilot mitigiert bezie
 - `[x]` Target-Frontend und API sind same-origin; GitHub Pages und Target besitzen getrennte Artefakte und Deployments.
 - `[x]` Das Pages-Artefakt enthält synthetische CRM-/Fachdaten und den allowlist-geprüften öffentlichen Bundestags-Snapshot; es besitzt keine Fach-API-, Supabase- oder Target-Identity-Konfiguration.
 - `[x]` Das Target greift fachlich nur über `/api/...` zu und besitzt keinen Browser-Supabase- oder LocalStorage-Datenfallback.
-- `[x]` Die #Mitmachen-Konzeptdemo ist technisch inert und baut keinen Request an `POST /api/network-registrations` auf; ein späterer Handler bleibt bis zur separaten Freigabe deaktiviert.
+- `[x]` Die #Mitmachen-Konzeptdemo ist technisch inert und baut keinen Intake-Request auf. Der getrennte HMAC-M2M-Handler für TYPO3 ist implementiert, durch einen exakten Pfad isoliert und bis zur separaten Freigabe standardmäßig deaktiviert.
 - `[x]` Pods sind Non-Root, ohne Privilege Escalation, ohne Capabilities und ohne Kubernetes-API-Token.
 - `[x]` Readiness prüft nicht nur den Prozess, sondern Datenbank und Identity-Bindungsschema.
 - `[x]` Sicherheitskritische Features bleiben bei fehlender Plattformstrecke deaktiviert, statt unsicher zurückzufallen.
@@ -171,7 +184,7 @@ Diese Punkte sind **keine offenen Codebefunde**, aber Release-Gates für reale U
 - [ ] **Supply Chain:** Branch Protection, Pflichtreviews, Environment-Approvals, Runnerhärtung, Signatur-/Provenance-/SBOM-Aufbewahrung und Admission/Binary Authorization nachweisen.
 - [ ] **Uploads:** falls aktiviert, Quarantäne, Malware-Scan, Re-Encoding, Metadatenentfernung, sichere Auslieferung und Retention vollständig abnehmen.
 - [ ] **Pages-Scope:** bestätigen, dass GitHub Pages weiterhin nur synthetische CRM-/Fachdaten und den kuratierten öffentlichen Bundestags-Snapshot, aber keine Target-Konfiguration, echte Sitzung oder Registrierungsannahme ausliefert; keine Annahme machen, dass Target-Header dort gelten.
-- [ ] **Registrierungsroute:** Einen realen Ersatz für die inerte Konzeptdemo und `POST /api/network-registrations` nur gemeinsam nach Route-Policy, OIDC-/IAP-Abnahme, Input-Allowlist, Idempotenz, Rate Limit, Datenschutz- und Backendausfalltests aktivieren.
+- [ ] **Registrierungsroute:** `POST /api/connectors/typo3/mitmachen-registrations` nur gemeinsam mit korrigiertem Powermail-Formular, HMAC-/Secret-Rotation, getrenntem Ingress, Input-Allowlist, Idempotenz, Rate Limit, Datenschutz- und Backendausfalltests aktivieren; die Konzeptdemo bleibt inert.
 - [ ] **Cutover:** Staging-End-to-End, Rollen-/Archiv-/Audit-Negativmatrix, Canary, Monitoringfenster, Rollback und fachliches Go/No-Go protokollieren.
 - [ ] **Alt-Credentials:** verifizieren, dass historisch dokumentierte Passwortwerte nirgends wiederverwendet werden; bei Unsicherheit rotieren.
 
@@ -201,6 +214,7 @@ Diese Punkte sind **keine offenen Codebefunde**, aber Release-Gates für reale U
 | PostgreSQL 16 | Schema, Runtime-Grants, `identity_bindings`, Kerntransaktionen und synthetischer Smoke-Test erfolgreich |
 | Legacy-Backend-Decommission | Projekt `INACTIVE`, nicht gelöscht; 5/5 Nutzer gesperrt; 0 Sessions und 0 aktive Refresh Tokens; aktive Repository- und GKE-Laufzeitpfade ohne Supabase-Referenzen |
 | Gemeinsamer Restore und Recovery-Archiv | Restore bestanden; 542 Objekte, 14.090.082 Bytes, alle event-held; Direktrestorefenster 90 Tage |
+| Historischer Supabase-Isolationstest | inaktive Identität ohne Zugriff; aktiver Viewer liest; RPC/Audit-Spoofing verweigert beziehungsweise serverseitig überschrieben; zugehörige Providerartefakte sind nur noch über die Git-Historie verfügbar |
 | Terraform 1.12.2 | `fmt -check`, isoliertes `init` und `validate` erfolgreich |
 | `git diff --check` | erfolgreich |
 

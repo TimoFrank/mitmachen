@@ -63,6 +63,12 @@ app.kubernetes.io/component: password-reset-broker
 {{- default (include "versorgungs-kompass.passwordResetBrokerFullname" .) .Values.passwordResetBroker.backendConfig.name -}}
 {{- end -}}
 
+{{- define "versorgungs-kompass.typo3ConnectorFullname" -}}
+{{- printf "%s-typo3-connector" (include "versorgungs-kompass.fullname" . | trunc 47 | trimSuffix "-") | trunc 63 | trimSuffix "-" -}}
+{{- end -}}
+{{- define "versorgungs-kompass.typo3ConnectorBackendConfigName" -}}
+{{- default (include "versorgungs-kompass.typo3ConnectorFullname" .) .Values.typo3Connector.backendConfig.name -}}
+{{- end -}}
 {{- define "versorgungs-kompass.gkeManagedCertificateName" -}}
 {{- default (printf "%s-api" (include "versorgungs-kompass.fullname" .)) .Values.gke.managedCertificate.name -}}
 {{- end -}}

@@ -17,10 +17,18 @@ Die Dokumentation ist nach Zweck gegliedert. Führende Frontend-Quellen liegen u
 
 - [Markenarchitektur](produkt-und-design/MARKENARCHITEKTUR.md)
 - [gemVST-Markenpaket](produkt-und-design/GEMVST_MARKENPAKET.md): Entscheidungsvorlage für #Mitmachen, Produktname, Module und Seitentaxonomie
+- [#Mitmachen Logo- und Markenstudie](produkt-und-design/MITMACHEN_LOGO_ALTERNATIVEN.md): 20 Signetvarianten, Flechtwerk-System, Motion-Kit und Produktionsdateien
 - [Demo und Screenshots](betrieb-und-deployment/DEMO.md)
 - [API-Vertrag](architektur/API_CONTRACT.md)
 - [Datenmodell](architektur/DATA_MODEL.md)
 - [Versorgungs-Netzwerk-Registrierung](architektur/VERSORGUNGS_NETZWERK_REGISTRIERUNG.md)
+- [TYPO3-#Mitmachen-Connector](architektur/TYPO3_MITMACHEN_CONNECTOR.md): Powermail-Mapping, HMAC-Vertrag, Installation, Betrieb und Abnahme
+
+## Rechtliches und Entscheidungsvorlagen
+
+- [Datenschutz-Entscheidungspaket](rechtliches/entscheidungsvorlage/README.md): Managementvorlage, Präsentation, Mailvorlagen und gerenderte Vorschauen
+- [Managementvorlage Datenschutz](rechtliches/ENTSCHEIDUNGSVORLAGE_VERSORGUNGSKOMPASS_DSB_MANAGEMENT.md)
+- [DSB-Mailvorlagen](rechtliches/MAILVORLAGEN_DSB_VERSORGUNGSKOMPASS.md)
 
 ## Entwicklung und Qualität
 
@@ -39,6 +47,7 @@ Die Verzeichnisse enthalten zusätzliche Architektur-, Migrations-, Betriebs- un
 - [`betrieb-und-deployment/`](betrieb-und-deployment/)
 - [`entwicklung-und-qa/`](entwicklung-und-qa/)
 - [`produkt-und-design/`](produkt-und-design/)
+- [`rechtliches/`](rechtliches/)
 
 ## Umgebungen
 

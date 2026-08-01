@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-labelledby="title description">
+  <title id="title">#Mitmachen – Pulsschlag Signet</title>
+  <desc id="description">Eine lebendige Impulslinie durchquert den Hashtag und macht Beteiligung als Puls sichtbar.</desc>
+  <g fill="none" stroke-linecap="round" stroke-linejoin="round">
+    <path d="m24 7-5 50M46 7l-5 50" stroke="#08164F" stroke-width="7"/>
+    <path d="M7 24h49" stroke="#00A846" stroke-width="6"/>
+    <path d="M6 43h11l4-8 6 15 7-23 7 16h16" stroke="#2F6FEC" stroke-width="5.5"/>
+  </g>
+  <circle cx="34" cy="27" r="3" fill="#F35B62"/>
+</svg>

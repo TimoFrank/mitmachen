@@ -1,0 +1,32 @@
+# cat=enable; type=boolean; label=Enable connector: Keep disabled until endpoint, version values, key ID, and the secret environment variable are ready
+enabled = 0
+
+# cat=transport; type=string; label=API endpoint (required, HTTPS): Full URL ending in /api/connectors/typo3/mitmachen-registrations
+endpoint =
+
+# cat=transport; type=string; label=HMAC key ID (required): Public identifier of the active shared secret
+keyId =
+
+# cat=transport; type=string; label=Secret environment variable: Name only; the base64 secret itself must never be stored in TYPO3 configuration
+secretEnvVar = MITMACHEN_TYPO3_CONNECTOR_SECRET
+
+# cat=form; type=string; label=Source URL (required, HTTPS): Public URL at which Powermail form UID 41 is presented
+sourceUrl = https://www.gematik.de/mitmachen/versorgungs-netzwerk
+
+# cat=versions; type=string; label=Form version (required): Version frozen into each outbox entry when the form is submitted
+formVersion =
+
+# cat=versions; type=string; label=Privacy notice version (required): Version frozen into each outbox entry when the notice is presented
+privacyNoticeVersion =
+
+# cat=versions; type=string; label=Optional email consent text version (required): Frozen only when mitmachen_email_einwilligung is selected
+consentTextVersion =
+
+# cat=delivery; type=int+; label=Batch size: Maximum due entries processed by one command run (1-100)
+batchSize = 25
+
+# cat=delivery; type=int+; label=Request timeout in seconds (1-30)
+requestTimeoutSeconds = 10
+
+# cat=delivery; type=int+; label=Stale lock timeout in seconds (60-3600)
+lockTimeoutSeconds = 900

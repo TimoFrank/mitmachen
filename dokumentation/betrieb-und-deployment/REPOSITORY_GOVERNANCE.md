@@ -34,7 +34,7 @@ einen PoC- oder Zielbetrieb-Deploy aus.
 
 - GitHub Pages verwendet bereits `GitHub Actions` als Source und veröffentlicht `dist/pages/` direkt.
 - Deployment-Branch ist auf `main` beschränkt.
-- Keine GCP-, Supabase-Service-Role- oder Zielbetriebs-Secrets hinterlegen.
+- Keine GCP-, Datenbank-, historischen Supabase-Service-Role- oder Zielbetriebs-Secrets hinterlegen.
 - Pages bleibt die dauerhaft getrennte, öffentliche Demo und ist kein Freigabenachweis für GKE.
 
 ## 3. GitHub Environment `pre-gematik`
@@ -47,6 +47,13 @@ einen PoC- oder Zielbetrieb-Deploy aus.
 - `prevent self-review` und `disallow admin bypass` aktivieren, wenn Tarif und Organisationsrichtlinie dies erlauben.
 
 Die frühere [persönliche Pilotentscheidung](PRE_GEMATIK_ECHTDATEN_PILOT_ENTSCHEIDUNG.md) gilt nur für die GCP-Pre-Integration. Das persönliche GCP-Projekt und persönliche Break-glass-Konto werden nicht für den gematik-PoC übernommen.
+
+### Datenplattform und Providerstilllegung
+
+- Cloud SQL/PostgreSQL ist die einzige Datenbankquelle der geschützten GCP-Anwendung; private Anwendungsobjekte liegen ausschließlich in GCS.
+- Supabase-Laufzeitcode, Schemaquellen und Provider-Migrationswerkzeuge gehören nicht mehr zum aktuellen Repository. Historische Security- und Cutover-Nachweise bleiben ausdrücklich als gekennzeichnete Evidenz erhalten.
+- Negativprüfungen gegen Browser-SDK, Projekt-URLs, Schlüssel, direkte Provider-Datenpfade und unsichere Fallbacks bleiben Teil der Repository-Gates.
+- Das Löschen von Git-Dateien ist kein Nachweis für die Abschaltung externer Ressourcen. Projekte, Datenbank, Storage, Edge Functions, Auth-Nutzer und -Sessions, Schlüssel, Webhooks, DNS-Verweise und Sicherungen werden in einem separaten, freigegebenen Betriebsvorgang inventarisiert, gesperrt beziehungsweise gelöscht und protokolliert.
 
 ## 4. gematik-PoC und Release Candidate
 

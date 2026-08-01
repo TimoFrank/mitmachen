@@ -241,6 +241,35 @@ function canonicalBinding(binding) {
   };
 }
 
+function canonicalProfileState(profile) {
+  return {
+    id: profile.id,
+    email: profile.email,
+    display_name: profile.display_name,
+    initials: profile.initials,
+    role: profile.role,
+    active: profile.active === true,
+    team: profile.team,
+    bio: profile.bio
+  };
+}
+
+function canonicalRequestState(request) {
+  const expiresAt = new Date(request.expires_at);
+  if (!Number.isFinite(expiresAt.getTime())) {
+    throw new SafeCliError("Eine Enrollment-Referenz besitzt keinen gueltigen Ablaufzeitpunkt.");
+  }
+  return {
+    request_id: String(request.request_id),
+    issuer: request.issuer,
+    subject: request.subject,
+    verified_email: request.verified_email,
+    status: request.status,
+    expires_at: expiresAt.toISOString(),
+    applied_profile_id: request.applied_profile_id ?? null
+  };
+}
+
 function sameProfile(actual, expected) {
   return actual.id === expected.id
     && actual.email.toLocaleLowerCase("en-US") === expected.email.toLocaleLowerCase("en-US")
@@ -416,6 +445,12 @@ export function buildAccessPlan(document, profileRows, requestRows, existingBind
   const currentBindings = existingBindingRows.map(canonicalBinding).sort((left, right) => (
     bindingKey(left).localeCompare(bindingKey(right))
   ));
+  const currentProfiles = profileRows.map(canonicalProfileState).sort((left, right) => (
+    left.id.localeCompare(right.id)
+  ));
+  const currentRequests = requestRows.map(canonicalRequestState).sort((left, right) => (
+    left.request_id.localeCompare(right.request_id)
+  ));
   return Object.freeze({
     profileInserts: Object.freeze(profileInserts),
     profileUpdates: Object.freeze(profileUpdates),
@@ -428,7 +463,12 @@ export function buildAccessPlan(document, profileRows, requestRows, existingBind
     enrollmentCount: canonicalDocument.enrollments.length,
     pendingRequestCount,
     unknownExistingCount,
-    currentStateFingerprint: stateFingerprint({ version: INPUT_VERSION, bindings: currentBindings }),
+    currentStateFingerprint: stateFingerprint({
+      version: INPUT_VERSION,
+      profiles: currentProfiles,
+      requests: currentRequests,
+      bindings: currentBindings
+    }),
     expectedStateFingerprint: stateFingerprint({ version: INPUT_VERSION, bindings: expectedBindings }),
     expectedBindings: Object.freeze(expectedBindings)
   });
@@ -686,6 +726,7 @@ export async function executeAccessTransaction({
   document,
   fingerprint,
   apply,
+  confirmedCurrentStateFingerprint = "",
   expectedDatabase,
   now = new Date(),
   log = console.log
@@ -739,6 +780,12 @@ export async function executeAccessTransaction({
       bindingResult.rows,
       now
     );
+
+    if (apply && confirmedCurrentStateFingerprint !== plan.currentStateFingerprint) {
+      throw new SafeCliError(
+        "Der aktuelle Testzugriffs-Zustand entspricht nicht dem bestaetigten current_state_fingerprint aus dem Preview."
+      );
+    }
 
     if (!apply) {
       await client.query("rollback");
@@ -983,6 +1030,7 @@ export function parseAccessArguments(argv) {
     confirmDatabase: "",
     confirmOperation: "",
     confirmFingerprint: "",
+    confirmCurrentStateFingerprint: "",
     confirmBindingCount: "",
     confirmEnrollmentCount: "",
     confirmActiveBindingCount: ""
@@ -993,6 +1041,7 @@ export function parseAccessArguments(argv) {
     ["--confirm-database", "confirmDatabase"],
     ["--confirm-operation", "confirmOperation"],
     ["--confirm-fingerprint", "confirmFingerprint"],
+    ["--confirm-current-state-fingerprint", "confirmCurrentStateFingerprint"],
     ["--confirm-binding-count", "confirmBindingCount"],
     ["--confirm-enrollment-count", "confirmEnrollmentCount"],
     ["--confirm-active-binding-count", "confirmActiveBindingCount"]
@@ -1016,8 +1065,10 @@ export function validateAccessConfirmations(options, document, fingerprint) {
     ...document.enrollments.map((enrollment) => enrollment.binding)
   ].filter((binding) => binding.active).length;
   if (!options.apply) {
-    if (options.allowActiveBindings) {
-      throw new SafeCliError("--allow-active-bindings ist nur mit --apply erlaubt.");
+    if (options.allowActiveBindings || options.confirmCurrentStateFingerprint) {
+      throw new SafeCliError(
+        "--allow-active-bindings und --confirm-current-state-fingerprint sind nur mit --apply erlaubt."
+      );
     }
     return;
   }
@@ -1027,6 +1078,10 @@ export function validateAccessConfirmations(options, document, fingerprint) {
     [options.confirmDatabase.length > 0, "Datenbank"],
     [options.confirmOperation === APPLY_OPERATION, "Operation"],
     [options.confirmFingerprint === fingerprint, "Fingerprint"],
+    [
+      /^sha256:[a-f0-9]{64}$/u.test(options.confirmCurrentStateFingerprint),
+      "Istzustands-Fingerprint"
+    ],
     [
       countPattern.test(options.confirmBindingCount)
         && Number(options.confirmBindingCount) === document.bindings.length + document.enrollments.length,
@@ -1059,8 +1114,9 @@ Preview:
 
 Apply erfordert zusaetzlich --apply, --confirm-environment pre-gematik,
 --confirm-database, --confirm-operation ${APPLY_OPERATION}, den Preview-Fingerprint
-sowie bestaetigte Binding-, Enrollment- und Aktiv-Zahlen. Die Verbindung kommt nur
-aus ${DATABASE_URL_ENV}; ${TARGET_FINGERPRINT_ENV} bindet sie an das gepruefte Ziel.
+sowie --confirm-current-state-fingerprint aus demselben Preview und bestaetigte
+Binding-, Enrollment- und Aktiv-Zahlen. Die Verbindung kommt nur aus
+${DATABASE_URL_ENV}; ${TARGET_FINGERPRINT_ENV} bindet sie an das gepruefte Ziel.
 Der Login muss kurzlebig sein und exklusiv ${EXPECTED_ACCESS_ADMIN_ROLE} besitzen.`;
 }
 
@@ -1135,6 +1191,7 @@ export async function main(
       document,
       fingerprint,
       apply: options.apply,
+      confirmedCurrentStateFingerprint: options.confirmCurrentStateFingerprint,
       expectedDatabase: options.confirmDatabase
     });
   } finally {

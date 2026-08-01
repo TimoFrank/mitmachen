@@ -48,7 +48,6 @@ const routeMatrix = new Map([
   ["stakeholders", "/stakeholder"],
   ["stakeholders/kv", "/stakeholder/kassenaerztliche-vereinigungen"],
   ["stakeholders/krankenkassen", "/stakeholder/krankenkassen"],
-  ["stakeholders/patientenverbaende", "/stakeholder/patientenverbaende"],
   ["stakeholders/krankenhausgesellschaften", "/stakeholder/krankenhausgesellschaften"],
   ["stakeholders/aerztliche-berufsverbaende", "/stakeholder/aerztliche-berufsverbaende"],
   ["experts", "/stakeholder/expertenkreis"],
@@ -74,6 +73,44 @@ for (const [routeToken, expectedPath] of routeMatrix) {
   assert.ok(routes.isApplicationPath(expectedPath), `${expectedPath} fehlt in der Auth-Allowlist`);
 }
 assert.equal(routes.routeTokenForPath("/onboarding"), "onboarding");
+
+for (const view of ["people", "organizations", "indications"]) {
+  assert.equal(
+    routes.urlForRouteToken(`patients?view=${view}`),
+    `/stakeholder/patienten?view=${view}`,
+    `Patientenansicht ${view} bleibt in der kanonischen URL erhalten`
+  );
+  assert.equal(
+    routes.routeTokenForPath("/stakeholder/patienten", `?view=${view}`),
+    `patients?view=${view}`,
+    `Patientenansicht ${view} bleibt beim Einlesen erhalten`
+  );
+}
+assert.equal(
+  routes.urlForRouteToken("stakeholders/patientenverbaende"),
+  "/stakeholder/patienten?view=organizations"
+);
+assert.equal(
+  routes.urlForRouteToken("stakeholders/patientenverbaende?view=people"),
+  "/stakeholder/patienten?view=organizations"
+);
+const legacyPatientOrganizationsRoute = routes.pathForRouteToken("stakeholders/patientenverbaende");
+assert.equal(legacyPatientOrganizationsRoute.path, "stakeholder/patienten");
+assert.equal(legacyPatientOrganizationsRoute.query, "view=organizations");
+assert.equal(
+  routes.routeTokenForPath("/stakeholder/patientenverbaende"),
+  "patients?view=organizations"
+);
+assert.equal(
+  routes.routeTokenForPath("/stakeholder/patientenverbaende/", "?view=people"),
+  "patients?view=organizations"
+);
+assert.equal(
+  routes.routes["stakeholders/patientenverbaende"],
+  "stakeholder/patienten",
+  "Der alte Token verweist im veröffentlichten Routenvertrag auf den kanonischen Pfad"
+);
+assert.equal(routes.isApplicationPath("/stakeholder/patientenverbaende"), true);
 
 assert.equal(
   routes.urlForRouteToken("profile-imports:onlineEntry"),
@@ -140,6 +177,10 @@ const sourceRoutes = loadRoutes({
   cleanUrls: false
 });
 assert.equal(sourceRoutes.urlForRouteToken("contacts"), "#contacts");
+assert.equal(
+  sourceRoutes.urlForRouteToken("stakeholders/patientenverbaende"),
+  "#patients?view=organizations"
+);
 assert.equal(sourceRoutes.assetUrl("../vendor/xlsx/xlsx.bundle.js"), "/frontend/vendor/xlsx/xlsx.bundle.js");
 
 const standaloneRoutes = loadRoutes({
@@ -182,6 +223,10 @@ const stakeholderLocationRegex = new RegExp(stakeholderLocationPattern[1]);
 for (const expectedPath of [...routeMatrix.values()].filter((routePath) => routePath.startsWith("/stakeholder"))) {
   assert.ok(stakeholderLocationRegex.test(expectedPath), `${expectedPath} fehlt im Nginx-Stakeholder-Routenvertrag`);
 }
+assert.ok(
+  stakeholderLocationRegex.test("/stakeholder/patientenverbaende"),
+  "Der alte Patientenverbände-Pfad fehlt als App-Shell-Alias im Nginx-Routenvertrag"
+);
 
 const personLocationPattern = nginxSource.match(/location ~ (\^\/personen[^\n]+) \{/);
 assert.ok(personLocationPattern, "Nginx-Personen-Routenvertrag fehlt.");
