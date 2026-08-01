@@ -65,16 +65,13 @@ test("Presse ist über den Stakeholder-Kompass erreichbar und lädt den geschüt
   await expect(page).toHaveURL(/#press$/);
   await expect(pressTab).toHaveAttribute("aria-current", "page");
   await expect(page.locator(PRESS_VIEW)).toBeVisible();
-  await expect(page.locator("#workspace-view-title")).not.toBeVisible();
-  await expect(page.locator("#press-page-header")).toBeVisible();
-  await expect(page.locator("#press-page-title")).toHaveText("Pressekontakte");
-  await expect(page.locator(".press-page-header__brand")).toBeVisible();
-  await expect(page.locator(".press-page-header__brand")).toHaveAttribute(
+  await expect(page.locator("#workspace-view-title")).toHaveText("Presse");
+  await expect(page.locator("#workspace-brand-image")).toBeVisible();
+  await expect(page.locator("#workspace-brand-image")).toHaveAttribute(
     "src",
     "../../public/brand/modules/stakeholder/lockup-horizontal.svg"
   );
-  await expect(page.locator(".press-page-header__brand")).toHaveAttribute("alt", "Stakeholder-Kompass");
-  expect((await page.locator(".press-page-header__brand").boundingBox()).height).toBeGreaterThanOrEqual(32);
+  await expect(page.locator("#workspace-brand-image")).toHaveAttribute("alt", "Stakeholder-Kompass");
   await expect(page.locator("#press-contact-count")).toHaveText(`${people.length} Pressekontakte`);
   await expect(page.locator(PRESS_TABLE)).toBeVisible();
   await expect(page.locator("#press-table-head > [data-press-column]")).toHaveCount(PRESS_COLUMN_KEYS.length);
@@ -273,10 +270,8 @@ test("Presse bleibt mobil ohne horizontalen Seitenoverflow und öffnet das Vollp
 
   await expect(page.locator(PRESS_VIEW)).toBeVisible();
   await expect(page.locator(PRESS_ROWS)).toHaveCount(20);
-  await expect(page.locator("#workspace-view-title")).not.toBeVisible();
-  await expect(page.locator("#press-page-header")).toBeVisible();
-  await expect(page.locator(".press-page-header__brand")).toBeVisible();
-  expect((await page.locator(".press-page-header__brand").boundingBox()).height).toBeGreaterThanOrEqual(32);
+  await expect(page.locator("#workspace-view-title")).toHaveText("Presse");
+  await expect(page.locator("#workspace-brand-image")).toBeVisible();
   await expectNoHorizontalPageOverflow(page);
 
   const firstRow = page.locator(PRESS_ROWS).first();
@@ -289,9 +284,9 @@ test("Presse bleibt mobil ohne horizontalen Seitenoverflow und öffnet das Vollp
   expect(mobileGeometry.scrollWidth).toBeLessThanOrEqual(mobileGeometry.clientWidth + 1);
   expect(mobileGeometry.gridColumns).toBe(1);
 
-  const headerBox = await page.locator("#press-page-header").boundingBox();
-  const logoBox = await page.locator(".press-page-header__brand").boundingBox();
-  const titleBox = await page.locator("#press-page-title").boundingBox();
+  const headerBox = await page.locator(".workspace-heading-row").boundingBox();
+  const logoBox = await page.locator("#workspace-brand-image").boundingBox();
+  const titleBox = await page.locator("#workspace-view-title").boundingBox();
   const searchBox = await page.locator("#search").boundingBox();
   const tableBox = await page.locator(PRESS_TABLE).boundingBox();
   expect(headerBox).not.toBeNull();
@@ -299,7 +294,7 @@ test("Presse bleibt mobil ohne horizontalen Seitenoverflow und öffnet das Vollp
   expect(titleBox).not.toBeNull();
   expect(searchBox).not.toBeNull();
   expect(tableBox).not.toBeNull();
-  expect(logoBox.y + logoBox.height).toBeLessThanOrEqual(titleBox.y + 1);
+  expect(Math.abs((logoBox.y + logoBox.height / 2) - (titleBox.y + titleBox.height / 2))).toBeLessThanOrEqual(2);
   expect(headerBox.y + headerBox.height).toBeLessThanOrEqual(searchBox.y + 1);
   expect(searchBox.y + searchBox.height).toBeLessThanOrEqual(tableBox.y + 1);
 
@@ -311,12 +306,12 @@ test("Presse bleibt mobil ohne horizontalen Seitenoverflow und öffnet das Vollp
 
   await page.setViewportSize({ width: 320, height: 844 });
   await expectNoHorizontalPageOverflow(page);
-  const compactMobileGeometry = await page.locator("#press-page-header").evaluate((header) => ({
+  const compactMobileGeometry = await page.locator(".workspace-heading-row").evaluate((header) => ({
     clientWidth: header.clientWidth,
     scrollWidth: header.scrollWidth
   }));
   expect(compactMobileGeometry.scrollWidth).toBeLessThanOrEqual(compactMobileGeometry.clientWidth + 1);
-  expect((await page.locator(".press-page-header__brand").boundingBox()).height).toBeGreaterThanOrEqual(32);
+  expect((await page.locator("#workspace-brand-image").boundingBox()).height).toBeGreaterThanOrEqual(30);
   expect(await page.locator(
     '#press-table-head [data-press-column="contactType"] .column-head__label'
   ).evaluate((label) => getComputedStyle(label, "::after").content)).toBe('"Typ"');
@@ -339,11 +334,9 @@ test("Die öffentliche Presse-Demo zeigt ausschließlich synthetische Kontakte u
   await page.goto("/dist/pages/versorgungs-kompass.html#press");
 
   await expect(page.locator(PRESS_VIEW)).toBeVisible();
-  await expect(page.locator("#press-data-notice")).toContainText(
-    "ausschließlich frei erfundene Presseorganisationen und Kontakte"
-  );
-  await expect(page.locator(".press-page-header__brand")).toBeVisible();
-  expect(await page.locator(".press-page-header__brand").evaluate((image) => image.naturalWidth)).toBeGreaterThan(0);
+  await expect(page.locator("#press-data-notice")).toBeHidden();
+  await expect(page.locator("#workspace-brand-image")).toBeVisible();
+  expect(await page.locator("#workspace-brand-image").evaluate((image) => image.naturalWidth)).toBeGreaterThan(0);
   await expect(page.locator("#press-contact-count")).toHaveText("26 Pressekontakte");
 
   await page.locator("#press-page-size-select").selectOption("100");

@@ -126,8 +126,10 @@ test("Beobachtungen nutzen geschützte Backend-Daten und eine filterbare Vollbre
   await gotoAuthenticated(page, observationRoute, { role: "admin" });
 
   const workbench = page.locator("#hospitation-observations-workbench");
-  await expect(workbench.locator(".observation-page-header")).toContainText("Beobachtungen");
-  await expect(workbench.locator("[data-observation-search-toggle]")).toBeVisible();
+  await expect(page.locator("#workspace-view-title")).toHaveText("Beobachtungen");
+  await expect(workbench.locator(".observation-page-header__copy")).toHaveCount(0);
+  await expect(workbench.locator("[data-observation-search-toggle]")).toHaveCount(0);
+  await expect(workbench.locator(".observation-header-search")).toBeVisible();
   await expect(workbench.locator("[data-observation-new]")).toBeEnabled();
   await expect(workbench.locator("[data-hospitation-data-mode-switch]")).toHaveCount(0);
   await expect(workbench.locator(".observation-table-head")).toBeVisible();
@@ -143,14 +145,32 @@ test("Beobachtungen nutzen geschützte Backend-Daten und eine filterbare Vollbre
   await expect(firstDateCell).toContainText(/\d{2}\.\d{2}\.\d{4}/);
   await expect(firstDateCell).not.toContainText("Rostock");
 
-  const searchAlignment = await workbench.evaluate((root) => {
-    const header = root.querySelector(".observation-page-header")?.getBoundingClientRect();
-    const button = root.querySelector("[data-observation-search-toggle]")?.getBoundingClientRect();
-    return header && button ? Math.abs(header.right - button.right) : Number.POSITIVE_INFINITY;
+  const toolbarGeometry = await workbench.evaluate((root) => {
+    const toolbar = root.querySelector(".observation-primary-toolbar")?.getBoundingClientRect();
+    const createButton = root.querySelector("[data-observation-new]")?.getBoundingClientRect();
+    const search = root.querySelector(".observation-header-search")?.getBoundingClientRect();
+    return toolbar && createButton && search ? {
+      mobile: matchMedia("(max-width: 760px)").matches,
+      toolbarLeft: toolbar.left,
+      toolbarRight: toolbar.right,
+      createLeft: createButton.left,
+      createRight: createButton.right,
+      createBottom: createButton.bottom,
+      searchLeft: search.left,
+      searchRight: search.right,
+      searchTop: search.top,
+      searchHeight: search.height
+    } : null;
   });
-  expect(searchAlignment).toBeLessThan(40);
-  const headingFontSize = await workbench.locator(".observation-page-header__copy strong").evaluate((element) => Number.parseFloat(getComputedStyle(element).fontSize));
-  expect(headingFontSize).toBeGreaterThan((page.viewportSize()?.width || 0) > 700 ? 20 : 14);
+  expect(toolbarGeometry).not.toBeNull();
+  expect(toolbarGeometry.searchHeight).toBeGreaterThanOrEqual(46);
+  expect(Math.abs(toolbarGeometry.createLeft - toolbarGeometry.toolbarLeft)).toBeLessThanOrEqual(1);
+  expect(Math.abs(toolbarGeometry.searchRight - toolbarGeometry.toolbarRight)).toBeLessThanOrEqual(1);
+  if (toolbarGeometry.mobile) {
+    expect(toolbarGeometry.searchTop).toBeGreaterThanOrEqual(toolbarGeometry.createBottom + 7);
+  } else {
+    expect(toolbarGeometry.searchLeft).toBeGreaterThanOrEqual(toolbarGeometry.createRight + 9);
+  }
 
   const columnsButton = workbench.getByRole("button", { name: "Spalten anpassen" });
   await expect(columnsButton).toBeVisible();
@@ -175,7 +195,6 @@ test("Beobachtungen nutzen geschützte Backend-Daten und eine filterbare Vollbre
 
   const initialRows = await workbench.locator("[data-observation-open]").count();
   expect(initialRows).toBeGreaterThan(3);
-  await workbench.locator("[data-observation-search-toggle]").click();
   await workbench.locator("[data-observation-query]").fill("Patient");
   const searchRows = await workbench.locator("[data-observation-open]").count();
   expect(searchRows).toBeGreaterThan(0);
