@@ -1225,7 +1225,6 @@
       const homeScroller = document.querySelector("[data-home-scroller]");
       const homeScrollCue = document.querySelector("[data-home-scroll-cue]");
       const homeDestinations = document.getElementById("home-destinations");
-      const homeRevealHeading = document.querySelector("[data-home-reveal-lines]");
       const topbarViewTitle = document.getElementById("topbar-view-title");
       const topbarViewMeta = document.getElementById("topbar-view-meta");
       const questionnaireForm = document.getElementById("hospitation-questionnaire-form");
@@ -1506,8 +1505,6 @@
       const careViewModes = ["contacts", "organizations", "map", "stakeholders"];
 
       let activeView = "home";
-      let homeRevealPrepared = false;
-      let homeRevealStarted = false;
       let activeSettingsTab = "imports";
       let activeProfileTab = "profile";
       let activeExpertMode = "contacts";
@@ -38084,74 +38081,6 @@
         updateRouteHash(profileRouteForTab());
       }
 
-      function prepareHomeRevealHeading() {
-        if (!homeRevealHeading || homeRevealPrepared) return;
-        const visual = homeRevealHeading.querySelector(".home-reveal-heading__visual");
-        if (!visual) return;
-        let lines = [];
-        try {
-          lines = JSON.parse(homeRevealHeading.dataset.homeRevealLines || "[]");
-        } catch (error) {
-          console.warn("Die Startseiten-Überschrift konnte nicht vorbereitet werden.", error);
-        }
-        if (!Array.isArray(lines) || !lines.some((lineText) => String(lineText || "").length > 0)) {
-          console.warn("Die Startseiten-Überschrift enthält keine animierbaren Zeilen.");
-          return;
-        }
-        let characterIndex = 0;
-        lines.forEach((lineText) => {
-          const line = document.createElement("span");
-          line.className = "home-reveal-heading__line";
-          String(lineText || "").split(" ").forEach((wordText, wordIndex) => {
-            if (wordIndex > 0) line.append(document.createTextNode(" "));
-            const wordSegments = String(wordText).split("-");
-            wordSegments.forEach((segmentText, segmentIndex) => {
-              const word = document.createElement("span");
-              word.className = "home-reveal-heading__word";
-              const renderedSegment = segmentIndex < wordSegments.length - 1 ? `${segmentText}-` : segmentText;
-              Array.from(renderedSegment).forEach((character) => {
-                const span = document.createElement("span");
-                span.className = "home-reveal-heading__char";
-                span.textContent = character;
-                span.style.animationDelay = `${220 + characterIndex * 30}ms`;
-                word.append(span);
-                characterIndex += 1;
-              });
-              line.append(word);
-              if (segmentIndex < wordSegments.length - 1) line.append(document.createElement("wbr"));
-            });
-          });
-          visual.append(line);
-        });
-        homeRevealHeading.dataset.characterCount = String(characterIndex);
-        homeRevealHeading.classList.add("is-prepared");
-        homeRevealPrepared = true;
-      }
-
-      function playHomeRevealHeading() {
-        if (!homeRevealHeading || homeRevealStarted) return;
-        prepareHomeRevealHeading();
-        if (!homeRevealPrepared) return;
-        homeRevealStarted = true;
-        const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-        if (reducedMotion) {
-          homeRevealHeading.classList.add("is-static");
-          return;
-        }
-        window.requestAnimationFrame(() => {
-          window.requestAnimationFrame(() => {
-            homeRevealHeading.classList.add("is-playing");
-          });
-        });
-        const characterCount = Number(homeRevealHeading.dataset.characterCount || "0");
-        const totalDuration = 220 + characterCount * 30 + 440;
-        window.setTimeout(() => {
-          homeRevealHeading.classList.remove("is-playing");
-          homeRevealHeading.classList.add("is-complete");
-          document.dispatchEvent(new CustomEvent("versorgungs-compass:home-reveal-complete"));
-        }, totalDuration);
-      }
-
       function scrollHomeToDestinations() {
         if (!homeScroller || !homeDestinations) return;
         const behavior = window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth";
@@ -38443,9 +38372,6 @@
         if (appShell) appShell.dataset.activeView = view;
         if (view === "home" && (viewChanged || appShell?.classList.contains("is-initializing"))) {
           resetHomeScrollPosition();
-        }
-        if (view === "home" && !appShell?.classList.contains("is-initializing")) {
-          playHomeRevealHeading();
         }
         renderViewChrome();
         renderAnalyticsModeTabs();
@@ -43370,7 +43296,6 @@
         appShell?.classList.remove("is-initializing");
         appShell?.removeAttribute("aria-busy");
         initialLoadingSkeleton?.setAttribute("aria-hidden", "true");
-        if (activeView === "home") playHomeRevealHeading();
       }
 
       renderAccountProfile(null);
