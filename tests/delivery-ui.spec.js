@@ -209,7 +209,7 @@ test("Startkarten lassen die mobile Navigation eingeklappt", async ({ page }) =>
   const shell = page.locator(".app-shell");
   const modules = [
     { module: "care", url: /#map$/, view: "map", group: "care" },
-    { module: "stakeholders", url: /#stakeholders\/kv$/, view: "stakeholders", group: "stakeholders" },
+    { module: "stakeholders", url: /#stakeholders$/, view: "stakeholderOverview", group: "stakeholders" },
     { module: "planning", url: /#framework$/, view: "framework", group: "planning" },
     { module: "formats", url: /#formats$/, view: "formats", group: "formats" }
   ];

@@ -14,6 +14,7 @@ const routeGroups = [
     ["patients", "Patienten"],
     ["politics", "Politik"],
     ["press", "Presse"],
+    ["stakeholders", "Stakeholder-Kompass"],
     ["stakeholders/kv", "Kassenärztliche Vereinigungen"],
     ["experts", "Expertenkreis"]
   ],
