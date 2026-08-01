@@ -3483,8 +3483,8 @@
 
       .map-area,
       body.embed-mode .map-area {
-        height: clamp(390px, 52dvh, 470px) !important;
-        min-height: 390px !important;
+        height: clamp(480px, 68dvh, 620px) !important;
+        min-height: 480px !important;
         flex: 0 0 auto !important;
       }
 
