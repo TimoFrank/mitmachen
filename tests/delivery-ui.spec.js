@@ -87,13 +87,13 @@ test("Desktop-Auslieferung: Pages startet direkt in der App-Startseite", async (
   ]);
   for (const name of await compassNames.all()) {
     await expect(name).toHaveCSS("animation-name", "homeCompassRotate");
-    await expect(name).toHaveCSS("animation-duration", "5s");
+    await expect(name).toHaveCSS("animation-duration", "10s");
     await expect(name).toHaveCSS("animation-iteration-count", "infinite");
   }
   await expect(compassNames.nth(0)).toHaveCSS("animation-delay", "0s");
-  await expect(compassNames.nth(1)).toHaveCSS("animation-delay", "-3.75s");
-  await expect(compassNames.nth(2)).toHaveCSS("animation-delay", "-2.5s");
-  await expect(compassNames.nth(3)).toHaveCSS("animation-delay", "-1.25s");
+  await expect(compassNames.nth(1)).toHaveCSS("animation-delay", "-7.5s");
+  await expect(compassNames.nth(2)).toHaveCSS("animation-delay", "-5s");
+  await expect(compassNames.nth(3)).toHaveCSS("animation-delay", "-2.5s");
   const nameMetrics = await compassNames.evaluateAll((nodes) => {
     const stage = nodes[0]?.closest(".home-compass-rotation__stage")?.getBoundingClientRect();
     return nodes.map((node) => {

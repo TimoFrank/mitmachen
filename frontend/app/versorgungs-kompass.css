@@ -5702,33 +5702,33 @@
         line-height: 1.16;
         white-space: nowrap;
         transform: translateY(7px);
-        animation: homeCompassRotate 5s cubic-bezier(0.22, 1, 0.36, 1) infinite both;
+        animation: homeCompassRotate 10s cubic-bezier(0.22, 1, 0.36, 1) infinite both;
         will-change: opacity, transform;
       }
 
       .home-compass-rotation__item--stakeholders {
         color: var(--module-stakeholders-strong);
-        animation-delay: -3.75s;
+        animation-delay: -7.5s;
       }
 
       .home-compass-rotation__item--planning {
         color: var(--module-planning-strong);
-        animation-delay: -2.5s;
+        animation-delay: -5s;
       }
 
       .home-compass-rotation__item--formats {
         color: var(--module-formats-strong);
-        animation-delay: -1.25s;
+        animation-delay: -2.5s;
       }
 
       @keyframes homeCompassRotate {
         0%,
-        20% {
+        21% {
           opacity: 1;
           transform: translateY(0);
         }
 
-        24% {
+        25% {
           opacity: 0;
           transform: translateY(-7px);
         }
