@@ -850,6 +850,7 @@ test("Kontakte: Liste und Filtertoolbar rendern", async ({ page }, testInfo) => 
   await expect(page.locator('[data-sidebar-section-toggle="care"]')).toHaveAttribute("aria-expanded", "true");
   const stakeholderTabOrder = await page.locator('[data-sidebar-section="stakeholders"] [data-view-tab]').evaluateAll((nodes) => nodes.map((node) => node.querySelector("span:not(.notification-count-indicator)")?.textContent.trim()));
   expect(stakeholderTabOrder).toEqual([
+    "Übersicht",
     "Patienten",
     "Politik",
     "Presse",
