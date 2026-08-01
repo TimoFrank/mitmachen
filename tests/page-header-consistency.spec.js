@@ -67,10 +67,12 @@ async function expectUnifiedHeader(page, route, title) {
     const style = getComputedStyle(headerRow);
     const titleElement = headerRow.querySelector("h1");
     const brandElement = headerRow.querySelector("[data-workspace-brand]");
+    const brandImage = brandElement?.querySelector("img");
     const titleStyle = titleElement ? getComputedStyle(titleElement) : null;
     const rowRect = headerRow.getBoundingClientRect();
     const titleRect = titleElement?.getBoundingClientRect();
     const brandRect = brandElement?.getBoundingClientRect();
+    const brandImageRect = brandImage?.getBoundingClientRect();
     return {
       borderTopWidth: style.borderTopWidth,
       backgroundImage: style.backgroundImage,
@@ -79,6 +81,7 @@ async function expectUnifiedHeader(page, route, title) {
       titleFontWeight: Number.parseInt(titleStyle?.fontWeight || "0", 10),
       titleFontSize: Number.parseFloat(titleStyle?.fontSize || "0"),
       rowHeight: rowRect.height,
+      brandImageHeight: brandImageRect?.height || 0,
       verticalCenterDelta: titleRect && brandRect
         ? Math.abs((titleRect.top + titleRect.height / 2) - (brandRect.top + brandRect.height / 2))
         : Number.POSITIVE_INFINITY,
@@ -93,6 +96,7 @@ async function expectUnifiedHeader(page, route, title) {
   expect(geometry.titleFontWeight).toBeGreaterThanOrEqual(800);
   expect(geometry.titleFontSize).toBeLessThanOrEqual(20);
   expect(geometry.rowHeight).toBeLessThanOrEqual(76);
+  expect(geometry.brandImageHeight).toBeGreaterThanOrEqual(40);
   expect(geometry.verticalCenterDelta).toBeLessThanOrEqual(2);
   expect(geometry.brandRightInset).toBeGreaterThanOrEqual(10);
   expect(geometry.brandRightInset).toBeLessThanOrEqual(18);

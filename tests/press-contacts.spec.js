@@ -311,7 +311,7 @@ test("Presse bleibt mobil ohne horizontalen Seitenoverflow und öffnet das Vollp
     scrollWidth: header.scrollWidth
   }));
   expect(compactMobileGeometry.scrollWidth).toBeLessThanOrEqual(compactMobileGeometry.clientWidth + 1);
-  expect((await page.locator("#workspace-brand-image").boundingBox()).height).toBeGreaterThanOrEqual(30);
+  expect((await page.locator("#workspace-brand-image").boundingBox()).height).toBeGreaterThanOrEqual(40);
   expect(await page.locator(
     '#press-table-head [data-press-column="contactType"] .column-head__label'
   ).evaluate((label) => getComputedStyle(label, "::after").content)).toBe('"Typ"');
