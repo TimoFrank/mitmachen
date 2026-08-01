@@ -39026,7 +39026,7 @@
         }
 
         .app-shell[data-active-view="map"] .filter-toolbar {
-          display: none;
+          display: none !important;
         }
 
         .app-shell[data-active-view="map"] .view-card--map,
