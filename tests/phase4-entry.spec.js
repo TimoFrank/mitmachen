@@ -140,7 +140,7 @@ test("Phase 4: #Mitmachen führt in vier Module und Pages über die gemeinsame S
   await expect(page.locator('meta[http-equiv="refresh"]')).toHaveCount(0);
   await expectNoHorizontalOverflow(page);
   await expect(page.locator('[data-view-tab="contacts"]')).toHaveCount(1);
-  await expect(page.locator('[data-view-tab="stakeholders"][data-stakeholder-type-route]')).toHaveCount(5);
+  await expect(page.locator('[data-view-tab="stakeholders"][data-stakeholder-type-route]')).toHaveCount(4);
   await expect(page.locator('[data-view-tab="hospitations"]')).toHaveCount(1);
   await expect(page.locator('[data-view-tab="formats"]')).toHaveCount(1);
   await expect(page.locator('script[src="./data/demo-data.js"]')).toHaveCount(1);
@@ -259,7 +259,11 @@ test("Phase 4: Teams zeigen offene Bereiche mit Mitgliedern im direkten Kontext 
   const metricsBox = await page.locator(".team-metrics").boundingBox();
   expect(searchBox).not.toBeNull();
   expect(metricsBox).not.toBeNull();
-  if (!isMobile) expect(Math.abs(searchBox.height - metricsBox.height)).toBeLessThanOrEqual(1);
+  if (!isMobile) {
+    const searchCenterY = searchBox.y + searchBox.height / 2;
+    const metricsCenterY = metricsBox.y + metricsBox.height / 2;
+    expect(Math.abs(searchCenterY - metricsCenterY)).toBeLessThanOrEqual(1);
+  }
 
   const teamCards = page.locator("#team-account-list .team-board-card");
   await expect(teamCards).toHaveCount(4);

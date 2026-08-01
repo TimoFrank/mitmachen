@@ -81,10 +81,25 @@ test("Kontaktverlauf verwirft verspätete Antworten eines zuvor geöffneten Kont
   await page.goto(`${PAGES_APP}#contacts`);
   await page.evaluate(() => {
     const originalGetContactChanges = window.dataService.getContactChanges.bind(window.dataService);
-    window.dataService.getContactChanges = async (contactId, options) => {
-      const changes = await originalGetContactChanges(contactId, options);
-      await new Promise((resolve) => window.setTimeout(resolve, contactId === "demo-contact-01" ? 250 : 10));
-      return changes;
+    let releaseContactOne;
+    const contactOneGate = new Promise((resolve) => {
+      releaseContactOne = resolve;
+    });
+    const contactOneRequests = [];
+    window.__releaseContactOneChanges = async () => {
+      releaseContactOne();
+      await Promise.all(contactOneRequests);
+      await new Promise((resolve) => window.setTimeout(resolve, 0));
+    };
+    window.dataService.getContactChanges = (contactId, options) => {
+      const request = originalGetContactChanges(contactId, options);
+      if (contactId !== "demo-contact-01") return request;
+      const heldRequest = Promise.resolve(request).then(async (changes) => {
+        await contactOneGate;
+        return changes;
+      });
+      contactOneRequests.push(heldRequest);
+      return heldRequest;
     };
   });
 
@@ -97,7 +112,7 @@ test("Kontaktverlauf verwirft verspätete Antworten eines zuvor geöffneten Kont
   await page.locator('#contact-list [data-id="demo-contact-02"]').click();
   await drawer.locator('[data-detail-tab="activity"]').click();
   await expect(drawer.locator("#history-timeline")).toContainText("Verantwortung zugeordnet");
-  await page.waitForTimeout(300);
+  await page.evaluate(() => window.__releaseContactOneChanges());
   await expect(drawer.locator("#history-timeline")).toContainText("Verantwortung zugeordnet");
   await expect(drawer.locator("#history-timeline")).not.toContainText("Kontaktdaten aktualisiert");
 });

@@ -25,7 +25,7 @@ async function openContactChannels(page, { profileId, contactId, contactName }) 
 
   const profile = page.locator("#person-profile-body");
   await expect(profile).toBeVisible();
-  await expect(profile.getByRole("heading", { level: 3, name: contactName })).toBeVisible();
+  await expect(page.locator("#workspace-view-title")).toHaveText(contactName);
 
   const contactPanel = profile.locator("#detail-contactways");
   await expect(contactPanel).toBeVisible();
@@ -85,7 +85,7 @@ test.describe("GitHub-Pages-Demo: Owner-Sichtbarkeit der Kontaktkanäle", () => 
 
     const profile = page.locator("#person-profile-body");
     await expect(profile).toBeVisible();
-    await expect(profile.getByRole("heading", { level: 3, name: EHC_ONLY_NAME })).toBeVisible();
+    await expect(page.locator("#workspace-view-title")).toHaveText(EHC_ONLY_NAME);
     await expect(profile.locator(".ehc-profile-badge")).toHaveCount(0);
     await expect(profile.locator(".consent-scope-summary")).toContainText("#Mitmachen-Nachrichten erlaubt");
     await expect(profile.locator('[data-consent-signal="ehc"]')).toContainText("Freigegeben");
@@ -103,7 +103,7 @@ test.describe("GitHub-Pages-Demo: Owner-Sichtbarkeit der Kontaktkanäle", () => 
 
     const profile = page.locator("#person-profile-body");
     await expect(profile).toBeVisible();
-    await expect(profile.getByRole("heading", { level: 3, name: EHC_ONLY_NAME })).toBeVisible();
+    await expect(page.locator("#workspace-view-title")).toHaveText(EHC_ONLY_NAME);
     await expect(profile.locator(".ehc-profile-badge")).toHaveCount(0);
     await expect(profile.locator(".consent-scope-summary")).toContainText("#Mitmachen-Nachrichten erlaubt");
     await expect(profile.locator('[data-consent-signal="ehc"]')).toContainText("Freigegeben");

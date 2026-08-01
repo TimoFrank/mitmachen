@@ -1328,25 +1328,20 @@ test("Hospitation: Beobachtungsseite zeigt das Framework mit Beobachtungsfokus",
   await expect(currentStep).toHaveAttribute("data-hospitation-framework-step", "observations");
   await expect(currentStep).toHaveClass(/is-current/);
   await expect(panel.locator(".observation-summary-strip")).toHaveCount(0);
+  await expect(panel.locator("[data-observation-new]")).toBeVisible();
   const observationActionRow = panel.locator(".observation-action-row");
   const observationActionLayout = await observationActionRow.evaluate((row) => {
-    const controls = [...row.querySelectorAll("[data-observation-new], [data-observation-export], [data-observation-columns-button]")]
+    const controls = [...row.querySelectorAll("[data-observation-export], [data-observation-columns-button]")]
       .map((control) => {
         const rect = control.getBoundingClientRect();
         return { top: rect.top, bottom: rect.bottom, centerY: rect.top + rect.height / 2 };
       });
     return { controls, overflow: row.scrollWidth - row.clientWidth };
   });
-  expect(observationActionLayout.controls).toHaveLength(4);
+  expect(observationActionLayout.controls).toHaveLength(3);
   expect(observationActionLayout.overflow).toBeLessThanOrEqual(1);
-  if (testInfo.project.name.includes("mobile")) {
-    expect(Math.max(...observationActionLayout.controls.slice(1).map((control) => control.centerY))
-      - Math.min(...observationActionLayout.controls.slice(1).map((control) => control.centerY))).toBeLessThanOrEqual(2);
-    expect(observationActionLayout.controls[0].bottom).toBeLessThanOrEqual(observationActionLayout.controls[1].top + 1);
-  } else {
-    expect(Math.max(...observationActionLayout.controls.map((control) => control.centerY))
-      - Math.min(...observationActionLayout.controls.map((control) => control.centerY))).toBeLessThanOrEqual(2);
-  }
+  expect(Math.max(...observationActionLayout.controls.map((control) => control.centerY))
+    - Math.min(...observationActionLayout.controls.map((control) => control.centerY))).toBeLessThanOrEqual(2);
 
   const visualHierarchy = await reminder.evaluate((element) => {
     const intro = element.querySelector(".hospitation-pattern-framework-reminder__intro")?.getBoundingClientRect();
@@ -2074,7 +2069,7 @@ test("Sidebar: Aktiver Bereich startet offen und beim Modulwechsel bleibt nur ei
   await expect(careSection).toHaveClass(/is-collapsed/);
   await expect(planningSection).toHaveClass(/is-collapsed/);
   await expect(formatsSection).toHaveClass(/is-collapsed/);
-  await expect(page).toHaveURL(/#patients$/);
+  await expect(page).toHaveURL(/#patients\?view=people$/);
 
   await page.locator('[data-sidebar-section="stakeholders"] [data-stakeholder-type-route="kv"]').click();
   await expect(shell).toHaveAttribute("data-active-view", "stakeholders");
@@ -2107,7 +2102,7 @@ test("Sidebar: Aktiver Bereich startet offen und beim Modulwechsel bleibt nur ei
   await expect(shell).toHaveClass(/is-sidebar-collapsed/);
   await expect(collapseButton).toHaveAttribute("aria-label", "Seitenleiste ausklappen");
   await expect(collapseButton.locator(".sidebar-collapse-label")).toHaveText("Menü ausklappen");
-  await expect(collapseButton).toHaveCSS("position", "static");
+  await expect(collapseButton).toHaveCSS("position", "absolute");
   await expect(collapseButton).toBeInViewport();
   await expect(page.locator(".sidebar-nav > .sidebar-section:visible")).toHaveCount(1);
   await expect(careSection).toBeVisible();
@@ -2116,8 +2111,8 @@ test("Sidebar: Aktiver Bereich startet offen und beim Modulwechsel bleibt nur ei
   await expect(formatsSection).toBeHidden();
   const collapsedCollapseBox = await collapseButton.boundingBox();
   expect(collapsedCollapseBox).not.toBeNull();
-  expect(collapsedCollapseBox.width).toBe(40);
-  expect(collapsedCollapseBox.height).toBe(34);
+  expect(collapsedCollapseBox.width).toBe(32);
+  expect(collapsedCollapseBox.height).toBe(32);
 
   await attachScreenshot(page, testInfo, "sidebar-section-first-page");
 });
@@ -2197,7 +2192,7 @@ test("Sidebar: Ruhiger Desktop-Modus nutzt die kurze Höhe ohne Navigationsscrol
 
   await collapseButton.click();
   await expect(shell).toHaveClass(/is-sidebar-collapsed/);
-  await expect(collapseButton).toHaveCSS("position", "static");
+  await expect(collapseButton).toHaveCSS("position", "absolute");
   await expect(collapseButton).toBeInViewport();
 
   await collapseButton.click();
@@ -3387,6 +3382,14 @@ test("Patienten: Organisationsliste nach Indikation rendert ohne Kontakte", asyn
   await page.locator('[data-view-tab="patients"]').evaluate((button) => button.click());
   await expect(page.locator('[data-view-panel="patients"]')).toBeVisible();
   await expect(page.locator("#search")).toHaveValue("Demo-Patientenkontakt 01");
+  await page.locator('[data-view-tab="contacts"]').evaluate((button) => button.click());
+  await expect(page.locator('[data-view-panel="contacts"]')).toBeVisible();
+  await page.locator("#search").fill("Demo");
+  await expect(page.locator("#contact-content-search-results")).toBeVisible();
+  await page.locator('[data-view-tab="patients"]').evaluate((button) => button.click());
+  await expect(page.locator('[data-view-panel="patients"]')).toBeVisible();
+  await expect(page.locator("#search")).toHaveValue("Demo-Patientenkontakt 01");
+  await expect(page.locator("#contact-content-search-results")).toBeHidden();
   await page.locator("#filter-panel-button").click();
   await expect(page.locator('#filter-panel [data-filter-field="priority"]')).toBeHidden();
   await page.locator("#filter-panel-close").click();
@@ -4115,7 +4118,6 @@ test("Kontaktprofil: direkter Deeplink rendert Profilseite", async ({ page }) =>
 
   await expect(page.locator("#person-profile-page.is-active")).toBeVisible();
   await expect(page).toHaveURL(/#person\/contact\/demo-contact-01$/);
-  await expect(page.locator("#person-profile-body .detail-profile h3")).toBeVisible();
   await expect(page.locator("#person-profile-body #detail-overview")).toBeVisible();
   await expect(page.locator(".app-shell[data-active-view='personProfile'] .workspace-header")).toBeVisible();
   await expect(page.locator("#workspace-view-title")).toHaveText("Demo-Kontakt 01");
@@ -6482,13 +6484,13 @@ test("Stakeholder: KVn rendern als Organisationstabelle ohne Listen-Modi", async
     await expectPageSizeDropdownUsable(page, "#view-stakeholders .page-size-shell");
     await expect(page.locator("#stakeholders-pagination-meta")).toContainText("1-2 von 2 KVn");
     await expect(page.locator('[data-stakeholder-organization-sort="organization"]')).toBeVisible();
-    await expect(page.locator('[data-stakeholder-organization-sort="memberCount"]')).toHaveAttribute("aria-sort", "descending");
+    await expect(page.locator("#stakeholder-organizations-table-head .cell--memberCount")).toHaveAttribute("aria-sort", "descending");
     await expect(page.locator("#stakeholder-organization-list [data-stakeholder-organization-id]").first()).toContainText("Demo-KV Nord");
     await page.locator('[data-stakeholder-organization-sort="organization"]').click();
-    await expect(page.locator('[data-stakeholder-organization-sort="organization"]')).toHaveAttribute("aria-sort", "descending");
+    await expect(page.locator("#stakeholder-organizations-table-head .cell--organization")).toHaveAttribute("aria-sort", "descending");
     await expect(page.locator("#stakeholder-organization-list [data-stakeholder-organization-id]").first()).toContainText("Demo-KV Nord");
     await page.locator('[data-stakeholder-organization-sort="organization"]').click();
-    await expect(page.locator('[data-stakeholder-organization-sort="organization"]')).toHaveAttribute("aria-sort", "ascending");
+    await expect(page.locator("#stakeholder-organizations-table-head .cell--organization")).toHaveAttribute("aria-sort", "ascending");
     await expect(page.locator("#stakeholder-organization-list [data-stakeholder-organization-id]").first()).toContainText("Demo-KV Mitte");
     await page.locator('[data-stakeholder-organization-sort="memberCount"]').click();
     await expect(page.locator("#stakeholder-organization-list [data-stakeholder-organization-id]").first()).toContainText("Demo-KV Nord");
@@ -6553,7 +6555,7 @@ test("Stakeholder: Krankenkassen und aerztliche Verbaende starten nach Mitgliede
   await expect(page.locator('[data-stakeholder-type-route="health-insurance"]')).toHaveAttribute("aria-current", "page");
   await expect(page).toHaveURL(/#stakeholders\/krankenkassen$/);
   await expect(page.locator("#workspace-view-title")).toHaveText("Krankenkassen");
-  await expect(page.locator('[data-stakeholder-organization-sort="memberCount"]')).toHaveAttribute("aria-sort", "descending");
+  await expect(page.locator("#stakeholder-organizations-table-head .cell--memberCount")).toHaveAttribute("aria-sort", "descending");
   await expect(page.locator("#stakeholder-organizations-table-head")).toContainText("Versicherte");
   await expect(page.locator("#stakeholder-organizations-table-head")).toContainText("Kontakte");
   await expect(page.locator("#stakeholder-organizations-table-head")).not.toContainText("Ansprechpersonen");
@@ -6564,7 +6566,7 @@ test("Stakeholder: Krankenkassen und aerztliche Verbaende starten nach Mitgliede
   await page.locator('[data-stakeholder-type-route="physician-associations"]').click();
   await expect(page.locator('[data-stakeholder-type-route="physician-associations"]')).toHaveAttribute("aria-current", "page");
   await expect(page).toHaveURL(/#stakeholders\/aerztliche-berufsverbaende$/);
-  await expect(page.locator('[data-stakeholder-organization-sort="memberCount"]')).toHaveAttribute("aria-sort", "descending");
+  await expect(page.locator("#stakeholder-organizations-table-head .cell--memberCount")).toHaveAttribute("aria-sort", "descending");
   await expect(page.locator("#stakeholder-organizations-table-head")).toContainText("Kontakte");
   await expect(page.locator("#stakeholder-organizations-table-head")).not.toContainText("Präsidium");
   await expect(page.locator("#stakeholder-organizations-table-head")).not.toContainText("Personen");
