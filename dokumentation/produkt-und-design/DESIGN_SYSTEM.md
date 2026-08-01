@@ -16,6 +16,21 @@ Der Versorgungs-Kompass ist eine operative CRM-App. Das Designsystem priorisiert
 - `--text-primary: #17275f`, `--text-secondary: #334155`, `--text-muted: #64748b`.
 - Status: `--success: #16a34a`, `--warning: #b7791f`, `--danger: #dc2626`, `--info: #2563eb`.
 
+### Stakeholder-Gruppen
+
+Die Stakeholder-Übersicht nutzt eine feste, kontrastgeprüfte Kategoriepalette aus jeweils einem hellen Hintergrund-, einem Rand- und einem starken Iconfarbton:
+
+- Patienten: `--stakeholder-patients-*`
+- Politik: `--stakeholder-politics-*`
+- Presse: `--stakeholder-press-*`
+- Kassenärztliche Vereinigungen: `--stakeholder-kv-*`
+- Krankenkassen: `--stakeholder-insurance-*`
+- Krankenhausgesellschaften: `--stakeholder-hospitals-*`
+- Ärztliche Berufsverbände: `--stakeholder-physicians-*`
+- Expertenkreis: `--stakeholder-experts-*`
+
+Diese Farben kennzeichnen ausschließlich die fachliche Gruppe. Größe, Abstand und Anordnung dürfen daraus keine Priorität, Nähe oder Einflussstärke ableiten. Icon und Text bleiben immer zusätzlich sichtbar, damit Farbe nie allein Information trägt.
+
 ### Regeln
 
 - Primärblau ist die einzige dominante Aktionsfarbe.

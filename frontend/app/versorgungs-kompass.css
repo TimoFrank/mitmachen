@@ -14,6 +14,30 @@
         --module-stakeholders-strong: #0f766e;
         --module-planning-strong: #a84c16;
         --module-formats-strong: #7a3e91;
+        --stakeholder-patients-bg: #fff1f2;
+        --stakeholder-patients-border: #fecdd3;
+        --stakeholder-patients-color: #be123c;
+        --stakeholder-politics-bg: #f5f3ff;
+        --stakeholder-politics-border: #ddd6fe;
+        --stakeholder-politics-color: #6d28d9;
+        --stakeholder-press-bg: #f0f9ff;
+        --stakeholder-press-border: #bae6fd;
+        --stakeholder-press-color: #0369a1;
+        --stakeholder-kv-bg: #f0fdfa;
+        --stakeholder-kv-border: #99f6e4;
+        --stakeholder-kv-color: #0f766e;
+        --stakeholder-insurance-bg: #eff6ff;
+        --stakeholder-insurance-border: #bfdbfe;
+        --stakeholder-insurance-color: #1d4ed8;
+        --stakeholder-hospitals-bg: #fff7ed;
+        --stakeholder-hospitals-border: #fed7aa;
+        --stakeholder-hospitals-color: #c2410c;
+        --stakeholder-physicians-bg: #eef2ff;
+        --stakeholder-physicians-border: #c7d2fe;
+        --stakeholder-physicians-color: #4338ca;
+        --stakeholder-experts-bg: #f7fee7;
+        --stakeholder-experts-border: #d9f99d;
+        --stakeholder-experts-color: #4d7c0f;
         --background: #f5f7fb;
         --surface: #ffffff;
         --surface-muted: #f8faff;
@@ -43772,5 +43796,443 @@
 
         #view-hospitations .hospitation-table-toolbar .hospitation-view-toggle button {
           min-height: 44px;
+        }
+      }
+
+      /* Stakeholder-Kompass · gleichrangige Übersicht als NHS-inspirierte Kreislandschaft. */
+      .app-shell[data-active-view="stakeholderOverview"] .workspace-header {
+        grid-template-columns: minmax(0, 1fr);
+        align-items: start;
+      }
+
+      .stakeholder-overview-workspace {
+        overflow: hidden;
+        background: var(--surface);
+        box-shadow: none;
+      }
+
+      .stakeholder-overview-intro {
+        display: flex;
+        min-width: 0;
+        align-items: center;
+        justify-content: space-between;
+        gap: 16px;
+        padding: 14px var(--card-padding);
+        border-bottom: 1px solid var(--border);
+      }
+
+      .stakeholder-overview-intro > div {
+        display: grid;
+        min-width: 0;
+        gap: 3px;
+      }
+
+      .stakeholder-overview-kicker {
+        color: var(--module-stakeholders-strong);
+        font-size: var(--font-size-xs);
+        font-weight: 800;
+        letter-spacing: 0.05em;
+        text-transform: uppercase;
+      }
+
+      .stakeholder-overview-intro p,
+      .stakeholder-overview-note {
+        margin: 0;
+        color: var(--text-secondary);
+        font-size: var(--font-size-sm);
+        line-height: var(--line-height-normal);
+      }
+
+      .stakeholder-overview-equality,
+      .stakeholder-overview-note {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+      }
+
+      .stakeholder-overview-equality {
+        flex: 0 0 auto;
+        color: var(--text-secondary);
+        font-size: var(--font-size-xs);
+        font-weight: 750;
+        white-space: nowrap;
+      }
+
+      .stakeholder-overview-equality > span,
+      .stakeholder-overview-note > span {
+        width: 10px;
+        height: 10px;
+        flex: 0 0 auto;
+        border-radius: 50%;
+        background: rgb(var(--module-stakeholders-rgb));
+      }
+
+      .stakeholder-overview-map {
+        position: relative;
+        isolation: isolate;
+        display: grid;
+        width: min(100%, 760px);
+        aspect-ratio: 1;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        grid-template-rows: repeat(4, minmax(0, 1fr));
+        place-items: center;
+        margin: 0 auto;
+        padding: 12px;
+      }
+
+      .stakeholder-overview-ring {
+        position: absolute;
+        z-index: 0;
+        left: 50%;
+        top: 50%;
+        aspect-ratio: 1;
+        border: 1px solid rgba(var(--module-stakeholders-rgb), 0.26);
+        border-radius: 50%;
+        pointer-events: none;
+        transform: translate(-50%, -50%);
+      }
+
+      .stakeholder-overview-ring--outer {
+        width: 76%;
+        background: rgba(var(--module-stakeholders-rgb), 0.05);
+      }
+
+      .stakeholder-overview-ring--middle {
+        width: 57%;
+        background: rgba(var(--module-stakeholders-rgb), 0.065);
+      }
+
+      .stakeholder-overview-ring--inner {
+        width: 35%;
+        background: rgba(var(--module-stakeholders-rgb), 0.08);
+      }
+
+      .stakeholder-overview-node {
+        --stakeholder-node-bg: var(--surface-muted);
+        --stakeholder-node-border: var(--border-strong);
+        --stakeholder-node-color: var(--module-stakeholders-strong);
+        position: relative;
+        z-index: 2;
+        display: flex;
+        width: clamp(118px, 10vw, 144px);
+        aspect-ratio: 1;
+        align-items: center;
+        justify-content: center;
+        flex-direction: column;
+        gap: 8px;
+        padding: 12px 9px;
+        border: 2px solid var(--stakeholder-node-border);
+        border-radius: 50%;
+        background: var(--stakeholder-node-bg);
+        color: var(--text-primary);
+        text-align: center;
+        text-decoration: none;
+        transition: border-color 160ms ease, transform 160ms ease;
+      }
+
+      .stakeholder-overview-node:hover {
+        border-color: var(--stakeholder-node-color);
+        transform: translateY(-3px);
+      }
+
+      .stakeholder-overview-node:focus-visible {
+        border-color: var(--stakeholder-node-color);
+        outline: 3px solid var(--primary);
+        outline-offset: 4px;
+        transform: translateY(-3px);
+      }
+
+      .stakeholder-overview-node:active {
+        transform: translateY(-1px);
+      }
+
+      .stakeholder-overview-node__icon {
+        display: grid;
+        width: 48px;
+        height: 48px;
+        flex: 0 0 auto;
+        place-items: center;
+        border-radius: 50%;
+        background: var(--stakeholder-node-color);
+        color: var(--surface);
+      }
+
+      .stakeholder-overview-node__icon svg {
+        width: 24px;
+        height: 24px;
+      }
+
+      .stakeholder-overview-node strong {
+        max-width: 116px;
+        color: var(--text-primary);
+        font-size: var(--font-size-sm);
+        font-weight: 800;
+        hyphens: auto;
+        line-height: 1.18;
+        overflow-wrap: anywhere;
+        text-wrap: balance;
+      }
+
+      .stakeholder-overview-node--patients {
+        --stakeholder-node-bg: var(--stakeholder-patients-bg);
+        --stakeholder-node-border: var(--stakeholder-patients-border);
+        --stakeholder-node-color: var(--stakeholder-patients-color);
+        grid-column: 2;
+        grid-row: 1;
+      }
+
+      .stakeholder-overview-node--politics {
+        --stakeholder-node-bg: var(--stakeholder-politics-bg);
+        --stakeholder-node-border: var(--stakeholder-politics-border);
+        --stakeholder-node-color: var(--stakeholder-politics-color);
+        grid-column: 3;
+        grid-row: 1;
+      }
+
+      .stakeholder-overview-node--press {
+        --stakeholder-node-bg: var(--stakeholder-press-bg);
+        --stakeholder-node-border: var(--stakeholder-press-border);
+        --stakeholder-node-color: var(--stakeholder-press-color);
+        grid-column: 4;
+        grid-row: 2;
+      }
+
+      .stakeholder-overview-node--kv {
+        --stakeholder-node-bg: var(--stakeholder-kv-bg);
+        --stakeholder-node-border: var(--stakeholder-kv-border);
+        --stakeholder-node-color: var(--stakeholder-kv-color);
+        grid-column: 4;
+        grid-row: 3;
+      }
+
+      .stakeholder-overview-node--insurance {
+        --stakeholder-node-bg: var(--stakeholder-insurance-bg);
+        --stakeholder-node-border: var(--stakeholder-insurance-border);
+        --stakeholder-node-color: var(--stakeholder-insurance-color);
+        grid-column: 3;
+        grid-row: 4;
+      }
+
+      .stakeholder-overview-node--hospitals {
+        --stakeholder-node-bg: var(--stakeholder-hospitals-bg);
+        --stakeholder-node-border: var(--stakeholder-hospitals-border);
+        --stakeholder-node-color: var(--stakeholder-hospitals-color);
+        grid-column: 2;
+        grid-row: 4;
+      }
+
+      .stakeholder-overview-node--physicians {
+        --stakeholder-node-bg: var(--stakeholder-physicians-bg);
+        --stakeholder-node-border: var(--stakeholder-physicians-border);
+        --stakeholder-node-color: var(--stakeholder-physicians-color);
+        grid-column: 1;
+        grid-row: 3;
+      }
+
+      .stakeholder-overview-node--experts {
+        --stakeholder-node-bg: var(--stakeholder-experts-bg);
+        --stakeholder-node-border: var(--stakeholder-experts-border);
+        --stakeholder-node-color: var(--stakeholder-experts-color);
+        grid-column: 1;
+        grid-row: 2;
+      }
+
+      .stakeholder-overview-center {
+        z-index: 3;
+        display: grid;
+        width: clamp(164px, 15vw, 190px);
+        aspect-ratio: 1;
+        grid-column: 2 / 4;
+        grid-row: 2 / 4;
+        place-items: center;
+        align-content: center;
+        gap: 7px;
+        padding: 18px;
+        border: 6px solid rgba(var(--module-stakeholders-rgb), 0.28);
+        border-radius: 50%;
+        background: var(--surface);
+        color: var(--text-primary);
+        text-align: center;
+      }
+
+      .stakeholder-overview-center__mark {
+        display: grid;
+        width: 48px;
+        height: 48px;
+        place-items: center;
+        border-radius: 50%;
+        background: rgba(var(--module-stakeholders-rgb), 0.14);
+      }
+
+      .stakeholder-overview-center__mark img {
+        display: block;
+        width: 30px;
+        height: 30px;
+      }
+
+      .stakeholder-overview-center strong {
+        max-width: 140px;
+        color: var(--module-stakeholders-strong);
+        font-size: var(--font-size-md);
+        font-weight: 800;
+        line-height: 1.2;
+        text-wrap: balance;
+      }
+
+      .stakeholder-overview-center > span:last-child {
+        color: var(--text-muted);
+        font-size: var(--font-size-xs);
+      }
+
+      .stakeholder-overview-note {
+        width: 100%;
+        min-height: 44px;
+        justify-content: center;
+        padding: 10px var(--card-padding);
+        border-top: 1px solid var(--border);
+        box-sizing: border-box;
+        text-align: center;
+      }
+
+      @media (max-width: 980px) {
+        .stakeholder-overview-node {
+          width: clamp(112px, 13vw, 128px);
+        }
+
+        .stakeholder-overview-node__icon {
+          width: 44px;
+          height: 44px;
+        }
+
+        .stakeholder-overview-node strong {
+          max-width: 106px;
+          font-size: var(--font-size-xs);
+        }
+
+        .stakeholder-overview-center {
+          width: 164px;
+        }
+      }
+
+      @media (max-width: 760px) {
+        .stakeholder-overview-intro {
+          align-items: flex-start;
+          flex-direction: column;
+          gap: 8px;
+          padding: 12px;
+        }
+
+        .stakeholder-overview-equality {
+          white-space: normal;
+        }
+
+        .stakeholder-overview-map {
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+          grid-template-rows: auto;
+          gap: 10px;
+          aspect-ratio: auto;
+          padding: 16px 12px;
+        }
+
+        .stakeholder-overview-ring {
+          top: 16px;
+          transform: translateX(-50%);
+        }
+
+        .stakeholder-overview-ring--outer {
+          width: 178px;
+        }
+
+        .stakeholder-overview-ring--middle {
+          width: 144px;
+        }
+
+        .stakeholder-overview-ring--inner {
+          width: 108px;
+        }
+
+        .stakeholder-overview-node {
+          width: min(100%, 144px);
+          grid-column: auto;
+          grid-row: auto;
+          justify-self: center;
+        }
+
+        .stakeholder-overview-center {
+          order: -1;
+          width: 154px;
+          grid-column: 1 / -1;
+          grid-row: auto;
+          justify-self: center;
+          margin-bottom: 4px;
+          padding: 14px;
+        }
+
+        .stakeholder-overview-center__mark {
+          width: 42px;
+          height: 42px;
+        }
+
+        .stakeholder-overview-note {
+          align-items: flex-start;
+          padding: 10px 12px;
+          text-align: left;
+        }
+      }
+
+      @media (max-width: 360px) {
+        .stakeholder-overview-map {
+          gap: 8px;
+          padding-inline: 8px;
+        }
+
+        .stakeholder-overview-node {
+          width: min(100%, 132px);
+          padding: 10px 7px;
+        }
+
+        .stakeholder-overview-node__icon {
+          width: 42px;
+          height: 42px;
+        }
+
+        .stakeholder-overview-node__icon svg {
+          width: 21px;
+          height: 21px;
+        }
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        .stakeholder-overview-node {
+          transition: none;
+        }
+
+        .stakeholder-overview-node:hover,
+        .stakeholder-overview-node:focus-visible,
+        .stakeholder-overview-node:active {
+          transform: none;
+        }
+      }
+
+      @media (forced-colors: active) {
+        .stakeholder-overview-ring {
+          border-color: CanvasText;
+          background: transparent;
+        }
+
+        .stakeholder-overview-node {
+          border-color: ButtonText;
+          background: Canvas;
+          color: ButtonText;
+          forced-color-adjust: none;
+        }
+
+        .stakeholder-overview-node__icon {
+          background: ButtonText;
+          color: ButtonFace;
+        }
+
+        .stakeholder-overview-node:focus-visible {
+          outline-color: Highlight;
         }
       }

@@ -850,6 +850,7 @@ test("Kontakte: Liste und Filtertoolbar rendern", async ({ page }, testInfo) => 
   await expect(page.locator('[data-sidebar-section-toggle="care"]')).toHaveAttribute("aria-expanded", "true");
   const stakeholderTabOrder = await page.locator('[data-sidebar-section="stakeholders"] [data-view-tab]').evaluateAll((nodes) => nodes.map((node) => node.querySelector("span:not(.notification-count-indicator)")?.textContent.trim()));
   expect(stakeholderTabOrder).toEqual([
+    "Übersicht",
     "Patienten",
     "Politik",
     "Presse",
@@ -6443,8 +6444,56 @@ test("Importe: geschützte Registrierungen lassen sich zurückstellen", async ({
   await expect(page.locator("#registrations-list .registration-row")).toHaveCount(1);
 });
 
+test("Stakeholder-Kompass: Übersicht zeigt acht gleichrangige Bereiche", async ({ page }, testInfo) => {
+  await gotoAuthenticated(page, "/frontend/app/versorgungs-kompass.html#stakeholders", { role: "viewer" });
+
+  const overview = page.locator('[data-view-panel="stakeholderOverview"]');
+  const nodes = overview.locator(".stakeholder-overview-node");
+  await expect(page.locator(".app-shell")).toHaveAttribute("data-active-view", "stakeholderOverview");
+  await expect(page).toHaveURL(/#stakeholders$/);
+  await expect(page.locator("#workspace-view-title")).toHaveText("Stakeholder-Kompass");
+  await expect(page.locator('[data-view-tab="stakeholderOverview"]')).toHaveAttribute("aria-current", "page");
+  await expect(overview).toBeVisible();
+  await expect(overview.locator(".stakeholder-overview-map")).toBeVisible();
+  await expect(nodes).toHaveCount(8);
+  await expect(nodes.locator("strong")).toHaveText([
+    "Patienten",
+    "Politik",
+    "Presse",
+    "Kassenärztliche Vereinigungen",
+    "Krankenkassen",
+    "Krankenhausgesellschaften",
+    "Ärztliche Berufsverbände",
+    "Expertenkreis"
+  ]);
+  await expect(overview.locator(".stakeholder-overview-note")).toContainText("keine Bewertung");
+  await expect(page.locator(".crm-shell > .controls")).toBeHidden();
+
+  const geometry = await nodes.evaluateAll((elements) => {
+    const rectangles = elements.map((element) => element.getBoundingClientRect());
+    return {
+      widths: rectangles.map((rectangle) => rectangle.width),
+      heights: rectangles.map((rectangle) => rectangle.height),
+      colors: elements.map((element) => getComputedStyle(element).backgroundColor),
+      overflow: Math.max(0, document.documentElement.scrollWidth - document.documentElement.clientWidth)
+    };
+  });
+  expect(Math.max(...geometry.widths) - Math.min(...geometry.widths)).toBeLessThanOrEqual(1);
+  expect(Math.max(...geometry.heights) - Math.min(...geometry.heights)).toBeLessThanOrEqual(1);
+  expect(new Set(geometry.colors).size).toBe(8);
+  expect(geometry.overflow).toBeLessThanOrEqual(1);
+
+  await attachScreenshot(page, testInfo, "stakeholder-kompass-uebersicht");
+  await overview.locator('[data-route-link="stakeholders/krankenkassen"]').click();
+  await expect(page).toHaveURL(/#stakeholders\/krankenkassen$/);
+  await expect(page.locator(".app-shell")).toHaveAttribute("data-active-view", "stakeholders");
+  await page.goBack();
+  await expect(page).toHaveURL(/#stakeholders$/);
+  await expect(overview).toBeVisible();
+});
+
 test("Stakeholder: KVn rendern als Organisationstabelle ohne Listen-Modi", async ({ page }, testInfo) => {
-  await gotoAuthenticated(page, "/frontend/app/versorgungs-kompass.html#stakeholders", { role: "admin" });
+  await gotoAuthenticated(page, "/frontend/app/versorgungs-kompass.html#stakeholders/kv", { role: "admin" });
 
   await expect(page.locator(".app-shell")).toHaveAttribute("data-active-view", "stakeholders");
   await expect(page.locator('[data-stakeholder-type-route="kv"]')).toHaveClass(/is-active/);
@@ -6665,11 +6714,12 @@ test("Stakeholder: Bereich ist im eigenen Sidebar-Abschnitt ohne obere Modus-Rei
   await gotoAuthenticated(page, "/frontend/app/versorgungs-kompass.html#stakeholders", { role: "viewer" });
 
   await expandSidebarSectionIfNeeded(page, "stakeholders");
-  await expect(page.locator(".app-shell")).toHaveAttribute("data-active-view", "stakeholders");
+  await expect(page.locator(".app-shell")).toHaveAttribute("data-active-view", "stakeholderOverview");
   await expect(page.locator('[data-sidebar-section="stakeholders"]')).toHaveCount(1);
   await expect(page.locator('[data-sidebar-section="stakeholders"]')).toHaveClass(/is-active-section/);
   await expect(page.locator('button[data-view-tab="stakeholders"][data-stakeholder-type-route]')).toHaveCount(4);
-  await expect(page.locator('[data-stakeholder-type-route="kv"]')).toHaveAttribute("aria-current", "page");
+  await expect(page.locator('[data-view-tab="stakeholderOverview"]')).toHaveAttribute("aria-current", "page");
+  await expect(page.locator('[data-stakeholder-type-route="kv"]')).not.toHaveAttribute("aria-current", "page");
   await expect(page.locator("#care-mode-actions")).toHaveCount(0);
   await expect(page.locator("#stakeholder-type-actions")).toHaveCount(0);
   const stakeholderLabelsStayInsideButtons = await page.locator('[data-stakeholder-type-route] > span').evaluateAll((labels) =>
@@ -6680,7 +6730,7 @@ test("Stakeholder: Bereich ist im eigenen Sidebar-Abschnitt ohne obere Modus-Rei
     })
   );
   expect(stakeholderLabelsStayInsideButtons).toBe(true);
-  await expect(page).toHaveURL(/#stakeholders\/kv$/);
+  await expect(page).toHaveURL(/#stakeholders$/);
 });
 
 test("Auswertung: Analytics-View rendern", async ({ page }, testInfo) => {

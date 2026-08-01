@@ -119,6 +119,17 @@
               </svg>
             </button>
             <div class="sidebar-section-content" id="sidebar-section-stakeholders-content">
+              <button class="primary-tab" type="button" data-view-tab="stakeholderOverview" title="Stakeholder-Übersicht">
+                <svg viewBox="0 0 24 24" fill="none" stroke-width="2" aria-hidden="true">
+                  <circle cx="12" cy="12" r="3"></circle>
+                  <circle cx="12" cy="4" r="2"></circle>
+                  <circle cx="20" cy="12" r="2"></circle>
+                  <circle cx="12" cy="20" r="2"></circle>
+                  <circle cx="4" cy="12" r="2"></circle>
+                  <path d="M12 6v3M18 12h-3M12 15v3M6 12h3"></path>
+                </svg>
+                <span>Übersicht</span>
+              </button>
               <button class="primary-tab" type="button" data-view-tab="patients" title="Patienten">
                 <svg viewBox="0 0 24 24" fill="none" stroke-width="2" aria-hidden="true">
                   <path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.6l-1-1a5.5 5.5 0 0 0-7.8 7.8l1 1L12 21l7.8-7.6 1-1a5.5 5.5 0 0 0 0-7.8Z"></path>
@@ -1071,6 +1082,139 @@
                   </label>
                 </div>
               </div>
+            </div>
+          </section>
+
+          <section class="view-panel" id="view-stakeholder-overview" data-view-panel="stakeholderOverview">
+            <div class="view-card stakeholder-overview-workspace">
+              <div class="stakeholder-overview-intro">
+                <div>
+                  <span class="stakeholder-overview-kicker">Acht Perspektiven</span>
+                  <p>Wähle einen Bereich und öffne die passende Ansicht im Stakeholder-Kompass.</p>
+                </div>
+                <span class="stakeholder-overview-equality">
+                  <span aria-hidden="true"></span>
+                  Gleichrangig angeordnet
+                </span>
+              </div>
+
+              <nav
+                class="stakeholder-overview-map"
+                aria-label="Stakeholder-Landkarte mit acht gleichrangigen Bereichen"
+                aria-describedby="stakeholder-overview-description"
+              >
+                <p class="visually-hidden" id="stakeholder-overview-description">
+                  Die acht Bereiche sind gleich groß und gleichrangig angeordnet. Die konzentrischen Kreise dienen ausschließlich der visuellen Orientierung und stellen keine Bewertung dar.
+                </p>
+                <span class="stakeholder-overview-ring stakeholder-overview-ring--outer" aria-hidden="true"></span>
+                <span class="stakeholder-overview-ring stakeholder-overview-ring--middle" aria-hidden="true"></span>
+                <span class="stakeholder-overview-ring stakeholder-overview-ring--inner" aria-hidden="true"></span>
+
+                <a class="stakeholder-overview-node stakeholder-overview-node--patients" data-route-link="patients?view=people" href="#patients?view=people">
+                  <span class="stakeholder-overview-node__icon" aria-hidden="true">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                      <path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.6l-1-1a5.5 5.5 0 0 0-7.8 7.8l1 1L12 21l7.8-7.6 1-1a5.5 5.5 0 0 0 0-7.8Z"></path>
+                    </svg>
+                  </span>
+                  <strong>Patienten</strong>
+                  <span class="visually-hidden"> öffnen</span>
+                </a>
+
+                <a class="stakeholder-overview-node stakeholder-overview-node--politics" data-route-link="politics" href="#politics">
+                  <span class="stakeholder-overview-node__icon" aria-hidden="true">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                      <path d="M3 9h18"></path>
+                      <path d="M5 9v9M9.5 9v9M14.5 9v9M19 9v9"></path>
+                      <path d="M2 21h20M12 3 3 7v2h18V7l-9-4Z"></path>
+                    </svg>
+                  </span>
+                  <strong>Politik</strong>
+                  <span class="visually-hidden"> öffnen</span>
+                </a>
+
+                <a class="stakeholder-overview-node stakeholder-overview-node--press" data-route-link="press" href="#press">
+                  <span class="stakeholder-overview-node__icon" aria-hidden="true">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                      <path d="M4 5h14a2 2 0 0 1 2 2v12H6a2 2 0 0 1-2-2V5Z"></path>
+                      <path d="M8 9h4M8 13h8M8 17h6"></path>
+                      <path d="M20 9h-2v8a2 2 0 0 0 2 2"></path>
+                    </svg>
+                  </span>
+                  <strong>Presse</strong>
+                  <span class="visually-hidden"> öffnen</span>
+                </a>
+
+                <a class="stakeholder-overview-node stakeholder-overview-node--kv" data-route-link="stakeholders/kv" href="#stakeholders/kv">
+                  <span class="stakeholder-overview-node__icon" aria-hidden="true">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                      <path d="M4 21V7l8-4 8 4v14"></path>
+                      <path d="M8 11h8M8 15h8M10 21v-3h4v3"></path>
+                    </svg>
+                  </span>
+                  <strong>Kassenärztliche <wbr />Vereinigungen</strong>
+                  <span class="visually-hidden"> öffnen</span>
+                </a>
+
+                <a class="stakeholder-overview-node stakeholder-overview-node--insurance" data-route-link="stakeholders/krankenkassen" href="#stakeholders/krankenkassen">
+                  <span class="stakeholder-overview-node__icon" aria-hidden="true">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                      <path d="M12 3 5 6v5c0 4.6 2.8 8.2 7 10 4.2-1.8 7-5.4 7-10V6l-7-3Z"></path>
+                      <path d="M12 8v6M9 11h6"></path>
+                    </svg>
+                  </span>
+                  <strong>Krankenkassen</strong>
+                  <span class="visually-hidden"> öffnen</span>
+                </a>
+
+                <a class="stakeholder-overview-node stakeholder-overview-node--hospitals" data-route-link="stakeholders/krankenhausgesellschaften" href="#stakeholders/krankenhausgesellschaften">
+                  <span class="stakeholder-overview-node__icon" aria-hidden="true">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                      <path d="M4 21V5h16v16M2 21h20"></path>
+                      <path d="M12 8v6M9 11h6M7 17h2M15 17h2"></path>
+                    </svg>
+                  </span>
+                  <strong>Krankenhaus&shy;gesellschaften</strong>
+                  <span class="visually-hidden"> öffnen</span>
+                </a>
+
+                <a class="stakeholder-overview-node stakeholder-overview-node--physicians" data-route-link="stakeholders/aerztliche-berufsverbaende" href="#stakeholders/aerztliche-berufsverbaende">
+                  <span class="stakeholder-overview-node__icon" aria-hidden="true">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                      <path d="M6 3v5a6 6 0 0 0 12 0V3"></path>
+                      <path d="M6 5H4M18 5h2M12 14v2a4 4 0 0 0 4 4h1"></path>
+                      <circle cx="19" cy="20" r="2"></circle>
+                    </svg>
+                  </span>
+                  <strong>Ärztliche <wbr />Berufsverbände</strong>
+                  <span class="visually-hidden"> öffnen</span>
+                </a>
+
+                <a class="stakeholder-overview-node stakeholder-overview-node--experts" data-route-link="experts" href="#experts">
+                  <span class="stakeholder-overview-node__icon" aria-hidden="true">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                      <circle cx="12" cy="7" r="3"></circle>
+                      <circle cx="6" cy="17" r="3"></circle>
+                      <circle cx="18" cy="17" r="3"></circle>
+                      <path d="m10.2 9.4-2.4 4.2M13.8 9.4l2.4 4.2M9 17h6"></path>
+                    </svg>
+                  </span>
+                  <strong>Expertenkreis</strong>
+                  <span class="visually-hidden"> öffnen</span>
+                </a>
+
+                <div class="stakeholder-overview-center" aria-hidden="true">
+                  <span class="stakeholder-overview-center__mark">
+                    <img src="../../public/brand/modules/stakeholder/mark.svg" alt="" />
+                  </span>
+                  <strong>Gemeinsame Versorgung</strong>
+                  <span>Acht Perspektiven</span>
+                </div>
+              </nav>
+
+              <p class="stakeholder-overview-note">
+                <span aria-hidden="true"></span>
+                Farben kennzeichnen ausschließlich die Stakeholder-Gruppen; Größe und Abstand enthalten keine Bewertung.
+              </p>
             </div>
           </section>
 

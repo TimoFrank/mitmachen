@@ -68,6 +68,14 @@ Stand: 2026-07-30. Analysebasis sind die aktuellen HTML-Einstiegspunkte mit ihre
 - Topbar: ruhig halten. Kontextuelle Hauptaktionen wie `Neuer Kontakt`, `Organisation anlegen` und bei Bedarf Archiv liegen in den jeweiligen Workspace-/Tabellen-Command-Rows. Kein dauerhafter Kontaktimport in der Topbar.
 - Import-Startseite: `.imports-workspace`, `.import-start-grid`, bestehende `.import-format-card` und `.import-profile-card`.
 
+## Stakeholder-Übersicht
+
+- Der kanonische Einstieg `#stakeholders` beziehungsweise `/stakeholder` öffnet den eigenen View `stakeholderOverview`; die bestehenden Detailrouten bleiben unverändert.
+- `.stakeholder-overview-workspace` ist eine einzelne flache `.view-card` mit Introzeile, visueller Kreislandschaft und erläuternder Fußzeile.
+- `.stakeholder-overview-map` ist eine semantische Navigation mit acht gleich großen `.stakeholder-overview-node`-Links. Die Ringe sind rein dekorativ; Farben bilden ausschließlich die feste Stakeholder-Gruppe ab.
+- Desktop und Tablet ordnen die acht Links gleichrangig um `.stakeholder-overview-center` an. Mobile nutzt dieselben Kreise in einer zweispaltigen Tapisserie; es gibt keine verkleinerte Canvas- oder horizontale Scrollansicht.
+- Hover und Tastaturfokus verändern keine Größe oder Position im Layout. Reduzierte Bewegung und Forced-Colors werden explizit unterstützt.
+
 ## Detailpanels
 
 - App-Kontaktprofil: dynamisches Markup in `openDetail()`, Klassen `.detail-profile`, `.detail-tabs`, `.section-block`, `.detail-line-list`, `.detail-info-card`.

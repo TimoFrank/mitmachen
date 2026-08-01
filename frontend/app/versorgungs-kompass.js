@@ -2238,7 +2238,7 @@
             ? activeOrganizationProfile.returnTo || organizationProfileParentView()
             : view;
         if (["map", "contacts", "organizations", "activities", "analytics", "quality", "onboarding"].includes(normalizedView)) return "care";
-        if (["patients", "politics", "press", "experts", "stakeholders"].includes(normalizedView)) return "stakeholders";
+        if (["patients", "politics", "press", "experts", "stakeholderOverview", "stakeholders"].includes(normalizedView)) return "stakeholders";
         if (["framework", "hospitations", "questionnaire"].includes(normalizedView)) return "planning";
         if (normalizedView === "formats") return "formats";
         return "";
@@ -5587,6 +5587,7 @@
         patients: { title: "Patienten", subtitle: "Patientenvertretungen, Organisationen und Verbände nach Indikation." },
         politics: { title: "Politik", subtitle: "Mitglieder des Ausschusses für Gesundheit im Deutschen Bundestag." },
         press: { title: "Presse", subtitle: "Relevante Pressekontakte aus Redaktionen, Institutionen und Verbänden im Gesundheitswesen." },
+        stakeholderOverview: { title: "Stakeholder-Kompass", subtitle: "Perspektiven, Institutionen und Netzwerke auf einen Blick." },
         stakeholders: { title: "Stakeholder", subtitle: "Stakeholder-Organisationen, Kontakte und Kartenbezug." },
         framework: { title: "Hospitationsframework", subtitle: "Vor Ort beobachten, qualitativ auswerten und daraus belastbares Versorgungswissen ableiten." },
         formats: { title: "Formate", subtitle: "Einladungslisten für Roundtables, Fachgespräche und Veranstaltungen planen." },
@@ -15284,7 +15285,7 @@
             .join("");
         };
 
-        if (activeView === "home" || activeView === "onboarding") {
+        if (activeView === "home" || activeView === "onboarding" || activeView === "stakeholderOverview") {
           if (summaryGrid) summaryGrid.innerHTML = "";
           return;
         }
@@ -38337,6 +38338,7 @@
         if (routeView === "hospitations" || String(routeView).startsWith("hospitations:")) {
           return hospitationRouteForTab(String(routeView).split(":")[1] || activeHospitationTab);
         }
+        if (routeView === "stakeholderOverview") return "stakeholders";
         if (routeView === "stakeholders") return stakeholderRouteForType();
         if (String(routeView).startsWith("stakeholders/")) {
           return parseStakeholderRoute(routeView)?.route || stakeholderRouteForType();
@@ -38368,7 +38370,7 @@
 
       function searchContextForView(view = activeView) {
         if (["contacts", "organizations", "map"].includes(view)) return "care";
-        if (["personProfile", "organizationProfile", "profile", "settings", "quality", "analytics"].includes(view)) return "";
+        if (["personProfile", "organizationProfile", "profile", "settings", "quality", "analytics", "stakeholderOverview"].includes(view)) return "";
         return view || "";
       }
 
@@ -40566,6 +40568,7 @@
         const isPatientsView = activeView === "patients";
         const isPoliticsView = activeView === "politics";
         const isPressView = activeView === "press";
+        const isStakeholderOverviewView = activeView === "stakeholderOverview";
         if (isPatientsView && !["people", "organizations", "indications"].includes(activePatientMode)) activePatientMode = "indications";
         const isPatientOrganizationsMode = isPatientsView && activePatientMode === "organizations";
         const isPatientPeopleMode = isPatientsView && activePatientMode === "people";
@@ -40598,7 +40601,7 @@
           syncQuestionnaireReflectionAuthor();
         }
         if (isFrameworkView) syncHospitationFrameworkMetrics();
-        const items = isHomeView || isOnboardingView
+        const items = isHomeView || isOnboardingView || isStakeholderOverviewView
           ? []
           : isFormatsView
           ? filteredFormats()
@@ -40631,7 +40634,7 @@
         renderContactListModeSwitcher();
         const currentResultLabel = isInitialDataLoading && isContactsView ? "Kontakte werden geladen" : hitCountLabel(items);
         resultsCount.textContent = currentResultLabel;
-        resultsCount.hidden = isHomeView || isOnboardingView || isPressView || isHospitationsView || isProfileRecordView || isFrameworkView || isQuestionnaireView;
+        resultsCount.hidden = isHomeView || isOnboardingView || isStakeholderOverviewView || isPressView || isHospitationsView || isProfileRecordView || isFrameworkView || isQuestionnaireView;
         if (hospitationTableToolbarMeta) {
           hospitationTableToolbarMeta.hidden = !isHospitationsView || activeHospitationTab !== "appointments";
         }
@@ -40676,7 +40679,7 @@
         const isHospitationDashboardTab = isHospitationsView && activeHospitationTab === "dashboard";
         const isHospitationCommandHiddenTab = isHospitationsView && ["dashboard", "observations", "patterns"].includes(activeHospitationTab);
         const isHospitationHeaderSearchVisible = hospitationHeaderSearchVisible(activeHospitationTab);
-        const searchHidden = isHomeView || isOnboardingView || activeView === "analytics" || activeView === "quality" || isNotificationsView || isProfileRecordView || isFrameworkView || isQuestionnaireView || (isPoliticsView && politicsDataState !== "ready") || (isPressView && pressDataState !== "ready") || (isHospitationsView ? !isHospitationHeaderSearchVisible : false);
+        const searchHidden = isHomeView || isOnboardingView || isStakeholderOverviewView || activeView === "analytics" || activeView === "quality" || isNotificationsView || isProfileRecordView || isFrameworkView || isQuestionnaireView || (isPoliticsView && politicsDataState !== "ready") || (isPressView && pressDataState !== "ready") || (isHospitationsView ? !isHospitationHeaderSearchVisible : false);
         if (searchShell) {
           if (expertHeaderSearch) expertHeaderSearch.hidden = true;
           if (stakeholderHeaderSearch) stakeholderHeaderSearch.hidden = true;
@@ -40701,7 +40704,7 @@
           hospitationHeaderSearchToggle.setAttribute("aria-expanded", "false");
         }
         syncSearchClearButton();
-        if (controlsRoot) controlsRoot.hidden = isHomeView || isOnboardingView || activeView === "analytics" || activeView === "quality" || activeView === "profile" || isNotificationsView || isProfileRecordView || isFrameworkView || isQuestionnaireView || (isHospitationsView && !isHospitationHeaderSearchVisible) || (isPoliticsView && politicsDataState !== "ready") || (isPressView && pressDataState !== "ready");
+        if (controlsRoot) controlsRoot.hidden = isHomeView || isOnboardingView || isStakeholderOverviewView || activeView === "analytics" || activeView === "quality" || activeView === "profile" || isNotificationsView || isProfileRecordView || isFrameworkView || isQuestionnaireView || (isHospitationsView && !isHospitationHeaderSearchVisible) || (isPoliticsView && politicsDataState !== "ready") || (isPressView && pressDataState !== "ready");
         newContactButton.hidden = !isContactsView;
         newOrganizationButton.hidden = !isOrganizationsView;
         if (contactMatchingWorklistButton) contactMatchingWorklistButton.hidden = !isContactsView;
@@ -40740,13 +40743,13 @@
         if (organizationsTable) organizationsTable.hidden = isOrganizationsDuplicatesMode;
         if (organizationDuplicatesWorkspace) organizationDuplicatesWorkspace.hidden = !isOrganizationsDuplicatesMode;
         columnMenuShell.hidden = !(isContactsView || isOrganizationsView || isExpertsView || isPatientsView) || isAnyDuplicateMode || isPatientIndicationsMode;
-        if (viewSelectShell) viewSelectShell.hidden = isHomeView || isOnboardingView || isExpertsView || isPatientsView || isPoliticsView || isPressView || isHospitationsView || isFrameworkView || isQuestionnaireView || isStakeholdersView || isActivitiesView || isNotificationsView || isCareDuplicatesMode || isProfileRecordView;
+        if (viewSelectShell) viewSelectShell.hidden = isHomeView || isOnboardingView || isStakeholderOverviewView || isExpertsView || isPatientsView || isPoliticsView || isPressView || isHospitationsView || isFrameworkView || isQuestionnaireView || isStakeholdersView || isActivitiesView || isNotificationsView || isCareDuplicatesMode || isProfileRecordView;
         filterPanel.querySelector('[data-filter-field="category"] summary').textContent = isPatientsView ? "Indikation" : isExpertsView ? "Gruppe" : "Sektor";
-        if (filterToolbar) filterToolbar.hidden = isHomeView || isOnboardingView || isPoliticsView || isPressView || isHospitationsView || isFrameworkView || isQuestionnaireView || isActivitiesView || isNotificationsView || isAnyDuplicateMode || isProfileRecordView;
-        if (filterShell) filterShell.hidden = isPatientIndicationsMode || isFormatsView || isHospitationsView || isStakeholdersView || isActivitiesView;
-        if (activeFilterRow) activeFilterRow.hidden = isFormatsView || isHospitationsView || isStakeholdersView || isActivitiesView;
+        if (filterToolbar) filterToolbar.hidden = isHomeView || isOnboardingView || isStakeholderOverviewView || isPoliticsView || isPressView || isHospitationsView || isFrameworkView || isQuestionnaireView || isActivitiesView || isNotificationsView || isAnyDuplicateMode || isProfileRecordView;
+        if (filterShell) filterShell.hidden = isStakeholderOverviewView || isPatientIndicationsMode || isFormatsView || isHospitationsView || isStakeholdersView || isActivitiesView;
+        if (activeFilterRow) activeFilterRow.hidden = isStakeholderOverviewView || isFormatsView || isHospitationsView || isStakeholdersView || isActivitiesView;
         patientPageSizeSelect?.closest(".page-size-shell")?.toggleAttribute("hidden", isPatientIndicationsMode);
-        if (isHomeView || isOnboardingView || isPoliticsView || isPressView || isHospitationsView || isFrameworkView || isQuestionnaireView || isStakeholdersView || isActivitiesView || isNotificationsView || isAnyDuplicateMode || isProfileRecordView || isPatientIndicationsMode) setFilterPanelOpen(false);
+        if (isHomeView || isOnboardingView || isStakeholderOverviewView || isPoliticsView || isPressView || isHospitationsView || isFrameworkView || isQuestionnaireView || isStakeholdersView || isActivitiesView || isNotificationsView || isAnyDuplicateMode || isProfileRecordView || isPatientIndicationsMode) setFilterPanelOpen(false);
         if (columnMenuShell) {
           if (isOrganizationsView) organizationColumnActions?.append(viewSelectShell, columnMenuShell);
           else if (isPatientsView) patientColumnActions?.append(viewSelectShell, columnMenuShell);
@@ -40800,7 +40803,7 @@
           renderOrganizationProfilePage();
         }
         renderDashboard(filteredContacts());
-        if (!isHomeView && !isPoliticsView && !isPressView && !isFormatsView && !isHospitationsView && !isFrameworkView && !isQuestionnaireView && !isStakeholdersView && !isActivitiesView && !isNotificationsView && !isAnyDuplicateMode && !isProfileRecordView) {
+        if (!isHomeView && !isStakeholderOverviewView && !isPoliticsView && !isPressView && !isFormatsView && !isHospitationsView && !isFrameworkView && !isQuestionnaireView && !isStakeholdersView && !isActivitiesView && !isNotificationsView && !isAnyDuplicateMode && !isProfileRecordView) {
           renderActiveFilters();
           renderFilterPanel();
         }
@@ -41353,7 +41356,7 @@
           const targetView = routeViewFromToken(routeToken) || "home";
           closeMobileSidebar();
           setActiveView(targetView);
-          updateRouteHash(routeToken);
+          updateRouteHash(targetView === "stakeholderOverview" ? targetView : routeToken);
           updateView();
           if (opensSidebarForOrientation) openSidebarForHomeDestination();
         });
@@ -42761,6 +42764,7 @@
           if (activePatientMode !== "organizations") activatePatientMode("organizations");
           return "patients";
         }
+        if (hashView === "stakeholders") return "stakeholderOverview";
         if (!hashView && isHospitationDocumentationStandalone) {
           activeHospitationTab = "appointments";
           return "hospitations";
