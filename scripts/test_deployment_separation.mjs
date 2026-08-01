@@ -8,6 +8,7 @@ import htmlMetadataTags from "./html_metadata_tags.cjs";
 const { parseHtmlAttributes, scanHtmlStartTags } = htmlMetadataTags;
 
 const root = process.cwd();
+const oidcOnly = process.argv.includes("--oidc-only");
 const distRoot = path.join(root, "dist");
 fs.mkdirSync(distRoot, { recursive: true });
 const fixtureRoot = fs.mkdtempSync(path.join(distRoot, ".deployment-separation-test-"));
@@ -657,57 +658,71 @@ try {
     "--profile", "target",
     "--output", targetDir,
     "--api-base-url", apiBaseUrl,
-    "--auth-mode", "oidc",
-    "--identity-platform-api-key", identityPlatformApiKey,
-    "--identity-platform-project-id", identityPlatformProjectId
+    "--auth-mode", "oidc"
   );
   execFileSync(process.execPath, [targetAudit, "--artifact-root", targetDir], { cwd: root, stdio: "pipe" });
   assertCompassBrandAssets(targetDir, "Target");
-
-  const preparedExternalLoginPageUri = "https://versorgungs-kompass.de/anmelden";
-  buildWithEnvironment(
-    {
-      IAP_IDENTITY_MODE: "iam",
-      IAP_EXTERNAL_LOGIN_PAGE_URI: preparedExternalLoginPageUri,
-      IAP_EXTERNAL_AUTH_API_KEY: preparedExternalAuthApiKey
-    },
+  const firstTargetFingerprint = fingerprint(targetDir);
+  build(
     "--profile", "target",
-    "--output", targetIamRollbackDir,
+    "--output", targetDir,
     "--api-base-url", apiBaseUrl,
-    "--auth-mode", "iap",
-    "--identity-platform-api-key", identityPlatformApiKey,
-    "--identity-platform-project-id", identityPlatformProjectId
+    "--auth-mode", "oidc"
   );
-  const targetIamRollbackConfig = fs.readFileSync(
-    path.join(targetIamRollbackDir, "data", "runtime-config.js"),
-    "utf8"
+  assert.equal(
+    fingerprint(targetDir),
+    firstTargetFingerprint,
+    "Wiederholte interne OIDC-Builds muessen inhaltsgleich sein"
   );
-  assert.match(targetIamRollbackConfig, /iapIdentityMode:\s*"iam"/);
-  assert.match(targetIamRollbackConfig, /iapExternalLoginPageUri:\s*""/);
-  assert.match(targetIamRollbackConfig, /iapExternalAuthApiKey:\s*""/);
-  assert.ok(!targetIamRollbackConfig.includes(preparedExternalLoginPageUri));
-  assert.ok(!targetIamRollbackConfig.includes(preparedExternalAuthApiKey));
 
-  buildWithEnvironment(
-    {
-      IAP_IDENTITY_MODE: "external",
-      IAP_EXTERNAL_LOGIN_PAGE_URI: preparedExternalLoginPageUri,
-      IAP_EXTERNAL_AUTH_API_KEY: preparedExternalAuthApiKey
-    },
-    "--profile", "target",
-    "--output", targetExternalDir,
-    "--api-base-url", apiBaseUrl,
-    "--auth-mode", "iap",
-    "--identity-platform-api-key", identityPlatformApiKey,
-    "--identity-platform-project-id", identityPlatformProjectId
-  );
-  const targetExternalConfig = fs.readFileSync(
-    path.join(targetExternalDir, "data", "runtime-config.js"),
-    "utf8"
-  );
-  assert.match(targetExternalConfig, /iapIdentityMode:\s*"external"/);
-  assert.ok(targetExternalConfig.includes(preparedExternalLoginPageUri));
-  assert.ok(targetExternalConfig.includes(preparedExternalAuthApiKey));
+  if (!oidcOnly) {
+    const preparedExternalLoginPageUri = "https://versorgungs-kompass.de/anmelden";
+    buildWithEnvironment(
+      {
+        IAP_IDENTITY_MODE: "iam",
+        IAP_EXTERNAL_LOGIN_PAGE_URI: preparedExternalLoginPageUri,
+        IAP_EXTERNAL_AUTH_API_KEY: preparedExternalAuthApiKey
+      },
+      "--profile", "target",
+      "--output", targetIamRollbackDir,
+      "--api-base-url", apiBaseUrl,
+      "--auth-mode", "iap",
+      "--identity-platform-api-key", identityPlatformApiKey,
+      "--identity-platform-project-id", identityPlatformProjectId
+    );
+    execFileSync(process.execPath, [targetAudit, "--artifact-root", targetIamRollbackDir], { cwd: root, stdio: "pipe" });
+    const targetIamRollbackConfig = fs.readFileSync(
+      path.join(targetIamRollbackDir, "data", "runtime-config.js"),
+      "utf8"
+    );
+    assert.match(targetIamRollbackConfig, /iapIdentityMode:\s*"iam"/);
+    assert.match(targetIamRollbackConfig, /iapExternalLoginPageUri:\s*""/);
+    assert.match(targetIamRollbackConfig, /iapExternalAuthApiKey:\s*""/);
+    assert.ok(!targetIamRollbackConfig.includes(preparedExternalLoginPageUri));
+    assert.ok(!targetIamRollbackConfig.includes(preparedExternalAuthApiKey));
+
+    buildWithEnvironment(
+      {
+        IAP_IDENTITY_MODE: "external",
+        IAP_EXTERNAL_LOGIN_PAGE_URI: preparedExternalLoginPageUri,
+        IAP_EXTERNAL_AUTH_API_KEY: preparedExternalAuthApiKey
+      },
+      "--profile", "target",
+      "--output", targetExternalDir,
+      "--api-base-url", apiBaseUrl,
+      "--auth-mode", "iap",
+      "--identity-platform-api-key", identityPlatformApiKey,
+      "--identity-platform-project-id", identityPlatformProjectId
+    );
+    execFileSync(process.execPath, [targetAudit, "--artifact-root", targetExternalDir], { cwd: root, stdio: "pipe" });
+    const targetExternalConfig = fs.readFileSync(
+      path.join(targetExternalDir, "data", "runtime-config.js"),
+      "utf8"
+    );
+    assert.match(targetExternalConfig, /iapIdentityMode:\s*"external"/);
+    assert.ok(targetExternalConfig.includes(preparedExternalLoginPageUri));
+    assert.ok(targetExternalConfig.includes(preparedExternalAuthApiKey));
+  }
 
   const nestedOfflineDirectory = path.join(targetDir, "nested");
   fs.mkdirSync(nestedOfflineDirectory, { recursive: true });
@@ -762,6 +777,9 @@ try {
   const targetConfig = fs.readFileSync(path.join(targetDir, "data", "runtime-config.js"), "utf8");
   assert.match(targetConfig, /dataMode:\s*"api"/);
   assert.match(targetConfig, /authMode:\s*"oidc"/);
+  assert.match(targetConfig, /iapIdentityMode:\s*"iam"/);
+  assert.match(targetConfig, /iapExternalLoginPageUri:\s*""/);
+  assert.match(targetConfig, /iapExternalAuthApiKey:\s*""/);
   assert.match(targetConfig, /apiCredentials:\s*"include"/);
   assert.match(targetConfig, /requireApiGateway:\s*true/);
   assert.doesNotMatch(targetConfig, /ownerOnlyContactChannels:\s*true/);
@@ -779,12 +797,28 @@ try {
   assert.equal(fs.existsSync(path.join(targetDir, "login.html")), true, "Target muss die geschuetzte Anmeldung enthalten");
   assert.equal(fs.existsSync(path.join(targetDir, "index.html")), true, "Target muss den zentralen #Mitmachen-Einstieg enthalten");
   assert.equal(fs.existsSync(path.join(targetDir, "public-index.html")), true, "Target muss die eigenstaendige oeffentliche Startseite enthalten");
-  assert.equal(fs.existsSync(path.join(targetDir, "public", "auth", "index.html")), true, "Target muss die eigene Identity-Platform-Anmeldeseite enthalten");
   assert.equal(
-    fs.existsSync(path.join(targetDir, "public", "auth", "konto", "passwort-festlegen", "index.html")),
-    true,
-    "Target muss den eigenen Passwortaktions-Handler enthalten"
+    fs.existsSync(path.join(targetDir, "public", "auth")),
+    false,
+    "Das interne OIDC-Target darf kein GCP Identity Portal enthalten"
   );
+  const forbiddenOidcPortalDirectory = path.join(targetDir, "public", "auth");
+  fs.mkdirSync(forbiddenOidcPortalDirectory, { recursive: true });
+  fs.writeFileSync(
+    path.join(forbiddenOidcPortalDirectory, "portal-config.js"),
+    'window.IDENTITY_PORTAL_CONFIG = { projectId: "steam-capsule-341212" };\n'
+  );
+  auditResult = spawnSync(process.execPath, [targetAudit, "--artifact-root", targetDir], {
+    cwd: root,
+    encoding: "utf8"
+  });
+  assert.notEqual(
+    auditResult.status,
+    0,
+    "Target Asset Audit muss ein nachtraeglich injiziertes GCP-Portal im OIDC-Artefakt ablehnen"
+  );
+  assert.match(`${auditResult.stderr}\n${auditResult.stdout}`, /public\/auth ist im providerneutralen OIDC-Artefakt nicht zulaessig/);
+  fs.rmSync(forbiddenOidcPortalDirectory, { recursive: true, force: true });
   assert.equal(fs.existsSync(path.join(targetDir, "versorgungs-kompass.html")), true, "Target muss die Realanwendung enthalten");
   assert.equal(fs.existsSync(path.join(targetDir, "data", "data-service.js")), true, "Target muss den API-Datenservice enthalten");
   assert.equal(fs.existsSync(path.join(targetDir, "manifest.webmanifest")), true, "Target muss das PWA-Manifest am referenzierten Root-Pfad enthalten");
@@ -859,67 +893,66 @@ try {
   assert.match(targetPublicIndexHtml, /<meta name="twitter:description" content="Deine Plattform für Austausch, Wissen und Vernetzung\." \/>/);
   assert.doesNotMatch(targetPublicIndexHtml, /Testzugang aktivieren|enrollment\.html|\b(?:IAP|OIDC|Runtime|API-Gateway)\b/i);
 
-  const targetIdentityFiles = relativeFiles(path.join(targetDir, "public", "auth"))
-    .map((relativePath) => relativePath.split(path.sep).join("/"))
-    .sort();
-  assert.deepEqual(
-    targetIdentityFiles,
-    [
-      "assets/action.css",
-      "assets/action.js",
-      "assets/app.css",
-      "assets/app.js",
-      "brand/versorgungs-kompass.svg",
-      "index.html",
-      "konto/passwort-festlegen/index.html",
-      "portal-config.js"
-    ],
-    "Target/public/auth darf exakt die acht freigegebenen Portaldateien enthalten"
-  );
-  const targetIdentitySigninHtml = fs.readFileSync(
-    path.join(targetDir, "public", "auth", "index.html"),
-    "utf8"
-  );
-  const targetIdentityPasswordHtml = fs.readFileSync(
-    path.join(targetDir, "public", "auth", "konto", "passwort-festlegen", "index.html"),
-    "utf8"
-  );
-  const targetIdentityConfig = fs.readFileSync(
-    path.join(targetDir, "public", "auth", "portal-config.js"),
-    "utf8"
-  );
-  const targetIdentityApp = fs.readFileSync(
-    path.join(targetDir, "public", "auth", "assets", "app.js"),
-    "utf8"
-  );
-  assert.match(targetIdentitySigninHtml, /data-identity-portal="signin"/);
-  assert.match(targetIdentityPasswordHtml, /data-identity-portal="password"/);
-  assert.match(targetIdentityConfig, new RegExp(`apiKey:\\s*"${identityPlatformApiKey}"`));
-  assert.match(targetIdentityConfig, /authDomain:\s*"versorgungs-kompass\.de"/);
-  assert.match(targetIdentityConfig, /projectId:\s*"steam-capsule-341212"/);
-  assert.match(
-    targetIdentityConfig,
-    new RegExp(`allowedContinueOrigins:\\s*Object\\.freeze\\(\\[\\s*"${apiBaseUrl}"\\s*\\]\\)`)
-  );
-  assert.match(targetIdentityConfig, /enableLocalPreview:\s*false/);
-  assert.doesNotMatch(targetIdentityConfig, /REPLACE_/);
-  assert.match(targetIdentityApp, /Mit Google anmelden/);
-  assert.match(targetIdentityApp, /E-Mail-Adresse/);
-  assert.doesNotMatch(targetIdentityApp, /createUserWithEmailAndPassword/);
-  assert.match(targetIdentityApp, /\/public\/auth\/brand\/versorgungs-kompass\.svg/);
+  if (!oidcOnly) {
+    const targetIdentityFiles = relativeFiles(path.join(targetIamRollbackDir, "public", "auth"))
+      .map((relativePath) => relativePath.split(path.sep).join("/"))
+      .sort();
+    assert.deepEqual(
+      targetIdentityFiles,
+      [
+        "assets/action.css",
+        "assets/action.js",
+        "assets/app.css",
+        "assets/app.js",
+        "brand/versorgungs-kompass.svg",
+        "index.html",
+        "konto/passwort-festlegen/index.html",
+        "portal-config.js"
+      ],
+      "IAP-Target/public/auth darf exakt die acht freigegebenen Portaldateien enthalten"
+    );
+    const targetIdentitySigninPath = path.join(targetIamRollbackDir, "public", "auth", "index.html");
+    const targetIdentitySigninHtml = fs.readFileSync(targetIdentitySigninPath, "utf8");
+    const targetIdentityPasswordHtml = fs.readFileSync(
+      path.join(targetIamRollbackDir, "public", "auth", "konto", "passwort-festlegen", "index.html"),
+      "utf8"
+    );
+    const targetIdentityConfig = fs.readFileSync(
+      path.join(targetIamRollbackDir, "public", "auth", "portal-config.js"),
+      "utf8"
+    );
+    const targetIdentityApp = fs.readFileSync(
+      path.join(targetIamRollbackDir, "public", "auth", "assets", "app.js"),
+      "utf8"
+    );
+    assert.match(targetIdentitySigninHtml, /data-identity-portal="signin"/);
+    assert.match(targetIdentityPasswordHtml, /data-identity-portal="password"/);
+    assert.match(targetIdentityConfig, new RegExp(`apiKey:\\s*"${identityPlatformApiKey}"`));
+    assert.match(targetIdentityConfig, /authDomain:\s*"versorgungs-kompass\.de"/);
+    assert.match(targetIdentityConfig, /projectId:\s*"steam-capsule-341212"/);
+    assert.match(
+      targetIdentityConfig,
+      new RegExp(`allowedContinueOrigins:\\s*Object\\.freeze\\(\\[\\s*"${apiBaseUrl}"\\s*\\]\\)`)
+    );
+    assert.match(targetIdentityConfig, /enableLocalPreview:\s*false/);
+    assert.doesNotMatch(targetIdentityConfig, /REPLACE_/);
+    assert.match(targetIdentityApp, /Mit Google anmelden/);
+    assert.match(targetIdentityApp, /E-Mail-Adresse/);
+    assert.doesNotMatch(targetIdentityApp, /createUserWithEmailAndPassword/);
+    assert.match(targetIdentityApp, /\/public\/auth\/brand\/versorgungs-kompass\.svg/);
 
-  const targetIdentitySigninPath = path.join(targetDir, "public", "auth", "index.html");
-  fs.writeFileSync(
-    targetIdentitySigninPath,
-    targetIdentitySigninHtml.replace('data-identity-portal="signin"', 'data-identity-portal="signup"')
-  );
-  auditResult = spawnSync(process.execPath, [targetAudit, "--artifact-root", targetDir], {
-    cwd: root,
-    encoding: "utf8"
-  });
-  assert.notEqual(auditResult.status, 0, "Target Asset Audit muss einen manipulierten Portal-Marker fail-closed ablehnen");
-  assert.match(`${auditResult.stderr}\n${auditResult.stdout}`, /erwarteten Identity-Portal-Marker signin/);
-  fs.writeFileSync(targetIdentitySigninPath, targetIdentitySigninHtml);
+    fs.writeFileSync(
+      targetIdentitySigninPath,
+      targetIdentitySigninHtml.replace('data-identity-portal="signin"', 'data-identity-portal="signup"')
+    );
+    auditResult = spawnSync(process.execPath, [targetAudit, "--artifact-root", targetIamRollbackDir], {
+      cwd: root,
+      encoding: "utf8"
+    });
+    assert.notEqual(auditResult.status, 0, "Target Asset Audit muss einen manipulierten Portal-Marker fail-closed ablehnen");
+    assert.match(`${auditResult.stderr}\n${auditResult.stdout}`, /erwarteten Identity-Portal-Marker signin/);
+    fs.writeFileSync(targetIdentitySigninPath, targetIdentitySigninHtml);
+  }
 
   const targetShareImagePath = path.join(targetDir, "public", "media", "social", "mitmachen-share-v3.png");
   const cleanTargetShareImage = fs.readFileSync(targetShareImagePath);
@@ -976,6 +1009,11 @@ try {
   assert.equal(targetThirdPartyManifest.assets.some((asset) => String(asset.path || "").includes("vendor/supabase/")), false);
 
   const targetText = textArtifact(targetDir);
+  assert.doesNotMatch(
+    targetText,
+    /steam-capsule-341212|firebaseapp\.com|identitytoolkit\.googleapis\.com|securetoken\.googleapis\.com|\b(?:IDENTITY_PLATFORM|IAP_GCIP|IAP_EXTERNAL_AUTH_API_KEY)\b|AIza[0-9A-Za-z_-]{35}/i,
+    "Das interne OIDC-Artefakt darf keine GCP-/Firebase-/Identity-Platform-Konfiguration enthalten"
+  );
   assert.doesNotMatch(
     targetText,
     /VERSORGUNGS_COMPASS_PUBLIC_POLITICS_DIRECTORY/,
@@ -1056,18 +1094,34 @@ try {
 
   assert.notEqual(rejected("--profile", "target", "--output", path.join(fixtureRoot, "invalid-auth"), "--api-base-url", apiBaseUrl, "--auth-mode", "password").status, 0);
   assert.notEqual(rejected("--profile", "target", "--output", path.join(fixtureRoot, "missing-api-url"), "--auth-mode", "oidc").status, 0);
-  const apiUrlWithPath = rejected(
+  const iapWithoutIdentityPlatform = rejected(
     "--profile", "target",
-    "--output", path.join(fixtureRoot, "api-url-with-path"),
-    "--api-base-url", `${apiBaseUrl}/api`,
+    "--output", path.join(fixtureRoot, "iap-without-identity-platform"),
+    "--api-base-url", apiBaseUrl,
+    "--auth-mode", "iap"
+  );
+  assert.notEqual(iapWithoutIdentityPlatform.status, 0, "Der GCP-IAP-Build muss weiterhin seine Portalwerte verlangen");
+  assert.match(`${iapWithoutIdentityPlatform.stderr}\n${iapWithoutIdentityPlatform.stdout}`, /fehlt fuer den IAP-Build/);
+  const oidcWithIdentityPlatform = rejected(
+    "--profile", "target",
+    "--output", path.join(fixtureRoot, "oidc-with-identity-platform"),
+    "--api-base-url", apiBaseUrl,
     "--auth-mode", "oidc",
     "--identity-platform-api-key", identityPlatformApiKey,
     "--identity-platform-project-id", identityPlatformProjectId
   );
+  assert.notEqual(oidcWithIdentityPlatform.status, 0, "Der interne OIDC-Build muss GCP-Portalwerte fail-closed ablehnen");
+  assert.match(`${oidcWithIdentityPlatform.stderr}\n${oidcWithIdentityPlatform.stdout}`, /nur fuer den IAP-Build zulaessig/);
+  const apiUrlWithPath = rejected(
+    "--profile", "target",
+    "--output", path.join(fixtureRoot, "api-url-with-path"),
+    "--api-base-url", `${apiBaseUrl}/api`,
+    "--auth-mode", "oidc"
+  );
   assert.notEqual(apiUrlWithPath.status, 0, "--api-base-url muss Pfade ausser / ablehnen");
   assert.match(`${apiUrlWithPath.stderr}\n${apiUrlWithPath.stdout}`, /HTTPS-Origin ohne Pfad/);
 
-  console.log("Deployment separation test OK: Pages und Target teilen die Voll-App-Shell, besitzen aber disjunkte Daten-, Auth- und Laufzeitgrenzen.");
+  console.log(`Deployment separation test OK (${oidcOnly ? "OIDC-only" : "OIDC und IAP"}): Pages und Target teilen die Voll-App-Shell, besitzen aber disjunkte Daten-, Auth- und Laufzeitgrenzen.`);
 } finally {
   fs.rmSync(fixtureRoot, { recursive: true, force: true });
 }

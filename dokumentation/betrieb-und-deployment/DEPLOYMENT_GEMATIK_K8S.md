@@ -83,13 +83,28 @@ Vor dem ersten Lauf werden folgende Werte in Software Factory oder Plattformkonf
 
 Passwörter, Tokens, private Zertifikate, Daten-Snapshots und OIDC-Subjects werden nicht in Git, Frontend-Dateien, Buildmanifesten oder Helm-Werten abgelegt.
 
+## Identity-Gateway-Vertrag vor dem Deployment
+
+Der aktuelle Target-Build unterstützt einen klar abgegrenzten, providerneutralen Adapter: Frontend und `/api` liegen same-origin hinter dem institutionellen Identity-Gateway. Das Frontend verwaltet selbst keine Tokens. Das Gateway entfernt vom Browser eingehende `Authorization`- und Identitätsheader und setzt zur nicht direkt erreichbaren API ausschließlich ein frisch geprüftes, signiertes JWT als `Authorization: Bearer <JWT>`. Issuer, Audience, JWKS sowie E-Mail- und Subject-Claim müssen den API-Laufzeitwerten entsprechen.
+
+Dieser Vertrag muss vor einem Deployment von den Plattformverantwortlichen bestätigt werden. Ein Cookie-only-Gateway oder eine browserseitige OAuth-/PKCE-Anmeldung ist mit dem aktuellen Stand nicht abgedeckt und benötigt einen eigenen Plattformadapter sowie einen neuen RC. RC4 ist bis zur Bestätigung und zum positiven Authentifizierungs-Smoke übergabefähig, aber nicht deployment-freigegeben.
+
+Der positive Smoke verwendet eine benannte Testidentität und weist nach:
+
+- `GET /api/session` liefert HTTP `200`, `authMode: "oidc"` und das korrekt gebundene Profil,
+- ein fehlender oder manipulierter Token wird mit `401` oder `403` abgewiesen,
+- die API kann netzseitig nicht unter Umgehung des Gateways erreicht werden und
+- Tokens und Subjects erscheinen weder in Logs noch in Build- oder Smoke-Artefakten.
+
 ## 1. Release Candidate festlegen
 
 Ein Release Candidate erhält einen annotierten Tag nach dem Muster `poc-v<Version>-rc.<Nummer>`. Der Tag wird nicht verschoben. Jede Korrektur erhält einen neuen Tag.
 
+Ein neuer RC-Tag wird erst nach Integration der Korrektur und erfolgreichen Gates auf dem nachgewiesenen `origin/main`-Commit erzeugt. Ein Feature-Branch erhält keinen vorläufigen RC-Tag.
+
 ```bash
 git status --short
-git checkout poc-v0.1.0-rc.3
+git checkout poc-v0.1.0-rc.4
 git rev-parse HEAD
 npm ci
 npm run check:poc-rc
@@ -123,9 +138,11 @@ node scripts/audit_target_assets.mjs --artifact-root dist/target
 
 docker build \
   -f api/Dockerfile \
-  -t "<registry>/<repository>:poc-v0.1.0-rc.3" \
+  -t "<registry>/<repository>:poc-v0.1.0-rc.4" \
   .
 ```
+
+Der providerneutrale OIDC-Frontend-Build benötigt nur den internen HTTPS-Origin. `OIDC_ISSUER`, `OIDC_AUDIENCE` und `OIDC_JWKS_URL` sind geschützte API-Laufzeitwerte und werden nicht in das statische Frontend geschrieben. Google Identity Platform, Firebase-Konfiguration, GCP-Projektwerte und das frühere IAP-Identity-Portal sind kein Bestandteil dieses OIDC-Artefakts. Der getrennte GCP-Pre-Integrationspfad mit `auth-mode=iap` behält sein eigenes Portal und seine eigenen Prüfungen.
 
 Nach dem Push werden Frontend-Manifest, Image-Digest, Tag und Commit zusammen festgehalten. Der Datenstand ist bewusst kein Buildartefakt.
 
@@ -181,6 +198,7 @@ GET /api/session
 Zusätzlich:
 
 - internes Frontend und OIDC-Anmeldung funktionieren,
+- der bestätigte Identity-Gateway-Vertrag und der positive `/api/session`-Smoke sind nachgewiesen,
 - Frontend und API verwenden denselben HTTPS-Origin,
 - die Anwendung lädt Daten ausschließlich über `/api`,
 - eine benannte Lese- und eine Schreibrolle können den vereinbarten Kernablauf nutzen,

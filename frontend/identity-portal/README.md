@@ -3,6 +3,10 @@
 Statischer Prototyp einer gebrandeten Identity-Platform-/IAP-Anmeldeseite für
 Google und E-Mail/Passwort sowie eines eigenen Passwort-Reset-Handlers.
 
+Dieses Portal gehört ausschließlich zur getrennten GCP-/IAP-Pre-Integration.
+Der interne providerneutrale OIDC-Target-Build enthält weder dieses Verzeichnis
+noch Google-Identity-Platform- oder Firebase-Konfiguration.
+
 Das Verzeichnis ist absichtlich eigenständig. Es verändert weder die bestehende
 Anwendung noch Cloud-Ressourcen und enthält keine Deployment-Automation.
 

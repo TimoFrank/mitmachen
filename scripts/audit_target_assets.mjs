@@ -158,14 +158,6 @@ for (const required of [
   "public/brand/versorgungs-kompass/lockup-horizontal.svg",
   "public/brand/versorgungs-kompass/mark-on-dark.svg",
   "public/brand/versorgungs-kompass/mark.svg",
-  "public/auth/assets/action.css",
-  "public/auth/assets/action.js",
-  "public/auth/assets/app.css",
-  "public/auth/assets/app.js",
-  "public/auth/brand/versorgungs-kompass.svg",
-  "public/auth/index.html",
-  "public/auth/konto/passwort-festlegen/index.html",
-  "public/auth/portal-config.js",
   "public/media/social/mitmachen-share-v3.png"
 ]) {
   assert(actualFiles.includes(required), `${artifactLabel}/${required} fehlt im geschuetzten Target-Artefakt`);
@@ -216,20 +208,18 @@ const approvedPublicAuthFiles = [
 const actualPublicAuthFiles = actualFiles
   .filter((file) => file.startsWith("public/auth/"))
   .sort();
-assert(
-  JSON.stringify(actualPublicAuthFiles) === JSON.stringify(approvedPublicAuthFiles),
-  `${artifactLabel}/public/auth darf ausschliesslich die acht freigegebenen Identity-Portal-Dateien enthalten`
-);
 
 const configPath = join(artifactRoot, "data", "runtime-config.js");
 let targetBaseUrl = "";
+let targetAuthMode = "";
 if (existsSync(configPath)) {
   const config = readFileSync(configPath, "utf8");
   assert(/dataMode:\s*"api"/.test(config), `${artifactLabel}/data/runtime-config.js erzwingt nicht den API-Modus`);
   assert(/requireApiGateway:\s*true/.test(config), `${artifactLabel}/data/runtime-config.js erzwingt nicht das API-Gateway`);
   assert(/cleanUrls:\s*true/.test(config), `${artifactLabel}/data/runtime-config.js aktiviert die kanonischen Anwendungspfade nicht`);
   assert(/apiCredentials:\s*"include"/.test(config), `${artifactLabel}/data/runtime-config.js sendet keine geschuetzte Sitzung`);
-  assert(/authMode:\s*"(?:iap|oidc)"/.test(config), `${artifactLabel}/data/runtime-config.js verwendet keinen erlaubten signierten Auth-Modus`);
+  targetAuthMode = /authMode:\s*"(iap|oidc)"/.exec(config)?.[1] || "";
+  assert(Boolean(targetAuthMode), `${artifactLabel}/data/runtime-config.js verwendet keinen erlaubten signierten Auth-Modus`);
   assert(!/ownerOnlyContactChannels:\s*true/.test(config), `${artifactLabel}/data/runtime-config.js darf den Pages-spezifischen Owner-Schutz nicht aktivieren`);
   assert(!/allDemoContactsInvitable:\s*true/.test(config), `${artifactLabel}/data/runtime-config.js darf keine synthetische Demo-Einladungsfreigabe aktivieren`);
   assert(!/supabaseUrl|supabaseAnonKey|registrationEndpoint/.test(config), `${artifactLabel}/data/runtime-config.js enthaelt direkte Supabase-Browserkonfiguration`);
@@ -243,6 +233,18 @@ if (existsSync(configPath)) {
   } catch {
     assert(false, `${artifactLabel}/data/runtime-config.js enthaelt keinen gueltigen Target-Origin`);
   }
+}
+
+if (targetAuthMode === "iap") {
+  assert(
+    JSON.stringify(actualPublicAuthFiles) === JSON.stringify(approvedPublicAuthFiles),
+    `${artifactLabel}/public/auth muss fuer IAP exakt die acht freigegebenen Identity-Portal-Dateien enthalten`
+  );
+} else if (targetAuthMode === "oidc") {
+  assert(
+    actualPublicAuthFiles.length === 0,
+    `${artifactLabel}/public/auth ist im providerneutralen OIDC-Artefakt nicht zulaessig`
+  );
 }
 
 const shareImagePath = join(artifactRoot, "public", "media", "social", "mitmachen-share-v3.png");
@@ -348,7 +350,7 @@ for (const relativePath of ["public-index.html"]) {
   assert(
     (html.match(/href=[\"']\/start[\"']/gi) || []).length === 1
       && /data-public-login-button/.test(html),
-    `${artifactLabel}/${relativePath} muss exakt einmal den IAP-geschuetzten Einstieg zum eigenen Identity-Portal ausloesen`
+    `${artifactLabel}/${relativePath} muss exakt einmal den geschuetzten Target-Einstieg ausloesen`
   );
   assert(
     !/data-google-sso-button|Mit Google anmelden/i.test(html),
@@ -404,7 +406,7 @@ if (existsSync(publicIndexPath)) {
     (html.match(/href=[\"']\/start[\"']/gi) || []).length === 1
       && /data-public-login-button/.test(html)
       && !/data-public-action-note|Google oder einem persönlich freigeschalteten E-Mail-Konto/.test(html),
-    `${artifactLabel}/public-index.html muss ausschließlich den providerneutralen CTA ueber den geschuetzten IAP-Einstieg enthalten`
+    `${artifactLabel}/public-index.html muss ausschließlich den providerneutralen CTA ueber den geschuetzten Target-Einstieg enthalten`
   );
   assert(
     /<h1[^>]*>Willkommen\.<\/h1>/.test(html)
@@ -445,7 +447,7 @@ const identityPortalDocuments = [
     script: "/public/auth/assets/action.js?v=20260731-1"
   }
 ];
-for (const { relativePath, marker, stylesheet, script } of identityPortalDocuments) {
+for (const { relativePath, marker, stylesheet, script } of targetAuthMode === "iap" ? identityPortalDocuments : []) {
   const documentPath = join(artifactRoot, relativePath);
   if (!existsSync(documentPath)) continue;
   const html = readFileSync(documentPath, "utf8");
@@ -471,7 +473,7 @@ for (const { relativePath, marker, stylesheet, script } of identityPortalDocumen
 }
 
 const identityPortalConfigPath = join(artifactRoot, "public", "auth", "portal-config.js");
-if (existsSync(identityPortalConfigPath)) {
+if (targetAuthMode === "iap" && existsSync(identityPortalConfigPath)) {
   const config = readFileSync(identityPortalConfigPath, "utf8");
   assert(!/REPLACE_/.test(config), `${artifactLabel}/public/auth/portal-config.js enthaelt einen nicht ersetzten Platzhalter`);
   assert(
@@ -498,7 +500,7 @@ if (existsSync(identityPortalConfigPath)) {
 }
 
 const identityPortalAppPath = join(artifactRoot, "public", "auth", "assets", "app.js");
-if (existsSync(identityPortalAppPath)) {
+if (targetAuthMode === "iap" && existsSync(identityPortalAppPath)) {
   const app = readFileSync(identityPortalAppPath, "utf8");
   assert(
     /Mit Google anmelden/.test(app)
@@ -554,6 +556,15 @@ const targetText = actualFiles
   .filter((file) => textExtensions.has(extname(file)))
   .map((file) => readFileSync(join(artifactRoot, file), "utf8"))
   .join("\n");
+
+if (targetAuthMode === "oidc") {
+  for (const [pattern, reason] of [
+    [/steam-capsule-341212|firebaseapp\.com|identitytoolkit\.googleapis\.com|securetoken\.googleapis\.com/i, "eine GCP-/Firebase-Laufzeitadresse"],
+    [/\b(?:IDENTITY_PLATFORM|IAP_GCIP|IAP_EXTERNAL_AUTH_API_KEY)\b|AIza[0-9A-Za-z_-]{35}/, "GCP-IAP-/Identity-Platform-Konfiguration"]
+  ]) {
+    assert(!pattern.test(targetText), `${artifactLabel} enthaelt im OIDC-Modus ${reason}`);
+  }
+}
 
 for (const [pattern, reason] of [
   [/https:\/\/[a-z0-9-]+\.supabase\.co/i, "eine direkte Supabase-Projekt-URL"],
@@ -617,4 +628,4 @@ if (failures.length) {
   process.exit(1);
 }
 
-console.log(`Target Asset Audit OK: ${artifactLabel} enthaelt die geschuetzte API-Anwendung ohne Demo-Datensatz, direkte Supabase-Browseranbindung oder oeffentliche Fachassets.`);
+console.log(`Target Asset Audit OK: ${artifactLabel} enthaelt die geschuetzte API-Anwendung im ${targetAuthMode || "unbekannten"}-Modus ohne Demo-Datensatz, direkte Supabase-Browseranbindung oder oeffentliche Fachassets.`);

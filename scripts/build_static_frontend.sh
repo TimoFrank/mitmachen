@@ -18,7 +18,9 @@ usage() {
 Usage:
   bash scripts/build_static_frontend.sh --profile pages --output dist/pages
   bash scripts/build_static_frontend.sh --profile target --output dist/target \
-    --api-base-url https://example.invalid --auth-mode oidc|iap \
+    --api-base-url https://example.invalid --auth-mode oidc
+  bash scripts/build_static_frontend.sh --profile target --output dist/target \
+    --api-base-url https://example.invalid --auth-mode iap \
     --identity-platform-api-key "$IDENTITY_PLATFORM_API_KEY" \
     --identity-platform-project-id example-project
 
@@ -84,13 +86,19 @@ if [ "$PROFILE" = "pages" ]; then
   [ -z "$AUTH_MODE" ] || fail "--auth-mode ist nur fuer das target-Profil zulaessig."
 else
   [ -n "$API_BASE_URL" ] || fail "--api-base-url fehlt fuer das target-Profil."
-  [ -n "$IDENTITY_PLATFORM_API_KEY" ] || fail "--identity-platform-api-key/IDENTITY_PLATFORM_API_KEY fehlt fuer das target-Profil."
-  [ -n "$IDENTITY_PLATFORM_PROJECT_ID" ] || fail "--identity-platform-project-id/IDENTITY_PLATFORM_PROJECT_ID fehlt fuer das target-Profil."
   case "$AUTH_MODE" in
-    oidc|iap) ;;
+    oidc)
+      [ -z "$IDENTITY_PLATFORM_API_KEY" ] || fail "--identity-platform-api-key ist nur fuer den IAP-Build zulaessig."
+      [ -z "$IDENTITY_PLATFORM_PROJECT_ID" ] || fail "--identity-platform-project-id ist nur fuer den IAP-Build zulaessig."
+      ;;
+    iap)
+      [ -n "$IDENTITY_PLATFORM_API_KEY" ] || fail "--identity-platform-api-key/IDENTITY_PLATFORM_API_KEY fehlt fuer den IAP-Build."
+      [ -n "$IDENTITY_PLATFORM_PROJECT_ID" ] || fail "--identity-platform-project-id/IDENTITY_PLATFORM_PROJECT_ID fehlt fuer den IAP-Build."
+      ;;
     *) fail "--auth-mode muss fuer das target-Profil oidc oder iap sein." ;;
   esac
 
+  AUTH_MODE="$AUTH_MODE" \
   IDENTITY_PLATFORM_API_KEY="$IDENTITY_PLATFORM_API_KEY" \
   IDENTITY_PLATFORM_PROJECT_ID="$IDENTITY_PLATFORM_PROJECT_ID" \
   node - "$API_BASE_URL" <<'NODE'
@@ -120,19 +128,21 @@ if (
   process.exit(1);
 }
 
-const identityPlatformApiKey = process.env.IDENTITY_PLATFORM_API_KEY || "";
-if (!/^AIza[0-9A-Za-z_-]{35}$/.test(identityPlatformApiKey)) {
-  console.error("Static frontend build FAILED: --identity-platform-api-key muss ein gueltiger Identity-Platform-Web-API-Key sein.");
-  process.exit(1);
-}
+if (process.env.AUTH_MODE === "iap") {
+  const identityPlatformApiKey = process.env.IDENTITY_PLATFORM_API_KEY || "";
+  if (!/^AIza[0-9A-Za-z_-]{35}$/.test(identityPlatformApiKey)) {
+    console.error("Static frontend build FAILED: --identity-platform-api-key muss ein gueltiger Identity-Platform-Web-API-Key sein.");
+    process.exit(1);
+  }
 
-const identityPlatformProjectId = process.env.IDENTITY_PLATFORM_PROJECT_ID || "";
-if (
-  !/^[a-z][a-z0-9-]{4,28}[a-z0-9]$/.test(identityPlatformProjectId) ||
-  identityPlatformProjectId.includes("--")
-) {
-  console.error("Static frontend build FAILED: --identity-platform-project-id muss eine kanonische Google-Cloud-Projekt-ID sein.");
-  process.exit(1);
+  const identityPlatformProjectId = process.env.IDENTITY_PLATFORM_PROJECT_ID || "";
+  if (
+    !/^[a-z][a-z0-9-]{4,28}[a-z0-9]$/.test(identityPlatformProjectId) ||
+    identityPlatformProjectId.includes("--")
+  ) {
+    console.error("Static frontend build FAILED: --identity-platform-project-id muss eine kanonische Google-Cloud-Projekt-ID sein.");
+    process.exit(1);
+  }
 }
 NODE
 fi
@@ -626,7 +636,6 @@ build_target() {
     "$STAGE_DIR/public/brand/mitmachen" \
     "$STAGE_DIR/public/brand/modules" \
     "$STAGE_DIR/public/brand/versorgungs-kompass/icons" \
-    "$STAGE_DIR/public/auth" \
     "$STAGE_DIR/public/media/demo/mitmachen" \
     "$STAGE_DIR/public/media/social" \
     "$STAGE_DIR/deutschlandkarte-project/data" \
@@ -636,7 +645,9 @@ build_target() {
     "$STAGE_DIR/vendor"
 
   touch "$STAGE_DIR/.nojekyll"
-  build_identity_portal
+  if [ "$AUTH_MODE" = "iap" ]; then
+    build_identity_portal
+  fi
   cp "$FRONTEND_DIR/public-entry/index.html" "$STAGE_DIR/public-index.html"
   cp "$FRONTEND_DIR/pages/mitmachen/index.html" "$STAGE_DIR/index.html"
   cp "$FRONTEND_DIR/login/login.html" "$STAGE_DIR/login.html"

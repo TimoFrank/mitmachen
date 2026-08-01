@@ -556,7 +556,74 @@ for (const contract of [
 assert.doesNotMatch(valuesSource, /tag:\s*latest\b/i, "Produktionsimages duerfen nicht per latest referenziert werden.");
 
 const deployWorkflowSource = read(".github/workflows/deploy-pre-gematik.yml");
+const targetReadinessSource = read(".github/workflows/target-readiness.yml");
 const jenkinsSource = read("deploy/jenkins/Jenkinsfile.gematik");
+const packageScripts = JSON.parse(read("package.json")).scripts;
+assert.doesNotMatch(
+  packageScripts["build:target"],
+  /identity-platform|IDENTITY_PLATFORM|IAP_/i,
+  "Der providerneutrale OIDC-Build darf keine GCP-Identity-Platform-Werte weiterreichen."
+);
+assert.match(
+  packageScripts["test:deployment-separation:oidc"],
+  /--oidc-only/,
+  "Der interne RC benoetigt einen OIDC-only-Artefaktvertrag."
+);
+assert.match(
+  packageScripts["check:poc-rc"],
+  /test:deployment-separation:oidc/,
+  "Der Software-Factory-RC muss den OIDC-only-Artefaktvertrag ausfuehren."
+);
+assert.doesNotMatch(
+  jenkinsSource,
+  /npm ci --prefix frontend\/identity-portal|--identity-platform-(?:api-key|project-id)/,
+  "Jenkins darf fuer den internen OIDC-Build weder das GCP-Portal installieren noch GCP-Portalwerte uebergeben."
+);
+assert.match(
+  jenkinsSource,
+  /stage\('Install'\)[\s\S]*rm -rf -- frontend\/identity-portal\/node_modules[\s\S]*npm ci[\s\S]*test ! -d frontend\/identity-portal\/node_modules/,
+  "Jenkins muss ignorierte Portal-Abhaengigkeiten aus wiederverwendeten Workspaces entfernen und ihre Abwesenheit nachweisen."
+);
+assert.match(
+  jenkinsSource,
+  /unset IDENTITY_PLATFORM_API_KEY IDENTITY_PLATFORM_PROJECT_ID[\s\S]*test ! -e "\$FRONTEND_ARTIFACT_DIR\/public\/auth"[\s\S]*test ! -d frontend\/identity-portal\/node_modules/,
+  "Jenkins muss den internen OIDC-Build gegen geerbte GCP-Werte und Portalartefakte absichern."
+);
+assert.match(
+  jenkinsSource,
+  /git fetch --force --tags origin '\+refs\/heads\/main:refs\/remotes\/origin\/main'[\s\S]*git merge-base --is-ancestor "\$head_sha" refs\/remotes\/origin\/main/,
+  "Jenkins darf nur einen auf origin/main enthaltenen PoC-RC ausliefern."
+);
+assert.match(
+  jenkinsSource,
+  /expected_version="\$\{rc_tag#poc-v\}"[\s\S]*expected_rc_suffix="\$\{expected_version##\*-\}"[\s\S]*chart_version=[\s\S]*chart_app_version=[\s\S]*poc_image_tag=[\s\S]*\*-"\$expected_rc_suffix"[\s\S]*test "\$chart_app_version" = "\$expected_version"[\s\S]*test "\$poc_image_tag" = "\$rc_tag"/,
+  "Jenkins muss RC-Tag, Helm-Chart-Suffix, appVersion und PoC-Image-Tag miteinander abgleichen."
+);
+assert.match(
+  jenkinsSource,
+  /stage\('Smoke API image'\)[\s\S]*--env API_AUTH_MODE=oidc[\s\S]*--env OIDC_ISSUER[\s\S]*--env OIDC_AUDIENCE[\s\S]*--env OIDC_JWKS_URL/,
+  "Jenkins muss das API-Image im internen OIDC-Modus starten."
+);
+assert.doesNotMatch(
+  jenkinsSource,
+  /stage\('Smoke API image'\)[\s\S]*--env API_AUTH_MODE=iap/,
+  "Der interne Jenkins-Smoke darf nicht auf den GCP-IAP-Modus zurueckfallen."
+);
+assert.doesNotMatch(
+  targetReadinessSource,
+  /npm ci --prefix frontend\/identity-portal/,
+  "Der interne Target-Readiness-Job darf die fehlende OIDC-Entkopplung nicht durch Portal-Abhaengigkeiten maskieren."
+);
+assert.match(
+  targetReadinessSource,
+  /Build internal OIDC target without GCP portal[\s\S]*test ! -d frontend\/identity-portal\/node_modules[\s\S]*npm run build:target[\s\S]*test ! -e dist\/target\/public\/auth/,
+  "Target-Readiness muss den sauberen OIDC-Build ohne GCP-Portal nachweisen."
+);
+assert.match(
+  targetReadinessSource,
+  /Build and smoke-test API container[\s\S]*--env API_AUTH_MODE=oidc[\s\S]*--env OIDC_ISSUER=https:\/\/identity\.example\.invalid\/issuer[\s\S]*--env OIDC_AUDIENCE=versorgungs-kompass[\s\S]*--env OIDC_JWKS_URL=https:\/\/identity\.example\.invalid\/\.well-known\/jwks\.json/,
+  "Target-Readiness muss den API-Container mit einer vollstaendigen OIDC-Konfiguration starten."
+);
 assert.match(
   deployWorkflowSource,
   /const appendOnlyTables = \["activity_events"\];[\s\S]*requested\.name = any\(\$2::text\[\]\)[\s\S]*'SELECT'[\s\S]*'INSERT'[\s\S]*not has_any_column_privilege\([^\n]+, 'UPDATE'\)[\s\S]*not has_table_privilege\([^\n]+, 'DELETE'\)/,
@@ -588,7 +655,7 @@ assert.doesNotMatch(
 const ciSource = [
   read(".github/workflows/repo-check.yml"),
   deployWorkflowSource,
-  read(".github/workflows/target-readiness.yml"),
+  targetReadinessSource,
   jenkinsSource
 ].join("\n");
 for (const imageReference of [
