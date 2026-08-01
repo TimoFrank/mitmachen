@@ -5661,7 +5661,7 @@
         display: block;
         width: clamp(300px, 28vw, 420px);
         height: auto;
-        margin-bottom: 48px;
+        margin-bottom: 64px;
       }
 
       .home-welcome-heading {
@@ -5680,7 +5680,7 @@
         width: min(760px, 100%);
         display: grid;
         justify-items: center;
-        margin-top: 20px;
+        margin-top: 28px;
       }
 
       .home-compass-rotation__stage {
@@ -5702,51 +5702,42 @@
         line-height: 1.16;
         white-space: nowrap;
         transform: translateY(7px);
-        animation: homeCompassRotate 1.25s cubic-bezier(0.22, 1, 0.36, 1) both;
+        animation: homeCompassRotate 5s cubic-bezier(0.22, 1, 0.36, 1) infinite both;
         will-change: opacity, transform;
       }
 
       .home-compass-rotation__item--stakeholders {
         color: var(--module-stakeholders-strong);
-        animation-delay: 1.25s;
+        animation-delay: -3.75s;
       }
 
       .home-compass-rotation__item--planning {
         color: var(--module-planning-strong);
-        animation-delay: 2.5s;
+        animation-delay: -2.5s;
       }
 
       .home-compass-rotation__item--formats {
         color: var(--module-formats-strong);
-        animation-name: homeCompassRotateFinal;
-        animation-delay: 3.75s;
+        animation-delay: -1.25s;
       }
 
       @keyframes homeCompassRotate {
-        0% {
-          opacity: 0;
-          transform: translateY(7px);
-        }
-
-        14%,
-        78% {
+        0%,
+        20% {
           opacity: 1;
           transform: translateY(0);
         }
 
-        100% {
+        24% {
           opacity: 0;
           transform: translateY(-7px);
         }
-      }
 
-      @keyframes homeCompassRotateFinal {
-        0% {
+        96% {
           opacity: 0;
           transform: translateY(7px);
         }
 
-        14%,
         100% {
           opacity: 1;
           transform: translateY(0);
@@ -5758,7 +5749,7 @@
         display: inline-flex;
         align-items: center;
         gap: 10px;
-        margin-top: 28px;
+        margin-top: 44px;
         padding: 11px 17px;
         border: 1px solid #c9d8ef;
         border-radius: 999px;
@@ -5932,7 +5923,7 @@
 
         .home-hero__brand {
           width: min(280px, 100%);
-          margin-bottom: 38px;
+          margin-bottom: 48px;
         }
 
         .home-welcome-heading {
@@ -5941,7 +5932,11 @@
         }
 
         .home-compass-rotation {
-          margin-top: 14px;
+          margin-top: 20px;
+        }
+
+        .home-scroll-cue {
+          margin-top: 38px;
         }
 
         .home-destinations-section {
