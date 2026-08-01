@@ -1,6 +1,6 @@
 # Current State
 
-Stand: 2026-07-21.
+Stand: 2026-08-01.
 
 ## Aktiver Arbeitsmodus
 
@@ -20,6 +20,8 @@ Stand: 2026-07-21.
 ## Release Candidate und parallele Entwicklung
 
 - Führendes Vorgehen: [`../betrieb-und-deployment/POC_GEMATIK_DURCHSTICH.md`](../betrieb-und-deployment/POC_GEMATIK_DURCHSTICH.md).
+- Das interne `target`-Profil baut mit `TARGET_AUTH_MODE=oidc` providerneutral und ohne GCP Identity Portal oder dessen Abhängigkeiten. Der getrennte `pre-gematik`-Pfad behält für `auth-mode=iap` sein eigenes Portal und die vollständigen GCP-/IAP-Regressionen.
+- `npm run check:poc-rc` verwendet den OIDC-only-Artefaktvertrag und ist nach einem Root-`npm ci` ausführbar. Der vollständige Deployment-Trennungstest benötigt zusätzlich `npm ci --prefix frontend/identity-portal`, weil er auch den getrennten IAP-Referenzpfad prüft.
 - `main` und die GitHub-Pages-Demo dürfen nach der RC-Bildung weiterlaufen. Der gematik-PoC bleibt auf einem unveränderlichen RC-Tag, exaktem Commit sowie nachgewiesenen API- und Frontend-Digests.
 - Der freigegebene PoC-Datenstand wird separat aus der geschützten Anwendung übernommen. Während des Piloten ist die gematik-Kopie der gemeinsame bearbeitbare Bestand; eine automatische Synchronisation mit `mitmachen.timo-frank.de`, lokalen Varianten oder GitHub Pages existiert nicht.
 - Der RC wird in einem sauberen, separaten Checkout geprüft. Lokale uncommittete Dateien oder ein ZIP des Arbeitsordners sind kein Releaseartefakt.

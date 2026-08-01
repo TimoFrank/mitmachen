@@ -20315,7 +20315,7 @@
         return `
           <section class="dashboard-card hospitation-pattern-framework-reminder" data-hospitation-framework-reminder data-hospitation-framework-focus="${escapeHtml(focus)}" aria-labelledby="${escapeHtml(titleId)}">
             <div class="hospitation-pattern-framework-reminder__intro">
-              <strong id="${escapeHtml(titleId)}">Framework</strong>
+              <strong id="${escapeHtml(titleId)}" role="heading" aria-level="3">Framework</strong>
               <span>Von Beobachtung zum nächsten Schritt</span>
             </div>
             <div class="hospitation-pattern-framework-reminder__flow" role="list" aria-label="Vier Schritte des Hospitations-Frameworks">
@@ -38380,18 +38380,22 @@
       }
 
       function clearSearchInput({ update = true } = {}) {
-        if (!searchInput || !searchInput.value) {
+        const hadValue = Boolean(searchInput?.value);
+        window.clearTimeout(contactContentSearchTimer);
+        contactContentSearchTimer = null;
+        contactContentSearchToken += 1;
+        contactContentSearchResults = [];
+        contactContentSearchState = "idle";
+        if (contactContentSearchResultsNode) contactContentSearchResultsNode.hidden = true;
+        if (!searchInput) {
           syncSearchClearButton();
           return false;
         }
         searchInput.value = "";
-        currentPage = 1;
-        contactContentSearchResults = [];
-        contactContentSearchState = "idle";
-        if (contactContentSearchResultsNode) contactContentSearchResultsNode.hidden = true;
+        if (hadValue) currentPage = 1;
         syncSearchClearButton();
-        if (update) updateView();
-        return true;
+        if (update && hadValue) updateView();
+        return hadValue;
       }
 
       function setActiveView(view) {
@@ -38442,6 +38446,7 @@
         }
         if (viewChanged && searchContextForView(previousView) !== searchContextForView(view)) {
           clearSearchInput({ update: false });
+          if (view === "patients") restorePatientModeState(activePatientMode);
         }
         activeView = view;
         showPendingInitialDataReadyStatus(activeView);

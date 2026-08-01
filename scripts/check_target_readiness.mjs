@@ -49,12 +49,12 @@ const requiredText = [
   },
   {
     file: "dokumentation/betrieb-und-deployment/POC_GEMATIK_DURCHSTICH.md",
-    patterns: [/Non-Prod/i, /Datenstand.*geschützten Anwendung/i, /OIDC|SSO/i, /PostgreSQL/i, /RC-Tag/i, /parallele Weiterentwicklung/i, /Synchronisation.*nicht/i],
+    patterns: [/Non-Prod/i, /Datenstand.*geschützten Anwendung/i, /OIDC|SSO/i, /PostgreSQL/i, /RC-Tag/i, /parallele Weiterentwicklung/i, /Synchronisation.*nicht/i, /nicht für ein Deployment.*freigegeben/i],
     reason: "PoC-Dokument nennt Zweck, Ressourcen, Release-Trennung und Erfolgskriterien."
   },
   {
     file: "dokumentation/betrieb-und-deployment/DEPLOYMENT_GEMATIK_K8S.md",
-    patterns: [/Jenkins/i, /Kubernetes/i, /Helm/i, /dedizierte.*Datenbank/i],
+    patterns: [/Jenkins/i, /Kubernetes/i, /Helm/i, /dedizierte.*Datenbank/i, /Identity-Gateway-Vertrag/i, /Authorization: Bearer <JWT>/i, /API kann netzseitig nicht.*Umgehung.*Gateways/i],
     reason: "Technische Referenz beschreibt Software Factory, Kubernetes und den PoC-Datenbankpfad."
   },
   {
@@ -99,13 +99,25 @@ const requiredText = [
   },
   {
     file: "deploy/jenkins/Jenkinsfile.gematik",
-    patterns: [/Smoke API image/, /api\/healthz/, /archiveArtifacts[^\n]*dist\/target/, /FRONTEND_BUCKET_URI/, /migrationContractDigest/, /approved-classes-only/, /frontend-sbom\.cdx\.json/, /security-evidence\.json/, /REQUIRE_EXTERNAL_SECURITY_EVIDENCE/],
+    patterns: [/Smoke API image/, /API_AUTH_MODE=oidc/, /OIDC_ISSUER/, /OIDC_AUDIENCE/, /OIDC_JWKS_URL/, /api\/healthz/, /archiveArtifacts[^\n]*dist\/target/, /FRONTEND_BUCKET_URI/, /migrationContractDigest/, /approved-classes-only/, /frontend-sbom\.cdx\.json/, /security-evidence\.json/, /REQUIRE_EXTERNAL_SECURITY_EVIDENCE/],
     reason: "Jenkins prüft den Containerstart, archiviert Frontend und Security-Nachweise und weist die Datenrichtlinie ohne Daten-Snapshot nach."
   },
   {
     file: ".github/workflows/target-readiness.yml",
-    patterns: [/Build and smoke-test API container/, /api\/healthz/, /values-poc-gematik\.yaml/],
-    reason: "Target-Readiness prueft Containerstart und minimales PoC-Overlay."
+    patterns: [
+      /Build internal OIDC target without GCP portal/,
+      /test ! -d frontend\/identity-portal\/node_modules/,
+      /npm run build:target/,
+      /test ! -e dist\/target\/public\/auth/,
+      /Build and smoke-test API container/,
+      /API_AUTH_MODE=oidc/,
+      /OIDC_ISSUER=https:\/\/identity\.example\.invalid\/issuer/,
+      /OIDC_AUDIENCE=versorgungs-kompass/,
+      /OIDC_JWKS_URL=https:\/\/identity\.example\.invalid\/\.well-known\/jwks\.json/,
+      /api\/healthz/,
+      /values-poc-gematik\.yaml/
+    ],
+    reason: "Target-Readiness prueft den portalunabhaengigen OIDC-Build, Containerstart und das minimale PoC-Overlay."
   },
   {
     file: ".github/workflows/deploy-pre-gematik.yml",

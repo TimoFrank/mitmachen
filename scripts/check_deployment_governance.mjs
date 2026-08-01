@@ -179,6 +179,7 @@ const profileExpectations = [
       "dist/pages",
       "politik-offline.html",
       "frontend/demo",
+      "frontend/identity-portal",
       "frontend/data/public-politics-directory.js",
       "frontend/data/demo-data.js"
     ]

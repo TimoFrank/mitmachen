@@ -106,7 +106,7 @@ pipeline {
             returnStdout: true,
             script: '''
               set -eu
-              git fetch --force --tags origin >/dev/null
+              git fetch --force --tags origin '+refs/heads/main:refs/remotes/origin/main' >/dev/null
               test -z "$(git status --porcelain --untracked-files=all)" || {
                 echo "The PoC RC checkout is not clean." >&2
                 exit 1
@@ -131,6 +131,30 @@ pipeline {
                 echo "PoC RC tag must exist on origin and resolve to the checked-out commit." >&2
                 exit 1
               }
+              git merge-base --is-ancestor "$head_sha" refs/remotes/origin/main || {
+                echo "PoC RC tag must resolve to a commit contained in origin/main." >&2
+                exit 1
+              }
+              expected_version="${rc_tag#poc-v}"
+              expected_rc_suffix="${expected_version##*-}"
+              chart_version="$(awk -F ':[[:space:]]*' '$1 == "version" { gsub(/"/, "", $2); print $2; exit }' deploy/helm/versorgungs-kompass/Chart.yaml)"
+              chart_app_version="$(awk -F ':[[:space:]]*' '$1 == "appVersion" { gsub(/"/, "", $2); print $2; exit }' deploy/helm/versorgungs-kompass/Chart.yaml)"
+              poc_image_tag="$(awk '$1 == "tag:" { print $2; exit }' deploy/helm/versorgungs-kompass/values-poc-gematik.yaml)"
+              case "$chart_version" in
+                *-"$expected_rc_suffix") ;;
+                *)
+                  echo "PoC RC tag and Helm chart version use different RC suffixes." >&2
+                  exit 1
+                  ;;
+              esac
+              test "$chart_app_version" = "$expected_version" || {
+                echo "PoC RC tag and Helm appVersion differ." >&2
+                exit 1
+              }
+              test "$poc_image_tag" = "$rc_tag" || {
+                echo "PoC RC tag and PoC image tag differ." >&2
+                exit 1
+              }
               printf '%s' "$rc_tag"
             '''
           ).trim()
@@ -140,7 +164,13 @@ pipeline {
 
     stage('Install') {
       steps {
-        sh 'npm ci'
+        sh '''
+          set -eu
+          rm -rf -- frontend/identity-portal/node_modules
+          test ! -d frontend/identity-portal/node_modules
+          npm ci
+          test ! -d frontend/identity-portal/node_modules
+        '''
       }
     }
 
@@ -266,12 +296,16 @@ pipeline {
               }
             }
           '
+          unset IDENTITY_PLATFORM_API_KEY IDENTITY_PLATFORM_PROJECT_ID
+          unset IAP_EXTERNAL_AUTH_API_KEY IAP_EXTERNAL_LOGIN_PAGE_URI IAP_GCIP_PROJECT_ID IAP_IDENTITY_MODE
           bash scripts/build_static_frontend.sh \
             --profile target \
             --output "$FRONTEND_ARTIFACT_DIR" \
             --api-base-url "$API_BASE_URL" \
             --auth-mode "$API_AUTH_MODE"
           node scripts/audit_target_assets.mjs --artifact-root "$FRONTEND_ARTIFACT_DIR"
+          test ! -e "$FRONTEND_ARTIFACT_DIR/public/auth"
+          test ! -d frontend/identity-portal/node_modules
           npm run security:api-gateway -- \
             --production-config "$FRONTEND_ARTIFACT_DIR/data/runtime-config.js"
           node scripts/generate_frontend_sbom.mjs \
@@ -441,9 +475,11 @@ pipeline {
             --name "$container_name" \
             --read-only \
             --tmpfs /tmp:rw,noexec,nosuid,size=64m \
-            --env API_AUTH_MODE=iap \
-            --env ALLOWED_ORIGIN=https://poc.example.invalid \
-            --env IAP_JWT_AUDIENCE=/projects/123456789/global/backendServices/123456789 \
+            --env API_AUTH_MODE=oidc \
+            --env ALLOWED_ORIGIN="$FRONTEND_BASE_URL" \
+            --env OIDC_ISSUER \
+            --env OIDC_AUDIENCE \
+            --env OIDC_JWKS_URL \
             "$API_IMAGE"
 
           attempt=1

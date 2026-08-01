@@ -65,6 +65,10 @@
 
 ## Zugänge und aktueller Stand
 
+Der Zielpfad ist eine interne Anwendung für gematik-Mitarbeitende. Er ist keine
+TI-Anwendung und besitzt keinen TI-Zulassungskontext. Gesundheits-, Patienten-
+und identifizierende Falldaten sind für diesen Nutzungspiloten ausgeschlossen.
+
 | Zugang | Status | Inhalt |
 | --- | --- | --- |
 | [GitHub-Pages-Demo](https://timofrank.github.io/mitmachen/) | Demo | Fiktive Beispieldaten, öffentlich verfügbar |
