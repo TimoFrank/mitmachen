@@ -85,10 +85,15 @@ test("Desktop-Auslieferung: Pages startet direkt in der App-Startseite", async (
     "Hospitations-Kompass",
     "Format-Kompass"
   ]);
-  await expect(compassNames.first()).toHaveCSS("animation-name", "homeCompassRotate");
-  await expect(compassNames.first()).toHaveCSS("animation-duration", "1.25s");
-  await expect(compassNames.first()).toHaveCSS("animation-iteration-count", "1");
-  await expect(compassNames.last()).toHaveCSS("animation-name", "homeCompassRotateFinal");
+  for (const name of await compassNames.all()) {
+    await expect(name).toHaveCSS("animation-name", "homeCompassRotate");
+    await expect(name).toHaveCSS("animation-duration", "5s");
+    await expect(name).toHaveCSS("animation-iteration-count", "infinite");
+  }
+  await expect(compassNames.nth(0)).toHaveCSS("animation-delay", "0s");
+  await expect(compassNames.nth(1)).toHaveCSS("animation-delay", "-3.75s");
+  await expect(compassNames.nth(2)).toHaveCSS("animation-delay", "-2.5s");
+  await expect(compassNames.nth(3)).toHaveCSS("animation-delay", "-1.25s");
   const nameMetrics = await compassNames.evaluateAll((nodes) => {
     const stage = nodes[0]?.closest(".home-compass-rotation__stage")?.getBoundingClientRect();
     return nodes.map((node) => {
@@ -123,9 +128,9 @@ test("Desktop-Auslieferung: Pages startet direkt in der App-Startseite", async (
   });
   const isMobileProject = testInfo.project.name.includes("mobile");
   expect(heroSpacing.brandWidth).toBeGreaterThan(isMobileProject ? 250 : 340);
-  expect(heroSpacing.brandToTitle).toBeGreaterThanOrEqual(isMobileProject ? 34 : 44);
-  expect(heroSpacing.titleToRotation).toBeGreaterThanOrEqual(isMobileProject ? 13 : 19);
-  expect(heroSpacing.rotationToCue).toBeGreaterThanOrEqual(27);
+  expect(heroSpacing.brandToTitle).toBeGreaterThanOrEqual(isMobileProject ? 46 : 62);
+  expect(heroSpacing.titleToRotation).toBeGreaterThanOrEqual(isMobileProject ? 19 : 27);
+  expect(heroSpacing.rotationToCue).toBeGreaterThanOrEqual(isMobileProject ? 37 : 43);
   await expect(page.locator(".home-hero .home-destinations__intro")).toHaveCount(0);
   await expect(page.locator("#home-destinations > .home-destinations__intro")).toHaveText(
     "Wähle den Kompass, in dem du weiterarbeiten möchtest."
