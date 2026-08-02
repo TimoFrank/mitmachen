@@ -2029,6 +2029,7 @@ test("Sidebar: Aktiver Bereich startet offen und beim Modulwechsel bleibt nur ei
   await expect(formatsSection).toHaveClass(/is-collapsed/);
   await expect(page.locator('[data-sidebar-section="admin"]')).toHaveCount(0);
   await expect(collapseButton.locator(".sidebar-collapse-label")).toHaveText("Menü einklappen");
+  await expect(collapseButton.locator(".sidebar-collapse-label")).toBeVisible();
 
   await page.locator('[data-sidebar-section-toggle="planning"]').click();
   await expect(shell).toHaveAttribute("data-active-view", "contacts");
@@ -2099,11 +2100,13 @@ test("Sidebar: Aktiver Bereich startet offen und beim Modulwechsel bleibt nur ei
   await expect(formatsSection).toHaveClass(/is-collapsed/);
   await expect(page).toHaveURL(/#analytics$/);
 
+  const expandedCollapseBox = await collapseButton.boundingBox();
   await collapseButton.click();
   await expect(shell).toHaveClass(/is-sidebar-collapsed/);
   await expect(collapseButton).toHaveAttribute("aria-label", "Seitenleiste ausklappen");
   await expect(collapseButton.locator(".sidebar-collapse-label")).toHaveText("Menü ausklappen");
-  await expect(collapseButton).toHaveCSS("position", "absolute");
+  await expect(collapseButton.locator(".sidebar-collapse-label")).toBeHidden();
+  await expect(collapseButton).toHaveCSS("position", "static");
   await expect(collapseButton).toBeInViewport();
   await expect(page.locator(".sidebar-nav > .sidebar-section:visible")).toHaveCount(1);
   await expect(careSection).toBeVisible();
@@ -2111,14 +2114,118 @@ test("Sidebar: Aktiver Bereich startet offen und beim Modulwechsel bleibt nur ei
   await expect(planningSection).toBeHidden();
   await expect(formatsSection).toBeHidden();
   const collapsedCollapseBox = await collapseButton.boundingBox();
+  expect(expandedCollapseBox).not.toBeNull();
   expect(collapsedCollapseBox).not.toBeNull();
-  expect(collapsedCollapseBox.width).toBe(32);
-  expect(collapsedCollapseBox.height).toBe(32);
+  expect(expandedCollapseBox.width).toBeGreaterThan(collapsedCollapseBox.width);
+  expect(collapsedCollapseBox.width).toBe(40);
+  expect(collapsedCollapseBox.height).toBe(40);
+  expect(Math.abs(collapsedCollapseBox.x - expandedCollapseBox.x)).toBeLessThanOrEqual(1);
+  expect(Math.abs(collapsedCollapseBox.y - expandedCollapseBox.y)).toBeLessThanOrEqual(1);
 
   await attachScreenshot(page, testInfo, "sidebar-section-first-page");
 });
 
-test("Sidebar: Ruhiger Desktop-Modus nutzt die kurze Höhe ohne Navigationsscroll", async ({ page }, testInfo) => {
+test("Sidebar: Desktop-Schalter bleibt ganz unten unter Konto und Profil", async ({ page }, testInfo) => {
+  test.skip(testInfo.project.name.includes("mobile"), "Die feste Desktop-Position wird separat geprüft.");
+  await page.setViewportSize({ width: 1440, height: 1000 });
+  await gotoAuthenticated(page, "/frontend/app/versorgungs-kompass.html#contacts", { role: "admin" });
+
+  const shell = page.locator(".app-shell");
+  const sidebar = page.locator(".app-sidebar");
+  const collapseButton = page.locator("#sidebar-collapse-button");
+  if (await shell.evaluate((element) => element.classList.contains("is-sidebar-collapsed"))) {
+    await collapseButton.click();
+    await expect(shell).not.toHaveClass(/is-sidebar-collapsed/);
+  }
+
+  const readLayout = () => page.evaluate(() => {
+    const toggleElement = document.querySelector("#sidebar-collapse-button");
+    const accountElement = document.querySelector(".sidebar-account-section");
+    const sidebarElement = document.querySelector(".app-sidebar");
+    const toggle = toggleElement?.getBoundingClientRect();
+    const icon = toggleElement?.querySelector("svg")?.getBoundingClientRect();
+    const account = accountElement?.getBoundingClientRect();
+    const sidebarBox = sidebarElement?.getBoundingClientRect();
+    const label = toggleElement?.querySelector(".sidebar-collapse-label");
+    return {
+      x: toggle?.x || 0,
+      y: toggle?.y || 0,
+      width: toggle?.width || 0,
+      height: toggle?.height || 0,
+      bottom: toggle?.bottom || 0,
+      iconCenterX: icon ? (icon.left + icon.right) / 2 : 0,
+      accountBottom: account?.bottom || 0,
+      sidebarBottom: sidebarBox?.bottom || 0,
+      sidebarPaddingBottom: sidebarElement ? Number.parseFloat(getComputedStyle(sidebarElement).paddingBottom) : 0,
+      labelDisplay: label ? getComputedStyle(label).display : "none",
+      labelText: label?.textContent?.trim() || "",
+      followsAccountInDom: accountElement?.nextElementSibling === toggleElement,
+      position: toggleElement ? getComputedStyle(toggleElement).position : ""
+    };
+  });
+  const expectDockedLayout = (layout, { expanded, gap }) => {
+    expect(Math.abs(layout.x - 18)).toBeLessThanOrEqual(1);
+    expect(Math.abs(layout.iconCenterX - 38)).toBeLessThanOrEqual(1);
+    expect(layout.height).toBe(40);
+    expect(Math.abs(layout.y - layout.accountBottom - gap)).toBeLessThanOrEqual(1);
+    expect(Math.abs(layout.sidebarBottom - layout.bottom - layout.sidebarPaddingBottom)).toBeLessThanOrEqual(1);
+    expect(layout.followsAccountInDom).toBe(true);
+    expect(layout.position).toBe("static");
+    if (expanded) {
+      expect(layout.width).toBeGreaterThan(200);
+      expect(layout.labelDisplay).not.toBe("none");
+      expect(layout.labelText).toBe("Menü einklappen");
+    } else {
+      expect(layout.width).toBe(40);
+      expect(layout.labelDisplay).toBe("none");
+    }
+  };
+
+  const expandedNormal = await readLayout();
+  expectDockedLayout(expandedNormal, { expanded: true, gap: 10 });
+  const immediateCollapsedNormal = await page.evaluate(() => {
+    const toggle = document.querySelector("#sidebar-collapse-button");
+    const before = toggle?.getBoundingClientRect();
+    const beforeIcon = toggle?.querySelector("svg")?.getBoundingClientRect();
+    toggle?.click();
+    const after = toggle?.getBoundingClientRect();
+    const afterIcon = toggle?.querySelector("svg")?.getBoundingClientRect();
+    return {
+      beforeX: before?.x || 0,
+      beforeY: before?.y || 0,
+      beforeBottom: before?.bottom || 0,
+      beforeIconCenterX: beforeIcon ? (beforeIcon.left + beforeIcon.right) / 2 : 0,
+      afterX: after?.x || 0,
+      afterY: after?.y || 0,
+      afterBottom: after?.bottom || 0,
+      afterIconCenterX: afterIcon ? (afterIcon.left + afterIcon.right) / 2 : 0
+    };
+  });
+  expect(immediateCollapsedNormal.afterX).toBe(immediateCollapsedNormal.beforeX);
+  expect(immediateCollapsedNormal.afterY).toBe(immediateCollapsedNormal.beforeY);
+  expect(immediateCollapsedNormal.afterBottom).toBe(immediateCollapsedNormal.beforeBottom);
+  expect(immediateCollapsedNormal.afterIconCenterX).toBe(immediateCollapsedNormal.beforeIconCenterX);
+  await expect(shell).toHaveClass(/is-sidebar-collapsed/);
+  const collapsedNormal = await readLayout();
+  expectDockedLayout(collapsedNormal, { expanded: false, gap: 10 });
+  expect(Math.abs(collapsedNormal.y - expandedNormal.y)).toBeLessThanOrEqual(1);
+  await expect(sidebar).toHaveCSS("width", "76px");
+
+  await page.setViewportSize({ width: 1280, height: 720 });
+  await expect(sidebar).toHaveCSS("padding-bottom", "18px");
+  const collapsedShort = await readLayout();
+  expectDockedLayout(collapsedShort, { expanded: false, gap: 8 });
+  await collapseButton.click();
+  await expect(shell).not.toHaveClass(/is-sidebar-collapsed/);
+  await expect(sidebar).toHaveCSS("width", "248px");
+  const expandedShort = await readLayout();
+  expectDockedLayout(expandedShort, { expanded: true, gap: 8 });
+  expect(Math.abs(expandedShort.x - collapsedShort.x)).toBeLessThanOrEqual(1);
+  expect(Math.abs(expandedShort.y - collapsedShort.y)).toBeLessThanOrEqual(1);
+  expect(Math.abs(expandedShort.iconCenterX - collapsedShort.iconCenterX)).toBeLessThanOrEqual(1);
+});
+
+test("Sidebar: Kurzer Desktop hält den breiten Menüschalter fest am unteren Rand", async ({ page }, testInfo) => {
   test.skip(testInfo.project.name.includes("mobile"), "Der höhenadaptive Desktop-Modus wird separat geprüft.");
   await page.setViewportSize({ width: 1280, height: 720 });
   await gotoAuthenticated(page, "/frontend/app/versorgungs-kompass.html#contacts", { role: "admin" });
@@ -2146,20 +2253,21 @@ test("Sidebar: Ruhiger Desktop-Modus nutzt die kurze Höhe ohne Navigationsscrol
   await expect(page.locator('[data-sidebar-section="stakeholders"]')).toHaveCSS("border-top-width", "0px");
   await expect(page.locator("#sidebar-administration-section")).toHaveCount(0);
   await expect(activeTab).toHaveCSS("min-height", "38px");
-  await expect(collapseButton).toHaveCSS("position", "absolute");
-  await expect(collapseButton.locator(".sidebar-collapse-label")).toBeHidden();
+  await expect(collapseButton).toHaveCSS("position", "static");
+  await expect(collapseButton.locator(".sidebar-collapse-label")).toBeVisible();
 
   const metrics = await page.evaluate(() => {
     const sidebar = document.querySelector(".app-sidebar");
     const nav = document.querySelector(".sidebar-nav");
     const account = document.querySelector(".sidebar-account-section");
-    const brand = document.querySelector(".sidebar-brand");
     const collapse = document.querySelector("#sidebar-collapse-button");
     const active = document.querySelector('[data-view-tab="contacts"]');
     const inactive = document.querySelector('[data-view-tab="map"]');
     const rect = (element) => element?.getBoundingClientRect();
     return {
       accountHeight: rect(account)?.height || 0,
+      accountTop: rect(account)?.top || 0,
+      accountBottom: rect(account)?.bottom || 0,
       accountBottomInset: (rect(sidebar)?.bottom || 0) - (rect(account)?.bottom || 0),
       accountPaddingBottom: account ? Number.parseFloat(getComputedStyle(account).paddingBottom) : 0,
       accountRowGap: account ? Number.parseFloat(getComputedStyle(account).rowGap) : 0,
@@ -2168,24 +2276,30 @@ test("Sidebar: Ruhiger Desktop-Modus nutzt die kurze Höhe ohne Navigationsscrol
       collapseBottom: rect(collapse)?.bottom || 0,
       collapseLeft: rect(collapse)?.left || 0,
       collapseTop: rect(collapse)?.top || 0,
+      collapseWidth: rect(collapse)?.width || 0,
       inactiveBackground: inactive ? getComputedStyle(inactive).backgroundColor : "",
       inactiveOpacity: inactive ? Number(getComputedStyle(inactive).opacity) : 0,
       navClientHeight: nav?.clientHeight || 0,
       navRowGap: nav ? Number.parseFloat(getComputedStyle(nav).rowGap) : 0,
       navScrollHeight: nav?.scrollHeight || 0,
-      navTop: rect(nav)?.top || 0,
-      brandBottom: rect(brand)?.bottom || 0
+      navBottom: rect(nav)?.bottom || 0,
+      navOverflowY: nav ? getComputedStyle(nav).overflowY : "",
+      sidebarBottom: rect(sidebar)?.bottom || 0,
+      sidebarPaddingBottom: sidebar ? Number.parseFloat(getComputedStyle(sidebar).paddingBottom) : 0
     };
   });
 
-  expect(metrics.navScrollHeight).toBeLessThanOrEqual(metrics.navClientHeight + 1);
+  expect(metrics.navScrollHeight).toBeGreaterThanOrEqual(metrics.navClientHeight);
+  expect(metrics.navOverflowY).toBe("auto");
   expect(metrics.navRowGap).toBeGreaterThanOrEqual(6);
   expect(metrics.accountHeight).toBeLessThan(165);
   expect(metrics.accountRowGap).toBeGreaterThanOrEqual(4);
   expect(metrics.accountPaddingBottom).toBeGreaterThanOrEqual(6);
   expect(metrics.accountBottomInset).toBeGreaterThanOrEqual(17);
-  expect(metrics.collapseBottom).toBeLessThanOrEqual(metrics.navTop);
-  expect(metrics.collapseBottom).toBeLessThanOrEqual(metrics.brandBottom);
+  expect(metrics.collapseWidth).toBeGreaterThan(200);
+  expect(Math.abs(metrics.navBottom - metrics.accountTop)).toBeLessThanOrEqual(1);
+  expect(Math.abs(metrics.collapseTop - metrics.accountBottom - 8)).toBeLessThanOrEqual(1);
+  expect(Math.abs(metrics.sidebarBottom - metrics.collapseBottom - metrics.sidebarPaddingBottom)).toBeLessThanOrEqual(1);
   expect(metrics.activeOpacity).toBeGreaterThan(metrics.inactiveOpacity);
   expect(metrics.activeBackground).not.toBe(metrics.inactiveBackground);
 
@@ -2193,8 +2307,32 @@ test("Sidebar: Ruhiger Desktop-Modus nutzt die kurze Höhe ohne Navigationsscrol
 
   await collapseButton.click();
   await expect(shell).toHaveClass(/is-sidebar-collapsed/);
-  await expect(collapseButton).toHaveCSS("position", "absolute");
-  await expect(collapseButton).toBeInViewport();
+  await expect(collapseButton).toHaveCSS("position", "static");
+  await expect(collapseButton.locator(".sidebar-collapse-label")).toBeHidden();
+  const collapsedControlPosition = await collapseButton.evaluate((element) => {
+    const rect = element.getBoundingClientRect();
+    const nav = document.querySelector(".sidebar-nav")?.getBoundingClientRect();
+    const account = document.querySelector(".sidebar-account-section")?.getBoundingClientRect();
+    const sidebar = document.querySelector(".app-sidebar");
+    const sidebarRect = sidebar?.getBoundingClientRect();
+    return {
+      left: rect.left,
+      top: rect.top,
+      bottom: rect.bottom,
+      width: rect.width,
+      navBottom: nav?.bottom || 0,
+      accountTop: account?.top || 0,
+      accountBottom: account?.bottom || 0,
+      sidebarBottom: sidebarRect?.bottom || 0,
+      sidebarPaddingBottom: sidebar ? Number.parseFloat(getComputedStyle(sidebar).paddingBottom) : 0
+    };
+  });
+  expect(Math.abs(collapsedControlPosition.left - metrics.collapseLeft)).toBeLessThanOrEqual(1);
+  expect(Math.abs(collapsedControlPosition.top - metrics.collapseTop)).toBeLessThanOrEqual(1);
+  expect(collapsedControlPosition.width).toBe(40);
+  expect(Math.abs(collapsedControlPosition.navBottom - collapsedControlPosition.accountTop)).toBeLessThanOrEqual(1);
+  expect(Math.abs(collapsedControlPosition.top - collapsedControlPosition.accountBottom - 8)).toBeLessThanOrEqual(1);
+  expect(Math.abs(collapsedControlPosition.sidebarBottom - collapsedControlPosition.bottom - collapsedControlPosition.sidebarPaddingBottom)).toBeLessThanOrEqual(1);
 
   await collapseButton.click();
   await page.locator('[data-sidebar-section-toggle="planning"]').click();
@@ -2223,6 +2361,11 @@ test("Sidebar: Mobiles Profilavatar entspricht der Größe der Kontoaktionen", a
   await expect(page.locator(".sidebar-brand .brand-mark")).toHaveCount(1);
   await expect(page.locator(".sidebar-brand-copy, .sidebar-brand-kicker, .sidebar-brand strong")).toHaveCount(0);
   await expect(page.locator(".sidebar-brand")).toHaveAttribute("aria-label", "#Mitmachen – zur Startseite");
+  expect(await page.evaluate(() => {
+    const toggle = document.querySelector("#sidebar-collapse-button");
+    const brand = document.querySelector(".sidebar-brand");
+    return brand?.previousElementSibling === toggle;
+  })).toBe(true);
   const closedMobileLayout = await page.evaluate(() => {
     const sidebar = document.querySelector(".app-sidebar")?.getBoundingClientRect();
     const main = document.querySelector(".app-main")?.getBoundingClientRect();
@@ -2296,6 +2439,11 @@ test("Sidebar: Mobiles Profilavatar entspricht der Größe der Kontoaktionen", a
 
   await page.setViewportSize({ width: 1440, height: 1000 });
   await expect(shell).toHaveClass(/is-sidebar-collapsed/);
+  expect(await page.evaluate(() => {
+    const toggle = document.querySelector("#sidebar-collapse-button");
+    const account = document.querySelector(".sidebar-account-section");
+    return account?.nextElementSibling === toggle;
+  })).toBe(true);
   await expect(collapseButton).toHaveAttribute("aria-label", "Seitenleiste ausklappen");
   await expect(collapseButton).toHaveAttribute("aria-expanded", "false");
 });
@@ -5829,6 +5977,7 @@ test("Sidebar: Team und Profil bleiben bei kurzer Höhe erreichbar", async ({ pa
   const sidebar = page.locator(".app-sidebar");
   const sidebarNav = page.locator(".sidebar-nav");
   const accountSection = page.locator(".sidebar-account-section");
+  const collapseButton = page.locator("#sidebar-collapse-button");
   await expect(sidebar).toBeVisible();
 
   if (isMobile) {
@@ -5858,9 +6007,10 @@ test("Sidebar: Team und Profil bleiben bei kurzer Höhe erreichbar", async ({ pa
     });
     await expect(page.locator(".app-shell")).toHaveClass(/is-sidebar-collapsed/);
     await expect(sidebar).toHaveCSS("overflow-y", "hidden");
-    expect(scrollMetrics.scrollHeight).toBeLessThanOrEqual(scrollMetrics.clientHeight + 1);
-    expect(scrollMetrics.scrollTop).toBe(0);
+    expect(scrollMetrics.overflowY).toBe("auto");
+    expect(scrollMetrics.scrollHeight).toBeGreaterThanOrEqual(scrollMetrics.clientHeight);
     await expect(accountSection).toBeInViewport();
+    await expect(collapseButton).toBeInViewport();
   }
 
   await expect(page.locator("#sidebar-profile-button")).toBeInViewport();

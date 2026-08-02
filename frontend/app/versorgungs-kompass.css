@@ -41485,26 +41485,79 @@
           text-transform: none;
         }
 
+        .app-sidebar,
+        .app-shell.is-sidebar-collapsed .app-sidebar {
+          padding-right: 14px;
+          padding-left: 14px;
+        }
+
         .app-shell:not(.is-sidebar-collapsed) .sidebar-collapse,
         .app-shell.is-sidebar-collapsed .sidebar-collapse {
-          right: auto;
-          left: 10px;
+          position: static;
+          inset: auto;
+          order: 4;
+          flex: 0 0 40px;
+          align-self: flex-start;
+          height: 40px;
+          min-height: 40px;
+          margin: 10px 0 0 4px;
+          padding-top: 0;
+          padding-bottom: 0;
+          border-color: rgba(255, 255, 255, 0.16);
+          background: rgba(255, 255, 255, 0.07);
+        }
+
+        .app-shell:not(.is-sidebar-collapsed) .sidebar-collapse {
+          width: calc(100% - 4px);
+          min-width: 0;
+          justify-content: flex-start;
+          gap: 8px;
+          padding-right: 10px;
+          padding-left: 10px;
+        }
+
+        .app-shell:not(.is-sidebar-collapsed) .sidebar-collapse .sidebar-collapse-label {
+          display: inline;
+          font-size: 0.78rem;
+          font-weight: 800;
+          letter-spacing: 0.01em;
+        }
+
+        .app-shell.is-sidebar-collapsed .sidebar-collapse {
+          width: 40px;
+          min-width: 40px;
+          padding-right: 0;
+          padding-left: 0;
+        }
+
+        .app-shell:not(.is-sidebar-collapsed) .sidebar-collapse svg,
+        .app-shell.is-sidebar-collapsed .sidebar-collapse svg {
+          width: 18px;
+          height: 18px;
         }
 
         .app-shell:not(.is-sidebar-collapsed) .sidebar-brand {
-          margin-left: 40px;
-          padding-right: 0;
-          padding-left: 0;
+          order: 0;
+          margin-left: 0;
+          padding-right: 6px;
+          padding-left: 6px;
         }
 
         .app-shell.is-sidebar-collapsed .sidebar-brand {
           order: 0;
-          width: 26px;
-          min-width: 26px;
-          align-self: flex-start;
-          margin-left: 36px;
-          padding-right: 0;
-          padding-left: 0;
+          width: auto;
+          min-width: 0;
+          align-self: stretch;
+          align-items: center;
+          justify-content: center;
+          margin-left: 0;
+          padding: 0 0 10px;
+        }
+
+        .app-shell.is-sidebar-collapsed .sidebar-brand .brand-mark {
+          width: 34px;
+          height: 34px;
+          flex-basis: 34px;
         }
 
         .app-shell.is-sidebar-collapsed .sidebar-collapse:hover,
@@ -41512,31 +41565,38 @@
           background: rgba(255, 255, 255, 0.13);
         }
 
+        .sidebar-nav,
         .app-shell.is-sidebar-collapsed .sidebar-nav {
-          order: 2;
-          margin-top: 0;
+          order: 1;
+        }
+
+        .sidebar-account-section,
+        .app-shell.is-sidebar-collapsed .sidebar-account-section {
+          order: 3;
+          height: 167px;
+          min-height: 167px;
+          align-content: end;
         }
 
         .app-shell.is-sidebar-collapsed .sidebar-account-section {
-          order: 3;
           width: 100%;
           justify-items: center;
-          gap: 5px;
+          gap: 3px;
         }
 
         .app-shell.is-sidebar-collapsed .sidebar-account-section > .sidebar-link,
         .app-shell.is-sidebar-collapsed .sidebar-account-row,
         .app-shell.is-sidebar-collapsed .sidebar-account-section .sidebar-footer,
         .app-shell.is-sidebar-collapsed .sidebar-notification-button {
-          width: 40px;
-          min-width: 40px;
+          width: 32px;
+          min-width: 32px;
         }
 
         .app-shell.is-sidebar-collapsed .sidebar-account-section > .sidebar-link,
         .app-shell.is-sidebar-collapsed .sidebar-account-section .sidebar-footer,
         .app-shell.is-sidebar-collapsed .sidebar-notification-button {
-          height: 40px;
-          min-height: 40px;
+          height: 32px;
+          min-height: 32px;
           margin: 0;
           padding: 0;
           border-radius: 10px;
@@ -41545,7 +41605,7 @@
 
         .app-shell.is-sidebar-collapsed .sidebar-account-section > .sidebar-link {
           display: grid;
-          grid-template-columns: 40px;
+          grid-template-columns: 32px;
         }
 
         .app-shell.is-sidebar-collapsed .sidebar-team-link .sidebar-team-icon {
@@ -41557,14 +41617,14 @@
 
         .app-shell.is-sidebar-collapsed .sidebar-account-row {
           display: grid;
-          grid-template-columns: 40px;
+          grid-template-columns: 32px;
           justify-items: center;
-          gap: 5px;
+          gap: 3px;
           margin: 0;
         }
 
         .app-shell.is-sidebar-collapsed .sidebar-account-section .sidebar-footer {
-          grid-template-columns: 40px;
+          grid-template-columns: 32px;
         }
 
         .app-shell.is-sidebar-collapsed .sidebar-notification-button {
@@ -41578,8 +41638,32 @@
         }
 
         .app-shell.is-sidebar-collapsed .sidebar-footer__badge {
-          width: 30px;
-          height: 30px;
+          width: 26px;
+          height: 26px;
+        }
+      }
+
+      @media (min-width: 761px) and (max-height: 820px) {
+        .app-shell:not(.is-sidebar-collapsed) .sidebar-collapse,
+        .app-shell.is-sidebar-collapsed .sidebar-collapse {
+          margin-top: 8px;
+        }
+
+        .app-shell:not(.is-sidebar-collapsed) .sidebar-brand {
+          padding-right: 2px;
+          padding-left: 2px;
+        }
+
+        .app-shell.is-sidebar-collapsed .sidebar-brand .brand-mark {
+          width: 32px;
+          height: 32px;
+          flex-basis: 32px;
+        }
+
+        .sidebar-account-section,
+        .app-shell.is-sidebar-collapsed .sidebar-account-section {
+          height: 154px;
+          min-height: 154px;
         }
       }
 
