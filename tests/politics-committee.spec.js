@@ -41,6 +41,7 @@ test("Politik ist über den Stakeholder-Kompass erreichbar", async ({ page }, te
   test.skip(testInfo.project.name.includes("mobile"), "Die Sidebar-Navigation wird im Desktop-Projekt geprüft.");
   await gotoAuthenticated(page, `${APP_PATH}#stakeholders/kv`);
 
+  await page.locator('[data-sidebar-subnav="stakeholder-people"] > .sidebar-subnav__toggle').click();
   const politicsTab = page.locator(POLITICS_TAB);
   await expect(politicsTab).toBeVisible();
   await politicsTab.click();
@@ -50,7 +51,8 @@ test("Politik ist über den Stakeholder-Kompass erreichbar", async ({ page }, te
   await expect(page.locator(POLITICS_VIEW)).toBeVisible();
 });
 
-test("Politik zeigt alle 38 Ausschussmitglieder und filtert nach Namen", async ({ page }) => {
+test("Politik zeigt alle 38 Ausschussmitglieder und filtert nach Namen", async ({ page }, testInfo) => {
+  test.skip(testInfo.project.name.includes("mobile"), "Vollbestand und Tabellenfilter werden im Desktop-Projekt geprüft.");
   await gotoAuthenticated(page, `${APP_PATH}#politics`);
 
   const politicsView = page.locator(POLITICS_VIEW);
@@ -60,9 +62,10 @@ test("Politik zeigt alle 38 Ausschussmitglieder und filtert nach Namen", async (
   await expect(politicsView).toBeVisible();
   await expect(committeeTable).toBeVisible();
   await expect(memberRows).toHaveCount(38);
-  await expect(committeeTable.locator("#politics-table-head > div")).toHaveCount(6);
+  await expect(committeeTable.locator("#politics-table-head > div")).toHaveCount(7);
   await expect(committeeTable.locator("[data-politics-sort]")).toHaveCount(5);
   await expect(committeeTable.locator("[data-politics-header-filter-button]")).toHaveCount(5);
+  await expect(politicsView.locator("#politics-filter-button")).toHaveCount(1);
   await expect(memberRows.locator(".politics-member-avatar img")).toHaveCount(38);
   await expect(memberRows.locator(".avatar-fallback")).toHaveCount(0);
   const firstPortrait = memberRows.first().locator(".politics-member-avatar img");
@@ -171,7 +174,8 @@ test("Freigegebene Bilder aus der Bundestag-Bilddatenbank werden vollständig mi
   await expect(profile.locator(`a[href="${member.imageUsageTermsUrl}"]`)).toBeVisible();
 });
 
-test("Politik lässt sich über die Tabellenköpfe sortieren und filtern", async ({ page }) => {
+test("Politik synchronisiert Sammelfilter und zusätzliche Spaltenfilter", async ({ page }, testInfo) => {
+  test.skip(testInfo.project.name.includes("mobile"), "Sortierung und kombinierte Filter werden im Desktop-Projekt geprüft.");
   await gotoAuthenticated(page, `${APP_PATH}#politics`);
 
   const committeeTable = page.locator(COMMITTEE_TABLE);
@@ -185,29 +189,36 @@ test("Politik lässt sich über die Tabellenköpfe sortieren und filtern", async
   await expect(memberHead).toHaveAttribute("aria-sort", "descending");
   await expect(rows.first()).toContainText("Demo-Ausschussmitglied 38");
 
-  const factionFilter = committeeTable.locator('[data-politics-column="faction"] [data-politics-header-filter-button]');
-  await factionFilter.click();
-  const factionMenu = committeeTable.locator("#politics-header-filter-faction");
-  await expect(factionMenu).toBeVisible();
-  await factionMenu.locator('[data-politics-filter-value="SPD"]').click();
+  const filterButton = page.locator("#politics-table-toolbar #politics-filter-button");
+  await expect(filterButton).toHaveCount(1);
+  await expect(committeeTable.locator("[data-politics-header-filter-button]")).toHaveCount(5);
+  await filterButton.click();
+  const filterPanel = page.locator("#politics-filter-panel");
+  await expect(filterPanel).toBeVisible();
+  await expect(filterButton).toHaveAttribute("aria-expanded", "true");
+  await filterPanel.locator('[data-directory-filter-key="faction"]').selectOption("SPD");
   await expect(rows).toHaveCount(7);
   await expect(rows).toContainText(["Demo-Ausschussmitglied 29", "Demo-Ausschussmitglied 28", "Demo-Ausschussmitglied 27", "Demo-Ausschussmitglied 26", "Demo-Ausschussmitglied 25", "Demo-Ausschussmitglied 24", "Demo-Ausschussmitglied 23"]);
+  await expect(page.locator("#politics-filter-badge")).toHaveText("1");
+  await expect(committeeTable.locator('[data-politics-column="faction"] [data-politics-header-filter-button]')).toHaveClass(/is-active/);
 
-  await factionFilter.click();
-  await factionMenu.locator('[data-politics-filter-value=""]').click();
+  await filterPanel.locator('[data-directory-filter-reset="politics"]').click();
   await expect(rows).toHaveCount(38);
+  await expect(committeeTable.locator('[data-politics-column="faction"] [data-politics-header-filter-button]')).not.toHaveClass(/is-active/);
+  await filterPanel.locator('[data-directory-filter-close="politics"]').click();
+  await expect(filterPanel).toBeHidden();
 
-  const postalFilter = committeeTable.locator('[data-politics-column="postalCodes"] [data-politics-header-filter-button]');
-  await postalFilter.click();
-  const postalMenu = committeeTable.locator("#politics-header-filter-postalCodes");
-  await postalMenu.locator("[data-politics-filter-search]").fill("10100");
-  await postalMenu.locator('[data-politics-filter-value="10100"]').click();
+  const postalHeaderFilter = committeeTable.locator('[data-politics-column="postalCodes"] [data-politics-header-filter-button]');
+  await postalHeaderFilter.click();
+  const postalHeaderMenu = page.locator("#politics-header-filter-postalCodes");
+  await expect(postalHeaderMenu).toBeVisible();
+  await postalHeaderMenu.locator('[data-politics-filter-value="10100"]').click();
   await expect(rows).toHaveCount(1);
   await expect(rows.first()).toContainText("Demo-Ausschussmitglied 01");
-
-  await postalFilter.click();
-  await postalMenu.locator("[data-politics-filter-search]").fill("10101");
-  await expect(postalMenu.locator('[data-politics-filter-value="10101"]')).toHaveCount(0);
+  const postalFilter = filterPanel.locator('[data-directory-filter-key="postalCodes"]');
+  await expect(postalFilter).toHaveValue("10100");
+  await expect(page.locator("#politics-filter-badge")).toHaveText("1");
+  await expect(postalFilter.locator('option[value="10101"]')).toHaveCount(0);
 });
 
 test("Politik-Mitglieder öffnen im VK-paritätischen rechten Drawer mit Tabs, Wahlkreis und Minikarte", async ({ page }, testInfo) => {
@@ -321,7 +332,9 @@ test("Politik-Mitglieder öffnen im VK-paritätischen rechten Drawer mit Tabs, W
   await expect(page).toHaveURL(/#politics$/);
   await expect(drawer).toHaveAttribute("aria-hidden", "true");
   await expect(drawer).not.toHaveClass(/is-open/);
-  await expect(page.locator(COMMITTEE_TABLE).locator(MEMBER_ROWS)).toHaveCount(38);
+  await expect(page.locator(COMMITTEE_TABLE).locator(MEMBER_ROWS)).toHaveCount(
+    testInfo.project.name.includes("mobile") ? 6 : 38
+  );
 });
 
 test("Listenmandate ohne Wahlkreis-PLZ erhalten einen eindeutigen Kartenhinweis", async ({ page }) => {
@@ -498,9 +511,43 @@ test("Politik bleibt auf mobilen Viewports ohne horizontalen Seiten-Overflow les
   const politicsView = page.locator(POLITICS_VIEW);
   await expect(politicsView).toBeVisible();
   await expect(politicsView.locator(COMMITTEE_TABLE)).toBeVisible();
-  await expect(politicsView.locator(".politics-member-avatar img")).toHaveCount(38);
+  const mobileRows = politicsView.locator(MEMBER_ROWS);
+  await expect(mobileRows).toHaveCount(6);
+  await expect(mobileRows).toHaveClass(Array.from({ length: 6 }, () => /mobile-collection-card/));
+  await expect(mobileRows.locator("[data-contextual-row-select]")).toHaveCount(0);
+  await expect(politicsView.locator("#contextual-bulk-toolbar")).toBeHidden();
+  await expect(politicsView.locator("[data-politics-header-filter-button]")).toHaveCount(5);
+  const factionColumnFilter = politicsView.locator('[data-politics-column="faction"] [data-politics-header-filter-button]');
+  await factionColumnFilter.click();
+  const factionColumnMenu = page.locator("#politics-header-filter-faction");
+  await expect(factionColumnMenu).toBeVisible();
+  await expect(factionColumnMenu).toHaveCSS("position", "fixed");
+  await factionColumnFilter.click();
+  await expect(factionColumnMenu).toBeHidden();
+  const filterButton = politicsView.locator("#politics-filter-button");
+  await expect(filterButton).toBeVisible();
+  await filterButton.click();
+  await expect(politicsView.locator("#politics-filter-panel")).toBeVisible();
+  await politicsView.locator('[data-directory-filter-close="politics"]').click();
+  await expect(politicsView.locator(".politics-member-avatar img")).toHaveCount(6);
+  await expect(mobileRows.first().locator("[data-politics-field]")).toHaveCount(0);
+  await expect(mobileRows.first().locator(".mobile-contact-copy")).toContainText("Demo-Ausschussmitglied 01");
+  await expect(politicsView.locator("#politics-pagination [data-politics-page]")).toHaveCount(7);
+  await expect(politicsView.locator(COMMITTEE_TABLE)).toHaveAttribute("role", "region");
+  await expect(mobileRows.first()).toHaveAttribute("role", "listitem");
+  await expect(mobileRows.first().locator(":scope > *[role=cell]")).toHaveCount(0);
 
-  await politicsView.locator(MEMBER_ROWS).first().locator("[data-open-politics-profile]").click();
+  for (const width of [520, 320, 390]) {
+    await page.setViewportSize({ width, height: 844 });
+    const overflow = await page.locator("html").evaluate((node) =>
+      Math.max(0, node.scrollWidth - node.clientWidth)
+    );
+    expect(overflow, `kein horizontaler Overflow bei ${width}px`).toBeLessThanOrEqual(1);
+    await expect(mobileRows.first().locator(".mobile-contact-top")).toBeVisible();
+  }
+
+  await mobileRows.first().focus();
+  await mobileRows.first().press("Enter");
   const drawer = page.locator(POLITICS_DRAWER);
   await expect(drawer).toHaveClass(/is-open/);
   await expect(page.locator("#person-profile-page")).toBeHidden();
@@ -544,7 +591,8 @@ test("Politik bleibt auf mobilen Viewports ohne horizontalen Seiten-Overflow les
   expect(overflow).toBeLessThanOrEqual(1);
 });
 
-test("Die öffentliche Demo zeigt das minimierte öffentliche 38er-Politikverzeichnis", async ({ page }) => {
+test("Die öffentliche Demo zeigt das minimierte öffentliche 38er-Politikverzeichnis", async ({ page }, testInfo) => {
+  test.skip(testInfo.project.name.includes("mobile"), "Der vollständige öffentliche Tabellenbestand wird im Desktop-Projekt geprüft.");
   await page.goto("/dist/pages/versorgungs-kompass.html#politics");
 
   const politicsView = page.locator(POLITICS_VIEW);
@@ -556,6 +604,9 @@ test("Die öffentliche Demo zeigt das minimierte öffentliche 38er-Politikverzei
   const postalCodeValues = (await postalCodeCells.allTextContents()).map((value) => value.trim());
   expect(postalCodeValues.every((value) => /^\d{5}$/.test(value) || ["Nicht zutreffend", "Nicht ausgewiesen"].includes(value))).toBe(true);
   await expect(politicsView.locator("#politics-source-meta")).toContainText("Offizielle Quelle");
+  await expect(politicsView.locator("#politics-table-toolbar #politics-committee-source")).toHaveCount(0);
+  await expect(politicsView.locator("#politics-table-footer #politics-committee-source")).toBeVisible();
+  await expect(politicsView.locator("#politics-table-footer #politics-committee-source")).toHaveAttribute("target", "_blank");
   await expect(politicsView.locator("#politics-map-open")).toBeVisible();
 
   await politicsView.locator(MEMBER_ROWS).first().locator("[data-open-politics-profile]").click();

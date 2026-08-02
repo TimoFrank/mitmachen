@@ -57,6 +57,7 @@ test("Seitennavigation setzt Scrollposition und Fokus zurück; Tabs funktioniere
   await expect(page).toHaveTitle("Hospitationen · #Mitmachen");
 
   await page.locator("#sidebar-section-stakeholders-toggle").click();
+  await page.locator('[data-sidebar-subnav="stakeholder-people"] > .sidebar-subnav__toggle').click();
   await page.locator('[data-view-tab="experts"]').click();
   const contactTab = page.locator('button[data-expert-mode="contacts"]');
   const organizationTab = page.locator('button[data-expert-mode="organizations"]');

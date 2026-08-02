@@ -5,7 +5,7 @@ import { createProtectedBackendFixture } from "./helpers/protected-backend-fixtu
 const APP_PATH = "/frontend/app/versorgungs-kompass.html";
 const PRESS_VIEW = '[data-view-panel="press"]';
 const PRESS_TAB = '[data-view-tab="press"]';
-const PRESS_TABLE = '[role="table"][aria-label="Pressekontakte im Gesundheitswesen"]';
+const PRESS_TABLE = '[aria-label="Pressekontakte im Gesundheitswesen"]';
 const PRESS_ROWS = "#press-contact-list [data-press-contact-id]";
 const PRESS_COLUMN_KEYS = [
   "name",
@@ -58,6 +58,7 @@ test("Presse ist über den Stakeholder-Kompass erreichbar und lädt den geschüt
 
   await gotoAuthenticated(page, `${APP_PATH}#stakeholders/kv`, { backendFixture: fixture });
 
+  await page.locator('[data-sidebar-subnav="stakeholder-people"] > .sidebar-subnav__toggle').click();
   const pressTab = page.locator(PRESS_TAB);
   await expect(pressTab).toBeVisible();
   await pressTab.click();
@@ -79,7 +80,8 @@ test("Presse ist über den Stakeholder-Kompass erreichbar und lädt den geschüt
     await expect(page.locator(`#press-table-head > [data-press-column="${columnKey}"]`)).toBeVisible();
   }
   await expect(page.locator("#press-table-head [data-press-sort]")).toHaveCount(PRESS_COLUMN_KEYS.length);
-  await expect(page.locator("#press-table-head [data-press-header-filter-button]")).toHaveCount(PRESS_COLUMN_KEYS.length);
+  await expect(page.locator("#press-table-head [data-press-header-filter-button]")).toHaveCount(8);
+  await expect(page.locator("#press-table-toolbar #press-filter-button")).toHaveCount(1);
   await expect(page.locator(PRESS_ROWS)).toHaveCount(20);
   await expect(page.locator(PRESS_ROWS).first()).toContainText(people[0].name);
   await expect(page.locator(`${PRESS_ROWS} small`)).toHaveCount(0);
@@ -90,7 +92,7 @@ test("Presse ist über den Stakeholder-Kompass erreichbar und lädt den geschüt
   for (const locationValue of locationValues) {
     expect(renderedTableText).not.toContain(locationValue);
   }
-  await expect(page.locator("#press-results-meta")).toHaveText(`1–20 von ${people.length} Pressekontakten`);
+  await expect(page.locator("#press-results-meta")).toHaveText(`Seite 1 von 2 · Einträge 1–20`);
   expect(organizations).toHaveLength(12);
   expect(requestedPressCollections).toEqual(new Set([
     "/api/stakeholder-organizations",
@@ -121,8 +123,8 @@ test("Presse durchsucht Name, Thema und beruflichen Kontaktweg", async ({ page }
   await expect(page.locator(PRESS_ROWS).first()).toContainText("Demo-Pressekontakt 26");
 });
 
-test("Presse lässt sich über Tabellenköpfe sortieren und nach Kontaktart filtern", async ({ page }, testInfo) => {
-  test.skip(isMobileProject(testInfo), "Sortierung und Spaltenfilter werden im Desktop-Projekt geprüft.");
+test("Presse synchronisiert Sammelfilter und zusätzliche Spaltenfilter", async ({ page }, testInfo) => {
+  test.skip(isMobileProject(testInfo), "Sortierung und kombinierte Filter werden im Desktop-Projekt geprüft.");
   const { fixture, people } = protectedPressFixture();
   await gotoAuthenticated(page, `${APP_PATH}#press`, { backendFixture: fixture });
 
@@ -139,13 +141,14 @@ test("Presse lässt sich über Tabellenköpfe sortieren und nach Kontaktart filt
   await expect(nameHeader).toHaveAttribute("aria-sort", "descending");
   await expect(rows.first()).toContainText(people.at(-1).name);
 
-  const contactTypeFilter = page.locator(
-    '#press-table-head [data-press-column="contactType"] [data-press-header-filter-button]'
-  );
-  await contactTypeFilter.click();
-  const contactTypeMenu = page.locator("#press-header-filter-contactType");
-  await expect(contactTypeMenu).toBeVisible();
-  await contactTypeMenu.locator('[data-press-filter-value="Pressestelle"]').click();
+  const filterButton = page.locator("#press-table-toolbar #press-filter-button");
+  await expect(filterButton).toHaveCount(1);
+  await expect(page.locator("#press-table-head [data-press-header-filter-button]")).toHaveCount(8);
+  await filterButton.click();
+  const filterPanel = page.locator("#press-filter-panel");
+  await expect(filterPanel).toBeVisible();
+  await expect(filterButton).toHaveAttribute("aria-expanded", "true");
+  await filterPanel.locator('[data-directory-filter-key="contactType"]').selectOption("Pressestelle");
 
   await expect(rows).toHaveCount(4);
   await expect(rows.locator('[data-press-field="contactType"]')).toHaveText([
@@ -154,11 +157,24 @@ test("Presse lässt sich über Tabellenköpfe sortieren und nach Kontaktart filt
     "Pressestelle",
     "Pressestelle"
   ]);
-  await expect(page.locator("#press-results-meta")).toHaveText(`1–4 von 4 Pressekontakten · ${people.length} gesamt`);
+  await expect(page.locator("#press-results-meta")).toHaveText("Seite 1 von 1 · Einträge 1–4");
+  await expect(page.locator("#press-filter-badge")).toHaveText("1");
+  await expect(page.locator('[data-press-column="contactType"] [data-press-header-filter-button]')).toHaveClass(/is-active/);
 
-  await contactTypeFilter.click();
-  await page.locator("#press-header-filter-contactType").locator('[data-press-filter-value=""]').click();
+  await filterPanel.locator('[data-directory-filter-reset="press"]').click();
   await expect(rows).toHaveCount(20);
+  await expect(page.locator('[data-press-column="contactType"] [data-press-header-filter-button]')).not.toHaveClass(/is-active/);
+  await filterPanel.locator('[data-directory-filter-close="press"]').click();
+  await expect(filterPanel).toBeHidden();
+
+  const contactTypeHeaderFilter = page.locator('[data-press-column="contactType"] [data-press-header-filter-button]');
+  await contactTypeHeaderFilter.click();
+  const contactTypeHeaderMenu = page.locator("#press-header-filter-contactType");
+  await expect(contactTypeHeaderMenu).toBeVisible();
+  await contactTypeHeaderMenu.locator('[data-press-filter-value="Pressestelle"]').click();
+  await expect(rows).toHaveCount(4);
+  await expect(filterPanel.locator('[data-directory-filter-key="contactType"]')).toHaveValue("Pressestelle");
+  await expect(page.locator("#press-filter-badge")).toHaveText("1");
 });
 
 test("Presse unterstützt Seitengröße und Pagination wie die Kontaktlisten", async ({ page }, testInfo) => {
@@ -173,17 +189,17 @@ test("Presse unterstützt Seitengröße und Pagination wie die Kontaktlisten", a
 
   await pageSize.selectOption("10");
   await expect(rows).toHaveCount(10);
-  await expect(page.locator("#press-results-meta")).toHaveText(`1–10 von ${people.length} Pressekontakten`);
+  await expect(page.locator("#press-results-meta")).toHaveText("Seite 1 von 3 · Einträge 1–10");
   await expect(page.locator("#press-pagination [data-press-page]")).toHaveCount(3);
 
   await page.locator('#press-pagination [data-press-page-nav="next"]').click();
-  await expect(page.locator("#press-results-meta")).toHaveText(`11–20 von ${people.length} Pressekontakten`);
+  await expect(page.locator("#press-results-meta")).toHaveText("Seite 2 von 3 · Einträge 11–20");
   await expect(rows.first()).toContainText(people[10].name);
   await expect(page.locator('#press-pagination [data-press-page="2"]')).toHaveClass(/is-active/);
 
   await pageSize.selectOption("50");
   await expect(rows).toHaveCount(people.length);
-  await expect(page.locator("#press-results-meta")).toHaveText(`1–${people.length} von ${people.length} Pressekontakten`);
+  await expect(page.locator("#press-results-meta")).toHaveText(`Seite 1 von 1 · Einträge 1–${people.length}`);
   await expect(page.locator("#press-pagination [data-press-page]")).toHaveCount(1);
 });
 
@@ -272,20 +288,44 @@ test("Presse bleibt mobil ohne horizontalen Seitenoverflow und öffnet das Vollp
   await gotoAuthenticated(page, `${APP_PATH}#press`, { backendFixture: fixture });
 
   await expect(page.locator(PRESS_VIEW)).toBeVisible();
-  await expect(page.locator(PRESS_ROWS)).toHaveCount(20);
+  await expect(page.locator(PRESS_ROWS)).toHaveCount(6);
   await expect(page.locator("#workspace-view-title")).toHaveText("Presse");
   await expect(page.locator("#workspace-brand-image")).toBeVisible();
   await expectNoHorizontalPageOverflow(page);
 
   const firstRow = page.locator(PRESS_ROWS).first();
-  await expect(firstRow.locator("[data-press-field]")).toHaveCount(PRESS_COLUMN_KEYS.length);
+  await expect(firstRow).toHaveClass(/mobile-contact-card/);
+  await expect(firstRow).toHaveClass(/mobile-collection-card/);
+  await expect(firstRow.locator(".mobile-contact-top")).toBeVisible();
+  await expect(firstRow.locator(".mobile-contact-copy")).toContainText(expectedPerson.name);
+  await expect(firstRow.locator(".mobile-contact-organization")).toContainText(expectedPerson.organization);
+  await expect(firstRow.locator(".mobile-collection-tags .press-contact-type")).toBeVisible();
+  await expect(firstRow.locator("[data-press-field]")).toHaveCount(0);
+  await expect(page.locator(`${PRESS_ROWS} [data-contextual-row-select]`)).toHaveCount(0);
+  await expect(page.locator("#contextual-bulk-toolbar")).toBeHidden();
+  await expect(page.locator("#press-table-head [data-press-header-filter-button]")).toHaveCount(8);
+  const contactTypeColumnFilter = page.locator('[data-press-column="contactType"] [data-press-header-filter-button]');
+  await contactTypeColumnFilter.click();
+  const contactTypeColumnMenu = page.locator("#press-header-filter-contactType");
+  await expect(contactTypeColumnMenu).toBeVisible();
+  await expect(contactTypeColumnMenu).toHaveCSS("position", "fixed");
+  await contactTypeColumnFilter.click();
+  await expect(contactTypeColumnMenu).toBeHidden();
+  const filterButton = page.locator("#press-filter-button");
+  await expect(filterButton).toBeVisible();
+  await filterButton.click();
+  await expect(page.locator("#press-filter-panel")).toBeVisible();
+  await page.locator('[data-directory-filter-close="press"]').click();
+  await expect(page.locator(PRESS_TABLE)).toHaveAttribute("role", "region");
+  await expect(firstRow).toHaveAttribute("role", "listitem");
+  await expect(firstRow.locator(":scope > *[role=cell]")).toHaveCount(0);
   const mobileGeometry = await firstRow.evaluate((row) => ({
     clientWidth: row.clientWidth,
     scrollWidth: row.scrollWidth,
-    gridColumns: getComputedStyle(row).gridTemplateColumns.trim().split(/\s+/).filter(Boolean).length
+    display: getComputedStyle(row).display
   }));
   expect(mobileGeometry.scrollWidth).toBeLessThanOrEqual(mobileGeometry.clientWidth + 1);
-  expect(mobileGeometry.gridColumns).toBe(1);
+  expect(mobileGeometry.display).toBe("block");
 
   const headerBox = await page.locator(".workspace-heading-row").boundingBox();
   const logoBox = await page.locator("#workspace-brand-image").boundingBox();
@@ -303,9 +343,8 @@ test("Presse bleibt mobil ohne horizontalen Seitenoverflow und öffnet das Vollp
 
   await page.setViewportSize({ width: 520, height: 844 });
   await expectNoHorizontalPageOverflow(page);
-  await expect.poll(() => firstRow.evaluate((row) =>
-    getComputedStyle(row).gridTemplateColumns.trim().split(/\s+/).filter(Boolean).length
-  )).toBe(2);
+  await expect(firstRow).toHaveClass(/mobile-collection-card/);
+  await expect(firstRow.locator(".mobile-contact-top")).toBeVisible();
 
   await page.setViewportSize({ width: 320, height: 844 });
   await expectNoHorizontalPageOverflow(page);
@@ -315,12 +354,10 @@ test("Presse bleibt mobil ohne horizontalen Seitenoverflow und öffnet das Vollp
   }));
   expect(compactMobileGeometry.scrollWidth).toBeLessThanOrEqual(compactMobileGeometry.clientWidth + 1);
   expect((await page.locator("#workspace-brand-image").boundingBox()).height).toBeGreaterThanOrEqual(40);
-  expect(await page.locator(
-    '#press-table-head [data-press-column="contactType"] .column-head__label'
-  ).evaluate((label) => getComputedStyle(label, "::after").content)).toBe('"Typ"');
+  await expect(firstRow.locator(".mobile-contact-copy")).toContainText(expectedPerson.name);
 
   await page.setViewportSize({ width: 390, height: 844 });
-  await firstRow.locator('[data-press-field="role"]').click();
+  await firstRow.locator("[data-open-press-profile]").click();
   await expect(page).toHaveURL(new RegExp(`#person/press/${expectedPerson.id}$`));
   await expect(page.locator("#person-profile-page.is-active")).toBeVisible();
   await expect(page.locator("#person-profile-body")).toContainText(expectedPerson.name);

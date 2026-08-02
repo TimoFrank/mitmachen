@@ -84,12 +84,30 @@ async function expandSidebarSectionIfNeeded(page, section) {
   await expect(toggle).toHaveAttribute("aria-expanded", "true");
 }
 
+async function expandStakeholderOrganizationSubnavIfNeeded(page) {
+  await expandSidebarSectionIfNeeded(page, "stakeholders");
+  const subnav = page.locator('[data-sidebar-subnav="stakeholder-organizations"]');
+  const toggle = subnav.locator(".sidebar-subnav__toggle");
+  if (!await subnav.evaluate((element) => element.open)) await toggle.click();
+  await expect(subnav).toHaveJSProperty("open", true);
+  await expect(toggle).toHaveAttribute("aria-expanded", "true");
+}
+
+async function expandStakeholderPersonSubnavIfNeeded(page) {
+  await expandSidebarSectionIfNeeded(page, "stakeholders");
+  const subnav = page.locator('[data-sidebar-subnav="stakeholder-people"]');
+  const toggle = subnav.locator(".sidebar-subnav__toggle");
+  if (!await subnav.evaluate((element) => element.open)) await toggle.click();
+  await expect(subnav).toHaveJSProperty("open", true);
+  await expect(toggle).toHaveAttribute("aria-expanded", "true");
+}
+
 async function expectPatientModeInUrl(page, mode) {
   await expect(page).toHaveURL(new RegExp(`[?&]view=${mode}(?:[&#]|$)`));
 }
 
 async function expectSingleVisiblePatientSidebarEntry(page) {
-  await expandSidebarSectionIfNeeded(page, "stakeholders");
+  await expandStakeholderPersonSubnavIfNeeded(page);
   const stakeholderSection = page.locator('[data-sidebar-section="stakeholders"]');
   await expect(stakeholderSection.locator('[data-view-tab="patients"]:visible')).toHaveCount(1);
   await expect(stakeholderSection.locator('[data-view-tab="patients"]')).toContainText("Patienten");
@@ -956,11 +974,11 @@ test("Kontakte: Liste und Filtertoolbar rendern", async ({ page }, testInfo) => 
     "Patienten",
     "Politik",
     "Presse",
+    "Expertenkreis",
     "Kassenärztliche Vereinigungen",
     "Krankenkassen",
     "Krankenhausgesellschaften",
-    "Ärztliche Berufsverbände",
-    "Expertenkreis"
+    "Ärztliche Berufsverbände"
   ]);
   await expect(page.locator('[data-sidebar-section="stakeholders"]')).toHaveClass(/is-collapsed/);
   await expect(page.locator('[data-sidebar-section-toggle="stakeholders"]')).toHaveAttribute("aria-expanded", "false");
@@ -2599,6 +2617,7 @@ test("Sidebar: Aktiver Bereich startet offen und beim Modulwechsel bleibt nur ei
   await expect(shell).toHaveAttribute("data-active-view", "map");
   await expect(stakeholderSection).toHaveClass(/is-expanded/);
   await expect(careSection).toHaveClass(/is-collapsed/);
+  await expandStakeholderPersonSubnavIfNeeded(page);
   await page.locator('[data-view-tab="patients"]').click();
   await expect(shell).toHaveAttribute("data-active-view", "patients");
   await expect(stakeholderSection).toHaveClass(/is-expanded/);
@@ -2608,6 +2627,7 @@ test("Sidebar: Aktiver Bereich startet offen und beim Modulwechsel bleibt nur ei
   await expect(formatsSection).toHaveClass(/is-collapsed/);
   await expect(page).toHaveURL(/#patients\?view=people$/);
 
+  await expandStakeholderOrganizationSubnavIfNeeded(page);
   await page.locator('[data-sidebar-section="stakeholders"] [data-stakeholder-type-route="kv"]').click();
   await expect(shell).toHaveAttribute("data-active-view", "stakeholders");
   await expect(stakeholderSection).toHaveClass(/is-active-section/);
@@ -2658,6 +2678,83 @@ test("Sidebar: Aktiver Bereich startet offen und beim Modulwechsel bleibt nur ei
   expect(Math.abs(collapsedCollapseBox.y - expandedCollapseBox.y)).toBeLessThanOrEqual(1);
 
   await attachScreenshot(page, testInfo, "sidebar-section-first-page");
+});
+
+test("Sidebar: Stakeholder-Personen und -Organisationen sind kompakt und routensicher gruppiert", async ({ page }, testInfo) => {
+  const isMobile = testInfo.project.name.includes("mobile");
+  if (isMobile) await page.setViewportSize({ width: 390, height: 844 });
+  await gotoAuthenticated(page, "/frontend/app/versorgungs-kompass.html#stakeholders", { role: "admin" });
+  await openMobileSidebarIfNeeded(page);
+
+  const shell = page.locator(".app-shell");
+  const stakeholderSection = page.locator('[data-sidebar-section="stakeholders"]');
+  const personSubnav = stakeholderSection.locator('[data-sidebar-subnav="stakeholder-people"]');
+  const personToggle = personSubnav.locator(".sidebar-subnav__toggle");
+  const visiblePersonDestinations = personSubnav.locator("[data-view-tab]:visible");
+  const organizationSubnav = stakeholderSection.locator('[data-sidebar-subnav="stakeholder-organizations"]');
+  const organizationToggle = organizationSubnav.locator(".sidebar-subnav__toggle");
+  const visibleOrganizationDestinations = organizationSubnav.locator("[data-stakeholder-type-route]:visible");
+
+  await expect(stakeholderSection).toHaveClass(/is-expanded/);
+  await expect(personSubnav).toHaveJSProperty("open", false);
+  await expect(personToggle).toHaveAttribute("aria-expanded", "false");
+  await expect(visiblePersonDestinations).toHaveCount(0);
+  await expect(organizationSubnav).toHaveJSProperty("open", false);
+  await expect(organizationToggle).toHaveAttribute("aria-expanded", "false");
+  await expect(visibleOrganizationDestinations).toHaveCount(0);
+  const personToggleBox = await personToggle.boundingBox();
+  const organizationToggleBox = await organizationToggle.boundingBox();
+  expect(personToggleBox).not.toBeNull();
+  expect(organizationToggleBox).not.toBeNull();
+  expect(personToggleBox.height).toBeGreaterThanOrEqual(isMobile ? 44 : 38);
+  expect(organizationToggleBox.height).toBeGreaterThanOrEqual(isMobile ? 44 : 38);
+
+  await personToggle.click();
+  await expect(personSubnav).toHaveJSProperty("open", true);
+  await expect(personToggle).toHaveAttribute("aria-expanded", "true");
+  await expect(visiblePersonDestinations).toHaveCount(4);
+  if (isMobile) {
+    expect(await visiblePersonDestinations.evaluateAll((destinations) =>
+      destinations.every((destination) => destination.getBoundingClientRect().height >= 44)
+    )).toBe(true);
+  }
+
+  const politics = personSubnav.locator('[data-view-tab="politics"]');
+  await politics.click();
+  await expect(page).toHaveURL(/#politics$/);
+  await expect(personSubnav).toHaveClass(/is-active-subnav/);
+  await expect(personSubnav).toHaveJSProperty("open", true);
+  await expect(politics).toHaveAttribute("aria-current", "page");
+  if (isMobile) await openMobileSidebarIfNeeded(page);
+
+  await organizationToggle.click();
+  await expect(organizationSubnav).toHaveJSProperty("open", true);
+  await expect(organizationToggle).toHaveAttribute("aria-expanded", "true");
+  await expect(visibleOrganizationDestinations).toHaveCount(4);
+  await expect(personSubnav).toHaveJSProperty("open", false);
+  await expect(visiblePersonDestinations).toHaveCount(0);
+
+  const healthInsurance = organizationSubnav.locator('[data-stakeholder-type-route="health-insurance"]');
+  await healthInsurance.click();
+  await expect(page).toHaveURL(/#stakeholders\/krankenkassen$/);
+  await expect(organizationSubnav).toHaveClass(/is-active-subnav/);
+  await expect(organizationSubnav).toHaveJSProperty("open", true);
+  await expect(healthInsurance).toHaveAttribute("aria-current", "page");
+
+  if (isMobile) {
+    await openMobileSidebarIfNeeded(page);
+    await expect(visibleOrganizationDestinations).toHaveCount(4);
+    await expect(visiblePersonDestinations).toHaveCount(0);
+    return;
+  }
+
+  await page.locator("#sidebar-collapse-button").click();
+  await expect(shell).toHaveClass(/is-sidebar-collapsed/);
+  await expect(personToggle).toBeHidden();
+  await expect(organizationToggle).toBeHidden();
+  await expect(visiblePersonDestinations).toHaveCount(4);
+  await expect(visibleOrganizationDestinations).toHaveCount(4);
+  await expect(stakeholderSection.locator(":scope > .sidebar-section-toggle .sidebar-module-icon img")).toBeVisible();
 });
 
 test("Sidebar: Desktop-Schalter bleibt ganz unten unter Konto und Profil", async ({ page }, testInfo) => {
@@ -3052,6 +3149,7 @@ test("Suche: Versorgung filtert Karte und wird beim Modulwechsel geloescht", asy
     await page.locator('[data-sidebar-section-toggle="stakeholders"]').click();
     await expect(stakeholderSection).toHaveClass(/is-expanded/);
   }
+  await expandStakeholderPersonSubnavIfNeeded(page);
   await page.locator('[data-view-tab="patients"]').click();
   await expect(page.locator("#search")).toHaveValue("");
   await expect(page.locator('#patient-mode-actions [data-patient-mode="people"]')).toHaveClass(/is-active/);
@@ -3295,8 +3393,22 @@ test("Organisationen: Demo-Daten rendern im CRM-Profilmodus", async ({ page }, t
   const firstOrganization = page.locator("#organization-list .row, #organization-list .mobile-contact-card").first();
   await expect(firstOrganization).toBeVisible();
   await expect(firstOrganization.locator(".cell--organization .contact-subline")).toHaveCount(0);
+  if (isMobile) {
+    await expect(firstOrganization).toHaveClass(/mobile-contact-card/);
+    await expect(firstOrganization).toHaveClass(/mobile-collection-card/);
+    await expect(firstOrganization.locator(".mobile-contact-top")).toBeVisible();
+    await expect(firstOrganization.locator(".mobile-contact-copy .mobile-contact-name")).toBeVisible();
+    await expect(firstOrganization.locator(".mobile-contact-chevron")).toBeVisible();
+    await expect(firstOrganization.locator("[data-contextual-row-select]")).toHaveCount(0);
+    for (const width of [520, 320, 390]) {
+      await page.setViewportSize({ width, height: 844 });
+      await expectNoHorizontalOverflow(page);
+      await expect(firstOrganization.locator(".mobile-contact-top")).toBeVisible();
+    }
+  }
   await expect(page.locator("#search")).toBeVisible();
-  await expect(page.locator("#organization-matching-worklist-button")).toContainText("Dubletten");
+  await expect(page.locator("#organization-table-toolbar #organization-matching-worklist-button")).toHaveCount(0);
+  await expect(page.locator("#organization-secondary-actions #organization-matching-worklist-button")).toContainText("Dubletten");
   await firstOrganization.click();
 
   if (isMobile) {
@@ -3824,12 +3936,12 @@ test("Expertenkreis: getrennte Kontakt- und Organisationsansicht rendert", async
   await expect(page.locator("#new-expert-contact-button")).toBeVisible();
   await expect(page.locator("#new-expert-organization-button")).toBeHidden();
   await expect(page.locator("#expert-duplicates-button")).toBeVisible();
-  await expect(page.locator(".workspace-header #expert-mode-actions")).toBeVisible();
+  await expect(page.locator("#expert-table-toolbar > #expert-mode-actions")).toBeVisible();
   await expect(page.locator("#search")).toBeVisible();
   await expect(page.locator(".controls")).toBeVisible();
   await expect(page.locator(".controls #search")).toHaveCount(1);
-  await expect(page.locator(".workspace-header #expert-mode-actions .experts-mode-count")).toHaveCount(2);
-  await expect(page.locator(".workspace-header #summary-grid")).not.toBeVisible();
+  await expect(page.locator("#expert-table-toolbar > #expert-mode-actions .experts-mode-count")).toHaveCount(2);
+  await expect(page.locator("#summary-grid")).not.toBeVisible();
   await expect(page.locator(".table-command-row--expert-tabs")).toHaveCount(0);
   await expect(page.locator("#expert-mode-actions [data-expert-mode]")).toHaveCount(2);
   await expect(page.locator('#expert-mode-actions [data-expert-mode="contacts"] .experts-mode-label')).toHaveText("Kontakte");
@@ -4015,7 +4127,7 @@ test("Patienten: Organisationsliste nach Indikation rendert ohne Kontakte", asyn
   );
   expect(patientModeContract).toEqual([
     { mode: "people", label: "Personen" },
-    { mode: "organizations", label: "Patientenorganisationen & Verbände" },
+    { mode: "organizations", label: "Organisationen" },
     { mode: "indications", label: "Indikationen" }
   ]);
   if (mobileProject) {
@@ -4033,7 +4145,7 @@ test("Patienten: Organisationsliste nach Indikation rendert ohne Kontakte", asyn
     const patientModeCounts = page.locator("#patient-mode-actions .experts-mode-count");
     await expect(patientModeCounts).toHaveCount(3);
     expect(await patientModeCounts.evaluateAll((counts) =>
-      counts.every((count) => window.getComputedStyle(count).display === "none")
+      counts.every((count) => window.getComputedStyle(count).display !== "none")
     )).toBe(true);
   }
   await expect(page.locator("#patient-people-table")).toBeVisible();
@@ -4112,7 +4224,7 @@ test("Patienten: Organisationsliste nach Indikation rendert ohne Kontakte", asyn
     await expect(page.locator("#patient-organization-list .row").first().locator(".cell--people")).toContainText("1 Kontakt");
   }
   const organizationIndicationBadges = mobileProject
-    ? page.locator("#patient-organization-list .organization-mobile-sector .patient-indication-badge")
+    ? page.locator("#patient-organization-list .mobile-collection-tags .patient-indication-badge")
     : page.locator("#patient-organization-list .cell--sector .patient-indication-badge");
   await expect(organizationIndicationBadges.first()).toBeVisible();
   const oncologyBadge = organizationIndicationBadges.filter({ hasText: "Onkologie" }).first();
@@ -4448,6 +4560,8 @@ test("Dubletten: Admin-Ansichten bleiben im jeweiligen Tab", async ({ page }, te
   await page.locator('[data-view-tab="organizations"]:visible').click();
   await expect(page.locator(".app-shell")).toHaveAttribute("data-active-view", "organizations");
   await expect(page.locator("#organization-matching-worklist-button")).toContainText("Dubletten");
+  await expect(page.locator("#organization-table-toolbar #organization-matching-worklist-button")).toHaveCount(0);
+  await expect(page.locator("#organization-secondary-actions #organization-matching-worklist-button")).toBeVisible();
   await page.locator("#organization-matching-worklist-button").click();
   await expect(page.locator("#organization-duplicates-workspace")).toBeVisible();
   await expect(page.locator("#organization-list")).toBeHidden();
@@ -4459,7 +4573,7 @@ test("Dubletten: Admin-Ansichten bleiben im jeweiligen Tab", async ({ page }, te
 
   await attachScreenshot(page, testInfo, "organisationen-dubletten");
 
-  await expandSidebarSectionIfNeeded(page, "stakeholders");
+  await expandStakeholderPersonSubnavIfNeeded(page);
   await page.locator('[data-view-tab="experts"]:visible').click();
   await expect(page.locator(".app-shell")).toHaveAttribute("data-active-view", "experts");
   await expect(page.locator('[data-expert-table="duplicates"]')).toBeHidden();
@@ -7296,7 +7410,7 @@ test("Stakeholder: Krankenkassen und aerztliche Verbaende starten nach Mitgliede
   await expect(page.locator("#stakeholder-organization-list [data-stakeholder-organization-id]").first()).toContainText("Demo-Krankenkasse A");
   await expect(page.locator("#stakeholder-organization-list [data-stakeholder-organization-id]").first()).toContainText("5.400");
 
-  await expandSidebarSectionIfNeeded(page, "stakeholders");
+  await expandStakeholderOrganizationSubnavIfNeeded(page);
   await page.locator('[data-stakeholder-type-route="physician-associations"]').click();
   await expect(page.locator('[data-stakeholder-type-route="physician-associations"]')).toHaveAttribute("aria-current", "page");
   await expect(page).toHaveURL(/#stakeholders\/aerztliche-berufsverbaende$/);
@@ -7363,7 +7477,7 @@ test("Stakeholder: weitere Typen nutzen Organisationstabellen und Profile", asyn
     `
   });
 
-  await expandSidebarSectionIfNeeded(page, "stakeholders");
+  await expandStakeholderOrganizationSubnavIfNeeded(page);
   await expect(page.locator('[data-stakeholder-type-route="health-insurance"]')).toBeVisible();
   await expect(page.locator("#stakeholder-mode-actions")).toHaveCount(0);
   await expect(page.locator("#stakeholder-people-table")).toHaveCount(0);
