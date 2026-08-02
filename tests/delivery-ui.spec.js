@@ -91,7 +91,7 @@ test("Desktop-Auslieferung: Pages startet direkt in der App-Startseite", async (
   expect(await destinations.evaluateAll((links) => links.map((link) => link.getAttribute("href")))).toEqual([
     "#map",
     "#stakeholders",
-    "#framework",
+    "#hospitation-overview",
     "#formats"
   ]);
 
@@ -187,7 +187,7 @@ test("Startkarte öffnet den passenden Navigationsbereich auf Desktop", async ({
   await expect(shell).toHaveClass(/is-sidebar-collapsed/);
   await page.locator('.home-destination-link[data-home-module="planning"]').click();
 
-  await expect(page).toHaveURL(/#framework$/);
+  await expect(page).toHaveURL(/#hospitation-overview$/);
   await expect(shell).not.toHaveClass(/is-sidebar-collapsed/);
   await expect(page.locator(".sidebar-collapse")).toBeVisible();
   await expect(page.locator(".sidebar-nav")).toBeVisible();
@@ -195,7 +195,7 @@ test("Startkarte öffnet den passenden Navigationsbereich auf Desktop", async ({
   await expect(page.locator(".sidebar-brand-word")).toBeVisible();
   await expect(page.locator('[data-sidebar-section="planning"]')).toHaveClass(/is-active-section/);
   await expect(page.locator('[data-sidebar-section-toggle="planning"]')).toHaveAttribute("aria-expanded", "true");
-  await expect(page.locator('[data-view-tab="framework"]')).toHaveAttribute("aria-current", "page");
+  await expect(page.locator('[data-view-tab="hospitationOverview"]')).toHaveAttribute("aria-current", "page");
 
   await page.goBack();
   await expect(page).toHaveURL(/\/dist\/pages\/index\.html$/);
@@ -210,7 +210,7 @@ test("Startkarten lassen die mobile Navigation eingeklappt", async ({ page }) =>
   const modules = [
     { module: "care", url: /#map$/, view: "map", group: "care" },
     { module: "stakeholders", url: /#stakeholders$/, view: "stakeholderOverview", group: "stakeholders" },
-    { module: "planning", url: /#framework$/, view: "framework", group: "planning" },
+    { module: "planning", url: /#hospitation-overview$/, view: "hospitationOverview", group: "planning" },
     { module: "formats", url: /#formats$/, view: "formats", group: "formats" }
   ];
 

@@ -353,6 +353,108 @@ async function expectNoHorizontalOverflow(page, selector = "html") {
   expect(overflow).toBeLessThanOrEqual(1);
 }
 
+const HOSPITATION_OVERVIEW_NOW = new Date("2026-08-02T10:00:00.000Z");
+
+function hospitationOverviewTestDate(dayOffset, hour = 9) {
+  const value = new Date(HOSPITATION_OVERVIEW_NOW);
+  value.setUTCDate(value.getUTCDate() + dayOffset);
+  value.setUTCHours(hour, 0, 0, 0);
+  return value;
+}
+
+function createHospitationOverviewFixture({
+  role = "editor",
+  upcomingDays = [2, 4, 6],
+  openDocumentation = 0
+} = {}) {
+  const fixture = createProtectedBackendFixture({ role });
+  const template = fixture.hospitations[0];
+  const cleanTemplate = {
+    ...template,
+    scheduledOn: "",
+    documentedAt: "",
+    documentedBy: "",
+    documentationSummary: "",
+    documentationOutcome: "",
+    followUpNote: "",
+    followUpOwnerId: "",
+    followUpDueAt: ""
+  };
+  const openEntries = Array.from({ length: openDocumentation }, (_, index) => {
+    const startsAt = hospitationOverviewTestDate(-(index + 1), 8);
+    return {
+      ...cleanTemplate,
+      id: `overview-open-${index + 1}`,
+      contactName: `Offene Dokumentation ${index + 1}`,
+      organizationName: `Testorganisation offen ${index + 1}`,
+      status: "Durchgeführt",
+      startsAt: startsAt.toISOString(),
+      endsAt: new Date(startsAt.getTime() + 90 * 60 * 1000).toISOString()
+    };
+  });
+  const upcomingEntries = upcomingDays.map((dayOffset) => {
+    const startsAt = hospitationOverviewTestDate(dayOffset);
+    return {
+      ...cleanTemplate,
+      id: `overview-upcoming-${dayOffset}`,
+      contactName: `Kommender Kontakt ${dayOffset}`,
+      organizationName: `Testorganisation ${dayOffset}`,
+      status: "Gebucht",
+      startsAt: startsAt.toISOString(),
+      endsAt: new Date(startsAt.getTime() + 90 * 60 * 1000).toISOString()
+    };
+  });
+
+  fixture.hospitations = [...openEntries, ...upcomingEntries];
+  fixture.hospitationSlots = [];
+  fixture.hospitationObservations = [];
+  return fixture;
+}
+
+async function gotoHospitationOverview(page, { role = "editor", upcomingDays, openDocumentation = 0 } = {}) {
+  await page.clock.setFixedTime(HOSPITATION_OVERVIEW_NOW);
+  const backendFixture = createHospitationOverviewFixture({ role, upcomingDays, openDocumentation });
+  await gotoAuthenticated(page, "/frontend/app/versorgungs-kompass.html#hospitation-overview", {
+    role,
+    backendFixture
+  });
+  const overview = page.locator("#view-hospitation-overview");
+  await expect(overview).toBeVisible();
+  await expect(overview.locator(".hospitation-overview-priority")).toHaveAttribute("data-hospitation-overview-state", "ready", { timeout: 15_000 });
+  return { overview, backendFixture };
+}
+
+async function expectHospitationOverviewWithoutClipping(page) {
+  await expectNoHorizontalOverflow(page);
+  const failures = await page.locator("#view-hospitation-overview").evaluate((root) => {
+    const viewportRight = document.documentElement.clientWidth;
+    const selectors = [
+      ".hospitation-overview-next__copy",
+      ".hospitation-overview-attention",
+      ".hospitation-overview-agenda__intro",
+      ".hospitation-overview-agenda__item",
+      ".hospitation-overview-plan-card",
+      ".hospitation-overview-attention__dashboard-link",
+      ".hospitation-overview-evidence__intro",
+      ".hospitation-overview-evidence__step",
+      ".hospitation-overview-framework-link",
+      ".hospitation-overview-framework-link__action"
+    ].join(",");
+    return [...root.querySelectorAll(selectors)]
+      .filter((node) => node.getClientRects().length > 0)
+      .flatMap((node) => {
+        const rect = node.getBoundingClientRect();
+        const reasons = [];
+        if (rect.left < -1 || rect.right > viewportRight + 1) reasons.push("viewport");
+        if (node.scrollWidth > node.clientWidth + 1) reasons.push("horizontal-overflow");
+        return reasons.length
+          ? [{ className: node.className, reasons, left: rect.left, right: rect.right, viewportRight }]
+          : [];
+      });
+  });
+  expect(failures).toEqual([]);
+}
+
 function largeQuestionnaireBackendFixtureScript() {
   return `
     (() => {
@@ -865,7 +967,7 @@ test("Kontakte: Liste und Filtertoolbar rendern", async ({ page }, testInfo) => 
   await expect(page.locator('[data-sidebar-section="planning"]')).toHaveClass(/is-collapsed/);
   await expect(page.locator('[data-sidebar-section-toggle="planning"]')).toHaveAttribute("aria-expanded", "false");
   const planningTabOrder = await page.locator('[data-sidebar-section="planning"] [data-view-tab]').evaluateAll((nodes) => nodes.map((node) => node.querySelector("span:not(.notification-count-indicator)")?.textContent.trim()));
-  expect(planningTabOrder).toEqual(["Framework", "Hospitationen", "Fragebogen", "Beobachtungen", "Muster", "Dashboard"]);
+  expect(planningTabOrder).toEqual(["Übersicht", "Framework", "Hospitationen", "Fragebogen", "Beobachtungen", "Muster", "Dashboard"]);
   const formatsTabOrder = await page.locator('[data-sidebar-section="formats"] [data-view-tab]').evaluateAll((nodes) => nodes.map((node) => node.querySelector("span:not(.notification-count-indicator)")?.textContent.trim()));
   expect(formatsTabOrder).toEqual(["Formate"]);
   await expect(page.locator('[data-sidebar-section="formats"]')).toHaveClass(/is-collapsed/);
@@ -879,6 +981,7 @@ test("Kontakte: Liste und Filtertoolbar rendern", async ({ page }, testInfo) => 
   await expect(page.locator('[data-view-tab="map"]')).toContainText("Karte");
   await expect(page.locator('[data-view-tab="contacts"]')).toContainText("Kontakte");
   await expect(page.locator('[data-view-tab="organizations"]')).toContainText("Organisationen");
+  await expect(page.locator('[data-view-tab="hospitationOverview"]')).toContainText("Übersicht");
   await expect(page.locator('[data-view-tab="framework"]')).toContainText("Framework");
   await expect(page.locator('[data-view-tab="hospitations"]')).toContainText("Hospitationen");
   await expect(page.locator('[data-view-tab="hospitations:observations"]')).toContainText("Beobachtungen");
@@ -1024,6 +1127,437 @@ test("Kontakte: Einwilligungsbadge bleibt mobil sichtbar", async ({ page }, test
   await expect(page.locator('#contact-list .mobile-contact-card[data-id="consent-granted-future"] [data-consent-availability]')).toContainText("Nachfassen");
   await expectNoHorizontalOverflow(page);
 });
+
+test("Hospitations-Kompass Übersicht: Editor sieht Termine, Arbeitswege und belastbare Evidenzstände", async ({ page }, testInfo) => {
+  test.skip(testInfo.project.name !== "chromium-desktop", "Der fokussierte Overview-Vertrag läuft einmal im Desktop-Projekt.");
+  const { overview } = await gotoHospitationOverview(page, { role: "editor", upcomingDays: [6, 2, 4] });
+
+  await expect(page.locator(".app-shell")).toHaveAttribute("data-active-view", "hospitationOverview");
+  await expect(page).toHaveURL(/#hospitation-overview$/);
+  await expect(page.locator("#workspace-view-title")).toHaveText("Übersicht");
+  await expect(page.locator('[data-view-tab="hospitationOverview"]')).toHaveAttribute("aria-current", "page");
+  await expect(page.locator(".crm-shell > .controls")).toBeHidden();
+
+  const sectionOrder = await overview.locator([
+    ".hospitation-overview-workspace > .hospitation-overview-agenda",
+    ".hospitation-overview-workspace > .hospitation-overview-evidence",
+    ".hospitation-overview-workspace > .hospitation-overview-framework-link"
+  ].join(",")).evaluateAll((nodes) => nodes.map((node) => {
+    if (node.classList.contains("hospitation-overview-agenda")) return "agenda";
+    if (node.classList.contains("hospitation-overview-evidence")) return "evidence";
+    return "framework";
+  }));
+  expect(sectionOrder).toEqual(["agenda", "evidence", "framework"]);
+  const agendaChildOrder = await overview.locator([
+    ".hospitation-overview-agenda > .hospitation-overview-agenda__intro",
+    ".hospitation-overview-agenda > .hospitation-overview-agenda__items",
+    ".hospitation-overview-agenda > .hospitation-overview-plan-card"
+  ].join(",")).evaluateAll((nodes) => nodes.map((node) => {
+    if (node.classList.contains("hospitation-overview-agenda__intro")) return "intro";
+    if (node.classList.contains("hospitation-overview-agenda__items")) return "items";
+    return "plan";
+  }));
+  expect(agendaChildOrder).toEqual(["intro", "items", "plan"]);
+  const evidenceChildOrder = await overview.locator([
+    ".hospitation-overview-evidence > .hospitation-overview-evidence__intro",
+    ".hospitation-overview-evidence > .hospitation-overview-evidence__flow"
+  ].join(",")).evaluateAll((nodes) => nodes.map((node) => {
+    if (node.classList.contains("hospitation-overview-evidence__intro")) return "intro";
+    return "flow";
+  }));
+  expect(evidenceChildOrder).toEqual(["intro", "flow"]);
+
+  await expect(overview.locator(".hospitation-overview-next")).toBeVisible();
+  await expect(overview.locator("#hospitation-overview-next-title")).toHaveText("Testorganisation 2");
+  await expect(overview.locator("#hospitation-overview-next-open")).toContainText("Termin öffnen");
+  await expect(overview.locator("#hospitation-overview-questionnaire-open")).toBeVisible();
+  await expect(overview.locator("#hospitation-overview-questionnaire-open")).toBeEnabled();
+  await expect(overview.locator("#hospitation-overview-questionnaire-open")).not.toHaveAttribute("data-route-link");
+  await expect(overview.locator(".hospitation-overview-agenda")).toHaveClass(/has-plan/);
+  await expect(overview.locator("#hospitation-overview-plan-button")).toBeVisible();
+  await expect(overview.locator("#hospitation-overview-plan-button")).toHaveText(/Neue Hospitation planen\s*→/);
+
+  const agendaEntries = overview.locator(".hospitation-overview-agenda__item");
+  await expect(agendaEntries).toHaveCount(3);
+  expect(await agendaEntries.evaluateAll((nodes) => nodes.map((node) => node.getAttribute("data-hospitation-overview-entry")))).toEqual([
+    "hospitation:overview-upcoming-2",
+    "hospitation:overview-upcoming-4",
+    "hospitation:overview-upcoming-6"
+  ]);
+  const agendaTimestamps = await agendaEntries.locator("time[datetime]").evaluateAll((nodes) => nodes.map((node) => Date.parse(node.getAttribute("datetime") || "")));
+  expect(agendaTimestamps).toEqual([...agendaTimestamps].sort((left, right) => left - right));
+  expect(agendaTimestamps.every((timestamp) => timestamp >= HOSPITATION_OVERVIEW_NOW.getTime())).toBe(true);
+
+  await expect(overview.locator("#hospitation-overview-open-count")).toHaveText("0");
+  await expect(overview.locator(".hospitation-overview-attention")).toHaveClass(/is-clear/);
+  await expect(overview.locator(".hospitation-overview-attention")).toHaveAccessibleName("Im Blick");
+  await expect(overview.locator("#hospitation-overview-attention-label")).toHaveText("Gesamt im Kalender");
+  await expect(overview.locator("#hospitation-overview-attention-focus-number")).toHaveText("3");
+  await expect(overview.locator("#hospitation-overview-attention-focus-copy")).toHaveText("Hospitationen");
+  await expect(overview.locator("#hospitation-overview-attention-open")).toContainText("Alle Hospitationen anzeigen");
+  const attentionMetricOrder = await overview.locator([
+    ".hospitation-overview-attention > .hospitation-overview-attention__focus",
+    ".hospitation-overview-attention > .hospitation-overview-attention__number"
+  ].join(",")).evaluateAll((nodes) => nodes.map((node) =>
+    node.classList.contains("hospitation-overview-attention__focus") ? "total" : "open"
+  ));
+  expect(attentionMetricOrder).toEqual(["total", "open"]);
+
+  const frameworkLink = overview.locator('a.hospitation-overview-framework-link[data-route-link="framework"]');
+  await expect(frameworkLink).toBeVisible();
+  await expect(frameworkLink).toContainText("Framework");
+  await expect(frameworkLink).toHaveText(/Grundlage\s*Framework\s*Öffnen\s*→/);
+  await expect(frameworkLink).not.toContainText("Orientierung für Hospitationen");
+  await expect(frameworkLink).not.toContainText("Hospitationen fundiert vorbereiten");
+  const evidence = overview.locator("section.hospitation-overview-evidence");
+  const evidenceIntro = evidence.locator(":scope > .hospitation-overview-evidence__intro");
+  await expect(evidenceIntro).not.toHaveAttribute("href");
+  await expect(evidenceIntro.getByText("Erkenntnisweg", { exact: true })).toHaveCount(0);
+  await expect(evidenceIntro.locator("strong")).toHaveText(/Von der Beobachtung\s*zur Evidenz/);
+  await expect(evidenceIntro.locator("strong br")).toHaveCount(1);
+  await expect(evidence).not.toHaveAttribute("aria-label", /Erkenntnisweg/i);
+  await expect(evidence.locator('[data-route-link="hospitations:dashboard"]')).toHaveCount(0);
+  const evidenceProcess = evidence.locator(":scope > ol.hospitation-overview-evidence__flow");
+  const evidenceItems = evidenceProcess.locator(":scope > li.hospitation-overview-evidence__item");
+  await expect(evidenceProcess).toBeVisible();
+  await expect(evidenceItems).toHaveCount(4);
+  await expect(evidenceProcess.locator(":scope > li > .hospitation-overview-evidence__step > strong")).toHaveText([
+    "Beobachtung",
+    "Muster",
+    "Hypothese",
+    "Nächster Schritt"
+  ]);
+  await expect(overview.locator("#hospitation-overview-observation-count")).toHaveText("0");
+  await expect(overview.locator("#hospitation-overview-pattern-count")).toHaveText("0");
+  await expect(overview.locator("#hospitation-overview-hypothesis-count")).toHaveText("–");
+  await expect(overview.locator("#hospitation-overview-next-step-count")).toHaveText("–");
+  const evidenceLinks = overview.locator("a.hospitation-overview-evidence__step--interactive");
+  const evidenceStaticSteps = overview.locator("div.hospitation-overview-evidence__step");
+  await expect(evidenceLinks).toHaveCount(2);
+  await expect(evidenceLinks.nth(0)).toHaveAttribute("data-route-link", "hospitations:observations");
+  await expect(evidenceLinks.nth(1)).toHaveAttribute("data-route-link", "hospitations:patterns");
+  await expect(evidenceStaticSteps).toHaveCount(2);
+  expect(await evidenceStaticSteps.evaluateAll((nodes) => nodes.every((node) =>
+    !node.hasAttribute("href") &&
+    !node.hasAttribute("data-route-link") &&
+    !node.hasAttribute("tabindex") &&
+    node.getAttribute("role") !== "button"
+  ))).toBe(true);
+
+  const observationStep = evidenceLinks.nth(0);
+  const defaultBackground = await observationStep.evaluate((element) => getComputedStyle(element).backgroundColor);
+  await observationStep.hover();
+  await expect.poll(() => observationStep.evaluate((element) => getComputedStyle(element).backgroundColor)).not.toBe(defaultBackground);
+  await evidenceLinks.nth(0).focus();
+  await page.keyboard.press("Tab");
+  await expect(evidenceLinks.nth(1)).toBeFocused();
+  await page.keyboard.press("Tab");
+  await expect(frameworkLink).toBeFocused();
+  const dashboardLink = overview.locator('a.hospitation-overview-attention__dashboard-link[data-route-link="hospitations:dashboard"]');
+  await expect(dashboardLink).toBeVisible();
+  await expect(dashboardLink).toHaveText(/Dashboard\s*→/);
+
+  const returnToOverview = async () => {
+    await page.goBack();
+    await expect(page).toHaveURL(/#hospitation-overview$/);
+    await expect(overview).toBeVisible();
+  };
+  await frameworkLink.click();
+  await expect(page).toHaveURL(/#framework$/);
+  await expect(page.locator(".app-shell")).toHaveAttribute("data-active-view", "framework");
+  await returnToOverview();
+  await overview.locator('[data-route-link="hospitations:observations"]').click();
+  await expect(page).toHaveURL(/#hospitations:observations$/);
+  await expect(page.locator(".app-shell")).toHaveAttribute("data-active-view", "hospitations");
+  await returnToOverview();
+  await overview.locator('[data-route-link="hospitations:patterns"]').click();
+  await expect(page).toHaveURL(/#hospitations:patterns$/);
+  await expect(page.locator(".app-shell")).toHaveAttribute("data-active-view", "hospitations");
+  await returnToOverview();
+  await dashboardLink.click();
+  await expect(page).toHaveURL(/#hospitations:dashboard$/);
+  await expect(page.locator("#hospitation-dashboard-panel")).toBeVisible();
+  await returnToOverview();
+
+  await overview.locator("#hospitation-overview-questionnaire-open").click();
+  await expect(page).toHaveURL(/#questionnaire$/);
+  await expect(page.locator(".app-shell")).toHaveAttribute("data-active-view", "questionnaire");
+  await expect(page.locator("#questionnaire-hospitation-container")).toHaveValue("overview-upcoming-2");
+});
+
+test("Hospitations-Kompass Übersicht: offene Dokumentation wird eindeutig und direkt bearbeitbar", async ({ page }, testInfo) => {
+  test.skip(testInfo.project.name !== "chromium-desktop", "Der fokussierte Overview-Vertrag läuft einmal im Desktop-Projekt.");
+  const { overview } = await gotoHospitationOverview(page, {
+    role: "editor",
+    upcomingDays: [3],
+    openDocumentation: 1
+  });
+
+  await expect(overview.locator("#hospitation-overview-open-count")).toHaveText("1");
+  await expect(overview.locator("#hospitation-overview-attention-title")).toHaveText("Dokumentation ist noch offen");
+  await expect(overview.locator(".hospitation-overview-attention")).toHaveClass(/is-open/);
+  await expect(overview.locator("#hospitation-overview-attention-label")).toHaveText("Gesamt im Kalender");
+  await expect(overview.locator("#hospitation-overview-attention-focus-number")).toHaveText("2");
+  await expect(overview.locator("#hospitation-overview-attention-focus-copy")).toHaveText("Hospitationen");
+  const documentationAction = overview.locator("#hospitation-overview-attention-open");
+  await expect(documentationAction).toHaveText(/Dokumentation starten\s*→/);
+  await expect(documentationAction).toHaveAttribute("aria-label", "Dokumentation starten: Testorganisation offen 1");
+  await expect(documentationAction).toHaveAttribute("title", "Testorganisation offen 1");
+  await expect(overview.locator(".hospitation-overview-agenda__item")).toHaveCount(1);
+  await expect(overview.locator("#hospitation-overview-questionnaire-open")).toBeVisible();
+
+  await documentationAction.click();
+  await expect(page.locator("#hospitation-editor-drawer")).toHaveClass(/is-open/);
+  await expect(page.locator("#hospitation-editor-drawer")).toContainText("Testorganisation offen 1");
+});
+
+test("Hospitations-Kompass Übersicht: Teil-Dokumentation und datumsgenaue Termine behalten ihren korrekten Arbeitszustand", async ({ page }, testInfo) => {
+  test.skip(testInfo.project.name !== "chromium-desktop", "Der fokussierte Overview-Vertrag läuft einmal im Desktop-Projekt.");
+  await page.clock.setFixedTime(HOSPITATION_OVERVIEW_NOW);
+  const backendFixture = createHospitationOverviewFixture({ role: "editor", upcomingDays: [2] });
+  const futureDraft = {
+    ...backendFixture.hospitations[0],
+    status: "Dokumentiert",
+    documentationSummary: "Teilweise erfasst"
+  };
+  const todayDateOnly = {
+    ...backendFixture.hospitations[0],
+    id: "overview-today-date-only",
+    organizationName: "Termin heute ohne Uhrzeit",
+    status: "Gebucht",
+    startsAt: "",
+    endsAt: "",
+    scheduledOn: "2026-08-02",
+    documentationSummary: ""
+  };
+  const runningUntilEndOfDay = {
+    ...backendFixture.hospitations[0],
+    id: "overview-running-date-only-end",
+    organizationName: "Läuft bis Tagesende",
+    status: "Durchgeführt",
+    startsAt: "2026-08-01T09:00:00.000Z",
+    endsAt: "2026-08-02",
+    documentationSummary: ""
+  };
+  const pastDraftWithoutEnd = {
+    ...backendFixture.hospitations[0],
+    id: "overview-past-draft-without-end",
+    organizationName: "Vergangener Entwurf",
+    status: "Dokumentiert",
+    startsAt: "2026-08-01T08:00:00.000Z",
+    endsAt: "",
+    documentationSummary: "Teilweise erfasst"
+  };
+  backendFixture.hospitations = [futureDraft, todayDateOnly, runningUntilEndOfDay, pastDraftWithoutEnd];
+
+  await gotoAuthenticated(page, "/frontend/app/versorgungs-kompass.html#hospitation-overview", {
+    role: "editor",
+    backendFixture
+  });
+  const overview = page.locator("#view-hospitation-overview");
+  await expect(overview.locator(".hospitation-overview-priority")).toHaveAttribute("data-hospitation-overview-state", "ready");
+  await expect(overview.locator("#hospitation-overview-next-title")).toHaveText("Termin heute ohne Uhrzeit");
+  await expect(overview.locator("#hospitation-overview-next-meta")).toContainText("Uhrzeit offen");
+  await expect(overview.locator(".hospitation-overview-agenda__item")).toHaveCount(2);
+  await expect(overview.locator('[data-hospitation-overview-entry="hospitation:overview-upcoming-2"]')).toContainText("Terminiert");
+  await expect(overview.locator("#hospitation-overview-open-count")).toHaveText("1");
+  await expect(overview.locator("#hospitation-overview-attention-open")).toContainText("Entwurf fortsetzen");
+  await expect(overview.locator("#hospitation-overview-attention-focus-number")).toHaveText("4");
+});
+
+test("Hospitations-Kompass Übersicht: Viewer navigiert sicher ohne Schreibaktionen oder Layoutlücke", async ({ page }, testInfo) => {
+  test.skip(testInfo.project.name !== "chromium-desktop", "Der fokussierte Overview-Vertrag läuft einmal im Desktop-Projekt.");
+  const { overview } = await gotoHospitationOverview(page, { role: "viewer", upcomingDays: [2, 4, 6] });
+
+  await expect(overview.locator("#hospitation-overview-plan-button")).toBeHidden();
+  await expect(overview.locator(".hospitation-overview-agenda")).not.toHaveClass(/has-plan/);
+  await expect(overview.locator("#hospitation-overview-questionnaire-open")).toBeHidden();
+  await expect(overview.locator("#hospitation-overview-next-open")).toContainText("Zur Terminübersicht");
+  await expect(overview.locator("#hospitation-overview-attention-open")).toContainText("Alle Hospitationen anzeigen");
+  await expect(overview.locator('[data-route-link="framework"]')).toBeVisible();
+  await expect(overview.locator('[data-route-link="hospitations:dashboard"]')).toBeVisible();
+
+  const agendaGap = await overview.evaluate((root) => {
+    const agenda = root.querySelector(".hospitation-overview-agenda")?.getBoundingClientRect();
+    const items = root.querySelector(".hospitation-overview-agenda__items")?.getBoundingClientRect();
+    return agenda && items ? agenda.right - items.right : Number.POSITIVE_INFINITY;
+  });
+  expect(agendaGap).toBeLessThanOrEqual(2);
+
+  await overview.locator("#hospitation-overview-next-open").click();
+  await expect(page).toHaveURL(/#hospitations$/);
+  await expect(page.locator(".app-shell")).toHaveAttribute("data-active-view", "hospitations");
+  await expect(page.locator("#hospitation-editor-drawer")).not.toHaveClass(/is-open/);
+  await page.goBack();
+  await expect(page).toHaveURL(/#hospitation-overview$/);
+  await expect(overview).toBeVisible();
+
+  await overview.locator(".hospitation-overview-agenda__item").first().click();
+  await expect(page).toHaveURL(/#hospitations$/);
+  await expect(page.locator(".app-shell")).toHaveAttribute("data-active-view", "hospitations");
+  await expect(page.locator("#hospitation-editor-drawer")).not.toHaveClass(/is-open/);
+});
+
+test("Hospitations-Kompass Übersicht: versteckte Listenfilter begrenzen die Übersicht nicht", async ({ page }, testInfo) => {
+  test.skip(testInfo.project.name !== "chromium-desktop", "Spaltenfilter werden im Desktop-Projekt geprüft.");
+  await page.clock.setFixedTime(HOSPITATION_OVERVIEW_NOW);
+  const backendFixture = createHospitationOverviewFixture({
+    role: "editor",
+    upcomingDays: [2, 4, 6],
+    openDocumentation: 1
+  });
+  await gotoAuthenticated(page, "/frontend/app/versorgungs-kompass.html#hospitations", {
+    role: "editor",
+    backendFixture
+  });
+
+  const statusHeader = page.locator("#hospitation-list .hospitation-table-head .column-head--status");
+  await expect(statusHeader).toBeVisible();
+  await statusHeader.locator("[data-hospitation-header-filter-button]").click();
+  await page.locator("#hospitation-header-filter-appointments-status").getByRole("button", { name: "Durchgeführt", exact: true }).click();
+  await expect(statusHeader.locator("[data-hospitation-header-filter-button]")).toHaveClass(/is-active/);
+  await page.locator("#search").fill("garantiert-kein-overview-treffer");
+  await expect(page.locator("#hospitation-list .hospitation-row")).toHaveCount(0);
+
+  await page.locator('[data-view-tab="hospitationOverview"]').click();
+  const overview = page.locator("#view-hospitation-overview");
+  await expect(overview).toBeVisible();
+  await expect(overview.locator(".hospitation-overview-priority")).toHaveAttribute("data-hospitation-overview-state", "ready");
+  await expect(page.locator(".crm-shell > .controls")).toBeHidden();
+  await expect(overview.locator(".hospitation-overview-agenda__item")).toHaveCount(3);
+  await expect(overview.locator("#hospitation-overview-open-count")).toHaveText("1");
+  await expect(overview.locator("#hospitation-overview-attention-focus-number")).toHaveText("4");
+
+  await page.goBack();
+  await expect(page).toHaveURL(/#hospitations$/);
+  await expect(statusHeader).toBeVisible();
+  await expect(statusHeader.locator("[data-hospitation-header-filter-button]")).toHaveClass(/is-active/);
+});
+
+for (const role of ["editor", "viewer"]) {
+  test(`Hospitations-Kompass Übersicht: ${role} bleibt an Desktop-, Breakpoint- und Mobile-Breiten ohne Clipping`, async ({ page }, testInfo) => {
+    test.skip(testInfo.project.name !== "chromium-desktop", "Die Breitenmatrix läuft einmal im Desktop-Projekt.");
+    test.setTimeout(90_000);
+    const { overview } = await gotoHospitationOverview(page, { role, upcomingDays: [2, 4, 6] });
+    const viewportMatrix = [
+      { width: 1440, height: 1000 },
+      { width: 1100, height: 1000 },
+      { width: 961, height: 1000 },
+      { width: 960, height: 1000 },
+      { width: 900, height: 1000 },
+      { width: 821, height: 1000 },
+      { width: 820, height: 1000 },
+      { width: 768, height: 1000 },
+      { width: 390, height: 844 }
+    ];
+
+    for (const viewport of viewportMatrix) {
+      await test.step(`${role} · ${viewport.width}px`, async () => {
+        await page.setViewportSize(viewport);
+        await expect.poll(() => page.evaluate(() => window.innerWidth)).toBe(viewport.width);
+        await expect(overview).toBeVisible();
+        await expect(overview.locator(".hospitation-overview-priority")).toHaveAttribute("data-hospitation-overview-state", "ready");
+        await expectHospitationOverviewWithoutClipping(page);
+
+        const geometry = await overview.evaluate((root) => {
+          const rect = (selector) => {
+            const node = root.querySelector(selector);
+            if (!node || node.getClientRects().length === 0) return null;
+            const box = node.getBoundingClientRect();
+            return { left: box.left, top: box.top, right: box.right, bottom: box.bottom, width: box.width, height: box.height };
+          };
+          return {
+            next: rect(".hospitation-overview-next"),
+            attention: rect(".hospitation-overview-attention"),
+            agenda: rect(".hospitation-overview-agenda"),
+            agendaIntro: rect(".hospitation-overview-agenda__intro"),
+            agendaItems: rect(".hospitation-overview-agenda__items"),
+            plan: rect(".hospitation-overview-plan-card"),
+            evidence: rect(".hospitation-overview-evidence"),
+            evidenceIntro: rect(".hospitation-overview-evidence__intro"),
+            evidenceFlow: rect(".hospitation-overview-evidence__flow"),
+            framework: rect(".hospitation-overview-framework-link"),
+            frameworkBody: rect(".hospitation-overview-framework-link__body"),
+            frameworkAction: rect(".hospitation-overview-framework-link__action"),
+            evidenceSteps: [...root.querySelectorAll(".hospitation-overview-evidence__item")].map((node) => {
+              const box = node.getBoundingClientRect();
+              return { left: box.left, top: box.top, right: box.right, bottom: box.bottom };
+            })
+          };
+        });
+        expect(geometry.next).not.toBeNull();
+        expect(geometry.attention).not.toBeNull();
+        expect(geometry.agenda).not.toBeNull();
+        expect(geometry.agendaIntro).not.toBeNull();
+        expect(geometry.agendaItems).not.toBeNull();
+        expect(geometry.evidence).not.toBeNull();
+        expect(geometry.evidenceIntro).not.toBeNull();
+        expect(geometry.evidenceFlow).not.toBeNull();
+        expect(geometry.framework).not.toBeNull();
+        expect(geometry.frameworkBody).not.toBeNull();
+        expect(geometry.frameworkAction).not.toBeNull();
+        expect(geometry.evidenceSteps).toHaveLength(4);
+        expect(geometry.evidence.top).toBeGreaterThanOrEqual(geometry.agenda.bottom - 1);
+        expect(geometry.framework.top).toBeGreaterThanOrEqual(geometry.evidence.bottom - 1);
+        expect(Math.abs(geometry.framework.left - geometry.evidence.left)).toBeLessThanOrEqual(1);
+        expect(Math.abs(geometry.framework.right - geometry.evidence.right)).toBeLessThanOrEqual(1);
+        expect(geometry.framework.height).toBeGreaterThanOrEqual(44);
+        expect(geometry.framework.height).toBeLessThan(geometry.agenda.height);
+        expect(geometry.framework.height).toBeLessThan(geometry.evidence.height);
+        expect(geometry.frameworkBody.left).toBeGreaterThanOrEqual(geometry.framework.left - 1);
+        expect(geometry.frameworkAction.right).toBeLessThanOrEqual(geometry.framework.right + 1);
+
+        if (viewport.width > 1000) {
+          expect(Math.abs(geometry.next.top - geometry.attention.top)).toBeLessThanOrEqual(1);
+          expect(geometry.next.width).toBeGreaterThan(geometry.attention.width);
+        } else {
+          expect(geometry.attention.top).toBeGreaterThanOrEqual(geometry.next.bottom - 1);
+        }
+
+        if (viewport.width > 1100) {
+          expect(Math.abs(geometry.evidenceIntro.top - geometry.evidenceFlow.top)).toBeLessThanOrEqual(1);
+        } else {
+          expect(geometry.evidenceFlow.top).toBeGreaterThanOrEqual(geometry.evidenceIntro.bottom - 1);
+        }
+
+        if (role === "editor") {
+          expect(geometry.plan).not.toBeNull();
+          await expect(overview.locator(".hospitation-overview-agenda")).toHaveClass(/has-plan/);
+          if (viewport.width > 1100) {
+            expect(Math.abs(geometry.plan.top - geometry.agendaItems.top)).toBeLessThanOrEqual(1);
+            expect(geometry.plan.left).toBeGreaterThanOrEqual(geometry.agendaItems.right - 1);
+            expect(Math.abs(geometry.plan.right - geometry.agenda.right)).toBeLessThanOrEqual(1);
+          } else if (viewport.width > 960) {
+            expect(Math.abs(geometry.agendaItems.top - geometry.agendaIntro.top)).toBeLessThanOrEqual(1);
+            expect(geometry.plan.top).toBeGreaterThanOrEqual(Math.max(geometry.agendaItems.bottom, geometry.agendaIntro.bottom) - 1);
+          } else {
+            expect(geometry.agendaItems.top).toBeGreaterThanOrEqual(geometry.agendaIntro.bottom - 1);
+            expect(geometry.plan.top).toBeGreaterThanOrEqual(geometry.agendaItems.bottom - 1);
+          }
+        } else {
+          expect(geometry.plan).toBeNull();
+          await expect(overview.locator(".hospitation-overview-agenda")).not.toHaveClass(/has-plan/);
+          expect(Math.abs(geometry.agendaItems.right - geometry.agenda.right)).toBeLessThanOrEqual(1);
+          if (viewport.width <= 960) {
+            expect(geometry.agendaItems.top).toBeGreaterThanOrEqual(geometry.agendaIntro.bottom - 1);
+          }
+        }
+
+        if (viewport.width <= 820) {
+          for (let index = 1; index < geometry.evidenceSteps.length; index += 1) {
+            expect(geometry.evidenceSteps[index].top).toBeGreaterThanOrEqual(geometry.evidenceSteps[index - 1].bottom - 1);
+          }
+        } else {
+          expect(geometry.evidenceSteps.every((step) => Math.abs(step.top - geometry.evidenceSteps[0].top) <= 1)).toBe(true);
+        }
+
+        if ((role === "editor" && [1440, 960, 390].includes(viewport.width)) || (role === "viewer" && [1440, 390].includes(viewport.width))) {
+          await attachScreenshot(page, testInfo, `hospitation-overview-${role}-${viewport.width}`);
+        }
+      });
+    }
+  });
+}
 
 test("Hospitation: Framework-Modul rendern", async ({ page }, testInfo) => {
   await gotoAuthenticated(page, "/frontend/app/versorgungs-kompass.html#framework");
@@ -1904,6 +2438,7 @@ test("Hospitation: alle Seiten bleiben auf Smartphone und Tablet ohne horizontal
   test.skip(!testInfo.project.name.includes("mobile"), "Responsive-Matrix läuft im Mobile-Projekt.");
   test.setTimeout(60_000);
   const views = [
+    { hash: "hospitation-overview", selector: "#view-hospitation-overview" },
     { hash: "framework", selector: "#view-framework" },
     { hash: "hospitations", selector: "#view-hospitations" },
     { hash: "questionnaire", selector: "#view-questionnaire" },
@@ -5036,8 +5571,8 @@ test("Hospitationen: Dokumentationsdrawer mit Reitern", async ({ page }, testInf
   } else {
     await expect(doneStatusBadge).toBeVisible();
   }
-  await expect(doneStatusBadge).toContainText("Dokumentiert");
-  await expect(documentationRow.locator(".hospitation-row__head > *").nth(2)).toContainText("Dokumentiert");
+  await expect(doneStatusBadge).toContainText("Durchgeführt");
+  await expect(documentationRow.locator(".hospitation-row__head > *").nth(2)).toContainText("Durchgeführt");
   await expect(page.locator("#view-hospitations")).not.toContainText("Gebucht");
   await expect(page.locator("#view-hospitations")).not.toContainText("Angeboten");
   await expect(page.locator("#view-hospitations")).not.toContainText("Abgelehnt");
@@ -5333,8 +5868,8 @@ test("Hospitationen: Dokumentationsdrawer mit Reitern", async ({ page }, testInf
   const observationDetails = documentationDrawer.locator('[data-hospitation-editor-panel="observations"]');
   await expect(observationDetails).toBeVisible();
   const observationWarning = observationDetails.locator(":scope > .detail-section-title [data-documentation-tab-warning]");
-  await expect(observationWarning).toBeVisible();
-  await expect(observationWarning.locator("[data-documentation-tab-warning-popup]")).toContainText(/Beobachtung|Zitat|Bild/);
+  await expect(observationWarning).toBeHidden();
+  await expect(observationWarning.locator("[data-documentation-tab-warning-popup]")).toHaveCount(0);
   await expect(observationDetails).not.toContainText("Betroffene Produkte");
   await expect(observationDetails).not.toContainText("Produktbezug");
   await expect(observationDetails).not.toContainText("Zitate und Bilder");

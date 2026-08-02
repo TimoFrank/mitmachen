@@ -28,6 +28,7 @@
     ["stakeholders/krankenhausgesellschaften", "stakeholder/krankenhausgesellschaften"],
     ["stakeholders/aerztliche-berufsverbaende", "stakeholder/aerztliche-berufsverbaende"],
     ["experts", "stakeholder/expertenkreis"],
+    ["hospitation-overview", "hospitationen/uebersicht"],
     ["framework", "hospitationen/framework"],
     ["hospitations", "hospitationen"],
     ["hospitations:observations", "hospitationen/beobachtungen"],

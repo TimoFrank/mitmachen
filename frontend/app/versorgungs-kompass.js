@@ -1031,6 +1031,8 @@
       const formatEditorDrawerSubtitle = document.getElementById("format-editor-drawer-subtitle");
       const formatEditorDrawerBody = document.getElementById("format-editor-drawer-body");
       const newHospitationRequestButton = document.getElementById("new-hospitation-request-button");
+      const hospitationOverviewPlanButton = document.getElementById("hospitation-overview-plan-button");
+      const hospitationOverviewQuestionnaireButton = document.getElementById("hospitation-overview-questionnaire-open");
       const hospitationTabButtons = [...document.querySelectorAll("[data-hospitation-tab]")];
       const hospitationTabPanels = [...document.querySelectorAll("[data-hospitation-tab-panel]")];
       const hospitationCommandRow = document.getElementById("hospitation-command-row");
@@ -2243,7 +2245,7 @@
             : view;
         if (["map", "contacts", "organizations", "activities", "analytics", "quality", "onboarding"].includes(normalizedView)) return "care";
         if (["patients", "politics", "press", "experts", "stakeholderOverview", "stakeholders"].includes(normalizedView)) return "stakeholders";
-        if (["framework", "hospitations", "questionnaire"].includes(normalizedView)) return "planning";
+        if (["hospitationOverview", "framework", "hospitations", "questionnaire"].includes(normalizedView)) return "planning";
         if (normalizedView === "formats") return "formats";
         return "";
       }
@@ -5593,6 +5595,7 @@
         press: { title: "Presse", subtitle: "Relevante Pressekontakte aus Redaktionen, Institutionen und Verbänden im Gesundheitswesen." },
         stakeholderOverview: { title: "Stakeholder-Kompass", subtitle: "Perspektiven, Institutionen und Netzwerke auf einen Blick." },
         stakeholders: { title: "Stakeholder", subtitle: "Stakeholder-Organisationen, Kontakte und Kartenbezug." },
+        hospitationOverview: { title: "Übersicht", subtitle: "Was steht an, was ist offen und was haben wir gelernt?" },
         framework: { title: "Hospitationsframework", subtitle: "Vor Ort beobachten, qualitativ auswerten und daraus belastbares Versorgungswissen ableiten." },
         formats: { title: "Formate", subtitle: "Einladungslisten für Roundtables, Fachgespräche und Veranstaltungen planen." },
         hospitations: { title: "Hospitationen", subtitle: "Termine planen und Versorgungskontakte dokumentieren." },
@@ -14545,20 +14548,28 @@
         const organization = selectedQuestionnaireOrganization();
         const sector = selectedQuestionnaireSector();
         const contextGoal = String(questionnaireForm?.elements.questionnaireContextNotes?.value || "").trim();
-        return {
-          status: "Dokumentiert",
+        const startsAt = questionnaireStartsAtValue(existingHospitation || {});
+        const topics = normalizeThemes(existingHospitation?.topics || existingHospitation?.themes || "").join(", ");
+        const payload = {
           contactId: contact?.id || existingHospitation?.contactId || "",
           contactName: contact ? "" : existingHospitation?.contactName || "",
           organizationId: organization?.id || existingHospitation?.organizationId || "",
           organizationName: organization?.id ? "" : organization?.name || existingHospitation?.organizationName || "",
           sector: sector || existingHospitation?.sector || "",
-          startsAt: questionnaireStartsAtValue(existingHospitation || {}),
+          startsAt,
           ownerId: existingHospitation?.ownerId || currentProfile?.id || "",
           goal: contextGoal || existingHospitation?.goal || "Beobachtung zu Evidenz aus Hospitation",
-          topics: normalizeThemes(existingHospitation?.topics || existingHospitation?.themes || "").join(", "),
+          topics,
           requestNote: questionnaireMergedRequestNote(existingHospitation || {}),
           documentationSummary: questionnaireSummaryFromDocumentation(documentation),
           documentationOutcome: serializeHospitationDocumentationPayload(documentation)
+        };
+        const quality = hospitationDocumentationQualityState({ ...(existingHospitation || {}), ...payload }, documentation, topics);
+        return {
+          ...payload,
+          status: quality.complete
+            ? "Dokumentiert"
+            : hospitationDocumentationOperationalStatus(existingHospitation || {}, startsAt)
         };
       }
 
@@ -15289,7 +15300,7 @@
             .join("");
         };
 
-        if (activeView === "home" || activeView === "onboarding" || activeView === "stakeholderOverview") {
+        if (activeView === "home" || activeView === "onboarding" || activeView === "stakeholderOverview" || activeView === "hospitationOverview") {
           if (summaryGrid) summaryGrid.innerHTML = "";
           return;
         }
@@ -15440,8 +15451,8 @@
         }
         if (activeView === "hospitations") {
           const activeHospitationItems = hospitations.filter((hospitation) => hospitation.status !== "Archiviert");
-          const documented = activeHospitationItems.filter((hospitation) => hospitationScheduleStatus(hospitation, { entryKind: "hospitation" }) === "Dokumentiert").length;
-          const openDocumentation = activeHospitationItems.filter((hospitation) => hospitationIsReadyForDocumentation(hospitation.status) && hospitationDocumentationState(hospitation).label !== "Dokumentiert").length;
+          const documented = activeHospitationItems.filter((hospitation) => hospitationDocumentationState(hospitation).label === "Dokumentiert").length;
+          const openDocumentation = hospitationOverviewEntries().openDocumentation.length;
           renderSummaryCards(
             summaryGrid,
             [
@@ -15939,7 +15950,11 @@
         const currentStatus = hospitationDisplayStatus(item.status || "", { entryKind });
         const normalized = normalizeClassPart(currentStatus);
         const retainsStatus = ["archiviert", "abgesagt", "abgelehnt"].includes(normalized);
-        if (entryKind === "hospitation" && !retainsStatus && hospitationObservationCount(item) > 0) return "Dokumentiert";
+        if (entryKind === "hospitation" && !retainsStatus) {
+          const documentationState = hospitationDocumentationState(item);
+          if (documentationState.label === "Dokumentiert") return "Dokumentiert";
+          if (normalized === "dokumentiert") return hospitationDisplayStatus(hospitationDocumentationOperationalStatus(item), { entryKind });
+        }
         return currentStatus;
       }
 
@@ -15962,6 +15977,16 @@
       function hospitationIsReadyForDocumentation(status = "") {
         const normalized = normalizeClassPart(status || "");
         return hospitationIsScheduledStatus(status) || normalized === "durchgefuhrt";
+      }
+
+      function hospitationDocumentationOperationalStatus(item = {}, startsAtOverride = "") {
+        const currentStatus = String(item.status || "").trim();
+        if (currentStatus && normalizeClassPart(currentStatus) !== "dokumentiert") return currentStatus;
+        const startsAt = startsAtOverride || item.startsAt || item.starts_at || item.scheduledOn || item.scheduled_on || "";
+        const startDate = startsAt ? parseDateValue(startsAt) : null;
+        return startDate && !Number.isNaN(startDate.getTime()) && startDate.getTime() > Date.now()
+          ? "Gebucht"
+          : "Durchgeführt";
       }
 
       function hospitationStatusSortIndex(status = "") {
@@ -17539,8 +17564,14 @@
       }
 
       function hospitationDocumentationState(item = {}) {
-        if (meaningfulOrEmpty(item.documentationSummary) || hospitationObservationCount(item) > 0) return { tone: "done", label: "Dokumentiert" };
-        if (hospitationDocumentationHasStructuredContent(hospitationDocumentationPayload(item))) return { tone: "draft", label: "Entwurf" };
+        const payload = hospitationDocumentationPayload(item);
+        const quality = hospitationDocumentationQualityState(item, payload, hospitationThemeTags(item));
+        if (quality.complete) return { tone: "done", label: "Dokumentiert" };
+        if (
+          meaningfulOrEmpty(item.documentationSummary) ||
+          hospitationObservationCount(item) > 0 ||
+          hospitationDocumentationHasStructuredContent(payload)
+        ) return { tone: "draft", label: "Entwurf" };
         return { tone: "open", label: "Offen" };
       }
 
@@ -18338,7 +18369,6 @@
 
       function hospitationDocumentationMissingByTab(hospitation = {}, payload = {}, topics = []) {
         const observations = hospitationDocumentationArray(payload.observations).filter(hospitationObservationIsMeaningful);
-        const quotes = hospitationDocumentationArray(payload.quotes).filter(hospitationQuoteIsMeaningful);
         const mainTopics = normalizeThemes(topics).filter((tag) => !hospitationIsAdministrativeTag(tag));
         const missingByTab = {
           overview: [],
@@ -18353,7 +18383,6 @@
         if (!mainTopics.length) missingByTab.themes.push("1 Hauptthema ergänzen");
         const observationGap = Math.max(0, 3 - observations.length);
         if (observationGap) missingByTab.observations.push(`${observationGap} Beobachtung${observationGap === 1 ? "" : "en"} ergänzen`);
-        if (!quotes.length) missingByTab.observations.push("1 Zitat ergänzen");
         if (!meaningfulOrEmpty(payload.insight)) missingByTab.hospitation.push("1 Einordnung / Erkenntnis ergänzen");
         const hasNextUse = meaningfulOrEmpty(payload.nextUse) ||
           observations.some((observation) => meaningfulOrEmpty(observation.nextUse) || meaningfulOrEmpty(observation.nextStep));
@@ -20300,6 +20329,342 @@
           const value = Number(metrics[key]) || 0;
           badge.textContent = String(value);
           badge.setAttribute("aria-label", `${value} ${accessibleLabels[key] || "Einträge"}`);
+        });
+      }
+
+      function hospitationOverviewEntryTitle(entry = {}) {
+        const organizationLabel = hospitationOrganizationLabel(entry.item || {});
+        if (organizationLabel && organizationLabel !== "Nicht hinterlegt") return organizationLabel;
+        return hospitationEntryTitle(entry);
+      }
+
+      function hospitationOverviewEntrySubtitle(entry = {}) {
+        const item = entry.item || {};
+        const title = hospitationOverviewEntryTitle(entry);
+        const contactLabel = hospitationContactOnlyLabel(item);
+        if (contactLabel && contactLabel !== "Kontakt nicht hinterlegt" && contactLabel !== title) return contactLabel;
+        return hospitationEntrySubtitle(entry);
+      }
+
+      function hospitationOverviewEntryDate(entry = {}) {
+        const item = entry.item || {};
+        const value = item.startsAt || item.starts_at || item.scheduledOn || item.scheduled_on || "";
+        if (!value) return null;
+        const date = parseDateValue(value);
+        return Number.isNaN(date.getTime()) ? null : date;
+      }
+
+      function hospitationOverviewDateParts(entry = {}) {
+        const date = hospitationOverviewEntryDate(entry);
+        if (!date) return { day: "–", month: "offen", datetime: "" };
+        return {
+          day: date.toLocaleDateString("de-DE", { day: "2-digit" }),
+          month: date.toLocaleDateString("de-DE", { month: "short" }).replace(".", ""),
+          datetime: date.toISOString()
+        };
+      }
+
+      function hospitationOverviewTimeLabel(item = {}) {
+        const start = item.startsAt || item.starts_at || "";
+        if (!start || /^\d{4}-\d{2}-\d{2}$/.test(String(start).trim())) return "Uhrzeit offen";
+        const date = parseDateValue(start);
+        if (Number.isNaN(date.getTime())) return "Uhrzeit offen";
+        return `${date.toLocaleTimeString("de-DE", { hour: "2-digit", minute: "2-digit" })} Uhr`;
+      }
+
+      function hospitationOverviewEntryEndDate(entry = {}) {
+        const item = entry.item || {};
+        const value = item.endsAt || item.ends_at || "";
+        if (!value) return null;
+        const date = parseDateValue(value);
+        if (Number.isNaN(date.getTime())) return null;
+        if (/^\d{4}-\d{2}-\d{2}$/.test(String(value).trim())) date.setHours(23, 59, 59, 999);
+        return date;
+      }
+
+      function hospitationOverviewEntryIsUpcoming(entry = {}, now = new Date()) {
+        const item = entry.item || {};
+        const rawValue = item.startsAt || item.starts_at || item.scheduledOn || item.scheduled_on || "";
+        const date = hospitationOverviewEntryDate(entry);
+        if (!date) return false;
+        if (/^\d{4}-\d{2}-\d{2}$/.test(String(rawValue).trim())) {
+          const today = new Date(now);
+          today.setHours(0, 0, 0, 0);
+          date.setHours(0, 0, 0, 0);
+          return date.getTime() >= today.getTime();
+        }
+        return date.getTime() >= now.getTime();
+      }
+
+      function openHospitationAppointmentsFromOverview() {
+        activeHospitationTab = "appointments";
+        setActiveView("hospitations");
+        updateRouteHash(hospitationRouteForTab(activeHospitationTab));
+        updateView();
+      }
+
+      function openHospitationOverviewEntry(entry = {}, options = {}) {
+        if (!canEditContacts()) {
+          openHospitationAppointmentsFromOverview();
+          return;
+        }
+        openHospitationEntry(hospitationEntryKey(entry), options);
+      }
+
+      function openQuestionnaireFromHospitationOverview(entry = {}) {
+        const id = String(entry.item?.id || "").trim();
+        if (!id || !canEditContacts()) return;
+        setActiveView("questionnaire");
+        updateRouteHash("questionnaire");
+        updateView();
+        syncQuestionnaireContainerOptions();
+        if (!questionnaireContainerSelect || !questionnaireSelectHasValue(questionnaireContainerSelect, id)) return;
+        questionnaireContainerSelect.value = id;
+        syncCustomSelect(questionnaireContainerSelect);
+        applyQuestionnaireContainerSelection();
+      }
+
+      function hospitationOverviewDocumentationTab(item = {}) {
+        const payload = hospitationDocumentationPayload(item);
+        const quality = hospitationDocumentationQualityState(item, payload, hospitationThemeTags(item));
+        return hospitationDocumentationEditorTabs.find((tab) => quality.missingByTab?.[tab]?.length) || "overview";
+      }
+
+      function hospitationOverviewEntries() {
+        const now = new Date();
+        const activeEntries = activeHospitationRecords()
+          .map((item) => ({ kind: "hospitation", item }))
+          .filter((entry) => !hospitationIsCancelledStatus(entry.item?.status));
+        const datedEntries = activeEntries
+          .map((entry) => ({ entry, timestamp: hospitationOverviewEntryDate(entry)?.getTime() }))
+          .filter(({ timestamp }) => Number.isFinite(timestamp));
+        const upcoming = datedEntries
+          .filter(({ entry }) => {
+            const operationalStatus = hospitationScheduleStatus(entry.item, { entryKind: entry.kind });
+            return hospitationIsScheduledStatus(operationalStatus) && hospitationOverviewEntryIsUpcoming(entry, now);
+          })
+          .sort((left, right) => left.timestamp - right.timestamp)
+          .map(({ entry }) => entry);
+        const openDocumentation = activeEntries
+          .filter((entry) => {
+            const status = entry.item?.status || "";
+            const operationalStatus = hospitationScheduleStatus(entry.item, { entryKind: entry.kind });
+            const normalizedStatus = normalizeClassPart(operationalStatus);
+            if (!hospitationIsReadyForDocumentation(operationalStatus)) return false;
+            const endDate = hospitationOverviewEntryEndDate(entry);
+            const ended = endDate ? endDate.getTime() <= now.getTime() : normalizedStatus === "durchgefuhrt";
+            return ended && hospitationDocumentationState(entry.item).label !== "Dokumentiert";
+          })
+          .sort((left, right) => {
+            const leftState = hospitationDocumentationState(left.item).tone;
+            const rightState = hospitationDocumentationState(right.item).tone;
+            const stateDelta = (leftState === "draft" ? 0 : 1) - (rightState === "draft" ? 0 : 1);
+            if (stateDelta) return stateDelta;
+            const leftTime = hospitationOverviewEntryEndDate(left)?.getTime() ?? hospitationOverviewEntryDate(left)?.getTime() ?? Number.MAX_SAFE_INTEGER;
+            const rightTime = hospitationOverviewEntryEndDate(right)?.getTime() ?? hospitationOverviewEntryDate(right)?.getTime() ?? Number.MAX_SAFE_INTEGER;
+            return leftTime - rightTime || hospitationOverviewEntryTitle(left).localeCompare(hospitationOverviewEntryTitle(right), "de");
+          });
+        const nextEntry = upcoming[0] || null;
+        return {
+          nextEntry,
+          openDocumentation,
+          calendarCount: datedEntries.length,
+          agenda: upcoming.slice(0, 3)
+        };
+      }
+
+      function renderHospitationOverview() {
+        const priority = document.querySelector(".hospitation-overview-priority");
+        if (!priority) return;
+        const nextDate = document.getElementById("hospitation-overview-next-date");
+        const nextDay = priority.querySelector("[data-hospitation-overview-next-day]");
+        const nextMonth = priority.querySelector("[data-hospitation-overview-next-month]");
+        const nextTitle = document.getElementById("hospitation-overview-next-title");
+        const nextSubtitle = document.getElementById("hospitation-overview-next-subtitle");
+        const nextMeta = document.getElementById("hospitation-overview-next-meta");
+        const nextOpen = document.getElementById("hospitation-overview-next-open");
+        const questionnaireOpen = hospitationOverviewQuestionnaireButton;
+        const attention = priority.querySelector(".hospitation-overview-attention");
+        const openCount = document.getElementById("hospitation-overview-open-count");
+        const attentionTitle = document.getElementById("hospitation-overview-attention-title");
+        const attentionLabel = document.getElementById("hospitation-overview-attention-label");
+        const attentionFocus = document.getElementById("hospitation-overview-attention-focus");
+        const attentionFocusNumber = document.getElementById("hospitation-overview-attention-focus-number");
+        const attentionFocusCopy = document.getElementById("hospitation-overview-attention-focus-copy");
+        const attentionFocusGroup = attentionFocus?.closest(".hospitation-overview-attention__focus");
+        const attentionOpen = document.getElementById("hospitation-overview-attention-open");
+        const observationCount = document.getElementById("hospitation-overview-observation-count");
+        const patternCount = document.getElementById("hospitation-overview-pattern-count");
+        const hypothesisCount = document.getElementById("hospitation-overview-hypothesis-count");
+        const nextStepCount = document.getElementById("hospitation-overview-next-step-count");
+        const agendaSection = document.querySelector(".hospitation-overview-agenda");
+        const agendaItems = document.getElementById("hospitation-overview-agenda-items");
+        if (!nextDate || !nextDay || !nextMonth || !nextTitle || !nextSubtitle || !nextMeta || !nextOpen || !questionnaireOpen || !attention || !openCount || !attentionTitle || !attentionLabel || !attentionFocus || !attentionFocusNumber || !attentionFocusCopy || !attentionOpen || !observationCount || !patternCount || !hypothesisCount || !nextStepCount || !agendaSection || !agendaItems || !hospitationOverviewPlanButton) return;
+
+        const ready = hospitationDataState === "ready";
+        const failed = hospitationDataState === "error";
+        const canPlan = ready && canEditContacts();
+        priority.dataset.hospitationOverviewState = failed ? "error" : ready ? "ready" : "loading";
+        hospitationOverviewPlanButton.hidden = !canPlan;
+        agendaSection.classList.toggle("has-plan", canPlan);
+        questionnaireOpen.hidden = true;
+        questionnaireOpen.disabled = true;
+        questionnaireOpen.onclick = null;
+
+        if (!ready) {
+          const title = failed ? "Hospitationen nicht verfügbar" : "Hospitationen werden geladen";
+          const message = failed ? "Die Arbeitsdaten konnten nicht geladen werden." : "Aktuelle Termine werden vorbereitet.";
+          nextDay.textContent = failed ? "!" : "–";
+          nextMonth.textContent = failed ? "Fehler" : "Termin";
+          nextDate.removeAttribute("datetime");
+          nextTitle.textContent = title;
+          nextSubtitle.textContent = message;
+          nextMeta.innerHTML = "";
+          nextOpen.disabled = true;
+          nextOpen.onclick = null;
+          openCount.textContent = "–";
+          attentionTitle.textContent = failed ? "Dokumentationen nicht verfügbar" : "Dokumentationen werden geprüft";
+          attentionLabel.textContent = "Gesamt im Kalender";
+          attentionFocusNumber.hidden = false;
+          attentionFocusNumber.textContent = "–";
+          attentionFocusCopy.textContent = "Hospitationen";
+          attentionFocusGroup?.classList.add("is-total");
+          attention.classList.toggle("is-error", failed);
+          attention.classList.remove("is-clear", "is-open");
+          attentionOpen.disabled = true;
+          attentionOpen.onclick = null;
+          observationCount.textContent = "–";
+          patternCount.textContent = "–";
+          hypothesisCount.textContent = "–";
+          nextStepCount.textContent = "–";
+          agendaItems.dataset.count = "0";
+          agendaItems.innerHTML = `<p class="hospitation-overview-empty">${escapeHtml(message)}</p>`;
+          return;
+        }
+
+        const { nextEntry, openDocumentation, calendarCount, agenda } = hospitationOverviewEntries();
+        const metrics = hospitationFrameworkMetrics();
+        observationCount.textContent = String(metrics.observations || 0);
+        patternCount.textContent = String(metrics.patterns || 0);
+        hypothesisCount.textContent = "–";
+        nextStepCount.textContent = "–";
+
+        if (nextEntry) {
+          const item = nextEntry.item || {};
+          const dateParts = hospitationOverviewDateParts(nextEntry);
+          const location = hospitationLocationLabel(item);
+          const detailItems = [
+            {
+              label: hospitationOverviewTimeLabel(item),
+              icon: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="9"></circle><path d="M12 7v5l3 2"></path></svg>`
+            },
+            {
+              label: hospitationOverviewEntrySubtitle(nextEntry),
+              icon: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="8" r="3"></circle><path d="M5 21a7 7 0 0 1 14 0"></path></svg>`
+            },
+            location ? {
+              label: location,
+              icon: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M20 10c0 5-8 11-8 11S4 15 4 10a8 8 0 1 1 16 0Z"></path><circle cx="12" cy="10" r="2.5"></circle></svg>`
+            } : null
+          ].filter(Boolean);
+          nextDay.textContent = dateParts.day;
+          nextMonth.textContent = dateParts.month;
+          nextDate.setAttribute("datetime", dateParts.datetime);
+          nextTitle.textContent = hospitationOverviewEntryTitle(nextEntry);
+          nextSubtitle.textContent = hospitationScheduleStatus(item, { entryKind: nextEntry.kind });
+          nextMeta.innerHTML = detailItems.map((detail) => `<li>${detail.icon}<span>${escapeHtml(detail.label)}</span></li>`).join("");
+          nextOpen.disabled = false;
+          nextOpen.textContent = "";
+          nextOpen.append(canEditContacts() ? "Termin öffnen " : "Zur Terminübersicht ");
+          nextOpen.insertAdjacentHTML("beforeend", '<span aria-hidden="true">→</span>');
+          nextOpen.onclick = () => openHospitationOverviewEntry(nextEntry, { initialTab: "overview" });
+          if (canEditContacts()) {
+            questionnaireOpen.hidden = false;
+            questionnaireOpen.disabled = false;
+            questionnaireOpen.onclick = () => openQuestionnaireFromHospitationOverview(nextEntry);
+          }
+        } else {
+          nextDay.textContent = "–";
+          nextMonth.textContent = "Termin";
+          nextDate.removeAttribute("datetime");
+          nextTitle.textContent = "Kein kommender Termin geplant";
+          nextSubtitle.textContent = canEditContacts()
+            ? "Plane eine neue Hospitation oder prüfe die Terminübersicht."
+            : "In der Terminübersicht sind aktuell keine kommenden Hospitationen hinterlegt.";
+          nextMeta.innerHTML = "";
+          nextOpen.disabled = false;
+          nextOpen.textContent = "";
+          nextOpen.append(canEditContacts() ? "Hospitation planen " : "Zur Terminübersicht ");
+          nextOpen.insertAdjacentHTML("beforeend", '<span aria-hidden="true">→</span>');
+          nextOpen.onclick = canEditContacts() ? () => openHospitationEditor("request") : openHospitationAppointmentsFromOverview;
+        }
+
+        const openEntry = openDocumentation[0] || null;
+        openCount.textContent = String(openDocumentation.length);
+        attentionTitle.textContent = openDocumentation.length === 0
+          ? "Keine Dokumentation ist offen"
+          : openDocumentation.length === 1
+            ? "Dokumentation ist noch offen"
+            : "Dokumentationen sind noch offen";
+        attentionLabel.textContent = "Gesamt im Kalender";
+        attentionFocusNumber.hidden = false;
+        attentionFocusNumber.textContent = String(calendarCount);
+        attentionFocusCopy.textContent = calendarCount === 1 ? "Hospitation" : "Hospitationen";
+        attentionFocusGroup?.classList.add("is-total");
+        attention.classList.toggle("is-open", Boolean(openEntry));
+        attention.classList.toggle("is-clear", !openEntry);
+        attention.classList.remove("is-error");
+        if (openEntry && canEditContacts()) {
+          const documentationState = hospitationDocumentationState(openEntry.item);
+          const actionLabel = documentationState.tone === "draft" ? "Entwurf fortsetzen" : "Dokumentation starten";
+          attentionOpen.disabled = false;
+          attentionOpen.textContent = "";
+          attentionOpen.append(`${actionLabel} `);
+          attentionOpen.insertAdjacentHTML("beforeend", '<span aria-hidden="true">→</span>');
+          attentionOpen.setAttribute("aria-label", `${actionLabel}: ${hospitationOverviewEntryTitle(openEntry)}`);
+          attentionOpen.title = hospitationOverviewEntryTitle(openEntry);
+          attentionOpen.onclick = () => openHospitationOverviewEntry(openEntry, { initialTab: hospitationOverviewDocumentationTab(openEntry.item) });
+        } else {
+          attentionOpen.disabled = false;
+          attentionOpen.textContent = "";
+          attentionOpen.append(openEntry ? "Zur Terminübersicht " : "Alle Hospitationen anzeigen ");
+          attentionOpen.insertAdjacentHTML("beforeend", '<span aria-hidden="true">→</span>');
+          attentionOpen.removeAttribute("aria-label");
+          attentionOpen.removeAttribute("title");
+          attentionOpen.onclick = openHospitationAppointmentsFromOverview;
+        }
+
+        agendaItems.dataset.count = String(agenda.length);
+        agendaItems.innerHTML = agenda.length
+          ? agenda.map((entry) => {
+              const item = entry.item || {};
+              const key = hospitationEntryKey(entry);
+              const dateParts = hospitationOverviewDateParts(entry);
+              const isOpen = openDocumentation.some((openEntry) => hospitationEntryKey(openEntry) === key);
+              const scheduleStatus = hospitationScheduleStatus(item, { entryKind: entry.kind });
+              const done = normalizeClassPart(scheduleStatus) === "dokumentiert";
+              const toneClass = isOpen ? " hospitation-overview-agenda__item--open" : done ? " hospitation-overview-agenda__item--done" : "";
+              const statusLabel = isOpen ? "Dokumentation offen" : scheduleStatus;
+              return `
+                <button class="hospitation-overview-agenda__item${toneClass}" type="button" data-hospitation-overview-entry="${escapeHtml(key)}" aria-label="${escapeHtml(`${hospitationOverviewEntryTitle(entry)} öffnen`)}">
+                  <time class="hospitation-overview-agenda__date" ${dateParts.datetime ? `datetime="${escapeHtml(dateParts.datetime)}"` : ""}>
+                    <strong>${escapeHtml(dateParts.day)}</strong>
+                    <span>${escapeHtml(dateParts.month)}</span>
+                  </time>
+                  <span class="hospitation-overview-agenda__copy">
+                    <strong>${escapeHtml(hospitationOverviewEntryTitle(entry))}</strong>
+                    <span>${escapeHtml(statusLabel)}</span>
+                  </span>
+                  <span class="hospitation-overview-agenda__arrow" aria-hidden="true">→</span>
+                </button>
+              `;
+            }).join("")
+          : '<p class="hospitation-overview-empty">Keine kommenden Hospitationen geplant.</p>';
+        agendaItems.querySelectorAll("[data-hospitation-overview-entry]").forEach((button) => {
+          button.addEventListener("click", () => {
+            const entry = hospitationEntryFromKey(button.dataset.hospitationOverviewEntry);
+            if (entry) openHospitationOverviewEntry(entry, { initialTab: "overview" });
+          });
         });
       }
 
@@ -22685,7 +23050,7 @@
         const unfiltered = dataSet.visible.filter((hospitation) => hospitation.status !== "Archiviert");
         const visible = hospitationDashboardApplyFilters(unfiltered, dataSet);
         const active = visible;
-        const documented = active.filter((hospitation) => hospitation.status === "Dokumentiert" || meaningfulOrEmpty(hospitation.documentationSummary));
+        const documented = active.filter((hospitation) => hospitationDocumentationState(hospitation).label === "Dokumentiert");
         hospitationDashboard.innerHTML = `
           ${renderHospitationDashboardHeader()}
           ${renderHospitationDashboardFilterCard(unfiltered, dataSet)}
@@ -24826,15 +25191,22 @@
             ? previousDocumentation.metadata
             : {};
           const documentationPayload = hospitationDocumentationPayloadFromForm(form);
+          const topics = hospitationDocumentationTopicsFromForm(data);
           documentationPayload.metadata = {
             ...previousMetadata,
             ownerIds: hospitationOwnerIds(current)
           };
+          const documentationOutcome = serializeHospitationDocumentationPayload(documentationPayload);
+          const quality = hospitationDocumentationQualityState(
+            { ...current, topics, documentationSummary, documentationOutcome },
+            documentationPayload,
+            topics
+          );
           return {
-            status: "Dokumentiert",
-            topics: hospitationDocumentationTopicsFromForm(data),
+            status: quality.complete ? "Dokumentiert" : hospitationDocumentationOperationalStatus(current),
+            topics,
             documentationSummary,
-            documentationOutcome: serializeHospitationDocumentationPayload(documentationPayload)
+            documentationOutcome
           };
         }
         const contactId = String(data.get("contactId") || "").trim();
@@ -25889,15 +26261,16 @@
       }
 
       function hospitationProfilePhase(item = {}, now = Date.now()) {
-        const normalizedStatus = normalizeClassPart(item.status || "");
         if (hospitationIsCancelledStatus(item.status)) return "cancelled";
         if (isHospitationArchived(item)) return "archived";
-        if (normalizedStatus === "dokumentiert" || meaningfulOrEmpty(item.documentationSummary)) return "documented";
+        if (hospitationDocumentationState(item).label === "Dokumentiert") return "documented";
+        const operationalStatus = hospitationDocumentationOperationalStatus(item);
+        const normalizedStatus = normalizeClassPart(operationalStatus);
         if (normalizedStatus === "durchgefuhrt") return "completed";
         const startTime = hospitationProfileTime(item, "startsAt");
         const endTime = hospitationProfileTime(item, "endsAt");
         const effectiveEndTime = endTime ?? (startTime === null ? null : startTime + (12 * 60 * 60 * 1000));
-        if (hospitationIsScheduledStatus(item.status) && startTime !== null && startTime <= now && effectiveEndTime !== null && effectiveEndTime >= now) return "ongoing";
+        if (hospitationIsScheduledStatus(operationalStatus) && startTime !== null && startTime <= now && effectiveEndTime !== null && effectiveEndTime >= now) return "ongoing";
         if (startTime !== null && startTime >= now) return "planned";
         return "open";
       }
@@ -38351,6 +38724,7 @@
         if (routeView === "hospitations" || String(routeView).startsWith("hospitations:")) {
           return hospitationRouteForTab(String(routeView).split(":")[1] || activeHospitationTab);
         }
+        if (routeView === "hospitationOverview") return "hospitation-overview";
         if (routeView === "stakeholderOverview") return "stakeholders";
         if (routeView === "stakeholders") return stakeholderRouteForType();
         if (String(routeView).startsWith("stakeholders/")) {
@@ -38383,7 +38757,7 @@
 
       function searchContextForView(view = activeView) {
         if (["contacts", "organizations", "map"].includes(view)) return "care";
-        if (["personProfile", "organizationProfile", "profile", "settings", "quality", "analytics", "stakeholderOverview"].includes(view)) return "";
+        if (["personProfile", "organizationProfile", "profile", "settings", "quality", "analytics", "stakeholderOverview", "hospitationOverview"].includes(view)) return "";
         return view || "";
       }
 
@@ -40582,6 +40956,7 @@
         const isPoliticsView = activeView === "politics";
         const isPressView = activeView === "press";
         const isStakeholderOverviewView = activeView === "stakeholderOverview";
+        const isHospitationOverviewView = activeView === "hospitationOverview";
         if (isPatientsView && !["people", "organizations", "indications"].includes(activePatientMode)) activePatientMode = "indications";
         const isPatientOrganizationsMode = isPatientsView && activePatientMode === "organizations";
         const isPatientPeopleMode = isPatientsView && activePatientMode === "people";
@@ -40613,8 +40988,9 @@
           syncQuestionnaireCompassSelectors();
           syncQuestionnaireReflectionAuthor();
         }
+        if (isHospitationOverviewView) renderHospitationOverview();
         if (isFrameworkView) syncHospitationFrameworkMetrics();
-        const items = isHomeView || isOnboardingView || isStakeholderOverviewView
+        const items = isHomeView || isOnboardingView || isStakeholderOverviewView || isHospitationOverviewView
           ? []
           : isFormatsView
           ? filteredFormats()
@@ -40647,7 +41023,7 @@
         renderContactListModeSwitcher();
         const currentResultLabel = isInitialDataLoading && isContactsView ? "Kontakte werden geladen" : hitCountLabel(items);
         resultsCount.textContent = currentResultLabel;
-        resultsCount.hidden = isHomeView || isOnboardingView || isStakeholderOverviewView || isPressView || isHospitationsView || isProfileRecordView || isFrameworkView || isQuestionnaireView;
+        resultsCount.hidden = isHomeView || isOnboardingView || isStakeholderOverviewView || isHospitationOverviewView || isPressView || isHospitationsView || isProfileRecordView || isFrameworkView || isQuestionnaireView;
         if (hospitationTableToolbarMeta) {
           hospitationTableToolbarMeta.hidden = !isHospitationsView || activeHospitationTab !== "appointments";
         }
@@ -40692,7 +41068,7 @@
         const isHospitationDashboardTab = isHospitationsView && activeHospitationTab === "dashboard";
         const isHospitationCommandHiddenTab = isHospitationsView && ["dashboard", "observations", "patterns"].includes(activeHospitationTab);
         const isHospitationHeaderSearchVisible = hospitationHeaderSearchVisible(activeHospitationTab);
-        const searchHidden = isHomeView || isOnboardingView || isStakeholderOverviewView || activeView === "analytics" || activeView === "quality" || isNotificationsView || isProfileRecordView || isFrameworkView || isQuestionnaireView || (isPoliticsView && politicsDataState !== "ready") || (isPressView && pressDataState !== "ready") || (isHospitationsView ? !isHospitationHeaderSearchVisible : false);
+        const searchHidden = isHomeView || isOnboardingView || isStakeholderOverviewView || isHospitationOverviewView || activeView === "analytics" || activeView === "quality" || isNotificationsView || isProfileRecordView || isFrameworkView || isQuestionnaireView || (isPoliticsView && politicsDataState !== "ready") || (isPressView && pressDataState !== "ready") || (isHospitationsView ? !isHospitationHeaderSearchVisible : false);
         if (searchShell) {
           if (expertHeaderSearch) expertHeaderSearch.hidden = true;
           if (stakeholderHeaderSearch) stakeholderHeaderSearch.hidden = true;
@@ -40717,7 +41093,7 @@
           hospitationHeaderSearchToggle.setAttribute("aria-expanded", "false");
         }
         syncSearchClearButton();
-        if (controlsRoot) controlsRoot.hidden = isHomeView || isOnboardingView || isStakeholderOverviewView || activeView === "analytics" || activeView === "quality" || activeView === "profile" || isNotificationsView || isProfileRecordView || isFrameworkView || isQuestionnaireView || (isHospitationsView && !isHospitationHeaderSearchVisible) || (isPoliticsView && politicsDataState !== "ready") || (isPressView && pressDataState !== "ready");
+        if (controlsRoot) controlsRoot.hidden = isHomeView || isOnboardingView || isStakeholderOverviewView || isHospitationOverviewView || activeView === "analytics" || activeView === "quality" || activeView === "profile" || isNotificationsView || isProfileRecordView || isFrameworkView || isQuestionnaireView || (isHospitationsView && !isHospitationHeaderSearchVisible) || (isPoliticsView && politicsDataState !== "ready") || (isPressView && pressDataState !== "ready");
         newContactButton.hidden = !isContactsView;
         newOrganizationButton.hidden = !isOrganizationsView;
         if (contactMatchingWorklistButton) contactMatchingWorklistButton.hidden = !isContactsView;
@@ -40749,6 +41125,7 @@
         if (newPatientOrganizationButton) newPatientOrganizationButton.hidden = !isPatientsView || !isPatientOrganizationsMode;
         if (newFormatButton) newFormatButton.hidden = !isFormatsView || !canEditContacts();
         if (newHospitationRequestButton) newHospitationRequestButton.hidden = !isHospitationsView || !canEditContacts();
+        if (hospitationOverviewPlanButton) hospitationOverviewPlanButton.hidden = !isHospitationOverviewView || hospitationDataState !== "ready" || !canEditContacts();
         archiveViewButton.hidden = !isContactsView;
         if (openImportButton) openImportButton.hidden = true;
         if (contactsTable) contactsTable.hidden = isContactsDuplicatesMode;
@@ -40756,13 +41133,13 @@
         if (organizationsTable) organizationsTable.hidden = isOrganizationsDuplicatesMode;
         if (organizationDuplicatesWorkspace) organizationDuplicatesWorkspace.hidden = !isOrganizationsDuplicatesMode;
         columnMenuShell.hidden = !(isContactsView || isOrganizationsView || isExpertsView || isPatientsView) || isAnyDuplicateMode || isPatientIndicationsMode;
-        if (viewSelectShell) viewSelectShell.hidden = isHomeView || isOnboardingView || isStakeholderOverviewView || isExpertsView || isPatientsView || isPoliticsView || isPressView || isHospitationsView || isFrameworkView || isQuestionnaireView || isStakeholdersView || isActivitiesView || isNotificationsView || isCareDuplicatesMode || isProfileRecordView;
+        if (viewSelectShell) viewSelectShell.hidden = isHomeView || isOnboardingView || isStakeholderOverviewView || isHospitationOverviewView || isExpertsView || isPatientsView || isPoliticsView || isPressView || isHospitationsView || isFrameworkView || isQuestionnaireView || isStakeholdersView || isActivitiesView || isNotificationsView || isCareDuplicatesMode || isProfileRecordView;
         filterPanel.querySelector('[data-filter-field="category"] summary').textContent = isPatientsView ? "Indikation" : isExpertsView ? "Gruppe" : "Sektor";
-        if (filterToolbar) filterToolbar.hidden = isHomeView || isOnboardingView || isStakeholderOverviewView || isPoliticsView || isPressView || isHospitationsView || isFrameworkView || isQuestionnaireView || isActivitiesView || isNotificationsView || isAnyDuplicateMode || isProfileRecordView;
-        if (filterShell) filterShell.hidden = isStakeholderOverviewView || isPatientIndicationsMode || isFormatsView || isHospitationsView || isStakeholdersView || isActivitiesView;
-        if (activeFilterRow) activeFilterRow.hidden = isStakeholderOverviewView || isFormatsView || isHospitationsView || isStakeholdersView || isActivitiesView;
+        if (filterToolbar) filterToolbar.hidden = isHomeView || isOnboardingView || isStakeholderOverviewView || isHospitationOverviewView || isPoliticsView || isPressView || isHospitationsView || isFrameworkView || isQuestionnaireView || isActivitiesView || isNotificationsView || isAnyDuplicateMode || isProfileRecordView;
+        if (filterShell) filterShell.hidden = isStakeholderOverviewView || isHospitationOverviewView || isPatientIndicationsMode || isFormatsView || isHospitationsView || isStakeholdersView || isActivitiesView;
+        if (activeFilterRow) activeFilterRow.hidden = isStakeholderOverviewView || isHospitationOverviewView || isFormatsView || isHospitationsView || isStakeholdersView || isActivitiesView;
         patientPageSizeSelect?.closest(".page-size-shell")?.toggleAttribute("hidden", isPatientIndicationsMode);
-        if (isHomeView || isOnboardingView || isStakeholderOverviewView || isPoliticsView || isPressView || isHospitationsView || isFrameworkView || isQuestionnaireView || isStakeholdersView || isActivitiesView || isNotificationsView || isAnyDuplicateMode || isProfileRecordView || isPatientIndicationsMode) setFilterPanelOpen(false);
+        if (isHomeView || isOnboardingView || isStakeholderOverviewView || isHospitationOverviewView || isPoliticsView || isPressView || isHospitationsView || isFrameworkView || isQuestionnaireView || isStakeholdersView || isActivitiesView || isNotificationsView || isAnyDuplicateMode || isProfileRecordView || isPatientIndicationsMode) setFilterPanelOpen(false);
         if (columnMenuShell) {
           if (isOrganizationsView) organizationColumnActions?.append(viewSelectShell, columnMenuShell);
           else if (isPatientsView) patientColumnActions?.append(viewSelectShell, columnMenuShell);
@@ -40816,7 +41193,7 @@
           renderOrganizationProfilePage();
         }
         renderDashboard(filteredContacts());
-        if (!isHomeView && !isStakeholderOverviewView && !isPoliticsView && !isPressView && !isFormatsView && !isHospitationsView && !isFrameworkView && !isQuestionnaireView && !isStakeholdersView && !isActivitiesView && !isNotificationsView && !isAnyDuplicateMode && !isProfileRecordView) {
+        if (!isHomeView && !isStakeholderOverviewView && !isHospitationOverviewView && !isPoliticsView && !isPressView && !isFormatsView && !isHospitationsView && !isFrameworkView && !isQuestionnaireView && !isStakeholdersView && !isActivitiesView && !isNotificationsView && !isAnyDuplicateMode && !isProfileRecordView) {
           renderActiveFilters();
           renderFilterPanel();
         }
@@ -41768,6 +42145,7 @@
       formatEditorOverlay?.addEventListener("click", () => closeFormatEditorDrawer());
       formatEditorDrawerClose?.addEventListener("click", () => closeFormatEditorDrawer());
       newHospitationRequestButton?.addEventListener("click", () => openHospitationEditor("request"));
+      hospitationOverviewPlanButton?.addEventListener("click", () => openHospitationEditor("request"));
       hospitationExportButtons.forEach((button) => {
         button.addEventListener("click", () => exportHospitationDocument(button.dataset.hospitationExport === "pdf" ? "pdf" : "docx"));
       });
@@ -42780,6 +43158,7 @@
           return "patients";
         }
         if (hashView === "stakeholders") return "stakeholderOverview";
+        if (hashView === "hospitation-overview") return "hospitationOverview";
         if (!hashView && isHospitationDocumentationStandalone) {
           activeHospitationTab = "appointments";
           return "hospitations";
@@ -43230,7 +43609,7 @@
               || (activeView === "organizationProfile" && activeOrganizationProfile.kind === "care");
           }
           if (dataKind === "formats") return activeView === "formats" || careContactProfileActive || careContactDrawerActive;
-          if (dataKind === "hospitations") return ["hospitations", "framework", "questionnaire"].includes(activeView) || careContactProfileActive || careContactDrawerActive;
+          if (dataKind === "hospitations") return ["hospitationOverview", "hospitations", "framework", "questionnaire"].includes(activeView) || careContactProfileActive || careContactDrawerActive;
           if (dataKind === "experts") {
             return activeView === "experts"
               || (activeView === "personProfile" && activePersonProfile.kind === "expert")
