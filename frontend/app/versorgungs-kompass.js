@@ -1219,7 +1219,11 @@
         document.title = "Hospitations-Dokumentation";
       }
       const viewShell = document.querySelector(".view-shell");
+      const appSidebar = document.getElementById("app-sidebar");
       const sidebarCollapseButton = document.getElementById("sidebar-collapse-button");
+      const sidebarBrandLink = document.getElementById("brand-home-link");
+      const sidebarAccountSection = document.querySelector(".sidebar-account-section");
+      const sidebarLayoutMediaQuery = window.matchMedia("(max-width: 760px)");
       const viewTabs = [...document.querySelectorAll("[data-view-tab]")];
       const routeLinks = [...document.querySelectorAll("[data-route-link]")];
       const viewPanels = [...document.querySelectorAll("[data-view-panel]")];
@@ -38290,6 +38294,15 @@
         }
       }
 
+      function syncSidebarCollapseButtonPlacement() {
+        if (!appSidebar || !sidebarCollapseButton || !sidebarBrandLink || !sidebarAccountSection) return;
+        if (sidebarLayoutMediaQuery.matches) {
+          appSidebar.insertBefore(sidebarCollapseButton, sidebarBrandLink);
+          return;
+        }
+        sidebarAccountSection.insertAdjacentElement("afterend", sidebarCollapseButton);
+      }
+
       function restoreSidebarState() {
         try {
           setSidebarCollapsed(window.localStorage.getItem("versorgungs-kompass-sidebar-collapsed") === "true", { persist: false });
@@ -41464,6 +41477,8 @@
         handleRovingTabKeydown(event, stakeholderTypeActions.querySelectorAll('[role="tab"]'));
       });
       const initialSidebarRouteView = routeViewFromLocation() || "home";
+      syncSidebarCollapseButtonPlacement();
+      sidebarLayoutMediaQuery.addEventListener?.("change", syncSidebarCollapseButtonPlacement);
       if (appShell) appShell.dataset.activeView = initialSidebarRouteView;
       const transientInitialHomeSidebarCollapse = !isMobileLayout() && initialSidebarRouteView === "home";
       if (transientInitialHomeSidebarCollapse) {
