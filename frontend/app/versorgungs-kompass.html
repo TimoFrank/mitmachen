@@ -209,6 +209,15 @@
               </svg>
             </button>
             <div class="sidebar-section-content" id="sidebar-section-planning-content">
+              <button class="primary-tab" type="button" data-view-tab="hospitationOverview" title="Übersicht">
+                <svg viewBox="0 0 24 24" fill="none" stroke-width="2" aria-hidden="true">
+                  <rect x="3" y="4" width="7" height="7" rx="1.5"></rect>
+                  <rect x="14" y="4" width="7" height="7" rx="1.5"></rect>
+                  <rect x="3" y="15" width="7" height="5" rx="1.5"></rect>
+                  <rect x="14" y="15" width="7" height="5" rx="1.5"></rect>
+                </svg>
+                <span>Übersicht</span>
+              </button>
               <button class="primary-tab" type="button" data-view-tab="framework" title="Framework">
                 <svg viewBox="0 0 24 24" fill="none" stroke-width="2" aria-hidden="true">
                   <path d="M4 6h16"></path>
@@ -631,7 +640,7 @@
                     </a>
                   </li>
                   <li class="home-destination-card">
-                    <a class="home-destination-link" data-home-module="planning" data-route-link="framework" href="#framework">
+                    <a class="home-destination-link" data-home-module="planning" data-route-link="hospitation-overview" href="#hospitation-overview">
                       <span class="home-destination-link__top">
                         <span class="home-destination-link__identity">
                           <img class="home-destination-link__mark" src="../../public/brand/modules/hospitation/mark.svg" alt="" aria-hidden="true" />
@@ -1242,6 +1251,153 @@
                   </label>
                 </div>
               </div>
+            </div>
+          </section>
+
+          <section class="view-panel" id="view-hospitation-overview" data-view-panel="hospitationOverview">
+            <div class="view-card hospitation-overview-workspace">
+              <div class="hospitation-overview-priority" data-hospitation-overview-state="loading">
+                <section class="hospitation-overview-next" aria-labelledby="hospitation-overview-next-title">
+                  <time class="hospitation-overview-date" id="hospitation-overview-next-date">
+                    <strong data-hospitation-overview-next-day>–</strong>
+                    <span data-hospitation-overview-next-month>Termin</span>
+                  </time>
+                  <div class="hospitation-overview-next__copy">
+                    <span class="hospitation-overview-section-label">Nächste Hospitation</span>
+                    <strong id="hospitation-overview-next-title">Hospitationen werden geladen</strong>
+                    <span class="hospitation-overview-next__subtitle" id="hospitation-overview-next-subtitle">Aktuelle Termine werden vorbereitet.</span>
+                    <ul class="hospitation-overview-next__meta" id="hospitation-overview-next-meta" aria-label="Termindetails"></ul>
+                    <div class="hospitation-overview-next__actions">
+                      <button class="hospitation-overview-next__action" id="hospitation-overview-next-open" type="button" disabled>
+                        Termin öffnen <span aria-hidden="true">→</span>
+                      </button>
+                      <button class="hospitation-overview-next__secondary" id="hospitation-overview-questionnaire-open" type="button" hidden>
+                        Fragebogen vorbereiten <span aria-hidden="true">→</span>
+                      </button>
+                    </div>
+                  </div>
+                </section>
+
+                <section class="hospitation-overview-attention" aria-labelledby="hospitation-overview-attention-heading">
+                  <div class="hospitation-overview-attention__head">
+                    <span class="hospitation-overview-section-label" id="hospitation-overview-attention-heading">Im Blick</span>
+                    <a class="hospitation-overview-attention__dashboard-link" data-route-link="hospitations:dashboard" href="#hospitations:dashboard">Dashboard <span aria-hidden="true">→</span></a>
+                  </div>
+                  <div class="hospitation-overview-attention__focus is-total">
+                    <span id="hospitation-overview-attention-label">Gesamt im Kalender</span>
+                    <div class="hospitation-overview-attention__focus-value" id="hospitation-overview-attention-focus">
+                      <strong id="hospitation-overview-attention-focus-number">–</strong>
+                      <span id="hospitation-overview-attention-focus-copy">Hospitationen</span>
+                    </div>
+                  </div>
+                  <div class="hospitation-overview-attention__number">
+                    <strong id="hospitation-overview-open-count">–</strong>
+                    <span id="hospitation-overview-attention-title">Dokumentationen werden geprüft</span>
+                  </div>
+                  <button class="hospitation-overview-attention__action" id="hospitation-overview-attention-open" type="button" disabled>
+                    Dokumentation öffnen <span aria-hidden="true">→</span>
+                  </button>
+                </section>
+              </div>
+
+              <section class="hospitation-overview-agenda" aria-labelledby="hospitation-overview-agenda-title">
+                <div class="hospitation-overview-agenda__intro">
+                  <span class="hospitation-overview-section-label">Agenda</span>
+                  <strong id="hospitation-overview-agenda-title">Hospitation</strong>
+                  <span>Die nächsten Termine.</span>
+                </div>
+                <div class="hospitation-overview-agenda__items" id="hospitation-overview-agenda-items" aria-live="polite">
+                  <p class="hospitation-overview-empty">Hospitationen werden geladen.</p>
+                </div>
+                <button class="hospitation-overview-plan-card" id="hospitation-overview-plan-button" type="button" hidden>
+                  <span class="hospitation-overview-plan-card__icon" aria-hidden="true">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                      <rect x="4" y="5" width="16" height="15" rx="2"></rect>
+                      <path d="M8 3v4M16 3v4M4 9h16M12 12v5M9.5 14.5h5"></path>
+                    </svg>
+                  </span>
+                  <strong class="hospitation-overview-plan-card__label">Neue Hospitation planen</strong>
+                  <span class="hospitation-overview-plan-card__arrow" aria-hidden="true">→</span>
+                </button>
+              </section>
+
+              <section class="hospitation-overview-evidence" aria-label="Prozess von der Beobachtung zum nächsten Schritt">
+                <div class="hospitation-overview-evidence__intro">
+                  <span class="hospitation-overview-section-label">Erkenntnisse</span>
+                  <strong>Von der Beobachtung<br>zur Evidenz</strong>
+                </div>
+                <ol class="hospitation-overview-evidence__flow" aria-label="Vier Schritte von der Beobachtung zum nächsten Schritt">
+                  <li class="hospitation-overview-evidence__item">
+                    <a class="hospitation-overview-evidence__step hospitation-overview-evidence__step--interactive" data-route-link="hospitations:observations" href="#hospitations:observations">
+                      <span class="hospitation-overview-evidence__icon" aria-hidden="true">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                          <path d="M2.5 12s3.5-6 9.5-6 9.5 6 9.5 6-3.5 6-9.5 6-9.5-6-9.5-6Z"></path>
+                          <circle cx="12" cy="12" r="2.6"></circle>
+                        </svg>
+                      </span>
+                      <strong>Beobachtung</strong>
+                      <span><span id="hospitation-overview-observation-count">–</span> erfasst</span>
+                      <span class="hospitation-overview-evidence__open" aria-hidden="true">↗</span>
+                    </a>
+                  </li>
+                  <li class="hospitation-overview-evidence__item">
+                    <a class="hospitation-overview-evidence__step hospitation-overview-evidence__step--patterns hospitation-overview-evidence__step--interactive" data-route-link="hospitations:patterns" href="#hospitations:patterns">
+                      <span class="hospitation-overview-evidence__icon" aria-hidden="true">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                          <circle cx="6" cy="7" r="2.4"></circle>
+                          <circle cx="18" cy="7" r="2.4"></circle>
+                          <circle cx="12" cy="17" r="2.4"></circle>
+                          <path d="m8.2 8.2 2.6 6.2M15.8 8.2l-2.6 6.2M8.4 7h7.2"></path>
+                        </svg>
+                      </span>
+                      <strong>Muster</strong>
+                      <span><span id="hospitation-overview-pattern-count">–</span> abgeleitet</span>
+                      <span class="hospitation-overview-evidence__open" aria-hidden="true">↗</span>
+                    </a>
+                  </li>
+                  <li class="hospitation-overview-evidence__item">
+                    <div class="hospitation-overview-evidence__step hospitation-overview-evidence__step--hypothesis">
+                      <span class="hospitation-overview-evidence__icon" aria-hidden="true">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                          <path d="M9 18h6M10 22h4"></path>
+                          <path d="M8.2 14.5A6 6 0 1 1 15.8 14.5C14.8 15.3 14.5 16 14.5 17h-5c0-1-.3-1.7-1.3-2.5Z"></path>
+                        </svg>
+                      </span>
+                      <strong>Hypothese</strong>
+                      <span><span id="hospitation-overview-hypothesis-count">–</span> noch nicht erfasst</span>
+                    </div>
+                  </li>
+                  <li class="hospitation-overview-evidence__item">
+                    <div class="hospitation-overview-evidence__step hospitation-overview-evidence__step--next-step">
+                      <span class="hospitation-overview-evidence__icon" aria-hidden="true">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                          <path d="M5 19V5"></path>
+                          <path d="M5 6h10l-2 3 2 3H5"></path>
+                          <path d="m14 18 2 2 4-5"></path>
+                        </svg>
+                      </span>
+                      <strong>Nächster Schritt</strong>
+                      <span><span id="hospitation-overview-next-step-count">–</span> noch nicht erfasst</span>
+                    </div>
+                  </li>
+                </ol>
+              </section>
+
+              <a class="hospitation-overview-framework-link" data-route-link="framework" href="#framework" aria-label="Framework öffnen">
+                <span class="hospitation-overview-framework-link__body">
+                  <span class="hospitation-overview-framework-link__icon" aria-hidden="true">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                      <circle cx="12" cy="12" r="9"></circle>
+                      <path d="m15.5 8.5-2.1 4.9-4.9 2.1 2.1-4.9 4.9-2.1Z"></path>
+                    </svg>
+                  </span>
+                  <span class="hospitation-overview-framework-link__copy">
+                    <span class="hospitation-overview-section-label">Grundlage</span>
+                    <strong>Framework</strong>
+                  </span>
+                </span>
+                <span class="hospitation-overview-framework-link__action">Öffnen <span aria-hidden="true">→</span></span>
+              </a>
             </div>
           </section>
 
