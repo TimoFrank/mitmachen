@@ -285,7 +285,11 @@ test("Desktop-Auslieferung: Standortmarker behalten den gematik-Stil und ihre ec
   const mapFrame = page.frameLocator("#map-view-frame");
 
   await expect(mapFrame.locator("#map")).toBeVisible();
-  await expect(mapFrame.getByRole("button", { name: "Standorte", exact: true })).toHaveAttribute("aria-pressed", "true");
+  const locationsButton = mapFrame.getByRole("button", { name: "Standorte", exact: true });
+  await expect(locationsButton).toHaveAttribute("aria-pressed", "true");
+  await expect(locationsButton).toHaveCSS("background-color", "rgb(0, 255, 101)");
+  await expect(locationsButton).toHaveCSS("color", "rgb(1, 14, 82)");
+  await expect(locationsButton).toHaveCSS("border-color", "rgb(1, 14, 82)");
 
   const markerShell = mapFrame.locator(".gematik-marker-shell").first();
   const marker = markerShell.locator(".gematik-marker");

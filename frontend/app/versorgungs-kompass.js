@@ -1124,7 +1124,13 @@
       const politicsResultsMeta = document.getElementById("politics-results-meta");
       const politicsSourceMeta = document.getElementById("politics-source-meta");
       const politicsCommitteeSource = document.getElementById("politics-committee-source");
+      const politicsFilterButton = document.getElementById("politics-filter-button");
+      const politicsFilterPanel = document.getElementById("politics-filter-panel");
+      const politicsFilterBadge = document.getElementById("politics-filter-badge");
+      const politicsFilterFields = document.querySelector('[data-directory-filter-fields="politics"]');
       const politicsTableFooter = document.getElementById("politics-table-footer");
+      const politicsPagination = document.getElementById("politics-pagination");
+      const politicsPaginationControls = politicsPagination?.closest(".politics-pagination-controls");
       const politicsMapOpenButton = document.getElementById("politics-map-open");
       const politicsMapCloseButton = document.getElementById("politics-map-close");
       const politicsMapPanel = document.getElementById("politics-map-panel");
@@ -1138,6 +1144,10 @@
       const pressResultsMeta = document.getElementById("press-results-meta");
       const pressPagination = document.getElementById("press-pagination");
       const pressPageSizeSelect = document.getElementById("press-page-size-select");
+      const pressFilterButton = document.getElementById("press-filter-button");
+      const pressFilterPanel = document.getElementById("press-filter-panel");
+      const pressFilterBadge = document.getElementById("press-filter-badge");
+      const pressFilterFields = document.querySelector('[data-directory-filter-fields="press"]');
       const contactsTable = document.querySelector(".contacts-table");
       const contactsTableHead = document.getElementById("contacts-table-head");
       const bulkToolbar = document.getElementById("bulk-toolbar");
@@ -1147,6 +1157,10 @@
       const bulkOwnerSelect = document.getElementById("bulk-owner-select");
       const bulkAssignOwnerButton = document.getElementById("bulk-assign-owner");
       const bulkArchiveButton = document.getElementById("bulk-archive");
+      const contextualBulkToolbar = document.getElementById("contextual-bulk-toolbar");
+      const contextualBulkSelectionCount = document.getElementById("contextual-bulk-selection-count");
+      const contextualBulkClearSelection = document.getElementById("contextual-bulk-clear-selection");
+      const contextualBulkExportButton = document.getElementById("contextual-bulk-export");
       const expertBulkToolbar = document.getElementById("expert-bulk-toolbar");
       const expertBulkSelectionCount = document.getElementById("expert-bulk-selection-count");
       const expertBulkClearSelection = document.getElementById("expert-bulk-clear-selection");
@@ -1231,6 +1245,10 @@
       const viewPanels = [...document.querySelectorAll("[data-view-panel]")];
       const sidebarCollapsibleSections = [...document.querySelectorAll("[data-sidebar-collapsible]")];
       const sidebarSectionToggles = [...document.querySelectorAll("[data-sidebar-section-toggle]")];
+      const stakeholderPersonSubnav = document.querySelector('[data-sidebar-subnav="stakeholder-people"]');
+      const stakeholderPersonSubnavToggle = stakeholderPersonSubnav?.querySelector(".sidebar-subnav__toggle");
+      const stakeholderOrganizationSubnav = document.querySelector('[data-sidebar-subnav="stakeholder-organizations"]');
+      const stakeholderOrganizationSubnavToggle = stakeholderOrganizationSubnav?.querySelector(".sidebar-subnav__toggle");
       const homeScroller = document.querySelector("[data-home-scroller]");
       const homeScrollCue = document.querySelector("[data-home-scroll-cue]");
       const homeDestinations = document.getElementById("home-destinations");
@@ -1304,11 +1322,12 @@
       const contactCommandActions = document.getElementById("contact-command-actions");
       const contactSecondaryActions = document.getElementById("contact-secondary-actions");
       const contactCommandRow = document.querySelector("#view-contacts .table-command-row");
+      const organizationTableToolbar = document.getElementById("organization-table-toolbar");
       const contactListSwitcher = document.getElementById("contact-list-switcher");
       const contactListModeButtons = [...document.querySelectorAll("[data-contact-list-mode]")];
       const favoriteContactCount = document.getElementById("favorite-contact-count");
       const organizationColumnActions = document.getElementById("organization-column-actions");
-      const organizationCommandActions = document.getElementById("organization-command-actions");
+      const organizationSecondaryActions = document.getElementById("organization-secondary-actions");
       const expertModeActions = document.getElementById("expert-mode-actions");
       const expertHeaderSearch = document.getElementById("expert-header-search");
       const expertCommandActions = document.getElementById("expert-command-actions");
@@ -1316,6 +1335,13 @@
       const patientModeActions = document.getElementById("patient-mode-actions");
       const patientCommandActions = document.getElementById("patient-command-actions");
       const patientColumnActions = document.getElementById("patient-column-actions");
+      const expertTableToolbar = document.getElementById("expert-table-toolbar");
+      const patientTableToolbar = document.getElementById("patient-table-toolbar");
+      const politicsTableToolbar = document.getElementById("politics-table-toolbar");
+      const pressTableToolbar = document.getElementById("press-table-toolbar");
+      const formatsTableToolbar = document.getElementById("formats-table-toolbar");
+      const analyticsViewModeToolbar = document.getElementById("analytics-view-mode-toolbar");
+      const qualityViewModeToolbar = document.getElementById("quality-view-mode-toolbar");
       const stakeholderModeActions = document.getElementById("stakeholder-mode-actions");
       const stakeholderHeaderSearch = document.getElementById("stakeholder-header-search");
       const stakeholderCommandActions = document.getElementById("stakeholder-command-actions");
@@ -1488,7 +1514,7 @@
       viewShell?.appendChild(personProfilePage);
       viewShell?.appendChild(organizationProfilePage);
       if (archiveViewButton && contactMatchingWorklistButton) contactSecondaryActions?.append(archiveViewButton, contactMatchingWorklistButton);
-      if (organizationMatchingWorklistButton) organizationCommandActions?.append(organizationMatchingWorklistButton);
+      if (organizationMatchingWorklistButton) organizationSecondaryActions?.append(organizationMatchingWorklistButton);
       const importDrawer = document.getElementById("import-drawer");
       const importOverlay = document.getElementById("import-overlay");
       const importClose = document.getElementById("import-close");
@@ -1817,6 +1843,12 @@
       const selectedContactIds = new Set();
       const selectedHospitationEntryKeys = new Set();
       const selectedExpertContactIds = new Set();
+      const selectedOrganizationIds = new Set();
+      const selectedPatientPersonIds = new Set();
+      const selectedPatientOrganizationIds = new Set();
+      const selectedPatientIndicationIds = new Set();
+      const selectedPoliticsMemberIds = new Set();
+      const selectedPressContactIds = new Set();
       const customSelectInstances = new WeakMap();
       let customSelectIdCounter = 0;
       let loadedContactsFromStorage = false;
@@ -2237,17 +2269,93 @@
         syncActiveSidebarSection(activeView);
       }
 
-      function sidebarGroupForView(view = activeView) {
-        const normalizedView = view === "personProfile"
+      function sidebarNavigationView(view = activeView) {
+        return view === "personProfile"
           ? personProfileParentView()
           : view === "organizationProfile"
             ? activeOrganizationProfile.returnTo || organizationProfileParentView()
             : view;
+      }
+
+      function sidebarGroupForView(view = activeView) {
+        const normalizedView = sidebarNavigationView(view);
         if (["map", "contacts", "organizations", "activities", "analytics", "quality", "onboarding"].includes(normalizedView)) return "care";
         if (["patients", "politics", "press", "experts", "stakeholderOverview", "stakeholders"].includes(normalizedView)) return "stakeholders";
         if (["hospitationOverview", "framework", "hospitations", "questionnaire"].includes(normalizedView)) return "planning";
         if (normalizedView === "formats") return "formats";
         return "";
+      }
+
+      function syncStakeholderSubnavState(subnav, toggle, activeRoute = "") {
+        if (!subnav) return;
+        const forceOpenForCollapsedSidebar = !isMobileLayout()
+          && appShell?.classList.contains("is-sidebar-collapsed");
+        const previousActiveRoute = subnav.dataset.activeRoute || "";
+        subnav.classList.toggle("is-active-subnav", Boolean(activeRoute));
+        if (activeRoute) {
+          if (previousActiveRoute !== activeRoute) subnav.open = true;
+          subnav.dataset.activeRoute = activeRoute;
+        } else if (previousActiveRoute) {
+          if (
+            !forceOpenForCollapsedSidebar
+            &&
+            subnav.contains(document.activeElement)
+            && document.activeElement !== toggle
+          ) {
+            toggle?.focus();
+          }
+          subnav.open = forceOpenForCollapsedSidebar;
+          delete subnav.dataset.activeRoute;
+        }
+        if (forceOpenForCollapsedSidebar) subnav.open = true;
+      }
+
+      function syncStakeholderSubnavToggle(subnav, toggle, label) {
+        if (!toggle || !subnav) return;
+        const expanded = subnav.open;
+        toggle.setAttribute("aria-expanded", String(expanded));
+        toggle.title = `${label} ${expanded ? "ausblenden" : "einblenden"}`;
+      }
+
+      function syncStakeholderPersonSubnav(view = activeView) {
+        const normalizedView = sidebarNavigationView(view);
+        const activeRoute = ["patients", "politics", "press", "experts"].includes(normalizedView)
+          ? normalizedView
+          : "";
+        syncStakeholderSubnavState(stakeholderPersonSubnav, stakeholderPersonSubnavToggle, activeRoute);
+      }
+
+      function syncStakeholderPersonSubnavToggle() {
+        syncStakeholderSubnavToggle(stakeholderPersonSubnav, stakeholderPersonSubnavToggle, "Personenbereiche");
+      }
+
+      function syncStakeholderOrganizationSubnav(view = activeView) {
+        const activeRoute = sidebarNavigationView(view) === "stakeholders" ? activeStakeholderTypeId : "";
+        syncStakeholderSubnavState(stakeholderOrganizationSubnav, stakeholderOrganizationSubnavToggle, activeRoute);
+      }
+
+      function syncStakeholderOrganizationSubnavToggle() {
+        syncStakeholderSubnavToggle(
+          stakeholderOrganizationSubnav,
+          stakeholderOrganizationSubnavToggle,
+          "Organisationsbereiche"
+        );
+      }
+
+      function syncStakeholderSubnavsForSidebarCollapse(collapsed) {
+        if (isMobileLayout()) return;
+        if (collapsed) {
+          if (stakeholderPersonSubnav) stakeholderPersonSubnav.open = true;
+          if (stakeholderOrganizationSubnav) stakeholderOrganizationSubnav.open = true;
+        } else {
+          const normalizedView = sidebarNavigationView(activeView);
+          const personRouteActive = ["patients", "politics", "press", "experts"].includes(normalizedView);
+          const organizationRouteActive = normalizedView === "stakeholders";
+          if (stakeholderPersonSubnav) stakeholderPersonSubnav.open = personRouteActive;
+          if (stakeholderOrganizationSubnav) stakeholderOrganizationSubnav.open = organizationRouteActive;
+        }
+        syncStakeholderPersonSubnavToggle();
+        syncStakeholderOrganizationSubnavToggle();
       }
 
       function setSidebarSectionExpanded(section, expanded) {
@@ -2293,6 +2401,10 @@
           if (active) setSidebarSectionExpanded(section, true);
           else setSidebarSectionExpanded(section, false);
         });
+        syncStakeholderPersonSubnav(view);
+        syncStakeholderPersonSubnavToggle();
+        syncStakeholderOrganizationSubnav(view);
+        syncStakeholderOrganizationSubnavToggle();
         window.requestAnimationFrame(() => {
           const activeItem = document.querySelector(".sidebar-nav .primary-tab.is-active");
           if (activeItem?.getClientRects().length) activeItem.scrollIntoView({ block: "nearest", inline: "nearest" });
@@ -2432,8 +2544,15 @@
       }
 
       function csvEscape(value) {
-        const stringValue = String(value ?? "");
-        return /[",\n]/.test(stringValue) ? `"${stringValue.replace(/"/g, '""')}"` : stringValue;
+        const rawValue = value ?? "";
+        const stringValue = String(rawValue);
+        const formulaSafeValue = typeof rawValue === "string"
+          && (/^[\t\r]/u.test(stringValue) || /^\s*[=+\-@]/u.test(stringValue))
+          ? `'${stringValue}`
+          : stringValue;
+        return /[",\n]/.test(formulaSafeValue)
+          ? `"${formulaSafeValue.replace(/"/g, '""')}"`
+          : formulaSafeValue;
       }
 
       function parseCsv(text) {
@@ -7283,9 +7402,10 @@
         return "";
       }
 
-      function renderOrganizationsTableHead(columns = visibleOrganizationTableColumns()) {
+      function renderOrganizationsTableHead(columns = visibleOrganizationTableColumns(), pageItems = []) {
         if (!organizationsTableHead) return;
         organizationsTableHead.innerHTML = [
+          contextualSelectionHeaderMarkup(pageItems, selectedOrganizationIds, (item) => item.id, "select-visible-organizations", "Alle sichtbaren Organisationen auswählen"),
           ...columns.map((column) => `<div class="cell--${column.key}">${columnHeaderMarkup(column, "organizations")}</div>`)
         ].join("");
         bindHeaderFilterMenus(organizationsTableHead);
@@ -7293,6 +7413,7 @@
 
       function renderOrganizationsTable(items) {
         if (!organizationList || !organizationsPagination || !organizationsPaginationMeta) return;
+        syncContextualSelection(selectedOrganizationIds, items);
         const columns = visibleOrganizationTableColumns();
         updateOrganizationTableGrid(columns);
         renderColumnMenu();
@@ -7305,23 +7426,32 @@
         }
         const { totalPages, startIndex, endIndex, pageItems } = paginatedItems(items);
         organizationsPaginationMeta.textContent = `${startIndex + 1}-${endIndex} von ${items.length} Organisationen`;
-        renderOrganizationsTableHead(columns);
+        renderOrganizationsTableHead(columns, pageItems);
         organizationList.innerHTML = pageItems
           .map((organization) => {
             if (isMobileLayout()) {
               const contactCount = organizationContacts(organization).length;
               return `
-                <article class="row organization-mobile-card ${organization.id === activeOrganizationId ? "is-active" : ""}" data-organization-id="${escapeHtml(organization.id)}" tabindex="0">
-                  <div class="cell--organization">${organizationTableCellMarkup(organization, "organization")}</div>
-                  <div class="organization-mobile-meta">
-                    <span class="organization-mobile-sector">${sectorBadgeMarkup(organization.sector)}</span>
-                    <button class="organization-contact-link organization-mobile-count" type="button" data-open-organization="${escapeHtml(organization.id)}">${contactCount} ${contactCount === 1 ? "Kontakt" : "Kontakte"}</button>
+                <article class="row mobile-contact-card mobile-collection-card ${organization.id === activeOrganizationId ? "is-active" : ""} ${contextualSelectionClass(selectedOrganizationIds, organization.id)}" data-organization-id="${escapeHtml(organization.id)}" tabindex="0">
+                  <div class="mobile-contact-top">
+                    ${contextualSelectionCellMarkup(organization.id, organization.name, selectedOrganizationIds)}
+                    ${organizationLogoMarkup(organization, "sm", "", { sectorRing: true })}
+                    <div class="mobile-contact-copy">
+                      <h3 class="mobile-contact-name"><button class="mobile-collection-name" type="button" data-open-organization="${escapeHtml(organization.id)}">${escapeHtml(organization.name)}</button></h3>
+                      <div class="mobile-contact-organization">${escapeHtml(organizationLocation(organization) || "Standort nicht dokumentiert")}</div>
+                      <div class="mobile-collection-tags">
+                        ${sectorBadgeMarkup(organization.sector)}
+                        <button class="organization-contact-link" type="button" data-open-organization="${escapeHtml(organization.id)}">${contactCount} ${contactCount === 1 ? "Kontakt" : "Kontakte"}</button>
+                      </div>
+                    </div>
+                    <span class="mobile-contact-chevron" aria-hidden="true">›</span>
                   </div>
                 </article>
               `;
             }
             return `
-              <article class="row ${organization.id === activeOrganizationId ? "is-active" : ""}" data-organization-id="${escapeHtml(organization.id)}" tabindex="0">
+              <article class="row ${organization.id === activeOrganizationId ? "is-active" : ""} ${contextualSelectionClass(selectedOrganizationIds, organization.id)}" data-organization-id="${escapeHtml(organization.id)}" tabindex="0">
+                <div class="cell--select">${contextualSelectionCellMarkup(organization.id, organization.name, selectedOrganizationIds)}</div>
                 ${columns.map((column) => `<div class="cell--${column.key}">${organizationTableCellMarkup(organization, column.key)}</div>`).join("")}
               </article>
             `;
@@ -7341,7 +7471,7 @@
             openOrganizationEntry("care", row.dataset.organizationId, items, { returnTo: "organizations" });
           });
           row.addEventListener("keydown", (event) => {
-            if (event.key === "Enter" || event.key === " ") {
+            if ((event.key === "Enter" || event.key === " ") && !event.target.closest("button, input, label, a, select, textarea")) {
               event.preventDefault();
               openOrganizationEntry("care", row.dataset.organizationId, items, { returnTo: "organizations" });
             }
@@ -7352,6 +7482,14 @@
             event.stopPropagation();
             openOrganizationEntry("care", button.dataset.openOrganization, items, { returnTo: "organizations" });
           });
+        });
+        bindContextualSelectionControls({
+          headerRoot: organizationsTableHead,
+          listRoot: organizationList,
+          pageItems,
+          selection: selectedOrganizationIds,
+          idFor: (item) => item.id,
+          checkboxId: "select-visible-organizations"
         });
         organizationsPagination.querySelectorAll("[data-org-page]").forEach((button) => {
           button.addEventListener("click", () => {
@@ -7401,6 +7539,13 @@
         buttons.forEach((button) => {
           button.addEventListener("keydown", (event) => handleRovingTabKeydown(event, buttons));
         });
+      }
+
+      function placeWorkspaceModeControls() {
+        const analyticsTarget = activeView === "quality" ? qualityViewModeToolbar : analyticsViewModeToolbar;
+        if (analyticsTarget && analyticsModeActions?.parentElement !== analyticsTarget) analyticsTarget.append(analyticsModeActions);
+        if (expertTableToolbar && expertModeActions?.parentElement !== expertTableToolbar) expertTableToolbar.append(expertModeActions);
+        if (patientTableToolbar && patientModeActions?.parentElement !== patientTableToolbar) patientTableToolbar.append(patientModeActions);
       }
 
       function renderAnalyticsModeTabs() {
@@ -7692,7 +7837,7 @@
         };
         const labels = {
           people: "Personen",
-          organizations: "Patientenorganisationen & Verbände",
+          organizations: "Organisationen",
           indications: "Indikationen"
         };
         patientModeButtons.forEach((button) => {
@@ -7745,17 +7890,19 @@
         return "";
       }
 
-      function renderPatientPeopleTableHead(columns = visiblePatientPersonTableColumns()) {
+      function renderPatientPeopleTableHead(columns = visiblePatientPersonTableColumns(), pageItems = []) {
         if (!patientPeopleTableHead) return;
-        patientPeopleTableHead.innerHTML = columns
-          .map((column) => `<div class="cell--${column.key}">${columnHeaderMarkup(column, "patient-people")}</div>`)
-          .join("");
+        patientPeopleTableHead.innerHTML = [
+          contextualSelectionHeaderMarkup(pageItems, selectedPatientPersonIds, (item) => item.id, "select-visible-patient-people", "Alle sichtbaren Personen auswählen"),
+          ...columns.map((column) => `<div class="cell--${column.key}">${columnHeaderMarkup(column, "patient-people")}</div>`)
+        ].join("");
         bindHeaderFilterMenus(patientPeopleTableHead);
       }
 
       function renderPatientPeopleTable(items) {
         if (!patientPeopleList || !patientPagination || !patientPaginationMeta) return;
         activePatientMode = "people";
+        syncContextualSelection(selectedPatientPersonIds, items);
         renderPatientTablesVisibility();
         const columns = visiblePatientPersonTableColumns();
         updatePatientPersonTableGrid(columns);
@@ -7769,12 +7916,13 @@
         }
         const { totalPages, startIndex, endIndex, pageItems } = paginatedItems(items);
         patientPaginationMeta.textContent = `${startIndex + 1}-${endIndex} von ${items.length} Personen`;
-        renderPatientPeopleTableHead(columns);
+        renderPatientPeopleTableHead(columns, pageItems);
         if (isMobileLayout()) {
           patientPeopleList.innerHTML = `<div class="mobile-contact-list">${pageItems
             .map((person) => `
-              <article class="mobile-contact-card ${person.id === activePatientPersonId ? "is-active" : ""}" data-patient-person-id="${escapeHtml(person.id)}" tabindex="0">
+              <article class="mobile-contact-card mobile-collection-card ${person.id === activePatientPersonId ? "is-active" : ""} ${contextualSelectionClass(selectedPatientPersonIds, person.id)}" data-patient-person-id="${escapeHtml(person.id)}" tabindex="0">
                 <div class="mobile-contact-top">
+                  ${contextualSelectionCellMarkup(person.id, person.name, selectedPatientPersonIds)}
                   ${contactAvatarMarkup(person, "sm")}
                   <div class="mobile-contact-copy">
                     <h3 class="mobile-contact-name">${escapeHtml(person.name) || "&mdash;"}</h3>
@@ -7788,7 +7936,8 @@
         } else {
           patientPeopleList.innerHTML = pageItems
             .map((person) => `
-              <article class="row ${person.id === activePatientPersonId ? "is-active" : ""}" data-patient-person-id="${escapeHtml(person.id)}" tabindex="0">
+              <article class="row ${person.id === activePatientPersonId ? "is-active" : ""} ${contextualSelectionClass(selectedPatientPersonIds, person.id)}" data-patient-person-id="${escapeHtml(person.id)}" tabindex="0">
+                <div class="cell--select">${contextualSelectionCellMarkup(person.id, person.name, selectedPatientPersonIds)}</div>
                 ${columns.map((column) => `<div class="cell--${column.key}">${patientPersonTableCellMarkup(person, column.key)}</div>`).join("")}
               </article>
             `)
@@ -7819,6 +7968,14 @@
             event.stopPropagation();
             openPatientPersonEntry(button.dataset.openPatientPerson, items);
           });
+        });
+        bindContextualSelectionControls({
+          headerRoot: patientPeopleTableHead,
+          listRoot: patientPeopleList,
+          pageItems,
+          selection: selectedPatientPersonIds,
+          idFor: (item) => item.id,
+          checkboxId: "select-visible-patient-people"
         });
         patientPagination.querySelectorAll("[data-patient-person-page]").forEach((button) => {
           button.addEventListener("click", () => {
@@ -7869,17 +8026,19 @@
         return "";
       }
 
-      function renderPatientOrganizationsTableHead(columns = visiblePatientOrganizationTableColumns()) {
+      function renderPatientOrganizationsTableHead(columns = visiblePatientOrganizationTableColumns(), pageItems = []) {
         if (!patientOrganizationsTableHead) return;
-        patientOrganizationsTableHead.innerHTML = columns
-          .map((column) => `<div class="cell--${column.key}">${columnHeaderMarkup(column, "patient-organizations")}</div>`)
-          .join("");
+        patientOrganizationsTableHead.innerHTML = [
+          contextualSelectionHeaderMarkup(pageItems, selectedPatientOrganizationIds, (item) => item.id, "select-visible-patient-organizations", "Alle sichtbaren Organisationen auswählen"),
+          ...columns.map((column) => `<div class="cell--${column.key}">${columnHeaderMarkup(column, "patient-organizations")}</div>`)
+        ].join("");
         bindHeaderFilterMenus(patientOrganizationsTableHead);
       }
 
       function renderPatientOrganizationsTable(items) {
         if (!patientOrganizationList || !patientPagination || !patientPaginationMeta) return;
         activePatientMode = "organizations";
+        syncContextualSelection(selectedPatientOrganizationIds, items);
         renderPatientTablesVisibility();
         const columns = visiblePatientOrganizationTableColumns();
         updatePatientOrganizationTableGrid(columns);
@@ -7893,25 +8052,32 @@
         }
         const { totalPages, startIndex, endIndex, pageItems } = paginatedItems(items);
         patientPaginationMeta.textContent = `${startIndex + 1}-${endIndex} von ${items.length} Organisationen und Verbänden`;
-        renderPatientOrganizationsTableHead(columns);
+        renderPatientOrganizationsTableHead(columns, pageItems);
         patientOrganizationList.innerHTML = pageItems
           .map((organization) => {
             if (isMobileLayout()) {
               const peopleCount = patientOrganizationPeople(organization).length;
               return `
-                <article class="row organization-mobile-card ${organization.id === activePatientOrganizationId ? "is-active" : ""}" data-patient-organization-id="${escapeHtml(organization.id)}" tabindex="0">
-                  <div class="cell--organization">${patientOrganizationTableCellMarkup(organization, "organization")}</div>
-                  <div class="organization-mobile-meta">
-                    <span class="organization-mobile-sector">${patientIndicationBadgeMarkup(organization.sector)}</span>
-                    <span class="organization-mobile-state">${escapeHtml(patientOrganizationTypeLabel(organization))}</span>
-                    <span class="organization-mobile-state">${escapeHtml(patientOrganizationLocation(organization) || organization.state || "-")}</span>
-                    <span class="organization-mobile-state">${peopleCount} ${peopleCount === 1 ? "Kontakt" : "Kontakte"}</span>
+                <article class="row mobile-contact-card mobile-collection-card ${organization.id === activePatientOrganizationId ? "is-active" : ""} ${contextualSelectionClass(selectedPatientOrganizationIds, organization.id)}" data-patient-organization-id="${escapeHtml(organization.id)}" tabindex="0">
+                  <div class="mobile-contact-top">
+                    ${contextualSelectionCellMarkup(organization.id, organization.name, selectedPatientOrganizationIds)}
+                    ${organizationLogoMarkup(organization, "sm")}
+                    <div class="mobile-contact-copy">
+                      <h3 class="mobile-contact-name"><button class="mobile-collection-name" type="button" data-open-patient-organization="${escapeHtml(organization.id)}">${escapeHtml(organization.name)}</button></h3>
+                      <div class="mobile-contact-organization">${escapeHtml(patientOrganizationTypeLabel(organization))} · ${escapeHtml(patientOrganizationLocation(organization) || organization.state || "Standort nicht dokumentiert")}</div>
+                      <div class="mobile-collection-tags">
+                        ${patientIndicationBadgeMarkup(organization.sector)}
+                        <span>${peopleCount} ${peopleCount === 1 ? "Kontakt" : "Kontakte"}</span>
+                      </div>
+                    </div>
+                    <span class="mobile-contact-chevron" aria-hidden="true">›</span>
                   </div>
                 </article>
               `;
             }
             return `
-              <article class="row ${organization.id === activePatientOrganizationId ? "is-active" : ""}" data-patient-organization-id="${escapeHtml(organization.id)}" tabindex="0">
+              <article class="row ${organization.id === activePatientOrganizationId ? "is-active" : ""} ${contextualSelectionClass(selectedPatientOrganizationIds, organization.id)}" data-patient-organization-id="${escapeHtml(organization.id)}" tabindex="0">
+                <div class="cell--select">${contextualSelectionCellMarkup(organization.id, organization.name, selectedPatientOrganizationIds)}</div>
                 ${columns.map((column) => `<div class="cell--${column.key}">${patientOrganizationTableCellMarkup(organization, column.key)}</div>`).join("")}
               </article>
             `;
@@ -7931,7 +8097,7 @@
             openOrganizationEntry("patient", row.dataset.patientOrganizationId, items, { returnTo: "patients" });
           });
           row.addEventListener("keydown", (event) => {
-            if (event.key === "Enter" || event.key === " ") {
+            if ((event.key === "Enter" || event.key === " ") && !event.target.closest("button, input, label, a, select, textarea")) {
               event.preventDefault();
               openOrganizationEntry("patient", row.dataset.patientOrganizationId, items, { returnTo: "patients" });
             }
@@ -7957,6 +8123,14 @@
             updateView();
           });
         });
+        bindContextualSelectionControls({
+          headerRoot: patientOrganizationsTableHead,
+          listRoot: patientOrganizationList,
+          pageItems,
+          selection: selectedPatientOrganizationIds,
+          idFor: (item) => item.id,
+          checkboxId: "select-visible-patient-organizations"
+        });
         patientPagination.querySelectorAll("[data-patient-org-page]").forEach((button) => {
           button.addEventListener("click", () => {
             currentPage = Number(button.dataset.patientOrgPage);
@@ -7971,9 +8145,10 @@
         });
       }
 
-      function renderPatientIndicationsTableHead() {
+      function renderPatientIndicationsTableHead(pageItems = []) {
         if (!patientIndicationsTableHead) return;
         patientIndicationsTableHead.innerHTML = [
+          contextualSelectionHeaderMarkup(pageItems, selectedPatientIndicationIds, (item) => item.name, "select-visible-patient-indications", "Alle sichtbaren Indikationen auswählen"),
           '<div class="cell--indication"><span class="column-head__label">Indikation</span></div>',
           '<div class="cell--description"><span class="column-head__label">Kurzbeschreibung</span></div>',
           '<div class="cell--organizations"><span class="column-head__label">Organisationen / Verbände</span></div>',
@@ -7984,18 +8159,21 @@
       function renderPatientIndicationsPanel(items) {
         if (!patientIndicationsTable || !patientIndicationsList || !patientPagination || !patientPaginationMeta) return;
         activePatientMode = "indications";
+        syncContextualSelection(selectedPatientIndicationIds, items, (item) => item.name);
         renderPatientTablesVisibility();
-        renderPatientIndicationsTableHead();
         if (!items.length) {
+          renderPatientIndicationsTableHead();
           patientIndicationsList.innerHTML = `<div class="empty">Keine Indikationen gefunden.</div>`;
           patientPaginationMeta.textContent = "0-0 von 0 Indikationen";
           patientPagination.innerHTML = "";
           return;
         }
         const { totalPages, startIndex, endIndex, pageItems } = paginatedItems(items);
+        renderPatientIndicationsTableHead(pageItems);
         patientIndicationsList.innerHTML = pageItems
           .map((indication) => `
-            <article class="row patient-indication-row" data-patient-indication-row="${escapeHtml(indication.name)}" style="${patientIndicationBadgeStyle(indication.name)}">
+            <article class="row patient-indication-row ${contextualSelectionClass(selectedPatientIndicationIds, indication.name)}" data-patient-indication-row="${escapeHtml(indication.name)}" style="${patientIndicationBadgeStyle(indication.name)}">
+              <div class="cell--select">${contextualSelectionCellMarkup(indication.name, indication.name, selectedPatientIndicationIds)}</div>
               <div class="cell--indication" data-patient-indication-field="indication">
                 <div class="patient-indication-table-title">
                   ${patientIndicationIconMarkup(indication.name)}
@@ -8020,6 +8198,14 @@
             </article>
           `)
           .join("");
+        bindContextualSelectionControls({
+          headerRoot: patientIndicationsTableHead,
+          listRoot: patientIndicationsList,
+          pageItems,
+          selection: selectedPatientIndicationIds,
+          idFor: (item) => item.name,
+          checkboxId: "select-visible-patient-indications"
+        });
         patientIndicationsList.querySelectorAll("[data-open-patient-indication]").forEach((button) => {
           button.addEventListener("click", () => {
             const indicationName = button.dataset.patientIndicationName || "";
@@ -12446,6 +12632,8 @@
         closeHeaderFilterMenus();
         filterPanel.hidden = true;
         filterPanelButton.setAttribute("aria-expanded", "false");
+        document.querySelectorAll("[data-directory-filter-panel]").forEach((panel) => { panel.hidden = true; });
+        document.querySelectorAll(".directory-filter-button").forEach((button) => button.setAttribute("aria-expanded", "false"));
         document.body.classList.remove("mobile-filter-open");
         document.documentElement.classList.remove("mobile-filter-open");
       }
@@ -15228,7 +15416,6 @@
         const canReset = hasActiveSearchOrFilters();
         const hasFilters = filters.length > 0;
         if (activeFilterRow) activeFilterRow.hidden = !hasFilters;
-        if (resultsCount) resultsCount.hidden = !hasFilters;
         filterPanelResetButton.hidden = false;
 
         if (!hasFilters) {
@@ -15299,6 +15486,11 @@
             )
             .join("");
         };
+
+        if (["contacts", "organizations", "experts", "patients", "formats", "hospitations", "politics", "press"].includes(activeView)) {
+          if (summaryGrid) summaryGrid.innerHTML = "";
+          return;
+        }
 
         if (activeView === "home" || activeView === "onboarding" || activeView === "stakeholderOverview" || activeView === "hospitationOverview") {
           if (summaryGrid) summaryGrid.innerHTML = "";
@@ -15572,7 +15764,7 @@
       }
 
       function updateOrganizationTableGrid(columns = visibleOrganizationTableColumns()) {
-        const template = columns.map((column) => column.template).join(" ");
+        const template = ["42px", ...columns.map((column) => column.template)].join(" ");
         organizationsTable?.style.setProperty("--organizations-grid-template", template);
       }
 
@@ -15587,12 +15779,12 @@
       }
 
       function updatePatientPersonTableGrid(columns = visiblePatientPersonTableColumns()) {
-        const template = columns.map((column) => column.template).join(" ");
+        const template = ["42px", ...columns.map((column) => column.template)].join(" ");
         patientPeopleTable?.style.setProperty("--contacts-grid-template", template);
       }
 
       function updatePatientOrganizationTableGrid(columns = visiblePatientOrganizationTableColumns()) {
-        const template = columns.map((column) => column.template).join(" ");
+        const template = ["42px", ...columns.map((column) => column.template)].join(" ");
         patientOrganizationsTable?.style.setProperty("--organizations-grid-template", template);
       }
 
@@ -30114,6 +30306,199 @@
         });
       }
 
+      function contextualSelectionContext() {
+        if (isMobileLayout()) return null;
+        if (activeView === "organizations" && !isOrganizationsDuplicateMode()) {
+          return {
+            key: "organizations",
+            selection: selectedOrganizationIds,
+            items: organizations,
+            idFor: (item) => item.id,
+            target: organizationTableToolbar,
+            singular: "Organisation",
+            plural: "Organisationen",
+            filename: "organisationen-auswahl",
+            headers: ["ID", "Organisation", "Sektor", "Standort", "Bundesland", "Kontakte", "Website", "Quelle"],
+            rowFor: (item) => [item.id, item.name, item.sector, organizationLocation(item), item.state, organizationContacts(item).length, item.website, item.source]
+          };
+        }
+        if (activeView === "patients" && activePatientMode === "people") {
+          return {
+            key: "patient-people",
+            selection: selectedPatientPersonIds,
+            items: patientPeople,
+            idFor: (item) => item.id,
+            target: patientTableToolbar,
+            singular: "Person",
+            plural: "Personen",
+            filename: "patienten-personen-auswahl",
+            headers: ["ID", "Name", "Organisation", "Indikation", "Funktion", "Standort", "Bundesland", "Quelle"],
+            rowFor: (item) => [item.id, item.name, item.organization || patientPersonOrganization(item)?.name, patientPersonIndication(item), item.role, patientPersonLocation(item), item.state, item.source]
+          };
+        }
+        if (activeView === "patients" && activePatientMode === "organizations") {
+          return {
+            key: "patient-organizations",
+            selection: selectedPatientOrganizationIds,
+            items: patientOrganizations,
+            idFor: (item) => item.id,
+            target: patientTableToolbar,
+            singular: "Organisation",
+            plural: "Organisationen",
+            filename: "patienten-organisationen-auswahl",
+            headers: ["ID", "Organisation", "Typ", "Indikation", "Kontakte", "Standort", "Bundesland", "Website", "Quelle"],
+            rowFor: (item) => [item.id, item.name, patientOrganizationTypeLabel(item), item.sector, patientOrganizationPeople(item).length, patientOrganizationLocation(item), item.state, item.website, item.source]
+          };
+        }
+        if (activeView === "patients" && activePatientMode === "indications") {
+          return {
+            key: "patient-indications",
+            selection: selectedPatientIndicationIds,
+            items: patientIndicationItems(),
+            idFor: (item) => item.name,
+            target: patientTableToolbar,
+            singular: "Indikation",
+            plural: "Indikationen",
+            filename: "patienten-indikationen-auswahl",
+            headers: ["Indikation", "Kurzbeschreibung", "Organisationen", "Personen"],
+            rowFor: (item) => [item.name, item.description, item.organizationCount, item.personCount]
+          };
+        }
+        if (activeView === "politics" && politicsDataState === "ready") {
+          return {
+            key: "politics",
+            selection: selectedPoliticsMemberIds,
+            items: politicsCommittee.members,
+            idFor: (item) => item.id,
+            target: politicsTableToolbar,
+            singular: "Mitglied",
+            plural: "Mitglieder",
+            filename: "politik-auswahl",
+            headers: ["ID", "Name", "Fraktion", "Funktion", "PLZ", "Wahlkreis", "Bundesland", "Bundestag-Profil"],
+            rowFor: (item) => [item.id, item.name, item.faction, item.role, item.representativePostalCode, politicsConstituencyLabel(item), item.constituencyFederalState, item.profileUrl]
+          };
+        }
+        if (activeView === "press" && pressDataState === "ready") {
+          return {
+            key: "press",
+            selection: selectedPressContactIds,
+            items: activePressPeople(),
+            idFor: (item) => item.id,
+            target: pressTableToolbar,
+            singular: "Pressekontakt",
+            plural: "Pressekontakte",
+            filename: "presse-auswahl",
+            headers: ["ID", "Name", "Medium / Organisation", "Funktion", "Kontaktart", "Themen", "E-Mail", "Telefon", "Quelle"],
+            rowFor: (item) => [item.id, item.name, pressOrganizationName(item), item.role, pressContactType(item), normalizeThemes(item.themes).join(" | "), item.email, item.phone, pressSourceCheckedLabel(item)]
+          };
+        }
+        return null;
+      }
+
+      function contextualSelectionId(item, context) {
+        return String(context?.idFor?.(item) || "").trim();
+      }
+
+      function syncContextualSelection(selection, items, idFor = (item) => item.id) {
+        const availableIds = new Set(items.map((item) => String(idFor(item) || "")).filter(Boolean));
+        [...selection].forEach((id) => {
+          if (!availableIds.has(String(id))) selection.delete(id);
+        });
+      }
+
+      function contextualSelectionCellMarkup(id, label, selection) {
+        if (isMobileLayout()) return "";
+        const normalizedId = String(id || "");
+        return `
+          <label class="table-selection-control" aria-label="${escapeHtml(label)} auswählen">
+            <input class="table-checkbox" type="checkbox" data-contextual-row-select="${escapeHtml(normalizedId)}" ${selection.has(normalizedId) ? "checked" : ""}>
+            <span class="visually-hidden">${escapeHtml(label)} auswählen</span>
+          </label>
+        `;
+      }
+
+      function contextualSelectionHeaderMarkup(pageItems, selection, idFor, checkboxId, label) {
+        if (isMobileLayout()) return "";
+        const pageIds = pageItems.map((item) => String(idFor(item) || "")).filter(Boolean);
+        const selectedOnPage = pageIds.filter((id) => selection.has(id)).length;
+        return `<div class="cell--select"><input class="table-checkbox" type="checkbox" id="${escapeHtml(checkboxId)}" aria-label="${escapeHtml(label)}" ${pageIds.length && selectedOnPage === pageIds.length ? "checked" : ""}></div>`;
+      }
+
+      function bindContextualSelectionControls({ headerRoot, listRoot, pageItems, selection, idFor, checkboxId }) {
+        if (isMobileLayout()) return;
+        const pageIds = pageItems.map((item) => String(idFor(item) || "")).filter(Boolean);
+        const selectedOnPage = pageIds.filter((id) => selection.has(id)).length;
+        const headerCheckbox = document.getElementById(checkboxId);
+        if (headerCheckbox) {
+          headerCheckbox.indeterminate = selectedOnPage > 0 && selectedOnPage < pageIds.length;
+          headerCheckbox.addEventListener("change", () => {
+            pageIds.forEach((id) => {
+              if (headerCheckbox.checked) selection.add(id);
+              else selection.delete(id);
+            });
+            updateView();
+          });
+        }
+        listRoot?.querySelectorAll("[data-contextual-row-select]").forEach((checkbox) => {
+          checkbox.addEventListener("change", () => {
+            const id = String(checkbox.dataset.contextualRowSelect || "");
+            if (checkbox.checked) selection.add(id);
+            else selection.delete(id);
+            updateView();
+          });
+        });
+      }
+
+      function renderContextualBulkToolbar() {
+        if (!contextualBulkToolbar || !contextualBulkSelectionCount) return;
+        const context = contextualSelectionContext();
+        if (!context?.target) {
+          contextualBulkToolbar.hidden = true;
+          contextualBulkToolbar.removeAttribute("data-selection-context");
+          return;
+        }
+        if (contextualBulkToolbar.parentElement !== context.target) context.target.prepend(contextualBulkToolbar);
+        contextualBulkToolbar.dataset.selectionContext = context.key;
+        const count = context.selection.size;
+        contextualBulkToolbar.hidden = count === 0;
+        contextualBulkSelectionCount.textContent = `${count} ${count === 1 ? context.singular : context.plural} ausgewählt`;
+      }
+
+      function contextualSelectionClass(selection, id) {
+        return !isMobileLayout() && selection.has(String(id || "")) ? "is-bulk-selected" : "";
+      }
+
+      function clearContextualSelections() {
+        [
+          selectedOrganizationIds,
+          selectedPatientPersonIds,
+          selectedPatientOrganizationIds,
+          selectedPatientIndicationIds,
+          selectedPoliticsMemberIds,
+          selectedPressContactIds
+        ].forEach((selection) => selection.clear());
+      }
+
+      function downloadContextualSelectionCsv() {
+        const context = contextualSelectionContext();
+        if (!context?.selection.size) return;
+        const selectedItems = context.items.filter((item) => context.selection.has(contextualSelectionId(item, context)));
+        if (!selectedItems.length) return;
+        const csv = [
+          context.headers.map(csvEscape).join(","),
+          ...selectedItems.map((item) => context.rowFor(item).map(csvEscape).join(","))
+        ].join("\n");
+        const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement("a");
+        link.href = url;
+        link.download = `${context.filename}-${selectedItems.length}.csv`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(url);
+      }
+
       function renderTableHead(pageItems, columns = visibleTableColumns()) {
         const pageIds = pageItems.map((contact) => contact.id);
         const selectedOnPage = pageIds.filter((id) => selectedContactIds.has(id)).length;
@@ -30990,6 +31375,7 @@
               key,
               direction: politicsSort.key === key && politicsSort.direction === "asc" ? "desc" : "asc"
             };
+            currentPage = 1;
             updateView();
           });
         });
@@ -30999,7 +31385,7 @@
             const menu = document.getElementById(button.getAttribute("aria-controls"));
             if (!menu) return;
             const shouldOpen = menu.hidden;
-            closeHeaderFilterMenus(menu);
+            closeMenus();
             menu.hidden = !shouldOpen;
             button.setAttribute("aria-expanded", String(shouldOpen));
             if (shouldOpen) {
@@ -31034,6 +31420,7 @@
             const key = menu.dataset.politicsFilterKey || "";
             if (!(key in politicsHeaderFilters)) return;
             politicsHeaderFilters = { ...politicsHeaderFilters, [key]: option.dataset.politicsFilterValue || "" };
+            currentPage = 1;
             closeHeaderFilterMenus();
             updateView();
           });
@@ -31046,11 +31433,12 @@
         });
       }
 
-      function renderPoliticsTableHead() {
+      function renderPoliticsTableHead(pageItems = []) {
         if (!politicsTableHead) return;
-        politicsTableHead.innerHTML = politicsTableColumns
-          .map((column) => `<div data-politics-column="${escapeHtml(column.key)}">${politicsColumnHeaderMarkup(column)}</div>`)
-          .join("");
+        politicsTableHead.innerHTML = [
+          contextualSelectionHeaderMarkup(pageItems, selectedPoliticsMemberIds, (item) => item.id, "select-visible-politics-members", "Alle sichtbaren Ausschussmitglieder auswählen"),
+          ...politicsTableColumns.map((column) => `<div data-politics-column="${escapeHtml(column.key)}">${politicsColumnHeaderMarkup(column)}</div>`)
+        ].join("");
         bindPoliticsTableControls();
       }
 
@@ -31074,7 +31462,12 @@
             openPoliticsPersonDrawer(member.id, filteredPoliticsMembers());
           };
           row.addEventListener("click", (event) => {
-            if (event.target.closest("a, button, input, select, textarea")) return;
+            if (event.target.closest("a, button, input, label, select, textarea")) return;
+            openProfile();
+          });
+          row.addEventListener("keydown", (event) => {
+            if (!["Enter", " "].includes(event.key) || event.target.closest("a, button, input, label, select, textarea")) return;
+            event.preventDefault();
             openProfile();
           });
           row.querySelector("[data-open-politics-profile]")?.addEventListener("click", openProfile);
@@ -31151,8 +31544,11 @@
 
       function renderPoliticsView(items = filteredPoliticsMembers()) {
         if (!politicsMemberList || !politicsTableWrap || !politicsResultsMeta || !politicsMemberCount) return;
+        renderDirectoryFilterPanel("politics");
         if (politicsCommitteeSource) politicsCommitteeSource.href = politicsCommittee.sourceUrl;
         renderPoliticsTableHead();
+        if (politicsPaginationControls) politicsPaginationControls.hidden = true;
+        if (politicsPagination) politicsPagination.innerHTML = "";
 
         if (politicsDataState === "loading") {
           politicsTableWrap.hidden = false;
@@ -31195,7 +31591,10 @@
         politicsTableWrap.hidden = false;
         setPoliticsNotice();
         const total = politicsCommittee.members.length;
-        politicsMemberCount.textContent = `${total} ordentliche Mitglieder`;
+        syncContextualSelection(selectedPoliticsMemberIds, items);
+        politicsMemberCount.textContent = items.length === total
+          ? `${total} ordentliche Mitglieder`
+          : `${items.length} von ${total} Mitgliedern`;
         politicsResultsMeta.textContent = items.length === total
           ? `${total} ordentliche Mitglieder`
           : `${items.length} von ${total} Mitgliedern`;
@@ -31209,45 +31608,89 @@
         ensurePoliticsPersonDrawer();
 
         if (!items.length) {
-          politicsMemberList.innerHTML = `<div class="empty">Keine Ausschussmitglieder passen zur aktuellen Suche oder den Spaltenfiltern.</div>`;
+          politicsMemberList.innerHTML = `<div class="empty">Keine Ausschussmitglieder passen zur aktuellen Suche oder den Filtern.</div>`;
           return;
         }
 
-        politicsMemberList.innerHTML = items.map((member) => `
-          <article
-            class="row politics-member-row"
-            data-politics-member-id="${escapeHtml(member.id)}"
-          >
-            <div class="politics-member-cell" data-politics-field="member">
-              ${politicsMemberAvatarMarkup(member)}
-              <span class="politics-member-copy">
-                <button class="politics-member-name" type="button" data-open-politics-profile="${escapeHtml(member.id)}" aria-controls="detail-panel">${escapeHtml(member.name)}</button>
-                <small>Mitglied des Deutschen Bundestages</small>
-              </span>
-            </div>
-            <div data-politics-field="faction">
-              ${politicsFactionBadgeMarkup(member.faction)}
-            </div>
-            <div data-politics-field="role">
-              <span class="politics-role">${escapeHtml(member.role)}</span>
-            </div>
-            <div data-politics-field="postalCodes">
-              ${politicsPostalCodesMarkup(member)}
-            </div>
-            <div data-politics-field="constituency">
-              <span class="politics-constituency">${escapeHtml(politicsConstituencyLabel(member))}</span>
-            </div>
-            <div data-politics-field="profile">
-              <a class="politics-profile-link" href="${escapeHtml(member.profileUrl)}" target="_blank" rel="noopener noreferrer">
-                Bundestag
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
-                  <path d="M14 5h5v5M10 14 19 5"></path>
-                  <path d="M19 13v6H5V5h6"></path>
-                </svg>
-              </a>
-            </div>
-          </article>
-        `).join("");
+        const mobilePagination = isMobileLayout() ? paginatedItems(items) : {
+          totalPages: 1,
+          startIndex: 0,
+          endIndex: items.length,
+          pageItems: items
+        };
+        const { totalPages, pageItems } = mobilePagination;
+        renderPoliticsTableHead(pageItems);
+        politicsMemberList.innerHTML = pageItems.map((member) => {
+          if (isMobileLayout()) {
+            return `
+              <article class="row mobile-contact-card mobile-collection-card ${contextualSelectionClass(selectedPoliticsMemberIds, member.id)}" data-politics-member-id="${escapeHtml(member.id)}" tabindex="0">
+                <div class="mobile-contact-top">
+                  ${contextualSelectionCellMarkup(member.id, member.name, selectedPoliticsMemberIds)}
+                  ${politicsMemberAvatarMarkup(member)}
+                  <div class="mobile-contact-copy">
+                    <h3 class="mobile-contact-name"><button class="mobile-collection-name" type="button" data-open-politics-profile="${escapeHtml(member.id)}" aria-controls="detail-panel">${escapeHtml(member.name)}</button></h3>
+                    <div class="mobile-contact-organization">${escapeHtml(member.role)} · ${escapeHtml(politicsConstituencyLabel(member))}</div>
+                    <div class="mobile-collection-tags">${politicsFactionBadgeMarkup(member.faction)}</div>
+                  </div>
+                  <span class="mobile-contact-chevron" aria-hidden="true">›</span>
+                </div>
+              </article>
+            `;
+          }
+          return `
+            <article class="row politics-member-row ${contextualSelectionClass(selectedPoliticsMemberIds, member.id)}" data-politics-member-id="${escapeHtml(member.id)}">
+              <div class="cell--select">${contextualSelectionCellMarkup(member.id, member.name, selectedPoliticsMemberIds)}</div>
+              <div class="politics-member-cell" data-politics-field="member">
+                ${politicsMemberAvatarMarkup(member)}
+                <span class="politics-member-copy">
+                  <button class="politics-member-name" type="button" data-open-politics-profile="${escapeHtml(member.id)}" aria-controls="detail-panel">${escapeHtml(member.name)}</button>
+                  <small>Mitglied des Deutschen Bundestages</small>
+                </span>
+              </div>
+              <div data-politics-field="faction">${politicsFactionBadgeMarkup(member.faction)}</div>
+              <div data-politics-field="role"><span class="politics-role">${escapeHtml(member.role)}</span></div>
+              <div data-politics-field="postalCodes">${politicsPostalCodesMarkup(member)}</div>
+              <div data-politics-field="constituency"><span class="politics-constituency">${escapeHtml(politicsConstituencyLabel(member))}</span></div>
+              <div data-politics-field="profile">
+                <a class="politics-profile-link" href="${escapeHtml(member.profileUrl)}" target="_blank" rel="noopener noreferrer">
+                  Bundestag
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M14 5h5v5M10 14 19 5"></path><path d="M19 13v6H5V5h6"></path></svg>
+                </a>
+              </div>
+            </article>
+          `;
+        }).join("");
+        if (politicsPaginationControls && politicsPagination) {
+          politicsPaginationControls.hidden = !isMobileLayout() || totalPages <= 1;
+          politicsPagination.innerHTML = !isMobileLayout() || totalPages <= 1 ? "" : [
+            `<button class="pagination-button" type="button" data-politics-page-nav="prev" ${currentPage === 1 ? "disabled" : ""} aria-label="Vorherige Seite">‹</button>`,
+            ...Array.from({ length: totalPages }, (_, index) => {
+              const page = index + 1;
+              return `<button class="pagination-button ${page === currentPage ? "is-active" : ""}" type="button" data-politics-page="${page}" aria-label="Seite ${page}">${page}</button>`;
+            }),
+            `<button class="pagination-button" type="button" data-politics-page-nav="next" ${currentPage === totalPages ? "disabled" : ""} aria-label="Nächste Seite">›</button>`
+          ].join("");
+          politicsPagination.querySelectorAll("[data-politics-page]").forEach((button) => {
+            button.addEventListener("click", () => {
+              currentPage = Number(button.dataset.politicsPage) || 1;
+              updateView();
+            });
+          });
+          politicsPagination.querySelectorAll("[data-politics-page-nav]").forEach((button) => {
+            button.addEventListener("click", () => {
+              currentPage = Math.min(totalPages, Math.max(1, currentPage + (button.dataset.politicsPageNav === "next" ? 1 : -1)));
+              updateView();
+            });
+          });
+        }
+        bindContextualSelectionControls({
+          headerRoot: politicsTableHead,
+          listRoot: politicsMemberList,
+          pageItems,
+          selection: selectedPoliticsMemberIds,
+          idFor: (item) => item.id,
+          checkboxId: "select-visible-politics-members"
+        });
         bindPoliticsMemberRows();
       }
 
@@ -31302,6 +31745,122 @@
           values.push({ value: pressMissingFilterValue, label: "Nicht ausgewiesen" });
         }
         return values;
+      }
+
+      function directoryFilterConfig(kind) {
+        if (kind === "politics") {
+          return {
+            kind,
+            ready: politicsDataState === "ready" && politicsCommittee.available,
+            button: politicsFilterButton,
+            panel: politicsFilterPanel,
+            badge: politicsFilterBadge,
+            fields: politicsFilterFields,
+            columns: politicsTableColumns.filter((column) => column.filterable !== false),
+            filters: politicsHeaderFilters,
+            optionsFor: politicsFilterOptions,
+            setFilters: (filters) => { politicsHeaderFilters = filters; }
+          };
+        }
+        if (kind === "press") {
+          return {
+            kind,
+            ready: pressDataState === "ready",
+            button: pressFilterButton,
+            panel: pressFilterPanel,
+            badge: pressFilterBadge,
+            fields: pressFilterFields,
+            columns: pressTableColumns.filter((column) => column.filterable !== false),
+            filters: pressHeaderFilters,
+            optionsFor: pressFilterOptions,
+            setFilters: (filters) => { pressHeaderFilters = filters; }
+          };
+        }
+        return null;
+      }
+
+      function activeDirectoryFilterCount(config) {
+        return Object.values(config?.filters || {}).filter(Boolean).length;
+      }
+
+      function directoryFilterFieldMarkup(config, column) {
+        const selectedValue = config.filters[column.key] || "";
+        const options = config.optionsFor(column.key);
+        return `
+          <label class="directory-filter-field">
+            <span>${escapeHtml(column.filterLabel || column.label)}</span>
+            <select data-directory-filter-select="${escapeHtml(config.kind)}" data-directory-filter-key="${escapeHtml(column.key)}" aria-label="${escapeHtml(column.filterLabel || column.label)} filtern">
+              <option value="">Alle</option>
+              ${options.map((option) => `
+                <option value="${escapeHtml(option.value)}" ${selectedValue === option.value ? "selected" : ""}>${escapeHtml(option.label)}</option>
+              `).join("")}
+            </select>
+          </label>
+        `;
+      }
+
+      function renderDirectoryFilterPanel(kind) {
+        const config = directoryFilterConfig(kind);
+        if (!config?.button || !config.panel || !config.fields || !config.badge) return;
+        const activeCount = activeDirectoryFilterCount(config);
+        config.button.disabled = !config.ready;
+        config.button.setAttribute("aria-label", activeCount
+          ? `${kind === "politics" ? "Politik" : "Presse"} filtern, ${activeCount} aktiv`
+          : `${kind === "politics" ? "Politik" : "Presse"} filtern`);
+        config.badge.textContent = String(activeCount);
+        config.badge.classList.toggle("is-visible", activeCount > 0);
+        config.fields.innerHTML = config.columns.map((column) => directoryFilterFieldMarkup(config, column)).join("");
+        if (!config.ready) {
+          config.panel.hidden = true;
+          config.button.setAttribute("aria-expanded", "false");
+        }
+      }
+
+      function setDirectoryFilterOpen(kind, open) {
+        const config = directoryFilterConfig(kind);
+        if (!config?.button || !config.panel || !config.ready) return;
+        config.panel.hidden = !open;
+        config.button.setAttribute("aria-expanded", String(open));
+        document.body.classList.toggle("mobile-filter-open", open && isMobileLayout());
+        document.documentElement.classList.toggle("mobile-filter-open", open && isMobileLayout());
+        syncBodyScrollLock();
+        if (open) {
+          renderDirectoryFilterPanel(kind);
+          window.requestAnimationFrame(() => config.fields?.querySelector("select")?.focus({ preventScroll: true }));
+        }
+      }
+
+      function clearDirectoryFilters(kind) {
+        const config = directoryFilterConfig(kind);
+        if (!config) return;
+        config.setFilters(Object.fromEntries(Object.keys(config.filters).map((key) => [key, ""])));
+        currentPage = 1;
+        updateView();
+      }
+
+      function bindDirectoryFilterPanels() {
+        ["politics", "press"].forEach((kind) => {
+          const config = directoryFilterConfig(kind);
+          config?.button?.addEventListener("click", (event) => {
+            event.stopPropagation();
+            const open = config.panel.hidden;
+            closeMenus();
+            setDirectoryFilterOpen(kind, open);
+          });
+          config?.panel?.addEventListener("click", (event) => event.stopPropagation());
+          config?.panel?.querySelector(`[data-directory-filter-close="${kind}"]`)?.addEventListener("click", () => setDirectoryFilterOpen(kind, false));
+          config?.panel?.querySelector(`[data-directory-filter-reset="${kind}"]`)?.addEventListener("click", () => clearDirectoryFilters(kind));
+          config?.fields?.addEventListener("change", (event) => {
+            const select = event.target.closest(`[data-directory-filter-select="${kind}"]`);
+            if (!select) return;
+            const current = directoryFilterConfig(kind);
+            const key = select.dataset.directoryFilterKey || "";
+            if (!current || !(key in current.filters)) return;
+            current.setFilters({ ...current.filters, [key]: select.value || "" });
+            currentPage = 1;
+            updateView();
+          });
+        });
       }
 
       function pressPersonMatchesHeaderFilters(person) {
@@ -31451,7 +32010,7 @@
             const menu = document.getElementById(button.getAttribute("aria-controls"));
             if (!menu) return;
             const shouldOpen = menu.hidden;
-            closeHeaderFilterMenus(menu);
+            closeMenus();
             menu.hidden = !shouldOpen;
             button.setAttribute("aria-expanded", String(shouldOpen));
             if (shouldOpen) {
@@ -31499,11 +32058,12 @@
         });
       }
 
-      function renderPressTableHead() {
+      function renderPressTableHead(pageItems = []) {
         if (!pressTableHead) return;
-        pressTableHead.innerHTML = pressTableColumns
-          .map((column) => `<div data-press-column="${escapeHtml(column.key)}">${pressColumnHeaderMarkup(column)}</div>`)
-          .join("");
+        pressTableHead.innerHTML = [
+          contextualSelectionHeaderMarkup(pageItems, selectedPressContactIds, (item) => item.id, "select-visible-press-contacts", "Alle sichtbaren Pressekontakte auswählen"),
+          ...pressTableColumns.map((column) => `<div data-press-column="${escapeHtml(column.key)}">${pressColumnHeaderMarkup(column)}</div>`)
+        ].join("");
         bindPressTableControls();
       }
 
@@ -31574,11 +32134,11 @@
             openStakeholderPersonPreview(person.id, items, { returnTo: "press" });
           };
           row.addEventListener("click", (event) => {
-            if (event.target.closest("a, button, input, select, textarea")) return;
+            if (event.target.closest("a, button, input, label, select, textarea")) return;
             openProfile();
           });
           row.addEventListener("keydown", (event) => {
-            if (!["Enter", " "].includes(event.key) || event.target.closest("a, button, input, select, textarea")) return;
+            if (!["Enter", " "].includes(event.key) || event.target.closest("a, button, input, label, select, textarea")) return;
             event.preventDefault();
             openProfile();
           });
@@ -31603,6 +32163,7 @@
 
       function renderPressView(items = filteredPressPeople()) {
         if (!pressContactList || !pressTableWrap || !pressResultsMeta || !pressContactCount || !pressPagination) return;
+        renderDirectoryFilterPanel("press");
         renderPressTableHead();
 
         if (pressDataState === "loading") {
@@ -31629,26 +32190,47 @@
 
         pressTableWrap.hidden = false;
         const total = activePressPeople().length;
-        pressContactCount.textContent = `${total} ${total === 1 ? "Pressekontakt" : "Pressekontakte"}`;
+        syncContextualSelection(selectedPressContactIds, items);
+        pressContactCount.textContent = items.length === total
+          ? `${total} ${total === 1 ? "Pressekontakt" : "Pressekontakte"}`
+          : `${items.length} von ${total} Pressekontakten`;
         setPressNotice();
 
         if (!items.length) {
-          pressContactList.innerHTML = `<div class="empty">Keine Pressekontakte passen zur aktuellen Suche oder den Spaltenfiltern.</div>`;
+          pressContactList.innerHTML = `<div class="empty">Keine Pressekontakte passen zur aktuellen Suche oder den Filtern.</div>`;
           pressResultsMeta.textContent = total ? `0 von ${total} Pressekontakten` : "Noch keine Pressekontakte hinterlegt";
           pressPagination.innerHTML = "";
           return;
         }
 
-        const { totalPages, startIndex, endIndex, pageItems } = paginatedItems(items, { responsiveMobileSize: false });
-        pressResultsMeta.textContent = `${startIndex + 1}–${endIndex} von ${items.length} ${items.length === 1 ? "Pressekontakt" : "Pressekontakten"}${items.length !== total ? ` · ${total} gesamt` : ""}`;
+        const { totalPages, startIndex, endIndex, pageItems } = paginatedItems(items);
+        renderPressTableHead(pageItems);
+        pressResultsMeta.textContent = `Seite ${currentPage} von ${totalPages} · Einträge ${startIndex + 1}–${endIndex}`;
         pressContactList.innerHTML = pageItems.map((person) => {
           const organizationName = pressOrganizationName(person) || "Nicht dokumentiert";
+          if (isMobileLayout()) {
+            return `
+              <article class="row mobile-contact-card mobile-collection-card ${contextualSelectionClass(selectedPressContactIds, person.id)}" data-press-contact-id="${escapeHtml(person.id)}" tabindex="0">
+                <div class="mobile-contact-top">
+                  ${contextualSelectionCellMarkup(person.id, person.name, selectedPressContactIds)}
+                  ${contactAvatarMarkup(person, "sm")}
+                  <div class="mobile-contact-copy">
+                    <h3 class="mobile-contact-name"><button class="mobile-collection-name" type="button" data-open-press-profile="${escapeHtml(person.id)}">${escapeHtml(person.name)}</button></h3>
+                    <div class="mobile-contact-organization">${escapeHtml(organizationName)} · ${escapeHtml(person.role || "Funktion nicht ausgewiesen")}</div>
+                    <div class="mobile-collection-tags"><span class="press-contact-type">${escapeHtml(pressContactType(person))}</span>${pressEmailMarkup(person)}</div>
+                  </div>
+                  <span class="mobile-contact-chevron" aria-hidden="true">›</span>
+                </div>
+              </article>
+            `;
+          }
           return `
             <article
-              class="row politics-member-row press-contact-row"
+              class="row politics-member-row press-contact-row ${contextualSelectionClass(selectedPressContactIds, person.id)}"
               data-press-contact-id="${escapeHtml(person.id)}"
               tabindex="0"
             >
+              <div class="cell--select">${contextualSelectionCellMarkup(person.id, person.name, selectedPressContactIds)}</div>
               <div class="politics-member-cell press-person-cell" data-press-field="name">
                 ${contactAvatarMarkup(person, "sm")}
                 <span class="politics-member-copy">
@@ -31687,6 +32269,14 @@
           }),
           `<button class="pagination-button" type="button" data-press-page-nav="next" ${currentPage === totalPages ? "disabled" : ""} aria-label="Nächste Seite">›</button>`
         ].join("");
+        bindContextualSelectionControls({
+          headerRoot: pressTableHead,
+          listRoot: pressContactList,
+          pageItems,
+          selection: selectedPressContactIds,
+          idFor: (item) => item.id,
+          checkboxId: "select-visible-press-contacts"
+        });
         bindPressContactRows(items);
         bindPressPagination(totalPages);
       }
@@ -38652,6 +39242,7 @@
       function setSidebarCollapsed(collapsed, { persist = true } = {}) {
         if (collapsed) closeDemoProfileSwitcher();
         appShell?.classList.toggle("is-sidebar-collapsed", collapsed);
+        syncStakeholderSubnavsForSidebarCollapse(collapsed);
         if (sidebarCollapseButton) {
           sidebarCollapseButton.setAttribute("aria-expanded", String(!collapsed));
           sidebarCollapseButton.setAttribute("aria-label", collapsed ? "Seitenleiste ausklappen" : "Seitenleiste einklappen");
@@ -40880,6 +41471,32 @@
         document.querySelectorAll("[data-semantic-table]").forEach((semanticTable) => {
           const tableHead = semanticTable.querySelector(":scope > .thead");
           const headerCells = tableHead ? [...tableHead.children] : [];
+          const compactRows = [...semanticTable.querySelectorAll(".row.mobile-collection-card")];
+          if (isMobileLayout() && compactRows.length) {
+            semanticTable.setAttribute("role", "region");
+            semanticTable.removeAttribute("aria-colcount");
+            semanticTable.removeAttribute("aria-rowcount");
+            tableHead?.removeAttribute("role");
+            headerCells.forEach((cell) => {
+              cell.removeAttribute("role");
+              cell.removeAttribute("aria-sort");
+            });
+            [...semanticTable.children].forEach((container) => {
+              if (container !== tableHead && compactRows.some((row) => container.contains(row))) {
+                container.setAttribute("role", "list");
+              } else {
+                container.removeAttribute("role");
+              }
+            });
+            semanticTable.querySelectorAll(".row").forEach((row) => {
+              row.setAttribute("role", row.classList.contains("mobile-collection-card") ? "listitem" : "presentation");
+              [...row.children].forEach((cell) => {
+                cell.removeAttribute("role");
+                cell.removeAttribute("aria-sort");
+              });
+            });
+            return;
+          }
           if (!headerCells.length) {
             semanticTable.setAttribute("role", "region");
             semanticTable.removeAttribute("aria-colcount");
@@ -40957,6 +41574,7 @@
         const isPressView = activeView === "press";
         const isStakeholderOverviewView = activeView === "stakeholderOverview";
         const isHospitationOverviewView = activeView === "hospitationOverview";
+        placeWorkspaceModeControls();
         if (isPatientsView && !["people", "organizations", "indications"].includes(activePatientMode)) activePatientMode = "indications";
         const isPatientOrganizationsMode = isPatientsView && activePatientMode === "organizations";
         const isPatientPeopleMode = isPatientsView && activePatientMode === "people";
@@ -41023,7 +41641,14 @@
         renderContactListModeSwitcher();
         const currentResultLabel = isInitialDataLoading && isContactsView ? "Kontakte werden geladen" : hitCountLabel(items);
         resultsCount.textContent = currentResultLabel;
-        resultsCount.hidden = isHomeView || isOnboardingView || isStakeholderOverviewView || isHospitationOverviewView || isPressView || isHospitationsView || isProfileRecordView || isFrameworkView || isQuestionnaireView;
+        const hasCanonicalResultCounter =
+          isContactsView ||
+          isOrganizationsView ||
+          isFormatsView ||
+          isStakeholdersView ||
+          activeView === "map" ||
+          ((isExpertsView || isPatientsView) && hasActiveSearchOrFilters());
+        resultsCount.hidden = !hasCanonicalResultCounter || isAnyDuplicateMode;
         if (hospitationTableToolbarMeta) {
           hospitationTableToolbarMeta.hidden = !isHospitationsView || activeHospitationTab !== "appointments";
         }
@@ -41081,9 +41706,20 @@
           expertHeaderSearch.hidden = true;
           if (stakeholderHeaderSearch) stakeholderHeaderSearch.hidden = true;
         }
-        const filterToolbarTarget = isContactsView && !isContactsDuplicatesMode ? contactCommandRow : controlsStack;
+        const filterToolbarTarget = isContactsView && !isContactsDuplicatesMode
+          ? contactCommandRow
+          : isOrganizationsView && !isOrganizationsDuplicatesMode
+            ? organizationColumnActions
+            : isExpertsView && !isExpertMatchingMode
+              ? expertColumnActions
+              : isPatientsView
+                ? patientColumnActions
+                : isFormatsView
+                  ? formatsTableToolbar
+                  : controlsStack;
         if (filterToolbarTarget && filterToolbar && filterToolbar.parentElement !== filterToolbarTarget) {
           if (filterToolbarTarget === contactCommandRow) contactCommandActions?.after(filterToolbar);
+          else if (filterToolbarTarget === formatsTableToolbar) formatsTableToolbar.querySelector(".format-status-legend")?.before(filterToolbar);
           else filterToolbarTarget.append(filterToolbar);
         }
         if (hospitationHeaderSearchSlot) hospitationHeaderSearchSlot.hidden = true;
@@ -41192,6 +41828,7 @@
         } else if (isOrganizationProfileView) {
           renderOrganizationProfilePage();
         }
+        renderContextualBulkToolbar();
         renderDashboard(filteredContacts());
         if (!isHomeView && !isStakeholderOverviewView && !isHospitationOverviewView && !isPoliticsView && !isPressView && !isFormatsView && !isHospitationsView && !isFrameworkView && !isQuestionnaireView && !isStakeholdersView && !isActivitiesView && !isNotificationsView && !isAnyDuplicateMode && !isProfileRecordView) {
           renderActiveFilters();
@@ -41482,6 +42119,19 @@
         }
         downloadSelectedExpertCsv();
       });
+      contextualBulkClearSelection?.addEventListener("click", () => {
+        const context = contextualSelectionContext();
+        if (!context) return;
+        context.selection.clear();
+        updateView();
+      });
+      contextualBulkExportButton?.addEventListener("click", () => {
+        if (!canAdministerData() || !canExportData()) {
+          showPermissionDenied("Nur Admins dürfen ausgewählte Daten exportieren.");
+          return;
+        }
+        downloadContextualSelectionCsv();
+      });
       bulkAssignOwnerButton?.addEventListener("click", assignOwnerToSelectedContacts);
       bulkArchiveButton?.addEventListener("click", archiveSelectedContacts);
       columnsButton?.addEventListener("click", (event) => {
@@ -41577,6 +42227,7 @@
           setFilterPanelOpen(true);
         }
       });
+      bindDirectoryFilterPanels();
       mapViewFrame.addEventListener("load", () => {
         syncMapFrame(mapContacts());
       });
@@ -41871,8 +42522,41 @@
       sidebarSectionToggles.forEach((toggle) => {
         toggle.addEventListener("click", () => {
           const group = toggle.dataset.sidebarSectionToggle || "";
+          if (!isMobileLayout() && appShell?.classList.contains("is-sidebar-collapsed")) {
+            expandSidebarGroup(group);
+            setSidebarCollapsed(false);
+            return;
+          }
           if (!toggleSidebarGroup(group)) expandSidebarGroup(group);
         });
+      });
+      stakeholderPersonSubnav?.addEventListener("toggle", () => {
+        syncStakeholderPersonSubnavToggle();
+        const collapsedDesktop = !isMobileLayout() && appShell?.classList.contains("is-sidebar-collapsed");
+        if (!collapsedDesktop && stakeholderPersonSubnav.open && stakeholderOrganizationSubnav?.open) {
+          stakeholderOrganizationSubnav.open = false;
+        }
+      });
+      stakeholderPersonSubnavToggle?.addEventListener("click", (event) => {
+        if (isMobileLayout() || !appShell?.classList.contains("is-sidebar-collapsed")) return;
+        event.preventDefault();
+        setSidebarCollapsed(false);
+        stakeholderPersonSubnav.open = true;
+        syncStakeholderPersonSubnavToggle();
+      });
+      stakeholderOrganizationSubnav?.addEventListener("toggle", () => {
+        syncStakeholderOrganizationSubnavToggle();
+        const collapsedDesktop = !isMobileLayout() && appShell?.classList.contains("is-sidebar-collapsed");
+        if (!collapsedDesktop && stakeholderOrganizationSubnav.open && stakeholderPersonSubnav?.open) {
+          stakeholderPersonSubnav.open = false;
+        }
+      });
+      stakeholderOrganizationSubnavToggle?.addEventListener("click", (event) => {
+        if (isMobileLayout() || !appShell?.classList.contains("is-sidebar-collapsed")) return;
+        event.preventDefault();
+        setSidebarCollapsed(false);
+        stakeholderOrganizationSubnav.open = true;
+        syncStakeholderOrganizationSubnavToggle();
       });
       sidebarCollapseButton?.addEventListener("click", () => {
         if (isMobileLayout()) {
@@ -43119,6 +43803,7 @@
         lastViewportWidth = nextViewportWidth;
         lastViewportMobileLayout = nextMobileLayout;
         if (viewportModeChanged && nextMobileLayout) {
+          clearContextualSelections();
           appShell?.classList.remove("is-sidebar-collapsed");
           setMobileSidebarExpanded(false);
         }

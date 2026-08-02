@@ -130,7 +130,21 @@
                 </svg>
                 <span>Übersicht</span>
               </button>
-              <button class="primary-tab" type="button" data-view-tab="patients" title="Patienten">
+              <details class="sidebar-subnav" data-sidebar-subnav="stakeholder-people">
+                <summary class="sidebar-subnav__toggle" aria-expanded="false" aria-controls="sidebar-stakeholder-people-content" title="Personenbereiche einblenden">
+                  <svg viewBox="0 0 24 24" fill="none" stroke-width="2" aria-hidden="true">
+                    <circle cx="9" cy="7" r="4"></circle>
+                    <path d="M2 21v-2a6 6 0 0 1 6-6h2a6 6 0 0 1 6 6v2"></path>
+                    <path d="M16 3.4a4 4 0 0 1 0 7.2M18 13a5 5 0 0 1 4 4.9V21"></path>
+                  </svg>
+                  <span>Personen</span>
+                  <span class="sidebar-subnav__count" aria-hidden="true">4</span>
+                  <svg class="sidebar-subnav__chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <path d="m6 9 6 6 6-6"></path>
+                  </svg>
+                </summary>
+                <div class="sidebar-subnav__content" id="sidebar-stakeholder-people-content" role="group" aria-label="Stakeholder-Personen">
+              <button class="primary-tab primary-tab--nested" type="button" data-view-tab="patients" title="Patienten">
                 <svg viewBox="0 0 24 24" fill="none" stroke-width="2" aria-hidden="true">
                   <path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.6l-1-1a5.5 5.5 0 0 0-7.8 7.8l1 1L12 21l7.8-7.6 1-1a5.5 5.5 0 0 0 0-7.8Z"></path>
                   <path d="M12 8v6"></path>
@@ -138,7 +152,7 @@
                 </svg>
                 <span>Patienten</span>
               </button>
-              <button class="primary-tab" type="button" data-view-tab="politics" title="Politik">
+              <button class="primary-tab primary-tab--nested" type="button" data-view-tab="politics" title="Politik">
                 <svg viewBox="0 0 24 24" fill="none" stroke-width="2" aria-hidden="true">
                   <path d="M3 9h18"></path>
                   <path d="M5 9v9M9.5 9v9M14.5 9v9M19 9v9"></path>
@@ -146,7 +160,7 @@
                 </svg>
                 <span>Politik</span>
               </button>
-              <button class="primary-tab" type="button" data-view-tab="press" title="Presse">
+              <button class="primary-tab primary-tab--nested" type="button" data-view-tab="press" title="Presse">
                 <svg viewBox="0 0 24 24" fill="none" stroke-width="2" aria-hidden="true">
                   <path d="M4 5h14a2 2 0 0 1 2 2v12H6a2 2 0 0 1-2-2V5Z"></path>
                   <path d="M8 9h4M8 13h8M8 17h6"></path>
@@ -154,8 +168,32 @@
                 </svg>
                 <span>Presse</span>
               </button>
-              <div class="sidebar-subnav" role="group" aria-label="Stakeholder-Organisationen">
-                <span class="sidebar-subnav__label">Organisationen</span>
+              <button class="primary-tab primary-tab--nested" type="button" data-view-tab="experts" title="Expertenkreis">
+                <svg viewBox="0 0 24 24" fill="none" stroke-width="2" aria-hidden="true">
+                  <circle cx="12" cy="7" r="3"></circle>
+                  <circle cx="6" cy="17" r="3"></circle>
+                  <circle cx="18" cy="17" r="3"></circle>
+                  <path d="m10.2 9.4-2.4 4.2"></path>
+                  <path d="m13.8 9.4 2.4 4.2"></path>
+                  <path d="M9 17h6"></path>
+                </svg>
+                <span>Expertenkreis</span>
+              </button>
+                </div>
+              </details>
+              <details class="sidebar-subnav" data-sidebar-subnav="stakeholder-organizations">
+                <summary class="sidebar-subnav__toggle" aria-expanded="false" aria-controls="sidebar-stakeholder-organizations-content" title="Organisationsbereiche einblenden">
+                  <svg viewBox="0 0 24 24" fill="none" stroke-width="2" aria-hidden="true">
+                    <path d="M4 21V7l8-4 8 4v14"></path>
+                    <path d="M8 11h8M8 15h8M10 21v-3h4v3"></path>
+                  </svg>
+                  <span>Organisationen</span>
+                  <span class="sidebar-subnav__count" aria-hidden="true">4</span>
+                  <svg class="sidebar-subnav__chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <path d="m6 9 6 6 6-6"></path>
+                  </svg>
+                </summary>
+                <div class="sidebar-subnav__content" id="sidebar-stakeholder-organizations-content" role="group" aria-label="Stakeholder-Organisationen">
                 <button class="primary-tab primary-tab--nested" type="button" data-view-tab="stakeholders" data-stakeholder-type-route="kv" title="Kassenärztliche Vereinigungen">
                   <svg viewBox="0 0 24 24" fill="none" stroke-width="2" aria-hidden="true">
                     <path d="M4 21V7l8-4 8 4v14"></path>
@@ -184,18 +222,8 @@
                   </svg>
                   <span>Ärztliche Berufsverbände</span>
                 </button>
-              </div>
-              <button class="primary-tab" type="button" data-view-tab="experts" title="Expertenkreis">
-                <svg viewBox="0 0 24 24" fill="none" stroke-width="2" aria-hidden="true">
-                  <circle cx="12" cy="7" r="3"></circle>
-                  <circle cx="6" cy="17" r="3"></circle>
-                  <circle cx="18" cy="17" r="3"></circle>
-                  <path d="m10.2 9.4-2.4 4.2"></path>
-                  <path d="m13.8 9.4 2.4 4.2"></path>
-                  <path d="M9 17h6"></path>
-                </svg>
-                <span>Expertenkreis</span>
-              </button>
+                </div>
+              </details>
             </div>
           </div>
           <div class="sidebar-section is-collapsed" aria-label="Hospitations-Kompass" data-sidebar-section="planning" data-sidebar-group="planning" data-sidebar-collapsible>
@@ -456,7 +484,7 @@
                 <span class="experts-mode-count">0</span>
               </button>
               <button class="settings-tab-button" id="patient-mode-organizations" type="button" role="tab" data-patient-mode="organizations" aria-selected="false" aria-controls="patient-organizations-table" tabindex="-1">
-                <span class="experts-mode-label">Patientenorganisationen &amp; Verbände </span>
+                <span class="experts-mode-label">Organisationen </span>
                 <span class="experts-mode-count">0</span>
               </button>
               <button class="settings-tab-button" id="patient-mode-indications" type="button" role="tab" data-patient-mode="indications" aria-selected="false" aria-controls="patient-indications-table" tabindex="-1">
@@ -486,6 +514,12 @@
               <button class="action-button action-button--primary" type="button" id="new-format-button" hidden><span class="action-button__icon">+</span>Neues Format</button>
               <button class="action-button action-button--primary" type="button" id="new-hospitation-request-button" hidden><span class="action-button__icon">+</span>Neuer Termin</button>
             </div>
+            <div class="bulk-toolbar contextual-bulk-toolbar" id="contextual-bulk-toolbar" hidden>
+              <span class="bulk-toolbar__count" id="contextual-bulk-selection-count" aria-live="polite" aria-atomic="true">0 Einträge ausgewählt</span>
+              <button class="bulk-toolbar__link" type="button" id="contextual-bulk-clear-selection">Auswahl aufheben</button>
+              <span class="bulk-toolbar__divider" aria-hidden="true"></span>
+              <button class="action-button action-button--compact" type="button" id="contextual-bulk-export">Exportieren</button>
+            </div>
 
             <label class="search-shell" aria-label="Kontakte durchsuchen">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" aria-hidden="true">
@@ -507,7 +541,7 @@
               <div class="active-filter-row">
                 <div class="active-filter-list" id="active-filter-list"></div>
               </div>
-              <div class="filter-results" id="results-count">0 von 0 Kontakten</div>
+              <div class="filter-results collection-result" id="results-count" aria-live="polite" aria-atomic="true">0 von 0 Kontakten</div>
               <div class="filter-shell">
                 <button class="filter-panel-button" type="button" id="filter-panel-button" aria-label="Filter öffnen" aria-expanded="false" aria-controls="filter-panel">
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
@@ -786,12 +820,8 @@
 
           <section class="view-panel" id="view-organizations" data-view-panel="organizations">
             <div class="view-card organizations-workspace">
-              <div class="table-command-row table-command-row--organizations">
+              <div class="table-command-row table-command-row--organizations" id="organization-table-toolbar">
                 <div class="table-command-actions organization-column-actions" id="organization-column-actions"></div>
-                <div class="table-command-spacer" aria-hidden="true"></div>
-                <div class="table-command-actions" id="organization-command-actions">
-                  <button class="action-button" type="button" id="organization-matching-worklist-button">Dubletten</button>
-                </div>
               </div>
               <div class="table-wrap">
                 <section class="table organizations-table" aria-labelledby="workspace-view-title">
@@ -827,6 +857,9 @@
                 <div class="table-footer__controls">
                   <div class="pagination" id="organizations-pagination"></div>
                 </div>
+              </div>
+              <div class="table-secondary-actions" id="organization-secondary-actions">
+                <button class="action-button" type="button" id="organization-matching-worklist-button">Dubletten</button>
               </div>
             </div>
           </section>
@@ -878,7 +911,7 @@
 
           <section class="view-panel" id="view-experts" data-view-panel="experts">
             <div class="view-card experts-workspace">
-              <div class="table-command-row table-command-row--experts table-command-row--expert-actions">
+              <div class="table-command-row table-command-row--experts table-command-row--expert-actions" id="expert-table-toolbar">
                 <div class="bulk-toolbar expert-bulk-toolbar" id="expert-bulk-toolbar" hidden>
                   <span class="bulk-toolbar__count" id="expert-bulk-selection-count">0 Kontakte ausgewählt</span>
                   <button class="bulk-toolbar__link" type="button" id="expert-bulk-clear-selection">Auswahl aufheben</button>
@@ -940,7 +973,7 @@
 
           <section class="view-panel" id="view-patients" data-view-panel="patients">
             <div class="view-card experts-workspace patients-workspace">
-              <div class="table-command-row table-command-row--experts table-command-row--patient-actions">
+              <div class="table-command-row table-command-row--experts table-command-row--patient-actions" id="patient-table-toolbar">
                 <div class="table-command-actions" id="patient-command-actions"></div>
                 <div class="table-command-spacer" aria-hidden="true"></div>
                 <div class="table-command-actions expert-column-actions" id="patient-column-actions"></div>
@@ -984,12 +1017,36 @@
 
           <section class="view-panel" id="view-politics" data-view-panel="politics">
             <div class="view-card politics-workspace">
-              <div class="dataset-toolbar politics-context" aria-label="Ausschussliste">
+              <div class="dataset-toolbar politics-context" id="politics-table-toolbar" aria-label="Ausschussliste">
                 <div class="dataset-toolbar__summary">
                   <span class="dataset-toolbar__scope">Ausschuss für Gesundheit</span>
-                  <span class="dataset-toolbar__meta" id="politics-member-count">Mitglieder werden geladen</span>
+                  <span class="dataset-toolbar__meta collection-result" id="politics-member-count" aria-live="polite" aria-atomic="true">Mitglieder werden geladen</span>
                 </div>
                 <div class="dataset-toolbar__actions politics-context__actions">
+                  <div class="filter-shell directory-filter-shell" data-directory-filter-shell="politics">
+                    <button class="filter-panel-button directory-filter-button" type="button" id="politics-filter-button" aria-label="Politik filtern" aria-expanded="false" aria-controls="politics-filter-panel">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                        <path d="M4 6h16"></path>
+                        <path d="M7 12h10"></path>
+                        <path d="M10 18h4"></path>
+                      </svg>
+                      <span class="filter-panel-button__label">
+                        <span>Filter</span>
+                        <span class="filter-panel-button__badge" id="politics-filter-badge">0</span>
+                      </span>
+                      <span class="filter-panel-button__caret" aria-hidden="true">⌄</span>
+                    </button>
+                    <div class="filter-panel directory-filter-panel" id="politics-filter-panel" data-directory-filter-panel="politics" hidden>
+                      <div class="filter-panel-head">
+                        <h3 class="filter-panel-title">Politik filtern</h3>
+                        <button class="filter-panel-close" type="button" data-directory-filter-close="politics" aria-label="Politik-Filter schließen">&times;</button>
+                      </div>
+                      <div class="directory-filter-panel__grid" data-directory-filter-fields="politics"></div>
+                      <div class="filter-panel-footer">
+                        <button class="filter-reset filter-reset--all" type="button" data-directory-filter-reset="politics">Alle Filter zurücksetzen</button>
+                      </div>
+                    </div>
+                  </div>
                   <button class="action-button politics-map-open" id="politics-map-open" type="button">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
                       <path d="M9 18 3 21V6l6-3 6 3 6-3v15l-6 3-6-3Z"></path>
@@ -997,19 +1054,6 @@
                     </svg>
                     Auf Karte anzeigen
                   </button>
-                  <a
-                    class="politics-source-link"
-                    id="politics-committee-source"
-                    href="https://www.bundestag.de/ausschuesse/gesundheit/"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                  >
-                    Quelle öffnen
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
-                      <path d="M14 5h5v5M10 14 19 5"></path>
-                      <path d="M19 13v6H5V5h6"></path>
-                    </svg>
-                  </a>
                 </div>
               </div>
 
@@ -1052,16 +1096,62 @@
               </div>
 
               <div class="table-footer politics-table-footer" id="politics-table-footer">
-                <div class="table-footer__meta" id="politics-results-meta">Mitglieder werden geladen</div>
-                <div class="politics-source-meta" id="politics-source-meta">Offizielle Quelle: Deutscher Bundestag</div>
+                <div class="table-footer__meta" id="politics-results-meta" hidden>Mitglieder werden geladen</div>
+                <div class="politics-source-footer">
+                  <div class="politics-source-meta" id="politics-source-meta">Offizielle Quelle: Deutscher Bundestag</div>
+                  <a
+                    class="politics-source-link"
+                    id="politics-committee-source"
+                    href="https://www.bundestag.de/ausschuesse/gesundheit/"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    Quelle öffnen
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                      <path d="M14 5h5v5M10 14 19 5"></path>
+                      <path d="M19 13v6H5V5h6"></path>
+                    </svg>
+                  </a>
+                </div>
+                <div class="table-footer__controls politics-pagination-controls" hidden>
+                  <div class="pagination" id="politics-pagination"></div>
+                </div>
               </div>
             </div>
           </section>
 
           <section class="view-panel" id="view-press" data-view-panel="press">
             <div class="view-card politics-workspace press-workspace">
-              <div class="dataset-toolbar press-context" aria-label="Pressekontaktliste">
-                <span class="dataset-toolbar__meta" id="press-contact-count">Kontakte werden geladen</span>
+              <div class="dataset-toolbar press-context" id="press-table-toolbar" aria-label="Pressekontaktliste">
+                <div class="dataset-toolbar__summary">
+                  <span class="dataset-toolbar__meta collection-result" id="press-contact-count" aria-live="polite" aria-atomic="true">Kontakte werden geladen</span>
+                </div>
+                <div class="dataset-toolbar__actions">
+                  <div class="filter-shell directory-filter-shell" data-directory-filter-shell="press">
+                    <button class="filter-panel-button directory-filter-button" type="button" id="press-filter-button" aria-label="Presse filtern" aria-expanded="false" aria-controls="press-filter-panel">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                        <path d="M4 6h16"></path>
+                        <path d="M7 12h10"></path>
+                        <path d="M10 18h4"></path>
+                      </svg>
+                      <span class="filter-panel-button__label">
+                        <span>Filter</span>
+                        <span class="filter-panel-button__badge" id="press-filter-badge">0</span>
+                      </span>
+                      <span class="filter-panel-button__caret" aria-hidden="true">⌄</span>
+                    </button>
+                    <div class="filter-panel directory-filter-panel" id="press-filter-panel" data-directory-filter-panel="press" hidden>
+                      <div class="filter-panel-head">
+                        <h3 class="filter-panel-title">Presse filtern</h3>
+                        <button class="filter-panel-close" type="button" data-directory-filter-close="press" aria-label="Presse-Filter schließen">&times;</button>
+                      </div>
+                      <div class="directory-filter-panel__grid" data-directory-filter-fields="press"></div>
+                      <div class="filter-panel-footer">
+                        <button class="filter-reset filter-reset--all" type="button" data-directory-filter-reset="press">Alle Filter zurücksetzen</button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
               </div>
 
               <div class="politics-data-notice press-data-notice" id="press-data-notice" role="status" aria-live="polite" hidden></div>
@@ -1648,7 +1738,7 @@
 
           <section class="view-panel" id="view-formats" data-view-panel="formats">
             <div class="formats-workspace">
-              <div class="formats-command-row" aria-label="Formataktionen">
+              <div class="formats-command-row" id="formats-table-toolbar" aria-label="Formataktionen">
                 <div class="formats-command-actions">
                   <div class="format-contact-filter" id="format-contact-filter" hidden>
                     <span>Kontakt: <strong id="format-contact-filter-name"></strong></span>
@@ -1690,7 +1780,7 @@
               <section class="hospitation-tab-panel" id="hospitation-appointments-panel" data-hospitation-tab-panel="appointments" aria-label="Hospitations-Termine">
                 <div class="hospitation-appointments-action-row hospitation-table-toolbar" id="hospitation-table-toolbar" role="group" aria-label="Terminliste und Ansichtsoptionen">
                   <div class="hospitation-appointments-action-row__left">
-                    <div class="dataset-toolbar__meta hospitation-table-toolbar__meta" id="hospitation-table-toolbar-meta" aria-live="polite" aria-atomic="true">0 von 0 Terminen</div>
+                    <div class="dataset-toolbar__meta collection-result hospitation-table-toolbar__meta" id="hospitation-table-toolbar-meta" aria-live="polite" aria-atomic="true">0 von 0 Terminen</div>
                     <div class="bulk-toolbar hospitation-bulk-toolbar" id="hospitation-bulk-toolbar" hidden>
                       <span class="bulk-toolbar__count" id="hospitation-bulk-selection-count">0 Termine ausgewählt</span>
                       <button class="bulk-toolbar__link" type="button" id="hospitation-bulk-clear-selection">Auswahl aufheben</button>
@@ -2042,6 +2132,7 @@
 
           <section class="view-panel" id="view-analytics" data-view-panel="analytics">
             <div class="view-card analytics-shell">
+              <div class="view-mode-command-row" id="analytics-view-mode-toolbar" aria-label="Auswertungsansicht"></div>
               <div class="dashboard-grid">
                 <div class="dashboard-cluster-title">Verteilung</div>
                 <article class="dashboard-card dashboard-card--distribution-main">
@@ -2120,6 +2211,7 @@
 
           <section class="view-panel" id="view-quality" data-view-panel="quality">
             <div class="analytics-shell quality-workspace">
+              <div class="view-mode-command-row" id="quality-view-mode-toolbar" aria-label="Auswertungsansicht"></div>
               <div class="quality-workspace-grid">
                 <article class="dashboard-card dashboard-card--quality-overview">
                   <div class="dashboard-card-head">

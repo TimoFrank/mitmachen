@@ -214,7 +214,11 @@ test("Experten-, alle Patientenmodi und Stakeholderlisten haben eine dynamische 
     await assertSemanticTable(page.locator(`#${panel} [role="table"]`));
   }
 
-  await page.locator('[data-view-tab="stakeholders"]').first().click();
+  const stakeholderOrganizationSubnav = page.locator('[data-sidebar-subnav="stakeholder-organizations"]');
+  if (!await stakeholderOrganizationSubnav.getAttribute("open")) {
+    await stakeholderOrganizationSubnav.locator(".sidebar-subnav__toggle").click();
+  }
+  await stakeholderOrganizationSubnav.locator('[data-view-tab="stakeholders"]').first().click();
   await expect(page.locator('[data-view-panel="stakeholders"]')).toBeVisible();
   await assertSemanticTable("Stakeholder-Organisationen");
 });

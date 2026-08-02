@@ -328,8 +328,8 @@
       color: #ffffff;
     }
     .map-toggle-active-marker {
-      background: var(--gematik-green-soft);
-      border-color: #78dca3;
+      background: var(--gematik-green);
+      border-color: var(--gematik-navy);
       color: var(--gematik-navy);
     }
     .map-toggle-active-filter {
@@ -2935,8 +2935,8 @@
     }
 
     .map-toggle-active-marker {
-      border-color: #78dca3 !important;
-      background: var(--gematik-green-soft) !important;
+      border-color: var(--gematik-navy) !important;
+      background: var(--gematik-green) !important;
       color: var(--gematik-navy) !important;
       box-shadow: none !important;
     }
@@ -2948,8 +2948,8 @@
     }
 
     .map-toggle-active-marker:hover {
-      border-color: #78dca3 !important;
-      background: var(--gematik-green-soft) !important;
+      border-color: var(--gematik-navy) !important;
+      background: var(--gematik-green) !important;
       color: var(--gematik-navy) !important;
     }
 
@@ -3532,7 +3532,8 @@
       }
 
       .map-mode-controls .map-toggle.map-toggle-active-marker[aria-pressed="true"] {
-        background: var(--gematik-green-soft) !important;
+        border-color: var(--gematik-navy) !important;
+        background: var(--gematik-green) !important;
         color: var(--gematik-navy) !important;
       }
 

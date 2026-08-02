@@ -24,7 +24,7 @@ async function expectSearchGeometry(page, route, primarySelector = "") {
   await expect(search).toBeVisible();
   await expect(search).toHaveCount(1);
   await expect(search.locator("svg")).toHaveCount(1);
-  await expect(controls.locator(".workspace-primary-actions + .search-shell")).toHaveCount(1);
+  await expect(controls.locator(".workspace-primary-actions ~ .search-shell")).toHaveCount(1);
 
   const primary = primarySelector ? controls.locator(primarySelector) : null;
   if (primary) await expect(primary).toBeVisible();
@@ -111,7 +111,7 @@ test("Kontakte bündeln Filter, Owner und Spalten in der Tabellenzeile", async (
   const listSwitcher = toolbar.locator("#contact-list-switcher");
 
   await expect(toolbar).toBeVisible();
-  await expect(filterToolbar).toBeVisible();
+  await expect(filterToolbar).toHaveCount(1);
   await expect(page.locator(".controls-stack > .filter-toolbar")).toHaveCount(0);
   await expect(filterButton).toBeVisible();
   await expect(ownerButton).toBeVisible();
@@ -145,6 +145,8 @@ test("Kontakte bündeln Filter, Owner und Spalten in der Tabellenzeile", async (
     await expect(columnsButton).toBeHidden();
     expect(geometry.filter.top).toBeGreaterThanOrEqual(geometry.list.bottom + 7);
     expect(Math.abs((geometry.filter.top + geometry.filter.height / 2) - (geometry.owner.top + geometry.owner.height / 2))).toBeLessThanOrEqual(2);
+    expect(geometry.owner.left - geometry.filter.right).toBeGreaterThanOrEqual(6);
+    expect(geometry.filter.right).toBeLessThanOrEqual(geometry.toolbar.right + 1);
   } else {
     await expect(columnsButton).toBeVisible();
     expect(geometry.filter.left).toBeGreaterThanOrEqual(geometry.list.right + 8);
@@ -158,11 +160,149 @@ test("Kontakte bündeln Filter, Owner und Spalten in der Tabellenzeile", async (
   await expect(filterButton).toHaveAttribute("aria-expanded", "true");
 
   await page.goto(appPath("organizations"), { waitUntil: "load" });
-  await expect(page.locator(".controls-stack > .filter-toolbar")).toBeVisible();
+  await expect(page.locator("#organization-column-actions > .filter-toolbar")).toHaveCount(1);
+  await expect(page.locator("#organization-column-actions #filter-panel-button")).toBeVisible();
+  await expect(page.locator(".controls-stack > .filter-toolbar")).toHaveCount(0);
   await expect(page.locator("#filter-panel-button")).toHaveCount(1);
   await page.goto(appPath("contacts"), { waitUntil: "load" });
-  await expect(page.locator("#contact-table-toolbar > .filter-toolbar")).toBeVisible();
+  await expect(page.locator("#contact-table-toolbar > .filter-toolbar")).toHaveCount(1);
+  await expect(page.locator("#contact-table-toolbar #filter-panel-button")).toBeVisible();
   await expect(page.locator("#filter-panel-button")).toHaveCount(1);
+});
+
+test("Organisationen, Expertenkreis und Patienten integrieren den Filter in ihre Tabellenwerkzeuge", async ({ page }) => {
+  const routes = [
+    {
+      route: "organizations",
+      toolbar: "#organization-table-toolbar",
+      actions: "#organization-column-actions"
+    },
+    {
+      route: "experts",
+      toolbar: "#expert-table-toolbar",
+      actions: "#expert-column-actions"
+    },
+    {
+      route: "patients?view=people",
+      toolbar: "#patient-table-toolbar",
+      actions: "#patient-column-actions"
+    }
+  ];
+
+  await gotoAuthenticated(page, appPath(routes[0].route), { role: "admin" });
+  for (const [index, item] of routes.entries()) {
+    if (index > 0) await page.goto(appPath(item.route), { waitUntil: "load" });
+    const toolbar = page.locator(item.toolbar);
+    const actions = page.locator(item.actions);
+    const filterToolbar = actions.locator(":scope > .filter-toolbar");
+
+    await expect(toolbar).toBeVisible();
+    await expect(filterToolbar).toHaveCount(1);
+    await expect(filterToolbar.locator("#filter-panel-button")).toBeVisible();
+    await expect(page.locator(".controls-stack > .filter-toolbar")).toHaveCount(0);
+    await expect(toolbar.locator("#filter-panel-button")).toHaveCount(1);
+
+    const geometry = await toolbar.evaluate((element) => {
+      const toolbarRect = element.getBoundingClientRect();
+      const filterRect = element.querySelector("#filter-panel-button")?.getBoundingClientRect();
+      const ownerRect = element.querySelector("#view-select-button")?.getBoundingClientRect();
+      return {
+        toolbar: { left: toolbarRect.left, right: toolbarRect.right, top: toolbarRect.top, bottom: toolbarRect.bottom },
+        filter: filterRect && { left: filterRect.left, right: filterRect.right, top: filterRect.top, bottom: filterRect.bottom },
+        owner: ownerRect && { left: ownerRect.left, right: ownerRect.right, top: ownerRect.top, bottom: ownerRect.bottom, height: ownerRect.height },
+        overflow: document.documentElement.scrollWidth - document.documentElement.clientWidth
+      };
+    });
+    expect(geometry.filter).not.toBeNull();
+    expect(geometry.filter.left).toBeGreaterThanOrEqual(geometry.toolbar.left - 1);
+    expect(geometry.filter.right).toBeLessThanOrEqual(geometry.toolbar.right + 1);
+    expect(geometry.filter.top).toBeGreaterThanOrEqual(geometry.toolbar.top - 1);
+    expect(geometry.filter.bottom).toBeLessThanOrEqual(geometry.toolbar.bottom + 1);
+    expect(geometry.overflow).toBeLessThanOrEqual(1);
+    if (item.route === "organizations") {
+      expect(geometry.owner).not.toBeNull();
+      expect(Math.abs((geometry.filter.top + (geometry.filter.bottom - geometry.filter.top) / 2) - (geometry.owner.top + geometry.owner.height / 2))).toBeLessThanOrEqual(2);
+      expect(geometry.owner.left - geometry.filter.right).toBeGreaterThanOrEqual(6);
+    }
+  }
+});
+
+test("Experten-, Patienten- und Auswertungsmodi erscheinen als kompakte Switcher im Inhaltsbereich", async ({ page }, testInfo) => {
+  await gotoAuthenticated(page, appPath("experts"), { role: "admin" });
+
+  const assertCompactSwitcher = async ({ toolbar, switcher, count }) => {
+    const toolbarNode = page.locator(toolbar);
+    const switcherNode = toolbarNode.locator(`:scope > ${switcher}`);
+    await expect(toolbarNode).toBeVisible();
+    await expect(switcherNode).toBeVisible();
+    await expect(page.locator(`.workspace-header ${switcher}`)).toHaveCount(0);
+    const navDisplay = await switcherNode.locator(".experts-mode-nav--header").evaluate((node) => getComputedStyle(node).display);
+    expect(["flex", "inline-flex", "grid"]).toContain(navDisplay);
+    if (count) {
+      await expect(switcherNode.locator(".experts-mode-count")).toHaveCount(count);
+      await expect(switcherNode.locator(".experts-mode-count")).toHaveText(Array.from({ length: count }, () => /\d+/));
+      const countDisplays = await switcherNode.locator(".experts-mode-count").evaluateAll((nodes) =>
+        nodes.map((node) => getComputedStyle(node).display)
+      );
+      expect(countDisplays.every((display) => display !== "none")).toBe(true);
+    }
+    const geometry = await toolbarNode.evaluate((element, selector) => {
+      const toolbarRect = element.getBoundingClientRect();
+      const switcherRect = element.querySelector(`:scope > ${selector}`)?.getBoundingClientRect();
+      return {
+        toolbar: { left: toolbarRect.left, right: toolbarRect.right, top: toolbarRect.top, bottom: toolbarRect.bottom, width: toolbarRect.width },
+        switcher: switcherRect && { left: switcherRect.left, right: switcherRect.right, top: switcherRect.top, bottom: switcherRect.bottom, width: switcherRect.width }
+      };
+    }, switcher);
+    expect(geometry.switcher).not.toBeNull();
+    expect(geometry.switcher.left).toBeGreaterThanOrEqual(geometry.toolbar.left - 1);
+    expect(geometry.switcher.right).toBeLessThanOrEqual(geometry.toolbar.right + 1);
+    expect(geometry.switcher.top).toBeGreaterThanOrEqual(geometry.toolbar.top - 1);
+    expect(geometry.switcher.bottom).toBeLessThanOrEqual(geometry.toolbar.bottom + 1);
+    expect(geometry.switcher.width).toBeLessThanOrEqual(geometry.toolbar.width + 1);
+  };
+
+  await assertCompactSwitcher({
+    toolbar: "#expert-table-toolbar",
+    switcher: "#expert-mode-actions",
+    count: 2
+  });
+
+  await page.goto(appPath("patients?view=people"), { waitUntil: "load" });
+  await assertCompactSwitcher({
+    toolbar: "#patient-table-toolbar",
+    switcher: "#patient-mode-actions",
+    count: 3
+  });
+  await expect(page.locator('#patient-mode-actions [data-patient-mode="organizations"] .experts-mode-label')).toHaveText("Organisationen");
+  if (testInfo.project.name.includes("mobile")) {
+    await page.setViewportSize({ width: 320, height: 780 });
+    const tabsStayInsideSwitcher = await page.locator("#patient-mode-actions .experts-mode-nav--header").evaluate((switcher) => {
+      const switcherBounds = switcher.getBoundingClientRect();
+      return [...switcher.querySelectorAll("[data-patient-mode]")].every((tab) => {
+        const tabBounds = tab.getBoundingClientRect();
+        return tabBounds.left >= switcherBounds.left - 1 && tabBounds.right <= switcherBounds.right + 1;
+      });
+    });
+    expect(tabsStayInsideSwitcher).toBe(true);
+  }
+
+  await page.goto(appPath("analytics"), { waitUntil: "load" });
+  await assertCompactSwitcher({
+    toolbar: "#analytics-view-mode-toolbar",
+    switcher: "#analytics-mode-actions",
+    count: 0
+  });
+  await expect(page.locator('[data-analytics-mode="analytics"]')).toHaveAttribute("aria-selected", "true");
+
+  await page.locator('[data-analytics-mode="quality"]').click();
+  await expect(page).toHaveURL(/#quality$/);
+  await assertCompactSwitcher({
+    toolbar: "#quality-view-mode-toolbar",
+    switcher: "#analytics-mode-actions",
+    count: 0
+  });
+  await expect(page.locator('[data-analytics-mode="quality"]')).toHaveAttribute("aria-selected", "true");
 });
 
 test("Hospitationen bündeln Ergebniszahl, Export und Ansicht in einer Tabellenzeile", async ({ page }) => {
