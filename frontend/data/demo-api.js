@@ -920,12 +920,17 @@
       const limit = Math.min(Math.max(Number(url.searchParams.get("limit")) || 30, 1), 100);
       const rows = state.notifications.filter((item) => {
         const unread = item.unread !== false && !(item.readAt || item.read_at);
-        return (!unreadOnly || unread) && (context === "all" || !context || item.context === context);
+        const contextMatches = context === "all" || !context
+          ? true
+          : context === "operational"
+            ? item.context !== "product"
+            : item.context === context;
+        return (!unreadOnly || unread) && contextMatches;
       });
       return json({ items: rows.slice(offset, offset + limit), nextOffset: Math.min(rows.length, offset + limit), hasMore: rows.length > offset + limit });
     }
     if (method === "GET" && path === "/api/notifications/summary") {
-      const unread = state.notifications.filter((item) => item.unread !== false && !(item.readAt || item.read_at));
+      const unread = state.notifications.filter((item) => item.context !== "product" && item.unread !== false && !(item.readAt || item.read_at));
       const byContext = unread.reduce((result, item) => ({ ...result, [item.context]: (result[item.context] || 0) + 1 }), {});
       return json({ unreadTotal: unread.length, byContext });
     }

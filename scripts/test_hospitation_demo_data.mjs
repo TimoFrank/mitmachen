@@ -615,15 +615,33 @@ for (const notification of data.notifications) {
     contacts: "contact",
     organizations: "organization",
     hospitations: "hospitation",
-    formats: "format",
-    team: "contact"
+    formats: "format"
   }[notification.context];
   assert.equal(notification.entityType, expectedEntityType, `${notification.id}: Entität passt nicht zum Benachrichtigungskontext.`);
+  assert.doesNotMatch(`${notification.title} ${notification.body}`, /synthetisch/i, `${notification.id}: sichtbare Benachrichtigungstexte dürfen keine technischen Demo-Hinweise enthalten.`);
+  assert.ok(notification.body.includes(notification.entityLabel), `${notification.id}: Benachrichtigungstext muss das betroffene Objekt konkret benennen.`);
 }
 assert.deepEqual(
   sorted(data.notifications.map((item) => item.context)),
-  ["contacts", "formats", "hospitations", "organizations", "team"],
-  "Benachrichtigungen müssen alle zentralen Arbeitskontexte abdecken."
+  ["contacts", "formats", "hospitations", "organizations"],
+  "Operative Demo-Benachrichtigungen müssen die fachlichen Objektkontexte abdecken."
+);
+const ownerAssignmentNotifications = data.notifications.filter((item) => item.eventKey === "contact.owner.assigned");
+assert.ok(ownerAssignmentNotifications.length > 0, "Die Demo muss die Verantwortungszuordnung als Benachrichtigung abdecken.");
+assert.ok(
+  ownerAssignmentNotifications.every((item) => item.context === "contacts" && item.entityType === "contact"),
+  "Verantwortungszuordnungen gehören zum Kontakt und dürfen keinen Team-Zähler erzeugen."
+);
+const unreadNotificationsByContext = data.notifications
+  .filter((item) => item.unread)
+  .reduce((result, item) => {
+    result[item.context] = (result[item.context] || 0) + 1;
+    return result;
+  }, {});
+assert.deepEqual(
+  unreadNotificationsByContext,
+  { contacts: 3, organizations: 2, hospitations: 1, formats: 1 },
+  "Die sieben ungelesenen Demo-Hinweise müssen auf die fachlichen Kontexte verteilt sein."
 );
 
 for (const note of data.contactNotes) {

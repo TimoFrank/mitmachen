@@ -3868,12 +3868,50 @@ test("Benachrichtigungen: Glocke öffnet Vorschau und Profil-Reiter rendert Inbo
         eventType: "contact_updated",
         entityType: "contact",
         entityId: "kontakt-1",
-        title: "Kontakt aktualisiert",
-        body: "Stammdaten wurden angepasst.",
+        title: "Kontaktdaten aktualisiert",
+        body: "Telefonnummer und Zuständigkeit wurden aktualisiert.",
         route: "#contacts",
         payload: { contactName: "Dr. Leonie Albrecht" },
         occurredAt: "2026-06-12T08:30:00.000Z",
         createdAt: "2026-06-12T08:30:00.000Z",
+        readAt: ""
+      },
+      {
+        id: "visual-notification-hospitation-upcoming",
+        eventType: "hospitation_upcoming",
+        entityType: "hospitation",
+        entityId: "hospitation-visual",
+        title: "Hospitation beginnt morgen",
+        body: "Bitte prüfe Treffpunkt und Ansprechperson vor dem Termin.",
+        route: "#hospitations",
+        payload: { contactName: "Praxis am Stadtpark" },
+        occurredAt: "2026-06-11T08:30:00.000Z",
+        createdAt: "2026-06-11T08:30:00.000Z",
+        readAt: ""
+      },
+      {
+        id: "visual-notification-organization-read",
+        eventType: "organization_updated",
+        entityType: "organization",
+        entityId: "organization-visual",
+        title: "Organisationsdaten aktualisiert",
+        body: "Adresse und Zuständigkeit wurden aktualisiert.",
+        route: "#organizations",
+        payload: { organizationName: "Gesundheitsnetz Nord" },
+        occurredAt: "2026-06-10T08:30:00.000Z",
+        createdAt: "2026-06-10T08:30:00.000Z",
+        readAt: "2026-06-10T09:00:00.000Z"
+      },
+      {
+        id: "visual-notification-backend-product",
+        eventType: "feature_release",
+        entityType: "product",
+        entityId: "backend-release",
+        title: "Backend-Produktmeldung",
+        body: "Dieser Hinweis darf den operativen Posteingang nicht beeinflussen.",
+        route: "#profile-about",
+        occurredAt: "2026-06-09T08:30:00.000Z",
+        createdAt: "2026-06-09T08:30:00.000Z",
         readAt: ""
       }
     ]
@@ -3883,34 +3921,41 @@ test("Benachrichtigungen: Glocke öffnet Vorschau und Profil-Reiter rendert Inbo
   });
 
   await openMobileSidebarIfNeeded(page);
+  await expect(page.locator("#notification-count-care, #notification-count-formats, #notification-count-team")).toHaveCount(0);
   await expect(page.locator("#notification-count-total")).toBeVisible();
+  await expect(page.locator("#notification-count-total")).toHaveText("2");
+  await expect(page.locator("#sidebar-notifications-button")).toHaveAttribute("aria-label", "Benachrichtigungen öffnen – 2 ungelesene Benachrichtigungen");
   await page.locator("#sidebar-notifications-button").click();
   await expect(page.locator("#notification-popover")).toBeVisible();
+  await expect(page.locator("#notification-popover-close")).toBeFocused();
   await expect(page.locator("#notification-popover-title")).toHaveText("Benachrichtigungen");
-  await expect(page.locator("#notification-popover-meta")).toHaveCount(0);
+  await expect(page.locator("#notification-popover-meta")).toHaveText("2 ungelesene Benachrichtigungen");
+  await expect(page.locator("#notification-popover-all")).toHaveText("2 ungelesene Benachrichtigungen anzeigen");
   await expect(page.locator("#notification-popover-list .notification-popover__loading")).toHaveCount(0);
   await expect(page.locator("#notification-popover")).not.toContainText("Benachrichtigungen werden geladen");
-  await expect(page.locator("#notification-popover-list .notification-preview-item")).toHaveCount(5);
+  await expect(page.locator("#notification-popover-list .notification-preview-item")).toHaveCount(2);
   await expect(page.locator("#notification-popover-list .notification-preview-item__text")).toHaveCount(0);
   await expect(page.locator("#notification-popover")).not.toContainText("Stammdaten wurden angepasst.");
   const contactPreview = page.locator('#notification-popover-list [data-open-notification="visual-notification-contact-update"]');
   await expect(contactPreview.locator(".notification-preview-item__context")).toHaveText("Dr. Leonie Albrecht");
   await expect(page.locator("#notification-popover-list .notification-preview-item__context-kind")).toHaveCount(0);
   await expect(page.locator("#notification-popover-list .notification-preview-item__context-separator")).toHaveCount(0);
-  await expect(page.locator("#notification-popover-list .notification-preview-item__context")).toHaveCount(5);
+  await expect(page.locator("#notification-popover-list .notification-preview-item__context")).toHaveCount(2);
   const previewContextBackgrounds = await page.locator("#notification-popover-list .notification-preview-item__context").evaluateAll((nodes) =>
     nodes.map((node) => getComputedStyle(node).backgroundColor)
   );
   expect(previewContextBackgrounds.every((color) => color !== "rgba(0, 0, 0, 0)")).toBe(true);
   expect(new Set(previewContextBackgrounds).size).toBeGreaterThanOrEqual(2);
   await expect(contactPreview.locator(".notification-preview-item__icon--care")).toHaveCount(1);
-  await expect(page.locator("#notification-popover-list .notification-preview-item__icon--product")).toHaveCount(4);
+  await expect(page.locator("#notification-popover-list .notification-preview-item__icon--planning")).toHaveCount(1);
+  await expect(page.locator("#notification-popover-list .notification-preview-item__icon--product")).toHaveCount(0);
+  await expect(page.locator("#notification-popover")).not.toContainText("Backend-Produktmeldung");
   const previewIconColors = await page.locator("#notification-popover-list .notification-item__icon").evaluateAll((nodes) =>
     nodes.map((node) => getComputedStyle(node).color)
   );
   expect(new Set(previewIconColors).size).toBeGreaterThanOrEqual(2);
   const previewDates = await page.locator("#notification-popover-list .notification-preview-item__date").allTextContents();
-  expect(previewDates).toHaveLength(5);
+  expect(previewDates).toHaveLength(2);
   previewDates.forEach((dateLabel) => expect(dateLabel).toMatch(/^\d{2}\.\d{2}\.\d{4}$/));
   const popoverLayout = await page.evaluate(() => {
     const popover = document.querySelector("#notification-popover")?.getBoundingClientRect();
@@ -3956,16 +4001,133 @@ test("Benachrichtigungen: Glocke öffnet Vorschau und Profil-Reiter rendert Inbo
   await expect(page.locator("#summary-grid")).toBeHidden();
   await expect(page.locator("#notifications-list .notifications-loading")).toHaveCount(0);
   await expect(page.locator("#notifications-meta")).not.toHaveText("Benachrichtigungen werden geladen");
+  await expect(page.locator("#notifications-list")).not.toContainText(/synthetisch/i);
   await expect(page.locator('[data-notification-filter]').last()).toHaveText("Produkt");
+  await expect(page.locator('[data-notification-filter="unread"]')).toHaveAttribute("aria-label", "Ungelesen – 2 ungelesene Benachrichtigungen");
+  await expect(page.locator('[data-notification-filter="contacts"]')).toHaveAttribute("aria-label", "Kontakte – 1 ungelesene Benachrichtigung");
+  await expect(page.locator('[data-notification-filter="hospitations"]')).toHaveAttribute("aria-label", "Hospitationen – 1 ungelesene Benachrichtigung");
+  await expect(page.locator('[data-notification-filter="team"]')).toHaveAttribute("aria-label", "Team – keine ungelesenen Benachrichtigungen");
+  await expect(page.locator("#notifications-list .notification-item")).toHaveCount(2);
+  const contactItem = page.locator('#notifications-list [data-notification-id="visual-notification-contact-update"]');
+  const hospitationItem = page.locator('#notifications-list [data-notification-id="visual-notification-hospitation-upcoming"]');
+  const contactToggle = contactItem.locator("[data-notification-details-toggle]");
+  const hospitationToggle = hospitationItem.locator("[data-notification-details-toggle]");
+  await expect(contactToggle).toHaveAttribute("aria-expanded", "false");
+  await expect(contactItem.locator(".notification-item__title")).toBeVisible();
+  await expect(contactItem.locator(".notification-item__compass-mark")).toHaveAttribute("src", "../../public/brand/versorgungs-kompass/mark.svg");
+  await expect(contactItem.locator(".notification-item__category")).toHaveText("Kontakte");
+  await expect(contactItem.locator(".notification-item__summary-status")).toHaveText("Ungelesen");
+  await expect(contactItem.locator(".notification-item__summary-date")).toHaveText("12.06.2026");
+  await expect(contactItem.locator("time.notification-item__summary-date")).toHaveAttribute("datetime", "2026-06-12T08:30:00.000Z");
+  const contactSummaryBox = await contactItem.locator(".notification-item__summary").boundingBox();
+  const contactSummaryMetaBox = await contactItem.locator(".notification-item__summary-meta").boundingBox();
+  const contactCompassMarkBox = await contactItem.locator(".notification-item__compass-mark").boundingBox();
+  const contactCategoryBox = await contactItem.locator(".notification-item__category").boundingBox();
+  const contactTitleBox = await contactItem.locator(".notification-item__title").boundingBox();
+  const contactDateBox = await contactItem.locator(".notification-item__summary-date").boundingBox();
+  const contactStatusBox = await contactItem.locator(".notification-item__summary-status").boundingBox();
+  expect(contactSummaryBox).not.toBeNull();
+  expect(contactSummaryMetaBox).not.toBeNull();
+  expect(contactCompassMarkBox).not.toBeNull();
+  expect(contactCategoryBox).not.toBeNull();
+  expect(contactTitleBox).not.toBeNull();
+  expect(contactDateBox).not.toBeNull();
+  expect(contactStatusBox).not.toBeNull();
+  expect(contactSummaryMetaBox.y).toBeLessThan(contactTitleBox.y);
+  expect(contactCompassMarkBox.x).toBeLessThan(contactCategoryBox.x);
+  expect(Math.abs((contactCompassMarkBox.y + (contactCompassMarkBox.height / 2)) - (contactCategoryBox.y + (contactCategoryBox.height / 2)))).toBeLessThanOrEqual(1);
+  expect(contactDateBox.y).toBeLessThan(contactStatusBox.y);
+  if (testInfo.project.name === "chromium-mobile") {
+    const contactChevronBox = await contactItem.locator(".notification-item__chevron").boundingBox();
+    expect(contactChevronBox).not.toBeNull();
+    expect(contactStatusBox.width).toBeGreaterThanOrEqual(128);
+    expect(contactStatusBox.width).toBeLessThanOrEqual(134);
+    expect(Math.abs((contactStatusBox.x + (contactStatusBox.width / 2)) - (contactSummaryBox.x + (contactSummaryBox.width / 2)))).toBeLessThanOrEqual(1);
+    expect(contactTitleBox.y + contactTitleBox.height).toBeLessThanOrEqual(contactStatusBox.y - 6);
+    expect(contactChevronBox.x - (contactStatusBox.x + contactStatusBox.width)).toBeGreaterThanOrEqual(8);
+    expect(Math.abs((contactChevronBox.y + contactChevronBox.height) - (contactStatusBox.y + contactStatusBox.height))).toBeLessThanOrEqual(2);
+    expect(await contactItem.evaluate((element) => element.scrollWidth <= element.clientWidth)).toBe(true);
+  } else {
+    expect(Math.abs((contactDateBox.x + contactDateBox.width) - (contactStatusBox.x + contactStatusBox.width))).toBeLessThanOrEqual(1);
+  }
+  const contactDateBadgeStyle = await contactItem.locator(".notification-item__summary-date").evaluate((element) => {
+    const style = getComputedStyle(element);
+    return {
+      backgroundColor: style.backgroundColor,
+      borderRadius: Number.parseFloat(style.borderRadius),
+      borderStyle: style.borderStyle,
+      display: style.display
+    };
+  });
+  expect(["flex", "inline-flex"]).toContain(contactDateBadgeStyle.display);
+  expect(contactDateBadgeStyle.borderStyle).not.toBe("none");
+  expect(contactDateBadgeStyle.borderRadius).toBeGreaterThan(10);
+  expect(contactDateBadgeStyle.backgroundColor).not.toBe("rgba(0, 0, 0, 0)");
+  await expect(contactItem.locator(".notification-item__details")).toBeHidden();
+  await expect(contactItem.locator(".notification-item__text")).toBeHidden();
+  await expect(contactItem.locator(".notification-item__actions")).toBeHidden();
+  await expect(contactItem.locator("[data-open-notification]")).toBeHidden();
+  const inboxUrl = page.url();
+  await contactToggle.click();
+  await expect(page).toHaveURL(inboxUrl);
+  await expect(contactToggle).toHaveAttribute("aria-expanded", "true");
+  await expect(contactItem.locator(".notification-item__details")).toBeVisible();
+  await expect(contactItem.locator(".notification-item__text")).toHaveText("Telefonnummer und Zuständigkeit wurden aktualisiert.");
+  await expect(contactItem.locator("[data-open-notification]")).toBeVisible();
+  expect(backendFixture.notifications.find((item) => item.id === "visual-notification-contact-update")?.readAt).toBe("");
+  await expect(page.locator("#notification-count-total")).toHaveText("2");
+  await hospitationToggle.click();
+  await expect(contactToggle).toHaveAttribute("aria-expanded", "false");
+  await expect(contactItem.locator(".notification-item__details")).toBeHidden();
+  await expect(hospitationToggle).toHaveAttribute("aria-expanded", "true");
+  await expect(hospitationItem.locator(".notification-item__details")).toBeVisible();
+  await expect(hospitationItem.locator(".notification-item__compass-mark")).toHaveAttribute("src", "../../public/brand/modules/hospitation/mark.svg");
+  await expect(hospitationItem.locator(".notification-item__category")).toHaveText("Hospitationen");
+  await expect(hospitationItem.locator(".notification-item__summary-date")).toHaveText("11.06.2026");
+  await hospitationToggle.click();
+  await expect(hospitationToggle).toHaveAttribute("aria-expanded", "false");
+  await page.locator('[data-notification-filter="hospitations"]').click();
+  await expect(page.locator('#notifications-list [data-notification-id="visual-notification-hospitation-upcoming"]')).toBeVisible();
+  await expect(page.locator("#notifications-list .notification-item")).toHaveCount(1);
+  await page.locator('[data-notification-filter="all"]').click();
+  await expect(page.locator("#notifications-list .notification-item")).toHaveCount(3);
+  await expect(page.locator("#notifications-list")).not.toContainText("Backend-Produktmeldung");
+  const readOrganizationItem = page.locator('#notifications-list [data-notification-id="visual-notification-organization-read"]');
+  await expect(readOrganizationItem.locator(".notification-item__compass-mark")).toHaveAttribute("src", "../../public/brand/versorgungs-kompass/mark.svg");
+  await expect(readOrganizationItem.locator(".notification-item__category")).toHaveText("Organisationen");
+  await expect(readOrganizationItem.locator(".notification-item__summary-status")).toHaveText("Gelesen");
+  await expect(readOrganizationItem.locator(".notification-item__summary-date")).toHaveText("10.06.2026");
+  await page.locator('[data-notification-filter="product"]').click();
+  const firstProductItem = page.locator("#notifications-list .notification-item").first();
+  await expect(firstProductItem).toBeVisible();
+  await expect(page.locator("#notifications-list .notification-item.is-unread")).toHaveCount(0);
+  await expect(page.locator("#notifications-list .notification-unread-dot")).toHaveCount(0);
+  await expect(firstProductItem.locator(".notification-item__compass-mark")).toHaveAttribute("src", "../../public/brand/mitmachen/mark.svg");
+  await expect(firstProductItem.locator(".notification-item__category")).toHaveText("Produkt");
+  await expect(firstProductItem.locator(".notification-item__summary-status")).toHaveText("Information");
+  await expect(firstProductItem.locator(".notification-item__summary-date")).toHaveText(/^\d{2}\.\d{2}\.\d{4}$/);
+  await expect(page.locator("#notifications-list")).not.toContainText("Backend-Produktmeldung");
+  await expect(page.locator("#notifications-mark-all-read")).toBeHidden();
+  await page.locator('[data-notification-filter="unread"]').click();
 
   await page.locator("#notifications-mark-all-read").click();
   await expect.poll(() => backendFixture.notifications.find((item) => item.id === "visual-notification-contact-update")?.readAt).toBeTruthy();
+  await expect.poll(() => backendFixture.notifications.find((item) => item.id === "visual-notification-hospitation-upcoming")?.readAt).toBeTruthy();
+  expect(backendFixture.notifications.find((item) => item.id === "visual-notification-backend-product")?.readAt).toBe("");
   await expect(page.locator("#notifications-list .notifications-empty")).toBeVisible();
   await expect(page.locator("#notification-count-total")).toBeHidden();
   await page.locator('[data-notification-filter="all"]').click();
   const readContactNotification = page.locator('#notifications-list [data-notification-id="visual-notification-contact-update"]');
   await expect(readContactNotification).toBeVisible();
   await expect(readContactNotification).not.toHaveClass(/is-unread/);
+  await expect(readContactNotification.locator(".notification-item__category")).toHaveText("Kontakte");
+  await expect(readContactNotification.locator(".notification-item__summary-status")).toHaveText("Gelesen");
+  await expect(readContactNotification.locator(".notification-unread-dot")).toHaveCount(0);
+  const readContactToggle = readContactNotification.locator("[data-notification-details-toggle]");
+  await expect(readContactToggle).toHaveAttribute("aria-expanded", "false");
+  await readContactToggle.click();
+  await expect(readContactNotification.locator("[data-open-notification]")).toBeVisible();
+  await expect(readContactNotification.locator("[data-open-notification]")).toHaveAccessibleName("Benachrichtigung „Kontaktdaten aktualisiert“ öffnen");
   await expect(page.locator("#notifications-mark-all-read")).toBeDisabled();
   await page.locator('[data-notification-filter="unread"]').click();
   await expect(page.locator("#notifications-list .notifications-empty")).toBeVisible();
@@ -3975,6 +4137,7 @@ test("Benachrichtigungen: Glocke öffnet Vorschau und Profil-Reiter rendert Inbo
   await openMobileSidebarIfNeeded(page);
   await page.locator("#sidebar-notifications-button").click();
   await expect(page.locator("#notification-popover")).toBeVisible();
+  await expect(page.locator("#notification-popover-meta")).toHaveText("Alles gelesen");
   await expect(page.locator("#notification-popover-list .notification-popover__empty")).toContainText("Keine neuen Benachrichtigungen.");
   await expect(page.locator("#notification-popover-list .notification-empty-state__icon")).toBeVisible();
 
