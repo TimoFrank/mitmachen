@@ -29,7 +29,9 @@
     <a class="skip-link" href="#main-content">Zum Hauptinhalt springen</a>
     <div class="visually-hidden" id="route-announcer" role="status" aria-live="polite" aria-atomic="true"></div>
     <div class="global-status" id="global-status" role="status" aria-live="polite" aria-atomic="true" hidden>
-      <span class="global-status__icon" aria-hidden="true"></span>
+      <span class="global-status__icon" aria-hidden="true">
+        <img class="global-status__mark" src="../../public/brand/versorgungs-kompass/mark.svg" alt="" />
+      </span>
       <span id="global-status-message"></span>
     </div>
     <div class="app-shell is-initializing" aria-busy="true">
@@ -718,34 +720,37 @@
                       <span class="care-overview-map__kicker">Regionale Verteilung</span>
                       <h2 id="care-overview-map-title">Versorgungs-Netzwerk</h2>
                     </div>
-                    <span class="care-overview-map__open" aria-hidden="true">
+                    <a class="care-overview-map__open" data-route-link="map" href="#map" aria-label="Regionale Verteilung im Versorgungs-Netzwerk – Karte öffnen">
                       Karte öffnen
                       <span aria-hidden="true">→</span>
-                    </span>
+                    </a>
                   </div>
-                  <a class="care-overview-map__hitarea" data-route-link="map" href="#map" aria-label="Regionale Verteilung im Versorgungs-Netzwerk – Karte öffnen"></a>
                   <div class="care-overview-map__preview">
                     <iframe
                       class="map-embed-frame care-overview-map__frame"
                       id="care-overview-map-frame"
-                      title="Nicht interaktive Vorschau der Versorgungskarte"
+                      title="Kontaktverteilung nach Bundesland – Hover-Vorschau"
                       data-deferred-src="../map/versorgungs-kompass-map.html?embed=1&amp;channel=contacts&amp;preview=1"
                       data-message-channel="contacts"
                       tabindex="-1"
                       aria-hidden="true"
                       referrerpolicy="no-referrer"
                     ></iframe>
-                  </div>
-                  <div class="care-overview-map__meta">
                     <span class="care-overview-map__counter" id="care-overview-map-counter" data-state="loading" aria-live="polite" aria-atomic="true">
                       <strong id="care-overview-map-count">–</strong>
                       <span id="care-overview-map-count-label">Kontakte werden geladen</span>
                     </span>
-                    <span class="care-overview-map__legend" aria-label="Verteilung des Kontaktbestands: von weniger bis mehr Kontakten">
-                      <span>weniger</span>
-                      <span class="care-overview-map__legend-scale" aria-hidden="true"></span>
-                      <span>mehr</span>
-                    </span>
+                    <div class="care-overview-map__meta">
+                      <span class="care-overview-map__legend" aria-label="Kontaktverteilung: von weniger bis mehr Kontakten">
+                        <span class="care-overview-map__legend-body" aria-hidden="true">
+                          <span class="care-overview-map__legend-endpoints">
+                            <span>mehr</span>
+                            <span>weniger</span>
+                          </span>
+                          <span class="care-overview-map__legend-scale"></span>
+                        </span>
+                      </span>
+                    </div>
                   </div>
                 </section>
 
@@ -758,11 +763,11 @@
                   </span>
                   <span class="care-overview-destination__copy">
                     <strong>Kontakte</strong>
-                    <span class="care-overview-destination__metric care-overview-destination__metric--count" id="care-overview-contact-count" data-state="loading" aria-label="Kontakte im Bestand werden geladen">
+                    <span class="care-overview-destination__metric care-overview-destination__metric--count" id="care-overview-contact-count" data-state="loading" aria-label="Kontakte werden geladen">
                       <strong id="care-overview-contact-count-value">–</strong>
                       <span id="care-overview-contact-count-label">wird geladen</span>
                     </span>
-                    <span>Ansprechpersonen, Zuständigkeiten und Kontaktwege gezielt finden.</span>
+                    <span>Ansprechpersonen und Kontaktwege finden.</span>
                   </span>
                   <span class="care-overview-destination__action">Öffnen <span aria-hidden="true">→</span></span>
                 </a>
@@ -777,11 +782,11 @@
                   </span>
                   <span class="care-overview-destination__copy">
                     <strong>Organisationen</strong>
-                    <span class="care-overview-destination__metric care-overview-destination__metric--count" id="care-overview-organization-count" data-state="loading" aria-label="Organisationen im Bestand werden geladen">
+                    <span class="care-overview-destination__metric care-overview-destination__metric--count" id="care-overview-organization-count" data-state="loading" aria-label="Organisationen werden geladen">
                       <strong id="care-overview-organization-count-value">–</strong>
                       <span id="care-overview-organization-count-label">wird geladen</span>
                     </span>
-                    <span>Einrichtungen und Institutionen im Versorgungsnetz einordnen.</span>
+                    <span>Einrichtungen im Netzwerk einordnen.</span>
                   </span>
                   <span class="care-overview-destination__action">Öffnen <span aria-hidden="true">→</span></span>
                 </a>
@@ -799,7 +804,7 @@
                       <strong id="care-overview-sector-count-value">–</strong>
                       <span id="care-overview-sector-count-label">wird geladen</span>
                     </span>
-                    <span>Kontakte nach Sektor, Priorität und Region auswerten.</span>
+                    <span>Struktur und Verteilung auswerten.</span>
                   </span>
                   <span class="care-overview-destination__action">Öffnen <span aria-hidden="true">→</span></span>
                 </a>
@@ -817,7 +822,7 @@
                       <strong id="care-overview-activity-count-value">–</strong>
                       <span id="care-overview-activity-count-label">letzte 30 Tage · wird geladen</span>
                     </span>
-                    <span>Stammdaten, Zuständigkeiten und fachliche Vorgänge chronologisch nachvollziehen.</span>
+                    <span>Änderungen und Vorgänge nachvollziehen.</span>
                   </span>
                   <span class="care-overview-destination__action">Öffnen <span aria-hidden="true">→</span></span>
                 </a>

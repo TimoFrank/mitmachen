@@ -230,7 +230,7 @@ test("Startkarten lassen die mobile Navigation eingeklappt", async ({ page }) =>
   }
 });
 
-test("Mobile-Auslieferung: Startklar-Hinweis erscheint erst im Versorgungs-Kompass", async ({ page }) => {
+test("Mobile-Auslieferung: Startklar-Hinweis erscheint erst im Versorgungs-Kompass", async ({ page }, testInfo) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto("/dist/pages/index.html");
 
@@ -240,8 +240,13 @@ test("Mobile-Auslieferung: Startklar-Hinweis erscheint erst im Versorgungs-Kompa
 
   await page.locator('.home-destination-link[data-home-module="care"]').click();
   await expect(status).toBeVisible();
-  await expect(status).toHaveText(/Startklar: \d+ synthetische Demo-Kontakte stehen bereit\./);
+  await expect(status).toHaveText(/Startklar: \d+ Demo-Kontakte stehen bereit\./);
+  await expect(status).not.toContainText("synthetische");
   await expect(status).toHaveClass(/is-ready/);
+  const statusMark = status.locator(".global-status__mark");
+  await expect(statusMark).toBeVisible();
+  await expect(statusMark).toHaveAttribute("src", /public\/brand\/versorgungs-kompass\/mark\.svg$/);
+  await expect(status.locator(".global-status__icon")).toHaveCSS("opacity", "1");
   await expect(status).toHaveAttribute("role", "status");
   await expect(status).toHaveAttribute("aria-live", "polite");
 
@@ -251,6 +256,7 @@ test("Mobile-Auslieferung: Startklar-Hinweis erscheint erst im Versorgungs-Kompa
   expect(statusBox.y + statusBox.height).toBeLessThanOrEqual(footerBox.y - 8);
   expect(statusBox.x).toBeGreaterThanOrEqual(0);
   expect(statusBox.x + statusBox.width).toBeLessThanOrEqual(390);
+  await page.screenshot({ path: testInfo.outputPath("pages-startklar-versorgungs-kompass.png"), fullPage: false });
 
   await page.locator("#brand-home-link").click();
   await expect(status).toBeHidden();
@@ -278,6 +284,7 @@ test("Geschützte Auslieferung: Kontakte werden erst im Versorgungs-Kompass als 
   await expect(status).toHaveText(/Startklar: \d+ Kontakte stehen bereit\./);
   await expect(status).not.toContainText("Backend");
   await expect(status).toHaveClass(/is-ready/);
+  await expect(status.locator(".global-status__mark")).toBeVisible();
 });
 
 test("Desktop-Auslieferung: Standortmarker behalten den gematik-Stil und ihre echten Positionen", async ({ page }) => {

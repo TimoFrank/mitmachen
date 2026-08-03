@@ -19,11 +19,11 @@
       --gematik-green-soft: #e7fff0;
       --map-background: #eff0f3;
       --map-land: #c0c3d4;
-      --care-map-density-empty: #d9f4ff;
-      --care-map-density-low: #8fd8ff;
-      --care-map-density-mid: #3c82f6;
-      --care-map-density-cobalt: #2054c7;
-      --care-map-density-high: #071c68;
+      --care-map-density-empty: #dbe4ef;
+      --care-map-density-low: #737aa0;
+      --care-map-density-mid: #4d5686;
+      --care-map-density-cobalt: #27346b;
+      --care-map-density-high: #010e52;
       --radius-sm: 6px;
       --radius-md: 8px;
       --radius-lg: 12px;
@@ -3816,7 +3816,8 @@
       height: 100%;
       background-color: transparent;
       background-image: none;
-      pointer-events: none;
+      cursor: default;
+      pointer-events: auto;
     }
 
     .care-overview-compass-motif {
@@ -3905,6 +3906,11 @@
 
     body.overview-preview-mode .care-overview-schematic-map__states {
       filter: drop-shadow(0 8px 10px rgba(9, 42, 91, 0.16));
+      pointer-events: none;
+    }
+
+    body.overview-preview-mode .care-overview-schematic-map__state-group {
+      pointer-events: none;
     }
 
     body.overview-preview-mode .care-overview-schematic-map__state {
@@ -3913,11 +3919,34 @@
       stroke-linecap: butt;
       stroke-linejoin: miter;
       stroke-miterlimit: 10;
+      cursor: default;
+      pointer-events: visiblePainted;
+    }
+
+    body.overview-preview-mode .care-overview-schematic-map__label {
+      fill: #ffffff;
+      font-family: var(--font-family);
+      font-size: 28px;
+      font-weight: 700;
+      opacity: 0;
+      pointer-events: none;
+      text-anchor: middle;
+      text-shadow: -1px 0 #010e52, 0 1px #010e52, 1px 0 #010e52, 0 -1px #010e52;
+      transition: opacity 300ms ease;
+    }
+
+    body.overview-preview-mode .care-overview-schematic-map__label-name {
+      font-size: 20px;
+    }
+
+    body.overview-preview-mode .care-overview-schematic-map__state-group:hover .care-overview-schematic-map__label {
+      opacity: 1;
     }
 
     @media (prefers-reduced-motion: reduce) {
       body.overview-preview-mode .leaflet-map-pane,
-      body.overview-preview-mode .leaflet-zoom-animated {
+      body.overview-preview-mode .leaflet-zoom-animated,
+      body.overview-preview-mode .care-overview-schematic-map__label {
         transition: none !important;
       }
     }
@@ -3959,6 +3988,11 @@
       body.overview-preview-mode .care-overview-schematic-map__state {
         fill: CanvasText !important;
         stroke: Canvas !important;
+      }
+
+      body.overview-preview-mode .care-overview-schematic-map__label {
+        fill: Canvas;
+        text-shadow: none;
       }
 
     }

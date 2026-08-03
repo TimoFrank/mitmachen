@@ -402,11 +402,11 @@
 
   function heatColor(value, max){
     const stops = [
-      [217, 244, 255],
-      [143, 216, 255],
-      [60, 130, 246],
-      [32, 84, 199],
-      [7, 28, 104]
+      [219, 228, 239],
+      [115, 122, 160],
+      [77, 86, 134],
+      [39, 52, 107],
+      [1, 14, 82]
     ];
     if (max <= 0 || value <= 0) return `rgb(${stops[0].join(", ")})`;
     const ratio = Math.max(0, Math.min(1, value / max));
@@ -452,6 +452,25 @@
     return valid ? definition : null;
   }
 
+  const OVERVIEW_SCHEMATIC_LABEL_POSITIONS = Object.freeze({
+    bayern: { x: 412.4, metricY: 688.064, nameY: 713.064 },
+    bawue: { x: 191.6, metricY: 733.064, nameY: 758.064 },
+    thue: { x: 374.3, metricY: 494.064, nameY: 519.064 },
+    hessen: { x: 236, metricY: 507.064, nameY: 532.064 },
+    rheinpf: { x: 144.4, metricY: 585.064, nameY: 610.064 },
+    nrw: { x: 112.6, metricY: 424.064, nameY: 449.064 },
+    nieders: { x: 282.6, metricY: 280.064, nameY: 305.064 },
+    bremen: { x: 218.7, metricY: 239.064, nameY: 264.064 },
+    saar: { x: 97.8, metricY: 653.064, nameY: 678.064 },
+    brandenburg: { x: 591.2, metricY: 371.064, nameY: 396.064 },
+    sachs: { x: 547.6, metricY: 473.064, nameY: 498.064 },
+    sachan: { x: 447, metricY: 380.064, nameY: 405.064 },
+    mcpom: { x: 495.9, metricY: 158.064, nameY: 183.064 },
+    schlehol: { x: 348.1, metricY: 109.064, nameY: 134.064 },
+    hamburg: { x: 307.9, metricY: 183.043, nameY: 208.043 },
+    berlin: { x: 528.8, metricY: 307.924, nameY: 332.924 }
+  });
+
   function renderOverviewSchematicMap(){
     if (!OVERVIEW_PREVIEW_MODE) return;
     const mapNode = document.getElementById("map");
@@ -460,9 +479,11 @@
     const definition = overviewSchematicDefinition();
     if (!definition) {
       svg?.remove();
+      mapNode.querySelector(".care-overview-state-tooltip")?.remove();
       document.body.classList.remove("has-overview-schematic-map");
       return;
     }
+    mapNode.querySelector(".care-overview-state-tooltip")?.remove();
     if (!svg) {
       svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
       svg.classList.add("care-overview-schematic-map");
@@ -486,21 +507,46 @@
       stateGroup.classList.add("care-overview-schematic-map__states");
       stateGroup.setAttribute("clip-path", "url(#clip0_46_885)");
       definition.states.forEach((state) => {
+        const labelPosition = OVERVIEW_SCHEMATIC_LABEL_POSITIONS[state.referenceId];
+        const stateWrapper = document.createElementNS("http://www.w3.org/2000/svg", "g");
+        stateWrapper.classList.add("care-overview-schematic-map__state-group");
+        stateWrapper.dataset.state = state.name;
+        stateWrapper.dataset.referenceId = state.referenceId;
         const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
         path.classList.add("care-overview-schematic-map__state");
         path.dataset.state = state.name;
         path.dataset.geometry = state.kind;
         path.dataset.referenceId = state.referenceId;
         path.setAttribute("d", state.path);
-        stateGroup.append(path);
+        const label = document.createElementNS("http://www.w3.org/2000/svg", "text");
+        label.classList.add("care-overview-schematic-map__label");
+        label.setAttribute("aria-hidden", "true");
+        const metric = document.createElementNS("http://www.w3.org/2000/svg", "tspan");
+        metric.classList.add("care-overview-schematic-map__label-metric");
+        metric.setAttribute("x", String(labelPosition.x));
+        metric.setAttribute("y", String(labelPosition.metricY));
+        const name = document.createElementNS("http://www.w3.org/2000/svg", "tspan");
+        name.classList.add("care-overview-schematic-map__label-name");
+        name.setAttribute("x", String(labelPosition.x));
+        name.setAttribute("y", String(labelPosition.nameY));
+        name.textContent = state.name;
+        label.append(metric, name);
+        stateWrapper.append(path, label);
+        stateGroup.append(stateWrapper);
       });
       svg.append(definitions, stateGroup);
       mapNode.append(svg);
     }
     document.body.classList.add("has-overview-schematic-map");
-    svg.querySelectorAll(".care-overview-schematic-map__state").forEach((path) => {
+    svg.querySelectorAll(".care-overview-schematic-map__state-group").forEach((stateWrapper) => {
+      const path = stateWrapper.querySelector(".care-overview-schematic-map__state");
       const total = stateCountsByKey[stateNameKey(path.dataset.state)] || 0;
+      const itemLabel = total === 1
+        ? mapLabel("itemSingular", "Kontakt")
+        : mapLabel("itemPlural", "Kontakte");
+      path.dataset.contactCount = String(total);
       path.setAttribute("fill", heatColor(total, stateCountMax));
+      stateWrapper.querySelector(".care-overview-schematic-map__label-metric").textContent = `${total} ${itemLabel}`;
     });
   }
 

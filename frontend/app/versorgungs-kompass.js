@@ -39742,7 +39742,7 @@
             "–",
             "nicht verfügbar",
             "error",
-            "Kontakte im Bestand sind nicht verfügbar"
+            "Kontakte sind nicht verfügbar"
           );
           setCareOverviewDestinationCount(
             careOverviewOrganizationCount,
@@ -39751,7 +39751,7 @@
             "–",
             "nicht verfügbar",
             "error",
-            "Organisationen im Bestand sind nicht verfügbar"
+            "Organisationen sind nicht verfügbar"
           );
           setCareOverviewDestinationCount(
             careOverviewSectorCount,
@@ -39774,7 +39774,7 @@
             "–",
             "wird geladen",
             "loading",
-            "Kontakte im Bestand werden geladen"
+            "Kontakte werden geladen"
           );
           setCareOverviewDestinationCount(
             careOverviewOrganizationCount,
@@ -39783,7 +39783,7 @@
             "–",
             "wird geladen",
             "loading",
-            "Organisationen im Bestand werden geladen"
+            "Organisationen werden geladen"
           );
           setCareOverviewDestinationCount(
             careOverviewSectorCount,
@@ -39801,9 +39801,9 @@
             careOverviewContactCountValue,
             careOverviewContactCountLabel,
             String(activeContacts.length),
-            "im Bestand",
+            "",
             "ready",
-            `${activeContacts.length} ${activeContacts.length === 1 ? "Kontakt" : "Kontakte"} im Bestand`
+            `${activeContacts.length} ${activeContacts.length === 1 ? "Kontakt" : "Kontakte"}`
           );
           const organizationsAreDerived = ["derived", "fallback"].includes(organizationDataState);
           setCareOverviewDestinationCount(
@@ -39811,9 +39811,9 @@
             careOverviewOrganizationCountValue,
             careOverviewOrganizationCountLabel,
             String(activeOrganizations.length),
-            organizationsAreDerived ? "im Bestand · aus Kontakten abgeleitet" : "im Bestand",
+            organizationsAreDerived ? "aus Kontakten abgeleitet" : "",
             "ready",
-            `${activeOrganizations.length} ${activeOrganizations.length === 1 ? "Organisation" : "Organisationen"} im Bestand${organizationsAreDerived ? ", aus Kontakten abgeleitet" : ""}`
+            `${activeOrganizations.length} ${activeOrganizations.length === 1 ? "Organisation" : "Organisationen"}${organizationsAreDerived ? ", aus Kontakten abgeleitet" : ""}`
           );
           const sectorCount = careOverviewSectorTotal(activeContacts);
           setCareOverviewDestinationCount(
@@ -44568,7 +44568,7 @@
         organizationDataState = "derived";
         loadedContactsFromStorage = false;
         pendingInitialDataReadyStatus = String(window.VERSORGUNGS_COMPASS_CONFIG?.dataMode || "").toLowerCase() === "demo"
-          ? `Startklar: ${contacts.length} synthetische Demo-Kontakte stehen bereit.`
+          ? `Startklar: ${contacts.length} Demo-Kontakte stehen bereit.`
           : `Startklar: ${contacts.length} Kontakte stehen bereit.`;
         showPendingInitialDataReadyStatus(activeView);
       }

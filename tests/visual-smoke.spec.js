@@ -7468,6 +7468,7 @@ test("Versorgungs-Kompass: Übersicht verbindet Kartenvorschau und Arbeitsbereic
 
   const overview = page.locator('[data-view-panel="careOverview"]');
   const mapPreview = overview.locator(".care-overview-map");
+  const mapOpenLink = mapPreview.locator(".care-overview-map__open");
   const destinations = overview.locator(".care-overview-destination:visible");
   const previewFrame = page.frameLocator("#care-overview-map-frame");
   await expect(page.locator(".app-shell")).toHaveAttribute("data-active-view", "careOverview");
@@ -7475,14 +7476,23 @@ test("Versorgungs-Kompass: Übersicht verbindet Kartenvorschau und Arbeitsbereic
   await expect(page.locator("#workspace-view-title")).toHaveText("Übersicht");
   await expect(page.locator('[data-view-tab="careOverview"]')).toHaveAttribute("aria-current", "page");
   await expect(overview).toBeVisible();
+  await expect(mapOpenLink).toHaveAttribute("href", "#map");
+  await expect(mapPreview.locator(".care-overview-map__hitarea")).toHaveCount(0);
   await expect(overview.locator(".care-overview-intro")).toHaveCount(0);
   await expect(page.locator(".crm-shell > .controls")).toBeHidden();
   await expect(destinations).toHaveCount(4);
   await expect(destinations.locator(".care-overview-destination__copy > strong")).toHaveText(["Kontakte", "Organisationen", "Auswertung", "Aktivitäten"]);
+  await expect(destinations.locator(".care-overview-destination__copy > span:last-child")).toHaveText([
+    "Ansprechpersonen und Kontaktwege finden.",
+    "Einrichtungen im Netzwerk einordnen.",
+    "Struktur und Verteilung auswerten.",
+    "Änderungen und Vorgänge nachvollziehen."
+  ]);
   await expect(page.locator("#care-overview-contact-count-value")).toHaveText(/\d+/);
-  await expect(page.locator("#care-overview-contact-count-label")).toHaveText("im Bestand");
+  await expect(page.locator("#care-overview-contact-count-label")).toBeEmpty();
   await expect(page.locator("#care-overview-organization-count-value")).toHaveText(/\d+/);
-  await expect(page.locator("#care-overview-organization-count-label")).toContainText("im Bestand");
+  await expect(page.locator("#care-overview-organization-count-label")).toHaveText(/^(?:aus Kontakten abgeleitet)?$/);
+  await expect(overview).not.toContainText("im Bestand");
   await expect(overview.locator(".care-overview-map__kicker")).toHaveText("Regionale Verteilung");
   await expect(page.locator("#care-overview-map-title")).toHaveText("Versorgungs-Netzwerk");
   await expect(page.locator("#care-overview-sector-count-value")).toHaveText(/\d+/);
@@ -7493,11 +7503,13 @@ test("Versorgungs-Kompass: Übersicht verbindet Kartenvorschau und Arbeitsbereic
   await expect(page.locator("#care-overview-map-counter")).toHaveAttribute("data-state", "ready");
   await expect(page.locator("#care-overview-map-count")).toHaveText(/\d+/);
   await expect(page.locator("#care-overview-map-count-label")).toHaveText(/Kontakte?/);
+  await expect(page.locator("#care-overview-map-counter")).toHaveCSS("background-color", "rgb(39, 52, 107)");
+  await expect(page.locator("#care-overview-map-counter")).toHaveCSS("color", "rgb(255, 255, 255)");
   await expect(overview.locator(".care-overview-map__meta")).not.toContainText("räumlich zugeordnet");
   await expect(overview.locator(".care-overview-map__meta")).not.toContainText("Bundesländer");
   await expect(mapPreview).toBeVisible();
   await expect(mapPreview.locator("a")).toHaveCount(1);
-  await expect(mapPreview.locator(".care-overview-map__hitarea")).toHaveAccessibleName("Regionale Verteilung im Versorgungs-Netzwerk – Karte öffnen");
+  await expect(mapOpenLink).toHaveAccessibleName("Regionale Verteilung im Versorgungs-Netzwerk – Karte öffnen");
   await expect(previewFrame.locator("body")).toHaveClass(/overview-preview-mode/);
   await expect(previewFrame.locator("#map")).toBeVisible();
   await expect(previewFrame.locator("#map")).toHaveCSS("background-image", "none");
@@ -7513,12 +7525,24 @@ test("Versorgungs-Kompass: Übersicht verbindet Kartenvorschau und Arbeitsbereic
   await expect(previewFrame.locator(".sidebar")).toBeHidden();
   await expect(previewFrame.locator(".map-search-shell")).toBeHidden();
   await expect(previewFrame.locator(".map-mode-controls")).toBeHidden();
-  await expect(page.locator(".care-overview-map__legend")).toBeVisible();
-  await expect(page.locator(".care-overview-map__legend-scale")).toHaveCSS("background-image", /linear-gradient/);
+  const previewLegend = page.locator(".care-overview-map__legend");
+  const previewLegendScale = previewLegend.locator(".care-overview-map__legend-scale");
+  await expect(mapPreview.locator(".care-overview-map__preview > .care-overview-map__meta")).toBeVisible();
+  await expect(previewLegend).toBeVisible();
+  await expect(previewLegend).toHaveAccessibleName("Kontaktverteilung: von weniger bis mehr Kontakten");
+  await expect(previewLegend.locator(".care-overview-map__legend-caption")).toHaveCount(0);
+  await expect(mapPreview).not.toContainText("Kontakte nach Bundesland");
+  await expect(previewLegend.locator(".care-overview-map__legend-endpoints > span")).toHaveText(["mehr", "weniger"]);
+  await expect(previewLegendScale).toHaveCSS("background-image", /linear-gradient/);
   await expect(page.locator(".care-overview-map__note")).toHaveCount(0);
-  const previewLegendBackground = await page.locator(".care-overview-map__legend-scale").evaluate((node) =>
-    getComputedStyle(node).backgroundImage
-  );
+  const previewLegendPalette = await page.evaluate(() => [
+    "--care-map-density-empty",
+    "--care-map-density-low",
+    "--care-map-density-mid",
+    "--care-map-density-cobalt",
+    "--care-map-density-high"
+  ].map((property) => getComputedStyle(document.documentElement).getPropertyValue(property).trim()));
+  expect(previewLegendPalette).toEqual(["#dbe4ef", "#737aa0", "#4d5686", "#27346b", "#010e52"]);
   await expect(previewFrame.locator(".map-cluster-marker")).toHaveCount(0);
   await expect(previewFrame.locator(".gematik-marker")).toHaveCount(0);
   const mappedSummaryCount = Number.parseInt((await page.locator("#care-overview-map-count").textContent()) || "", 10);
@@ -7540,6 +7564,14 @@ test("Versorgungs-Kompass: Übersicht verbindet Kartenvorschau und Arbeitsbereic
   await expect(schematicMap).toHaveAttribute("data-path-sha256", "be97ff28fe33663eab2e813a0644a92d6f5acea8218c50f508bd9db182d19220");
   await expect(previewFrame.locator("body")).toHaveClass(/has-overview-schematic-map/);
   await expect(schematicStates).toHaveCount(16);
+  await expect(previewFrame.locator(".care-overview-schematic-map__state-group")).toHaveCount(16);
+  await expect(previewFrame.locator(".care-overview-schematic-map__label")).toHaveCount(16);
+  await expect(previewFrame.locator(".care-overview-state-tooltip")).toHaveCount(0);
+  await expect(schematicStates.first()).toHaveCSS("cursor", "default");
+  await expect(page.locator("#care-overview-map-frame")).toHaveCSS(
+    "pointer-events",
+    testInfo.project.name === "chromium-desktop" ? "auto" : "none"
+  );
   await expect(previewFrame.locator('.care-overview-schematic-map__state[data-geometry="area"]')).toHaveCount(12);
   await expect(previewFrame.locator('.care-overview-schematic-map__state[data-geometry="compact"]')).toHaveCount(4);
   const previewGeometryState = await schematicStates.evaluateAll((paths) => ({
@@ -7567,6 +7599,36 @@ test("Versorgungs-Kompass: Übersicht verbindet Kartenvorschau und Arbeitsbereic
       return path.getAttribute("fill") === heatColor(total, stateCountMax);
     })
   `))).toBe(true);
+  if (testInfo.project.name === "chromium-desktop") {
+    const northRhineWestphaliaGroup = previewFrame.locator('.care-overview-schematic-map__state-group[data-state="Nordrhein-Westfalen"]');
+    const northRhineWestphalia = previewFrame.locator('.care-overview-schematic-map__state[data-state="Nordrhein-Westfalen"]');
+    const stateLabel = northRhineWestphaliaGroup.locator(".care-overview-schematic-map__label");
+    const stateMetric = stateLabel.locator(".care-overview-schematic-map__label-metric");
+    const stateName = stateLabel.locator(".care-overview-schematic-map__label-name");
+    const stateCount = Number.parseInt(await northRhineWestphalia.getAttribute("data-contact-count") || "0", 10);
+    await expect(northRhineWestphalia.locator("title")).toHaveCount(0);
+    await expect(stateLabel).toHaveCSS("fill", "rgb(255, 255, 255)");
+    await expect(stateLabel).toHaveCSS("font-size", "28px");
+    await expect(stateLabel).toHaveCSS("opacity", "0");
+    await expect(stateName).toHaveText("Nordrhein-Westfalen");
+    await expect(stateName).toHaveCSS("font-size", "20px");
+    await expect(stateMetric).toHaveText(`${stateCount} ${stateCount === 1 ? "Kontakt" : "Kontakte"}`);
+    await northRhineWestphalia.hover();
+    await expect(stateLabel).toHaveCSS("opacity", "1");
+    await expect(page.locator("#care-overview-map-frame")).toHaveCSS("transform", "none");
+    await northRhineWestphalia.click();
+    await expect(page).toHaveURL(/#care$/);
+    expect(await previewFrame.locator("#map").evaluate(() => globalThis.eval("selectedState"))).toBe("");
+    await page.mouse.move(0, 0);
+    await expect(stateLabel).toHaveCSS("opacity", "0");
+    await northRhineWestphalia.hover();
+    await expect(stateLabel).toHaveCSS("opacity", "1");
+    await attachScreenshot(page, testInfo, "versorgungs-kompass-uebersicht-bundesland-hover");
+    await page.mouse.move(0, 0);
+    await expect(stateLabel).toHaveCSS("opacity", "0");
+  } else {
+    await expect(previewFrame.locator(".care-overview-schematic-map__label").first()).toHaveCSS("opacity", "0");
+  }
   const previewHeatScale = await previewFrame.locator("#map").evaluate(() =>
     globalThis.eval("[0, 1, 2, 4].map((value) => heatColor(value, 4))")
   );
@@ -7577,20 +7639,76 @@ test("Versorgungs-Kompass: Übersicht verbindet Kartenvorschau und Arbeitsbereic
   expect(previewFrameBox).not.toBeNull();
   expect(previewMapBox).not.toBeNull();
   expect(Math.abs(previewMapBox.height - previewFrameBox.height)).toBeLessThanOrEqual(2);
+  const previewStateBounds = await previewFrame.locator(".care-overview-schematic-map__states").evaluate((node) => {
+    const box = node.getBoundingClientRect();
+    return { top: box.top, right: box.right, bottom: box.bottom, left: box.left };
+  });
   const mapRows = await mapPreview.evaluate((node) => {
     const bounds = (selector) => {
       const element = node.querySelector(selector);
       const box = element?.getBoundingClientRect();
-      return box ? { top: box.top, bottom: box.bottom } : null;
+      return box ? {
+        top: box.top,
+        right: box.right,
+        bottom: box.bottom,
+        left: box.left,
+        width: box.width,
+        height: box.height
+      } : null;
     };
     return {
       head: bounds(".care-overview-map__head"),
       preview: bounds(".care-overview-map__preview"),
-      meta: bounds(".care-overview-map__meta")
+      frame: bounds(".care-overview-map__frame"),
+      meta: bounds(".care-overview-map__meta"),
+      counter: bounds(".care-overview-map__counter"),
+      legend: bounds(".care-overview-map__legend"),
+      legendScale: bounds(".care-overview-map__legend-scale"),
+      legendMore: bounds(".care-overview-map__legend-endpoints > span:first-child"),
+      legendLess: bounds(".care-overview-map__legend-endpoints > span:last-child")
     };
   });
   expect(mapRows.head.bottom).toBeLessThanOrEqual(mapRows.preview.top + 1);
-  expect(mapRows.preview.bottom).toBeLessThanOrEqual(mapRows.meta.top + 1);
+  expect(mapRows.counter.left).toBeGreaterThanOrEqual(mapRows.preview.left);
+  expect(mapRows.counter.top).toBeGreaterThanOrEqual(mapRows.preview.top);
+  expect(mapRows.counter.right).toBeLessThanOrEqual(mapRows.preview.right);
+  expect(mapRows.counter.bottom).toBeLessThanOrEqual(mapRows.preview.bottom);
+  expect(mapRows.legend.left).toBeGreaterThanOrEqual(mapRows.preview.left);
+  expect(mapRows.legend.right).toBeLessThanOrEqual(mapRows.preview.right);
+  expect(mapRows.legend.bottom).toBeLessThanOrEqual(mapRows.preview.bottom);
+  if (testInfo.project.name === "chromium-desktop") {
+    expect(Math.abs(mapRows.meta.top - mapRows.preview.top)).toBeLessThanOrEqual(1);
+    expect(Math.abs(mapRows.meta.bottom - mapRows.preview.bottom)).toBeLessThanOrEqual(1);
+    expect(Math.abs(mapRows.legendScale.width - 40)).toBeLessThanOrEqual(1);
+    expect(Math.abs(mapRows.legendScale.height - 247)).toBeLessThanOrEqual(1);
+    expect(mapRows.legendScale.height).toBeGreaterThan(mapRows.legendScale.width);
+    expect(mapRows.legend.left).toBeGreaterThan((mapRows.preview.left + mapRows.preview.right) / 2);
+    expect(mapRows.legendMore.bottom).toBeLessThanOrEqual(mapRows.legendScale.top);
+    expect(mapRows.legendLess.top).toBeGreaterThanOrEqual(mapRows.legendScale.bottom);
+    expect(mapRows.counter.bottom).toBeLessThanOrEqual(mapRows.legend.top);
+    expect(Math.abs(mapRows.counter.top - (mapRows.preview.top + 12))).toBeLessThanOrEqual(1);
+    expect(Math.abs(mapRows.counter.right - (mapRows.preview.right - 12))).toBeLessThanOrEqual(1);
+    expect(Math.abs(mapRows.legend.bottom - (mapRows.preview.bottom - 12))).toBeLessThanOrEqual(1);
+    expect(Math.abs(mapRows.legend.right - (mapRows.preview.right - 12))).toBeLessThanOrEqual(1);
+    expect(Math.abs(mapRows.counter.width - mapRows.legend.width)).toBeLessThanOrEqual(1);
+    expect(mapRows.legend.width).toBeLessThanOrEqual(64);
+    expect(previewFrameBox.x + previewFrameBox.width).toBeLessThanOrEqual(mapRows.legendScale.left);
+    expect(mapRows.frame.top - mapRows.preview.top).toBeGreaterThanOrEqual(28);
+    expect(mapRows.preview.bottom - mapRows.frame.bottom).toBeGreaterThanOrEqual(28);
+  } else {
+    expect(mapRows.meta.top).toBeGreaterThanOrEqual(mapRows.frame.bottom - 1);
+    expect(Math.abs(mapRows.meta.bottom - mapRows.preview.bottom)).toBeLessThanOrEqual(1);
+    expect(Math.abs(mapRows.legendScale.height - 28)).toBeLessThanOrEqual(1);
+    expect(mapRows.legendScale.width).toBeGreaterThan(mapRows.legendScale.height);
+    expect(mapRows.counter.bottom).toBeLessThanOrEqual(mapRows.meta.top);
+    expect(Math.abs(mapRows.counter.top - (mapRows.preview.top + 12))).toBeLessThanOrEqual(1);
+    expect(Math.abs(mapRows.counter.right - (mapRows.preview.right - 12))).toBeLessThanOrEqual(1);
+    expect(previewFrameBox.y + previewFrameBox.height).toBeLessThanOrEqual(mapRows.meta.top + 1);
+    expect(mapRows.frame.top - mapRows.preview.top).toBeGreaterThanOrEqual(22);
+    expect(mapRows.meta.top - mapRows.frame.bottom).toBeGreaterThanOrEqual(22);
+  }
+  expect(previewStateBounds.top).toBeGreaterThanOrEqual(-1);
+  expect(previewStateBounds.bottom).toBeLessThanOrEqual(previewFrameBox.height + 1);
   await expect.poll(() => previewFrame.locator("#map").evaluate(() => {
     const mapBounds = globalThis.eval("map.getBounds()");
     const germanyBounds = globalThis.eval("L.geoJSON(DE_GEOJSON).getBounds()");
@@ -7604,14 +7722,14 @@ test("Versorgungs-Kompass: Übersicht verbindet Kartenvorschau und Arbeitsbereic
       frameTransform: getComputedStyle(node.querySelector(".care-overview-map__frame")).transform,
       actionBackground: getComputedStyle(node.querySelector(".care-overview-map__open")).backgroundColor
     }));
-    await mapPreview.hover();
-    await expect.poll(() => mapPreview.evaluate((node) => getComputedStyle(node).boxShadow))
-      .not.toBe(mapVisualStateBeforeHover.boxShadow);
-    await expect.poll(() => mapPreview.locator(".care-overview-map__frame").evaluate((node) => getComputedStyle(node).transform))
-      .not.toBe(mapVisualStateBeforeHover.frameTransform);
+    await mapPreview.locator(".care-overview-map__head h2").hover();
+    await expect(mapPreview).toHaveCSS("box-shadow", mapVisualStateBeforeHover.boxShadow);
+    await expect(mapPreview.locator(".care-overview-map__frame")).toHaveCSS("transform", mapVisualStateBeforeHover.frameTransform);
+    await expect(mapOpenLink).toHaveCSS("background-color", mapVisualStateBeforeHover.actionBackground);
+    await mapOpenLink.hover();
     await expect.poll(() => mapPreview.locator(".care-overview-map__open").evaluate((node) => getComputedStyle(node).backgroundColor))
       .not.toBe(mapVisualStateBeforeHover.actionBackground);
-    await attachScreenshot(page, testInfo, "versorgungs-kompass-uebersicht-hover");
+    await expect(mapPreview.locator(".care-overview-map__frame")).toHaveCSS("transform", mapVisualStateBeforeHover.frameTransform);
     await page.mouse.move(0, 0);
   }
 
@@ -7657,7 +7775,7 @@ test("Versorgungs-Kompass: Übersicht verbindet Kartenvorschau und Arbeitsbereic
   }
 
   await attachScreenshot(page, testInfo, "versorgungs-kompass-uebersicht");
-  await overview.locator(".care-overview-map__hitarea").click({ position: { x: 260, y: 220 } });
+  await mapOpenLink.click();
   await expect(page).toHaveURL(/#map$/);
   await expect(page.locator(".app-shell")).toHaveAttribute("data-active-view", "map");
   const fullMapFrame = page.frameLocator("#map-view-frame");
@@ -7667,13 +7785,19 @@ test("Versorgungs-Kompass: Übersicht verbindet Kartenvorschau und Arbeitsbereic
     globalThis.eval("[0, 1, 2, 4].map((value) => heatColor(value, 4))")
   );
   expect(fullMapHeatScale).toEqual(previewHeatScale);
+  const fullMapLegendPalette = await fullMapFrame.locator("html").evaluate(() => [
+    "--care-map-density-empty",
+    "--care-map-density-low",
+    "--care-map-density-mid",
+    "--care-map-density-cobalt",
+    "--care-map-density-high"
+  ].map((property) => getComputedStyle(document.documentElement).getPropertyValue(property).trim()));
+  expect(fullMapLegendPalette).toEqual(previewLegendPalette);
   expect(await fullMapFrame.locator("#map").evaluate(() =>
     globalThis.eval("stateHeatLayer.options.smoothFactor")
   )).toBe(0.35);
   if (testInfo.project.name === "chromium-desktop") {
-    const fullMapLegendScale = fullMapFrame.locator(".map-distribution-legend__scale").first();
-    await expect(fullMapLegendScale).toBeVisible();
-    await expect(fullMapLegendScale).toHaveCSS("background-image", previewLegendBackground);
+    await expect(fullMapFrame.locator(".map-distribution-legend__scale").first()).toBeVisible();
   }
   await page.goBack();
   await expect(page).toHaveURL(/#care$/);
@@ -7762,6 +7886,24 @@ test("Versorgungs-Kompass: Übersicht bleibt in der kompakten Tabletbreite lesba
   expect(cardRects[2].top).toBeGreaterThanOrEqual(cardRects[0].bottom - 1);
   expect(cardRects[3].top).toBeGreaterThanOrEqual(cardRects[1].bottom - 1);
   expect(cardRects.every((rect) => rect.right <= 820 && rect.left >= 0)).toBe(true);
+  const mapGeometry = await overview.locator(".care-overview-map").evaluate((map) => {
+    const bounds = (selector) => {
+      const rect = map.querySelector(selector)?.getBoundingClientRect();
+      return rect ? { top: rect.top, right: rect.right, bottom: rect.bottom, left: rect.left } : null;
+    };
+    return {
+      preview: bounds(".care-overview-map__preview"),
+      frame: bounds(".care-overview-map__frame"),
+      counter: bounds(".care-overview-map__counter"),
+      legend: bounds(".care-overview-map__legend")
+    };
+  });
+  expect(mapGeometry.counter.bottom).toBeLessThanOrEqual(mapGeometry.legend.top);
+  expect(Math.abs(mapGeometry.counter.top - (mapGeometry.preview.top + 12))).toBeLessThanOrEqual(1);
+  expect(Math.abs(mapGeometry.counter.right - (mapGeometry.preview.right - 12))).toBeLessThanOrEqual(1);
+  expect(Math.abs(mapGeometry.legend.bottom - (mapGeometry.preview.bottom - 12))).toBeLessThanOrEqual(1);
+  expect(mapGeometry.frame.top - mapGeometry.preview.top).toBeGreaterThanOrEqual(28);
+  expect(mapGeometry.preview.bottom - mapGeometry.frame.bottom).toBeGreaterThanOrEqual(28);
   await attachScreenshot(page, testInfo, "versorgungs-kompass-uebersicht-tablet");
 });
 
@@ -7772,7 +7914,7 @@ test("Versorgungs-Kompass: kanonische Übersicht und Karte bleiben getrennte Rou
 
   await expect(page).toHaveURL(/\/versorgung$/);
   await expect(page.locator(".app-shell")).toHaveAttribute("data-active-view", "careOverview");
-  await page.locator(".care-overview-map__hitarea").click();
+  await page.locator(".care-overview-map__open").click();
   await expect(page).toHaveURL(/\/versorgung\/karte$/);
   await expect(page.locator(".app-shell")).toHaveAttribute("data-active-view", "map");
   await page.goBack();
