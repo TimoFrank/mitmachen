@@ -32216,7 +32216,7 @@
                   ${contactAvatarMarkup(person, "sm")}
                   <div class="mobile-contact-copy">
                     <h3 class="mobile-contact-name"><button class="mobile-collection-name" type="button" data-open-press-profile="${escapeHtml(person.id)}">${escapeHtml(person.name)}</button></h3>
-                    <div class="mobile-contact-organization">${escapeHtml(organizationName)} · ${escapeHtml(person.role || "Funktion nicht ausgewiesen")}</div>
+                    <div class="mobile-contact-organization">${escapeHtml(organizationName)}</div>
                     <div class="mobile-collection-tags"><span class="press-contact-type">${escapeHtml(pressContactType(person))}</span>${pressEmailMarkup(person)}</div>
                   </div>
                   <span class="mobile-contact-chevron" aria-hidden="true">›</span>

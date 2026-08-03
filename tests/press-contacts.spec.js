@@ -298,21 +298,40 @@ test("Presse bleibt mobil ohne horizontalen Seitenoverflow und öffnet das Vollp
   await expect(firstRow).toHaveClass(/mobile-collection-card/);
   await expect(firstRow.locator(".mobile-contact-top")).toBeVisible();
   await expect(firstRow.locator(".mobile-contact-copy")).toContainText(expectedPerson.name);
-  await expect(firstRow.locator(".mobile-contact-organization")).toContainText(expectedPerson.organization);
+  await expect(firstRow.locator(".mobile-contact-organization")).toHaveText(expectedPerson.organization);
+  await expect(firstRow.locator(".mobile-contact-organization")).not.toContainText(expectedPerson.role);
   await expect(firstRow.locator(".mobile-collection-tags .press-contact-type")).toBeVisible();
+  await expect(firstRow.locator('a[href^="mailto:"]')).toBeHidden();
+  expect(await firstRow.locator(".mobile-contact-copy").innerText()).not.toContain(expectedPerson.email);
   await expect(firstRow.locator("[data-press-field]")).toHaveCount(0);
   await expect(page.locator(`${PRESS_ROWS} [data-contextual-row-select]`)).toHaveCount(0);
   await expect(page.locator("#contextual-bulk-toolbar")).toBeHidden();
-  await expect(page.locator("#press-table-head [data-press-header-filter-button]")).toHaveCount(8);
-  const contactTypeColumnFilter = page.locator('[data-press-column="contactType"] [data-press-header-filter-button]');
-  await contactTypeColumnFilter.click();
-  const contactTypeColumnMenu = page.locator("#press-header-filter-contactType");
-  await expect(contactTypeColumnMenu).toBeVisible();
-  await expect(contactTypeColumnMenu).toHaveCSS("position", "fixed");
-  await contactTypeColumnFilter.click();
-  await expect(contactTypeColumnMenu).toBeHidden();
+  const pressTableHead = page.locator("#press-table-head");
+  await expect(pressTableHead).toBeHidden();
+  await expect(pressTableHead.locator("[data-press-header-filter-button]")).toHaveCount(8);
+  await expect(pressTableHead.locator("[data-press-header-filter-button]").first()).toBeHidden();
   const filterButton = page.locator("#press-filter-button");
+  const pressCount = page.locator("#press-contact-count");
   await expect(filterButton).toBeVisible();
+  await expect(pressCount).toBeVisible();
+
+  const expectCompactPressToolbar = async (width) => {
+    const layout = await page.locator("#press-table-toolbar").evaluate((toolbar) => {
+      const count = toolbar.querySelector("#press-contact-count").getBoundingClientRect();
+      const filter = toolbar.querySelector("#press-filter-button").getBoundingClientRect();
+      return {
+        clientWidth: toolbar.clientWidth,
+        scrollWidth: toolbar.scrollWidth,
+        count: { right: count.right, centerY: count.top + count.height / 2 },
+        filter: { left: filter.left, centerY: filter.top + filter.height / 2 }
+      };
+    });
+    expect(layout.scrollWidth, `Presse-Werkzeugzeile passt bei ${width}px`).toBeLessThanOrEqual(layout.clientWidth + 1);
+    expect(Math.abs(layout.count.centerY - layout.filter.centerY), `Zähler und Filter stehen bei ${width}px auf einer Höhe`).toBeLessThanOrEqual(1);
+    expect(layout.count.right, `Zähler steht bei ${width}px links vom Filter`).toBeLessThanOrEqual(layout.filter.left);
+  };
+
+  await expectCompactPressToolbar(390);
   await filterButton.click();
   await expect(page.locator("#press-filter-panel")).toBeVisible();
   await page.locator('[data-directory-filter-close="press"]').click();
@@ -343,11 +362,15 @@ test("Presse bleibt mobil ohne horizontalen Seitenoverflow und öffnet das Vollp
 
   await page.setViewportSize({ width: 520, height: 844 });
   await expectNoHorizontalPageOverflow(page);
+  await expectCompactPressToolbar(520);
+  await expect(pressTableHead).toBeHidden();
   await expect(firstRow).toHaveClass(/mobile-collection-card/);
   await expect(firstRow.locator(".mobile-contact-top")).toBeVisible();
 
   await page.setViewportSize({ width: 320, height: 844 });
   await expectNoHorizontalPageOverflow(page);
+  await expectCompactPressToolbar(320);
+  await expect(pressTableHead).toBeHidden();
   const compactMobileGeometry = await page.locator(".workspace-heading-row").evaluate((header) => ({
     clientWidth: header.clientWidth,
     scrollWidth: header.scrollWidth
