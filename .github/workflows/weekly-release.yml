@@ -109,7 +109,7 @@ jobs:
             ':!README.md' \
             ':!CHANGELOG.md' \
             ':!frontend/app/versorgungs-kompass.js' \
-            ':!release-notes/*.md'
+            ':!dokumentation/release-notes/*.md'
           test -s "${{ steps.release.outputs.notes_path }}"
           test -s dist/release/weekly-notes.md
 
@@ -140,7 +140,7 @@ jobs:
             README.md
             CHANGELOG.md
             frontend/app/versorgungs-kompass.js
-            release-notes/*.md
+            dokumentation/release-notes/*.md
 
       - name: Run required check on exact release candidate
         if: steps.release.outputs.should_release == 'true' && steps.release.outputs.mode == 'prepare'

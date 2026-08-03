@@ -17,8 +17,7 @@ node_modules/
 playwright-report/
 test-results/
 .playwright-cli/
-/dist/*
-!/dist/README.md
+/dist/
 
 # Retired publication and export paths
 /docs/

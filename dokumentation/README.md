@@ -35,7 +35,9 @@ Die Dokumentation ist nach Zweck gegliedert. Führende Frontend-Quellen liegen u
 - [Aktueller technischer Stand](entwicklung-und-qa/CURRENT_STATE.md)
 - [QA-Ablauf](entwicklung-und-qa/QA_WORKFLOW.md)
 - [Hospitations-Staging und kontrollierte Übernahme](betrieb-und-deployment/HOSPITATION_STAGING_WORKFLOW.md)
+- [Generierte Buildausgaben](betrieb-und-deployment/BUILD_ARTEFAKTE.md): lokale und in CI erzeugte, nicht versionierte Artefakte
 - [Automatische Produkt-Releases](betrieb-und-deployment/PRODUKT_RELEASE_PROZESS.md)
+- [Versionierte Release Notes](release-notes/): dauerhaft veröffentlichte Texte je Produktversion
 - [Mitwirken](../CONTRIBUTING.md)
 - [Änderungshistorie](../CHANGELOG.md)
 

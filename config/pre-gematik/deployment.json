@@ -19,7 +19,7 @@
   "authModes": ["iap"],
   "forbiddenInputs": [
     "dist/pages",
-    "politik-offline.html",
+    "public/pages-demo/politik-offline.html",
     "frontend/demo",
     "frontend/data/public-politics-directory.js",
     "frontend/data/demo-data.js"

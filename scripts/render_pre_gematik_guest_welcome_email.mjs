@@ -37,7 +37,7 @@ const ALLOWED_ACTION_PARAMETERS = new Set([
   "mode",
   "oobCode"
 ]);
-const TEMPLATE_DIRECTORY = new URL("../templates/email/", import.meta.url);
+const TEMPLATE_DIRECTORY = new URL("../config/pre-gematik/email/", import.meta.url);
 const TEXT_TEMPLATE = new URL(
   "pre-gematik-guest-welcome.txt",
   TEMPLATE_DIRECTORY
@@ -80,7 +80,7 @@ export const WELCOME_EMAIL_BRAND_ASSET_SPECS = Object.freeze([
     filename: "versorgungs-kompass-mark-on-dark.png",
     cidPrefix: "vk-compass-versorgung",
     pngUrl: new URL(
-      "../templates/email/assets/versorgungs-kompass-mark-on-dark.png",
+      "../config/pre-gematik/email/assets/versorgungs-kompass-mark-on-dark.png",
       import.meta.url
     ),
     sourceUrl: new URL(
@@ -97,7 +97,7 @@ export const WELCOME_EMAIL_BRAND_ASSET_SPECS = Object.freeze([
     filename: "stakeholder-mark-on-dark.png",
     cidPrefix: "vk-compass-stakeholder",
     pngUrl: new URL(
-      "../templates/email/assets/stakeholder-mark-on-dark.png",
+      "../config/pre-gematik/email/assets/stakeholder-mark-on-dark.png",
       import.meta.url
     ),
     sourceUrl: new URL(
@@ -114,7 +114,7 @@ export const WELCOME_EMAIL_BRAND_ASSET_SPECS = Object.freeze([
     filename: "hospitation-mark-on-dark.png",
     cidPrefix: "vk-compass-hospitation",
     pngUrl: new URL(
-      "../templates/email/assets/hospitation-mark-on-dark.png",
+      "../config/pre-gematik/email/assets/hospitation-mark-on-dark.png",
       import.meta.url
     ),
     sourceUrl: new URL(
@@ -131,7 +131,7 @@ export const WELCOME_EMAIL_BRAND_ASSET_SPECS = Object.freeze([
     filename: "formate-mark-on-dark.png",
     cidPrefix: "vk-compass-formate",
     pngUrl: new URL(
-      "../templates/email/assets/formate-mark-on-dark.png",
+      "../config/pre-gematik/email/assets/formate-mark-on-dark.png",
       import.meta.url
     ),
     sourceUrl: new URL(

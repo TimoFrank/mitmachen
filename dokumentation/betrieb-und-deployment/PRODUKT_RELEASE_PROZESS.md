@@ -29,7 +29,8 @@ nachträglich gepusht werden.
 1. Der Workflow ermittelt den letzten tatsächlich veröffentlichten GitHub
    Release und alle folgenden Commits.
 2. Der Generator aktualisiert Changelog, README und In-App-Versionshistorie und
-   schreibt dauerhafte Release Notes unter `release-notes/vX.Y.Z.md`.
+   schreibt dauerhafte Release Notes unter
+   `dokumentation/release-notes/vX.Y.Z.md`.
 3. Repository- und Browserprüfungen laufen auf dem vorbereiteten Stand.
 4. Ein nicht als Draft markierter Automations-PR wird angelegt.
 5. `Repo check` wird ausdrücklich auf dem exakten Head-Commit dieses PR

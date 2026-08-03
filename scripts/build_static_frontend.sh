@@ -208,7 +208,7 @@ build_pages() {
     "$STAGE_DIR/vendor"
 
   touch "$STAGE_DIR/.nojekyll"
-  cp "$ROOT_DIR/politik-offline.html" "$STAGE_DIR/politik-offline.html"
+  cp "$ROOT_DIR/public/pages-demo/politik-offline.html" "$STAGE_DIR/politik-offline.html"
   cp "$FRONTEND_DIR/app/versorgungs-kompass.html" "$STAGE_DIR/versorgungs-kompass.html"
   cp "$FRONTEND_DIR/app/versorgungs-kompass.css" "$STAGE_DIR/versorgungs-kompass.css"
   cp "$FRONTEND_DIR/app/versorgungs-kompass-no-script.css" "$STAGE_DIR/versorgungs-kompass-no-script.css"

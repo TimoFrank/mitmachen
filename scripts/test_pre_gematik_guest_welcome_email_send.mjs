@@ -37,11 +37,11 @@ import {
 const projectRoot = new URL("../", import.meta.url);
 const [textTemplate, htmlTemplate] = await Promise.all([
   fs.readFile(
-    new URL("templates/email/pre-gematik-guest-welcome.txt", projectRoot),
+    new URL("config/pre-gematik/email/pre-gematik-guest-welcome.txt", projectRoot),
     "utf8"
   ),
   fs.readFile(
-    new URL("templates/email/pre-gematik-guest-welcome.html", projectRoot),
+    new URL("config/pre-gematik/email/pre-gematik-guest-welcome.html", projectRoot),
     "utf8"
   )
 ]);
