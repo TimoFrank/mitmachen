@@ -1,7 +1,10 @@
 # Deployment des Gematik-PoC auf Kubernetes
 
 Status: technisches Runbook
-Stand: 1. August 2026
+Stand: 3. August 2026
+
+GKE-Herkunft, Freeze-Regeln und offene Nachweise stehen kompakt in der
+[RC.5-Übergabenotiz](UEBERGABE_RC5_SOFTWARE_FACTORY.md).
 
 ## Ziel
 
@@ -9,7 +12,7 @@ Dieses Runbook beschreibt den Build und die Bereitstellung eines festgelegten Re
 
 ```mermaid
 flowchart TB
-  RC["GitLab<br/>RC-Tag und Git-Commit"]
+  RC["Git-Repository<br/>RC-Tag und Git-Commit"]
 
   subgraph SF["Jenkins / Software Factory"]
     direction TB
@@ -87,7 +90,7 @@ Passwörter, Tokens, private Zertifikate, Daten-Snapshots und OIDC-Subjects werd
 
 Der aktuelle Target-Build unterstützt einen klar abgegrenzten, providerneutralen Adapter: Frontend und `/api` liegen same-origin hinter dem institutionellen Identity-Gateway. Das Frontend verwaltet selbst keine Tokens. Das Gateway entfernt vom Browser eingehende `Authorization`- und Identitätsheader und setzt zur nicht direkt erreichbaren API ausschließlich ein frisch geprüftes, signiertes JWT als `Authorization: Bearer <JWT>`. Issuer, Audience, JWKS sowie E-Mail- und Subject-Claim müssen den API-Laufzeitwerten entsprechen.
 
-Dieser Vertrag muss vor einem Deployment von den Plattformverantwortlichen bestätigt werden. Ein Cookie-only-Gateway oder eine browserseitige OAuth-/PKCE-Anmeldung ist mit dem aktuellen Stand nicht abgedeckt und benötigt einen eigenen Plattformadapter sowie einen neuen RC. RC4 ist bis zur Bestätigung und zum positiven Authentifizierungs-Smoke übergabefähig, aber nicht deployment-freigegeben.
+Dieser Vertrag muss vor einem Deployment von den Plattformverantwortlichen bestätigt werden. Ein Cookie-only-Gateway oder eine browserseitige OAuth-/PKCE-Anmeldung ist mit dem aktuellen Stand nicht abgedeckt und benötigt einen eigenen Plattformadapter sowie einen weiteren RC. Der RC.5-Freeze ist bis zur Erzeugung des annotierten Tags, zum vollständigen RC-Nachweis und zum positiven Authentifizierungs-Smoke nicht deployment-freigegeben.
 
 Der positive Smoke verwendet eine benannte Testidentität und weist nach:
 
@@ -104,7 +107,7 @@ Ein neuer RC-Tag wird erst nach Integration der Korrektur und erfolgreichen Gate
 
 ```bash
 git status --short
-git checkout poc-v0.1.0-rc.4
+git checkout poc-v0.1.0-rc.5
 git rev-parse HEAD
 npm ci
 npm run check:poc-rc
@@ -138,11 +141,13 @@ node scripts/audit_target_assets.mjs --artifact-root dist/target
 
 docker build \
   -f api/Dockerfile \
-  -t "<registry>/<repository>:poc-v0.1.0-rc.4" \
+  -t "<registry>/<repository>:poc-v0.1.0-rc.5" \
   .
 ```
 
 Der providerneutrale OIDC-Frontend-Build benötigt nur den internen HTTPS-Origin. `OIDC_ISSUER`, `OIDC_AUDIENCE` und `OIDC_JWKS_URL` sind geschützte API-Laufzeitwerte und werden nicht in das statische Frontend geschrieben. Google Identity Platform, Firebase-Konfiguration, GCP-Projektwerte und das frühere IAP-Identity-Portal sind kein Bestandteil dieses OIDC-Artefakts. Der getrennte GCP-Pre-Integrationspfad mit `auth-mode=iap` behält sein eigenes Portal und seine eigenen Prüfungen.
+
+Der aktuelle GKE-Stand belegt die integrierte Quellbasis, ist aber kein wiederverwendbares RC-Artefakt. Seine IAP-Frontend- und GCP-Image-Digests werden weder umgetaggt noch in die gematik-Registry promotet. Die Software Factory baut Frontend und API aus dem annotierten RC.5-Commit neu und erzeugt dafür eigene, gemeinsam nachgewiesene Digests.
 
 Nach dem Push werden Frontend-Manifest, Image-Digest, Tag und Commit zusammen festgehalten. Der Datenstand ist bewusst kein Buildartefakt.
 

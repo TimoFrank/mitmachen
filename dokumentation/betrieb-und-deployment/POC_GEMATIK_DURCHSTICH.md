@@ -1,7 +1,10 @@
 # Gematik-PoC: interner Nutzungspilot
 
 Status: Vorbereitung des internen Nutzungspiloten
-Stand: 1. August 2026
+Stand: 3. August 2026
+
+Für die technische Übergabe ist die
+[RC.5-Übergabenotiz](UEBERGABE_RC5_SOFTWARE_FACTORY.md) der kompakte Einstieg.
 
 ## Zweck
 
@@ -22,7 +25,7 @@ gematik OIDC-Identität -> bestehendes oder neu angelegtes Profil
 
 | Bereich | Stand |
 | --- | --- |
-| Quellstand | `poc-v0.1.0-rc.4` ist der vorgesehene nächste RC-Tag; er entsteht erst auf dem integrierten, grün geprüften `main`-Commit |
+| Quellstand | `poc-v0.1.0-rc.4` bleibt unverändert auf Commit `7e0d7d133278cc3f86ad9e73c15d592cb838cf58`; der RC.5-Freeze übernimmt die in `main` integrierte GKE-Quellbasis `e6e8fc35b2502abcfe5ee40718189d5a0f4da25d` und wird erst durch den annotierten Remote-Tag auf dem grün geprüften Freeze-Commit verbindlich |
 | Anwendung | Providerneutraler OIDC-Target-Build, API-Container und Helm-Chart sind vorbereitet |
 | Anmeldung | Der unterstützte Identity-Gateway-Vertrag ist beschrieben; Bestätigung durch die Plattformverantwortlichen und ein authentifizierter Smoke stehen noch aus |
 | Daten | Schema und Datenklassen sind bekannt; der bisherige Importweg muss an die gematik-Datenbank und den gewählten Dateispeicher angebunden werden |
@@ -45,7 +48,7 @@ gematik OIDC-Identität -> bestehendes oder neu angelegtes Profil
 
 Für den ersten Durchstich genügt eine API-Instanz. Neue Datei- und Bild-Uploads bleiben deaktiviert. Fehlt ein passender Objektspeicher, wird zunächst nur der strukturierte Datenbestand übernommen; Datei-Verweise werden dabei nicht als funktionierend ausgewiesen.
 
-Der Stand ist damit als portal-freies RC4-Artefakt übergabefähig, aber noch nicht für ein Deployment oder den Pilotstart freigegeben. Dafür muss die gematik-Plattform bestätigen, dass ihr Identity-Gateway den im Deployment-Runbook beschriebenen Bearer-Token-Vertrag erfüllt. Ein Cookie-only-Gateway oder eine browserseitige OAuth-/PKCE-Anmeldung wäre ein anderer Plattformadapter und erfordert vor dem Pilotstart einen neuen RC.
+Der RC.5-Freeze überführt die seit RC.4 integrierten Anwendungsänderungen in den providerneutralen Zielpfad. Der vorbereitete Stand ist nicht für ein Deployment oder den Pilotstart freigegeben. Dafür müssen zunächst der annotierte RC.5-Tag und alle RC-Gates nachgewiesen sein; zusätzlich muss die gematik-Plattform bestätigen, dass ihr Identity-Gateway den im Deployment-Runbook beschriebenen Bearer-Token-Vertrag erfüllt. Ein Cookie-only-Gateway oder eine browserseitige OAuth-/PKCE-Anmeldung wäre ein anderer Plattformadapter und erfordert vor dem Pilotstart einen weiteren RC.
 
 ## Was das Entwicklungsteam liefert
 
@@ -79,7 +82,7 @@ Während des Testzeitraums ist der gematik-PoC der gemeinsame bearbeitbare Besta
 
 Der RC-Tag bleibt unverändert. Frontend und API werden aus demselben Commit gebaut und über Manifest beziehungsweise Image-Digest eindeutig zugeordnet. Änderungen auf `main`, in Feature-Branches, in lokalen Varianten oder auf GitHub Pages können parallel weiterlaufen. Diese Wege verwenden keine Echtdaten aus dem PoC. Benötigt der PoC eine Softwareänderung, entsteht ein neuer RC-Tag.
 
-Bis zur Integration der OIDC-Buildkorrektur bleibt `poc-v0.1.0-rc.3` der bestehende eingefrorene Referenzstand. Der Tag `poc-v0.1.0-rc.4` wird nicht auf einem Feature-Branch erzeugt, sondern erst nach erfolgreicher RC-QA auf dem nachgewiesenen `origin/main`-Commit.
+Der annotierte Tag `poc-v0.1.0-rc.4` bleibt die unveränderte bisherige Referenz. Der am 3. August 2026 erfolgreich in GKE ausgelieferte Quellstand `e6e8fc35b2502abcfe5ee40718189d5a0f4da25d` liegt vollständig in `origin/main` und 13 Integrationscommits nach RC.4. Für RC.5 werden darauf nur die RC-Metadaten und Übergabeunterlagen ergänzt. `poc-v0.1.0-rc.5` wird erst nach Merge und erfolgreicher RC-QA auf dem nachgewiesenen `origin/main`-Freeze-Commit erzeugt; RC.4 wird nicht verschoben.
 
 ## Erfolgskriterien
 
@@ -94,6 +97,7 @@ Der Durchstich ist abgeschlossen, wenn:
 
 ## Technische Unterlagen
 
+- [RC.5-Freeze und Übergabe an die Software Factory](UEBERGABE_RC5_SOFTWARE_FACTORY.md)
 - [Deployment-Runbook für Kubernetes](DEPLOYMENT_GEMATIK_K8S.md)
 - [Datenbank und Datenübernahme](../../deploy/postgres/poc-gematik/README.md)
 - [Aktueller Datenweg und historischer Providerwechsel](SUPABASE_CLOUD_SQL_MIGRATION.md)
