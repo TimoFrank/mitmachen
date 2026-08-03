@@ -230,6 +230,23 @@ die relevanten Zustände per Playwright prüfen und mindestens eine anklickbare
 Screenshot-Vorschau bereitstellen. Weitere Viewports nur, wenn sie materiell
 andere Risiken abdecken.
 
+## Sprache für Pull Requests und Commits
+
+- Vom Projekt verantwortete Pull-Request-Titel, Pull-Request-Beschreibungen,
+  Commit-Kurzbeschreibungen und ausführliche Commit-Beschreibungen werden auf
+  Deutsch verfasst.
+- Titel sind knapp, verständlich und ergebnisorientiert. Englische Fachbegriffe
+  bleiben nur erhalten, wenn es sich um technische Eigennamen, Code-Bezeichner,
+  Befehle, Protokolle oder unverändert wiederzugebende Meldungen handelt.
+- Lokale Zwischen-Commits erhalten bereits deutsche Kurzbeschreibungen, aber
+  keine vorweggenommene PR-Nummer.
+- Der dauerhafte Squash-Commit auf `main` verwendet den deutschen PR-Titel im
+  Format `Deutscher PR-Titel (#123)`. GitHub erzeugt und verlinkt die
+  PR-Nummer; sie wird nicht zusätzlich in den Titel geschrieben.
+- Die ausführliche Beschreibung des Squash-Commits erläutert auf Deutsch, was
+  geändert wurde und warum. Automatisch erzeugte englische Texte werden vor
+  dem Merge übersetzt, soweit sie Teil der dauerhaften Historie werden.
+
 ## Pull Request, Merge, Deployment und Cleanup
 
 Vor einem Pull Request:
