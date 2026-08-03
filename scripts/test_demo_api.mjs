@@ -861,10 +861,54 @@ const registrationPayload = await registrationResponse.json();
 assert.equal(registrationPayload.persistence, "memory-only");
 assert.equal(registrationPayload.registration.privacyCheckStatus, "synthetic_demo");
 
+const initialNotificationSummaryResponse = await window.fetch("/api/notifications/summary");
+assert.equal(initialNotificationSummaryResponse.status, 200);
+assert.deepEqual(
+  await initialNotificationSummaryResponse.json(),
+  {
+    unreadTotal: 7,
+    byContext: { contacts: 3, organizations: 2, hospitations: 1, formats: 1 }
+  },
+  "Die Demo-Zusammenfassung muss ausschließlich operative ungelesene Hinweise zählen."
+);
+for (const [notificationContext, expectedCount] of Object.entries({
+  contacts: 3,
+  organizations: 2,
+  hospitations: 1,
+  formats: 1,
+  team: 0
+})) {
+  const contextResponse = await window.fetch(`/api/notifications?unreadOnly=true&context=${notificationContext}&limit=100`);
+  assert.equal(contextResponse.status, 200);
+  assert.equal(
+    (await contextResponse.json()).items.length,
+    expectedCount,
+    `Der Demo-Filter ${notificationContext} muss die erwartete Zahl ungelesener Hinweise liefern.`
+  );
+}
+const operationalNotificationsResponse = await window.fetch("/api/notifications?unreadOnly=true&context=operational&limit=100");
+assert.equal(operationalNotificationsResponse.status, 200);
+const operationalNotificationsPayload = await operationalNotificationsResponse.json();
+assert.equal(operationalNotificationsPayload.items.length, 7);
+assert.doesNotMatch(
+  operationalNotificationsPayload.items.map((item) => `${item.title} ${item.body}`).join(" "),
+  /synthetisch/i,
+  "Sichtbare Demo-Benachrichtigungen müssen wie konkrete Arbeitsmeldungen formuliert sein."
+);
+
 const firstNotificationId = initialSnapshot.notifications[0].id;
 const notificationResponse = await window.fetch(`/api/notifications/${encodeURIComponent(firstNotificationId)}/read`, { method: "PATCH" });
 assert.equal(notificationResponse.status, 200);
 assert.equal(api.snapshot().notifications.find((item) => item.id === firstNotificationId)?.unread, false);
+const updatedNotificationSummaryResponse = await window.fetch("/api/notifications/summary");
+assert.deepEqual(
+  await updatedNotificationSummaryResponse.json(),
+  {
+    unreadTotal: 6,
+    byContext: { organizations: 2, hospitations: 1, formats: 1, contacts: 2 }
+  },
+  "Gelesene Hinweise müssen sofort aus der operativen Zusammenfassung verschwinden."
+);
 
 const invalidHospitationDayResponse = await window.fetch("/api/hospitations", {
   method: "POST",

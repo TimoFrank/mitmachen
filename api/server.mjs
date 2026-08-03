@@ -1414,6 +1414,7 @@ function notificationContext(entityType = "", eventType = "") {
   const event = String(eventType || "").toLowerCase();
   if (entity === "contact") return "contacts";
   if (entity === "organization") return "organizations";
+  if (entity === "hospitation" || entity === "hospitation_observation") return "hospitations";
   if (entity === "format" || entity === "format_participant") return "formats";
   if (entity === "profile" || event.includes("team") || event.includes("account")) return "team";
   if (entity === "product" || event.includes("feature")) return "product";
@@ -1449,6 +1450,7 @@ function notificationToDto(row = {}) {
 
 function notificationMatchesContext(notification, context = "") {
   const normalized = String(context || "all").trim();
+  if (normalized === "operational") return notification.context !== "product";
   return !normalized || normalized === "all" || notification.context === normalized;
 }
 
@@ -5062,12 +5064,13 @@ async function notifyContactCreated(request, contact = {}, actorId = "", options
   const ownerIds = ownerIdsFromContact(contact);
   const recipients = ownerIds.length ? ownerIds : idsExcept(adminProfileIds(), actorId);
   const imported = options.action === "import";
+  const contactLabel = contact.name ? `„${contact.name}“` : "Der Kontakt";
   await createNotificationEvent(request, {
     eventType: imported ? "contact_imported" : "contact_created",
     entityType: "contact",
     entityId: contact.id,
-    title: imported ? "Kontakt importiert" : "Neuer Kontakt",
-    body: `${contact.name || "Ein Kontakt"} wurde ${imported ? "importiert" : "angelegt"}.`,
+    title: imported ? "Kontakt importiert" : "Kontakt angelegt",
+    body: `${contactLabel} wurde ${imported ? "aus einem Import übernommen" : "neu angelegt"}.`,
     route: contactRoute(contact.id),
     payload: {
       contactName: contact.name || "",
@@ -5088,14 +5091,17 @@ async function notifyContactUpdated(request, contact = {}, actorId = "", details
     ? uniqueIds([...(details.oldOwnerIds || []), ...(details.nextOwnerIds || [])])
     : (ownerIdsFromContact(contact).length ? idsExcept(ownerIdsFromContact(contact), actorId) : idsExcept(adminProfileIds(), actorId));
   const archived = action === "archive";
+  const contactLabel = contact.name ? `„${contact.name}“` : "";
   await createNotificationEvent(request, {
     eventType: ownerChanged ? "contact_owner_changed" : archived ? "contact_archived" : "contact_updated",
     entityType: "contact",
     entityId: contact.id,
-    title: ownerChanged ? "Owner geändert" : archived ? "Kontakt archiviert" : "Kontakt aktualisiert",
+    title: ownerChanged ? "Verantwortung geändert" : archived ? "Kontakt archiviert" : "Kontaktdaten aktualisiert",
     body: ownerChanged
-      ? `Die Zuständigkeit für ${contact.name || "einen Kontakt"} wurde geändert.`
-      : `${contact.name || "Ein Kontakt"} wurde aktualisiert.`,
+      ? `Die Verantwortung für ${contactLabel || "den Kontakt"} wurde neu zugeordnet.`
+      : archived
+        ? `${contact.name ? `„${contact.name}“` : "Der Kontakt"} wurde archiviert.`
+        : `Die Kontaktdaten von ${contactLabel || "dem Kontakt"} wurden aktualisiert.`,
     route: contactRoute(contact.id),
     payload: {
       contactName: contact.name || "",
@@ -5112,12 +5118,15 @@ async function notifyOrganizationChanged(request, organization = {}, actorId = "
   await loadProfiles(request);
   const ownerIds = await organizationContactOwnerIds(request, organization);
   const recipients = ownerIds.length ? idsExcept(ownerIds, actorId) : idsExcept(adminProfileIds(), actorId);
+  const organizationLabel = organization.name ? `„${organization.name}“` : "der Organisation";
   await createNotificationEvent(request, {
     eventType: action === "create" ? "organization_created" : "organization_updated",
     entityType: "organization",
     entityId: organization.id,
-    title: action === "create" ? "Neue Organisation" : "Organisation aktualisiert",
-    body: `${organization.name || "Eine Organisation"} wurde ${action === "create" ? "angelegt" : "aktualisiert"}.`,
+    title: action === "create" ? "Organisation angelegt" : "Organisationsdaten aktualisiert",
+    body: action === "create"
+      ? `${organization.name ? `„${organization.name}“` : "Die Organisation"} wurde neu angelegt.`
+      : `Die Angaben zu ${organizationLabel} wurden aktualisiert.`,
     route: organizationRoute(organization.id),
     payload: {
       organizationName: organization.name || "",
@@ -5149,29 +5158,28 @@ async function notifyFormatChanged(request, format = {}, actorId = "", action = 
             ? "format_restored"
             : "format_updated";
   const title = action === "create"
-    ? "Neues Format"
+    ? "Format angelegt"
     : ownerChanged
-      ? "Format-Owner geändert"
+      ? "Verantwortung für Format geändert"
       : action === "participant"
-        ? "Format-Teilnehmer geändert"
+        ? "Teilnehmende aktualisiert"
         : action === "archive"
           ? "Format archiviert"
           : action === "restore"
             ? "Format wiederhergestellt"
             : "Format aktualisiert";
-  const verb = action === "create"
-    ? "angelegt"
-    : action === "archive"
-      ? "archiviert"
-      : action === "restore"
-        ? "wiederhergestellt"
-        : "aktualisiert";
+  const formatLabel = format.title ? `„${format.title}“` : "das Format";
+  const body = ownerChanged
+    ? `Die Verantwortung für ${formatLabel} wurde geändert.`
+    : action === "participant"
+      ? `Für ${formatLabel} wurden die Teilnehmenden aktualisiert.`
+      : `${format.title ? `„${format.title}“` : "Das Format"} wurde ${action === "create" ? "neu angelegt" : action === "archive" ? "archiviert" : action === "restore" ? "wiederhergestellt" : "aktualisiert"}.`;
   await createNotificationEvent(request, {
     eventType,
     entityType: action === "participant" ? "format_participant" : "format",
     entityId: format.id,
     title,
-    body: `${format.title || "Ein Format"} wurde ${verb}.`,
+    body,
     route: formatRoute(format.id),
     payload: {
       formatTitle: format.title || "",
@@ -9745,7 +9753,7 @@ async function listNotifications(request, url) {
 }
 
 async function getNotificationSummary(request) {
-  const payload = await listNotifications(request, new URL("http://local/api/notifications?unreadOnly=true&limit=100"));
+  const payload = await listNotifications(request, new URL("http://local/api/notifications?unreadOnly=true&context=operational&limit=100"));
   const byContext = {};
   (payload.items || []).forEach((item) => {
     byContext[item.context] = (byContext[item.context] || 0) + 1;

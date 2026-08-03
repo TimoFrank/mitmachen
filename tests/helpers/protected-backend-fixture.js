@@ -689,11 +689,15 @@ function activityCategory(item = {}) {
 function notificationDto(item = {}) {
   const readAt = item.readAt || item.read_at || "";
   const entityType = String(item.entityType || item.entity_type || "").toLowerCase();
+  const eventType = String(item.eventType || item.event_type || "").toLowerCase();
   const context = item.context
     || (entityType === "contact" ? "contacts"
       : entityType === "organization" ? "organizations"
+        : ["hospitation", "hospitation_observation"].includes(entityType) ? "hospitations"
         : ["format", "format_participant"].includes(entityType) ? "formats"
-          : entityType === "profile" ? "team" : "all");
+          : (entityType === "profile" || eventType.includes("team") || eventType.includes("account")) ? "team"
+            : (entityType === "product" || eventType.includes("feature")) ? "product"
+              : "all");
   return {
     ...item,
     context,
@@ -883,15 +887,27 @@ export async function installProtectedBackend(page, fixture) {
       const context = String(url.searchParams.get("context") || "all");
       const offset = Math.max(Number(url.searchParams.get("offset")) || 0, 0);
       const limit = Math.min(Math.max(Number(url.searchParams.get("limit")) || 30, 1), 100);
-      const rows = fixture.notifications.filter((item) => {
-        const unread = item.unread !== false && !(item.readAt || item.read_at);
-        return (!unreadOnly || unread) && (context === "all" || !context || item.context === context);
+      const rows = fixture.notifications.map(notificationDto).filter((item) => {
+        const unread = item.unread !== false && !item.readAt;
+        const contextMatches = context === "all" || !context
+          ? true
+          : context === "operational"
+            ? item.context !== "product"
+            : item.context === context;
+        return (!unreadOnly || unread) && contextMatches;
       });
-      await fulfillJson(route, { items: clone(rows.slice(offset, offset + limit).map(notificationDto)), nextOffset: Math.min(rows.length, offset + limit), hasMore: rows.length > offset + limit });
+      await fulfillJson(route, { items: clone(rows.slice(offset, offset + limit)), nextOffset: Math.min(rows.length, offset + limit), hasMore: rows.length > offset + limit });
       return;
     }
     if (method === "GET" && path === "/api/notifications/summary") {
-      await fulfillJson(route, { unreadTotal: fixture.notifications.filter((item) => item.unread !== false && !(item.readAt || item.read_at)).length, byContext: {} });
+      const unread = fixture.notifications
+        .map(notificationDto)
+        .filter((item) => item.context !== "product" && item.unread);
+      const byContext = unread.reduce((result, item) => {
+        result[item.context] = (result[item.context] || 0) + 1;
+        return result;
+      }, {});
+      await fulfillJson(route, { unreadTotal: unread.length, byContext });
       return;
     }
     if (method === "PATCH" && (path === "/api/notifications/read" || /^\/api\/notifications\/[^/]+\/read$/.test(path))) {

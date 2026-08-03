@@ -83,7 +83,6 @@
                   <path d="M15 6v15"></path>
                 </svg>
                 <span>Karte</span>
-                <span class="notification-count-indicator" id="notification-count-care" hidden>0</span>
               </button>
               <button class="primary-tab" type="button" data-view-tab="contacts" title="Kontakte">
                 <svg viewBox="0 0 24 24" fill="none" stroke-width="2" aria-hidden="true">
@@ -338,7 +337,6 @@
                   <path d="M16 15h.01"></path>
                 </svg>
                 <span>Formate</span>
-                <span class="notification-count-indicator" id="notification-count-formats" hidden>0</span>
               </button>
             </div>
           </div>
@@ -362,7 +360,6 @@
               </svg>
             </span>
             <span class="sidebar-team-label">Teams</span>
-            <span class="notification-count-indicator" id="notification-count-team" hidden>0</span>
           </button>
           <div class="sidebar-account-row">
             <button class="sidebar-footer" type="button" id="sidebar-profile-button" aria-label="Mein Profil öffnen" title="Mein Profil">
@@ -372,18 +369,19 @@
                 <span id="sidebar-user-role">Wird geladen</span>
               </div>
             </button>
-            <button class="sidebar-notification-button" type="button" id="sidebar-notifications-button" aria-label="Benachrichtigungen öffnen" aria-controls="notification-popover" aria-expanded="false" title="Benachrichtigungen">
+            <button class="sidebar-notification-button" type="button" id="sidebar-notifications-button" aria-label="Benachrichtigungen öffnen – alles gelesen" aria-controls="notification-popover" aria-expanded="false" aria-haspopup="dialog" title="Benachrichtigungen öffnen – alles gelesen">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
                 <path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9"></path>
                 <path d="M13.7 21a2 2 0 0 1-3.4 0"></path>
               </svg>
-              <span class="notification-count-indicator" id="notification-count-total" hidden>0</span>
+              <span class="notification-count-indicator" id="notification-count-total" aria-hidden="true" hidden>0</span>
             </button>
           </div>
-          <div class="notification-popover" id="notification-popover" role="dialog" aria-labelledby="notification-popover-title" hidden>
+          <div class="notification-popover" id="notification-popover" role="dialog" aria-labelledby="notification-popover-title" aria-describedby="notification-popover-meta" hidden>
             <div class="notification-popover__head">
               <div>
                 <h3 class="notification-popover__title" id="notification-popover-title">Benachrichtigungen</h3>
+                <p class="notification-popover__meta" id="notification-popover-meta" aria-live="polite" aria-atomic="true">Alles gelesen</p>
               </div>
               <button class="detail-close" type="button" id="notification-popover-close" aria-label="Benachrichtigungen schließen">×</button>
             </div>
@@ -2963,14 +2961,38 @@
                 <div class="notifications-workspace profile-notifications-workspace">
                   <div class="notifications-command-row">
                     <div class="notifications-filters" role="tablist" aria-label="Benachrichtigungen filtern">
-                      <button class="notification-filter is-active" id="notification-filter-unread" type="button" role="tab" data-notification-filter="unread" aria-selected="true" aria-controls="notifications-filter-panel" tabindex="0">Ungelesen</button>
-                      <button class="notification-filter" id="notification-filter-all" type="button" role="tab" data-notification-filter="all" aria-selected="false" aria-controls="notifications-filter-panel" tabindex="-1">Alle</button>
-                      <button class="notification-filter" id="notification-filter-contacts" type="button" role="tab" data-notification-filter="contacts" aria-selected="false" aria-controls="notifications-filter-panel" tabindex="-1">Kontakte</button>
-                      <button class="notification-filter" id="notification-filter-organizations" type="button" role="tab" data-notification-filter="organizations" aria-selected="false" aria-controls="notifications-filter-panel" tabindex="-1">Organisationen</button>
-                      <button class="notification-filter" id="notification-filter-formats" type="button" role="tab" data-notification-filter="formats" aria-selected="false" aria-controls="notifications-filter-panel" tabindex="-1">Formate</button>
-                      <button class="notification-filter" id="notification-filter-team" type="button" role="tab" data-notification-filter="team" aria-selected="false" aria-controls="notifications-filter-panel" tabindex="-1">Team</button>
-                      <button class="notification-filter" id="notification-filter-product" type="button" role="tab" data-notification-filter="product" aria-selected="false" aria-controls="notifications-filter-panel" tabindex="-1">Produkt</button>
+                      <button class="notification-filter is-active" id="notification-filter-unread" type="button" role="tab" data-notification-filter="unread" aria-selected="true" aria-controls="notifications-filter-panel" tabindex="0">
+                        <span class="notification-filter__label">Ungelesen</span>
+                        <span class="notification-filter__count" data-notification-filter-count="unread" aria-hidden="true" hidden>0</span>
+                      </button>
+                      <button class="notification-filter" id="notification-filter-all" type="button" role="tab" data-notification-filter="all" aria-selected="false" aria-controls="notifications-filter-panel" tabindex="-1">
+                        <span class="notification-filter__label">Alle</span>
+                      </button>
+                      <button class="notification-filter" id="notification-filter-contacts" type="button" role="tab" data-notification-filter="contacts" aria-selected="false" aria-controls="notifications-filter-panel" tabindex="-1">
+                        <span class="notification-filter__label">Kontakte</span>
+                        <span class="notification-filter__count" data-notification-filter-count="contacts" aria-hidden="true" hidden>0</span>
+                      </button>
+                      <button class="notification-filter" id="notification-filter-organizations" type="button" role="tab" data-notification-filter="organizations" aria-selected="false" aria-controls="notifications-filter-panel" tabindex="-1">
+                        <span class="notification-filter__label">Organisationen</span>
+                        <span class="notification-filter__count" data-notification-filter-count="organizations" aria-hidden="true" hidden>0</span>
+                      </button>
+                      <button class="notification-filter" id="notification-filter-hospitations" type="button" role="tab" data-notification-filter="hospitations" aria-selected="false" aria-controls="notifications-filter-panel" tabindex="-1">
+                        <span class="notification-filter__label">Hospitationen</span>
+                        <span class="notification-filter__count" data-notification-filter-count="hospitations" aria-hidden="true" hidden>0</span>
+                      </button>
+                      <button class="notification-filter" id="notification-filter-formats" type="button" role="tab" data-notification-filter="formats" aria-selected="false" aria-controls="notifications-filter-panel" tabindex="-1">
+                        <span class="notification-filter__label">Formate</span>
+                        <span class="notification-filter__count" data-notification-filter-count="formats" aria-hidden="true" hidden>0</span>
+                      </button>
+                      <button class="notification-filter" id="notification-filter-team" type="button" role="tab" data-notification-filter="team" aria-selected="false" aria-controls="notifications-filter-panel" tabindex="-1">
+                        <span class="notification-filter__label">Team</span>
+                        <span class="notification-filter__count" data-notification-filter-count="team" aria-hidden="true" hidden>0</span>
+                      </button>
+                      <button class="notification-filter notification-filter--product" id="notification-filter-product" type="button" role="tab" data-notification-filter="product" aria-selected="false" aria-controls="notifications-filter-panel" tabindex="-1">
+                        <span class="notification-filter__label">Produkt</span>
+                      </button>
                     </div>
+                    <p class="notifications-filter-note">Zähler zeigen ungelesene Benachrichtigungen.</p>
                     <div class="notifications-command-actions">
                       <div class="notifications-meta" id="notifications-meta"></div>
                       <button class="action-button action-button--compact" type="button" id="notifications-mark-all-read">Alle als gelesen</button>

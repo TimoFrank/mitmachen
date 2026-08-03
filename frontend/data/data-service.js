@@ -2107,16 +2107,12 @@
     loadNotifications: loadNotifications,
     getNotificationSummary: async function() {
       profileCache.size || await loadProfiles();
-      const payload = await loadNotifications({
-        unreadOnly: !0,
-        limit: 100,
-        offset: 0
-      }), byContext = {};
-      return (payload.items || []).forEach(item => {
-        byContext[item.context] = (byContext[item.context] || 0) + 1;
-      }), {
-        unreadTotal: Object.values(byContext).reduce((sum, count) => sum + count, 0),
-        byContext: byContext
+      if (!supportsNotifications) return { unreadTotal: 0, byContext: {} };
+      const payload = await apiGet("/api/notifications/summary");
+      const byContext = payload?.byContext && typeof payload.byContext === "object" ? payload.byContext : {};
+      return {
+        unreadTotal: Math.max(0, Number(payload?.unreadTotal) || 0),
+        byContext
       };
     },
     markNotificationRead: async function(id) {

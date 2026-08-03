@@ -1000,8 +1000,13 @@
       const notificationsLoadMoreButton = document.getElementById("notifications-load-more");
       const notificationPopover = document.getElementById("notification-popover");
       const notificationPopoverList = document.getElementById("notification-popover-list");
+      const notificationPopoverMeta = document.getElementById("notification-popover-meta");
       const notificationPopoverClose = document.getElementById("notification-popover-close");
       const notificationPopoverAll = document.getElementById("notification-popover-all");
+      const notificationFilterCountNodes = new Map(
+        [...document.querySelectorAll("[data-notification-filter-count]")]
+          .map((node) => [node.dataset.notificationFilterCount, node])
+      );
       const formatDetailPanel = document.getElementById("format-detail-panel");
       const newFormatButton = document.getElementById("new-format-button");
       const formatContactFilter = document.getElementById("format-contact-filter");
@@ -1304,14 +1309,7 @@
       const sidebarTeamButton = document.getElementById("sidebar-team-button");
       const sidebarSettingsButton = document.getElementById("sidebar-settings-button");
       const sidebarAboutButton = document.getElementById("sidebar-about-button");
-      const notificationCountNodes = {
-        total: document.getElementById("notification-count-total"),
-        care: document.getElementById("notification-count-care"),
-        contacts: document.getElementById("notification-count-contacts"),
-        organizations: document.getElementById("notification-count-organizations"),
-        formats: document.getElementById("notification-count-formats"),
-        team: document.getElementById("notification-count-team")
-      };
+      const notificationCountTotal = document.getElementById("notification-count-total");
       const aboutVersionList = document.getElementById("about-version-list");
       const personProfilePage = document.getElementById("person-profile-page");
       const personProfileBody = document.getElementById("person-profile-body");
@@ -1801,6 +1799,7 @@
       let notificationsNextOffset = 0;
       let notificationsRequestKey = "";
       let activeNotificationFilter = "unread";
+      let expandedNotificationId = "";
       let notificationPreviewItems = [];
       let notificationPreviewLoading = false;
       let notificationSummary = { unreadTotal: 0, byContext: {} };
@@ -13287,18 +13286,11 @@
         }
       }
 
-      function seenFeatureVersions() {
-        const values = userSettings?.preferences?.seenFeatureVersions;
-        return Array.isArray(values) ? values.map(String) : [];
-      }
-
       function productNotifications() {
-        const seen = new Set(seenFeatureVersions());
         return appVersionHistory.map((release, index) => {
           const version = String(release.version || "");
           if (productNotificationBaselineVersions.has(version)) return null;
           const id = `product-feature-${version}`;
-          const readAt = seen.has(version) ? userSettings?.updatedAt || new Date(0).toISOString() : "";
           return {
             id,
             eventId: id,
@@ -13312,48 +13304,31 @@
             payload: { version, items: release.items || [] },
             occurredAt: new Date(Date.now() - index * 1000).toISOString(),
             createdAt: "",
-            readAt,
-            unread: !readAt
+            readAt: new Date(0).toISOString(),
+            unread: false
           };
         }).filter(Boolean);
       }
 
       function notificationFilterOptions(offset = notificationsNextOffset) {
         const unreadOnly = activeNotificationFilter === "unread";
-        const context = ["all", "unread"].includes(activeNotificationFilter) ? "all" : activeNotificationFilter;
+        const context = ["all", "unread"].includes(activeNotificationFilter) ? "operational" : activeNotificationFilter;
         return { unreadOnly, context, limit: notificationsPageSize, offset };
       }
 
       function notificationRequestKey() {
-        return JSON.stringify({
-          filter: activeNotificationFilter,
-          seen: seenFeatureVersions()
-        });
+        return activeNotificationFilter;
       }
 
       function combinedNotificationItems(remoteItems = []) {
-        const products = productNotifications();
-        const productMatches = products.filter((item) => {
-          if (activeNotificationFilter === "unread") return item.unread;
-          if (activeNotificationFilter === "product") return true;
-          if (activeNotificationFilter === "all") return true;
-          return false;
-        });
-        const allItems = activeNotificationFilter === "product"
-          ? productMatches
-          : [...remoteItems, ...productMatches];
+        const allItems = activeNotificationFilter === "product" ? productNotifications() : remoteItems;
         return sortNotificationItems(
-          allItems.filter((item, index, array) => array.findIndex((candidate) => candidate.id === item.id) === index),
-          { productLast: activeNotificationFilter !== "product" }
+          allItems.filter((item, index, array) => array.findIndex((candidate) => candidate.id === item.id) === index)
         );
       }
 
-      function sortNotificationItems(items = [], { productLast = false } = {}) {
+      function sortNotificationItems(items = []) {
         return [...items].sort((left, right) => {
-          if (productLast && left.context !== right.context) {
-            if (left.context === "product") return 1;
-            if (right.context === "product") return -1;
-          }
           const time = new Date(right.occurredAt || right.createdAt || 0).getTime() - new Date(left.occurredAt || left.createdAt || 0).getTime();
           return time || String(right.id).localeCompare(String(left.id));
         });
@@ -13363,27 +13338,59 @@
         return activeView === "notifications" || (activeView === "profile" && activeProfileTab === "notifications");
       }
 
+      function unreadNotificationLabel(value, zeroLabel = "Alles gelesen") {
+        const count = Math.max(0, Number(value) || 0);
+        if (!count) return zeroLabel;
+        return count === 1 ? "1 ungelesene Benachrichtigung" : `${count} ungelesene Benachrichtigungen`;
+      }
+
+      function notificationFilterAccessibleName(filter, label, value) {
+        if (filter === "all") return "Alle Benachrichtigungen";
+        if (filter === "product") return "Produktinformationen";
+        if (filter === "unread") {
+          return `Ungelesen – ${unreadNotificationLabel(value, "keine Benachrichtigungen")}`;
+        }
+        return `${label} – ${unreadNotificationLabel(value, "keine ungelesenen Benachrichtigungen")}`;
+      }
+
       function renderNotificationCounts(summary = notificationSummary) {
-        const productUnread = productNotifications().filter((item) => item.unread).length;
         const byContext = { ...(summary?.byContext || {}) };
-        if (productUnread) byContext.product = productUnread;
-        const unreadTotal = Number(summary?.unreadTotal || 0) + productUnread;
-        const values = {
-          total: unreadTotal,
+        const unreadTotal = Math.max(0, Number(summary?.unreadTotal) || 0);
+        const filterValues = {
+          unread: unreadTotal,
           contacts: byContext.contacts || 0,
           organizations: byContext.organizations || 0,
+          hospitations: byContext.hospitations || 0,
           formats: byContext.formats || 0,
           team: byContext.team || 0
         };
-        values.care = values.contacts + values.organizations;
-        Object.entries(notificationCountNodes).forEach(([key, node]) => {
-          if (!node) return;
-          const value = values[key] || 0;
-          const hasUnread = value > 0;
-          node.textContent = hasUnread ? (value > 99 ? "99+" : String(value)) : "";
-          node.hidden = !hasUnread;
-          node.setAttribute("aria-label", hasUnread ? `${value} ungelesene Benachrichtigungen` : "Keine ungelesenen Benachrichtigungen");
+        if (notificationCountTotal) {
+          const hasUnread = unreadTotal > 0;
+          notificationCountTotal.textContent = hasUnread ? (unreadTotal > 99 ? "99+" : String(unreadTotal)) : "";
+          notificationCountTotal.hidden = !hasUnread;
+        }
+        notificationFilterButtons.forEach((button) => {
+          const filter = button.dataset.notificationFilter || "all";
+          const label = button.querySelector(".notification-filter__label")?.textContent?.trim() || filter;
+          const value = Math.max(0, Number(filterValues[filter]) || 0);
+          const countNode = notificationFilterCountNodes.get(filter);
+          if (countNode) {
+            const hasUnread = value > 0;
+            countNode.textContent = hasUnread ? (value > 99 ? "99+" : String(value)) : "";
+            countNode.hidden = !hasUnread;
+          }
+          button.setAttribute("aria-label", notificationFilterAccessibleName(filter, label, value));
         });
+        const unreadLabel = unreadNotificationLabel(unreadTotal);
+        const bellLabel = `Benachrichtigungen öffnen – ${unreadTotal ? unreadLabel : "alles gelesen"}`;
+        if (sidebarNotificationsButton) {
+          sidebarNotificationsButton.setAttribute("aria-label", bellLabel);
+          sidebarNotificationsButton.title = bellLabel;
+        }
+        if (notificationPopoverMeta) notificationPopoverMeta.textContent = unreadLabel;
+        if (notificationPopoverAll) {
+          notificationPopoverAll.textContent = unreadTotal ? `${unreadLabel} anzeigen` : "Alle Benachrichtigungen";
+        }
       }
 
       async function refreshNotificationSummary() {
@@ -13461,30 +13468,106 @@
       function notificationIconMarkup(context = "") {
         if (context === "contacts") return `<svg viewBox="0 0 24 24" fill="none" stroke-width="2"><path d="M16 21v-2a4 4 0 0 0-4-4H7a4 4 0 0 0-4 4v2"></path><circle cx="9.5" cy="7" r="4"></circle><path d="M20 8v6"></path><path d="M23 11h-6"></path></svg>`;
         if (context === "organizations") return `<svg viewBox="0 0 24 24" fill="none" stroke-width="2"><path d="M3 21h18"></path><path d="M5 21V5a2 2 0 0 1 2-2h7a2 2 0 0 1 2 2v16"></path><path d="M19 21v-9a2 2 0 0 0-2-2h-1"></path></svg>`;
+        if (context === "hospitations") return `<svg viewBox="0 0 24 24" fill="none" stroke-width="2"><rect x="3" y="5" width="18" height="16" rx="2"></rect><path d="M16 3v4"></path><path d="M8 3v4"></path><path d="M3 11h18"></path><path d="m9 16 2 2 4-4"></path></svg>`;
         if (context === "formats") return `<svg viewBox="0 0 24 24" fill="none" stroke-width="2"><path d="M8 2v4"></path><path d="M16 2v4"></path><rect x="3" y="4" width="18" height="18" rx="2"></rect><path d="M3 10h18"></path></svg>`;
         if (context === "team") return `<svg viewBox="0 0 24 24" fill="none" stroke-width="2"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M22 21v-2a4 4 0 0 0-3-3.87"></path></svg>`;
         return `<svg viewBox="0 0 24 24" fill="none" stroke-width="2"><path d="M12 3v6"></path><path d="M12 15v6"></path><path d="M4.2 7.2l4.2 4.2"></path><path d="m15.6 12.6 4.2 4.2"></path><path d="M3 12h6"></path><path d="M15 12h6"></path></svg>`;
       }
 
+      function notificationDetailsId(notification = {}) {
+        const source = String(notification.id || notification.eventId || notification.title || "entry")
+          .replace(/[^a-z0-9_-]+/gi, "-")
+          .replace(/^-+|-+$/g, "") || "entry";
+        return `notification-details-${source}`;
+      }
+
+      function notificationCategoryLabel(context = "") {
+        return ({
+          contacts: "Kontakte",
+          organizations: "Organisationen",
+          hospitations: "Hospitationen",
+          formats: "Formate",
+          team: "Team",
+          product: "Produkt"
+        })[String(context || "").trim().toLowerCase()] || "Allgemein";
+      }
+
+      function notificationCompassMark(context = "") {
+        return ({
+          contacts: "../../public/brand/versorgungs-kompass/mark.svg",
+          organizations: "../../public/brand/versorgungs-kompass/mark.svg",
+          hospitations: "../../public/brand/modules/hospitation/mark.svg",
+          formats: "../../public/brand/modules/formate/mark.svg",
+          team: "../../public/brand/mitmachen/mark.svg",
+          product: "../../public/brand/mitmachen/mark.svg"
+        })[String(context || "").trim().toLowerCase()] || "../../public/brand/mitmachen/mark.svg";
+      }
+
       function notificationItemMarkup(notification) {
+        const occurredAt = notification.occurredAt || notification.createdAt || "";
         const meta = [
           notification.context === "product" ? "Produkt" : notification.actor?.displayName || "",
-          formatDateTimeLabel(notification.occurredAt || notification.createdAt)
+          formatDateTimeLabel(occurredAt)
         ].filter(Boolean).join(" · ");
+        const detailsId = notificationDetailsId(notification);
+        const expanded = expandedNotificationId === String(notification.id || "");
+        const title = notification.title || "Benachrichtigung";
+        const categoryLabel = notificationCategoryLabel(notification.context);
+        const compassMark = notificationCompassMark(notification.context);
+        const isProductInformation = notification.context === "product";
+        const statusLabel = isProductInformation ? "Information" : notification.unread ? "Ungelesen" : "Gelesen";
+        const statusTone = isProductInformation ? "is-info" : notification.unread ? "is-unread" : "is-read";
+        const dateLabel = formatDateLabel(occurredAt) || "Datum offen";
+        const toggleLabel = `${title}. Kategorie: ${categoryLabel}. Datum: ${dateLabel}. Status: ${statusLabel}`;
         return `
-          <article class="notification-item ${notification.unread ? "is-unread" : ""}" data-notification-id="${escapeHtml(notification.id)}">
-            <span class="notification-item__icon" aria-hidden="true">${notificationIconMarkup(notification.context)}</span>
-            <div class="notification-item__body">
-              <div class="notification-item__title">${escapeHtml(notification.title || "Benachrichtigung")}</div>
-              ${notification.body ? `<div class="notification-item__text">${escapeHtml(notification.body)}</div>` : ""}
-              <div class="notification-item__meta">${escapeHtml(meta || "Zeitpunkt offen")}</div>
-            </div>
-            <div class="notification-item__actions">
-              ${notification.unread ? `<span class="notification-unread-dot" aria-label="Ungelesen"></span>` : ""}
-              <button class="action-button action-button--compact" type="button" data-open-notification="${escapeHtml(notification.id)}">Öffnen</button>
+          <article class="notification-item ${notification.unread ? "is-unread" : ""}${expanded ? " is-expanded" : ""}" data-notification-id="${escapeHtml(notification.id)}">
+            <h3 class="notification-item__heading">
+              <button class="notification-item__toggle" type="button" data-notification-details-toggle="${escapeHtml(detailsId)}" aria-expanded="${String(expanded)}" aria-controls="${escapeHtml(detailsId)}" aria-label="${escapeHtml(toggleLabel)}">
+                <span class="notification-item__summary">
+                  <span class="notification-item__summary-meta">
+                    <span class="notification-item__category-group">
+                      <img class="notification-item__compass-mark" src="${escapeHtml(compassMark)}" alt="" aria-hidden="true" />
+                      <span class="notification-item__category">${escapeHtml(categoryLabel)}</span>
+                    </span>
+                    ${occurredAt ? `<time class="notification-item__summary-date" datetime="${escapeHtml(occurredAt)}">${escapeHtml(dateLabel)}</time>` : `<span class="notification-item__summary-date">${escapeHtml(dateLabel)}</span>`}
+                  </span>
+                  <span class="notification-item__title">${escapeHtml(title)}</span>
+                  <span class="notification-item__summary-status ${statusTone}">${notification.unread ? `<span class="notification-unread-dot" aria-hidden="true"></span>` : ""}${escapeHtml(statusLabel)}</span>
+                </span>
+                <span class="notification-item__chevron" aria-hidden="true">
+                  <svg viewBox="0 0 24 24" fill="none" stroke-width="2"><path d="m6 9 6 6 6-6"></path></svg>
+                </span>
+              </button>
+            </h3>
+            <div class="notification-item__details" id="${escapeHtml(detailsId)}" ${expanded ? "" : "hidden"}>
+              <span class="notification-item__icon" aria-hidden="true">${notificationIconMarkup(notification.context)}</span>
+              <div class="notification-item__body">
+                ${notification.body ? `<div class="notification-item__text">${escapeHtml(notification.body)}</div>` : ""}
+                <div class="notification-item__meta">${escapeHtml(meta || "Zeitpunkt offen")}</div>
+              </div>
+              <div class="notification-item__actions">
+                <button class="action-button action-button--compact" type="button" data-open-notification="${escapeHtml(notification.id)}" aria-label="Benachrichtigung „${escapeHtml(title)}“ öffnen">Öffnen</button>
+              </div>
             </div>
           </article>
         `;
+      }
+
+      function toggleNotificationDetails(button) {
+        const panelId = button?.dataset?.notificationDetailsToggle || "";
+        const panel = panelId ? document.getElementById(panelId) : null;
+        const item = button?.closest(".notification-item");
+        if (!panel || !item || !notificationsList?.contains(item)) return;
+        const shouldExpand = button.getAttribute("aria-expanded") !== "true";
+        notificationsList.querySelectorAll("[data-notification-details-toggle]").forEach((candidate) => {
+          const candidatePanelId = candidate.dataset.notificationDetailsToggle || "";
+          const candidatePanel = candidatePanelId ? document.getElementById(candidatePanelId) : null;
+          const isCurrent = candidate === button && shouldExpand;
+          candidate.setAttribute("aria-expanded", String(isCurrent));
+          if (candidatePanel) candidatePanel.hidden = !isCurrent;
+          candidate.closest(".notification-item")?.classList.toggle("is-expanded", isCurrent);
+        });
+        expandedNotificationId = shouldExpand ? item.dataset.notificationId || "" : "";
       }
 
       function notificationPreviewContext(notification = {}) {
@@ -13640,13 +13723,11 @@
         renderNotificationPopoverLoading();
         try {
           const remotePayload = window.dataService?.loadNotifications
-            ? await window.dataService.loadNotifications({ unreadOnly: true, context: "all", limit: 5, offset: 0 })
+            ? await window.dataService.loadNotifications({ unreadOnly: true, context: "operational", limit: 5, offset: 0 })
             : { items: [] };
           const remoteItems = Array.isArray(remotePayload?.items) ? remotePayload.items : [];
-          const productItems = productNotifications().filter((item) => item.unread);
           notificationPreviewItems = sortNotificationItems(
-            [...remoteItems, ...productItems].filter((item, index, array) => array.findIndex((candidate) => candidate.id === item.id) === index),
-            { productLast: true }
+            remoteItems.filter((item, index, array) => array.findIndex((candidate) => candidate.id === item.id) === index)
           ).slice(0, 5);
           renderNotificationPopover();
           await refreshNotificationSummary();
@@ -13679,12 +13760,16 @@
         notificationPopover.style.top = `${top}px`;
       }
 
-      function closeNotificationPopover() {
+      function closeNotificationPopover({ restoreFocus = false } = {}) {
         if (!notificationPopover) return;
+        const wasOpen = !notificationPopover.hidden;
         notificationPopover.hidden = true;
         sidebarNotificationsButton?.setAttribute("aria-expanded", "false");
         if (!(activeView === "profile" && activeProfileTab === "notifications")) {
           sidebarNotificationsButton?.classList.remove("is-active");
+        }
+        if (restoreFocus && wasOpen) {
+          window.requestAnimationFrame(() => sidebarNotificationsButton?.focus({ preventScroll: true }));
         }
       }
 
@@ -13697,12 +13782,13 @@
         sidebarNotificationsButton?.classList.add("is-active");
         positionNotificationPopover();
         loadNotificationPreview();
+        window.requestAnimationFrame(() => notificationPopoverClose?.focus({ preventScroll: true }));
       }
 
       function toggleNotificationPopover() {
         if (!notificationPopover) return;
         if (notificationPopover.hidden) openNotificationPopover();
-        else closeNotificationPopover();
+        else closeNotificationPopover({ restoreFocus: true });
       }
 
       function openNotificationsTab() {
@@ -13731,6 +13817,7 @@
         const feedShell = notificationsList.closest(".notifications-feed-shell");
         notificationsList.removeAttribute("aria-busy");
         feedShell?.classList.toggle("is-empty", !notifications.length);
+        if (!notifications.some((item) => String(item.id || "") === expandedNotificationId)) expandedNotificationId = "";
         if (!notifications.length) {
           notificationsList.innerHTML = `<div class="notifications-empty">${notificationEmptyStateMarkup("Keine Benachrichtigungen für diese Auswahl.")}</div>`;
         } else {
@@ -13741,7 +13828,7 @@
           notificationsMeta.textContent = `${notifications.length} ${notifications.length === 1 ? "Benachrichtigung" : "Benachrichtigungen"}${unread ? ` · ${unread} ungelesen` : ""}`;
         }
         if (notificationsMarkAllRead) {
-          notificationsMarkAllRead.hidden = !notifications.length;
+          notificationsMarkAllRead.hidden = !notifications.length || activeNotificationFilter === "product";
           notificationsMarkAllRead.disabled = !notifications.some((item) => item.unread);
         }
         if (notificationsLoadMoreRow) notificationsLoadMoreRow.hidden = !notificationsHasMore;
@@ -13749,30 +13836,14 @@
         notificationsList.querySelectorAll("[data-open-notification]").forEach((button) => {
           button.addEventListener("click", () => openNotification(button.dataset.openNotification));
         });
-        notificationsList.querySelectorAll(".notification-item").forEach((item) => {
-          item.addEventListener("click", (event) => {
-            if (event.target.closest("button, a")) return;
-            openNotification(item.dataset.notificationId);
-          });
+        notificationsList.querySelectorAll("[data-notification-details-toggle]").forEach((button) => {
+          button.addEventListener("click", () => toggleNotificationDetails(button));
         });
-      }
-
-      async function markProductNotificationRead(notification) {
-        if (notification.context !== "product") return;
-        const version = notification.payload?.version || notification.entityId || "";
-        if (!version) return;
-        const preferences = {
-          ...(userSettings?.preferences || {}),
-          seenFeatureVersions: [...new Set([...seenFeatureVersions(), String(version)])]
-        };
-        await persistUserSettingPatch({ preferences });
       }
 
       async function markNotificationRead(notification) {
         if (!notification?.unread) return;
-        if (notification.context === "product") {
-          await markProductNotificationRead(notification);
-        } else if (window.dataService?.markNotificationRead) {
+        if (window.dataService?.markNotificationRead) {
           await window.dataService.markNotificationRead(notification.id);
         }
         notifications = notifications.map((item) =>
@@ -13786,18 +13857,7 @@
       async function markVisibleNotificationsRead() {
         const unread = notifications.filter((item) => item.unread);
         if (!unread.length) return;
-        const productVersions = unread
-          .filter((item) => item.context === "product")
-          .map((item) => item.payload?.version || item.entityId)
-          .filter(Boolean);
-        const remoteIds = unread.filter((item) => item.context !== "product").map((item) => item.id);
-        if (productVersions.length) {
-          const preferences = {
-            ...(userSettings?.preferences || {}),
-            seenFeatureVersions: [...new Set([...seenFeatureVersions(), ...productVersions.map(String)])]
-          };
-          await persistUserSettingPatch({ preferences });
-        }
+        const remoteIds = unread.map((item) => item.id);
         if (remoteIds.length && window.dataService?.markNotificationsRead) await window.dataService.markNotificationsRead(remoteIds);
         notifications = notifications.map((item) => ({ ...item, readAt: item.readAt || new Date().toISOString(), unread: false }));
         notificationPreviewItems = [];
@@ -42316,10 +42376,12 @@
       });
       notificationFilterButtons.forEach((button) => {
         button.addEventListener("click", () => {
+          expandedNotificationId = "";
           activeNotificationFilter = button.dataset.notificationFilter || "unread";
           notificationsLoaded = false;
           notificationsRequestKey = "";
           updateView();
+          button.scrollIntoView({ block: "nearest", inline: "nearest" });
         });
       });
       notificationsLoadMoreButton?.addEventListener("click", () => {
@@ -42329,7 +42391,7 @@
         markVisibleNotificationsRead();
       });
       notificationPopoverAll?.addEventListener("click", openNotificationsTab);
-      notificationPopoverClose?.addEventListener("click", closeNotificationPopover);
+      notificationPopoverClose?.addEventListener("click", () => closeNotificationPopover({ restoreFocus: true }));
       document.querySelectorAll("[data-format-status-filter]").forEach((button) => {
         button.addEventListener("click", () => {
           const nextStatus = button.dataset.formatStatusFilter || "";
@@ -44003,7 +44065,7 @@
             return;
           }
           if (notificationPopover && !notificationPopover.hidden) {
-            closeNotificationPopover();
+            closeNotificationPopover({ restoreFocus: true });
             return;
           }
           if (isMobileLayout() && appShell?.classList.contains("is-mobile-sidebar-expanded")) {

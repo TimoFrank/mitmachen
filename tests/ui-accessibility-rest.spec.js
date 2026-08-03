@@ -135,8 +135,8 @@ test("Benachrichtigungsfilter sind Tabs mit roving tabindex", async ({ page }) =
     localNotifications: [
       {
         id: "notification-contact",
-        title: "Kontakt aktualisiert",
-        body: "Ein synthetischer Kontakt wurde aktualisiert.",
+        title: "Kontaktdaten aktualisiert",
+        body: "Telefonnummer und Zuständigkeit wurden aktualisiert.",
         context: "contacts",
         entityType: "contact",
         entityId: "contact-anna",
@@ -148,13 +148,48 @@ test("Benachrichtigungsfilter sind Tabs mit roving tabindex", async ({ page }) =
 
   const tablist = page.getByRole("tablist", { name: "Benachrichtigungen filtern" });
   await expect(tablist).toBeVisible();
-  const unread = tablist.getByRole("tab", { name: "Ungelesen" });
-  const all = tablist.getByRole("tab", { name: "Alle", exact: true });
-  const product = tablist.getByRole("tab", { name: "Produkt" });
+  const unread = tablist.getByRole("tab", { name: "Ungelesen – 1 ungelesene Benachrichtigung" });
+  const all = tablist.getByRole("tab", { name: "Alle Benachrichtigungen", exact: true });
+  const hospitations = tablist.getByRole("tab", { name: "Hospitationen – keine ungelesenen Benachrichtigungen" });
+  const product = tablist.getByRole("tab", { name: "Produktinformationen" });
+  await expect(hospitations).toBeVisible();
   await expect(unread).toHaveAttribute("aria-selected", "true");
   await expect(unread).toHaveAttribute("tabindex", "0");
   await expect(all).toHaveAttribute("tabindex", "-1");
   await expect(unread).not.toHaveAttribute("aria-pressed", /.*/);
+
+  const notificationItem = page.locator('[data-notification-id="notification-contact"]');
+  const notificationToggle = notificationItem.getByRole("button", { name: "Kontaktdaten aktualisiert. Kategorie: Kontakte. Datum: 28.07.2026. Status: Ungelesen" });
+  const notificationDetails = notificationItem.locator(".notification-item__details");
+  const notificationOpen = notificationItem.getByRole("button", { name: "Benachrichtigung „Kontaktdaten aktualisiert“ öffnen" });
+  await expect(notificationToggle).toBeVisible();
+  await expect(notificationToggle).toHaveAttribute("aria-expanded", "false");
+  await expect(notificationItem.locator(".notification-item__category-group > .notification-item__compass-mark + .notification-item__category")).toBeVisible();
+  await expect(notificationItem.locator(".notification-item__compass-mark")).toHaveAttribute("src", "../../public/brand/versorgungs-kompass/mark.svg");
+  await expect(notificationItem.locator(".notification-item__compass-mark")).toHaveAttribute("alt", "");
+  await expect(notificationItem.locator(".notification-item__compass-mark")).toHaveAttribute("aria-hidden", "true");
+  await expect(notificationItem.locator(".notification-item__category")).toHaveText("Kontakte");
+  await expect(notificationItem.locator(".notification-item__summary-status")).toHaveText("Ungelesen");
+  await expect(notificationItem.locator(".notification-item__summary-date")).toHaveText("28.07.2026");
+  await expect(notificationItem.locator("time.notification-item__summary-date")).toHaveAttribute("datetime", "2026-07-28T08:00:00.000Z");
+  await expect(notificationItem.locator(".notification-item__summary > *")).toHaveCount(3);
+  expect(await notificationItem.locator(".notification-item__summary > *").evaluateAll((nodes) => nodes.map((node) => node.className))).toEqual([
+    "notification-item__summary-meta",
+    "notification-item__title",
+    "notification-item__summary-status is-unread"
+  ]);
+  await expect(notificationDetails).toBeHidden();
+  await expect(notificationOpen).toBeHidden();
+  await notificationToggle.focus();
+  await page.keyboard.press("Enter");
+  await expect(notificationToggle).toBeFocused();
+  await expect(notificationToggle).toHaveAttribute("aria-expanded", "true");
+  await expect(notificationDetails).toBeVisible();
+  await expect(notificationItem.locator(".notification-item__text")).toHaveText("Telefonnummer und Zuständigkeit wurden aktualisiert.");
+  await expect(notificationOpen).toBeVisible();
+  await page.keyboard.press("Space");
+  await expect(notificationToggle).toHaveAttribute("aria-expanded", "false");
+  await expect(notificationDetails).toBeHidden();
 
   await unread.focus();
   await page.keyboard.press("ArrowRight");

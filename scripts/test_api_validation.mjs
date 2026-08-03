@@ -23,6 +23,37 @@ assert.deepEqual(
   declaredStringArray(apiSource, "const HOSPITATION_INPUT_FIELDS").sort(),
   "Die Browser-Fixture muss exakt dieselben Hospitationsfelder wie die echte API akzeptieren."
 );
+const notificationContextStart = apiSource.indexOf("function notificationContext(");
+const notificationContextEnd = apiSource.indexOf("\nfunction sortNotifications(", notificationContextStart);
+assert.ok(notificationContextStart >= 0 && notificationContextEnd > notificationContextStart);
+const notificationSandbox = {};
+vm.runInNewContext([
+  apiSource.slice(notificationContextStart, notificationContextEnd),
+  "globalThis.notificationContextForTest = notificationContext;",
+  "globalThis.notificationMatchesContextForTest = notificationMatchesContext;"
+].join("\n"), notificationSandbox, { filename: "notification-context-validation.js" });
+for (const [entityType, eventType, expectedContext] of [
+  ["contact", "contact_updated", "contacts"],
+  ["contact", "contact_owner_changed", "contacts"],
+  ["organization", "organization_updated", "organizations"],
+  ["hospitation", "hospitation_upcoming", "hospitations"],
+  ["hospitation_observation", "hospitation.updated", "hospitations"],
+  ["format", "format_owner_changed", "formats"],
+  ["format_participant", "format_participant_changed", "formats"],
+  ["profile", "team_member_added", "team"],
+  ["product", "feature_release", "product"],
+  ["system", "feature_release", "product"],
+  ["system", "notice", "all"]
+]) {
+  assert.equal(
+    notificationSandbox.notificationContextForTest(entityType, eventType),
+    expectedContext,
+    `${entityType}/${eventType} muss dem Kontext ${expectedContext} zugeordnet werden.`
+  );
+}
+assert.equal(notificationSandbox.notificationMatchesContextForTest({ context: "contacts" }, "operational"), true);
+assert.equal(notificationSandbox.notificationMatchesContextForTest({ context: "product" }, "operational"), false);
+assert.equal(notificationSandbox.notificationMatchesContextForTest({ context: "hospitations" }, "hospitations"), true);
 const validationErrorStart = apiSource.indexOf("function validationError(");
 const validationErrorEnd = apiSource.indexOf("\n}\n", validationErrorStart) + 2;
 const consentRulesStart = apiSource.indexOf("const MITMACHEN_CONSENT_STATUSES");

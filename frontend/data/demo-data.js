@@ -1958,57 +1958,67 @@
     changed_by: activity.actorId
   }));
 
-  const notificationContexts = ["contacts", "organizations", "hospitations", "formats", "team"];
+  const notificationScenarios = ["contact_follow_up", "organization_update", "hospitation_upcoming", "format_participant", "contact_owner_assignment"];
   const notifications = Array.from({ length: 12 }, (_, index) => {
     const contactEntry = contacts[index];
-    const context = notificationContexts[index % notificationContexts.length];
+    const scenario = notificationScenarios[index % notificationScenarios.length];
     const organizationEntry = organizations[index % organizations.length];
     const hospitationEntry = hospitations[index % hospitations.length];
     const formatEntry = formats[index % formats.length];
     const definition = {
-      contacts: {
+      contact_follow_up: {
+        context: "contacts",
         eventKey: "contact.follow_up.due",
-        title: "Nächster Schritt ist fällig",
+        title: "Rückmeldung ist fällig",
+        body: `Für ${contactEntry.name} ist heute eine Rückmeldung vorgesehen.`,
         entityType: "contact",
         entityId: contactEntry.id,
         entityLabel: contactEntry.name
       },
-      organizations: {
+      organization_update: {
+        context: "organizations",
         eventKey: "organization.updated",
-        title: "Organisation wurde ergänzt",
+        title: "Organisationsdaten aktualisiert",
+        body: `Die Angaben zu ${organizationEntry.name} wurden aktualisiert.`,
         entityType: "organization",
         entityId: organizationEntry.id,
         entityLabel: organizationEntry.name
       },
-      hospitations: {
+      hospitation_upcoming: {
+        context: "hospitations",
         eventKey: "hospitation.upcoming",
-        title: "Hospitation steht bevor",
+        title: "Hospitation beginnt in Kürze",
+        body: `Bitte prüfe Treffpunkt und Vorbereitung für die Hospitation bei ${hospitationEntry.organizationName}.`,
         entityType: "hospitation",
         entityId: hospitationEntry.id,
         entityLabel: hospitationEntry.organizationName
       },
-      formats: {
+      format_participant: {
+        context: "formats",
         eventKey: "format.participant.confirmed",
-        title: "Teilnahme wurde zugesagt",
+        title: "Teilnahme bestätigt",
+        body: `Die Teilnahme am Format „${formatEntry.title}“ wurde bestätigt.`,
         entityType: "format",
         entityId: formatEntry.id,
         entityLabel: formatEntry.title
       },
-      team: {
+      contact_owner_assignment: {
+        context: "contacts",
         eventKey: "contact.owner.assigned",
-        title: "Verantwortung wurde zugeordnet",
+        title: "Verantwortung neu zugeordnet",
+        body: `Die Verantwortung für ${contactEntry.name} wurde neu zugeordnet.`,
         entityType: "contact",
         entityId: contactEntry.id,
         entityLabel: contactEntry.name
       }
-    }[context];
+    }[scenario];
     return {
       id: `demo-notification-${String(index + 1).padStart(2, "0")}`,
       eventId: `demo-notification-event-${String(index + 1).padStart(2, "0")}`,
       eventKey: definition.eventKey,
-      context,
+      context: definition.context,
       title: definition.title,
-      body: `Synthetischer Hinweis zu ${definition.entityLabel}; es sind keine echten Personen, Organisationen oder Termine betroffen.`,
+      body: definition.body,
       objectType: definition.entityType,
       objectId: definition.entityId,
       entityType: definition.entityType,
