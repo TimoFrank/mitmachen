@@ -71,6 +71,7 @@ const requiredFiles = [
   "deploy/terraform/gcp-autopilot/dns.tf",
   "deploy/terraform/gcp-autopilot/identities.tf",
   "deploy/terraform/gcp-autopilot/identity-platform.tf",
+  "deploy/terraform/gcp-autopilot/services.tf",
   "deploy/terraform/gcp-autopilot/outputs.tf",
   "deploy/terraform/gcp-autopilot/password-reset-broker.tf",
   "deploy/terraform/gcp-autopilot/secrets.tf",
@@ -98,6 +99,10 @@ const contentChecks = [
       /\[\[ "\$IDENTITY_PLATFORM_API_KEY" != "\$IAP_EXTERNAL_AUTH_API_KEY" \]\]/,
       /\[\[ "\$IAP_EXTERNAL_LOGIN_PAGE_URI" != "\$\{FRONTEND_BASE_URL\}\/anmelden" \]\]/,
       /\/v1\/projects\?key=%s&projectNumber=%s/,
+      /securetoken\.googleapis\.com/,
+      /\/v1\/token\?key=%s/,
+      /MISSING_REFRESH_TOKEN/,
+      /login_page_origin="\$\{IAP_EXTERNAL_LOGIN_PAGE_URI%\/anmelden\}\/"/,
       /referer = "%s"/,
       /IAP_EXTERNAL_AUTH_API_KEY="\$IAP_EXTERNAL_AUTH_API_KEY"[\s\S]*bash scripts\/reconcile_pre_gematik_iap_identity_mode\.sh/,
       /expected_effective_login_page_uri="\$\{IAP_EXTERNAL_LOGIN_PAGE_URI\}\?apiKey=\$\{IAP_EXTERNAL_AUTH_API_KEY\}"/,
@@ -190,6 +195,24 @@ const contentChecks = [
       /release_uri="gs:\/\/\$\{FRONTEND_BUCKET\}\/releases\/\$\{FRONTEND_RELEASE_ID\}"/
     ],
     reason: "GitHub Actions nutzt Environment, schluesselloses WIF, DNS-Endpunkt, den zweistufigen IAP-Rollout, explizite Teams-/WhatsApp-Crawler-Smokes und den vollstaendigen DB-Vertragscheck."
+  },
+  {
+    file: "deploy/helm/versorgungs-kompass/files/frontend-public.conf",
+    patterns: [
+      /map \$request_uri \$public_referrer_policy/,
+      /~\^\/anmelden[\s\S]*"strict-origin"/,
+      /~\^\/konto\/passwort-festlegen[\s\S]*"strict-origin"/,
+      /add_header Referrer-Policy \$public_referrer_policy always;/
+    ],
+    reason: "Nur die Identity-Einstiege senden den kanonischen Origin an referrer-gebundene Google-APIs."
+  },
+  {
+    file: "deploy/terraform/gcp-autopilot/services.tf",
+    patterns: [
+      /"identitytoolkit\.googleapis\.com"/,
+      /"securetoken\.googleapis\.com"/
+    ],
+    reason: "Terraform aktiviert beide vom externen Login benoetigten Identity-APIs."
   },
   {
     file: "api/Dockerfile",
