@@ -4,6 +4,7 @@ Die Dokumentation ist nach Zweck gegliedert. Führende Frontend-Quellen liegen u
 
 ## Gematik-PoC
 
+- [RC.5-Freeze und Übergabe an die Software Factory](betrieb-und-deployment/UEBERGABE_RC5_SOFTWARE_FACTORY.md): GKE-Herkunft, geplanter RC-Tag, Buildtrennung, Verantwortungen und offene Nachweise
 - [PoC-Durchstich](betrieb-und-deployment/POC_GEMATIK_DURCHSTICH.md): Zweck, aktueller Stand, Ressourcen, Lieferumfang und Erfolgskriterien
 - [Deployment auf Kubernetes](betrieb-und-deployment/DEPLOYMENT_GEMATIK_K8S.md): Build, Konfiguration, Bereitstellung und Smoke-Prüfung
 - [Deployment-Artefakte](../deploy/README.md): Jenkins-, Helm- und Datenbankpfade

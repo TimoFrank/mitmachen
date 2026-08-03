@@ -4,7 +4,8 @@
 
 <p align="center">
   <a href="https://timofrank.github.io/mitmachen/"><strong>Öffentliche Demo ansehen</strong></a>
-  · <a href="dokumentation/betrieb-und-deployment/POC_GEMATIK_DURCHSTICH.md">Gematik-PoC</a>
+  · <a href="dokumentation/betrieb-und-deployment/UEBERGABE_RC5_SOFTWARE_FACTORY.md"><strong>RC.5-Freeze</strong></a>
+  · <a href="dokumentation/betrieb-und-deployment/POC_GEMATIK_DURCHSTICH.md">gematik-PoC</a>
 </p>
 
 <p align="center">
@@ -72,10 +73,10 @@ und identifizierende Falldaten sind für diesen Nutzungspiloten ausgeschlossen.
 | Zugang | Status | Inhalt |
 | --- | --- | --- |
 | [GitHub-Pages-Demo](https://timofrank.github.io/mitmachen/) | Demo | Fiktive Beispieldaten, öffentlich verfügbar |
-| [GKE-Demo](https://versorgungs-kompass.de/) | Interner PoC | CI/CD Deployment aus Artifcat Regsitry von Helm Charts auf GKE-Cluster, mit IAM |
-| Zielbetrieb | In Vorbereitung | Nächster PoC-Schritt in der gematik-Infrastruktur |
+| [GKE-Demo](https://versorgungs-kompass.de/) | Geschützte Pre-Integration | Persönlicher GCP-/IAP-Referenzpfad; nicht der gematik-Zielbetrieb |
+| gematik-PoC | RC.5-Freeze | Providerneutraler OIDC-Release-Candidate für den internen Nutzungspiloten |
 
-GitHub Pages veröffentlicht die öffentliche Demo. Die GKE-Demo läuft getrennt unter versorgungs-kompass.de; die bisherige Adresse mitmachen.timo-frank.de bleibt als HTTPS-Weiterleitung erhalten. Für den Zielbetrieb wird ein festgelegter Release Candidate gebaut und ein freigegebener Datenstand aus der geschützten Anwendung übernommen. Die Veröffentlichungswege können unabhängig voneinander weiterentwickelt werden. Der aktuelle PoC-Umfang und die benötigten Ressourcen stehen im [PoC-Durchstich](dokumentation/betrieb-und-deployment/POC_GEMATIK_DURCHSTICH.md).
+GitHub Pages veröffentlicht die öffentliche Demo. Die GKE-Pre-Integration läuft getrennt unter versorgungs-kompass.de; die bisherige Adresse mitmachen.timo-frank.de bleibt als HTTPS-Weiterleitung erhalten. Der dort nachgewiesene Quellstand `e6e8fc35b2502abcfe5ee40718189d5a0f4da25d` ist vollständig in `main` integriert und bildet die Anwendungsbasis des RC.5-Freeze. Verbindlich wird RC.5 erst nach Merge, grünen RC-Gates und Erzeugung des annotierten Remote-Tags `poc-v0.1.0-rc.5`. Die IAP-Artefakte der GKE-Pre-Integration werden nicht umgetaggt; die Software Factory baut das providerneutrale OIDC-Frontend und das API-Image neu. Der freigegebene Datenstand wird weiterhin getrennt aus der geschützten Anwendung übernommen und ist kein Buildartefakt. Herkunft, Freeze-Regeln und offene Nachweise stehen in der [RC.5-Übergabenotiz](dokumentation/betrieb-und-deployment/UEBERGABE_RC5_SOFTWARE_FACTORY.md); Umfang und benötigte Ressourcen beschreibt der [PoC-Durchstich](dokumentation/betrieb-und-deployment/POC_GEMATIK_DURCHSTICH.md).
 
 Die geschützte GCP-Anwendung nutzt ausschließlich PostgreSQL in Cloud SQL als Datenbank und private GCS-Buckets als Objektspeicher. Supabase-Laufzeitcode, Schemaquellen und Migrationswerkzeuge gehören nicht mehr zum aktuellen Repository. Das Inventarisieren, Sperren und Löschen eventuell noch vorhandener Supabase-Projekte, Edge Functions, Schlüssel oder Sicherungen ist ein separater, protokollierter Betriebsvorgang; das Entfernen aus Git nimmt diese Provider-Ressourcen nicht automatisch außer Betrieb.
 
@@ -113,7 +114,7 @@ Ein PoC-Release wird durch einen unveränderlichen RC-Tag festgelegt. Weitere Ä
 
 Öffentliche Produkt-Releases werden freitags automatisiert über [GitHub Releases](https://github.com/TimoFrank/mitmachen/releases) bereitgestellt, sofern seit dem letzten Stand Änderungen vorliegen. Ablauf, Versionsregeln, Artefakte und Benachrichtigung beschreibt der [Produkt-Release-Prozess](dokumentation/betrieb-und-deployment/PRODUKT_RELEASE_PROZESS.md).
 
-Der technische Ablauf des PoC steht im [Deployment-Runbook](dokumentation/betrieb-und-deployment/DEPLOYMENT_GEMATIK_K8S.md). Ausführbare Artefakte sind unter [`deploy/`](deploy/README.md) beschrieben. Weitere Referenzen: [Security](SECURITY.md), [Dokumentationsindex](dokumentation/README.md) und [Mitwirken](CONTRIBUTING.md).
+Die [RC.5-Übergabenotiz](dokumentation/betrieb-und-deployment/UEBERGABE_RC5_SOFTWARE_FACTORY.md) ist der Einstieg für die Software Factory. Der technische Ablauf des PoC steht im [Deployment-Runbook](dokumentation/betrieb-und-deployment/DEPLOYMENT_GEMATIK_K8S.md). Ausführbare Artefakte sind unter [`deploy/`](deploy/README.md) beschrieben. Weitere Referenzen: [Security](SECURITY.md), [Dokumentationsindex](dokumentation/README.md) und [Mitwirken](CONTRIBUTING.md).
 
 Der Quellcode und die technische Dokumentation stehen unter der [Apache License 2.0](LICENSE). Für Daten und externe Inhalte gelten die Hinweise im [Data Notice](dokumentation/rechtliches/DATA_NOTICE.md).
 
