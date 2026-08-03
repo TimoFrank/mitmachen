@@ -107,7 +107,7 @@ Datenschutzbereinigte Baseline.
   assert(output.includes("tag=v0.21.0"), "Die bereinigte Baseline muss zu v0.21.0 führen.");
   assert(read("CHANGELOG.md").match(/^## Version 0\.21 -/gm)?.length === 1, "Changelog muss 0.21 genau einmal enthalten.");
   assert(read("frontend/app/versorgungs-kompass.js").match(/version: "0\.21\.0"/g)?.length === 1, "App muss 0.21.0 genau einmal enthalten.");
-  const releaseNotes = read("release-notes/v0.21.0.md");
+  const releaseNotes = read("dokumentation/release-notes/v0.21.0.md");
   const publicChanges = releaseNotes.split("## Technische Änderungen")[0];
   assert(releaseNotes.includes("## Technische Änderungen"), "Dauerhafte Release Notes fehlen.");
   assert(!publicChanges.includes("Bump @playwright/test"), "Abhängigkeitsupdates dürfen nicht als Anwenderfunktion erscheinen.");
@@ -119,7 +119,7 @@ Datenschutzbereinigte Baseline.
   const preparedDryRun = runGenerator(["--dry-run"]);
   assert(preparedDryRun.stdout.includes("Fortsetzen für v0.21.0"), "Ein vorbereiteter Arbeitsbaum muss im Dry-Run pruefbar bleiben.");
 
-  git(["add", "README.md", "CHANGELOG.md", "frontend/app/versorgungs-kompass.js", "release-notes/v0.21.0.md"]);
+  git(["add", "README.md", "CHANGELOG.md", "frontend/app/versorgungs-kompass.js", "dokumentation/release-notes/v0.21.0.md"]);
   git(["commit", "-m", "Release v0.21.0"]);
   const releaseCommit = git(["rev-parse", "HEAD"]);
 

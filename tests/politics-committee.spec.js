@@ -3,6 +3,7 @@ import { gotoAuthenticated } from "./helpers/app-test-session.js";
 import { createProtectedBackendFixture } from "./helpers/protected-backend-fixture.js";
 
 const APP_PATH = "/frontend/app/versorgungs-kompass.html";
+const PAGES_OFFLINE_POLITICS_PATH = "/dist/pages/politik-offline.html";
 const POLITICS_VIEW = '[data-view-panel="politics"]';
 const POLITICS_TAB = '[data-view-tab="politics"]';
 const COMMITTEE_TABLE = '[aria-label="Mitglieder des Ausschusses für Gesundheit"]';
@@ -359,7 +360,7 @@ test("Listenmandate ohne Wahlkreis-PLZ erhalten einen eindeutigen Kartenhinweis"
 });
 
 test("Offline-Politik hält den Tastaturfokus im rechten Kontakt-Drawer", async ({ page }) => {
-  await page.goto("/politik-offline.html");
+  await page.goto(PAGES_OFFLINE_POLITICS_PATH);
   await page.waitForFunction(() => window.__POLITIK_OFFLINE_READY__ === true);
   const opener = page.locator("button[data-open-member]").first();
   await opener.click();

@@ -4,7 +4,7 @@ Stand: 30.07.2026
 
 Dieses Dokument ist der technische Vertrag zwischen dem Powermail-Formular UID
 `41` und dem Versorgungs-Kompass. Die TYPO3-Extension liegt unter
-`integrations/typo3/mitmachen_connector`, der Empfänger unter
+`deploy/typo3/mitmachen_connector`, der Empfänger unter
 `api/typo3-registration-connector.mjs`.
 
 ## Komponenten

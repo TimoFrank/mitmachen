@@ -6,7 +6,7 @@ import process from "node:process";
 import { fileURLToPath } from "node:url";
 
 const projectRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
-const connectorRoot = path.join(projectRoot, "integrations/typo3/mitmachen_connector");
+const connectorRoot = path.join(projectRoot, "deploy/typo3/mitmachen_connector");
 const gateImage = "versorgungs-kompass/mitmachen-connector-php-gate:php-8.2.29-composer-2.8.12";
 
 function fail(message) {
@@ -32,7 +32,7 @@ function run(command, args, options = {}) {
 for (const requiredFile of ["composer.json", "composer.lock", "phpunit.xml.dist"]) {
   const requiredPath = path.join(connectorRoot, requiredFile);
   if (!fs.existsSync(requiredPath) || !fs.statSync(requiredPath).isFile()) {
-    fail(`${requiredFile} is missing from integrations/typo3/mitmachen_connector.`);
+    fail(`${requiredFile} is missing from deploy/typo3/mitmachen_connector.`);
   }
 }
 

@@ -5,7 +5,6 @@
   "status": "active",
   "buildProfile": "pages",
   "sourceRoots": [
-    "politik-offline.html",
     "frontend/app",
     "frontend/map",
     "frontend/pages/mitmachen",

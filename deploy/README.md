@@ -11,6 +11,7 @@ Dieser Ordner enthält die ausführbaren Artefakte für Pre-Integration und Gema
 | GCP-Pre-Integration | [`terraform/gcp-autopilot/`](terraform/gcp-autopilot/) |
 | Pre-Integrationsdatenbank | [`postgres/pre-gematik/`](postgres/pre-gematik/) |
 | Datenmigrationswerkzeug | [`migration-operator/`](migration-operator/) |
+| TYPO3-#Mitmachen-Connector | [`typo3/mitmachen_connector/`](typo3/mitmachen_connector/) |
 
 ## Release-Grenze
 

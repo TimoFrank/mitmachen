@@ -19,7 +19,7 @@
   "authModes": ["oidc"],
   "forbiddenInputs": [
     "dist/pages",
-    "politik-offline.html",
+    "public/pages-demo/politik-offline.html",
     "frontend/demo",
     "frontend/identity-portal",
     "frontend/data/public-politics-directory.js",

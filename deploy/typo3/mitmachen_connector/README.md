@@ -37,14 +37,14 @@ der Zeit, in der die Extension deaktiviert war.
 ## Installation
 
 Die Extension kann als lokales Composer-Paket eingebunden werden. Beispiel für
-ein TYPO3-Projekt, in dem dieses Repository unter `integrations/` verfügbar ist:
+ein TYPO3-Projekt, in dem dieses Repository verfügbar ist:
 
 ```json
 {
   "repositories": [
     {
       "type": "path",
-      "url": "integrations/typo3/mitmachen_connector",
+      "url": "deploy/typo3/mitmachen_connector",
       "options": {
         "symlink": true
       }

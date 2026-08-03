@@ -17,7 +17,12 @@ const defaultDirectoryPath = resolve(
   "data",
   "public-politics-directory.js"
 );
-const defaultOfflinePath = resolve(root, "politik-offline.html");
+const defaultOfflinePath = resolve(
+  root,
+  "public",
+  "pages-demo",
+  "politik-offline.html"
+);
 const offlineDataPattern =
   /(<script id="offline-data" type="application\/json">)([\s\S]+?)(<\/script>)/u;
 const approvedPortraitPattern =

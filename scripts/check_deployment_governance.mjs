@@ -27,6 +27,7 @@ if (removedWordingMatches.trim()) {
 for (const retiredPrefix of [
   ".codex-pet-runs/",
   "docs/",
+  "dist/",
   "output/",
     "outputs/",
     "security/",
@@ -43,7 +44,7 @@ for (const retiredPrefix of [
 for (const requiredEntry of [
   "config/README.md",
   "deploy/README.md",
-  "dist/README.md",
+  "dokumentation/betrieb-und-deployment/BUILD_ARTEFAKTE.md",
   "config/security/semgrep.yml",
   "config/security/gitleaks.toml",
   "config/security/gitleaksignore"
@@ -94,7 +95,6 @@ const profileExpectations = [
     status: "active",
     buildProfile: "pages",
     sourceRoots: [
-      "politik-offline.html",
       "frontend/app",
       "frontend/map",
       "frontend/pages/mitmachen",
@@ -152,7 +152,7 @@ const profileExpectations = [
     authModes: ["iap"],
     forbiddenInputs: [
       "dist/pages",
-      "politik-offline.html",
+      "public/pages-demo/politik-offline.html",
       "frontend/demo",
       "frontend/data/public-politics-directory.js",
       "frontend/data/demo-data.js"
@@ -177,7 +177,7 @@ const profileExpectations = [
     authModes: ["oidc"],
     forbiddenInputs: [
       "dist/pages",
-      "politik-offline.html",
+      "public/pages-demo/politik-offline.html",
       "frontend/demo",
       "frontend/identity-portal",
       "frontend/data/public-politics-directory.js",
