@@ -4,6 +4,7 @@ const STATIC_API_PATHS = new Set([
   "/api/healthz",
   "/api/readyz",
   "/api/activities",
+  "/api/activities/summary",
   "/api/admin/hospitation-import/apply",
   "/api/admin/hospitation-import/preview",
   "/api/auth/bootstrap",

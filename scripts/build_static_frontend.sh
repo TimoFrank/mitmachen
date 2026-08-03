@@ -276,6 +276,7 @@ EOF
   cp "$FRONTEND_DIR/map/data/city-labels.js" "$STAGE_DIR/deutschlandkarte-project/data/city-labels.js"
   cp "$FRONTEND_DIR/map/data/state-labels.js" "$STAGE_DIR/deutschlandkarte-project/data/state-labels.js"
   cp "$FRONTEND_DIR/map/data/state-polygons.js" "$STAGE_DIR/deutschlandkarte-project/data/state-polygons.js"
+  cp "$FRONTEND_DIR/map/data/state-polygons-overview.js" "$STAGE_DIR/deutschlandkarte-project/data/state-polygons-overview.js"
   cp "$FRONTEND_DIR/map/data/constituency-polygons.js" "$STAGE_DIR/deutschlandkarte-project/data/constituency-polygons.js"
   for asset in \
     demo-profile-admin.svg \
@@ -718,6 +719,7 @@ build_target() {
   cp "$FRONTEND_DIR/map/data/city-labels.js" "$STAGE_DIR/deutschlandkarte-project/data/city-labels.js"
   cp "$FRONTEND_DIR/map/data/state-labels.js" "$STAGE_DIR/deutschlandkarte-project/data/state-labels.js"
   cp "$FRONTEND_DIR/map/data/state-polygons.js" "$STAGE_DIR/deutschlandkarte-project/data/state-polygons.js"
+  cp "$FRONTEND_DIR/map/data/state-polygons-overview.js" "$STAGE_DIR/deutschlandkarte-project/data/state-polygons-overview.js"
   cp "$FRONTEND_DIR/map/data/constituency-polygons.js" "$STAGE_DIR/deutschlandkarte-project/data/constituency-polygons.js"
 
   node - \
@@ -837,7 +839,7 @@ NODE
   perl -0pi -e 's#"start_url": "\.\./frontend/app/versorgungs-kompass\.html"#"start_url": "/start"#; s#"start_url": "\.\./app/versorgungs-kompass\.html"#"start_url": "/start"#; s#"scope": "\.\./"#"scope": "/"#; s#"src": "\./brand/#"src": "./public/brand/#g; s#"src": "\./app-icon-#"src": "./public/app-icon-#g' "$STAGE_DIR/manifest.webmanifest"
   perl -0pi -e 's#\.\./\.\./\.\./public/#../public/#g; s#\.\./\.\./app/versorgungs-kompass\.html#../versorgungs-kompass.html#g; s#\.\./\.\./app/hospitation/index\.html#../hospitation/index.html#g; s#\.\./\.\./map/versorgungs-kompass-map-teaser\.html#../versorgungs-kompass-map-teaser.html#g; s#\./versorgungs-netzwerk\.html#./versorgungs-netzwerk.html#g' "$STAGE_DIR/mitmachen/index.html"
   perl -0pi -e 's#\./mitmachen\.css#./mitmachen/mitmachen.css#g; s#\.\./\.\./\.\./public/#./public/#g; s#\.\./\.\./app/versorgungs-kompass\.html#./versorgungs-kompass.html#g' "$STAGE_DIR/index.html"
-  perl -0pi -e 's~(?:\.\./|\./)versorgungs-kompass\.html#map~/versorgung/karte~g; s~(?:\.\./|\./)versorgungs-kompass\.html#stakeholders~/stakeholder~g; s~(?:\.\./|\./)versorgungs-kompass\.html#planning~/hospitationen/framework~g; s~(?:\.\./|\./)versorgungs-kompass\.html#formats~/formate~g; s~(?:\.\./|\./)versorgungs-kompass\.html~/start~g' "$STAGE_DIR/index.html" "$STAGE_DIR/mitmachen/index.html"
+  perl -0pi -e 's~(?:\.\./|\./)versorgungs-kompass\.html#care~/versorgung~g; s~(?:\.\./|\./)versorgungs-kompass\.html#map~/versorgung/karte~g; s~(?:\.\./|\./)versorgungs-kompass\.html#stakeholders~/stakeholder~g; s~(?:\.\./|\./)versorgungs-kompass\.html#planning~/hospitationen/framework~g; s~(?:\.\./|\./)versorgungs-kompass\.html#formats~/formate~g; s~(?:\.\./|\./)versorgungs-kompass\.html~/start~g' "$STAGE_DIR/index.html" "$STAGE_DIR/mitmachen/index.html"
   perl -0pi -e 's~(href|src)="\./~$1="/~g' "$STAGE_DIR/versorgungs-kompass.html"
 
   iap_identity_mode="${IAP_IDENTITY_MODE:-iam}"

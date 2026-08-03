@@ -15,6 +15,8 @@ Der Versorgungs-Kompass ist eine operative CRM-App. Das Designsystem priorisiert
 - `--border: #dce3f5`, `--border-strong: #b8c7e8`.
 - `--text-primary: #17275f`, `--text-secondary: #334155`, `--text-muted: #64748b`.
 - Status: `--success: #16a34a`, `--warning: #b7791f`, `--danger: #dc2626`, `--info: #2563eb`.
+- Die Versorgungs-Kompass-Übersicht besitzt vier ausschließlich dort verwendete Akzentfamilien aus jeweils starkem Vordergrund, heller Fläche und Kontur: `--care-overview-contacts-*`, `--care-overview-organizations-*`, `--care-overview-analytics-*` und `--care-overview-activities-*`.
+- Die gemeinsame Karten-Dichteskala nutzt `--care-map-density-empty`, `--care-map-density-low`, `--care-map-density-mid`, `--care-map-density-cobalt` und `--care-map-density-high` in dieser Reihenfolge.
 
 ### Stakeholder-Gruppen
 
@@ -34,7 +36,7 @@ Diese Farben kennzeichnen ausschließlich die fachliche Gruppe. Größe, Abstand
 ### Regeln
 
 - Primärblau ist die einzige dominante Aktionsfarbe.
-- Gradients sind für CRM-Komponenten nicht erlaubt, außer in bestehenden Markenassets. Primärbuttons sind flach `--primary`.
+- Gradients sind für CRM-Komponenten nicht erlaubt, außer in bestehenden Markenassets, sequenziellen Datenlegenden und der dokumentierten Atlasbühne der Versorgungs-Kompass-Übersicht. Primärbuttons und Navigationskarten bleiben flach.
 - Statusfarben werden nur für Status, Datenqualität, Gefahr oder Validierung genutzt.
 - Admin-/Betriebshinweise sind neutral oder dezent blau, nie dominant.
 - Kartenfarben dürfen fachliche Kategorien abbilden, müssen aber in Legende und Listen gleich bleiben.
@@ -108,6 +110,18 @@ Diese Farben kennzeichnen ausschließlich die fachliche Gruppe. Größe, Abstand
 - Keine Cards in Cards.
 - Dashboard-Cards sind dicht, scanbar und flach.
 - Summary-Cards dürfen nicht visuell wichtiger sein als die Kontaktliste.
+
+### Modulübersichten
+
+- Eine Modulübersicht ist eine Orientierungsansicht ohne globale Suche, Filtertoolbar oder primäre Pflegeaktion.
+- Der Versorgungs-Kompass nutzt eine reduzierte Live-Karte als räumlichen Anker. Die Vorschau übernimmt für alle 16 Bundesländer exakt das Pfadlayout der gematik-Pflegeseite in deren originaler Reihenfolge und `viewBox`; die vollständige Kartenansicht behält dagegen ihre geografisch präzisen GeoJSON-Flächen. Vorschau und Vollansicht verwenden dieselbe mengenabhängige Bundesland-Farbskala und dieselbe Verlaufslegende. Die Vorschau zeigt keine Marker oder Clusterzahlen. Eine eigenständige Windrose steht rein dekorativ und gut sichtbar in der freien linken oberen Ecke oberhalb der Kartenebene, ohne die Deutschlandgeometrie zu verdecken. Kopfzeile, Kartenbühne sowie Kontaktzähler und Legende liegen in getrennten Rasterzeilen; technische Zuordnungs- und Bundeslandangaben gehören nicht in die Übersicht.
+- Die vollständige Karte bleibt ein eigener Arbeitsbereich; die Vorschau erhält keine Kontaktliste, Suche oder Kartensteuerung. Gedrehte, einfarbige Iconflächen dürfen das Versorgungs-Kompass-Signet aufgreifen, ohne die Navigationsziele unterschiedlich zu gewichten.
+- Navigationsflächen bleiben in Größe, Informationshierarchie und Gewicht gleich behandelt. Kontakte, Organisationen, Auswertung und Aktivitäten dürfen zur schnelleren Orientierung je eine dokumentierte Akzentfamilie als sehr helle Fläche, solide Seitenkante, Icon-Raute und Aktionsfarbe verwenden. Icon und Text benennen das Ziel immer zusätzlich; die Farben codieren weder Status, Priorität noch reale Beziehungen. Rollenabhängig nicht zugängliche Ziele werden wie in der Sidebar vollständig ausgeblendet.
+- Die gesamte Atlasbühne ist ein einzelnes, tastaturbedienbares Navigationsziel zur vollständigen Karte. Hover und Fokus verstärken Kontur, Halo und Aktion und vergrößern die unbewegte Kartenebene nur minimal. Reduced Motion entfernt diese Transformation; das Kompassmotiv und die Hoverreaktion stellen keine Datenbeziehung dar.
+- Große Kennzahlen nennen Kontakte und Organisationen im sichtbaren Bestand, die Zahl belegter Sektoren sowie für Admins die exakt serverseitig gezählten Aktivitäten der letzten 30 Tage. `0` ist ein gültiger Wert; Laden oder Fehler werden mit `–` und einem eindeutigen Textzustand dargestellt. Farbe ist nie das einzige Unterscheidungsmerkmal.
+- Die zentrale Vorschau darf als zusammenhängende hellblaue bis hell indigofarbene Atlasbühne mit einmaliger kurzer Einstiegsmotion erscheinen. Eine statische Windrose in einer freien Randzone bleibt rein dekorativ und zurückhaltend. Dauerbewegung, pulsierende Regionen, künstliche Netzwerkbögen oder datensemantisch missverständliche Effekte sind ausgeschlossen; `prefers-reduced-motion` und Forced Colors erhalten einen statischen Fallback.
+- Auf kleinen Smartphone-Viewports stehen die verfügbaren Navigationsziele vor der Karten-Vorschau, damit die Modulübersicht ihren Orientierungszweck behält.
+- Kennzahlen zeigen nur ungefilterte, nicht archivierte und rollenbezogen projizierte Bestände. In der Oberfläche werden sie neutral als `Kontakte` und `Organisationen` bezeichnet; Lade-, Fallback- und Fehlerzustände dürfen nicht als Nullbestand erscheinen.
 
 ### Tabellen
 

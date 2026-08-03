@@ -1216,6 +1216,25 @@
       const updatedFilterMeta = document.getElementById("updated-filter-meta");
       const sourceFilterMeta = document.getElementById("source-filter-meta");
       const mapViewFrame = document.getElementById("map-view-frame");
+      const careOverviewMapFrame = document.getElementById("care-overview-map-frame");
+      const careOverviewContactCount = document.getElementById("care-overview-contact-count");
+      const careOverviewContactCountValue = document.getElementById("care-overview-contact-count-value");
+      const careOverviewContactCountLabel = document.getElementById("care-overview-contact-count-label");
+      const careOverviewOrganizationCount = document.getElementById("care-overview-organization-count");
+      const careOverviewOrganizationCountValue = document.getElementById("care-overview-organization-count-value");
+      const careOverviewOrganizationCountLabel = document.getElementById("care-overview-organization-count-label");
+      const careOverviewSectorCount = document.getElementById("care-overview-sector-count");
+      const careOverviewSectorCountValue = document.getElementById("care-overview-sector-count-value");
+      const careOverviewSectorCountLabel = document.getElementById("care-overview-sector-count-label");
+      const careOverviewActivityCount = document.getElementById("care-overview-activity-count");
+      const careOverviewActivityCountValue = document.getElementById("care-overview-activity-count-value");
+      const careOverviewActivityCountLabel = document.getElementById("care-overview-activity-count-label");
+      const careOverviewLayout = document.querySelector(".care-overview-layout");
+      const careOverviewMapSection = careOverviewLayout?.querySelector(".care-overview-map");
+      const careOverviewMobileOrderQuery = window.matchMedia("(max-width: 600px)");
+      const careOverviewMapCounter = document.getElementById("care-overview-map-counter");
+      const careOverviewMapCount = document.getElementById("care-overview-map-count");
+      const careOverviewMapCountLabel = document.getElementById("care-overview-map-count-label");
       const MAP_MESSAGE_VERSION = 1;
       const MAP_MESSAGE_CHANNELS = new Set(["contacts", "stakeholders", "politics"]);
       const appShell = document.querySelector(".app-shell");
@@ -1279,6 +1298,8 @@
       const sidebarUserRole = document.getElementById("sidebar-user-role");
       const sidebarAnalyticsButton = document.getElementById("sidebar-analytics-button");
       const sidebarActivitiesButton = document.getElementById("sidebar-activities-button");
+      const careOverviewAnalyticsLink = document.getElementById("care-overview-analytics-link");
+      const careOverviewActivitiesLink = document.getElementById("care-overview-activities-link");
       const sidebarNotificationsButton = document.getElementById("sidebar-notifications-button");
       const sidebarTeamButton = document.getElementById("sidebar-team-button");
       const sidebarSettingsButton = document.getElementById("sidebar-settings-button");
@@ -1537,7 +1558,7 @@
       const organizationPrimarySystemsEditor = document.getElementById("organization-primary-systems-editor");
       const organizationPrimarySystemAdd = document.getElementById("organization-primary-system-add");
 
-      const careViewModes = ["contacts", "organizations", "map", "stakeholders"];
+      const careViewModes = ["careOverview", "contacts", "organizations", "map", "stakeholders"];
 
       let activeView = "home";
       let activeSettingsTab = "imports";
@@ -1771,6 +1792,8 @@
       let activitiesRequestKey = "";
       const activitiesPageSize = 100;
       const activitiesMaxAutoLoadPages = 100;
+      let careOverviewActivitySummaryState = "idle";
+      let careOverviewActivitySummaryCount = null;
       let notifications = [];
       let notificationsLoaded = false;
       let notificationsLoading = false;
@@ -2117,7 +2140,7 @@
 
       function canAccessView(view) {
         if (view === "onboarding") return onboardingActive || onboardingReviewActive;
-        return !["settings", "about", "analytics", "quality"].includes(view) || canAdministerData();
+        return !["settings", "about", "analytics", "quality", "activities"].includes(view) || canAdministerData();
       }
 
       function safeViewForRole(view) {
@@ -2279,7 +2302,7 @@
 
       function sidebarGroupForView(view = activeView) {
         const normalizedView = sidebarNavigationView(view);
-        if (["map", "contacts", "organizations", "activities", "analytics", "quality", "onboarding"].includes(normalizedView)) return "care";
+        if (["careOverview", "map", "contacts", "organizations", "activities", "analytics", "quality", "onboarding"].includes(normalizedView)) return "care";
         if (["patients", "politics", "press", "experts", "stakeholderOverview", "stakeholders"].includes(normalizedView)) return "stakeholders";
         if (["hospitationOverview", "framework", "hospitations", "questionnaire"].includes(normalizedView)) return "planning";
         if (normalizedView === "formats") return "formats";
@@ -2437,6 +2460,8 @@
         if (!canAdministerData() && activeProfileTab === "imports") setProfileTab("profile");
         setRoleElementVisible(sidebarAnalyticsButton, canAdministerData());
         setRoleElementVisible(sidebarActivitiesButton, canAdministerData());
+        setRoleElementVisible(careOverviewAnalyticsLink, canAdministerData());
+        setRoleElementVisible(careOverviewActivitiesLink, canAdministerData());
         setRoleElementVisible(sidebarSettingsButton, true);
         setRoleElementVisible(sidebarAboutButton, canAdministerData());
         setRoleElementVisible(accountQualityButton, canAdministerData());
@@ -5695,6 +5720,8 @@
       let pressDataState = "loading";
       let pressDataErrorMessage = "";
       let isInitialDataLoading = true;
+      let initialCareDataState = "loading";
+      let organizationDataState = "derived";
       let initialDataLoadingSlow = false;
       let organizationLogoMapCache = null;
       let editingOrganizationId = null;
@@ -5704,6 +5731,7 @@
       let greetingLabel = "Gemeinsam Versorgung gestalten";
       const viewLabels = {
         home: { title: "Startseite", subtitle: "Dein Einstieg in Versorgungs-Kompass, Stakeholder-Kompass, Hospitations-Kompass und Format-Kompass." },
+        careOverview: { title: "Übersicht", subtitle: "Karte und verfügbare Arbeitsbereiche auf einen Blick." },
         contacts: { title: "Kontakte", subtitle: "Pflege und Suche der Versorgungskontakte." },
         organizations: { title: "Organisationen", subtitle: "Organisationen, Einrichtungen und Institutionen hinter den Versorgungskontakten." },
         activities: { title: "Aktivitäten", subtitle: "Fachlicher Verlauf von Stammdaten, Zuständigkeiten, Einwilligungen, Hospitationen, Formaten und Dokumenten." },
@@ -15492,7 +15520,7 @@
           return;
         }
 
-        if (activeView === "home" || activeView === "onboarding" || activeView === "stakeholderOverview" || activeView === "hospitationOverview") {
+        if (activeView === "home" || activeView === "onboarding" || activeView === "careOverview" || activeView === "stakeholderOverview" || activeView === "hospitationOverview") {
           if (summaryGrid) summaryGrid.innerHTML = "";
           return;
         }
@@ -39315,6 +39343,7 @@
         if (routeView === "hospitations" || String(routeView).startsWith("hospitations:")) {
           return hospitationRouteForTab(String(routeView).split(":")[1] || activeHospitationTab);
         }
+        if (routeView === "careOverview") return "care";
         if (routeView === "hospitationOverview") return "hospitation-overview";
         if (routeView === "stakeholderOverview") return "stakeholders";
         if (routeView === "stakeholders") return stakeholderRouteForType();
@@ -39348,7 +39377,7 @@
 
       function searchContextForView(view = activeView) {
         if (["contacts", "organizations", "map"].includes(view)) return "care";
-        if (["personProfile", "organizationProfile", "profile", "settings", "quality", "analytics", "stakeholderOverview", "hospitationOverview"].includes(view)) return "";
+        if (["personProfile", "organizationProfile", "profile", "settings", "quality", "analytics", "careOverview", "stakeholderOverview", "hospitationOverview"].includes(view)) return "";
         return view || "";
       }
 
@@ -39532,16 +39561,287 @@
         return true;
       }
 
+      function careOverviewContacts() {
+        return contacts.filter((contact) => !["archived", "archiviert"].includes(String(contact.status || "").trim().toLowerCase()));
+      }
+
+      function careOverviewOrganizations() {
+        return organizations.filter((organization) => !["archived", "archiviert"].includes(String(organization.status || "").trim().toLowerCase()));
+      }
+
+      function careOverviewSectorTotal(items = careOverviewContacts()) {
+        return new Set(items
+          .map((contact) => categoryLabel(contact))
+          .map((label) => String(label || "").trim())
+          .filter((label) => label && !["Nicht dokumentiert", "Unbekannt"].includes(label)))
+          .size;
+      }
+
+      function syncCareOverviewDomOrder() {
+        if (!careOverviewLayout || !careOverviewMapSection) return;
+        const firstDestination = careOverviewLayout.querySelector(".care-overview-destination");
+        if (careOverviewMobileOrderQuery.matches) {
+          if (careOverviewLayout.lastElementChild !== careOverviewMapSection) {
+            careOverviewLayout.append(careOverviewMapSection);
+          }
+          return;
+        }
+        if (firstDestination && careOverviewMapSection.nextElementSibling !== firstDestination) {
+          careOverviewLayout.insertBefore(careOverviewMapSection, firstDestination);
+        }
+      }
+
+      if (typeof careOverviewMobileOrderQuery.addEventListener === "function") {
+        careOverviewMobileOrderQuery.addEventListener("change", syncCareOverviewDomOrder);
+      } else {
+        careOverviewMobileOrderQuery.addListener(syncCareOverviewDomOrder);
+      }
+      syncCareOverviewDomOrder();
+
+      function startCareOverviewEntrance() {
+        if (!careOverviewLayout || careOverviewLayout.dataset.entranceState) return;
+        if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+          careOverviewLayout.dataset.entranceState = "complete";
+          return;
+        }
+        careOverviewLayout.dataset.entranceState = "pending";
+        window.requestAnimationFrame(() => {
+          if (!careOverviewLayout.isConnected) return;
+          careOverviewLayout.dataset.entranceState = "playing";
+          window.setTimeout(() => {
+            if (careOverviewLayout.dataset.entranceState === "playing") {
+              careOverviewLayout.dataset.entranceState = "complete";
+            }
+          }, 560);
+        });
+      }
+
+      function isValidMapCoordinatePair(lat, lon) {
+        if (lat === null || lat === undefined || String(lat).trim() === "") return false;
+        if (lon === null || lon === undefined || String(lon).trim() === "") return false;
+        const latitude = Number.parseFloat(lat);
+        const longitude = Number.parseFloat(lon);
+        return Number.isFinite(latitude) && latitude >= -90 && latitude <= 90
+          && Number.isFinite(longitude) && longitude >= -180 && longitude <= 180;
+      }
+
+      function hasValidMapCoordinates(entry) {
+        return isValidMapCoordinatePair(entry?.lat ?? entry?.latitude, entry?.lon ?? entry?.longitude);
+      }
+
+      function careOverviewMapSummary(items = careOverviewContacts()) {
+        const activeOrganizations = careOverviewOrganizations();
+        const organizationById = new Map(activeOrganizations.map((organization) => [String(organization.id || ""), organization]));
+        const organizationByName = new Map(activeOrganizations.map((organization) => [normalizeOrganizationName(organization.name), organization]));
+        let mappedCount = 0;
+        items.forEach((contact) => {
+          if (!String(contact?.id || "").trim()) return;
+          const organization = organizationById.get(String(contact.organizationId || ""))
+            || organizationByName.get(normalizeOrganizationName(contact.organization));
+          const usesContactPosition = hasValidMapCoordinates(contact);
+          if (!usesContactPosition && !hasValidMapCoordinates(organization)) return;
+          mappedCount += 1;
+        });
+        return { mappedCount };
+      }
+
+      function setCareOverviewMapCounter(value, label, state = "ready") {
+        if (careOverviewMapCounter) careOverviewMapCounter.dataset.state = state;
+        if (careOverviewMapCount) careOverviewMapCount.textContent = value;
+        if (careOverviewMapCountLabel) careOverviewMapCountLabel.textContent = label;
+      }
+
+      function setCareOverviewDestinationCount(container, valueNode, labelNode, value, label, state = "ready", accessibleLabel = "") {
+        if (container) container.dataset.state = state;
+        if (container && accessibleLabel) container.setAttribute("aria-label", accessibleLabel);
+        if (valueNode) valueNode.textContent = value;
+        if (labelNode) labelNode.textContent = label;
+      }
+
+      function renderCareOverviewActivityMetric() {
+        if (!careOverviewActivityCount) return;
+        if (careOverviewActivitySummaryState === "ready" && Number.isSafeInteger(careOverviewActivitySummaryCount)) {
+          const activityLabel = careOverviewActivitySummaryCount === 1 ? "Aktivität" : "Aktivitäten";
+          setCareOverviewDestinationCount(
+            careOverviewActivityCount,
+            careOverviewActivityCountValue,
+            careOverviewActivityCountLabel,
+            String(careOverviewActivitySummaryCount),
+            "letzte 30 Tage",
+            "ready",
+            `${careOverviewActivitySummaryCount} ${activityLabel} in den letzten 30 Tagen`
+          );
+          return;
+        }
+        if (careOverviewActivitySummaryState === "error") {
+          setCareOverviewDestinationCount(
+            careOverviewActivityCount,
+            careOverviewActivityCountValue,
+            careOverviewActivityCountLabel,
+            "–",
+            "letzte 30 Tage · nicht verfügbar",
+            "error",
+            "Aktivitäten der letzten 30 Tage sind nicht verfügbar"
+          );
+          return;
+        }
+        setCareOverviewDestinationCount(
+          careOverviewActivityCount,
+          careOverviewActivityCountValue,
+          careOverviewActivityCountLabel,
+          "–",
+          "letzte 30 Tage · wird geladen",
+          "loading",
+          "Aktivitäten der letzten 30 Tage werden geladen"
+        );
+      }
+
+      async function loadCareOverviewActivitySummary() {
+        if (!canAdministerData() || !window.dataService?.getActivitySummary) return;
+        if (["loading", "ready", "error"].includes(careOverviewActivitySummaryState)) return;
+        careOverviewActivitySummaryState = "loading";
+        renderCareOverviewActivityMetric();
+        const from = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
+        try {
+          const summary = await window.dataService.getActivitySummary({ from });
+          const count = Number(summary?.count);
+          if (!Number.isSafeInteger(count) || count < 0) throw new Error("Der Aktivitätszähler ist ungültig.");
+          careOverviewActivitySummaryCount = count;
+          careOverviewActivitySummaryState = "ready";
+        } catch (error) {
+          careOverviewActivitySummaryCount = null;
+          careOverviewActivitySummaryState = "error";
+          console.error("Aktivitätsübersicht konnte nicht geladen werden.", error);
+        }
+        renderCareOverviewActivityMetric();
+      }
+
+      function renderCareOverview() {
+        startCareOverviewEntrance();
+        const activeContacts = careOverviewContacts();
+        const activeOrganizations = careOverviewOrganizations();
+        if (canAdministerData()) {
+          renderCareOverviewActivityMetric();
+          void loadCareOverviewActivitySummary();
+        }
+        if (initialCareDataState === "error") {
+          setCareOverviewDestinationCount(
+            careOverviewContactCount,
+            careOverviewContactCountValue,
+            careOverviewContactCountLabel,
+            "–",
+            "nicht verfügbar",
+            "error",
+            "Kontakte im Bestand sind nicht verfügbar"
+          );
+          setCareOverviewDestinationCount(
+            careOverviewOrganizationCount,
+            careOverviewOrganizationCountValue,
+            careOverviewOrganizationCountLabel,
+            "–",
+            "nicht verfügbar",
+            "error",
+            "Organisationen im Bestand sind nicht verfügbar"
+          );
+          setCareOverviewDestinationCount(
+            careOverviewSectorCount,
+            careOverviewSectorCountValue,
+            careOverviewSectorCountLabel,
+            "–",
+            "nicht verfügbar",
+            "error",
+            "Sektoren mit Kontakten sind nicht verfügbar"
+          );
+          setCareOverviewMapCounter("–", "Kartendaten nicht verfügbar", "error");
+          syncMapFrame([], careOverviewMapFrame);
+          return;
+        }
+        if (isInitialDataLoading || initialCareDataState === "loading") {
+          setCareOverviewDestinationCount(
+            careOverviewContactCount,
+            careOverviewContactCountValue,
+            careOverviewContactCountLabel,
+            "–",
+            "wird geladen",
+            "loading",
+            "Kontakte im Bestand werden geladen"
+          );
+          setCareOverviewDestinationCount(
+            careOverviewOrganizationCount,
+            careOverviewOrganizationCountValue,
+            careOverviewOrganizationCountLabel,
+            "–",
+            "wird geladen",
+            "loading",
+            "Organisationen im Bestand werden geladen"
+          );
+          setCareOverviewDestinationCount(
+            careOverviewSectorCount,
+            careOverviewSectorCountValue,
+            careOverviewSectorCountLabel,
+            "–",
+            "wird geladen",
+            "loading",
+            "Sektoren mit Kontakten werden geladen"
+          );
+          setCareOverviewMapCounter("–", "Kontakte werden geladen", "loading");
+        } else {
+          setCareOverviewDestinationCount(
+            careOverviewContactCount,
+            careOverviewContactCountValue,
+            careOverviewContactCountLabel,
+            String(activeContacts.length),
+            "im Bestand",
+            "ready",
+            `${activeContacts.length} ${activeContacts.length === 1 ? "Kontakt" : "Kontakte"} im Bestand`
+          );
+          const organizationsAreDerived = ["derived", "fallback"].includes(organizationDataState);
+          setCareOverviewDestinationCount(
+            careOverviewOrganizationCount,
+            careOverviewOrganizationCountValue,
+            careOverviewOrganizationCountLabel,
+            String(activeOrganizations.length),
+            organizationsAreDerived ? "im Bestand · aus Kontakten abgeleitet" : "im Bestand",
+            "ready",
+            `${activeOrganizations.length} ${activeOrganizations.length === 1 ? "Organisation" : "Organisationen"} im Bestand${organizationsAreDerived ? ", aus Kontakten abgeleitet" : ""}`
+          );
+          const sectorCount = careOverviewSectorTotal(activeContacts);
+          setCareOverviewDestinationCount(
+            careOverviewSectorCount,
+            careOverviewSectorCountValue,
+            careOverviewSectorCountLabel,
+            String(sectorCount),
+            sectorCount === 1 ? "Sektor mit Kontakten" : "Sektoren mit Kontakten",
+            "ready",
+            `${sectorCount} ${sectorCount === 1 ? "Sektor" : "Sektoren"} mit Kontakten`
+          );
+          const mapSummary = careOverviewMapSummary(activeContacts);
+          setCareOverviewMapCounter(
+            String(mapSummary.mappedCount),
+            mapSummary.mappedCount === 1 ? "Kontakt" : "Kontakte"
+          );
+        }
+        syncMapFrame(activeContacts, careOverviewMapFrame);
+      }
+
       function mapContacts() {
         if (searchContextForView(activeView) === "care") return filteredContacts();
         return contacts.filter((contact) => contact.status !== "archived");
       }
 
-      function syncMapFrame(items = mapContacts()) {
-        if (!mapViewFrame || !mapViewFrame.contentWindow) return;
-        const organizationById = new Map(organizations.map((organization) => [String(organization.id || ""), organization]));
-        const organizationByName = new Map(organizations.map((organization) => [normalizeOrganizationName(organization.name), organization]));
-        mapViewFrame.contentWindow.postMessage(
+      function syncMapFrame(items = mapContacts(), targetFrame = mapViewFrame) {
+        if (!targetFrame) return;
+        const deferredSource = String(targetFrame.dataset.deferredSrc || "").trim();
+        if (deferredSource && targetFrame.dataset.deferredSourceLoaded !== "true") {
+          targetFrame.dataset.deferredSourceLoaded = "true";
+          targetFrame.src = deferredSource;
+          return;
+        }
+        if (!targetFrame.contentWindow) return;
+        const organizationSource = targetFrame === careOverviewMapFrame ? careOverviewOrganizations() : organizations;
+        const organizationById = new Map(organizationSource.map((organization) => [String(organization.id || ""), organization]));
+        const organizationByName = new Map(organizationSource.map((organization) => [normalizeOrganizationName(organization.name), organization]));
+        targetFrame.contentWindow.postMessage(
           {
             type: "versorgungs-kompass-map-data",
             version: MAP_MESSAGE_VERSION,
@@ -39560,8 +39860,8 @@
               const ownerIds = contactOwnerIds(contact);
               const firstOwnerProfile = ownerProfileForValue(ownerIds[0]);
               const linkedOrganization = organizationById.get(String(contact.organizationId || "")) || organizationByName.get(normalizeOrganizationName(contact.organization)) || null;
-              const hasContactCoordinates = Number.isFinite(Number(contact.lat)) && Number.isFinite(Number(contact.lon));
-              const hasOrganizationCoordinates = Number.isFinite(Number(linkedOrganization?.lat)) && Number.isFinite(Number(linkedOrganization?.lon));
+              const hasContactCoordinates = isValidMapCoordinatePair(contact.lat, contact.lon);
+              const hasOrganizationCoordinates = isValidMapCoordinatePair(linkedOrganization?.lat, linkedOrganization?.lon);
               return {
                 id: contact.id,
                 name: contact.name,
@@ -41572,9 +41872,12 @@
         const isPatientsView = activeView === "patients";
         const isPoliticsView = activeView === "politics";
         const isPressView = activeView === "press";
+        const isCareOverviewView = activeView === "careOverview";
         const isStakeholderOverviewView = activeView === "stakeholderOverview";
         const isHospitationOverviewView = activeView === "hospitationOverview";
+        const isCompassOverviewView = isCareOverviewView || isStakeholderOverviewView || isHospitationOverviewView;
         placeWorkspaceModeControls();
+        if (isCareOverviewView) renderCareOverview();
         if (isPatientsView && !["people", "organizations", "indications"].includes(activePatientMode)) activePatientMode = "indications";
         const isPatientOrganizationsMode = isPatientsView && activePatientMode === "organizations";
         const isPatientPeopleMode = isPatientsView && activePatientMode === "people";
@@ -41608,7 +41911,7 @@
         }
         if (isHospitationOverviewView) renderHospitationOverview();
         if (isFrameworkView) syncHospitationFrameworkMetrics();
-        const items = isHomeView || isOnboardingView || isStakeholderOverviewView || isHospitationOverviewView
+        const items = isHomeView || isOnboardingView || isCompassOverviewView
           ? []
           : isFormatsView
           ? filteredFormats()
@@ -41693,7 +41996,7 @@
         const isHospitationDashboardTab = isHospitationsView && activeHospitationTab === "dashboard";
         const isHospitationCommandHiddenTab = isHospitationsView && ["dashboard", "observations", "patterns"].includes(activeHospitationTab);
         const isHospitationHeaderSearchVisible = hospitationHeaderSearchVisible(activeHospitationTab);
-        const searchHidden = isHomeView || isOnboardingView || isStakeholderOverviewView || isHospitationOverviewView || activeView === "analytics" || activeView === "quality" || isNotificationsView || isProfileRecordView || isFrameworkView || isQuestionnaireView || (isPoliticsView && politicsDataState !== "ready") || (isPressView && pressDataState !== "ready") || (isHospitationsView ? !isHospitationHeaderSearchVisible : false);
+        const searchHidden = isHomeView || isOnboardingView || isCompassOverviewView || activeView === "analytics" || activeView === "quality" || isNotificationsView || isProfileRecordView || isFrameworkView || isQuestionnaireView || (isPoliticsView && politicsDataState !== "ready") || (isPressView && pressDataState !== "ready") || (isHospitationsView ? !isHospitationHeaderSearchVisible : false);
         if (searchShell) {
           if (expertHeaderSearch) expertHeaderSearch.hidden = true;
           if (stakeholderHeaderSearch) stakeholderHeaderSearch.hidden = true;
@@ -41729,7 +42032,7 @@
           hospitationHeaderSearchToggle.setAttribute("aria-expanded", "false");
         }
         syncSearchClearButton();
-        if (controlsRoot) controlsRoot.hidden = isHomeView || isOnboardingView || isStakeholderOverviewView || isHospitationOverviewView || activeView === "analytics" || activeView === "quality" || activeView === "profile" || isNotificationsView || isProfileRecordView || isFrameworkView || isQuestionnaireView || (isHospitationsView && !isHospitationHeaderSearchVisible) || (isPoliticsView && politicsDataState !== "ready") || (isPressView && pressDataState !== "ready");
+        if (controlsRoot) controlsRoot.hidden = isHomeView || isOnboardingView || isCompassOverviewView || activeView === "analytics" || activeView === "quality" || activeView === "profile" || isNotificationsView || isProfileRecordView || isFrameworkView || isQuestionnaireView || (isHospitationsView && !isHospitationHeaderSearchVisible) || (isPoliticsView && politicsDataState !== "ready") || (isPressView && pressDataState !== "ready");
         newContactButton.hidden = !isContactsView;
         newOrganizationButton.hidden = !isOrganizationsView;
         if (contactMatchingWorklistButton) contactMatchingWorklistButton.hidden = !isContactsView;
@@ -41769,13 +42072,13 @@
         if (organizationsTable) organizationsTable.hidden = isOrganizationsDuplicatesMode;
         if (organizationDuplicatesWorkspace) organizationDuplicatesWorkspace.hidden = !isOrganizationsDuplicatesMode;
         columnMenuShell.hidden = !(isContactsView || isOrganizationsView || isExpertsView || isPatientsView) || isAnyDuplicateMode || isPatientIndicationsMode;
-        if (viewSelectShell) viewSelectShell.hidden = isHomeView || isOnboardingView || isStakeholderOverviewView || isHospitationOverviewView || isExpertsView || isPatientsView || isPoliticsView || isPressView || isHospitationsView || isFrameworkView || isQuestionnaireView || isStakeholdersView || isActivitiesView || isNotificationsView || isCareDuplicatesMode || isProfileRecordView;
+        if (viewSelectShell) viewSelectShell.hidden = isHomeView || isOnboardingView || isCompassOverviewView || isExpertsView || isPatientsView || isPoliticsView || isPressView || isHospitationsView || isFrameworkView || isQuestionnaireView || isStakeholdersView || isActivitiesView || isNotificationsView || isCareDuplicatesMode || isProfileRecordView;
         filterPanel.querySelector('[data-filter-field="category"] summary').textContent = isPatientsView ? "Indikation" : isExpertsView ? "Gruppe" : "Sektor";
-        if (filterToolbar) filterToolbar.hidden = isHomeView || isOnboardingView || isStakeholderOverviewView || isHospitationOverviewView || isPoliticsView || isPressView || isHospitationsView || isFrameworkView || isQuestionnaireView || isActivitiesView || isNotificationsView || isAnyDuplicateMode || isProfileRecordView;
-        if (filterShell) filterShell.hidden = isStakeholderOverviewView || isHospitationOverviewView || isPatientIndicationsMode || isFormatsView || isHospitationsView || isStakeholdersView || isActivitiesView;
-        if (activeFilterRow) activeFilterRow.hidden = isStakeholderOverviewView || isHospitationOverviewView || isFormatsView || isHospitationsView || isStakeholdersView || isActivitiesView;
+        if (filterToolbar) filterToolbar.hidden = isHomeView || isOnboardingView || isCompassOverviewView || isPoliticsView || isPressView || isHospitationsView || isFrameworkView || isQuestionnaireView || isActivitiesView || isNotificationsView || isAnyDuplicateMode || isProfileRecordView;
+        if (filterShell) filterShell.hidden = isCompassOverviewView || isPatientIndicationsMode || isFormatsView || isHospitationsView || isStakeholdersView || isActivitiesView;
+        if (activeFilterRow) activeFilterRow.hidden = isCompassOverviewView || isFormatsView || isHospitationsView || isStakeholdersView || isActivitiesView;
         patientPageSizeSelect?.closest(".page-size-shell")?.toggleAttribute("hidden", isPatientIndicationsMode);
-        if (isHomeView || isOnboardingView || isStakeholderOverviewView || isHospitationOverviewView || isPoliticsView || isPressView || isHospitationsView || isFrameworkView || isQuestionnaireView || isStakeholdersView || isActivitiesView || isNotificationsView || isAnyDuplicateMode || isProfileRecordView || isPatientIndicationsMode) setFilterPanelOpen(false);
+        if (isHomeView || isOnboardingView || isCompassOverviewView || isPoliticsView || isPressView || isHospitationsView || isFrameworkView || isQuestionnaireView || isStakeholdersView || isActivitiesView || isNotificationsView || isAnyDuplicateMode || isProfileRecordView || isPatientIndicationsMode) setFilterPanelOpen(false);
         if (columnMenuShell) {
           if (isOrganizationsView) organizationColumnActions?.append(viewSelectShell, columnMenuShell);
           else if (isPatientsView) patientColumnActions?.append(viewSelectShell, columnMenuShell);
@@ -41830,7 +42133,7 @@
         }
         renderContextualBulkToolbar();
         renderDashboard(filteredContacts());
-        if (!isHomeView && !isStakeholderOverviewView && !isHospitationOverviewView && !isPoliticsView && !isPressView && !isFormatsView && !isHospitationsView && !isFrameworkView && !isQuestionnaireView && !isStakeholdersView && !isActivitiesView && !isNotificationsView && !isAnyDuplicateMode && !isProfileRecordView) {
+        if (!isHomeView && !isCompassOverviewView && !isPoliticsView && !isPressView && !isFormatsView && !isHospitationsView && !isFrameworkView && !isQuestionnaireView && !isStakeholdersView && !isActivitiesView && !isNotificationsView && !isAnyDuplicateMode && !isProfileRecordView) {
           renderActiveFilters();
           renderFilterPanel();
         }
@@ -42230,6 +42533,9 @@
       bindDirectoryFilterPanels();
       mapViewFrame.addEventListener("load", () => {
         syncMapFrame(mapContacts());
+      });
+      careOverviewMapFrame?.addEventListener("load", () => {
+        syncMapFrame(careOverviewContacts(), careOverviewMapFrame);
       });
       stakeholderMapFrame?.addEventListener("load", () => {
         syncStakeholderMapFrame(stakeholderMapPeople());
@@ -43229,9 +43535,9 @@
 
       window.addEventListener("message", (event) => {
         if (event.origin !== window.location.origin || !event.data || typeof event.data !== "object" || Array.isArray(event.data)) return;
-        const sourceFrame = [mapViewFrame, stakeholderMapFrame, politicsMapFrame].find((frame) => frame?.contentWindow === event.source);
+        const sourceFrame = [mapViewFrame, careOverviewMapFrame, stakeholderMapFrame, politicsMapFrame].find((frame) => frame?.contentWindow === event.source);
         if (!sourceFrame) return;
-        const expectedChannel = sourceFrame === mapViewFrame
+        const expectedChannel = sourceFrame === mapViewFrame || sourceFrame === careOverviewMapFrame
           ? "contacts"
           : sourceFrame === politicsMapFrame
             ? "politics"
@@ -43842,6 +44148,7 @@
           if (activePatientMode !== "organizations") activatePatientMode("organizations");
           return "patients";
         }
+        if (hashView === "care") return "careOverview";
         if (hashView === "stakeholders") return "stakeholderOverview";
         if (hashView === "hospitation-overview") return "hospitationOverview";
         if (!hashView && isHospitationDocumentationStandalone) {
@@ -44169,15 +44476,19 @@
       }
 
       async function loadOrganizationData({ includeArchived = false } = {}) {
+        organizationDataState = "loading";
         try {
           if (window.dataService.loadOrganizations) {
             organizations = mergeOrganizations(await window.dataService.loadOrganizations({ includeArchived }), deriveOrganizationsFromContacts(contacts));
+            organizationDataState = "ready";
           } else {
             organizations = deriveOrganizationsFromContacts(contacts);
+            organizationDataState = "derived";
           }
         } catch (organizationError) {
           console.warn("Organisationen konnten nicht aus dem Backend geladen werden. Kontaktbasierter Fallback aktiv.", organizationError);
           organizations = deriveOrganizationsFromContacts(contacts);
+          organizationDataState = "fallback";
         }
       }
 
@@ -44241,6 +44552,8 @@
         renderAccountProfile(profile);
         contacts = (await window.dataService.loadContacts({ includeArchived: canAdministerData() })).map((contact, index) => sanitizeContact(contact, index));
         organizations = deriveOrganizationsFromContacts(contacts);
+        initialCareDataState = "ready";
+        organizationDataState = "derived";
         loadedContactsFromStorage = false;
         pendingInitialDataReadyStatus = String(window.VERSORGUNGS_COMPASS_CONFIG?.dataMode || "").toLowerCase() === "demo"
           ? `Startklar: ${contacts.length} synthetische Demo-Kontakte stehen bereit.`
@@ -44290,7 +44603,7 @@
           const careContactProfileActive = activeView === "personProfile" && activePersonProfile.kind === "contact";
           const careContactDrawerActive = activeView === "contacts" && Boolean(activeId);
           if (dataKind === "organizations") {
-            return ["organizations", "map"].includes(activeView)
+            return ["careOverview", "organizations", "map"].includes(activeView)
               || (activeView === "organizationProfile" && activeOrganizationProfile.kind === "care");
           }
           if (dataKind === "formats") return activeView === "formats" || careContactProfileActive || careContactDrawerActive;
@@ -44485,6 +44798,8 @@
           if (settingsAccessOutcome?.status === "error" && redirectForAccessFailure(settingsAccessOutcome.error)) return;
           contacts = [];
           organizations = [];
+          initialCareDataState = "error";
+          organizationDataState = "error";
           loadedContactsFromStorage = false;
           setStorageStatus("Keine geschützten Kontaktdaten verfügbar. Bitte prüfe Verbindung, Anmeldung und Rollen.");
         }

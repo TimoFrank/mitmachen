@@ -904,6 +904,25 @@ export async function installProtectedBackend(page, fixture) {
       await fulfillJson(route, { ok: true });
       return;
     }
+    if (method === "GET" && path === "/api/activities/summary") {
+      const from = String(url.searchParams.get("from") || "").trim();
+      const to = String(url.searchParams.get("to") || new Date().toISOString()).trim();
+      const fromTime = new Date(from).getTime();
+      const toTime = new Date(to).getTime();
+      if (!from || !Number.isFinite(fromTime) || !Number.isFinite(toTime) || fromTime > toTime || toTime - fromTime > 31 * 24 * 60 * 60 * 1000) {
+        await fulfillJson(route, { error: "Der Zeitraum für die Aktivitätsauswertung ist ungültig." }, 400);
+        return;
+      }
+      const activityParams = new URLSearchParams(url.searchParams);
+      activityParams.set("from", new Date(fromTime).toISOString());
+      activityParams.set("to", new Date(toTime).toISOString());
+      await fulfillJson(route, {
+        count: filteredActivities(fixture.activities, activityParams).length,
+        from: activityParams.get("from"),
+        to: activityParams.get("to")
+      });
+      return;
+    }
     if (method === "GET" && path === "/api/contact-content-search") {
       await fulfillJson(route, collectionResponse(searchProtectedContent(fixture, url.searchParams.get("query") || url.searchParams.get("q"), {
         limit: url.searchParams.get("limit"),

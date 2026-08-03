@@ -312,6 +312,15 @@ async function expectMethodNotAllowed(path, body = {}) {
   }
 }
 
+async function expectActivitySummaryValidationFailure(query = "") {
+  const response = await fetch(`http://127.0.0.1:${port}/api/activities/summary${query}`, {
+    headers: { authorization: `Bearer ${fakeToken()}` }
+  });
+  const payload = await response.json();
+  assert.equal(response.status, 400, `Ungültiger Aktivitätszeitraum muss 400 liefern: ${query || "<leer>"}`);
+  assert.match(String(payload.error || ""), /zeitpunkt|zeitraum|tage/i);
+}
+
 async function expectIapBootstrapBoundary() {
   const allowedReturn = "https://frontend.pre-gematik.example/versorgungs-kompass.html?iap_authenticated=1";
   const allowed = await fetch(`http://127.0.0.1:${port}/api/auth/bootstrap?return=${encodeURIComponent(allowedReturn)}`, {
@@ -364,6 +373,10 @@ try {
     entityId: "hospitation-1",
     contactId: "contact-1"
   });
+  await expectActivitySummaryValidationFailure();
+  await expectActivitySummaryValidationFailure("?from=ungueltig");
+  await expectActivitySummaryValidationFailure("?from=2026-01-01T00%3A00%3A00.000Z&to=2026-03-01T00%3A00%3A00.000Z");
+  await expectActivitySummaryValidationFailure("?from=2099-01-01T00%3A00%3A00.000Z");
   await expectIapBootstrapBoundary();
   console.log("API Validation Test OK: JSON-Felder, Aktivitaets-Producer und #Mitmachen-Nachweisregeln werden serverseitig validiert.");
 } finally {

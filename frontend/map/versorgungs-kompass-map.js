@@ -116,7 +116,12 @@
   }
 
   const EMBED_MODE = MAP_PARAMS.get("embed") === "1";
+  const OVERVIEW_PREVIEW_MODE = EMBED_MODE && MAP_PARAMS.get("preview") === "1";
   if (EMBED_MODE) document.body.classList.add("embed-mode");
+  if (OVERVIEW_PREVIEW_MODE) {
+    document.documentElement.classList.add("overview-preview-mode");
+    document.body.classList.add("overview-preview-mode");
+  }
 
   const BASE_DATA = loadCompassContacts().map(toMapEntry).filter(Boolean);
   let currentEntries = BASE_DATA.slice();
@@ -156,23 +161,55 @@
   const MAP_WHEEL_PX_PER_ZOOM = 140;
   const IS_PUBLIC_DEMO = window.VERSORGUNGS_COMPASS_CONFIG?.dataMode === "demo";
   function currentMapMinZoom(){
+    if (OVERVIEW_PREVIEW_MODE) return 2.5;
     return window.matchMedia('(max-width: 760px)').matches ? MOBILE_MAP_MIN_ZOOM : MAP_MIN_ZOOM;
   }
+
+  function germanyFitPaddingRatio(){
+    if (OVERVIEW_PREVIEW_MODE) return window.innerHeight <= 380 ? 0.05 : 0.03;
+    return window.matchMedia('(max-width: 760px)').matches ? 0.05 : 0.2;
+  }
+
+  function germanyFitOptions({ animate = true } = {}){
+    const options = { animate: OVERVIEW_PREVIEW_MODE ? false : animate };
+    if (!OVERVIEW_PREVIEW_MODE) return options;
+    const verticalPadding = window.innerHeight <= 380 ? 12 : 20;
+    options.paddingTopLeft = [0, verticalPadding];
+    options.paddingBottomRight = [0, verticalPadding];
+    return options;
+  }
+
   const map = L.map('map', {
-    zoomControl: true,
-    zoomSnap: 0.5,
+    attributionControl: !OVERVIEW_PREVIEW_MODE,
+    zoomControl: !OVERVIEW_PREVIEW_MODE,
+    dragging: !OVERVIEW_PREVIEW_MODE,
+    scrollWheelZoom: !OVERVIEW_PREVIEW_MODE,
+    touchZoom: !OVERVIEW_PREVIEW_MODE,
+    doubleClickZoom: !OVERVIEW_PREVIEW_MODE,
+    boxZoom: !OVERVIEW_PREVIEW_MODE,
+    keyboard: !OVERVIEW_PREVIEW_MODE,
+    zoomSnap: OVERVIEW_PREVIEW_MODE ? 0.1 : 0.5,
     zoomDelta: 0.5,
     wheelPxPerZoomLevel: MAP_WHEEL_PX_PER_ZOOM,
     maxBoundsViscosity: 1
   });
 
+  const OVERVIEW_ATLAS_PANE = "careOverviewAtlas";
+  if (OVERVIEW_PREVIEW_MODE) {
+    const atlasPane = map.createPane(OVERVIEW_ATLAS_PANE);
+    atlasPane.classList.add("care-overview-atlas-pane");
+    atlasPane.style.zIndex = "430";
+  }
+
   if (!IS_PUBLIC_DEMO) {
-    L.tileLayer('https://{s}.basemaps.cartocdn.com/light_nolabels/{z}/{x}/{y}{r}.png', {
-      subdomains: 'abcd',
-      maxZoom: MAP_MAX_ZOOM,
-      opacity: 0.58,
-      attribution: '&copy; OpenStreetMap-Mitwirkende &copy; CARTO'
-    }).addTo(map);
+    if (!OVERVIEW_PREVIEW_MODE) {
+      L.tileLayer('https://{s}.basemaps.cartocdn.com/light_nolabels/{z}/{x}/{y}{r}.png', {
+        subdomains: 'abcd',
+        maxZoom: MAP_MAX_ZOOM,
+        opacity: 0.58,
+        attribution: '&copy; OpenStreetMap-Mitwirkende &copy; CARTO'
+      }).addTo(map);
+    }
   }
 
   // ---- Build exact Germany mask (inverse polygon) ----
@@ -202,27 +239,27 @@
   // Keep neighboring countries as a soft orientation cue without making them the working context.
   const mask = L.polygon([worldRing, ...holes], {
     stroke: false,
-    fillColor: '#f3f6fb',
-    fillOpacity: 0.28,
+    fillColor: OVERVIEW_PREVIEW_MODE ? '#071846' : '#f3f6fb',
+    fillOpacity: OVERVIEW_PREVIEW_MODE ? 0.22 : 0.28,
     interactive: false
   }).addTo(map);
 
   // Germany outline and soft surface emphasis.
   const germanyLayer = L.geoJSON(DE_GEOJSON, {
     style: {
-      color: 'rgba(23,39,95,0.30)',
-      weight: 1.15,
-      fillColor: 'rgba(238,244,255,0.78)',
-      fillOpacity: 0.34
+      color: OVERVIEW_PREVIEW_MODE ? 'rgba(222,245,255,0.78)' : 'rgba(23,39,95,0.30)',
+      weight: OVERVIEW_PREVIEW_MODE ? 1.4 : 1.15,
+      fillColor: OVERVIEW_PREVIEW_MODE ? '#0b2f74' : 'rgba(238,244,255,0.78)',
+      fillOpacity: OVERVIEW_PREVIEW_MODE ? 0.12 : 0.34
     },
     interactive: false
   }).addTo(map);
 
   const BASE_STATE_SURFACE_STYLE = {
-    color: 'rgba(1,14,82,0.22)',
-    weight: 0.85,
+    color: OVERVIEW_PREVIEW_MODE ? 'rgba(222,245,255,0.48)' : 'rgba(1,14,82,0.22)',
+    weight: OVERVIEW_PREVIEW_MODE ? 1.1 : 0.85,
     fillColor: '#155fe4',
-    fillOpacity: 0.16,
+    fillOpacity: OVERVIEW_PREVIEW_MODE ? 0.08 : 0.16,
     opacity: 1
   };
 
@@ -233,8 +270,7 @@
 
   // Fit to Germany bounds and keep focus tight
   const deBounds = germanyLayer.getBounds();
-  const initialGermanyPadding = window.matchMedia('(max-width: 760px)').matches ? 0.05 : 0.2;
-  map.fitBounds(deBounds.pad(initialGermanyPadding));
+  map.fitBounds(deBounds.pad(germanyFitPaddingRatio()), germanyFitOptions({ animate: false }));
   map.setZoom(Math.min(map.getZoom(), MAP_MAX_ZOOM));
   map.setMaxBounds(deBounds.pad(0.35));
   map.setMinZoom(currentMapMinZoom());
@@ -250,8 +286,8 @@
   let stateHeatLayer = null;
   const stateHeatCountLayer = L.layerGroup();
   let stateInteractionLayer = null;
-  let heatMapActive = false;
-  let gematikMarkerModeActive = true;
+  let heatMapActive = OVERVIEW_PREVIEW_MODE;
+  let gematikMarkerModeActive = !OVERVIEW_PREVIEW_MODE;
   let selectedState = "";
   let stateCountsByKey = {};
   let stateCountMax = 0;
@@ -365,12 +401,22 @@
   let stateMapStateLabel = null;
 
   function heatColor(value, max){
-    if (max <= 0 || value <= 0) return "#f2f3f7";
+    const stops = [
+      [217, 244, 255],
+      [143, 216, 255],
+      [60, 130, 246],
+      [32, 84, 199],
+      [7, 28, 104]
+    ];
+    if (max <= 0 || value <= 0) return `rgb(${stops[0].join(", ")})`;
     const ratio = Math.max(0, Math.min(1, value / max));
-    const easedRatio = Math.pow(ratio, 0.72);
-    const start = [231, 237, 248];
-    const end = [1, 14, 82];
-    const channel = (index) => Math.round(start[index] + ((end[index] - start[index]) * easedRatio));
+    const easedRatio = Math.pow(ratio, 1.12);
+    const scaledRatio = easedRatio * (stops.length - 1);
+    const stopIndex = Math.min(stops.length - 2, Math.floor(scaledRatio));
+    const localRatio = scaledRatio - stopIndex;
+    const start = stops[stopIndex];
+    const end = stops[stopIndex + 1];
+    const channel = (index) => Math.round(start[index] + ((end[index] - start[index]) * localRatio));
     return `rgb(${channel(0)}, ${channel(1)}, ${channel(2)})`;
   }
 
@@ -390,6 +436,72 @@
       .replace(/ö/g, "oe")
       .replace(/ü/g, "ue")
       .replace(/ß/g, "ss");
+  }
+
+  function overviewSchematicDefinition(){
+    const definition = window.MAP_STATE_PATHS_OVERVIEW;
+    const states = Array.isArray(definition?.states) ? definition.states : [];
+    const expectedNames = new Set((STATE_LABELS || []).map((state) => state.name));
+    const names = new Set(states.map((state) => state?.name));
+    const referenceIds = new Set(states.map((state) => state?.referenceId));
+    const valid = definition?.viewBox === "0 0 652 848"
+      && states.length === 16
+      && names.size === 16
+      && referenceIds.size === 16
+      && states.every((state) => expectedNames.has(state.name) && String(state.path || "").trim());
+    return valid ? definition : null;
+  }
+
+  function renderOverviewSchematicMap(){
+    if (!OVERVIEW_PREVIEW_MODE) return;
+    const mapNode = document.getElementById("map");
+    let svg = mapNode?.querySelector(".care-overview-schematic-map");
+    if (!mapNode) return;
+    const definition = overviewSchematicDefinition();
+    if (!definition) {
+      svg?.remove();
+      document.body.classList.remove("has-overview-schematic-map");
+      return;
+    }
+    if (!svg) {
+      svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+      svg.classList.add("care-overview-schematic-map");
+      svg.setAttribute("width", "652");
+      svg.setAttribute("height", "848");
+      svg.setAttribute("viewBox", definition.viewBox);
+      svg.setAttribute("preserveAspectRatio", "xMidYMid meet");
+      svg.setAttribute("aria-hidden", "true");
+      svg.setAttribute("focusable", "false");
+      svg.dataset.pathSha256 = definition.pathSha256;
+      const definitions = document.createElementNS("http://www.w3.org/2000/svg", "defs");
+      const clipPath = document.createElementNS("http://www.w3.org/2000/svg", "clipPath");
+      clipPath.id = "clip0_46_885";
+      const clipRectangle = document.createElementNS("http://www.w3.org/2000/svg", "rect");
+      clipRectangle.setAttribute("width", "652");
+      clipRectangle.setAttribute("height", "848");
+      clipPath.append(clipRectangle);
+      definitions.append(clipPath);
+      const stateGroup = document.createElementNS("http://www.w3.org/2000/svg", "g");
+      stateGroup.id = "gem-dkart-map";
+      stateGroup.classList.add("care-overview-schematic-map__states");
+      stateGroup.setAttribute("clip-path", "url(#clip0_46_885)");
+      definition.states.forEach((state) => {
+        const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
+        path.classList.add("care-overview-schematic-map__state");
+        path.dataset.state = state.name;
+        path.dataset.geometry = state.kind;
+        path.dataset.referenceId = state.referenceId;
+        path.setAttribute("d", state.path);
+        stateGroup.append(path);
+      });
+      svg.append(definitions, stateGroup);
+      mapNode.append(svg);
+    }
+    document.body.classList.add("has-overview-schematic-map");
+    svg.querySelectorAll(".care-overview-schematic-map__state").forEach((path) => {
+      const total = stateCountsByKey[stateNameKey(path.dataset.state)] || 0;
+      path.setAttribute("fill", heatColor(total, stateCountMax));
+    });
   }
 
   function stateLabelPosition(name){
@@ -427,23 +539,26 @@
     }
     stateHeatCountLayer.clearLayers();
     updateStateCounts(entries);
+    renderOverviewSchematicMap();
 
     stateHeatLayer = L.geoJSON(STATE_POLYGONS, {
+      pane: OVERVIEW_PREVIEW_MODE ? OVERVIEW_ATLAS_PANE : "overlayPane",
       smoothFactor: 0.35,
       style: (feature) => {
         const total = stateCountsByKey[stateNameKey(feature.properties.name)] || 0;
         const fill = heatColor(total, stateCountMax);
         return {
-          color: 'rgba(1,14,82,0.20)',
-          weight: 1.1,
+          color: OVERVIEW_PREVIEW_MODE ? 'rgba(224,247,255,0.82)' : 'rgba(1,14,82,0.20)',
+          weight: OVERVIEW_PREVIEW_MODE ? 1.35 : 1.1,
           lineCap: 'round',
           lineJoin: 'round',
           fillColor: fill,
           fillOpacity: 1,
-          interactive: true
+          interactive: !OVERVIEW_PREVIEW_MODE
         };
       },
       onEachFeature: (feature, layer) => {
+        if (OVERVIEW_PREVIEW_MODE) return;
         const name = feature.properties.name;
         const total = stateCountsByKey[stateNameKey(name)] || 0;
         layer.bindTooltip(stateHoverTooltipHtml(name, total), {
@@ -1088,6 +1203,15 @@
 
   function syncMobileMapGestures(){
     if (!map) return;
+    if (OVERVIEW_PREVIEW_MODE) {
+      map.dragging.disable();
+      map.scrollWheelZoom.disable();
+      map.touchZoom.disable();
+      map.doubleClickZoom.disable();
+      map.boxZoom.disable();
+      map.keyboard.disable();
+      return;
+    }
     if (isMobileLayout()) {
       map.dragging.enable();
       map.scrollWheelZoom.disable();
@@ -1104,7 +1228,7 @@
   function fitMapToGermany(){
     const bounds = L.geoJSON(DE_GEOJSON).getBounds();
     map.setMinZoom(currentMapMinZoom());
-    map.fitBounds(bounds.pad(isMobileLayout() ? 0.05 : 0.2), { animate: true });
+    map.fitBounds(bounds.pad(germanyFitPaddingRatio()), germanyFitOptions());
   }
 
   function passes(d){

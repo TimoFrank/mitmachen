@@ -36,6 +36,7 @@ assert.equal(roleRank("unknown"), 0);
 for (const [method, pathname, expectedRole, expectedId] of [
   ["GET", "/healthz", "public", "health"],
   ["GET", "/api/contacts", "viewer", "collection.read"],
+  ["GET", "/api/activities/summary", "viewer", "activity.summary.read"],
   ["GET", "/api/politics/health-committee", "viewer", "politics.health-committee.read"],
   ["POST", "/api/connectors/typo3/mitmachen-registrations", "public", "connector.typo3.registration.create"],
   ["POST", "/api/contacts", "editor", "test-object.create"],
@@ -49,6 +50,7 @@ for (const [method, pathname, expectedRole, expectedId] of [
   assert.equal(policy?.id, expectedId, `${method} ${pathname} muss eine nachvollziehbare Policy-ID besitzen.`);
 }
 assert.equal(policyForRequest("POST", "/api/export"), null, "Nicht freigegebene Methoden muessen fail-closed bleiben.");
+assert.equal(policyForRequest("POST", "/api/activities/summary"), null, "Der Aktivitaetszaehler muss strikt read-only bleiben.");
 assert.equal(
   policyForRequest("GET", "/api/connectors/typo3/mitmachen-registrations"),
   null,
@@ -63,6 +65,7 @@ for (const [method, pathname, expectedRole] of [
   ["GET", "/api/ops/checks", "admin"],
   ["GET", "/api/export", "admin"],
   ["GET", "/api/contact-content-search", "viewer"],
+  ["GET", "/api/activities/summary", "viewer"],
   ["GET", "/api/contact-notes", "viewer"],
   ["GET", "/api/contact-note-attachments", "viewer"],
   ["GET", "/api/politics/health-committee", "viewer"],

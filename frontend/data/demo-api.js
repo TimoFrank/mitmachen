@@ -684,6 +684,26 @@
     });
   }
 
+  function activitySummaryWindow(url, now = new Date()) {
+    const fromValue = String(url.searchParams.get("from") || "").trim();
+    const toValue = String(url.searchParams.get("to") || "").trim();
+    if (!fromValue) return { error: "Der Startzeitpunkt für die Aktivitätsauswertung fehlt." };
+    const fromTime = new Date(fromValue).getTime();
+    const toTime = toValue ? new Date(toValue).getTime() : now.getTime();
+    if (!Number.isFinite(fromTime) || !Number.isFinite(toTime)) {
+      return { error: "Der Zeitraum für die Aktivitätsauswertung ist ungültig." };
+    }
+    if (fromTime > toTime) return { error: "Der Startzeitpunkt darf nicht nach dem Endzeitpunkt liegen." };
+    if (toTime > now.getTime()) return { error: "Der Endzeitpunkt darf nicht in der Zukunft liegen." };
+    if (toTime - fromTime > 31 * 24 * 60 * 60 * 1000) {
+      return { error: "Die Aktivitätsauswertung ist auf maximal 31 Tage begrenzt." };
+    }
+    return {
+      from: new Date(fromTime).toISOString(),
+      to: new Date(toTime).toISOString()
+    };
+  }
+
   function searchContactContent(query, options = {}) {
     const needle = String(query || "").trim().toLocaleLowerCase("de");
     if (!needle) return [];
@@ -917,6 +937,13 @@
       return json({ ok: true });
     }
 
+    if (method === "GET" && path === "/api/activities/summary") {
+      const summaryWindow = activitySummaryWindow(url);
+      if (summaryWindow.error) return error(summaryWindow.error, 400);
+      url.searchParams.set("from", summaryWindow.from);
+      url.searchParams.set("to", summaryWindow.to);
+      return json({ count: filterActivities(url).length, from: summaryWindow.from, to: summaryWindow.to });
+    }
     if (method === "GET" && path === "/api/activities") {
       const rows = filterActivities(url);
       const offset = Math.max(Number(url.searchParams.get("offset")) || 0, 0);
