@@ -20644,12 +20644,6 @@
         applyQuestionnaireContainerSelection();
       }
 
-      function hospitationOverviewDocumentationTab(item = {}) {
-        const payload = hospitationDocumentationPayload(item);
-        const quality = hospitationDocumentationQualityState(item, payload, hospitationThemeTags(item));
-        return hospitationDocumentationEditorTabs.find((tab) => quality.missingByTab?.[tab]?.length) || "overview";
-      }
-
       function hospitationOverviewEntries() {
         const now = new Date();
         const activeEntries = activeHospitationRecords()
@@ -20705,21 +20699,15 @@
         const nextOpen = document.getElementById("hospitation-overview-next-open");
         const questionnaireOpen = hospitationOverviewQuestionnaireButton;
         const attention = priority.querySelector(".hospitation-overview-attention");
-        const openCount = document.getElementById("hospitation-overview-open-count");
-        const attentionTitle = document.getElementById("hospitation-overview-attention-title");
-        const attentionLabel = document.getElementById("hospitation-overview-attention-label");
-        const attentionFocus = document.getElementById("hospitation-overview-attention-focus");
         const attentionFocusNumber = document.getElementById("hospitation-overview-attention-focus-number");
         const attentionFocusCopy = document.getElementById("hospitation-overview-attention-focus-copy");
-        const attentionFocusGroup = attentionFocus?.closest(".hospitation-overview-attention__focus");
-        const attentionOpen = document.getElementById("hospitation-overview-attention-open");
         const observationCount = document.getElementById("hospitation-overview-observation-count");
         const patternCount = document.getElementById("hospitation-overview-pattern-count");
         const hypothesisCount = document.getElementById("hospitation-overview-hypothesis-count");
         const nextStepCount = document.getElementById("hospitation-overview-next-step-count");
         const agendaSection = document.querySelector(".hospitation-overview-agenda");
         const agendaItems = document.getElementById("hospitation-overview-agenda-items");
-        if (!nextDate || !nextDay || !nextMonth || !nextTitle || !nextSubtitle || !nextMeta || !nextOpen || !questionnaireOpen || !attention || !openCount || !attentionTitle || !attentionLabel || !attentionFocus || !attentionFocusNumber || !attentionFocusCopy || !attentionOpen || !observationCount || !patternCount || !hypothesisCount || !nextStepCount || !agendaSection || !agendaItems || !hospitationOverviewPlanButton) return;
+        if (!nextDate || !nextDay || !nextMonth || !nextTitle || !nextSubtitle || !nextMeta || !nextOpen || !questionnaireOpen || !attention || !attentionFocusNumber || !attentionFocusCopy || !observationCount || !patternCount || !hypothesisCount || !nextStepCount || !agendaSection || !agendaItems || !hospitationOverviewPlanButton) return;
 
         const ready = hospitationDataState === "ready";
         const failed = hospitationDataState === "error";
@@ -20742,17 +20730,10 @@
           nextMeta.innerHTML = "";
           nextOpen.disabled = true;
           nextOpen.onclick = null;
-          openCount.textContent = "–";
-          attentionTitle.textContent = failed ? "Dokumentationen nicht verfügbar" : "Dokumentationen werden geprüft";
-          attentionLabel.textContent = "Gesamt im Kalender";
           attentionFocusNumber.hidden = false;
           attentionFocusNumber.textContent = "–";
           attentionFocusCopy.textContent = "Hospitationen";
-          attentionFocusGroup?.classList.add("is-total");
           attention.classList.toggle("is-error", failed);
-          attention.classList.remove("is-clear", "is-open");
-          attentionOpen.disabled = true;
-          attentionOpen.onclick = null;
           observationCount.textContent = "–";
           patternCount.textContent = "–";
           hypothesisCount.textContent = "–";
@@ -20819,41 +20800,10 @@
           nextOpen.onclick = canEditContacts() ? () => openHospitationEditor("request") : openHospitationAppointmentsFromOverview;
         }
 
-        const openEntry = openDocumentation[0] || null;
-        openCount.textContent = String(openDocumentation.length);
-        attentionTitle.textContent = openDocumentation.length === 0
-          ? "Keine Dokumentation ist offen"
-          : openDocumentation.length === 1
-            ? "Dokumentation ist noch offen"
-            : "Dokumentationen sind noch offen";
-        attentionLabel.textContent = "Gesamt im Kalender";
         attentionFocusNumber.hidden = false;
         attentionFocusNumber.textContent = String(calendarCount);
         attentionFocusCopy.textContent = calendarCount === 1 ? "Hospitation" : "Hospitationen";
-        attentionFocusGroup?.classList.add("is-total");
-        attention.classList.toggle("is-open", Boolean(openEntry));
-        attention.classList.toggle("is-clear", !openEntry);
         attention.classList.remove("is-error");
-        if (openEntry && canEditContacts()) {
-          const documentationState = hospitationDocumentationState(openEntry.item);
-          const actionLabel = documentationState.tone === "draft" ? "Entwurf fortsetzen" : "Dokumentation starten";
-          attentionOpen.disabled = false;
-          attentionOpen.textContent = "";
-          attentionOpen.append(`${actionLabel} `);
-          attentionOpen.insertAdjacentHTML("beforeend", '<span aria-hidden="true">→</span>');
-          attentionOpen.setAttribute("aria-label", `${actionLabel}: ${hospitationOverviewEntryTitle(openEntry)}`);
-          attentionOpen.title = hospitationOverviewEntryTitle(openEntry);
-          attentionOpen.onclick = () => openHospitationOverviewEntry(openEntry, { initialTab: hospitationOverviewDocumentationTab(openEntry.item) });
-        } else {
-          attentionOpen.disabled = false;
-          attentionOpen.textContent = "";
-          attentionOpen.append(openEntry ? "Zur Terminübersicht " : "Alle Hospitationen anzeigen ");
-          attentionOpen.insertAdjacentHTML("beforeend", '<span aria-hidden="true">→</span>');
-          attentionOpen.removeAttribute("aria-label");
-          attentionOpen.removeAttribute("title");
-          attentionOpen.onclick = openHospitationAppointmentsFromOverview;
-        }
-
         agendaItems.dataset.count = String(agenda.length);
         agendaItems.innerHTML = agenda.length
           ? agenda.map((entry) => {

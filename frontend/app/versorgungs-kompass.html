@@ -1496,22 +1496,25 @@
                 <section class="hospitation-overview-attention" aria-labelledby="hospitation-overview-attention-heading">
                   <div class="hospitation-overview-attention__head">
                     <span class="hospitation-overview-section-label" id="hospitation-overview-attention-heading">Im Blick</span>
-                    <a class="hospitation-overview-attention__dashboard-link" data-route-link="hospitations:dashboard" href="#hospitations:dashboard">Dashboard <span aria-hidden="true">→</span></a>
                   </div>
                   <div class="hospitation-overview-attention__focus is-total">
-                    <span id="hospitation-overview-attention-label">Gesamt im Kalender</span>
                     <div class="hospitation-overview-attention__focus-value" id="hospitation-overview-attention-focus">
                       <strong id="hospitation-overview-attention-focus-number">–</strong>
                       <span id="hospitation-overview-attention-focus-copy">Hospitationen</span>
                     </div>
                   </div>
-                  <div class="hospitation-overview-attention__number">
-                    <strong id="hospitation-overview-open-count">–</strong>
-                    <span id="hospitation-overview-attention-title">Dokumentationen werden geprüft</span>
-                  </div>
-                  <button class="hospitation-overview-attention__action" id="hospitation-overview-attention-open" type="button" disabled>
-                    Dokumentation öffnen <span aria-hidden="true">→</span>
-                  </button>
+                  <a class="hospitation-overview-attention__action" id="hospitation-overview-dashboard-open" data-route-link="hospitations:dashboard" href="#hospitations:dashboard" aria-label="Dashboard öffnen">
+                    <span class="hospitation-overview-attention__action-icon" aria-hidden="true">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M4 19V5M4 19h16"></path>
+                        <rect x="7" y="11" width="2.8" height="5" rx="1"></rect>
+                        <rect x="12" y="7" width="2.8" height="9" rx="1"></rect>
+                        <rect x="17" y="9" width="2.8" height="7" rx="1"></rect>
+                      </svg>
+                    </span>
+                    <span>Dashboard</span>
+                    <span aria-hidden="true">→</span>
+                  </a>
                 </section>
               </div>
 
@@ -1519,7 +1522,16 @@
                 <div class="hospitation-overview-agenda__intro">
                   <span class="hospitation-overview-section-label">Agenda</span>
                   <strong id="hospitation-overview-agenda-title">Hospitation</strong>
-                  <span>Die nächsten Termine.</span>
+                  <a class="hospitation-overview-context-link hospitation-overview-agenda__all" id="hospitation-overview-all-open" data-route-link="hospitations" href="#hospitations" aria-label="Alle Termine öffnen">
+                    <span class="hospitation-overview-context-link__icon" aria-hidden="true">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <rect x="3" y="5" width="18" height="16" rx="2"></rect>
+                        <path d="M16 3v4M8 3v4M3 10h18"></path>
+                      </svg>
+                    </span>
+                    <span>Alle Termine</span>
+                    <span aria-hidden="true">→</span>
+                  </a>
                 </div>
                 <div class="hospitation-overview-agenda__items" id="hospitation-overview-agenda-items" aria-live="polite">
                   <p class="hospitation-overview-empty">Hospitationen werden geladen.</p>
@@ -1538,11 +1550,23 @@
 
               <section class="hospitation-overview-evidence" aria-label="Prozess von der Beobachtung zum nächsten Schritt">
                 <div class="hospitation-overview-evidence__intro">
-                  <span class="hospitation-overview-section-label">Erkenntnisse</span>
-                  <strong>Von der Beobachtung<br>zur Evidenz</strong>
+                  <span class="hospitation-overview-evidence__intro-copy">
+                    <span class="hospitation-overview-section-label">Erkenntnisse</span>
+                    <strong>Von der Beobachtung<br>zur Evidenz</strong>
+                  </span>
+                  <a class="hospitation-overview-context-link hospitation-overview-evidence__framework" data-route-link="framework" href="#framework" aria-label="Framework öffnen">
+                    <span class="hospitation-overview-context-link__icon" aria-hidden="true">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <circle cx="12" cy="12" r="9"></circle>
+                        <path d="m15.5 8.5-2.1 4.9-4.9 2.1 2.1-4.9 4.9-2.1Z"></path>
+                      </svg>
+                    </span>
+                    <span>Framework</span>
+                    <span aria-hidden="true">→</span>
+                  </a>
                 </div>
                 <ol class="hospitation-overview-evidence__flow" aria-label="Vier Schritte von der Beobachtung zum nächsten Schritt">
-                  <li class="hospitation-overview-evidence__item">
+                  <li class="hospitation-overview-evidence__item hospitation-overview-evidence__item--observation">
                     <a class="hospitation-overview-evidence__step hospitation-overview-evidence__step--interactive" data-route-link="hospitations:observations" href="#hospitations:observations">
                       <span class="hospitation-overview-evidence__icon" aria-hidden="true">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -1555,7 +1579,7 @@
                       <span class="hospitation-overview-evidence__open" aria-hidden="true">↗</span>
                     </a>
                   </li>
-                  <li class="hospitation-overview-evidence__item">
+                  <li class="hospitation-overview-evidence__item hospitation-overview-evidence__item--patterns">
                     <a class="hospitation-overview-evidence__step hospitation-overview-evidence__step--patterns hospitation-overview-evidence__step--interactive" data-route-link="hospitations:patterns" href="#hospitations:patterns">
                       <span class="hospitation-overview-evidence__icon" aria-hidden="true">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -1570,7 +1594,7 @@
                       <span class="hospitation-overview-evidence__open" aria-hidden="true">↗</span>
                     </a>
                   </li>
-                  <li class="hospitation-overview-evidence__item">
+                  <li class="hospitation-overview-evidence__item hospitation-overview-evidence__item--hypothesis">
                     <div class="hospitation-overview-evidence__step hospitation-overview-evidence__step--hypothesis">
                       <span class="hospitation-overview-evidence__icon" aria-hidden="true">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -1582,7 +1606,7 @@
                       <span><span id="hospitation-overview-hypothesis-count">–</span> noch nicht erfasst</span>
                     </div>
                   </li>
-                  <li class="hospitation-overview-evidence__item">
+                  <li class="hospitation-overview-evidence__item hospitation-overview-evidence__item--next-step">
                     <div class="hospitation-overview-evidence__step hospitation-overview-evidence__step--next-step">
                       <span class="hospitation-overview-evidence__icon" aria-hidden="true">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -1597,22 +1621,6 @@
                   </li>
                 </ol>
               </section>
-
-              <a class="hospitation-overview-framework-link" data-route-link="framework" href="#framework" aria-label="Framework öffnen">
-                <span class="hospitation-overview-framework-link__body">
-                  <span class="hospitation-overview-framework-link__icon" aria-hidden="true">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                      <circle cx="12" cy="12" r="9"></circle>
-                      <path d="m15.5 8.5-2.1 4.9-4.9 2.1 2.1-4.9 4.9-2.1Z"></path>
-                    </svg>
-                  </span>
-                  <span class="hospitation-overview-framework-link__copy">
-                    <span class="hospitation-overview-section-label">Grundlage</span>
-                    <strong>Framework</strong>
-                  </span>
-                </span>
-                <span class="hospitation-overview-framework-link__action">Öffnen <span aria-hidden="true">→</span></span>
-              </a>
             </div>
           </section>
 
