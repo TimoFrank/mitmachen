@@ -373,6 +373,18 @@ assert.equal(runtime.documentListeners.has("DOMContentLoaded"), false, "Ohne sch
 
 const initialSnapshot = api.snapshot();
 const immutableBaselineCount = window.VERSORGUNGS_COMPASS_DEMO_DATA.contacts.length;
+const activitySummaryQuery = "from=2026-06-20T12%3A00%3A00.000Z&to=2026-07-19T12%3A00%3A00.000Z";
+const demoActivityListResponse = await window.fetch(`/api/activities?${activitySummaryQuery}&limit=100`);
+const demoActivityList = await demoActivityListResponse.json();
+const demoActivitySummaryResponse = await window.fetch(`/api/activities/summary?${activitySummaryQuery}`);
+const demoActivitySummary = await demoActivitySummaryResponse.json();
+assert.equal(demoActivitySummaryResponse.status, 200);
+assert.equal(
+  demoActivitySummary.count,
+  demoActivityList.items.length,
+  "Der Demo-Zähler muss exakt dieselbe profilbereinigte Aktivitätssicht wie die vollständige Liste verwenden."
+);
+assert.equal((await window.fetch("/api/activities/summary")).status, 400, "Der Summary-Endpunkt benötigt einen gültigen Startzeitpunkt.");
 assert.equal(initialSnapshot.contacts.length, 130);
 assert.equal(initialSnapshot.organizations.length, 55);
 assert.equal(initialSnapshot.currentProfileId, "demo-profile-admin");

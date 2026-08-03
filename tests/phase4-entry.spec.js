@@ -94,7 +94,7 @@ test("Phase 4: #Mitmachen führt in vier Module und Pages über die gemeinsame S
   await expect(page.locator(".destinations strong")).toHaveText(["Versorgung", "Stakeholder", "Hospitation", "Formate"]);
   await expect(page.locator(".module-sidebar")).toBeVisible();
   await expect(page.locator(".module-sidebar__nav > a")).toHaveCount(4);
-  await expect(page.locator(".destinations").getByRole("link", { name: /Versorgung/ })).toHaveAttribute("href", "../../app/versorgungs-kompass.html#map");
+  await expect(page.locator(".destinations").getByRole("link", { name: /Versorgung/ })).toHaveAttribute("href", "../../app/versorgungs-kompass.html#care");
   await expect(page.locator(".destinations").getByRole("link", { name: /Stakeholder/ })).toHaveAttribute("href", "../../app/versorgungs-kompass.html#stakeholders");
   await expect(page.locator(".destinations").getByRole("link", { name: /Hospitation/ })).toHaveAttribute("href", "../../app/versorgungs-kompass.html#planning");
   await expect(page.locator(".destinations").getByRole("link", { name: /Formate/ })).toHaveAttribute("href", "../../app/versorgungs-kompass.html#formats");
@@ -149,7 +149,10 @@ test("Phase 4: #Mitmachen führt in vier Module und Pages über die gemeinsame S
   await expect(page.locator('script[src*="auth-"]')).toHaveCount(0);
   const removedEntryResponse = await request.get("/dist/pages/mitmachen/index.html");
   expect(removedEntryResponse.status()).toBe(404);
-  await page.locator('.home-destination-link[href="#map"]').click();
+  await page.locator('.home-destination-link[href="#care"]').click();
+  await expect(page).toHaveURL(/#care$/);
+  await expect(page.locator('[data-view-panel="careOverview"]')).toBeVisible();
+  await page.getByRole("link", { name: /Regionale Verteilung.*Karte öffnen/ }).click();
   await expect(page).toHaveURL(/#map$/);
   await expect(page.frameLocator('iframe[title="Karte des Versorgungs-Kompass"]').locator("#count")).toHaveText(/[1-9]\d*\s*\/\s*[1-9]\d*/);
   if (await page.locator("#sidebar-profile-button").isHidden()) {

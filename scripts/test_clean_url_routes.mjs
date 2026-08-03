@@ -36,6 +36,7 @@ function loadRoutes({
 const routes = loadRoutes();
 const routeMatrix = new Map([
   ["home", "/start"],
+  ["care", "/versorgung"],
   ["map", "/versorgung/karte"],
   ["contacts", "/versorgung/kontakte"],
   ["organizations", "/versorgung/organisationen"],
@@ -177,6 +178,7 @@ const sourceRoutes = loadRoutes({
   scriptSrc: "http://127.0.0.1:4173/frontend/app/versorgungs-kompass-routes.js",
   cleanUrls: false
 });
+assert.equal(sourceRoutes.urlForRouteToken("care"), "#care");
 assert.equal(sourceRoutes.urlForRouteToken("contacts"), "#contacts");
 assert.equal(
   sourceRoutes.urlForRouteToken("stakeholders/patientenverbaende"),
@@ -199,7 +201,7 @@ assert.equal(unrelatedStandaloneQueryRoutes.urlForRouteToken("map"), "/versorgun
 for (const expectedNginxContract of [
   "try_files /versorgungs-kompass.html =404;",
   "try_files $uri $uri/ =404;",
-  "^/versorgung/",
+  "^/versorgung",
   "^/stakeholder",
   "^/hospitationen",
   "^/profil",
@@ -217,6 +219,14 @@ assert.ok(topLevelLocationPattern, "Nginx-Vertrag für kanonische Top-Level-Anwe
 const topLevelLocationRegex = new RegExp(topLevelLocationPattern[1]);
 assert.ok(topLevelLocationRegex.test("/onboarding"), "/onboarding fehlt im Nginx-Anwendungspfadvertrag");
 assert.equal(topLevelLocationRegex.test("/onboarding/details"), false, "Verschachtelte unbekannte Onboarding-Pfade dürfen nicht auf die App-Shell fallen");
+
+const careLocationPattern = nginxSource.match(/location ~ (\^\/versorgung[^\n]+) \{/);
+assert.ok(careLocationPattern, "Nginx-Versorgungs-Routenvertrag fehlt.");
+const careLocationRegex = new RegExp(careLocationPattern[1]);
+for (const expectedPath of [...routeMatrix.values()].filter((routePath) => routePath === "/versorgung" || routePath.startsWith("/versorgung/"))) {
+  assert.ok(careLocationRegex.test(expectedPath), `${expectedPath} fehlt im Nginx-Versorgungs-Routenvertrag`);
+}
+assert.equal(careLocationRegex.test("/versorgung/unbekannt"), false, "Unbekannte Versorgungs-Pfade dürfen nicht auf die App-Shell fallen");
 
 const stakeholderLocationPattern = nginxSource.match(/location ~ (\^\/stakeholder[^\n]+) \{/);
 assert.ok(stakeholderLocationPattern, "Nginx-Stakeholder-Routenvertrag fehlt.");

@@ -3,6 +3,7 @@ import { gotoAuthenticated } from "./helpers/app-test-session.js";
 
 const routeGroups = [
   [
+    ["care", "Übersicht"],
     ["contacts", "Kontakte"],
     ["organizations", "Organisationen"],
     ["map", "Karte"],

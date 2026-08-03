@@ -19,6 +19,11 @@
       --gematik-green-soft: #e7fff0;
       --map-background: #eff0f3;
       --map-land: #c0c3d4;
+      --care-map-density-empty: #d9f4ff;
+      --care-map-density-low: #8fd8ff;
+      --care-map-density-mid: #3c82f6;
+      --care-map-density-cobalt: #2054c7;
+      --care-map-density-high: #071c68;
       --radius-sm: 6px;
       --radius-md: 8px;
       --radius-lg: 12px;
@@ -472,7 +477,7 @@
       height: 8px;
       border: 1px solid rgba(1,14,82,0.16);
       border-radius: 999px;
-      background: linear-gradient(90deg, #f2f3f7 0%, #b9cef8 45%, #5d6a95 72%, #010e52 100%);
+      background: linear-gradient(90deg, var(--care-map-density-empty) 0%, var(--care-map-density-low) 28%, var(--care-map-density-mid) 55%, var(--care-map-density-cobalt) 76%, var(--care-map-density-high) 100%);
     }
     .map-density-legend {
       display: grid;
@@ -3738,4 +3743,222 @@
     body.politics-map-context .mobile-map-preview-avatar img {
       object-fit: contain;
       object-position: center;
+    }
+
+    /* Read-only map surface used by the Versorgungs-Kompass overview. */
+    html.overview-preview-mode,
+    body.overview-preview-mode {
+      width: 100%;
+      height: 100%;
+      min-height: 0;
+      background: transparent;
+      overflow: hidden;
+    }
+
+    body.overview-preview-mode .page-shell {
+      display: block;
+      width: 100%;
+      height: 100%;
+      min-height: 0;
+      overflow: hidden;
+    }
+
+    body.overview-preview-mode .workspace,
+    body.overview-preview-mode.embed-mode .workspace,
+    body.overview-preview-mode .workspace.has-map-detail,
+    body.overview-preview-mode.embed-mode.has-map-detail .workspace {
+      display: block;
+      width: 100%;
+      max-width: none;
+      height: 100%;
+      min-height: 0;
+      padding: 0;
+      overflow: hidden;
+    }
+
+    body.overview-preview-mode .topbar,
+    body.overview-preview-mode .sidebar,
+    body.overview-preview-mode .map-search-shell,
+    body.overview-preview-mode .map-mode-controls,
+    body.overview-preview-mode .map-controls,
+    body.overview-preview-mode .map-active-filters,
+    body.overview-preview-mode .map-legend,
+    body.overview-preview-mode .map-detail-panel,
+    body.overview-preview-mode .state-view,
+    body.overview-preview-mode .leaflet-control-zoom {
+      display: none !important;
+    }
+
+    body.overview-preview-mode .map-area,
+    body.overview-preview-mode.embed-mode .map-area,
+    body.overview-preview-mode .map-box,
+    body.overview-preview-mode.embed-mode .map-box {
+      display: block;
+      width: 100%;
+      max-width: none;
+      height: 100% !important;
+      min-height: 0 !important;
+      padding: 0;
+      border: 0;
+      border-radius: 0;
+      background: transparent !important;
+      overflow: hidden;
+      box-shadow: none;
+    }
+
+    body.overview-preview-mode .map-area,
+    body.overview-preview-mode.embed-mode .map-area {
+      flex: 0 0 auto !important;
+    }
+
+    body.overview-preview-mode #map {
+      width: 100%;
+      height: 100%;
+      background-color: transparent;
+      background-image: none;
+      pointer-events: none;
+    }
+
+    .care-overview-compass-motif {
+      display: none;
+    }
+
+    body.overview-preview-mode .care-overview-compass-motif {
+      position: absolute;
+      z-index: 700;
+      top: clamp(14px, 3.2vmin, 26px);
+      left: clamp(14px, 3.2vmin, 26px);
+      display: grid;
+      width: clamp(70px, 15vmin, 104px);
+      aspect-ratio: 1;
+      place-items: center;
+      border: 1px solid rgba(31, 86, 145, 0.28);
+      border-radius: 50%;
+      background: rgba(247, 252, 255, 0.82);
+      box-shadow: 0 12px 28px rgba(9, 42, 91, 0.14);
+      opacity: 0.94;
+      pointer-events: none;
+    }
+
+    body.overview-preview-mode .care-overview-compass-motif svg {
+      width: 86%;
+      height: 86%;
+      overflow: visible;
+    }
+
+    body.overview-preview-mode .care-overview-compass-motif__ring {
+      fill: none;
+      stroke: rgba(18, 74, 132, 0.48);
+      stroke-width: 1.5;
+    }
+
+    body.overview-preview-mode .care-overview-compass-motif__ticks {
+      fill: none;
+      stroke: rgba(18, 74, 132, 0.58);
+      stroke-linecap: round;
+      stroke-width: 2;
+    }
+
+    body.overview-preview-mode .care-overview-compass-motif__star {
+      fill: #ffffff;
+      stroke: #245d9d;
+      stroke-linejoin: round;
+      stroke-width: 1.4;
+    }
+
+    body.overview-preview-mode .care-overview-compass-motif__north {
+      fill: #155fe4;
+    }
+
+    body.overview-preview-mode .care-overview-compass-motif__center {
+      fill: #082b61;
+      stroke: #ffffff;
+      stroke-width: 1.5;
+    }
+
+    body.overview-preview-mode .care-overview-compass-motif__label {
+      fill: #082b61;
+      font-family: Inter, system-ui, sans-serif;
+      font-size: 8px;
+      font-weight: 850;
+      text-anchor: middle;
+    }
+
+    body.overview-preview-mode .care-overview-atlas-pane svg {
+      filter: drop-shadow(0 8px 10px rgba(9, 42, 91, 0.16));
+    }
+
+    body.overview-preview-mode.has-overview-schematic-map #map .leaflet-map-pane {
+      opacity: 0;
+      visibility: hidden;
+    }
+
+    body.overview-preview-mode .care-overview-schematic-map {
+      position: absolute;
+      inset: 0;
+      z-index: 650;
+      width: 100%;
+      height: 100%;
+      overflow: visible;
+      pointer-events: none;
+    }
+
+    body.overview-preview-mode .care-overview-schematic-map__states {
+      filter: drop-shadow(0 8px 10px rgba(9, 42, 91, 0.16));
+    }
+
+    body.overview-preview-mode .care-overview-schematic-map__state {
+      stroke: #010e52;
+      stroke-width: 1;
+      stroke-linecap: butt;
+      stroke-linejoin: miter;
+      stroke-miterlimit: 10;
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      body.overview-preview-mode .leaflet-map-pane,
+      body.overview-preview-mode .leaflet-zoom-animated {
+        transition: none !important;
+      }
+    }
+
+    @media (forced-colors: active) {
+      html.overview-preview-mode,
+      body.overview-preview-mode,
+      body.overview-preview-mode #map {
+        background: Canvas;
+      }
+
+      body.overview-preview-mode .care-overview-atlas-pane svg {
+        filter: none;
+      }
+
+      body.overview-preview-mode .care-overview-schematic-map__states {
+        filter: none;
+      }
+
+      body.overview-preview-mode .care-overview-compass-motif {
+        border-color: CanvasText;
+        background: Canvas;
+        box-shadow: none;
+      }
+
+      body.overview-preview-mode .care-overview-compass-motif__ring,
+      body.overview-preview-mode .care-overview-compass-motif__ticks,
+      body.overview-preview-mode .care-overview-compass-motif__star,
+      body.overview-preview-mode .care-overview-compass-motif__center {
+        fill: Canvas;
+        stroke: CanvasText;
+      }
+
+      body.overview-preview-mode .care-overview-compass-motif__north,
+      body.overview-preview-mode .care-overview-compass-motif__label {
+        fill: CanvasText;
+      }
+
+      body.overview-preview-mode .care-overview-schematic-map__state {
+        fill: CanvasText !important;
+        stroke: Canvas !important;
+      }
+
     }

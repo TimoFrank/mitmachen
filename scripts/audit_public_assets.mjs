@@ -242,6 +242,7 @@ const requiredFiles = new Set([
   "deutschlandkarte-project/data/city-labels.js",
   "deutschlandkarte-project/data/state-labels.js",
   "deutschlandkarte-project/data/state-polygons.js",
+  "deutschlandkarte-project/data/state-polygons-overview.js",
   "deutschlandkarte-project/data/constituency-polygons.js",
   "vendor/THIRD_PARTY_ASSETS.json",
   "vendor/leaflet/leaflet.css",

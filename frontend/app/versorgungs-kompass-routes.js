@@ -12,6 +12,7 @@
 
   const staticRouteEntries = [
     ["home", "start"],
+    ["care", "versorgung"],
     ["map", "versorgung/karte"],
     ["contacts", "versorgung/kontakte"],
     ["organizations", "versorgung/organisationen"],

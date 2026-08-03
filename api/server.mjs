@@ -225,6 +225,7 @@ const CONTACT_NOTE_ATTACHMENT_FIELDS = [
   "uploader_id"
 ];
 const ACTIVITY_PAGE_SIZE = 500;
+const ACTIVITY_SUMMARY_MAX_RANGE_MS = 31 * 24 * 60 * 60 * 1000;
 const CONTACT_OWNER_FIELDS = ["contact_id", "profile_id", "assigned_at", "assigned_by"];
 const NOTIFICATION_SELECT = [
   "event_id",
@@ -4684,7 +4685,10 @@ async function attachContactsToChanges(rows = [], transaction = null) {
     transaction,
     `select contact.id, contact.name, contact.organization, contact.sector, contact.specialty,
             contact.city, contact.federal_state, contact.image_url, contact.owner_id, contact.status,
-            contact.mitmachen_consent_status, contact.ehc_consent_status,
+            contact.mitmachen_consent_status, contact.mitmachen_consent_source,
+            contact.ehc_consent_status, contact.ehc_consent_effective_at,
+            contact.ehc_consent_source, contact.ehc_consent_text_version,
+            contact.ehc_consent_recorded_by, contact.ehc_consent_note,
             coalesce((
               select array_agg(contact_owner.profile_id order by contact_owner.assigned_at)
                 from contact_owners contact_owner
@@ -9317,7 +9321,19 @@ function activityRowVisibleToRequest(row = {}, request) {
 
 async function assertContactHistoryVisible(request, contactId) {
   const rows = await cloudSqlRest("contacts", request, new URLSearchParams({
-    select: "id,owner_id,status,mitmachen_consent_status,ehc_consent_status",
+    select: [
+      "id",
+      "owner_id",
+      "status",
+      "mitmachen_consent_status",
+      "mitmachen_consent_source",
+      "ehc_consent_status",
+      "ehc_consent_effective_at",
+      "ehc_consent_source",
+      "ehc_consent_text_version",
+      "ehc_consent_recorded_by",
+      "ehc_consent_note"
+    ].join(","),
     id: `eq.${contactId}`,
     limit: "1"
   }));
@@ -9467,29 +9483,23 @@ async function loadActivityMaxId(request, table, { optional = false } = {}) {
   return String(rows?.[0]?.id || "0");
 }
 
-async function getActivities(request, url) {
-  await loadProfiles(request);
-  const limit = Math.min(Math.max(Number(url.searchParams.get("limit")) || 30, 1), 100);
-  const offset = Math.max(Number(url.searchParams.get("offset")) || 0, 0);
-  const kind = String(url.searchParams.get("kind") || url.searchParams.get("action") || "").trim();
-  const eventKey = String(url.searchParams.get("eventKey") || "").trim();
-  const category = String(url.searchParams.get("category") || "").trim();
-  const origin = String(url.searchParams.get("origin") || "").trim();
-  const title = String(url.searchParams.get("title") || "").trim();
-  const changedBy = String(url.searchParams.get("changedBy") || "").trim();
-  const from = String(url.searchParams.get("from") || "").trim();
-  const to = String(url.searchParams.get("to") || "").trim();
-  const q = String(url.searchParams.get("q") || "").trim();
-  const filters = { kind, eventKey, category, origin, title, changedBy, from, to, q };
-  const filterSignature = normalizedActivityFilterSignature(filters);
-  const cursor = decodeActivityCursor(url.searchParams.get("cursor"), filterSignature);
-  if (cursor && url.searchParams.has("offset") && offset !== cursor.offset) {
-    throw validationError("Der Aktivitäten-Cursor passt nicht zum angeforderten Offset.");
-  }
-  const pageOffset = cursor?.offset ?? offset;
-  const snapshotAt = cursor?.snapshotAt || new Date().toISOString();
-  const [changesMaxId, activityEventsMaxId] = cursor
-    ? [cursor.sources.changes.maxId, cursor.sources.activityEvents.maxId]
+function activityFiltersFromUrl(url) {
+  return {
+    kind: String(url.searchParams.get("kind") || url.searchParams.get("action") || "").trim(),
+    eventKey: String(url.searchParams.get("eventKey") || "").trim(),
+    category: String(url.searchParams.get("category") || "").trim(),
+    origin: String(url.searchParams.get("origin") || "").trim(),
+    title: String(url.searchParams.get("title") || "").trim(),
+    changedBy: String(url.searchParams.get("changedBy") || "").trim(),
+    from: String(url.searchParams.get("from") || "").trim(),
+    to: String(url.searchParams.get("to") || "").trim(),
+    q: String(url.searchParams.get("q") || "").trim()
+  };
+}
+
+async function createActivityReadSources(request, filters = {}, cursorSources = null) {
+  const [changesMaxId, activityEventsMaxId] = cursorSources
+    ? [cursorSources.changes.maxId, cursorSources.activityEvents.maxId]
     : await Promise.all([
       loadActivityMaxId(request, "changes"),
       loadActivityMaxId(request, "activity_events", { optional: true })
@@ -9498,19 +9508,20 @@ async function getActivities(request, url) {
     select: `${CHANGE_FIELDS.join(",")},contacts(id,name,organization,sector,specialty,city,federal_state,image_url,status)`,
     order: "changed_at.desc,id.desc"
   });
-  if (changedBy) changeParams.set("changed_by", `eq.${changedBy}`);
+  if (filters.changedBy) changeParams.set("changed_by", `eq.${filters.changedBy}`);
   changeParams.append("id", `lte.${changesMaxId}`);
-  if (from) changeParams.append("changed_at", `gte.${from}`);
-  if (to) changeParams.append("changed_at", `lte.${to}`);
+  if (filters.from) changeParams.append("changed_at", `gte.${filters.from}`);
+  if (filters.to) changeParams.append("changed_at", `lte.${filters.to}`);
 
   const eventParams = new URLSearchParams({
     select: `${ACTIVITY_EVENT_FIELDS.join(",")},contacts(id,name,organization,sector,specialty,city,federal_state,image_url,status)`,
     order: "occurred_at.desc,id.desc"
   });
-  if (changedBy) eventParams.set("actor_id", `eq.${changedBy}`);
+  if (filters.changedBy) eventParams.set("actor_id", `eq.${filters.changedBy}`);
   eventParams.append("id", `lte.${activityEventsMaxId}`);
-  if (from) eventParams.append("occurred_at", `gte.${from}`);
-  if (to) eventParams.append("occurred_at", `lte.${to}`);
+  if (filters.from) eventParams.append("occurred_at", `gte.${filters.from}`);
+  if (filters.to) eventParams.append("occurred_at", `lte.${filters.to}`);
+
   const loadPage = async (table, params, pageStart, optional = false) => {
     const pageParams = new URLSearchParams(params);
     pageParams.set("limit", String(ACTIVITY_PAGE_SIZE));
@@ -9519,24 +9530,86 @@ async function getActivities(request, url) {
       ? loadActivityEventRows(request, pageParams)
       : cloudSqlRest(table, request, pageParams);
   };
-  const changesSource = createPagedActivitySource({
-    cursor: cursor?.sources.changes,
-    maxId: changesMaxId,
-    filters,
-    rawVisible: (row) => legacyChangeVisibleAtSnapshot(row, activityEventsMaxId)
-      && activityRowVisibleToRequest(row, request),
-    normalize: legacyChangeToActivity,
-    loadPage: (pageStart) => loadPage("changes", changeParams, pageStart)
-  });
-  const activityEventsSource = createPagedActivitySource({
-    cursor: cursor?.sources.activityEvents,
-    maxId: activityEventsMaxId,
-    filters,
-    rawVisible: (row) => activityRowVisibleToRequest(row, request),
-    normalize: activityEventToDto,
-    loadPage: (pageStart) => loadPage("activity_events", eventParams, pageStart, true)
-  });
-  const page = await readMergedActivityPage([changesSource, activityEventsSource], {
+  return {
+    changesMaxId,
+    activityEventsMaxId,
+    sources: [
+      createPagedActivitySource({
+        cursor: cursorSources?.changes,
+        maxId: changesMaxId,
+        filters,
+        rawVisible: (row) => legacyChangeVisibleAtSnapshot(row, activityEventsMaxId)
+          && activityRowVisibleToRequest(row, request),
+        normalize: legacyChangeToActivity,
+        loadPage: (pageStart) => loadPage("changes", changeParams, pageStart)
+      }),
+      createPagedActivitySource({
+        cursor: cursorSources?.activityEvents,
+        maxId: activityEventsMaxId,
+        filters,
+        rawVisible: (row) => activityRowVisibleToRequest(row, request),
+        normalize: activityEventToDto,
+        loadPage: (pageStart) => loadPage("activity_events", eventParams, pageStart, true)
+      })
+    ]
+  };
+}
+
+async function countMergedActivities(sources) {
+  let count = 0;
+  while (await nextMergedActivity(sources)) count += 1;
+  return count;
+}
+
+function validatedActivitySummaryFilters(url, now = new Date()) {
+  const filters = activityFiltersFromUrl(url);
+  if (!filters.from) throw validationError("Der Startzeitpunkt fuer die Aktivitaetsauswertung fehlt.");
+  const fromTime = new Date(filters.from).getTime();
+  const toTime = filters.to ? new Date(filters.to).getTime() : now.getTime();
+  if (!Number.isFinite(fromTime) || !Number.isFinite(toTime)) {
+    throw validationError("Der Zeitraum fuer die Aktivitaetsauswertung ist ungueltig.");
+  }
+  if (fromTime > toTime) {
+    throw validationError("Der Startzeitpunkt darf nicht nach dem Endzeitpunkt liegen.");
+  }
+  if (toTime > now.getTime()) {
+    throw validationError("Der Endzeitpunkt darf nicht in der Zukunft liegen.");
+  }
+  if (toTime - fromTime > ACTIVITY_SUMMARY_MAX_RANGE_MS) {
+    throw validationError("Die Aktivitaetsauswertung ist auf maximal 31 Tage begrenzt.");
+  }
+  return {
+    ...filters,
+    from: new Date(fromTime).toISOString(),
+    to: new Date(toTime).toISOString()
+  };
+}
+
+async function getActivitySummary(request, url) {
+  const filters = validatedActivitySummaryFilters(url);
+  await loadProfiles(request);
+  const { sources } = await createActivityReadSources(request, filters);
+  return {
+    count: await countMergedActivities(sources),
+    from: filters.from,
+    to: filters.to
+  };
+}
+
+async function getActivities(request, url) {
+  await loadProfiles(request);
+  const limit = Math.min(Math.max(Number(url.searchParams.get("limit")) || 30, 1), 100);
+  const offset = Math.max(Number(url.searchParams.get("offset")) || 0, 0);
+  const filters = activityFiltersFromUrl(url);
+  const filterSignature = normalizedActivityFilterSignature(filters);
+  const cursor = decodeActivityCursor(url.searchParams.get("cursor"), filterSignature);
+  if (cursor && url.searchParams.has("offset") && offset !== cursor.offset) {
+    throw validationError("Der Aktivitäten-Cursor passt nicht zum angeforderten Offset.");
+  }
+  const pageOffset = cursor?.offset ?? offset;
+  const snapshotAt = cursor?.snapshotAt || new Date().toISOString();
+  const { sources } = await createActivityReadSources(request, filters, cursor?.sources || null);
+  const page = await readMergedActivityPage(sources, {
     skip: cursor ? 0 : offset,
     limit
   });
@@ -10490,6 +10563,9 @@ async function handle(request, response) {
     }
     if (request.method === "GET" && url.pathname === "/api/activities") {
       return jsonResponse(response, 200, await getActivities(request, url));
+    }
+    if (request.method === "GET" && url.pathname === "/api/activities/summary") {
+      return jsonResponse(response, 200, await getActivitySummary(request, url));
     }
     if (["POST", "PUT", "PATCH", "DELETE"].includes(request.method) && url.pathname === "/api/activities") {
       return jsonResponse(response, 405, {

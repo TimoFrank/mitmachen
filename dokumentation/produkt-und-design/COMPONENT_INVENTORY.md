@@ -1,6 +1,6 @@
 # Component Inventory
 
-Stand: 2026-07-30. Analysebasis sind die aktuellen HTML-Einstiegspunkte mit ihren externen CSS-/JS-Assets unter `frontend/app/`, `frontend/map/`, `frontend/login/` und `frontend/pages/mitmachen/`. Generierte `dist/`-Artefakte dürfen nicht als führende Quelle für neue UI-Entscheidungen dienen.
+Stand: 2026-08-03. Analysebasis sind die aktuellen HTML-Einstiegspunkte mit ihren externen CSS-/JS-Assets unter `frontend/app/`, `frontend/map/`, `frontend/login/` und `frontend/pages/mitmachen/`. Generierte `dist/`-Artefakte dürfen nicht als führende Quelle für neue UI-Entscheidungen dienen.
 
 ## Buttons
 
@@ -61,12 +61,20 @@ Stand: 2026-07-30. Analysebasis sind die aktuellen HTML-Einstiegspunkte mit ihre
 
 ## App-Shell und Navigation
 
-- Sidebar-Hauptarbeit: Kontakte, Organisationen, Karte, Auswertung.
+- Sidebar-Hauptarbeit: Übersicht, Karte, Kontakte, Organisationen, Auswertung und Aktivitäten.
 - Politik: `#politics-map-open` wechselt von der Ausschussliste zur eingebetteten Politik-Deutschlandkarte. Die Karte nutzt das bestehende VK-Kartenmuster, fraktionsfarbige Personenmarker und repräsentative Innenpunkte der gebündelten Wahlkreisgeometrien der Bundeswahlleiterin.
 - Sidebar-Administration/Pflege: Datenqualität, Importe.
 - Sidebar-Persönlich/System: Einstellungen; `Mein Profil` wird über den Nutzerbereich unten geöffnet.
 - Topbar: ruhig halten. Kontextuelle Hauptaktionen wie `Neuer Kontakt`, `Organisation anlegen` und bei Bedarf Archiv liegen in den jeweiligen Workspace-/Tabellen-Command-Rows. Kein dauerhafter Kontaktimport in der Topbar.
 - Import-Startseite: `.imports-workspace`, `.import-start-grid`, bestehende `.import-format-card` und `.import-profile-card`.
+
+## Versorgungs-Übersicht
+
+- Der kanonische Einstieg `#care` beziehungsweise `/versorgung` öffnet den eigenen View `careOverview`; `#map` beziehungsweise `/versorgung/karte` bleibt der direkte Einstieg in die vollständige Karte.
+- `.care-overview-layout` verbindet eine nicht steuerbare Live-Vorschau der Versorgungskarte mit vier gleich gewichteten Navigationsflächen für Kontakte, Organisationen, Auswertung und Aktivitäten. Die Vorschau enthält bewusst weder Suche noch Kontaktliste oder Kartensteuerung. Ihre 16 Bundeslandflächen verwenden den statisch versionierten, exakten Pfad-Snapshot der gematik-Pflegeseite in originaler Zeichenreihenfolge und `viewBox`; die vollständige Karte behält die präzise GeoJSON-Geometrie. Beide Ansichten verwenden dieselbe mengenabhängige Skala von Eisblau über Kobalt bis Dunkelblau samt Verlaufslegende. Eine eigenständige, rein dekorative Windrose steht in der freien linken oberen Ecke oberhalb der Kartenebene, ohne die Deutschlandgeometrie zu verdecken. Kopfzeile, Kartenbühne sowie Zähler und Legende belegen getrennte Rasterzeilen. Der helle Zähler nennt nur die Zahl der dargestellten Kontakte; technische Zuordnungs- und Bundeslandangaben bleiben der Kartenansicht vorbehalten.
+- Kontakt- und Organisationszahlen stammen aus dem ungefilterten, nicht archivierten und rollenbezogen projizierten Bestand; ihre sichtbare Unterzeile lautet deshalb knapp „im Bestand“. Ein kontaktbasierter Organisationsfallback und nicht verfügbare Initialdaten werden ausdrücklich gekennzeichnet. Die Auswertungsfläche zählt die tatsächlich mit Kontakten belegten, dokumentierten Sektoren. Die Aktivitätsfläche lädt für Admins ausschließlich eine read-only Zusammenfassung der letzten 30 Tage; der Server verwendet dafür die vollständige normalisierte, rollenbezogene Aktivitätssicht und der Browser paginiert keine Aktivitätsliste.
+- Auswertung und Aktivitäten spiegeln die bestehende Admin-Sichtbarkeit. Desktop ordnet die Karte mittig zwischen den Bereichen an, Tablet setzt sie über ein 2×2-Raster und Mobile zeigt ein kompaktes 2×2-Zielraster vor der Kartenvorschau. Die gesamte Atlasbühne bildet genau einen zugänglichen Link zur Karte; Hover und Fokus verstärken Halo, CTA und Kartenrahmen, Reduced Motion lässt die Vorschau statisch.
+- `.care-overview-destination` bleibt flach und ohne dekorativen Schatten. Vier dokumentierte Akzentfamilien unterscheiden Kontakte (Blau/Cyan), Organisationen (Petrol/Mint), Auswertung (Violett) und Aktivitäten (Amber/Orange) über eine sehr helle Fläche, solide Seitenkante, Icon-Raute und passende Aktion. Beschriftung und Icon bleiben immer sichtbar, damit Farbe nie allein Information trägt. Gerade Verbindungslinien greifen ausschließlich auf Desktop die Kompassanordnung auf und reagieren gemeinsam mit der Icon-Raute auf Hover und Tastaturfokus; sie stellen keine fachliche Datenbeziehung dar. Auf kleinen Smartphones stehen die kompakten Ziele vor der Karten-Vorschau. Die einmalige Einstiegsmotion wird bei Reduced Motion vollständig abgeschaltet; Forced Colors erhält einen Systemfarben-Fallback.
 
 ## Stakeholder-Übersicht
 

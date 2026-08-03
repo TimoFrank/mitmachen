@@ -1151,6 +1151,12 @@
         q: options.q || ""
       });
     },
+    getActivitySummary: async function(options = {}) {
+      return apiGet("/api/activities/summary", {
+        from: options.from || "",
+        to: options.to || ""
+      });
+    },
     loadBackendRegistrations: async function(options = {}) {
       const status = String(options.status || "").trim();
       const payload = await apiGet("/api/network-registrations", {

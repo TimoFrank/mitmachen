@@ -89,7 +89,7 @@ test("Desktop-Auslieferung: Pages startet direkt in der App-Startseite", async (
   expect(homeTypeMetrics.minimumTitleFontSize).toBeGreaterThanOrEqual(17);
   expect(homeTypeMetrics.minimumCopyFontSize).toBeGreaterThanOrEqual(14);
   expect(await destinations.evaluateAll((links) => links.map((link) => link.getAttribute("href")))).toEqual([
-    "#map",
+    "#care",
     "#stakeholders",
     "#hospitation-overview",
     "#formats"
@@ -208,7 +208,7 @@ test("Startkarten lassen die mobile Navigation eingeklappt", async ({ page }) =>
 
   const shell = page.locator(".app-shell");
   const modules = [
-    { module: "care", url: /#map$/, view: "map", group: "care" },
+    { module: "care", url: /#care$/, view: "careOverview", group: "care" },
     { module: "stakeholders", url: /#stakeholders$/, view: "stakeholderOverview", group: "stakeholders" },
     { module: "planning", url: /#hospitation-overview$/, view: "hospitationOverview", group: "planning" },
     { module: "formats", url: /#formats$/, view: "formats", group: "formats" }

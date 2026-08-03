@@ -66,6 +66,16 @@
               </svg>
             </button>
             <div class="sidebar-section-content" id="sidebar-section-care-content">
+              <button class="primary-tab" type="button" data-view-tab="careOverview" title="Versorgungs-Übersicht">
+                <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <rect x="3" y="3" width="7" height="7" rx="1"></rect>
+                  <rect x="14" y="3" width="7" height="7" rx="1"></rect>
+                  <rect x="3" y="14" width="7" height="7" rx="1"></rect>
+                  <path d="M17.5 13.5c-2.2 0-4 1.8-4 4 0 2.8 4 5.5 4 5.5s4-2.7 4-5.5c0-2.2-1.8-4-4-4Z"></path>
+                  <circle cx="17.5" cy="17.5" r="1.2"></circle>
+                </svg>
+                <span>Übersicht</span>
+              </button>
               <button class="primary-tab" type="button" data-view-tab="map" title="Karte">
                 <svg viewBox="0 0 24 24" fill="none" stroke-width="2" aria-hidden="true">
                   <path d="M9 18l-6 3V6l6-3 6 3 6-3v15l-6 3-6-3Z"></path>
@@ -650,7 +660,7 @@
                 <p class="home-destinations__intro">Wähle den Kompass, in dem du weiterarbeiten möchtest.</p>
                 <ul class="home-destinations">
                   <li class="home-destination-card">
-                    <a class="home-destination-link" data-home-module="care" data-route-link="map" href="#map">
+                    <a class="home-destination-link" data-home-module="care" data-route-link="care" href="#care">
                       <span class="home-destination-link__top">
                         <span class="home-destination-link__identity">
                           <img class="home-destination-link__mark" src="../../public/brand/versorgungs-kompass/mark.svg" alt="" aria-hidden="true" />
@@ -698,6 +708,121 @@
                     </a>
                   </li>
                 </ul>
+              </nav>
+            </div>
+          </section>
+          <section class="view-panel" id="view-care-overview" data-view-panel="careOverview">
+            <div class="care-overview-workspace">
+              <nav class="care-overview-layout" aria-label="Arbeitsbereiche im Versorgungs-Kompass">
+                <section class="care-overview-map" aria-labelledby="care-overview-map-title">
+                  <div class="care-overview-map__head">
+                    <div>
+                      <span class="care-overview-map__kicker">Regionale Verteilung</span>
+                      <h2 id="care-overview-map-title">Versorgungs-Netzwerk</h2>
+                    </div>
+                    <span class="care-overview-map__open" aria-hidden="true">
+                      Karte öffnen
+                      <span aria-hidden="true">→</span>
+                    </span>
+                  </div>
+                  <a class="care-overview-map__hitarea" data-route-link="map" href="#map" aria-label="Regionale Verteilung im Versorgungs-Netzwerk – Karte öffnen"></a>
+                  <div class="care-overview-map__preview">
+                    <iframe
+                      class="map-embed-frame care-overview-map__frame"
+                      id="care-overview-map-frame"
+                      title="Nicht interaktive Vorschau der Versorgungskarte"
+                      data-deferred-src="../map/versorgungs-kompass-map.html?embed=1&amp;channel=contacts&amp;preview=1"
+                      data-message-channel="contacts"
+                      tabindex="-1"
+                      aria-hidden="true"
+                      referrerpolicy="no-referrer"
+                    ></iframe>
+                  </div>
+                  <div class="care-overview-map__meta">
+                    <span class="care-overview-map__counter" id="care-overview-map-counter" data-state="loading" aria-live="polite" aria-atomic="true">
+                      <strong id="care-overview-map-count">–</strong>
+                      <span id="care-overview-map-count-label">Kontakte werden geladen</span>
+                    </span>
+                    <span class="care-overview-map__legend" aria-label="Verteilung des Kontaktbestands: von weniger bis mehr Kontakten">
+                      <span>weniger</span>
+                      <span class="care-overview-map__legend-scale" aria-hidden="true"></span>
+                      <span>mehr</span>
+                    </span>
+                  </div>
+                </section>
+
+                <a class="care-overview-destination care-overview-destination--contacts" data-route-link="contacts" href="#contacts">
+                  <span class="care-overview-destination__icon" aria-hidden="true">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                      <circle cx="12" cy="8" r="4"></circle>
+                      <path d="M4 21a8 8 0 0 1 16 0"></path>
+                    </svg>
+                  </span>
+                  <span class="care-overview-destination__copy">
+                    <strong>Kontakte</strong>
+                    <span class="care-overview-destination__metric care-overview-destination__metric--count" id="care-overview-contact-count" data-state="loading" aria-label="Kontakte im Bestand werden geladen">
+                      <strong id="care-overview-contact-count-value">–</strong>
+                      <span id="care-overview-contact-count-label">wird geladen</span>
+                    </span>
+                    <span>Ansprechpersonen, Zuständigkeiten und Kontaktwege gezielt finden.</span>
+                  </span>
+                  <span class="care-overview-destination__action">Öffnen <span aria-hidden="true">→</span></span>
+                </a>
+
+                <a class="care-overview-destination care-overview-destination--organizations" data-route-link="organizations" href="#organizations">
+                  <span class="care-overview-destination__icon" aria-hidden="true">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                      <path d="M4 21V6a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v15"></path>
+                      <path d="M16 9h2a2 2 0 0 1 2 2v10"></path>
+                      <path d="M8 8h4M8 12h4M8 16h4M2 21h20"></path>
+                    </svg>
+                  </span>
+                  <span class="care-overview-destination__copy">
+                    <strong>Organisationen</strong>
+                    <span class="care-overview-destination__metric care-overview-destination__metric--count" id="care-overview-organization-count" data-state="loading" aria-label="Organisationen im Bestand werden geladen">
+                      <strong id="care-overview-organization-count-value">–</strong>
+                      <span id="care-overview-organization-count-label">wird geladen</span>
+                    </span>
+                    <span>Einrichtungen und Institutionen im Versorgungsnetz einordnen.</span>
+                  </span>
+                  <span class="care-overview-destination__action">Öffnen <span aria-hidden="true">→</span></span>
+                </a>
+
+                <a class="care-overview-destination care-overview-destination--analytics" id="care-overview-analytics-link" data-route-link="analytics" href="#analytics">
+                  <span class="care-overview-destination__icon" aria-hidden="true">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                      <path d="M4 19h16"></path>
+                      <path d="M7 16V9M12 16V5M17 16v-4"></path>
+                    </svg>
+                  </span>
+                  <span class="care-overview-destination__copy">
+                    <strong>Auswertung</strong>
+                    <span class="care-overview-destination__metric care-overview-destination__metric--count" id="care-overview-sector-count" data-state="loading" aria-label="Sektoren mit Kontakten werden geladen">
+                      <strong id="care-overview-sector-count-value">–</strong>
+                      <span id="care-overview-sector-count-label">wird geladen</span>
+                    </span>
+                    <span>Kontakte nach Sektor, Priorität und Region auswerten.</span>
+                  </span>
+                  <span class="care-overview-destination__action">Öffnen <span aria-hidden="true">→</span></span>
+                </a>
+
+                <a class="care-overview-destination care-overview-destination--activities" id="care-overview-activities-link" data-route-link="activities" href="#activities">
+                  <span class="care-overview-destination__icon" aria-hidden="true">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                      <circle cx="12" cy="12" r="9"></circle>
+                      <path d="M12 7v5l3 2"></path>
+                    </svg>
+                  </span>
+                  <span class="care-overview-destination__copy">
+                    <strong>Aktivitäten</strong>
+                    <span class="care-overview-destination__metric care-overview-destination__metric--count" id="care-overview-activity-count" data-state="loading" aria-label="Aktivitäten der letzten 30 Tage werden geladen">
+                      <strong id="care-overview-activity-count-value">–</strong>
+                      <span id="care-overview-activity-count-label">letzte 30 Tage · wird geladen</span>
+                    </span>
+                    <span>Stammdaten, Zuständigkeiten und fachliche Vorgänge chronologisch nachvollziehen.</span>
+                  </span>
+                  <span class="care-overview-destination__action">Öffnen <span aria-hidden="true">→</span></span>
+                </a>
               </nav>
             </div>
           </section>

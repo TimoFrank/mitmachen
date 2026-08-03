@@ -20,6 +20,13 @@ window.VERSORGUNGS_COMPASS_CONFIG = {
 globalThis.fetch = async (input, options = {}) => {
   const url = new URL(String(input));
   requests.push({ url, options });
+  if (url.pathname === "/api/activities/summary") {
+    return {
+      ok: true,
+      status: 200,
+      json: async () => ({ count: 12, from: url.searchParams.get("from"), to: url.searchParams.get("to") })
+    };
+  }
   const cursor = url.searchParams.get("cursor");
   return {
     ok: true,
@@ -64,13 +71,22 @@ assert.equal(requests[1].url.searchParams.has("offset"), false, "Der opake Curso
 await window.dataService.getActivities({ limit: 10, offset: 10, cursor: firstPage.nextCursor });
 assert.equal(requests[2].url.searchParams.get("offset"), "10", "Explizite Legacy-Offsets bleiben kompatibel.");
 
+const summaryFrom = "2026-07-03T12:00:00.000Z";
+const activitySummary = await window.dataService.getActivitySummary({ from: summaryFrom });
+assert.equal(activitySummary.count, 12);
+assert.equal(requests[3].url.pathname, "/api/activities/summary");
+assert.equal(requests[3].url.searchParams.get("from"), summaryFrom);
+assert.equal(requests[3].url.searchParams.has("limit"), false, "Die Übersicht darf keine Aktivitätsseiten im Browser zählen.");
+assert.equal(requests[3].url.searchParams.has("offset"), false, "Die Übersicht darf keinen Listenoffset senden.");
+assert.equal(requests[3].url.searchParams.has("cursor"), false, "Die Übersicht darf keinen Aktivitätscursor senden.");
+
 await window.dataService.getContactChanges("contact/with space", {
   eventKey: "contact.updated",
   q: "Berlin"
 });
-assert.equal(requests[3].url.pathname, "/api/contacts/contact%2Fwith%20space/history");
-assert.equal(requests[3].url.searchParams.get("eventKey"), "contact.updated");
-assert.equal(requests[3].url.searchParams.get("q"), "Berlin");
+assert.equal(requests[4].url.pathname, "/api/contacts/contact%2Fwith%20space/history");
+assert.equal(requests[4].url.searchParams.get("eventKey"), "contact.updated");
+assert.equal(requests[4].url.searchParams.get("q"), "Berlin");
 
 const apiSource = fs.readFileSync(new URL("api/server.mjs", projectRoot), "utf8");
 for (const pattern of [
@@ -78,6 +94,12 @@ for (const pattern of [
   /function activityMatchesFilters\(/,
   /function legacyChangeVisibleAtSnapshot\(/,
   /function activityRowVisibleToRequest\(/,
+  /function activityFiltersFromUrl\(/,
+  /async function createActivityReadSources\(/,
+  /async function countMergedActivities\(/,
+  /while \(await nextMergedActivity\(sources\)\) count \+= 1/,
+  /async function getActivitySummary\(/,
+  /url\.pathname === "\/api\/activities\/summary"/,
   /async function assertContactHistoryVisible\(/,
   /function encodeActivityCursor\(/,
   /function decodeActivityCursor\(/,

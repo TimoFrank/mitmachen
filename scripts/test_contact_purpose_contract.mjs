@@ -304,6 +304,62 @@ assert.equal(activityRowVisibleToRequest({
   _visibility_contact_id: "contact-ehc"
 }, viewerRequest), false);
 
+const activityAttachmentQueries = [];
+projectionContext.databaseQuery = async (_transaction, sql) => {
+  activityAttachmentQueries.push(sql);
+  return {
+    rows: [{
+      id: "contact-ehc-history",
+      owner_id: "profile-owner",
+      owner_ids: ["profile-owner"],
+      status: "active",
+      mitmachen_consent_status: "not_requested",
+      mitmachen_consent_source: "",
+      ehc_consent_status: "not_requested",
+      ehc_consent_effective_at: "2026-02-10T10:00:00.000Z",
+      ehc_consent_source: "survalyzer_ehc",
+      ehc_consent_text_version: "ehc-v1",
+      ehc_consent_recorded_by: "profile-owner",
+      ehc_consent_note: "Historischer EHC-Nachweis"
+    }]
+  };
+};
+const activityAttachmentSource = sourceBetween(
+  api,
+  "async function attachContactsToChanges(",
+  "async function attachNotificationEvents("
+);
+vm.runInContext([
+  activityAttachmentSource,
+  "globalThis.attachContactsToChangesForTest = attachContactsToChanges;"
+].join("\n"), projectionContext, { filename: "contact-purpose-activity-attachment-contract.js" });
+const historicalActivityRows = [{
+  id: "change-history-secret",
+  contact_id: "contact-ehc-history",
+  field_name: "ehc_consent_note",
+  new_value: "Vertraulicher Historiennachweis"
+}];
+await projectionContext.attachContactsToChangesForTest(historicalActivityRows);
+assert.equal(
+  activityRowVisibleToRequest(historicalActivityRows[0], viewerRequest),
+  false,
+  "Der Aktivitaetspfad muss auch Kontakte mit reinen EHC-Historienfeldern vor fremden Viewern schuetzen."
+);
+for (const field of [
+  "mitmachen_consent_source",
+  "ehc_consent_effective_at",
+  "ehc_consent_source",
+  "ehc_consent_text_version",
+  "ehc_consent_recorded_by",
+  "ehc_consent_note"
+]) {
+  assert.match(
+    activityAttachmentQueries[0],
+    new RegExp(`\\b${field}\\b`),
+    `Die Aktivitaetsprojektion muss ${field} fuer die EHC-Sichtbarkeitsentscheidung laden.`
+  );
+}
+
 const pagingSource = sourceBetween(api, "function createPagedActivitySource(", "async function nextMergedActivity(");
 const pagingContext = vm.createContext({
   ACTIVITY_PAGE_SIZE: 500,
@@ -332,17 +388,28 @@ const historyGuardSource = sourceBetween(
   "async function assertContactHistoryVisible(",
   "function normalizedActivityFilterSignature("
 );
+let historyContactSelect = "";
 const historyContext = vm.createContext({
   URLSearchParams,
   roleRank: (role) => ({ viewer: 1, editor: 2, admin: 3 }[String(role || "")] || 0),
-  cloudSqlRest: async () => [{
-    id: "contact-ehc",
-    owner_id: "profile-owner",
-    status: "active",
-    mitmachen_consent_status: "not_requested",
-    ehc_consent_status: "granted"
-  }],
-  assertEhcContactAccess: async (request) => {
+  cloudSqlRest: async (_table, _request, params) => {
+    historyContactSelect = params.get("select") || "";
+    return [{
+      id: "contact-ehc",
+      owner_id: "profile-owner",
+      status: "active",
+      mitmachen_consent_status: "not_requested",
+      mitmachen_consent_source: "",
+      ehc_consent_status: "not_requested",
+      ehc_consent_effective_at: "2026-02-10T10:00:00.000Z",
+      ehc_consent_source: "survalyzer_ehc",
+      ehc_consent_text_version: "ehc-v1",
+      ehc_consent_recorded_by: "profile-owner",
+      ehc_consent_note: "Historischer EHC-Nachweis"
+    }];
+  },
+  assertEhcContactAccess: async (request, contact) => {
+    assert.equal(contact.ehc_consent_note, "Historischer EHC-Nachweis");
     if (request.currentProfile?.id !== "profile-owner" && request.currentProfile?.role !== "admin") {
       throw Object.assign(new Error("Kontakt wurde nicht gefunden."), { status: 404 });
     }
@@ -359,6 +426,19 @@ await assert.rejects(
 await assert.doesNotReject(
   () => historyContext.assertContactHistoryVisibleForTest(ownerRequest, "contact-ehc")
 );
+for (const field of [
+  "mitmachen_consent_source",
+  "ehc_consent_effective_at",
+  "ehc_consent_source",
+  "ehc_consent_text_version",
+  "ehc_consent_recorded_by",
+  "ehc_consent_note"
+]) {
+  assert.ok(
+    historyContactSelect.split(",").includes(field),
+    `Der Kontakt-Historienpfad muss ${field} fuer die EHC-Sichtbarkeitsentscheidung laden.`
+  );
+}
 
 for (const field of [
   "relationship_basis",

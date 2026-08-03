@@ -969,7 +969,7 @@ try {
   assert.match(targetIndexHtml, /<aside class="module-sidebar"/);
   assert.match(targetIndexHtml, /<h1[^>]*id="welcome-title"[^>]*>Willkommen\.<\/h1>/);
   assert.match(targetIndexHtml, /data-home-compass-rotation/);
-  assert.match(targetIndexHtml, /href="\/versorgung\/karte"/);
+  assert.match(targetIndexHtml, /href="\/versorgung"/);
   assert.match(targetIndexHtml, /href="\.\/mitmachen\/mitmachen\.css"/);
   assert.match(targetIndexHtml, /src="\.\/public\/brand\/mitmachen\/flechtwerk-lockup-horizontal\.svg"/);
   assert.doesNotMatch(targetIndexHtml, /dokumentation\//, "Der Live-Einstieg darf nicht auf nicht ausgelieferte Repository-Dokumentation verweisen");
