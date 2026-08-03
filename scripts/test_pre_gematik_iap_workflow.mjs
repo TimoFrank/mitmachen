@@ -56,6 +56,10 @@ const identityPlatformTerraform = readFileSync(
   new URL("deploy/terraform/gcp-autopilot/identity-platform.tf", projectRoot),
   "utf8"
 );
+const servicesTerraform = readFileSync(
+  new URL("deploy/terraform/gcp-autopilot/services.tf", projectRoot),
+  "utf8"
+);
 const terraformVariables = readFileSync(
   new URL("deploy/terraform/gcp-autopilot/variables.tf", projectRoot),
   "utf8"
@@ -393,12 +397,88 @@ assert.match(
 );
 assert.match(
   identityPlatformPreflightScript,
-  /referer = "%s"[\s\S]*"\$IAP_EXTERNAL_LOGIN_PAGE_URI"/u
+  /login_page_origin="\$\{IAP_EXTERNAL_LOGIN_PAGE_URI%\/anmelden\}\/"/u
+);
+assert.match(
+  identityPlatformPreflightScript,
+  /referer = "%s"[\s\S]*"\$login_page_origin"/u
 );
 assert.match(
   identityPlatformPreflightScript,
   /curl --config "\$browser_key_curl_config"[\s\S]*--output "\$browser_key_project_config"/u
 );
+assert.match(
+  identityPlatformPreflightScript,
+  /secure_token_api="https:\/\/securetoken\.googleapis\.com"/u,
+  "Der External-Identity-Preflight muss die Secure-Token-Laufzeit-API pruefen."
+);
+assert.match(
+  identityPlatformPreflightScript,
+  /url = "%s\/v1\/token\?key=%s"/u
+);
+assert.match(
+  identityPlatformPreflightScript,
+  /request = "POST"/u
+);
+assert.match(
+  identityPlatformPreflightScript,
+  /header = "Content-Type: application\/x-www-form-urlencoded"/u
+);
+assert.match(
+  identityPlatformPreflightScript,
+  /data = "grant_type=refresh_token"/u,
+  "Der Preflight darf keinen echten Refresh-Token verwenden."
+);
+assert.match(
+  identityPlatformPreflightScript,
+  /"\$secure_token_api" \\\n\s*"\$IAP_EXTERNAL_AUTH_API_KEY" \\\n\s*"\$login_page_origin"/u,
+  "Secure Token muss denselben geschuetzten Browser-Key und kanonischen Referer pruefen."
+);
+assert.match(
+  identityPlatformPreflightScript,
+  /curl --config "\$secure_token_curl_config"[\s\S]*--output "\$secure_token_response"[\s\S]*--write-out '%\{http_code\}'/u
+);
+assert.doesNotMatch(
+  identityPlatformPreflightScript,
+  /refresh_token=/u,
+  "Der mutierungsfreie Probe darf keinen Refresh-Token uebertragen."
+);
+const secureTokenResponseFilter = identityPlatformPreflightScript.match(
+  /\[\[ "\$secure_token_http_status" != "400" \]\] \|\| \\\n\s*! jq --exit-status \\\n\s*'([^']+)' \\\n\s*"\$secure_token_response" >\/dev\/null/u
+)?.[1];
+assert.ok(
+  secureTokenResponseFilter,
+  "Der Secure-Token-Probe muss HTTP-Status und Fehlerpayload gemeinsam fail-closed pruefen."
+);
+function verifySecureTokenProbe(httpStatus, responseText) {
+  if (httpStatus !== "400") {
+    return false;
+  }
+  return spawnSync(
+    "jq",
+    ["--exit-status", secureTokenResponseFilter],
+    { input: responseText, encoding: "utf8" }
+  ).status === 0;
+}
+assert.equal(
+  verifySecureTokenProbe("400", JSON.stringify({
+    error: { message: "MISSING_REFRESH_TOKEN" }
+  })),
+  true,
+  "Nur die erwartete mutierungsfreie Secure-Token-Antwort darf passieren."
+);
+for (const [httpStatus, responseText] of [
+  ["403", JSON.stringify({ error: { message: "API_KEY_SERVICE_BLOCKED" } })],
+  ["400", JSON.stringify({ error: { message: "API_KEY_SERVICE_BLOCKED" } })],
+  ["200", JSON.stringify({ error: { message: "MISSING_REFRESH_TOKEN" } })],
+  ["400", "{"]
+]) {
+  assert.equal(
+    verifySecureTokenProbe(httpStatus, responseText),
+    false,
+    "Gesperrte Services, unerwartete Statuscodes und ungueltiges JSON muessen stoppen."
+  );
+}
 const browserKeyProjectConfigFilter = identityPlatformPreflightScript.match(
   /--arg api_host "\$API_HOST" '\n([\s\S]*?)\n\s*' "\$browser_key_project_config"/
 )?.[1];
@@ -716,6 +796,11 @@ assert.match(
 );
 assert.doesNotMatch(identityPlatformTerraform, /setunion/u);
 assert.doesNotMatch(identityPlatformTerraform, /var\.PUBLIC_HOSTNAME/u);
+assert.match(
+  servicesTerraform,
+  /"identitytoolkit\.googleapis\.com"[\s\S]*"securetoken\.googleapis\.com"/u,
+  "Terraform muss beide vom Login-Portal benoetigten Identity-Dienste aktivieren."
+);
 assert.match(
   terraformVariables,
   /variable "IDENTITY_PLATFORM_AUTHORIZED_DOMAINS"[\s\S]*length\(var\.IDENTITY_PLATFORM_AUTHORIZED_DOMAINS\) == 0/u
@@ -1964,6 +2049,15 @@ assert.doesNotMatch(
 );
 assert.match(publicNginxConfig, /~\^\/konto\/passwort-festlegen[\s\S]*"default-src 'none'[\s\S]*script-src 'self'/);
 assert.match(publicNginxConfig, /Cache-Control "no-store"/);
+assert.match(
+  publicNginxConfig,
+  /map \$request_uri \$public_referrer_policy \{[\s\S]*default "no-referrer";[\s\S]*~\^\/anmelden[\s\S]*"strict-origin";[\s\S]*~\^\/konto\/passwort-festlegen[\s\S]*"strict-origin";/u,
+  "Nur die beiden Identity-HTML-Einstiege duerfen den kanonischen Origin als Referer senden."
+);
+assert.match(
+  publicNginxConfig,
+  /add_header Referrer-Policy \$public_referrer_policy always;/u
+);
 assert.match(authConfig, /loginPath:\s*"\.\.\/login\/login\.html"/);
 assert.doesNotMatch(
   authConfig,

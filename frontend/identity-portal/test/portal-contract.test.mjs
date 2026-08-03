@@ -18,6 +18,21 @@ const actionHtml = await readFile(
   new URL("../public/konto/passwort-festlegen/index.html", import.meta.url),
   "utf8"
 );
+const previewServerSource = await readFile(
+  new URL("../scripts/serve.mjs", import.meta.url),
+  "utf8"
+);
+
+test("sends only the canonical origin to the restricted Google APIs", () => {
+  for (const portalHtml of [signInHtml, actionHtml]) {
+    assert.match(portalHtml, /<meta name="referrer" content="strict-origin">/u);
+    assert.doesNotMatch(portalHtml, /<meta name="referrer" content="no-referrer">/u);
+  }
+  assert.match(
+    previewServerSource,
+    /extension === "\.html" \? "strict-origin" : "no-referrer"/u
+  );
+});
 
 test("routes a bare sign-in bookmark through the protected application", () => {
   assert.match(

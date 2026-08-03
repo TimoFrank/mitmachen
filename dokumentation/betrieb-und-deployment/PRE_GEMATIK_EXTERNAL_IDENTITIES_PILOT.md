@@ -890,10 +890,21 @@ nicht durch spontane Konto-, IAM- oder Binding-Erweiterungen repariert.
   `https://steam-capsule-341212.firebaseapp.com/__/auth/action`.
 - [ ] `IAP_EXTERNAL_LOGIN_PAGE_URI` entspricht exakt
   `https://versorgungs-kompass.de/anmelden`.
-- [ ] Der eingeschränkte `IAP_EXTERNAL_AUTH_API_KEY` löst mit dem kanonischen
-  Referer über `GET /v1/projects` exakt die numerische Projektreferenz und die
-  drei freigegebenen Domains auf; der IAP-Readback enthält auf beiden Backends
-  bytegenau die einmalig um `?apiKey=…` ergänzte effektive Login-URI.
+- [ ] Der eingeschränkte `IAP_EXTERNAL_AUTH_API_KEY` ist im administrativen
+  Key-Readback mit dem kanonischen Origin-Referer ausschließlich für die
+  benötigten Identity-Toolkit- und Secure-Token-APIs freigegeben. Der
+  mutierungsfreie Laufzeit-Preflight löst über `GET /v1/projects` exakt die
+  numerische Projektreferenz und die drei
+  freigegebenen Domains auf und erwartet am Secure-Token-Refresh-Endpunkt ohne
+  Refresh-Token ausschließlich `400 MISSING_REFRESH_TOKEN`; `403
+  API_KEY_SERVICE_BLOCKED` und alle anderen Antworten stoppen fail-closed. Der
+  IAP-Readback enthält auf beiden Backends bytegenau die einmalig um
+  `?apiKey=…` ergänzte effektive Login-URI.
+- [ ] Anmelde- und Passwortaktionsseite liefern
+  `Referrer-Policy: strict-origin`; Google erhält damit den für die
+  Key-Beschränkung benötigten Origin, aber niemals IAP-State, API-Key oder Pfad
+  aus der Portal-URL im Referer. Alle übrigen öffentlichen Antworten bleiben auf
+  `no-referrer`.
 - [ ] Der Google-OAuth-Redirect entspricht exakt
   `https://versorgungs-kompass.de/__/auth/handler`; der frühere
   Firebase-Redirect ist ausschließlich als inaktiver Rollback-Eintrag

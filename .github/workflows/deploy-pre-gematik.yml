@@ -663,8 +663,10 @@ jobs:
           identity_preflight_dir="$(mktemp -d)"
           curl_config="${identity_preflight_dir}/curl.config"
           browser_key_curl_config="${identity_preflight_dir}/browser-key-curl.config"
+          secure_token_curl_config="${identity_preflight_dir}/secure-token-curl.config"
           project_config="${identity_preflight_dir}/project-config.json"
           browser_key_project_config="${identity_preflight_dir}/browser-key-project-config.json"
+          secure_token_response="${identity_preflight_dir}/secure-token-response.json"
           google_provider="${identity_preflight_dir}/google-provider.json"
           default_providers="${identity_preflight_dir}/default-providers.json"
           oidc_providers="${identity_preflight_dir}/oidc-providers.json"
@@ -673,8 +675,10 @@ jobs:
             rm -f \
               "$curl_config" \
               "$browser_key_curl_config" \
+              "$secure_token_curl_config" \
               "$project_config" \
               "$browser_key_project_config" \
+              "$secure_token_response" \
               "$google_provider" \
               "$default_providers" \
               "$oidc_providers" \
@@ -693,16 +697,35 @@ jobs:
           unset access_token
 
           identity_api="https://identitytoolkit.googleapis.com"
+          secure_token_api="https://securetoken.googleapis.com"
           identity_project_number="$GCP_PROJECT_NUMBER"
+          login_page_origin="${IAP_EXTERNAL_LOGIN_PAGE_URI%/anmelden}/"
           printf 'url = "%s/v1/projects?key=%s&projectNumber=%s"\nreferer = "%s"\n' \
             "$identity_api" \
             "$IAP_EXTERNAL_AUTH_API_KEY" \
             "$identity_project_number" \
-            "$IAP_EXTERNAL_LOGIN_PAGE_URI" \
+            "$login_page_origin" \
             > "$browser_key_curl_config"
+          printf 'url = "%s/v1/token?key=%s"\nrequest = "POST"\nreferer = "%s"\nheader = "Content-Type: application/x-www-form-urlencoded"\ndata = "grant_type=refresh_token"\n' \
+            "$secure_token_api" \
+            "$IAP_EXTERNAL_AUTH_API_KEY" \
+            "$login_page_origin" \
+            > "$secure_token_curl_config"
           curl --config "$browser_key_curl_config" \
             --fail --silent --show-error \
             --output "$browser_key_project_config"
+          secure_token_http_status="$(curl --config "$secure_token_curl_config" \
+            --silent --show-error \
+            --output "$secure_token_response" \
+            --write-out '%{http_code}')"
+          if [[ "$secure_token_http_status" != "400" ]] || \
+             ! jq --exit-status \
+               '.error.message == "MISSING_REFRESH_TOKEN"' \
+               "$secure_token_response" >/dev/null; then
+            echo "The restricted browser API key cannot use the Secure Token refresh endpoint from the canonical login origin." >&2
+            exit 1
+          fi
+          unset secure_token_http_status
           curl --config "$curl_config" --fail --silent --show-error \
             --output "$project_config" \
             "${identity_api}/admin/v2/projects/${GCP_PROJECT_ID}/config"

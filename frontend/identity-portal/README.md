@@ -121,9 +121,15 @@ erhalten. Zusätzlich:
 Content-Security-Policy: default-src 'none'; base-uri 'none'; object-src 'none'; script-src 'self' https://apis.google.com; style-src 'self'; img-src 'self' data:; connect-src 'self' https://iap.googleapis.com https://identitytoolkit.googleapis.com https://securetoken.googleapis.com https://www.googleapis.com; frame-src 'self'; frame-ancestors 'self'; form-action 'self'
 Cross-Origin-Opener-Policy: same-origin-allow-popups
 Permissions-Policy: camera=(), geolocation=(), microphone=(), payment=()
-Referrer-Policy: no-referrer
+Referrer-Policy: strict-origin
 X-Content-Type-Options: nosniff
 ```
+
+Die beiden HTML-Einstiege senden damit bei den browserseitigen
+Identity-Toolkit- und Secure-Token-Aufrufen ausschließlich den kanonischen
+Origin, niemals IAP-State, API-Key oder Pfad aus der Anmelde-URL im Referer.
+Statische Assets und alle übrigen öffentlichen Antworten bleiben auf
+`no-referrer`.
 
 Der Session-Refresher von IAP kann die Auth-Seite gleichursprünglich in einem
 Iframe laden; deshalb sind `frame-ancestors 'self'` und der kanonische

@@ -42,12 +42,13 @@ const server = createServer((request, response) => {
   }
 
   const extension = path.extname(candidate);
+  const referrerPolicy = extension === ".html" ? "strict-origin" : "no-referrer";
   response.writeHead(200, {
     "Cache-Control": "no-store",
     "Content-Type": MIME_TYPES[extension] || "application/octet-stream",
     "Cross-Origin-Opener-Policy": "same-origin-allow-popups",
     "Permissions-Policy": "camera=(), geolocation=(), microphone=(), payment=()",
-    "Referrer-Policy": "no-referrer",
+    "Referrer-Policy": referrerPolicy,
     "X-Content-Type-Options": "nosniff",
     "X-Frame-Options": "SAMEORIGIN"
   });
