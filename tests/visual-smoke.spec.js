@@ -451,13 +451,14 @@ async function expectHospitationOverviewWithoutClipping(page) {
       ".hospitation-overview-next__copy",
       ".hospitation-overview-attention",
       ".hospitation-overview-agenda__intro",
+      ".hospitation-overview-agenda__all",
       ".hospitation-overview-agenda__item",
       ".hospitation-overview-plan-card",
-      ".hospitation-overview-attention__dashboard-link",
+      ".hospitation-overview-attention__action",
       ".hospitation-overview-evidence__intro",
-      ".hospitation-overview-evidence__step",
-      ".hospitation-overview-framework-link",
-      ".hospitation-overview-framework-link__action"
+      ".hospitation-overview-evidence__intro-copy",
+      ".hospitation-overview-evidence__framework",
+      ".hospitation-overview-evidence__step"
     ].join(",");
     return [...root.querySelectorAll(selectors)]
       .filter((node) => node.getClientRects().length > 0)
@@ -1159,14 +1160,12 @@ test("Hospitations-Kompass Übersicht: Editor sieht Termine, Arbeitswege und bel
 
   const sectionOrder = await overview.locator([
     ".hospitation-overview-workspace > .hospitation-overview-agenda",
-    ".hospitation-overview-workspace > .hospitation-overview-evidence",
-    ".hospitation-overview-workspace > .hospitation-overview-framework-link"
+    ".hospitation-overview-workspace > .hospitation-overview-evidence"
   ].join(",")).evaluateAll((nodes) => nodes.map((node) => {
     if (node.classList.contains("hospitation-overview-agenda")) return "agenda";
-    if (node.classList.contains("hospitation-overview-evidence")) return "evidence";
-    return "framework";
+    return "evidence";
   }));
-  expect(sectionOrder).toEqual(["agenda", "evidence", "framework"]);
+  expect(sectionOrder).toEqual(["agenda", "evidence"]);
   const agendaChildOrder = await overview.locator([
     ".hospitation-overview-agenda > .hospitation-overview-agenda__intro",
     ".hospitation-overview-agenda > .hospitation-overview-agenda__items",
@@ -1193,6 +1192,7 @@ test("Hospitations-Kompass Übersicht: Editor sieht Termine, Arbeitswege und bel
   await expect(overview.locator("#hospitation-overview-questionnaire-open")).toBeEnabled();
   await expect(overview.locator("#hospitation-overview-questionnaire-open")).not.toHaveAttribute("data-route-link");
   await expect(overview.locator(".hospitation-overview-agenda")).toHaveClass(/has-plan/);
+  await expect(overview.locator(".hospitation-overview-agenda__intro")).not.toContainText("Die nächsten Termine");
   await expect(overview.locator("#hospitation-overview-plan-button")).toBeVisible();
   await expect(overview.locator("#hospitation-overview-plan-button")).toHaveText(/Neue Hospitation planen\s*→/);
 
@@ -1207,29 +1207,66 @@ test("Hospitations-Kompass Übersicht: Editor sieht Termine, Arbeitswege und bel
   expect(agendaTimestamps).toEqual([...agendaTimestamps].sort((left, right) => left - right));
   expect(agendaTimestamps.every((timestamp) => timestamp >= HOSPITATION_OVERVIEW_NOW.getTime())).toBe(true);
 
-  await expect(overview.locator("#hospitation-overview-open-count")).toHaveText("0");
-  await expect(overview.locator(".hospitation-overview-attention")).toHaveClass(/is-clear/);
+  await expect(overview.locator("#hospitation-overview-open-count")).toHaveCount(0);
+  await expect(overview.locator("#hospitation-overview-attention-title")).toHaveCount(0);
+  await expect(overview.locator(".hospitation-overview-attention__number")).toHaveCount(0);
+  await expect(overview.locator(".hospitation-overview-attention")).not.toHaveClass(/is-clear|is-open/);
   await expect(overview.locator(".hospitation-overview-attention")).toHaveAccessibleName("Im Blick");
-  await expect(overview.locator("#hospitation-overview-attention-label")).toHaveText("Gesamt im Kalender");
+  await expect(overview.locator("#hospitation-overview-attention-label")).toHaveCount(0);
   await expect(overview.locator("#hospitation-overview-attention-focus-number")).toHaveText("3");
   await expect(overview.locator("#hospitation-overview-attention-focus-copy")).toHaveText("Hospitationen");
-  await expect(overview.locator("#hospitation-overview-attention-open")).toContainText("Alle Hospitationen anzeigen");
+  const allTermsLink = overview.locator('#hospitation-overview-all-open[data-route-link="hospitations"]');
+  await expect(allTermsLink).toHaveText(/Alle Termine\s*→/);
+  await expect(allTermsLink).toHaveAccessibleName("Alle Termine öffnen");
+  await expect(allTermsLink.locator(".hospitation-overview-context-link__icon svg")).toHaveCount(1);
+  await expect(overview.locator(".hospitation-overview-agenda__intro > #hospitation-overview-all-open")).toHaveCount(1);
+  const attentionFocusStyle = await overview.locator(".hospitation-overview-attention__focus").evaluate((node) => {
+    const style = window.getComputedStyle(node);
+    return {
+      borderBottomWidth: style.borderBottomWidth,
+      paddingBottom: style.paddingBottom
+    };
+  });
+  expect(attentionFocusStyle).toEqual({ borderBottomWidth: "0px", paddingBottom: "0px" });
   const attentionMetricOrder = await overview.locator([
+    ".hospitation-overview-attention > .hospitation-overview-attention__focus"
+  ].join(",")).evaluateAll((nodes) => nodes.map(() => "total"));
+  expect(attentionMetricOrder).toEqual(["total"]);
+  const attentionChildOrder = await overview.locator([
+    ".hospitation-overview-attention > .hospitation-overview-attention__head",
     ".hospitation-overview-attention > .hospitation-overview-attention__focus",
-    ".hospitation-overview-attention > .hospitation-overview-attention__number"
-  ].join(",")).evaluateAll((nodes) => nodes.map((node) =>
-    node.classList.contains("hospitation-overview-attention__focus") ? "total" : "open"
-  ));
-  expect(attentionMetricOrder).toEqual(["total", "open"]);
+    ".hospitation-overview-attention > .hospitation-overview-attention__action"
+  ].join(",")).evaluateAll((nodes) => nodes.map((node) => {
+    if (node.classList.contains("hospitation-overview-attention__head")) return "head";
+    if (node.classList.contains("hospitation-overview-attention__focus")) return "focus";
+    return "dashboard";
+  }));
+  expect(attentionChildOrder).toEqual(["head", "focus", "dashboard"]);
+  const dashboardLink = overview.locator('#hospitation-overview-dashboard-open[data-route-link="hospitations:dashboard"]');
+  await expect(dashboardLink).toBeVisible();
+  await expect(dashboardLink).toHaveText(/Dashboard\s*→/);
+  await expect(dashboardLink).toHaveAccessibleName("Dashboard öffnen");
+  await expect(dashboardLink.locator(".hospitation-overview-attention__action-icon svg")).toHaveCount(1);
+  await expect(overview.locator(".hospitation-overview-attention > #hospitation-overview-dashboard-open:last-child")).toHaveCount(1);
 
-  const frameworkLink = overview.locator('a.hospitation-overview-framework-link[data-route-link="framework"]');
+  const frameworkLink = overview.locator('a.hospitation-overview-evidence__framework[data-route-link="framework"]');
   await expect(frameworkLink).toBeVisible();
-  await expect(frameworkLink).toContainText("Framework");
-  await expect(frameworkLink).toHaveText(/Grundlage\s*Framework\s*Öffnen\s*→/);
-  await expect(frameworkLink).not.toContainText("Orientierung für Hospitationen");
-  await expect(frameworkLink).not.toContainText("Hospitationen fundiert vorbereiten");
+  await expect(frameworkLink).toHaveAccessibleName("Framework öffnen");
+  await expect(frameworkLink).toHaveText(/Framework\s*→/);
+  await expect(frameworkLink.locator(".hospitation-overview-context-link__icon svg")).toHaveCount(1);
+  const contextLinkStyles = await Promise.all([allTermsLink, frameworkLink].map((link) => link.evaluate((element) => {
+    const style = getComputedStyle(element);
+    return {
+      backgroundColor: style.backgroundColor,
+      borderRadius: style.borderRadius,
+      minHeight: style.minHeight
+    };
+  })));
+  expect(contextLinkStyles[0]).toEqual(contextLinkStyles[1]);
   const evidence = overview.locator("section.hospitation-overview-evidence");
   const evidenceIntro = evidence.locator(":scope > .hospitation-overview-evidence__intro");
+  await expect(evidenceIntro.locator(":scope > .hospitation-overview-evidence__framework")).toHaveCount(1);
+  await expect(evidence.locator(":scope > .hospitation-overview-framework-link")).toHaveCount(0);
   await expect(evidenceIntro).not.toHaveAttribute("href");
   await expect(evidenceIntro.getByText("Erkenntnisweg", { exact: true })).toHaveCount(0);
   await expect(evidenceIntro.locator("strong")).toHaveText(/Von der Beobachtung\s*zur Evidenz/);
@@ -1240,6 +1277,12 @@ test("Hospitations-Kompass Übersicht: Editor sieht Termine, Arbeitswege und bel
   const evidenceItems = evidenceProcess.locator(":scope > li.hospitation-overview-evidence__item");
   await expect(evidenceProcess).toBeVisible();
   await expect(evidenceItems).toHaveCount(4);
+  const evidenceStripes = await evidenceItems.evaluateAll((nodes) => nodes.map((node) => {
+    const style = getComputedStyle(node, "::before");
+    return { content: style.content, height: style.height, backgroundColor: style.backgroundColor };
+  }));
+  expect(evidenceStripes.every((stripe) => stripe.content !== "none" && stripe.height === "5px")).toBe(true);
+  expect(new Set(evidenceStripes.map((stripe) => stripe.backgroundColor)).size).toBe(4);
   await expect(evidenceProcess.locator(":scope > li > .hospitation-overview-evidence__step > strong")).toHaveText([
     "Beobachtung",
     "Muster",
@@ -1267,14 +1310,11 @@ test("Hospitations-Kompass Übersicht: Editor sieht Termine, Arbeitswege und bel
   const defaultBackground = await observationStep.evaluate((element) => getComputedStyle(element).backgroundColor);
   await observationStep.hover();
   await expect.poll(() => observationStep.evaluate((element) => getComputedStyle(element).backgroundColor)).not.toBe(defaultBackground);
-  await evidenceLinks.nth(0).focus();
+  await frameworkLink.focus();
+  await page.keyboard.press("Tab");
+  await expect(evidenceLinks.nth(0)).toBeFocused();
   await page.keyboard.press("Tab");
   await expect(evidenceLinks.nth(1)).toBeFocused();
-  await page.keyboard.press("Tab");
-  await expect(frameworkLink).toBeFocused();
-  const dashboardLink = overview.locator('a.hospitation-overview-attention__dashboard-link[data-route-link="hospitations:dashboard"]');
-  await expect(dashboardLink).toBeVisible();
-  await expect(dashboardLink).toHaveText(/Dashboard\s*→/);
 
   const returnToOverview = async () => {
     await page.goBack();
@@ -1297,6 +1337,11 @@ test("Hospitations-Kompass Übersicht: Editor sieht Termine, Arbeitswege und bel
   await expect(page).toHaveURL(/#hospitations:dashboard$/);
   await expect(page.locator("#hospitation-dashboard-panel")).toBeVisible();
   await returnToOverview();
+  await allTermsLink.click();
+  await expect(page).toHaveURL(/#hospitations$/);
+  await expect(page.locator("#hospitation-appointments-panel")).toBeVisible();
+  await expect(page.locator("#hospitation-editor-drawer")).not.toHaveClass(/is-open/);
+  await returnToOverview();
 
   await overview.locator("#hospitation-overview-questionnaire-open").click();
   await expect(page).toHaveURL(/#questionnaire$/);
@@ -1304,7 +1349,7 @@ test("Hospitations-Kompass Übersicht: Editor sieht Termine, Arbeitswege und bel
   await expect(page.locator("#questionnaire-hospitation-container")).toHaveValue("overview-upcoming-2");
 });
 
-test("Hospitations-Kompass Übersicht: offene Dokumentation wird eindeutig und direkt bearbeitbar", async ({ page }, testInfo) => {
+test("Hospitations-Kompass Übersicht: offene Dokumentationen bleiben aus Im Blick ausgeblendet", async ({ page }, testInfo) => {
   test.skip(testInfo.project.name !== "chromium-desktop", "Der fokussierte Overview-Vertrag läuft einmal im Desktop-Projekt.");
   const { overview } = await gotoHospitationOverview(page, {
     role: "editor",
@@ -1312,22 +1357,25 @@ test("Hospitations-Kompass Übersicht: offene Dokumentation wird eindeutig und d
     openDocumentation: 1
   });
 
-  await expect(overview.locator("#hospitation-overview-open-count")).toHaveText("1");
-  await expect(overview.locator("#hospitation-overview-attention-title")).toHaveText("Dokumentation ist noch offen");
-  await expect(overview.locator(".hospitation-overview-attention")).toHaveClass(/is-open/);
-  await expect(overview.locator("#hospitation-overview-attention-label")).toHaveText("Gesamt im Kalender");
+  await expect(overview.locator("#hospitation-overview-open-count")).toHaveCount(0);
+  await expect(overview.locator("#hospitation-overview-attention-title")).toHaveCount(0);
+  await expect(overview.locator(".hospitation-overview-attention__number")).toHaveCount(0);
+  await expect(overview.locator(".hospitation-overview-attention")).not.toHaveClass(/is-open|is-clear/);
+  await expect(overview.locator("#hospitation-overview-attention-label")).toHaveCount(0);
   await expect(overview.locator("#hospitation-overview-attention-focus-number")).toHaveText("2");
   await expect(overview.locator("#hospitation-overview-attention-focus-copy")).toHaveText("Hospitationen");
-  const documentationAction = overview.locator("#hospitation-overview-attention-open");
-  await expect(documentationAction).toHaveText(/Dokumentation starten\s*→/);
-  await expect(documentationAction).toHaveAttribute("aria-label", "Dokumentation starten: Testorganisation offen 1");
-  await expect(documentationAction).toHaveAttribute("title", "Testorganisation offen 1");
+  const allTermsLink = overview.locator("#hospitation-overview-all-open");
+  await expect(allTermsLink).toHaveText(/Alle Termine\s*→/);
+  await expect(allTermsLink).toHaveAttribute("data-route-link", "hospitations");
+  await expect(allTermsLink).toHaveAccessibleName("Alle Termine öffnen");
+  await expect(overview.locator("#hospitation-overview-dashboard-open")).toHaveAttribute("data-route-link", "hospitations:dashboard");
   await expect(overview.locator(".hospitation-overview-agenda__item")).toHaveCount(1);
   await expect(overview.locator("#hospitation-overview-questionnaire-open")).toBeVisible();
 
-  await documentationAction.click();
-  await expect(page.locator("#hospitation-editor-drawer")).toHaveClass(/is-open/);
-  await expect(page.locator("#hospitation-editor-drawer")).toContainText("Testorganisation offen 1");
+  await allTermsLink.click();
+  await expect(page).toHaveURL(/#hospitations$/);
+  await expect(page.locator("#hospitation-appointments-panel")).toBeVisible();
+  await expect(page.locator("#hospitation-editor-drawer")).not.toHaveClass(/is-open/);
 });
 
 test("Hospitations-Kompass Übersicht: Teil-Dokumentation und datumsgenaue Termine behalten ihren korrekten Arbeitszustand", async ({ page }, testInfo) => {
@@ -1379,8 +1427,8 @@ test("Hospitations-Kompass Übersicht: Teil-Dokumentation und datumsgenaue Termi
   await expect(overview.locator("#hospitation-overview-next-meta")).toContainText("Uhrzeit offen");
   await expect(overview.locator(".hospitation-overview-agenda__item")).toHaveCount(2);
   await expect(overview.locator('[data-hospitation-overview-entry="hospitation:overview-upcoming-2"]')).toContainText("Terminiert");
-  await expect(overview.locator("#hospitation-overview-open-count")).toHaveText("1");
-  await expect(overview.locator("#hospitation-overview-attention-open")).toContainText("Entwurf fortsetzen");
+  await expect(overview.locator("#hospitation-overview-open-count")).toHaveCount(0);
+  await expect(overview.locator("#hospitation-overview-all-open")).toContainText("Alle Termine");
   await expect(overview.locator("#hospitation-overview-attention-focus-number")).toHaveText("4");
 });
 
@@ -1392,7 +1440,7 @@ test("Hospitations-Kompass Übersicht: Viewer navigiert sicher ohne Schreibaktio
   await expect(overview.locator(".hospitation-overview-agenda")).not.toHaveClass(/has-plan/);
   await expect(overview.locator("#hospitation-overview-questionnaire-open")).toBeHidden();
   await expect(overview.locator("#hospitation-overview-next-open")).toContainText("Zur Terminübersicht");
-  await expect(overview.locator("#hospitation-overview-attention-open")).toContainText("Alle Hospitationen anzeigen");
+  await expect(overview.locator("#hospitation-overview-all-open")).toContainText("Alle Termine");
   await expect(overview.locator('[data-route-link="framework"]')).toBeVisible();
   await expect(overview.locator('[data-route-link="hospitations:dashboard"]')).toBeVisible();
 
@@ -1444,7 +1492,7 @@ test("Hospitations-Kompass Übersicht: versteckte Listenfilter begrenzen die Üb
   await expect(overview.locator(".hospitation-overview-priority")).toHaveAttribute("data-hospitation-overview-state", "ready");
   await expect(page.locator(".crm-shell > .controls")).toBeHidden();
   await expect(overview.locator(".hospitation-overview-agenda__item")).toHaveCount(3);
-  await expect(overview.locator("#hospitation-overview-open-count")).toHaveText("1");
+  await expect(overview.locator("#hospitation-overview-open-count")).toHaveCount(0);
   await expect(overview.locator("#hospitation-overview-attention-focus-number")).toHaveText("4");
 
   await page.goBack();
@@ -1490,14 +1538,14 @@ for (const role of ["editor", "viewer"]) {
             attention: rect(".hospitation-overview-attention"),
             agenda: rect(".hospitation-overview-agenda"),
             agendaIntro: rect(".hospitation-overview-agenda__intro"),
+            allHospitations: rect(".hospitation-overview-agenda__all"),
             agendaItems: rect(".hospitation-overview-agenda__items"),
             plan: rect(".hospitation-overview-plan-card"),
             evidence: rect(".hospitation-overview-evidence"),
             evidenceIntro: rect(".hospitation-overview-evidence__intro"),
             evidenceFlow: rect(".hospitation-overview-evidence__flow"),
-            framework: rect(".hospitation-overview-framework-link"),
-            frameworkBody: rect(".hospitation-overview-framework-link__body"),
-            frameworkAction: rect(".hospitation-overview-framework-link__action"),
+            framework: rect(".hospitation-overview-evidence__framework"),
+            dashboard: rect(".hospitation-overview-attention__action"),
             evidenceSteps: [...root.querySelectorAll(".hospitation-overview-evidence__item")].map((node) => {
               const box = node.getBoundingClientRect();
               return { left: box.left, top: box.top, right: box.right, bottom: box.bottom };
@@ -1508,23 +1556,30 @@ for (const role of ["editor", "viewer"]) {
         expect(geometry.attention).not.toBeNull();
         expect(geometry.agenda).not.toBeNull();
         expect(geometry.agendaIntro).not.toBeNull();
+        expect(geometry.allHospitations).not.toBeNull();
         expect(geometry.agendaItems).not.toBeNull();
         expect(geometry.evidence).not.toBeNull();
         expect(geometry.evidenceIntro).not.toBeNull();
         expect(geometry.evidenceFlow).not.toBeNull();
         expect(geometry.framework).not.toBeNull();
-        expect(geometry.frameworkBody).not.toBeNull();
-        expect(geometry.frameworkAction).not.toBeNull();
+        expect(geometry.dashboard).not.toBeNull();
         expect(geometry.evidenceSteps).toHaveLength(4);
         expect(geometry.evidence.top).toBeGreaterThanOrEqual(geometry.agenda.bottom - 1);
-        expect(geometry.framework.top).toBeGreaterThanOrEqual(geometry.evidence.bottom - 1);
-        expect(Math.abs(geometry.framework.left - geometry.evidence.left)).toBeLessThanOrEqual(1);
-        expect(Math.abs(geometry.framework.right - geometry.evidence.right)).toBeLessThanOrEqual(1);
+        expect(geometry.allHospitations.left).toBeGreaterThanOrEqual(geometry.agendaIntro.left - 1);
+        expect(geometry.allHospitations.right).toBeLessThanOrEqual(geometry.agendaIntro.right + 1);
+        expect(geometry.allHospitations.top).toBeGreaterThanOrEqual(geometry.agendaIntro.top - 1);
+        expect(geometry.allHospitations.bottom).toBeLessThanOrEqual(geometry.agendaIntro.bottom + 1);
+        expect(geometry.allHospitations.height).toBeGreaterThanOrEqual(44);
+        expect(geometry.dashboard.left).toBeGreaterThanOrEqual(geometry.attention.left - 1);
+        expect(geometry.dashboard.right).toBeLessThanOrEqual(geometry.attention.right + 1);
+        expect(geometry.dashboard.bottom).toBeLessThanOrEqual(geometry.attention.bottom + 1);
+        expect(geometry.dashboard.height).toBeGreaterThanOrEqual(40);
+        expect(geometry.framework.left).toBeGreaterThanOrEqual(geometry.evidenceIntro.left - 1);
+        expect(geometry.framework.right).toBeLessThanOrEqual(geometry.evidenceIntro.right + 1);
+        expect(geometry.framework.top).toBeGreaterThanOrEqual(geometry.evidenceIntro.top - 1);
+        expect(geometry.framework.bottom).toBeLessThanOrEqual(geometry.evidenceIntro.bottom + 1);
         expect(geometry.framework.height).toBeGreaterThanOrEqual(44);
-        expect(geometry.framework.height).toBeLessThan(geometry.agenda.height);
         expect(geometry.framework.height).toBeLessThan(geometry.evidence.height);
-        expect(geometry.frameworkBody.left).toBeGreaterThanOrEqual(geometry.framework.left - 1);
-        expect(geometry.frameworkAction.right).toBeLessThanOrEqual(geometry.framework.right + 1);
 
         if (viewport.width > 1000) {
           expect(Math.abs(geometry.next.top - geometry.attention.top)).toBeLessThanOrEqual(1);
@@ -1535,6 +1590,7 @@ for (const role of ["editor", "viewer"]) {
 
         if (viewport.width > 1100) {
           expect(Math.abs(geometry.evidenceIntro.top - geometry.evidenceFlow.top)).toBeLessThanOrEqual(1);
+          expect(Math.abs(geometry.agendaIntro.width - geometry.evidenceIntro.width)).toBeLessThanOrEqual(1);
         } else {
           expect(geometry.evidenceFlow.top).toBeGreaterThanOrEqual(geometry.evidenceIntro.bottom - 1);
         }

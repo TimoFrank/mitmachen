@@ -44813,6 +44813,7 @@
       }
 
       .hospitation-overview-workspace {
+        --hospitation-overview-intro-size: 190px;
         --hospitation-overview-blue: #2f6fec;
         --hospitation-overview-blue-text: #285fc7;
         --hospitation-overview-green: #20a86b;
@@ -45088,28 +45089,21 @@
       }
 
       .hospitation-overview-next__action:disabled,
-      .hospitation-overview-next__secondary:disabled,
-      .hospitation-overview-attention__action:disabled {
+      .hospitation-overview-next__secondary:disabled {
         cursor: default;
         opacity: 0.58;
       }
 
       .hospitation-overview-attention {
-        --hospitation-attention-accent: var(--module-planning-strong);
-        --hospitation-attention-background: var(--warning-soft);
-        --hospitation-attention-border: rgba(var(--module-planning-rgb), 0.45);
+        --hospitation-attention-accent: var(--primary);
+        --hospitation-attention-background: var(--primary-soft);
+        --hospitation-attention-border: var(--border-strong);
         display: grid;
         min-width: 0;
         align-content: center;
         gap: 14px;
         padding: 26px 28px;
         background: var(--hospitation-attention-background);
-      }
-
-      .hospitation-overview-attention.is-clear {
-        --hospitation-attention-accent: #147a4c;
-        --hospitation-attention-background: var(--success-soft);
-        --hospitation-attention-border: rgba(20, 122, 76, 0.3);
       }
 
       .hospitation-overview-attention.is-error {
@@ -45121,70 +45115,13 @@
       .hospitation-overview-attention__head {
         display: flex;
         align-items: center;
-        justify-content: space-between;
+        justify-content: flex-start;
         gap: 12px;
-      }
-
-      .hospitation-overview-attention__dashboard-link {
-        display: inline-flex;
-        min-height: 34px;
-        align-items: center;
-        gap: 6px;
-        padding: 6px 9px;
-        border: 1px solid var(--hospitation-attention-border);
-        border-radius: var(--radius-md);
-        background: rgba(255, 255, 255, 0.4);
-        color: var(--hospitation-attention-accent);
-        font-size: var(--font-size-xs);
-        font-weight: 850;
-        text-decoration: none;
-        transition: background-color 160ms ease, border-color 160ms ease;
-      }
-
-      .hospitation-overview-attention__dashboard-link:hover {
-        border-color: var(--hospitation-attention-accent);
-        background: rgba(255, 255, 255, 0.72);
-      }
-
-      .hospitation-overview-attention__dashboard-link:focus-visible {
-        outline: 3px solid var(--primary);
-        outline-offset: 3px;
-      }
-
-      .hospitation-overview-attention__number {
-        display: flex;
-        min-width: 0;
-        align-items: baseline;
-        gap: 10px;
-      }
-
-      .hospitation-overview-attention__number strong {
-        color: var(--hospitation-attention-accent);
-        font-size: 2.6rem;
-        font-variant-numeric: tabular-nums;
-        line-height: 1;
-      }
-
-      .hospitation-overview-attention__number span {
-        min-width: 0;
-        flex: 1 1 auto;
-        color: var(--text-secondary);
-        font-size: var(--font-size-sm);
-        line-height: var(--line-height-normal);
-        text-wrap: balance;
       }
 
       .hospitation-overview-attention__focus {
         display: grid;
         min-width: 0;
-        gap: 4px;
-        padding-bottom: 12px;
-        border-bottom: 1px solid var(--hospitation-attention-border);
-      }
-
-      .hospitation-overview-attention__focus > span {
-        color: var(--text-muted);
-        font-size: var(--font-size-xs);
       }
 
       .hospitation-overview-attention__focus-value {
@@ -45226,17 +45163,31 @@
         border: 1px solid var(--hospitation-attention-border);
         background: transparent;
         color: var(--hospitation-attention-accent);
+        text-decoration: none;
       }
 
-      .hospitation-overview-attention__action:hover:not(:disabled) {
+      .hospitation-overview-attention__action:hover {
         background: rgba(255, 255, 255, 0.52);
+      }
+
+      .hospitation-overview-attention__action-icon {
+        display: grid;
+        width: 18px;
+        height: 18px;
+        flex: 0 0 auto;
+        place-items: center;
+      }
+
+      .hospitation-overview-attention__action-icon svg {
+        width: 18px;
+        height: 18px;
       }
 
       .hospitation-overview-evidence {
         display: grid;
         min-width: 0;
         grid-template-areas: "intro flow";
-        grid-template-columns: 190px minmax(0, 1fr);
+        grid-template-columns: var(--hospitation-overview-intro-size) minmax(0, 1fr);
         border-bottom: 1px solid var(--border);
       }
 
@@ -45244,13 +45195,13 @@
         display: grid;
         min-width: 0;
         grid-template-areas: "intro items";
-        grid-template-columns: 190px minmax(0, 1fr);
+        grid-template-columns: var(--hospitation-overview-intro-size) minmax(0, 1fr);
         border-bottom: 1px solid var(--border);
       }
 
       .hospitation-overview-agenda.has-plan {
         grid-template-areas: "intro items plan";
-        grid-template-columns: 190px minmax(0, 1fr) 250px;
+        grid-template-columns: var(--hospitation-overview-intro-size) minmax(0, 1fr) 250px;
       }
 
       .hospitation-overview-evidence__intro,
@@ -45269,24 +45220,78 @@
 
       .hospitation-overview-evidence__intro {
         grid-area: intro;
+        gap: 12px;
         background: var(--surface-muted);
       }
 
-      .hospitation-overview-evidence__intro strong,
+      .hospitation-overview-evidence__intro-copy {
+        display: grid;
+        min-width: 0;
+        gap: 4px;
+      }
+
+      .hospitation-overview-evidence__intro-copy strong,
       .hospitation-overview-agenda__intro strong {
         color: var(--text-primary);
         font-size: var(--font-size-sm);
       }
 
-      .hospitation-overview-agenda__intro > span:last-child {
-        color: var(--text-muted);
-        font-size: var(--font-size-xs);
-        line-height: var(--line-height-normal);
-      }
-
-      .hospitation-overview-evidence__intro > strong {
+      .hospitation-overview-evidence__intro-copy > strong {
         max-width: 150px;
         line-height: 1.28;
+      }
+
+      .hospitation-overview-context-link {
+        display: inline-flex;
+        width: 100%;
+        min-width: 0;
+        min-height: 44px;
+        align-items: center;
+        gap: 8px;
+        padding: 7px 10px;
+        border: 1px solid var(--sidebar-bg);
+        border-radius: var(--radius-md);
+        background: var(--sidebar-bg);
+        color: var(--surface);
+        font-size: var(--font-size-xs);
+        font-weight: 850;
+        text-decoration: none;
+        transition: background-color 160ms ease, border-color 160ms ease;
+      }
+
+      .hospitation-overview-context-link:hover {
+        border-color: var(--primary);
+        background: var(--primary);
+      }
+
+      .hospitation-overview-context-link:focus-visible {
+        outline: 3px solid var(--primary);
+        outline-offset: 3px;
+      }
+
+      .hospitation-overview-context-link__icon {
+        display: grid;
+        width: 18px;
+        height: 18px;
+        flex: 0 0 auto;
+        place-items: center;
+      }
+
+      .hospitation-overview-context-link__icon svg {
+        width: 18px;
+        height: 18px;
+      }
+
+      .hospitation-overview-context-link > span:last-child {
+        margin-left: auto;
+      }
+
+      .hospitation-overview-agenda__all {
+        margin-top: 8px;
+      }
+
+      .hospitation-overview-agenda__all > span:nth-child(2) {
+        white-space: nowrap;
       }
 
       .hospitation-overview-evidence__flow {
@@ -45311,6 +45316,7 @@
         min-width: 0;
         min-height: 96px;
         height: 100%;
+        grid-row: 1;
         grid-template-columns: 44px minmax(0, 1fr);
         align-content: center;
         align-items: center;
@@ -45327,9 +45333,33 @@
       }
 
       .hospitation-overview-evidence__item {
+        --hospitation-evidence-stripe: var(--hospitation-overview-green);
         position: relative;
         display: grid;
         min-width: 0;
+        grid-template-rows: minmax(0, 1fr) 5px;
+        gap: 7px;
+      }
+
+      .hospitation-overview-evidence__item::before {
+        grid-row: 2;
+        width: 100%;
+        height: 5px;
+        border-radius: 999px;
+        background: var(--hospitation-evidence-stripe);
+        content: "";
+      }
+
+      .hospitation-overview-evidence__item--patterns {
+        --hospitation-evidence-stripe: var(--hospitation-overview-blue);
+      }
+
+      .hospitation-overview-evidence__item--hypothesis {
+        --hospitation-evidence-stripe: var(--hospitation-overview-amber);
+      }
+
+      .hospitation-overview-evidence__item--next-step {
+        --hospitation-evidence-stripe: var(--hospitation-overview-red);
       }
 
       .hospitation-overview-evidence__item:not(:last-child)::after {
@@ -45570,81 +45600,6 @@
         font-size: var(--font-size-sm);
       }
 
-      .hospitation-overview-framework-link {
-        display: grid;
-        grid-template-columns: minmax(0, 1fr) auto;
-        align-items: center;
-        min-height: 66px;
-        border-top: 0;
-        background: var(--surface-muted);
-        color: var(--text-primary);
-        text-decoration: none;
-      }
-
-      .hospitation-overview-framework-link:hover {
-        background: var(--primary-soft);
-      }
-
-      .hospitation-overview-framework-link:focus-visible {
-        outline: 3px solid var(--primary);
-        outline-offset: -4px;
-      }
-
-      .hospitation-overview-framework-link__body {
-        display: flex;
-        min-width: 0;
-        align-items: center;
-        gap: 12px;
-        padding: 10px 18px;
-      }
-
-      .hospitation-overview-framework-link__icon {
-        display: grid;
-        width: 36px;
-        height: 36px;
-        flex: 0 0 auto;
-        place-items: center;
-        border-radius: 50%;
-        background: var(--sidebar-bg);
-        color: var(--surface);
-      }
-
-      .hospitation-overview-framework-link__icon svg {
-        width: 19px;
-        height: 19px;
-      }
-
-      .hospitation-overview-framework-link__copy {
-        display: grid;
-        min-width: 0;
-        grid-template-columns: minmax(0, 1fr);
-        gap: 1px;
-      }
-
-      .hospitation-overview-framework-link__copy strong {
-        color: var(--text-primary);
-        font-size: var(--font-size-sm);
-        line-height: var(--line-height-tight);
-        overflow-wrap: anywhere;
-      }
-
-      .hospitation-overview-framework-link__action {
-        display: inline-flex;
-        min-height: 36px;
-        align-items: center;
-        justify-content: center;
-        gap: 8px;
-        margin-right: 16px;
-        padding: 7px 11px;
-        border: 1px solid var(--border-strong);
-        border-radius: var(--radius-md);
-        background: var(--surface);
-        color: var(--sidebar-bg);
-        font-size: var(--font-size-sm);
-        font-weight: 800;
-        white-space: nowrap;
-      }
-
       @media (max-width: 1100px) {
         .hospitation-overview-priority {
           grid-template-columns: minmax(0, 1.45fr) minmax(250px, 0.85fr);
@@ -45668,9 +45623,17 @@
         }
 
         .hospitation-overview-evidence__intro {
+          grid-template-columns: minmax(0, 1fr) auto;
+          align-content: normal;
+          align-items: center;
           padding-block: 14px;
           border-right: 0;
           border-bottom: 1px solid var(--border);
+        }
+
+        .hospitation-overview-evidence__framework {
+          width: auto;
+          min-width: 142px;
         }
 
         .hospitation-overview-evidence__step {
@@ -45694,14 +45657,14 @@
 
         .hospitation-overview-agenda {
           grid-template-areas: "intro items";
-          grid-template-columns: 170px minmax(0, 1fr);
+          grid-template-columns: var(--hospitation-overview-intro-size) minmax(0, 1fr);
         }
 
         .hospitation-overview-agenda.has-plan {
           grid-template-areas:
             "intro items"
             "plan plan";
-          grid-template-columns: 170px minmax(0, 1fr);
+          grid-template-columns: var(--hospitation-overview-intro-size) minmax(0, 1fr);
         }
 
         .hospitation-overview-agenda > .hospitation-overview-plan-card {
@@ -45878,19 +45841,6 @@
           display: inline;
         }
 
-        .hospitation-overview-framework-link {
-          grid-template-columns: minmax(0, 1fr) auto;
-          min-height: 62px;
-        }
-
-        .hospitation-overview-framework-link__body {
-          padding: 10px 14px;
-        }
-
-        .hospitation-overview-framework-link__action {
-          min-height: 36px;
-          margin-right: 14px;
-        }
       }
 
       @media (max-width: 520px) {
@@ -45913,12 +45863,21 @@
         .hospitation-overview-next__secondary {
           width: 100%;
         }
+
+        .hospitation-overview-evidence__intro {
+          grid-template-columns: minmax(0, 1fr);
+        }
+
+        .hospitation-overview-evidence__framework {
+          width: 100%;
+        }
       }
 
       @media (prefers-reduced-motion: reduce) {
         .hospitation-overview-evidence__step--interactive,
         .hospitation-overview-evidence__step--interactive .hospitation-overview-evidence__icon,
-        .hospitation-overview-evidence__open {
+        .hospitation-overview-evidence__open,
+        .hospitation-overview-context-link {
           transition: none;
         }
       }
@@ -45929,7 +45888,8 @@
         .hospitation-overview-plan-card,
         .hospitation-overview-evidence__step,
         .hospitation-overview-agenda__item,
-        .hospitation-overview-framework-link {
+        .hospitation-overview-context-link,
+        .hospitation-overview-attention__action {
           border-color: ButtonText;
           background: Canvas;
           color: ButtonText;
@@ -45946,13 +45906,16 @@
         .hospitation-overview-plan-card__label,
         .hospitation-overview-plan-card__arrow,
         .hospitation-overview-plan-card__icon,
-        .hospitation-overview-framework-link__icon,
-        .hospitation-overview-framework-link__action,
-        .hospitation-overview-attention__dashboard-link {
+        .hospitation-overview-context-link__icon {
           color: ButtonText;
         }
 
-        .hospitation-overview-evidence__step--interactive:focus-visible {
+        .hospitation-overview-evidence__item::before {
+          background: ButtonText;
+        }
+
+        .hospitation-overview-evidence__step--interactive:focus-visible,
+        .hospitation-overview-context-link:focus-visible {
           outline-color: Highlight;
         }
       }
