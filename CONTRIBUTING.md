@@ -9,6 +9,19 @@ Danke für dein Interesse. Kleine, gut erklärte Änderungen sind am leichtesten
 - Verwende nur fiktive Daten. Echte Kontakt- oder Betriebsdaten gehören nicht in das Repository.
 - Melde Sicherheitslücken nach der [Sicherheitsrichtlinie](SECURITY.md), nicht als öffentliches Issue.
 
+## Sprache für Pull Requests und Commits
+
+Pull-Request-Titel, Pull-Request-Beschreibungen, Commit-Kurzbeschreibungen und
+ausführliche Commit-Beschreibungen werden auf Deutsch verfasst. Technische
+Eigennamen, Code-Bezeichner, Befehle, Protokolle und unverändert wiederzugebende
+Meldungen dürfen englisch bleiben.
+
+Lokale Zwischen-Commits benötigen noch keine PR-Nummer. Beim Squash-Merge folgt
+der dauerhafte Commit-Titel auf `main` dem Format
+`Deutscher PR-Titel (#123)`; GitHub erzeugt und verlinkt die Nummer. Automatisch
+erzeugte englische Texte werden vor dem Merge übersetzt, wenn sie in die
+dauerhafte Historie übernommen werden.
+
 ## Lokal starten
 
 Vorausgesetzt werden Node.js und npm.
