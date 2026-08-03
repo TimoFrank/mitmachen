@@ -42511,13 +42511,34 @@
           padding-top: 2px;
         }
 
-        .politics-context__actions {
-          flex-wrap: wrap;
+        .politics-context .politics-context__actions {
+          width: 100%;
+          align-items: stretch;
+          flex-wrap: nowrap;
           justify-content: flex-end;
+          gap: 8px;
         }
 
-        .politics-map-open {
-          order: -1;
+        .politics-context__actions > .directory-filter-shell {
+          width: auto;
+          min-width: 0;
+          flex: 0 0 auto;
+          order: 0;
+        }
+
+        .politics-context__actions > .directory-filter-shell > .directory-filter-button {
+          width: auto;
+          min-height: 44px;
+        }
+
+        .politics-context__actions > .politics-map-open {
+          width: auto;
+          min-width: 0;
+          min-height: 44px;
+          flex: 1 1 auto;
+          justify-content: center;
+          order: 1;
+          white-space: nowrap;
         }
 
         .politics-map-panel {
@@ -42561,47 +42582,7 @@
         }
 
         .politics-table .thead {
-          position: relative;
-          top: auto;
-          z-index: 20;
-          display: flex;
-          flex-wrap: wrap;
-          gap: 6px;
-          min-height: 0;
-          margin-bottom: 10px;
-          padding: 8px;
-          border: 1px solid var(--border);
-          border-radius: var(--radius-lg);
-          background: var(--surface);
-          box-shadow: var(--shadow-sm);
-        }
-
-        .politics-table .thead > div {
-          flex: 1 1 calc(50% - 3px);
-          min-width: 142px;
-          min-height: 38px;
-          padding: 0;
-          border: 0;
-        }
-
-        .politics-table .thead > div[data-politics-column="profile"] {
           display: none;
-        }
-
-        .politics-table .thead .politics-column-head {
-          min-height: 38px;
-          padding: 0 6px 0 9px;
-          border: 1px solid var(--border);
-          border-radius: var(--radius-md);
-          background: var(--surface-muted);
-        }
-
-        .politics-table .thead .column-sort-button {
-          font-size: 0.7rem;
-        }
-
-        .politics-table .thead .politics-filter-menu {
-          z-index: 120;
         }
 
         .politics-table .politics-member-row {
@@ -42863,6 +42844,33 @@
           align-items: flex-start;
         }
 
+        .dataset-toolbar.press-context {
+          display: grid;
+          grid-template-columns: minmax(0, 1fr) auto;
+          align-items: center;
+          flex-wrap: nowrap;
+          gap: 8px;
+        }
+
+        .press-context > .dataset-toolbar__summary {
+          min-width: 0;
+        }
+
+        .press-context > .dataset-toolbar__actions {
+          width: auto;
+          flex-wrap: nowrap;
+          justify-self: end;
+        }
+
+        .press-context .directory-filter-shell,
+        .press-context .directory-filter-button {
+          width: auto;
+        }
+
+        .press-context .directory-filter-button {
+          min-height: 44px;
+        }
+
         .press-context__source {
           max-width: 190px;
           text-align: right;
@@ -42876,29 +42884,11 @@
         }
 
         .press-table .thead {
-          gap: 5px;
-          margin-bottom: 8px;
-          padding: 6px;
+          display: none;
         }
 
-        .press-table .thead > div {
-          flex: 1 1 calc(50% - 3px);
-          min-width: 0;
-          min-height: 36px;
-        }
-
-        .press-table .thead .press-column-head {
-          min-height: 36px;
-          padding-inline: 8px 5px;
-        }
-
-        .press-table .thead > div[data-press-column="organization"] .column-head__label {
-          font-size: 0;
-        }
-
-        .press-table .thead > div[data-press-column="organization"] .column-head__label::after {
-          content: "Medium";
-          font-size: 0.7rem;
+        .press-table .mobile-collection-card .press-value-link {
+          display: none;
         }
 
         .press-table .press-contact-row {
@@ -42976,10 +42966,6 @@
       }
 
       @media (min-width: 480px) and (max-width: 760px) {
-        .press-table .thead > div {
-          flex-basis: calc(33.333% - 4px);
-        }
-
         .press-table .press-contact-row {
           grid-template-columns: repeat(2, minmax(0, 1fr));
           column-gap: 16px;
@@ -42992,17 +42978,6 @@
         .press-table .press-contact-row [data-press-field="name"],
         .press-table .press-contact-row [data-press-field="source"] {
           grid-column: 1 / -1;
-        }
-      }
-
-      @media (max-width: 520px) {
-        .press-table .thead > div[data-press-column="contactType"] .column-head__label {
-          font-size: 0;
-        }
-
-        .press-table .thead > div[data-press-column="contactType"] .column-head__label::after {
-          content: "Typ";
-          font-size: 0.7rem;
         }
       }
 

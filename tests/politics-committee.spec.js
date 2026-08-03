@@ -516,16 +516,14 @@ test("Politik bleibt auf mobilen Viewports ohne horizontalen Seiten-Overflow les
   await expect(mobileRows).toHaveClass(Array.from({ length: 6 }, () => /mobile-collection-card/));
   await expect(mobileRows.locator("[data-contextual-row-select]")).toHaveCount(0);
   await expect(politicsView.locator("#contextual-bulk-toolbar")).toBeHidden();
-  await expect(politicsView.locator("[data-politics-header-filter-button]")).toHaveCount(5);
-  const factionColumnFilter = politicsView.locator('[data-politics-column="faction"] [data-politics-header-filter-button]');
-  await factionColumnFilter.click();
-  const factionColumnMenu = page.locator("#politics-header-filter-faction");
-  await expect(factionColumnMenu).toBeVisible();
-  await expect(factionColumnMenu).toHaveCSS("position", "fixed");
-  await factionColumnFilter.click();
-  await expect(factionColumnMenu).toBeHidden();
+  const politicsTableHead = politicsView.locator("#politics-table-head");
+  await expect(politicsTableHead).toBeHidden();
+  await expect(politicsTableHead.locator("[data-politics-header-filter-button]")).toHaveCount(5);
+  await expect(politicsTableHead.locator("[data-politics-header-filter-button]").first()).toBeHidden();
   const filterButton = politicsView.locator("#politics-filter-button");
+  const mapButton = politicsView.locator("#politics-map-open");
   await expect(filterButton).toBeVisible();
+  await expect(mapButton).toBeVisible();
   await filterButton.click();
   await expect(politicsView.locator("#politics-filter-panel")).toBeVisible();
   await politicsView.locator('[data-directory-filter-close="politics"]').click();
@@ -544,6 +542,21 @@ test("Politik bleibt auf mobilen Viewports ohne horizontalen Seiten-Overflow les
     );
     expect(overflow, `kein horizontaler Overflow bei ${width}px`).toBeLessThanOrEqual(1);
     await expect(mobileRows.first().locator(".mobile-contact-top")).toBeVisible();
+    await expect(politicsTableHead).toBeHidden();
+
+    const actionLayout = await politicsView.locator(".politics-context__actions").evaluate((container) => {
+      const filter = container.querySelector("#politics-filter-button").getBoundingClientRect();
+      const map = container.querySelector("#politics-map-open").getBoundingClientRect();
+      return {
+        clientWidth: container.clientWidth,
+        scrollWidth: container.scrollWidth,
+        filter: { left: filter.left, right: filter.right, top: filter.top },
+        map: { left: map.left, right: map.right, top: map.top }
+      };
+    });
+    expect(actionLayout.scrollWidth, `Aktionszeile passt bei ${width}px`).toBeLessThanOrEqual(actionLayout.clientWidth + 1);
+    expect(Math.abs(actionLayout.filter.top - actionLayout.map.top), `Buttons stehen bei ${width}px in einer Zeile`).toBeLessThanOrEqual(1);
+    expect(actionLayout.filter.right, `Filter steht bei ${width}px links von Karte`).toBeLessThanOrEqual(actionLayout.map.left);
   }
 
   await mobileRows.first().focus();
