@@ -44,12 +44,12 @@ const requiredFiles = [
 const requiredText = [
   {
     file: "README.md",
-    patterns: [/GitHub Pages/i, /Demo/i, /Datenstand.*geschützten Anwendung/i, /PoC/i],
+    patterns: [/GitHub Pages/i, /Demo/i, /Datenstand[\s\S]{0,240}geschützten Anwendung/i, /PoC/i],
     reason: "README trennt synthetische Pages-Demo, geschützten Datenstand und gematik-internen PoC."
   },
   {
     file: "dokumentation/betrieb-und-deployment/POC_GEMATIK_DURCHSTICH.md",
-    patterns: [/Non-Prod/i, /Datenstand.*geschützten Anwendung/i, /OIDC|SSO/i, /PostgreSQL/i, /RC-Tag/i, /parallele Weiterentwicklung/i, /Synchronisation.*nicht/i, /nicht für ein Deployment.*freigegeben/i],
+    patterns: [/Non-Prod/i, /Datenstand.*geschützten Anwendung/i, /OIDC|SSO/i, /PostgreSQL/i, /RC-Tag/i, /parallele Weiterentwicklung/i, /Synchronisation.*nicht/i, /nicht für ein\s+Deployment[\s\S]{0,160}freigegeben/i],
     reason: "PoC-Dokument nennt Zweck, Ressourcen, Release-Trennung und Erfolgskriterien."
   },
   {
