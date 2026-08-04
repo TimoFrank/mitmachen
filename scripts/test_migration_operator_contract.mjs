@@ -27,6 +27,10 @@ const dockerignore = readFileSync(new URL("deploy/migration-operator/Dockerfile.
 const operatorEntrypoint = readFileSync(new URL("deploy/migration-operator/operator-entrypoint.mjs", root), "utf8");
 const jobTemplate = readFileSync(new URL("deploy/migration-operator/job.template.yaml", root), "utf8");
 const operatorRunbook = readFileSync(new URL("deploy/migration-operator/README.md", root), "utf8");
+const migrationEnvironmentExample = readFileSync(
+  new URL("config/pre-gematik/migration.env.example", root),
+  "utf8"
+);
 const operatorSource = readFileSync(
   new URL("deploy/migration-operator/operator-entrypoint.mjs", root),
   "utf8"
@@ -45,6 +49,7 @@ const environment = {
   CONFIRM_GUEST_ACCESS_OPERATION: "PREBIND_IDENTITY_PLATFORM_PASSWORD_GUEST",
   CONFIRM_IDENTITY_BINDING_COUNT: "1",
   CONFIRM_IDENTITY_ACTIVE_BINDING_COUNT: "1",
+  GUEST_ACCESS_CREATE_PROFILE_AND_PREBIND: "false",
   GUEST_ACCESS_RECONCILE_PROFILE_DISPLAY_NAME_AND_PREBIND: "false"
 };
 
@@ -205,6 +210,41 @@ assert.equal(
   true
 );
 
+const guestCreateProfileEnvironment = {
+  ...environment,
+  GUEST_ACCESS_CREATE_PROFILE_AND_PREBIND: "true",
+  CONFIRM_GUEST_ACCESS_OPERATION:
+    "CREATE_PROFILE_AND_PREBIND_IDENTITY_PLATFORM_PASSWORD_GUEST"
+};
+const guestCreateProfilePreview = phaseExecution(
+  "guest-preview",
+  guestCreateProfileEnvironment
+);
+assert.deepEqual(guestCreateProfilePreview.arguments, [
+  "--input", "/protected-input/run/guest-access.json",
+  "--create-profile-and-prebind"
+]);
+const guestCreateProfileApply = phaseExecution(
+  "guest-apply",
+  guestCreateProfileEnvironment
+);
+assert.equal(
+  guestCreateProfileApply.arguments.includes("--create-profile-and-prebind"),
+  true
+);
+assert.equal(
+  guestCreateProfileApply.arguments.includes(
+    "CREATE_PROFILE_AND_PREBIND_IDENTITY_PLATFORM_PASSWORD_GUEST"
+  ),
+  true
+);
+assert.equal(
+  guestCreateProfileApply.arguments.includes(
+    "--reconcile-profile-display-name-and-prebind"
+  ),
+  false
+);
+
 const noopStateFingerprint = `sha256:${"b".repeat(64)}`;
 const guestNoopApply = phaseExecution("guest-apply", {
   ...guestReconcileEnvironment,
@@ -219,6 +259,17 @@ assert.equal(
 );
 
 for (const invalidMode of [undefined, "", "yes", "TRUE", "1"]) {
+  const invalidCreateEnvironment = {
+    ...environment,
+    GUEST_ACCESS_CREATE_PROFILE_AND_PREBIND: invalidMode
+  };
+  assert.throws(
+    () => phaseExecution("guest-preview", invalidCreateEnvironment),
+    (error) => error instanceof MigrationOperatorError
+      && /GUEST_ACCESS_CREATE_PROFILE_AND_PREBIND must be exactly true or false/u.test(
+        error.message
+      )
+  );
   const invalidEnvironment = {
     ...environment,
     GUEST_ACCESS_RECONCILE_PROFILE_DISPLAY_NAME_AND_PREBIND: invalidMode
@@ -229,6 +280,15 @@ for (const invalidMode of [undefined, "", "yes", "TRUE", "1"]) {
       && /must be exactly true or false/u.test(error.message)
   );
 }
+assert.throws(
+  () => phaseExecution("guest-preview", {
+    ...environment,
+    GUEST_ACCESS_CREATE_PROFILE_AND_PREBIND: "true",
+    GUEST_ACCESS_RECONCILE_PROFILE_DISPLAY_NAME_AND_PREBIND: "true"
+  }),
+  (error) => error instanceof MigrationOperatorError
+    && /mutually exclusive/u.test(error.message)
+);
 assert.throws(
   () => phaseExecution("guest-apply", {
     ...environment,
@@ -247,6 +307,14 @@ assert.throws(
   () => phaseExecution("guest-apply", {
     ...environment,
     GUEST_ACCESS_RECONCILE_PROFILE_DISPLAY_NAME_AND_PREBIND: "true"
+  }),
+  (error) => error instanceof MigrationOperatorError
+    && /CONFIRM_GUEST_ACCESS_OPERATION must exactly match/u.test(error.message)
+);
+assert.throws(
+  () => phaseExecution("guest-apply", {
+    ...environment,
+    GUEST_ACCESS_CREATE_PROFILE_AND_PREBIND: "true"
   }),
   (error) => error instanceof MigrationOperatorError
     && /CONFIRM_GUEST_ACCESS_OPERATION must exactly match/u.test(error.message)
@@ -485,15 +553,31 @@ assert.match(operatorRunbook, /Bewusst\s+kein `kubectl apply`/u);
 assert.match(operatorRunbook, /Ein vorhandenes gleichnamiges\s+Secret bedeutet Abbruch/u);
 assert.match(
   operatorRunbook,
+  /GUEST_ACCESS_CREATE_PROFILE_AND_PREBIND/u
+);
+assert.match(
+  operatorRunbook,
   /GUEST_ACCESS_RECONCILE_PROFILE_DISPLAY_NAME_AND_PREBIND/u
 );
 assert.match(
   operatorRunbook,
-  /akzeptiert exakt `true` oder `false`[\s\S]*Teilzustand oder ein\s+Moduswechsel[\s\S]*`NO-GO`/u
+  /beide Schalter[\s\S]*akzeptieren exakt `true` oder `false`[\s\S]*gegenseitig ausgeschlossen/u
+);
+assert.match(
+  operatorRunbook,
+  /GUEST_ACCESS_CREATE_PROFILE_AND_PREBIND=true[\s\S]*`--create-profile-and-prebind`[\s\S]*`CREATE_PROFILE_AND_PREBIND_IDENTITY_PLATFORM_PASSWORD_GUEST`/u
 );
 assert.match(
   operatorRunbook,
   /CONFIRM_GUEST_ACCESS_OPERATION[\s\S]*exakt aus demselben Preview/u
+);
+assert.match(
+  migrationEnvironmentExample,
+  /^GUEST_ACCESS_CREATE_PROFILE_AND_PREBIND=false$/mu
+);
+assert.match(
+  migrationEnvironmentExample,
+  /^GUEST_ACCESS_RECONCILE_PROFILE_DISPLAY_NAME_AND_PREBIND=false$/mu
 );
 
 const identityExecutionSection = operatorRunbook.match(
@@ -520,7 +604,11 @@ assert.match(
   /weder ein Profil aktualisieren noch ein Binding anlegen/u
 );
 assert.match(guestExecutionSection[0], /wird Apply nie blind wiederholt/u);
-assert.match(guestExecutionSection[0], /weder `--create-profile-and-prebind` noch `--revoke`/u);
+assert.match(
+  guestExecutionSection[0],
+  /exponiert `--create-profile-and-prebind` ausschließlich[\s\S]*GUEST_ACCESS_CREATE_PROFILE_AND_PREBIND=true/u
+);
+assert.match(guestExecutionSection[0], /`--revoke` bleibt nicht exponiert/u);
 
 const evidenceSection = operatorRunbook.match(
   /## 5\. Geschützte Evidenzübergabe[\s\S]*?(?=\n## 6\.)/u

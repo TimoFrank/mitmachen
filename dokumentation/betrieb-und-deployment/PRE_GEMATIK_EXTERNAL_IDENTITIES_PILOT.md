@@ -669,14 +669,18 @@ Mit der in
 beschriebenen kurzlebigen, least-privilege Operatorverbindung werden zuerst
 zwei getrennte read-only Previews ausgeführt:
 
-Für die private Cloud-SQL-Zielinstanz laufen Standard-Prebinding und der
-Anzeigename-Sonderfall produktiv ausschließlich als `guest-preview` und
-`guest-apply` im
+Für die private Cloud-SQL-Zielinstanz laufen Standard-Prebinding,
+Anzeigename-Sonderfall und atomare Neunutzeranlage produktiv ausschließlich als
+`guest-preview` und `guest-apply` im
 [GKE-Migrationsoperator](../../deploy/migration-operator/README.md). Die
 folgenden direkten Script-Aufrufe beschreiben den zugrundeliegenden
 Bestätigungsvertrag, nicht einen alternativen produktiven Netzpfad. Die
-GKE-Phasen exponieren absichtlich weder `--create-profile-and-prebind` noch
-`--revoke`.
+GKE-Phasen exponieren `--create-profile-and-prebind` ausschließlich über den
+expliziten, standardmäßig deaktivierten Schalter
+`GUEST_ACCESS_CREATE_PROFILE_AND_PREBIND`; `--revoke` bleibt nicht exponiert.
+Im Standardmodus sind dieser Schalter und
+`GUEST_ACCESS_RECONCILE_PROFILE_DISPLAY_NAME_AND_PREBIND` ausdrücklich
+`false`.
 
 ```bash
 node scripts/provision_pre_gematik_identity_platform_guest_access.mjs \
@@ -720,6 +724,7 @@ Für genau ein ansonsten passendes aktives Bestandsprofil mit abweichendem
 Anzeigenamen, ohne Binding und ohne kollidierende Pending-Anfrage wird
 `guest-access.json` zunächst auf den doppelt verifizierten
 Identity-Platform-Soll-Anzeigenamen korrigiert. In beiden GKE-Phasen muss dann
+`GUEST_ACCESS_CREATE_PROFILE_AND_PREBIND=false` und
 `GUEST_ACCESS_RECONCILE_PROFILE_DISPLAY_NAME_AND_PREBIND=true` gesetzt bleiben.
 Der Preview meldet ausschließlich die Operation
 `RECONCILE_PROFILE_DISPLAY_NAME_AND_PREBIND_IDENTITY_PLATFORM_PASSWORD_GUEST`
@@ -739,8 +744,11 @@ und ein letzter Preview gesichert. Ein unbekannter COMMIT-Ausgang ist kein
 Grund für einen blinden Job-Neustart; zuerst folgt ein neuer Preview.
 
 Für einen echten Neunutzer ohne App-Profil werden stattdessen zwei identische
-Previews mit `--create-profile-and-prebind` ausgeführt. Nur ein vollständig
-leerer relevanter Zustand darf `result=create_profile_and_binding` melden:
+GKE-Previews mit `GUEST_ACCESS_CREATE_PROFILE_AND_PREBIND=true` und
+`GUEST_ACCESS_RECONCILE_PROFILE_DISPLAY_NAME_AND_PREBIND=false` ausgeführt. Der
+Operator bildet diesen Modus ausschließlich auf
+`--create-profile-and-prebind` ab. Nur ein vollständig leerer relevanter
+Zustand darf `result=create_profile_and_binding` melden:
 
 ```bash
 node scripts/provision_pre_gematik_identity_platform_guest_access.mjs \

@@ -154,17 +154,21 @@ den Identity-Platform-Nutzer unabhängig anhand UID und E-Mail als aktiven,
 verifizierten, tenantlosen password-only Account und leitet das vollständige
 External-IAP-Subject selbst ab.
 
-Da die Zielinstanz nur eine private IP besitzt, werden Standard-Prebinding und
-der Anzeigename-Sonderfall produktiv ausschließlich über die Phasen
-`guest-preview` und `guest-apply` des
+Da die Zielinstanz nur eine private IP besitzt, werden Standard-Prebinding,
+der Anzeigename-Sonderfall und die atomare Neunutzeranlage produktiv
+ausschließlich über die Phasen `guest-preview` und `guest-apply` des
 [GKE-Migrationsoperators](../../deploy/migration-operator/README.md)
 ausgeführt. Beide Phasen erzwingen `private-ip`, einen frischen
 GCP-/Cloud-SQL-/Backup-Gate, den gepinnten Proxy, den festen owner-only Input
 `/protected-input/run/guest-access.json` und Bestätigungen aus der geschützten
 Env-Datei. Die folgenden direkten Script-Aufrufe dokumentieren den
 zugrundeliegenden fachlichen Vertrag; sie sind kein alternativer produktiver
-Netzpfad. Die GKE-Phasen exponieren absichtlich weder Neunutzeranlage noch
-Widerruf.
+Netzpfad. Die GKE-Phasen exponieren die Neunutzeranlage nur über den expliziten,
+standardmäßig deaktivierten Schalter
+`GUEST_ACCESS_CREATE_PROFILE_AND_PREBIND`; den Widerruf exponieren sie nicht.
+Im Standardmodus sind dieser Schalter und
+`GUEST_ACCESS_RECONCILE_PROFILE_DISPLAY_NAME_AND_PREBIND` ausdrücklich
+`false`.
 
 Vor dem Apply werden zwei getrennte Previews ausgeführt:
 
@@ -207,7 +211,7 @@ Anzeigename aber vom exakt verifizierten Identity-Platform-Konto abweicht und
 noch weder Binding noch kollidierender Enrollment-Request existiert, bleibt der
 Standardmodus fail-closed. Für diesen einen Fall wird `guest-access.json` zuerst
 auf den verifizierten Soll-Anzeigenamen korrigiert und anschließend in beiden
-GKE-Phasen
+GKE-Phasen `GUEST_ACCESS_CREATE_PROFILE_AND_PREBIND=false` sowie
 `GUEST_ACCESS_RECONCILE_PROFILE_DISPLAY_NAME_AND_PREBIND=true` gesetzt. Der
 Preview muss die eigene Operation
 `RECONCILE_PROFILE_DISPLAY_NAME_AND_PREBIND_IDENTITY_PLATFORM_PASSWORD_GUEST`
@@ -240,6 +244,11 @@ Preview-Fingerprints und legt Profil plus aktive `test_only`-Bindung in einer
 serialisierbaren Transaktion an. Profil-ohne-Binding, Binding-ohne-Profil,
 Pending-Anfrage oder Drift sind `NO-GO`. Anschließend sind ebenfalls
 `unchanged`-Readback, bestätigter No-op und letzter Preview Pflicht.
+Im GKE-Operator bleiben dazu in Preview und Apply
+`GUEST_ACCESS_CREATE_PROFILE_AND_PREBIND=true` und
+`GUEST_ACCESS_RECONCILE_PROFILE_DISPLAY_NAME_AND_PREBIND=false` gesetzt. Der
+Operator bildet diesen Modus ausschließlich auf `--create-profile-and-prebind`
+und `CREATE_PROFILE_AND_PREBIND_IDENTITY_PLATFORM_PASSWORD_GUEST` ab.
 
 ### Verbindlicher Gast-Widerruf
 
@@ -326,8 +335,10 @@ ersetzen; Insert, Aktivitäts-, Profil-, Rollen- oder Scope-Änderungen bleiben
 verboten. Das Passwortgast-Prebinding läuft getrennt über
 `provision_pre_gematik_identity_platform_guest_access.mjs` und die
 least-privilege Rolle `vk_access_enrollment_admin`; für diesen Pilot darf es
-nur die fehlende `test_only`-Bindung auf ein vorhandenes aktives Profil
-ergänzen.
+im Standardmodus nur die fehlende `test_only`-Bindung auf ein vorhandenes
+aktives Profil ergänzen. Der separat bestätigte Neunutzer-Modus darf
+ausschließlich aus einem vollständig leeren Ausgangszustand Profil und
+`test_only`-Bindung atomar anlegen.
 
 Die Rolle besitzt kein Login, keine Rollen- oder Datenbankverwaltung, kein
 `CREATE`, `DELETE`, `TRUNCATE`, `REFERENCES`, `TRIGGER`, keine Sequenzrechte und
@@ -702,9 +713,10 @@ Profilrolle, `access_scope` noch `scope_ref` ändern. Passwortgäste werden nich
 bestätigter Gastzugriffsoperator bindet entweder das vorhandene Profil, gleicht
 im expliziten Sondermodus ausschließlich dessen abweichenden Anzeigenamen plus
 Binding atomar ab oder legt im expliziten Neunutzer-Modus Profil und
-`test_only`-Bindung atomar an. Standard und Anzeigename-Sonderfall laufen über
-`guest-preview`/`guest-apply` des privaten GKE-Operators; Neunutzeranlage und
-Widerruf sind dort bewusst nicht exponiert.
+`test_only`-Bindung atomar an. Alle drei Modi laufen über
+`guest-preview`/`guest-apply` des privaten GKE-Operators; die Neunutzeranlage
+ist dort ausschließlich mit ihrem expliziten, standardmäßig deaktivierten
+Env-Schalter exponiert. Der Widerruf bleibt dort bewusst nicht exponiert.
 
 Der bestätigte `current_state_fingerprint` umfasst Issuer, aktuelles Subject,
 Profil-ID, Binding-Aktivität, `access_scope`, `scope_ref`, Profilrolle und

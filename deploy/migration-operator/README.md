@@ -205,13 +205,24 @@ kubectl --namespace pre-gematik create secret generic \
   --from-file=guest-access.json=/ABSOLUT/GESCHUETZT/guest-access.json
 ```
 
-`GUEST_ACCESS_RECONCILE_PROFILE_DISPLAY_NAME_AND_PREBIND` ist in jeder
-Gastphase verpflichtend und akzeptiert exakt `true` oder `false`. `false`
-aktiviert nur das unveränderte Standard-Prebinding auf ein in allen geprüften
-Kernfeldern passendes Bestandsprofil. `true` erlaubt nur den separat geprüften
-Anzeigename-Reconcile bei gleicher Profil-ID, E-Mail und Rolle sowie noch nicht
-vorhandenem Binding und Enrollment-Request. Andere Profiländerungen, ein
-Teilzustand oder ein Moduswechsel zwischen Preview und Apply sind `NO-GO`.
+Die Gastphasen verlangen beide Schalter
+`GUEST_ACCESS_CREATE_PROFILE_AND_PREBIND` und
+`GUEST_ACCESS_RECONCILE_PROFILE_DISPLAY_NAME_AND_PREBIND`; beide Schalter
+akzeptieren exakt `true` oder `false` und sind gegenseitig ausgeschlossen. Die
+fail-closed Standardbelegung ist für beide Werte ausdrücklich `false`. Dann ist
+nur das unveränderte Prebinding auf ein in allen geprüften Kernfeldern passendes
+Bestandsprofil aktiv.
+
+`GUEST_ACCESS_CREATE_PROFILE_AND_PREBIND=true` bei gleichzeitigem
+`GUEST_ACCESS_RECONCILE_PROFILE_DISPLAY_NAME_AND_PREBIND=false` exponiert
+ausschließlich `--create-profile-and-prebind` und leitet für Apply die Operation
+`CREATE_PROFILE_AND_PREBIND_IDENTITY_PLATFORM_PASSWORD_GUEST` ab. Dieser Modus
+ist nur für einen vollständig leeren relevanten Profil- und Binding-Zustand
+zulässig. Mit umgekehrten Werten erlaubt der Operator ausschließlich den
+separat geprüften Anzeigename-Reconcile bei gleicher Profil-ID, E-Mail und Rolle
+sowie noch nicht vorhandenem Binding und Enrollment-Request. Zwei aktive Modi,
+andere Profiländerungen, ein Teilzustand oder ein Moduswechsel zwischen Preview
+und Apply sind `NO-GO`.
 
 Bei Apply muss `CONFIRM_GUEST_ACCESS_OPERATION` exakt aus demselben Preview
 übernommen werden. Hinzu kommen
@@ -262,13 +273,14 @@ positiver Remap-Zähler darf nie durch `0` bestätigt werden.
 ### Guest-Vertrag
 
 1. `guest-preview` zweimal mit demselben `guest-access.json` und demselben
-   Reconcile-Modus ausführen. Eingabe-, Ist- und Soll-Fingerprint, Operation,
+   Gastmodus ausführen. Eingabe-, Ist- und Soll-Fingerprint, Operation,
    Ergebnis und Zähler müssen identisch sein.
 2. `guest-apply` genau einmal mit Operation, Eingabe-Fingerprint und
    Ist-Fingerprint aus diesem Preview ausführen.
 3. Danach ein neues `guest-preview` ausführen. Erwartet werden
    `result=unchanged`, ein vollständiges Profil-Binding und identische Ist- und
-   Soll-Fingerprints. Im Reconcile-Modus muss zusätzlich der Anzeigename passen.
+   Soll-Fingerprints. Im Reconcile-Modus muss zusätzlich der Anzeigename passen;
+   im Neunutzer-Modus müssen Profil und Binding vollständig vorliegen.
 4. Der ausdrücklich bestätigte No-op verwendet in derselben `guest-apply`-Phase
    den neuen Ist-Fingerprint aus Schritt 3. Er muss `result=unchanged` liefern
    und darf weder ein Profil aktualisieren noch ein Binding anlegen. Ein letzter
@@ -279,7 +291,9 @@ keine automatischen Retries. Bei unbekanntem Commit-Ausgang oder fehlender
 Evidenz wird Apply nie blind wiederholt. Zuerst ermittelt eine neue
 Preview-Phase den tatsächlichen Zustand. Standardmodus, Anzeigename-Reconcile,
 Neunutzeranlage und Widerruf werden nicht gegeneinander ausgetauscht; der
-Operator exponiert weder `--create-profile-and-prebind` noch `--revoke`.
+Operator exponiert `--create-profile-and-prebind` ausschließlich bei explizitem
+`GUEST_ACCESS_CREATE_PROFILE_AND_PREBIND=true` und gleichzeitig deaktiviertem
+Anzeigename-Reconcile. `--revoke` bleibt nicht exponiert.
 
 ## 5. Geschützte Evidenzübergabe
 
