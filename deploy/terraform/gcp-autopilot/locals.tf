@@ -9,6 +9,7 @@ locals {
   frontend_ksa_name          = "versorgungs-kompass-frontend"
   password_reset_ksa_name    = "versorgungs-kompass-password-reset"
   password_reset_policy_name = "vk-pre-gematik-password-reset"
+  password_invitation_bucket = "${var.GCP_PROJECT_ID}-vk-pre-gematik-invitations"
   name_prefix                = "vk-pre-gematik"
 
   labels = {

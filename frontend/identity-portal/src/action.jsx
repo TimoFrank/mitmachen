@@ -23,6 +23,10 @@ import {
   parseActionUrl,
   validatePassword
 } from "./action-url.js";
+import {
+  parsePasswordInvitationUrl,
+  redeemPasswordInvitation
+} from "./password-invitation.js";
 import { InlineNotice, PortalShell } from "./shell.jsx";
 
 const root = createRoot(document.getElementById("root"));
@@ -67,7 +71,7 @@ function PasswordRules({ password }) {
   );
 }
 
-function ResetPasswordForm({ email, onSubmit, preview }) {
+function ResetPasswordForm({ email, invitation = false, onSubmit, preview }) {
   const [password, setPassword] = useState("");
   const [confirmation, setConfirmation] = useState("");
   const [showPassword, setShowPassword] = useState(false);
@@ -94,23 +98,31 @@ function ResetPasswordForm({ email, onSubmit, preview }) {
   return (
     <>
       <div className="card-heading">
-        <span className="step-label">{preview ? "Vorschau" : "Sicherer Reset-Link"}</span>
+        <span className="step-label">
+          {invitation ? "Persönliche Einladung" : preview ? "Vorschau" : "Sicherer Reset-Link"}
+        </span>
         <h2>Neues Passwort festlegen</h2>
-        <p>
-          Für <strong className="safe-email">{email}</strong>
-        </p>
+        {email ? (
+          <p>
+            Für <strong className="safe-email">{email}</strong>
+          </p>
+        ) : (
+          <p>Für deinen persönlichen Zugang zum Versorgungs-Kompass.</p>
+        )}
       </div>
       <form className="action-form" onSubmit={submit}>
-        <input
-          type="email"
-          name="username"
-          autoComplete="username"
-          value={email}
-          readOnly
-          hidden
-          aria-hidden="true"
-          tabIndex="-1"
-        />
+        {email ? (
+          <input
+            type="email"
+            name="username"
+            autoComplete="username"
+            value={email}
+            readOnly
+            hidden
+            aria-hidden="true"
+            tabIndex="-1"
+          />
+        ) : null}
         <label>
           <span>Neues Passwort</span>
           <div className="password-input">
@@ -171,6 +183,7 @@ function ResetPasswordForm({ email, onSubmit, preview }) {
 
 function PasswordActionApp({
   config,
+  invitationPreview = false,
   preview = false,
   actionHref = initialActionHref
 }) {
@@ -179,7 +192,8 @@ function PasswordActionApp({
     action: preview
       ? { mode: "resetPassword", oobCode: "", continueUrl: "/start" }
       : null,
-    email: preview ? "pilotkonto@beispiel.de" : ""
+    email: preview && !invitationPreview ? "pilotkonto@beispiel.de" : "",
+    invitationToken: invitationPreview ? "preview" : null
   });
   const auth = useMemo(() => (preview ? null : getActionAuth(config)), [config, preview]);
 
@@ -192,11 +206,25 @@ function PasswordActionApp({
     let active = true;
     (async () => {
       try {
+        if (new URL(actionHref).hash) {
+          const invitation = parsePasswordInvitationUrl(actionHref);
+          if (active) {
+            setState({
+              status: "ready",
+              action: null,
+              email: "",
+              invitationToken: invitation.token
+            });
+          }
+          return;
+        }
         const action = parseActionUrl(actionHref, config);
         const email = await verifyPasswordResetCode(auth, action.oobCode);
-        if (active) setState({ status: "ready", action, email });
+        if (active) setState({ status: "ready", action, email, invitationToken: null });
       } catch {
-        if (active) setState({ status: "error", action: null, email: "" });
+        if (active) {
+          setState({ status: "error", action: null, email: "", invitationToken: null });
+        }
       }
     })();
 
@@ -207,7 +235,20 @@ function PasswordActionApp({
 
   async function resetPassword(password) {
     if (!preview) {
-      await confirmPasswordReset(auth, state.action.oobCode, password);
+      let action = state.action;
+      if (!action && state.invitationToken) {
+        const redeemed = await redeemPasswordInvitation(state.invitationToken);
+        action = parseActionUrl(redeemed.actionUrl, config);
+        setState((current) => ({
+          ...current,
+          action,
+          invitationToken: null
+        }));
+        const email = await verifyPasswordResetCode(auth, action.oobCode);
+        setState((current) => ({ ...current, email }));
+      }
+      if (!action) throw new Error("Die Passwortaktion fehlt.");
+      await confirmPasswordReset(auth, action.oobCode, password);
     }
     setState((current) => ({ ...current, status: "success" }));
   }
@@ -217,14 +258,14 @@ function PasswordActionApp({
     content = (
       <div className="loading-block" role="status">
         <span className="spinner" aria-hidden="true" />
-        <p>Dein Reset-Link wird sicher geprüft …</p>
+        <p>Dein sicherer Link wird geprüft …</p>
       </div>
     );
   } else if (state.status === "error") {
     content = (
       <InlineNotice
         tone="error"
-        title="Dieser Reset-Link ist nicht mehr gültig."
+        title="Dieser Link ist nicht mehr gültig."
         action={
           <a className="button button--secondary" href="/anmelden">
             Zur Anmeldung
@@ -256,6 +297,7 @@ function PasswordActionApp({
     content = (
       <ResetPasswordForm
         email={state.email}
+        invitation={Boolean(state.invitationToken)}
         onSubmit={resetPassword}
         preview={preview}
       />
@@ -282,6 +324,10 @@ function start() {
   const config = getPortalConfig();
   if (isLocalPreview(config, "action")) {
     root.render(<PasswordActionApp config={config} preview />);
+    return;
+  }
+  if (isLocalPreview(config, "invitation")) {
+    root.render(<PasswordActionApp config={config} preview invitationPreview />);
     return;
   }
 

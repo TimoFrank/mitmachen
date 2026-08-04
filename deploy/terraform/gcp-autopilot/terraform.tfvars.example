@@ -40,6 +40,12 @@ IAP_ACCESS_MEMBERS = [
   "user:break-glass@example.invalid",
 ]
 
+# Separate least-privilege users that run the owner-only invitation and SMTP
+# operators. This is deliberately not inferred from IAP or project roles.
+PASSWORD_INVITATION_OPERATOR_MEMBERS = [
+  "user:invitation-operator@example.invalid",
+]
+
 # The workflow binds this group only after it has identified the two generated IAP backend services.
 IAP_RESOURCE_ACCESS_PRINCIPAL = "group:pre-gematik-access@example.invalid"
 

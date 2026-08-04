@@ -4,8 +4,12 @@ import { fileURLToPath } from "node:url";
 import {
   PASSWORD_RESET_ACCEPTED_RESPONSE,
   PASSWORD_RESET_BROKER_PATH,
+  PASSWORD_INVITATION_INVALID_MESSAGE,
+  PasswordInvitationInvalidError,
   PasswordResetInfrastructureError,
   createIdentityPlatformPasswordResetClient,
+  createMetadataAccessTokenProvider,
+  createPasswordInvitationStore,
   createPasswordResetBroker,
   trustedPasswordResetClientIp
 } from "./password-reset-broker.mjs";
@@ -51,6 +55,7 @@ export function passwordResetServerConfiguration(env = process.env) {
   const projectId = String(env.IAP_GCIP_PROJECT_ID || "").trim();
   const tenantId = String(env.IAP_GCIP_TENANT_ID || "").trim();
   const apiKey = String(env.IAP_EXTERNAL_AUTH_API_KEY || "").trim();
+  const invitationBucketName = String(env.PASSWORD_INVITATION_BUCKET || "").trim();
   if (!/^[a-z][a-z0-9-]{4,28}[a-z0-9]$/u.test(projectId)) {
     throw new Error("IAP_GCIP_PROJECT_ID ist ungültig.");
   }
@@ -59,6 +64,15 @@ export function passwordResetServerConfiguration(env = process.env) {
   }
   if (!/^AIza[0-9A-Za-z_-]{35}$/u.test(apiKey)) {
     throw new Error("IAP_EXTERNAL_AUTH_API_KEY ist ungültig.");
+  }
+  if (
+    invitationBucketName.length < 3
+    || invitationBucketName.length > 63
+    || !/^[a-z0-9][a-z0-9-]*[a-z0-9]$/u.test(invitationBucketName)
+    || invitationBucketName.startsWith("goog")
+    || invitationBucketName.includes("google")
+  ) {
+    throw new Error("PASSWORD_INVITATION_BUCKET ist ungültig.");
   }
   const port = Number(env.PORT || DEFAULT_PORT);
   if (!Number.isInteger(port) || port < 1 || port > 65535) {
@@ -70,6 +84,7 @@ export function passwordResetServerConfiguration(env = process.env) {
     projectId,
     tenantId,
     apiKey,
+    invitationBucketName,
     allowedOrigin: allowedOrigin.origin,
     allowedHost: allowedOrigin.host,
     continueUrl: `${allowedOrigin.origin}/start`
@@ -160,20 +175,27 @@ export function createPasswordResetHttpHandler({ configuration, broker }) {
       }
       assertBrowserRequest(request, configuration);
       const body = await readRequestBody(request);
-      if (Object.keys(body).length !== 1 || typeof body.email !== "string") {
+      const bodyKeys = Object.keys(body);
+      const emailRequest = bodyKeys.length === 1 && typeof body.email === "string";
+      const invitationRequest = bodyKeys.length === 1 && typeof body.invitationToken === "string";
+      if (!emailRequest && !invitationRequest) {
         return sendJson(response, 400, { error: "Ungültige Anfrage." }, configuration.production);
       }
       const result = await broker.request({
-        email: body.email,
+        ...(emailRequest
+          ? { email: body.email }
+          : { invitationToken: body.invitationToken }),
         clientIp: trustedPasswordResetClientIp(request, {
           production: configuration.production
         })
       });
-      return sendJson(response, 202, result, configuration.production);
+      return sendJson(response, invitationRequest ? 200 : 202, result, configuration.production);
     } catch (error) {
-      const status = error instanceof PasswordResetInfrastructureError
-        ? 503
-        : Number(error?.status || 500);
+      const status = error instanceof PasswordInvitationInvalidError
+        ? 400
+        : error instanceof PasswordResetInfrastructureError
+          ? 503
+          : Number(error?.status || 500);
       if (status >= 500) {
         console.error(JSON.stringify({
           timestamp: new Date().toISOString(),
@@ -186,7 +208,13 @@ export function createPasswordResetHttpHandler({ configuration, broker }) {
       return sendJson(
         response,
         status,
-        { error: status >= 500 ? "Passwort-Reset ist vorübergehend nicht erreichbar." : error.message },
+        {
+          error: status >= 500
+            ? "Passwort-Reset ist vorübergehend nicht erreichbar."
+            : error instanceof PasswordInvitationInvalidError
+              ? PASSWORD_INVITATION_INVALID_MESSAGE
+              : error.message
+        },
         configuration.production
       );
     }
@@ -200,17 +228,27 @@ export function createPasswordResetServer({
   minimumResponseMs = 750
 } = {}) {
   const configuration = passwordResetServerConfiguration(env);
+  const resolvedAccessTokenProvider = accessTokenProvider
+    || createMetadataAccessTokenProvider({ fetchImpl });
   const identityClient = createIdentityPlatformPasswordResetClient({
     projectId: configuration.projectId,
     apiKey: configuration.apiKey,
     tenantId: configuration.tenantId,
     continueUrl: configuration.continueUrl,
     fetchImpl,
-    ...(accessTokenProvider ? { accessTokenProvider } : {})
+    accessTokenProvider: resolvedAccessTokenProvider
+  });
+  const invitationStore = createPasswordInvitationStore({
+    bucketName: configuration.invitationBucketName,
+    fetchImpl,
+    accessTokenProvider: resolvedAccessTokenProvider
   });
   const broker = createPasswordResetBroker({
     identityClient,
+    invitationStore,
+    projectId: configuration.projectId,
     tenantId: configuration.tenantId,
+    continueUrl: configuration.continueUrl,
     onDeliveryError(error) {
       console.error(JSON.stringify({
         timestamp: new Date().toISOString(),

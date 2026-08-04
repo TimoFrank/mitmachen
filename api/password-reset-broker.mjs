@@ -3,15 +3,54 @@ import { isIP } from "node:net";
 
 export const PASSWORD_RESET_BROKER_PATH = "/api/auth/password-reset";
 export const PASSWORD_RESET_ACCEPTED_RESPONSE = Object.freeze({ accepted: true });
+export const PASSWORD_INVITATION_INVALID_MESSAGE = "Einladungslink ist ungültig oder abgelaufen.";
 
 const IDENTITY_TOOLKIT_ORIGIN = "https://identitytoolkit.googleapis.com";
+const STORAGE_API_ORIGIN = "https://storage.googleapis.com";
 const METADATA_TOKEN_URL = "http://metadata.google.internal/computeMetadata/v1/instance/service-accounts/default/token";
 const MAX_IDENTITY_RESPONSE_BYTES = 64 * 1024;
+const MAX_PASSWORD_INVITATION_BYTES = 8 * 1024;
 const DEFAULT_TIMEOUT_MS = 5_000;
 const DEFAULT_RATE_WINDOW_MS = 15 * 60 * 1000;
 const DEFAULT_IP_LIMIT = 20;
 const DEFAULT_EMAIL_LIMIT = 5;
 const DEFAULT_MAX_RATE_LIMIT_BUCKETS = 10_000;
+const PASSWORD_INVITATION_TTL_MS = 48 * 60 * 60 * 1000;
+const PASSWORD_INVITATION_DIGEST_DOMAIN = "versorgungs-kompass-password-invitation-token-v1\0";
+const PASSWORD_INVITATION_TOKEN_PATTERN = /^[A-Za-z0-9_-]{43}$/u;
+const PASSWORD_ACTION_CODE_PATTERN = /^[A-Za-z0-9_-]{20,1024}$/u;
+const PASSWORD_ACTION_PATH = "/konto/passwort-festlegen";
+const FIREBASE_ACTION_PATH = "/__/auth/action";
+const FINGERPRINT_PATTERN = /^sha256:[a-f0-9]{64}$/u;
+const PROFILE_ID_PATTERN = /^[a-f0-9]{8}-[a-f0-9]{4}-4[a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$/u;
+const SCOPE_REF_PATTERN = /^[a-z0-9][a-z0-9._:-]{0,127}$/u;
+const PASSWORD_INVITATION_KEYS = Object.freeze([
+  "accepted_at",
+  "access_scope",
+  "account_fingerprint",
+  "binding_state_fingerprint",
+  "continue_url",
+  "email",
+  "expires_at",
+  "guest_access_fingerprint",
+  "prepared_at",
+  "profile_id",
+  "project_id",
+  "purpose",
+  "role",
+  "scope_ref",
+  "status",
+  "tenant_id",
+  "uid",
+  "version"
+]);
+const PASSWORD_ACTION_PARAMETERS = new Set([
+  "apiKey",
+  "continueUrl",
+  "lang",
+  "mode",
+  "oobCode"
+]);
 const ACCOUNT_PRIVATE_IDENTITY_ERRORS = new Set([
   "CAPTCHA_CHECK_FAILED",
   "EMAIL_NOT_FOUND",
@@ -33,6 +72,14 @@ export class PasswordResetInfrastructureError extends Error {
   }
 }
 
+export class PasswordInvitationInvalidError extends Error {
+  constructor() {
+    super(PASSWORD_INVITATION_INVALID_MESSAGE);
+    this.name = "PasswordInvitationInvalidError";
+    this.status = 400;
+  }
+}
+
 class IdentityPlatformRequestError extends Error {
   constructor(code, options = {}) {
     super("Identity Platform hat die Passwort-Reset-Anfrage nicht verarbeitet.", options);
@@ -44,6 +91,87 @@ class IdentityPlatformRequestError extends Error {
 
 function isPlainObject(value) {
   return Boolean(value) && typeof value === "object" && !Array.isArray(value);
+}
+
+function invalidInvitation() {
+  return new PasswordInvitationInvalidError();
+}
+
+function exactKeys(value, expectedKeys) {
+  if (!isPlainObject(value)) return false;
+  const actual = Object.keys(value).sort();
+  return actual.length === expectedKeys.length
+    && actual.every((key, index) => key === expectedKeys[index]);
+}
+
+function canonicalIsoTimestamp(value) {
+  if (typeof value !== "string" || value.length !== 24) return null;
+  const timestamp = Date.parse(value);
+  if (!Number.isFinite(timestamp) || new Date(timestamp).toISOString() !== value) return null;
+  return timestamp;
+}
+
+function canonicalPasswordInvitationToken(value) {
+  if (typeof value !== "string" || !PASSWORD_INVITATION_TOKEN_PATTERN.test(value)) return "";
+  try {
+    const decoded = Buffer.from(value, "base64url");
+    return decoded.length === 32 && decoded.toString("base64url") === value ? value : "";
+  } catch {
+    return "";
+  }
+}
+
+export function passwordInvitationObjectName(token) {
+  const canonicalToken = canonicalPasswordInvitationToken(token);
+  if (!canonicalToken) throw invalidInvitation();
+  const digest = crypto
+    .createHash("sha256")
+    .update(PASSWORD_INVITATION_DIGEST_DOMAIN, "utf8")
+    .update(canonicalToken, "ascii")
+    .digest("hex");
+  return `active/${digest}.json`;
+}
+
+export function validateActivePasswordInvitation(value, {
+  projectId,
+  tenantId = "",
+  continueUrl,
+  now = Date.now()
+}) {
+  const timestamp = Number(now);
+  const preparedAt = canonicalIsoTimestamp(value?.prepared_at);
+  const acceptedAt = canonicalIsoTimestamp(value?.accepted_at);
+  const expiresAt = canonicalIsoTimestamp(value?.expires_at);
+  const email = normalizePasswordResetEmail(value?.email);
+  if (
+    !exactKeys(value, PASSWORD_INVITATION_KEYS)
+    || value.version !== "v1"
+    || value.purpose !== "password_invitation"
+    || value.status !== "active"
+    || value.project_id !== projectId
+    || value.tenant_id !== tenantId
+    || value.continue_url !== continueUrl
+    || !/^[A-Za-z0-9_-]{8,128}$/u.test(String(value.uid || ""))
+    || !email
+    || email !== value.email
+    || !FINGERPRINT_PATTERN.test(String(value.account_fingerprint || ""))
+    || !FINGERPRINT_PATTERN.test(String(value.guest_access_fingerprint || ""))
+    || !FINGERPRINT_PATTERN.test(String(value.binding_state_fingerprint || ""))
+    || !PROFILE_ID_PATTERN.test(String(value.profile_id || ""))
+    || !["viewer", "editor"].includes(value.role)
+    || value.access_scope !== "test_only"
+    || !SCOPE_REF_PATTERN.test(String(value.scope_ref || ""))
+    || preparedAt === null
+    || acceptedAt === null
+    || expiresAt === null
+    || preparedAt > acceptedAt
+    || acceptedAt > timestamp
+    || expiresAt - acceptedAt !== PASSWORD_INVITATION_TTL_MS
+    || timestamp >= expiresAt
+  ) {
+    throw invalidInvitation();
+  }
+  return Object.freeze({ ...value });
 }
 
 function infrastructureError(cause) {
@@ -192,6 +320,200 @@ async function boundedJsonResponse(response) {
   }
 }
 
+function brandedPasswordActionUrl(rawLink, { projectId, apiKey, continueUrl }) {
+  let parsed;
+  try {
+    parsed = new URL(rawLink);
+  } catch {
+    throw infrastructureError();
+  }
+  for (const [name] of parsed.searchParams) {
+    if (
+      !PASSWORD_ACTION_PARAMETERS.has(name)
+      || parsed.searchParams.getAll(name).length !== 1
+    ) {
+      throw infrastructureError();
+    }
+  }
+  const oobCode = parsed.searchParams.get("oobCode");
+  const language = parsed.searchParams.get("lang");
+  const brandedOrigin = new URL(continueUrl).origin;
+  const sourceIsExpected = (
+    parsed.origin === `https://${projectId}.firebaseapp.com`
+    && parsed.pathname === FIREBASE_ACTION_PATH
+  ) || (
+    parsed.origin === brandedOrigin
+    && parsed.pathname === PASSWORD_ACTION_PATH
+  );
+  if (
+    parsed.protocol !== "https:"
+    || parsed.username
+    || parsed.password
+    || !sourceIsExpected
+    || parsed.hash
+    || parsed.searchParams.get("mode") !== "resetPassword"
+    || parsed.searchParams.get("apiKey") !== apiKey
+    || parsed.searchParams.get("continueUrl") !== continueUrl
+    || !oobCode
+    || !PASSWORD_ACTION_CODE_PATTERN.test(oobCode)
+    || (language !== null && !["de", "en"].includes(language))
+  ) {
+    throw infrastructureError();
+  }
+  const branded = new URL(PASSWORD_ACTION_PATH, continueUrl);
+  branded.searchParams.set("mode", "resetPassword");
+  branded.searchParams.set("oobCode", oobCode);
+  branded.searchParams.set("apiKey", apiKey);
+  branded.searchParams.set("continueUrl", continueUrl);
+  branded.searchParams.set("lang", "de");
+  return branded.href;
+}
+
+function validStorageBucketName(value) {
+  const bucketName = String(value || "");
+  return bucketName.length >= 3
+    && bucketName.length <= 63
+    && /^[a-z0-9][a-z0-9-]*[a-z0-9]$/u.test(bucketName)
+    && !bucketName.startsWith("goog")
+    && !bucketName.includes("google");
+}
+
+async function boundedPasswordInvitationResponse(response) {
+  const declaredLength = Number(response.headers?.get?.("content-length") || "0");
+  if (Number.isFinite(declaredLength) && declaredLength > MAX_PASSWORD_INVITATION_BYTES) {
+    throw infrastructureError();
+  }
+  let bytes;
+  try {
+    bytes = Buffer.from(await response.arrayBuffer());
+  } catch (cause) {
+    throw infrastructureError(cause);
+  }
+  if (bytes.length === 0 || bytes.length > MAX_PASSWORD_INVITATION_BYTES) {
+    throw infrastructureError();
+  }
+  let text;
+  try {
+    text = new TextDecoder("utf-8", { fatal: true }).decode(bytes);
+  } catch (cause) {
+    throw infrastructureError(cause);
+  }
+  try {
+    const payload = JSON.parse(text);
+    if (!isPlainObject(payload)) throw new Error("Invitation is not an object.");
+    return Object.freeze({ byteLength: bytes.length, value: payload });
+  } catch (cause) {
+    throw infrastructureError(cause);
+  }
+}
+
+export function createPasswordInvitationStore({
+  bucketName,
+  accessTokenProvider = createMetadataAccessTokenProvider(),
+  fetchImpl = globalThis.fetch,
+  timeoutMs = DEFAULT_TIMEOUT_MS
+}) {
+  if (
+    !validStorageBucketName(bucketName)
+    || typeof accessTokenProvider !== "function"
+    || typeof fetchImpl !== "function"
+  ) {
+    throw new TypeError("Der Passwort-Einladungsspeicher ist ungültig konfiguriert.");
+  }
+  const bucketPath = `${STORAGE_API_ORIGIN}/storage/v1/b/${encodeURIComponent(bucketName)}/o`;
+
+  async function accessToken() {
+    try {
+      return await accessTokenProvider();
+    } catch (cause) {
+      throw infrastructureError(cause);
+    }
+  }
+
+  async function storageFetch(url, options) {
+    let response;
+    try {
+      response = await fetchImpl(url, {
+        ...options,
+        headers: {
+          accept: "application/json",
+          authorization: `Bearer ${await accessToken()}`,
+          ...(options?.headers || {})
+        },
+        redirect: "error",
+        signal: AbortSignal.timeout(timeoutMs)
+      });
+    } catch (cause) {
+      throw infrastructureError(cause);
+    }
+    return response;
+  }
+
+  return Object.freeze({
+    async getActive(objectName) {
+      const objectUrl = `${bucketPath}/${encodeURIComponent(objectName)}`;
+      const metadataUrl = new URL(objectUrl);
+      metadataUrl.searchParams.set("fields", "name,size,contentType,generation");
+      const metadataResponse = await storageFetch(metadataUrl.href, { method: "GET" });
+      if (metadataResponse.status === 404) return null;
+      if (!metadataResponse.ok) throw infrastructureError();
+      const metadataResponseContentType = String(
+        metadataResponse.headers?.get?.("content-type") || ""
+      )
+        .trim()
+        .toLowerCase();
+      if (
+        !/^application\/json(?:\s*;\s*charset=utf-8)?$/u.test(metadataResponseContentType)
+      ) {
+        throw infrastructureError();
+      }
+      const metadataBody = await boundedPasswordInvitationResponse(metadataResponse);
+      const metadata = metadataBody.value;
+      const generation = String(metadata.generation || "");
+      const objectSize = String(metadata.size || "");
+      if (
+        !exactKeys(metadata, ["contentType", "generation", "name", "size"])
+        || metadata.name !== objectName
+        || metadata.contentType !== "application/json"
+        || !/^[1-9][0-9]{0,30}$/u.test(generation)
+        || !/^[1-9][0-9]{0,4}$/u.test(objectSize)
+        || Number(objectSize) > MAX_PASSWORD_INVITATION_BYTES
+      ) {
+        throw infrastructureError();
+      }
+      const mediaUrl = new URL(objectUrl);
+      mediaUrl.searchParams.set("alt", "media");
+      mediaUrl.searchParams.set("generation", generation);
+      const mediaResponse = await storageFetch(mediaUrl.href, { method: "GET" });
+      if (mediaResponse.status === 404 || mediaResponse.status === 412) return null;
+      if (!mediaResponse.ok) throw infrastructureError();
+      const mediaContentType = String(mediaResponse.headers?.get?.("content-type") || "")
+        .trim()
+        .toLowerCase();
+      if (!/^application\/json(?:\s*;\s*charset=utf-8)?$/u.test(mediaContentType)) {
+        throw infrastructureError();
+      }
+      const mediaBody = await boundedPasswordInvitationResponse(mediaResponse);
+      if (mediaBody.byteLength !== Number(objectSize)) throw infrastructureError();
+      return Object.freeze({
+        generation,
+        value: mediaBody.value
+      });
+    },
+    async deleteActive(objectName, generation) {
+      if (!/^[1-9][0-9]{0,30}$/u.test(String(generation || ""))) {
+        throw infrastructureError();
+      }
+      const url = new URL(`${bucketPath}/${encodeURIComponent(objectName)}`);
+      url.searchParams.set("ifGenerationMatch", generation);
+      const response = await storageFetch(url.href, { method: "DELETE" });
+      if (response.status === 404 || response.status === 412) return false;
+      if (response.status !== 204) throw infrastructureError();
+      return true;
+    }
+  });
+}
+
 export function createMetadataAccessTokenProvider({
   fetchImpl = globalThis.fetch,
   now = () => Date.now(),
@@ -338,6 +660,33 @@ export function createIdentityPlatformPasswordResetClient({
         if (error instanceof IdentityPlatformRequestError && error.accountPrivate) return false;
         throw infrastructureError(error);
       }
+    },
+    async generatePasswordResetActionUrl(email) {
+      try {
+        const payload = await post("/accounts:sendOobCode", {
+          requestType: "PASSWORD_RESET",
+          email,
+          continueUrl: resetContinueUrl,
+          canHandleCodeInApp: false,
+          returnOobLink: true,
+          clientType: "CLIENT_TYPE_WEB",
+          ...(tenantId ? { tenantId } : {})
+        });
+        if (
+          payload.email !== undefined
+          && normalizePasswordResetEmail(payload.email) !== email
+        ) {
+          throw infrastructureError();
+        }
+        return brandedPasswordActionUrl(String(payload.oobLink || ""), {
+          projectId,
+          apiKey,
+          continueUrl: resetContinueUrl
+        });
+      } catch (error) {
+        if (error instanceof IdentityPlatformRequestError && error.accountPrivate) return null;
+        throw infrastructureError(error);
+      }
     }
   });
 }
@@ -409,8 +758,11 @@ export function trustedPasswordResetClientIp(request, { production = false } = {
 
 export function createPasswordResetBroker({
   identityClient,
+  invitationStore = null,
   isEligibleUser = async () => true,
+  projectId = "",
   tenantId = "",
+  continueUrl = "",
   rateLimiter = createPasswordResetRateLimiter(),
   onDeliveryError = async () => {},
   now = () => Date.now(),
@@ -426,6 +778,20 @@ export function createPasswordResetBroker({
     || typeof onDeliveryError !== "function"
   ) {
     throw new TypeError("Die Passwort-Reset-Broker-Abhängigkeiten sind unvollständig.");
+  }
+  const invitationEnabled = invitationStore !== null;
+  if (
+    invitationEnabled
+    && (
+      typeof invitationStore?.getActive !== "function"
+      || typeof invitationStore?.deleteActive !== "function"
+      || typeof identityClient.generatePasswordResetActionUrl !== "function"
+      || !/^[a-z][a-z0-9-]{4,28}[a-z0-9]$/u.test(String(projectId || ""))
+      || (tenantId && !/^[A-Za-z0-9_-]{1,128}$/u.test(tenantId))
+      || canonicalHttpsStartUrl(continueUrl) !== continueUrl
+    )
+  ) {
+    throw new TypeError("Die Passwort-Einladungs-Abhängigkeiten sind unvollständig.");
   }
 
   const pendingDeliveries = new Set();
@@ -444,10 +810,44 @@ export function createPasswordResetBroker({
     pendingDeliveries.add(delivery);
   }
 
+  async function redeemInvitation(invitationToken, clientIp) {
+    if (!invitationEnabled || !isIP(clientIp)) throw invalidInvitation();
+    const objectName = passwordInvitationObjectName(invitationToken);
+    if (!rateLimiter.allow(`password-invitation:${objectName}`, clientIp)) {
+      throw invalidInvitation();
+    }
+    const stored = await invitationStore.getActive(objectName);
+    if (!stored) throw invalidInvitation();
+    const invitation = validateActivePasswordInvitation(stored.value, {
+      projectId,
+      tenantId,
+      continueUrl,
+      now: now()
+    });
+    const rawUser = await identityClient.lookupByEmail(invitation.email);
+    const user = exactPasswordOnlyIdentityUser(rawUser, invitation.email, tenantId);
+    if (
+      !user
+      || user.uid !== invitation.uid
+      || !(await isEligibleUser(user))
+    ) {
+      throw invalidInvitation();
+    }
+    if (!(await invitationStore.deleteActive(objectName, stored.generation))) {
+      throw invalidInvitation();
+    }
+    const actionUrl = await identityClient.generatePasswordResetActionUrl(invitation.email);
+    if (!actionUrl) throw invalidInvitation();
+    return Object.freeze({ redeemed: true, actionUrl });
+  }
+
   return Object.freeze({
-    async request({ email: inputEmail, clientIp }) {
+    async request({ email: inputEmail, invitationToken, clientIp }) {
       const startedAt = now();
       try {
+        if (invitationToken !== undefined) {
+          return await redeemInvitation(invitationToken, clientIp);
+        }
         const email = normalizePasswordResetEmail(inputEmail);
         if (!email || !isIP(clientIp) || !rateLimiter.allow(email, clientIp)) {
           return PASSWORD_RESET_ACCEPTED_RESPONSE;
@@ -460,6 +860,7 @@ export function createPasswordResetBroker({
         schedulePasswordReset(email, clientIp);
         return PASSWORD_RESET_ACCEPTED_RESPONSE;
       } catch (cause) {
+        if (cause instanceof PasswordInvitationInvalidError) throw cause;
         throw infrastructureError(cause);
       } finally {
         const remaining = Number(minimumResponseMs) - (now() - startedAt);

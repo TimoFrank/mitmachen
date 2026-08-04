@@ -41,6 +41,7 @@ passwordResetBroker:
   enabled: false
   replicaCount: 2
   port: 8080
+  invitationBucketName: ""
   podAnnotations: {}
   serviceAccount:
     create: true
@@ -53,7 +54,7 @@ passwordResetBroker:
   backendConfig:
     name: ""
     securityPolicyName: ""
-    timeoutSec: 10
+    timeoutSec: 45
     connectionDrainingTimeoutSec: 0
     healthCheck:
       type: HTTP

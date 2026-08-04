@@ -8,7 +8,6 @@ import path from "node:path";
 import {
   EXPECTED_CONTINUE_URL,
   IdentityPlatformOnboardingError,
-  identityPlatformAccountFingerprint,
   validateIdentityPlatformAccountDocument
 } from "./provision_pre_gematik_identity_platform_account.mjs";
 import {
@@ -22,7 +21,8 @@ import {
   loadProtectedBrandedSetPasswordLink,
   parseWelcomeEmailArguments,
   renderGuestWelcomeEmail,
-  validateBrandedSetPasswordLink
+  validateBrandedSetPasswordLink,
+  welcomeEmailRenderingFingerprint
 } from "./render_pre_gematik_guest_welcome_email.mjs";
 
 const projectRoot = new URL("../", import.meta.url);
@@ -68,12 +68,10 @@ const document = validateIdentityPlatformAccountDocument({
   email_ownership_verified: true,
   continue_url: EXPECTED_CONTINUE_URL
 });
-const apiKey = `AIza${"A".repeat(35)}`;
-const oobCode = `one-time-${"x".repeat(32)}`;
+const invitationToken = Buffer.alloc(32, 9).toString("base64url");
 const actionUrl =
   "https://versorgungs-kompass.de/konto/passwort-festlegen"
-  + `?mode=resetPassword&oobCode=${oobCode}&apiKey=${apiKey}`
-  + `&continueUrl=${encodeURIComponent(EXPECTED_CONTINUE_URL)}&lang=de`;
+  + `#einladung=${invitationToken}`;
 
 assert.equal(validateBrandedSetPasswordLink(actionUrl, document), actionUrl);
 for (const unsafeLink of [
@@ -82,20 +80,14 @@ for (const unsafeLink of [
     "/konto/passwort-festlegen",
     "/__/auth/action"
   ),
-  actionUrl.replace("mode=resetPassword", "mode=verifyEmail"),
-  actionUrl.replace(`oobCode=${oobCode}`, "oobCode=short"),
-  actionUrl.replace(`apiKey=${apiKey}`, "apiKey=invalid"),
-  actionUrl.replace(
-    encodeURIComponent(EXPECTED_CONTINUE_URL),
-    encodeURIComponent("https://example.invalid/start")
-  ),
-  `${actionUrl}&unexpected=1`,
-  `${actionUrl}&mode=resetPassword`,
-  actionUrl.replace("&lang=de", "")
+  actionUrl.replace("#einladung=", "?einladung="),
+  actionUrl.replace("#einladung=", "#token="),
+  actionUrl.replace(invitationToken, "short"),
+  `${actionUrl}&unexpected=1`
 ]) {
   safeFailure(
     () => validateBrandedSetPasswordLink(unsafeLink, document),
-    /gebrandeten Passwort-Flow|Einladungslink/u
+    /48-Stunden|Wrapperlink|Einladungslink/u
   );
 }
 
@@ -113,11 +105,12 @@ for (const [name, value] of Object.entries(rendered)) {
 }
 assert.equal(rendered.subject.trim(), WELCOME_EMAIL_SUBJECT);
 assert.match(rendered.text, /Ein zusätzliches Google-Konto ist nicht erforderlich/u);
-assert.match(rendered.text, /innerhalb von 60 Minuten/u);
+assert.match(rendered.text, /innerhalb von 48 Stunden vollständig ein/u);
 assert.match(rendered.text, /versorgungs-kompass\.de\/start/u);
 assert.match(rendered.html, /Persönlichen Zugang einrichten/u);
 assert.match(rendered.html, /mso-padding-alt:16px 28px/u);
 assert.match(rendered.html, /Der persönliche Link kann nur einmal verwendet werden/u);
+assert.match(rendered.html, /innerhalb von 48 Stunden vollständig einrichten/u);
 assert.match(rendered.html, /<h1[^>]*>Willkommen<\/h1>/u);
 assert.doesNotMatch(rendered.html, /Willkommen im(?:<br>)?Versorgungs-Kompass/u);
 for (const label of ["Versorgung", "Stakeholder", "Hospitation", "Formate"]) {
@@ -168,10 +161,23 @@ assert.match(
   /Reply-To: <zugang@versorgungs-kompass\.de>/u
 );
 assert.match(rendered.eml, /To: <guest@example\.invalid>/u);
-assert.match(rendered.eml, /pre-gematik-guest-welcome-v3/u);
+assert.match(rendered.eml, /pre-gematik-guest-welcome-v4/u);
 assert.ok(
   rendered.eml.split("\r\n").every((line) => Buffer.byteLength(line, "utf8") <= 998),
   "EML-Zeilen muessen das SMTP-Limit einhalten."
+);
+const fingerprint = welcomeEmailRenderingFingerprint(rendered);
+assert.match(fingerprint, /^sha256:[a-f0-9]{64}$/u);
+assert.notEqual(
+  welcomeEmailRenderingFingerprint({
+    ...rendered,
+    eml: rendered.eml.replace(
+      "pre-gematik-guest-welcome-v4",
+      "pre-gematik-guest-welcome-v4-test"
+    )
+  }),
+  fingerprint,
+  "Der Renderer-Fingerprint muss jede Änderung des vollständigen Mailpakets binden."
 );
 for (const forbidden of [
   /firebase/iu,
@@ -291,7 +297,6 @@ assert.equal(
   await loadProtectedBrandedSetPasswordLink(linkFile, { repository }),
   actionUrl
 );
-const fingerprint = identityPlatformAccountFingerprint(document);
 const outputDirectory = path.join(temporaryRoot, "welcome-mail");
 const applyOptions = parseWelcomeEmailArguments([
   "--input", path.join(temporaryRoot, "account.json"),
@@ -335,8 +340,7 @@ for (const secret of [
   document.email,
   document.display_name,
   actionUrl,
-  oobCode,
-  apiKey,
+  invitationToken,
   outputDirectory
 ]) {
   assert.ok(!logs[0].includes(secret), "stdout enthaelt geschuetzte Maildaten.");

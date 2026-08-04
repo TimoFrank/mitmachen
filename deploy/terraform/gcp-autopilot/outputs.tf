@@ -48,6 +48,11 @@ output "FRONTEND_BUCKET" {
   value       = google_storage_bucket.frontend.name
 }
 
+output "PASSWORD_INVITATION_BUCKET" {
+  description = "Private, one-time password invitation bucket."
+  value       = google_storage_bucket.password_invitation.name
+}
+
 output "PROFILE_IMAGE_BUCKET" {
   description = "Private profile-image bucket."
   value       = google_storage_bucket.data["profile_images"].name
@@ -179,7 +184,7 @@ output "FRONTEND_WORKLOAD_IDENTITY_PRINCIPAL" {
 }
 
 output "PASSWORD_RESET_WORKLOAD_IDENTITY_PRINCIPAL" {
-  description = "Dedicated password-reset broker Workload Identity principal with only Identity Platform user lookup and reset-email permissions."
+  description = "Dedicated password-reset broker Workload Identity principal with narrowly scoped Identity Platform and active-invitation object permissions."
   value       = local.gke_password_reset_workload_principal
 }
 

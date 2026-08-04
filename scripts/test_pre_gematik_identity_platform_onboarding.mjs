@@ -808,8 +808,19 @@ assert.doesNotMatch(operatorSource, /firebase-admin/u);
 assert.match(operatorSource, /identitytoolkit\.googleapis\.com/u);
 assert.match(operatorSource, /\/accounts:sendOobCode/u);
 assert.doesNotMatch(operatorSource, /console\.(?:log|error)\([^)]*(?:setPasswordLink|bootstrapPassword)/u);
-assert.match(pilotRunbook, /Set-password-Link/u);
-assert.match(pilotRunbook, /kein passwortloser IAP-Login/u);
+assert.match(
+  pilotRunbook,
+  /native Reset-Link bleibt ausdrücklich\s+vom Einladungsweg ausgeschlossen/u
+);
+assert.match(
+  pilotRunbook,
+  /konto\/passwort-festlegen#einladung=<TOKEN>/u
+);
+assert.match(
+  pilotRunbook,
+  /`accepted_at`[\s\S]{0,120}`expires_at` exakt 48 Stunden später/u
+);
+assert.match(pilotRunbook, /kein\s+passwortloser IAP-Login/u);
 assert.doesNotMatch(
   pilotRunbook,
   /Übergabe von Benutzername und Initialpasswort über getrennte Kanäle/u

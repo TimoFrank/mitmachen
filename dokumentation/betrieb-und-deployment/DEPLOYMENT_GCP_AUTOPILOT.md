@@ -43,11 +43,13 @@ GitHub Environment pre-gematik
   -> GKE Autopilot / Helm / gemeinsamer GKE Ingress / IAP
        Apex /, Identity-Portal und freigegebene Assets (Exact) -> minimales öffentliches Einstiegs-/Identity-Frontend
        Apex /__/auth/ (Prefix)                                -> tokenloser, fester Firebase-Auth-Helper-Proxy
+       Apex /api/auth/password-reset (Exact POST)             -> isolierter Passwort-Reset-/Einladungsbroker
        www / (Exact)                                         -> öffentliches Einstiegs-Frontend
        /api (Prefix)                                         -> IAP-geschützte Node.js API
        / (Prefix/Catch-all, auch übrige Alias-Pfade)          -> IAP-geschütztes vollständiges Frontend
   -> private Cloud-SQL-Instanz
   -> private Daten-Buckets
+  -> privater, nicht versionierter Passwort-Einladungs-Bucket
 
 GitHub Actions
   -> erzeugt statisches dist/target/-Artefakt
@@ -57,6 +59,32 @@ GitHub Actions
 `dist/pages/` gehört ausschließlich zum GitHub-Pages-Pfad und wird von dieser Pre-Integration weder gelesen noch verändert. Eine versionierte `docs/`-Publish-Kopie existiert nicht mehr.
 
 Weder ein Service-Account-JSON-Key noch Datenbankpasswort oder OAuth-Credentials liegen in GitHub. GKE Secret Sync liest das Passwort mit der API-Workload-Identity direkt aus Secret Manager und erzeugt das vom Deployment referenzierte Kubernetes Secret. Der Deploy-Workflow liest den getrennten OAuth-Bootstrap ausschließlich aus Secret Manager und materialisiert ihn ohne Inhaltsausgabe. Eine getrennte Frontend-Workload-Identity darf ausschließlich das statische Zielartefakt aus dem privaten Frontend-Bucket lesen. Der öffentliche Einstieg nutzt dagegen eine eigene Kubernetes Service Account ohne Cloud-IAM-Bindung und eine NetworkPolicy ohne Egress. Der zusätzliche Auth-Helper-Proxy besitzt ebenfalls eine eigene tokenlose Kubernetes Service Account ohne Cloud-IAM-Bindung oder Secretzugriff; seine NetworkPolicy erlaubt ausgehend nur DNS und HTTPS zum festen, TLS-verifizierten Upstream.
+
+Im externen Identitätsmodus läuft zusätzlich der isolierte Passwort-Broker. Für
+48-Stunden-Ersteinladungen darf seine Workload Identity im eigenen privaten
+Einladungs-Bucket ausschließlich ein anhand des geheimen Tokens bestimmtes
+`active/`-Objekt lesen und bedingt löschen. Sie darf keine Objekte auflisten,
+anlegen, verändern oder wiederherstellen und besitzt weiterhin keinen
+Datenbank- oder Secret-Zugriff. Der Bucket verwendet UBLA und erzwungene Public
+Access Prevention; Versionierung, Retention und Soft Delete sind für die
+atomare Einmalverwendung deaktiviert. Der Ablauf wird im Broker selbst geprüft,
+nicht durch den verzögerten Lifecycle-Cleanup.
+
+Die owner-only Vorbereitungs- und SMTP-Operatoren verwenden eine davon
+getrennte, explizite Nutzerbindung aus
+`PASSWORD_INVITATION_OPERATOR_MEMBERS`. Diese Rolle darf ausschließlich
+Objekte unter `prepared/` und `active/` anlegen, lesen und löschen; List-,
+Update- und Restore-Rechte fehlen. Projekt-Owner-, IAP- oder Gruppenstatus
+erteilen keinen impliziten Einladungszugriff.
+
+Der GitHub-Deployer erhält keine direkten GCS-Objektrechte auf diesem Bucket.
+Die für Deployment-Preflights erforderlichen Bucket-Metadaten liest er
+ausschließlich über die getrennte, projektweite Verifier-Rolle. Als
+Deployment-Autorität für Cluster-Workloads bleibt CI/CD Teil der vertrauten
+Systemgrenze: Eine kompromittierte Release-Identität könnte indirekt eine
+Workload unter der Broker-Identität starten. Deshalb bleiben WIF-Branch- und
+Environment-Gates, Review, digest-gepinnte Images sowie die Prüfung der
+ausgelieferten Workload verbindlich.
 
 Die API verbindet sich im Pod mit `127.0.0.1:5432` zum Cloud SQL Auth Proxy. Deshalb ist der lokale PostgreSQL-TLS-Modus `disable`; der Proxy authentifiziert sich per Workload Identity und baut die verschlüsselte private Verbindung zur Cloud-SQL-Instanz auf. Eine direkte unverschlüsselte Netzwerkverbindung der API zur Datenbank ist nicht vorgesehen.
 
@@ -87,6 +115,11 @@ Alle Repository-Pfade in diesem Dokument beginnen im Repository-Root.
 8. Der Workflow liest danach den von GKE erzeugten Backend Service, bestimmt dessen numerische ID und setzt die erwartete Audience im Format `/projects/PROJECT_NUMBER/global/backendServices/BACKEND_SERVICE_ID`.
 9. Kann die echte Audience nicht bestimmt oder IAP nicht auf API und vollständigem Frontend als aktiv bestätigt werden, endet das Deployment fehlerhaft. Es wird kein erfolgreicher geschützter Anwendungszustand ohne signierte IAP-JWT-Prüfung gemeldet.
 10. Ein benannter direkter Nutzer kann ausschließlich in dieser befristeten Pre-Integration projektweiter Break-glass-Zugang sein. Die Identität wird nicht im Repository dokumentiert. Die reguläre Testgruppe wird erst nach eindeutiger Zuordnung ausschließlich an die beiden vom gemeinsamen Ingress erzeugten geschützten API- und Frontend-Backend-Services gebunden. Public-Entry- und Auth-Helper-Backend besitzen keine IAP-Resource-Policy. Das Public-Entry-Image enthält ausschließlich den geprüften Einstieg, die zwei gebrandeten Identity-Seiten und deren exakt allowlistete lokale Assets. Der Auth-Helper ist ein token- und secretfreier Festziel-Proxy ohne Zugriffslogging. Diese Zugänge dürfen nicht in den Zielbetrieb übernommen werden.
+11. Der Passwort-Einladungswert steht ausschließlich im URL-Fragment und damit
+    weder im HTTP-Request noch im Load-Balancer- oder Referer-Protokoll. Erst
+    das bewusste Speichern eines neuen Passworts löst den gleichurspruenglichen
+    POST aus. Ein bedingtes GCS-Delete macht die Einladung genau einmal
+    verwendbar; erst danach wird ein kurzlebiger Identity-Platform-Code erzeugt.
 
 Google beschreibt Workload Identity Federation für Deployment-Pipelines unter <https://cloud.google.com/iam/docs/workload-identity-federation-with-deployment-pipelines>. Das Format und die Pflicht zur Prüfung der signierten IAP-Header sind unter <https://cloud.google.com/iap/docs/signed-headers-howto> dokumentiert.
 
@@ -133,7 +166,7 @@ terraform plan -out=pre-gematik.tfplan
 terraform apply pre-gematik.tfplan
 ```
 
-Vor `apply` die Zielwerte in `terraform.tfvars.example` prüfen und als lokale `terraform.tfvars` übernehmen. Insbesondere muss die private Google Group bereits existieren und für IAM sichtbar sein. Sie steht nicht in `IAP_ACCESS_MEMBERS`, sondern wird später vom Workflow an die beiden konkreten Backend Services gebunden. `terraform.tfvars`, Plan-Dateien, State, der reale State-Bucket-Name und lokale Credentials bleiben außerhalb von Git. Das eingecheckte `backend.tf` enthält nur das stabile State-Präfix.
+Vor `apply` die Zielwerte in `terraform.tfvars.example` prüfen und als lokale `terraform.tfvars` übernehmen. Insbesondere muss die private Google Group bereits existieren und für IAM sichtbar sein. Sie steht nicht in `IAP_ACCESS_MEMBERS`, sondern wird später vom Workflow an die beiden konkreten Backend Services gebunden. Jeder menschliche Einladungsoperator muss zusätzlich und namentlich in `PASSWORD_INVITATION_OPERATOR_MEMBERS` stehen; diese Liste darf weder aus Projekt-Ownern noch aus IAP-Mitgliedschaften abgeleitet werden. `terraform.tfvars`, Plan-Dateien, State, der reale State-Bucket-Name und lokale Credentials bleiben außerhalb von Git. Das eingecheckte `backend.tf` enthält nur das stabile State-Präfix.
 
 Vor dem Public-Entry-Cutover muss dieser Terraform-Stand erneut angewendet sein: Er ergänzt beim bereits ausgerollten Deployer die rein lesende Berechtigung `compute.urlMaps.get` und die separate, auf den Cutover begrenzte Rolle mit `compute.backendServices.update` sowie `compute.healthChecks.useReadOnly`. Der Anwendungs-Workflow prüft die URL-Map-Berechtigung anhand der bestehenden GKE URL Map, bevor Phase A den Ingress verändert. Die Update-Berechtigung wird ausschließlich dafür verwendet, IAP am bereits eindeutig aufgelösten Public-Backend zu deaktivieren; `compute.healthChecks.useReadOnly` erlaubt dabei nur, den bereits gebundenen Health Check unverändert weiterzuverwenden. `gcloud --iap=disabled` erhält den vorhandenen Custom-OAuth-Client. Ein bloßer App-Workflow-Lauf ersetzt dieses Infrastruktur-Update nicht.
 
@@ -216,6 +249,7 @@ Die Namen stehen in `config/pre-gematik/variables.env.example`. Werte aus Terraf
 | `CONTACT_IMAGE_BUCKET` | Terraform-Output `CONTACT_IMAGE_BUCKET` |
 | `CONTACT_NOTE_ATTACHMENT_BUCKET` | Terraform-Output `CONTACT_NOTE_ATTACHMENT_BUCKET` |
 | `STAKEHOLDER_LOGO_BUCKET` | Terraform-Output `STAKEHOLDER_LOGO_BUCKET` |
+| `PASSWORD_INVITATION_BUCKET` | Terraform-Output `PASSWORD_INVITATION_BUCKET`; exklusiver, nicht versionierter Zustand für 48-Stunden-Ersteinladungen |
 | `CLOUD_SQL_INSTANCE_CONNECTION_NAME` | Terraform-Output `CLOUD_SQL_INSTANCE_CONNECTION_NAME` |
 | `GKE_INGRESS_IP_NAME` | Terraform-Output `GKE_INGRESS_IP_NAME` |
 | `K8S_NAMESPACE` | Terraform-Output `K8S_NAMESPACE` |
@@ -305,7 +339,7 @@ Der Domainwechsel ist für diese Umgebung abgeschlossen. Vor jedem weiteren echt
 Danach denselben Workflow mit `validate_only` deaktiviert ausführen. Der Deploy-Job:
 
 1. wartet auf die Freigabe des Environments `pre-gematik`,
-2. tauscht das GitHub-OIDC-Token per WIF gegen kurzlebige GCP-Credentials und prüft Projekt, Region, Registry, Cloud SQL, private Buckets sowie den gepinnten Break-glass-Sollzustand,
+2. tauscht das GitHub-OIDC-Token per WIF gegen kurzlebige GCP-Credentials und prüft Projekt, Region, Registry, Cloud SQL, private Buckets einschließlich der strengeren Einladungs-Bucket-Grenzen sowie den gepinnten Break-glass-Sollzustand,
 3. verbindet sich über den GKE-DNS-Endpunkt,
 4. liest das JSON-formatierte OAuth-Bootstrap-Secret aus Secret Manager ohne Inhaltsausgabe, materialisiert daraus exakt `client_id` und `client_secret` im Kubernetes Secret und validiert dessen Form,
 5. baut und pusht ein unveränderlich getaggtes API-Image inklusive Provenance und SBOM,
@@ -348,7 +382,7 @@ Der aufrufende Workflow kann die Rechte nicht über die im wiederverwendbaren Wo
 - [ ] Die ausgerollten Deployer-Rollen enthalten `compute.urlMaps.get` sowie die separaten Cutover-Berechtigungen `compute.backendServices.update` und `compute.healthChecks.useReadOnly`; der Public-Entry-Cutover wurde nicht vor diesem Terraform-Update gestartet.
 - [ ] Falls `BILLING_ACCOUNT_ID` gesetzt ist, existiert das projektbezogene Warnbudget; allen Beteiligten ist bekannt, dass es kein Ausgabenlimit ist.
 - [ ] GKE nutzt Autopilot, private Nodes und ausschließlich den extern erreichbaren DNS-Control-Plane-Endpunkt.
-- [ ] Artifact Registry, Cloud SQL, Secret Manager und alle vier Buckets liegen in der vorgesehenen Region.
+- [ ] Artifact Registry, Cloud SQL, Secret Manager und alle privaten Buckets liegen in der vorgesehenen Region.
 - [ ] Der gemeinsame Frontend-/API-DNS-Name zeigt auf `GKE_INGRESS_IP_ADDRESS`.
 - [ ] Google Managed Certificate meldet `Active`.
 - [ ] Der GKE Ingress routet am Apex ausschließlich die allowlisteten Exact-Pfade für Einstieg, Identity-Portal und lokale Assets zum Public-Entry-Backend sowie Prefix `/__/auth/` zum Auth-Helper-Backend. Auf `www` zeigt ausschließlich Exact `/` zum Public-Entry-Backend; alle anderen Alias-Pfade bleiben beim IAP-geschützten Frontend. `/api` und der kanonische `/`-Catch-all zeigen auf die zwei IAP-geschützten Backends.
@@ -369,10 +403,13 @@ Der aufrufende Workflow kann die Rechte nicht über die im wiederverwendbaren Wo
 - [ ] `vk-pre-gematik-iap-oauth-bootstrap` enthält gültiges JSON mit nicht leeren `client_id`- und `client_secret`-Strings; der Deployer darf nur dieses Bootstrap-Secret lesen.
 - [ ] Für Passwortrotation ist der anschließende API-Rollout dokumentiert und getestet.
 - [ ] Der API-Workload-Principal darf nur das benötigte Secret, Cloud SQL und die drei Daten-Buckets verwenden.
+- [ ] Der Passwort-Broker darf im Einladungs-Bucket ausschließlich `active/`-Objekte lesen und löschen; List-, Create-, Update-, Restore-, DB- und Secret-Rechte fehlen.
+- [ ] Ausschließlich die namentlich bestätigten `PASSWORD_INVITATION_OPERATOR_MEMBERS` dürfen unter `prepared/` und `active/` anlegen, lesen und löschen; List-, Update- und Restore-Rechte fehlen.
+- [ ] Der Einladungs-Bucket erzwingt UBLA und Public Access Prevention und besitzt weder Versionierung noch Retention oder Soft Delete.
 - [ ] Der getrennte Frontend-Workload-Principal darf nur das statische Artefakt aus dem Frontend-Bucket lesen.
 - [ ] Die Public-Entry-KSA besitzt keine Cloud-IAM-Bindung; der Public-Pod hat `egress: []` und verwendet ausschließlich das digest-gepinnte Zehn-Dateien-Image.
 - [ ] Die Auth-Helper-KSA besitzt keine Cloud-IAM-Bindung, kein Token und keine Secrets; ihre NetworkPolicy erlaubt ausgehend nur DNS und HTTPS und nginx schreibt keine Zugriffslogs.
-- [ ] Der GitHub-Deployer darf Registry, Frontend-Bucket, Cluster-Deployment und nur lesend Backend-Service/Projektmetadaten verwenden.
+- [ ] Der GitHub-Deployer darf Registry, Frontend-Bucket, Cluster-Deployment und nur lesend Backend-Service/Projektmetadaten verwenden; direkte GCS-Rechte auf Einladungsobjekte fehlen und die transitive Cluster-Autorität ist als CI/CD-Trust-Boundary geprüft.
 
 ### Anwendung
 

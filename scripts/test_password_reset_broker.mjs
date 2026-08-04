@@ -2,15 +2,20 @@ import assert from "node:assert/strict";
 import http from "node:http";
 
 import {
+  PASSWORD_INVITATION_INVALID_MESSAGE,
   PASSWORD_RESET_ACCEPTED_RESPONSE,
   PASSWORD_RESET_BROKER_PATH,
+  PasswordInvitationInvalidError,
   PasswordResetInfrastructureError,
   createIdentityPlatformPasswordResetClient,
+  createPasswordInvitationStore,
   createPasswordResetBroker,
   createPasswordResetRateLimiter,
   exactPasswordOnlyIdentityUser,
   normalizePasswordResetEmail,
-  trustedPasswordResetClientIp
+  passwordInvitationObjectName,
+  trustedPasswordResetClientIp,
+  validateActivePasswordInvitation
 } from "../api/password-reset-broker.mjs";
 import {
   createPasswordResetHttpHandler,
@@ -21,6 +26,38 @@ const TEST_EMAIL = "timo.frank@gematik.de";
 const TEST_PROJECT_ID = "versorgungs-kompass-test";
 const TEST_API_KEY = `AIza${"a".repeat(35)}`;
 const TEST_CONTINUE_URL = "https://versorgungs-kompass.de/start";
+const TEST_INVITATION_BUCKET = `${TEST_PROJECT_ID}-vk-pre-gematik-invitations`;
+const TEST_INVITATION_TOKEN = Buffer.alloc(32, 7).toString("base64url");
+const TEST_ACCEPTED_AT = "2026-08-04T10:00:00.000Z";
+const TEST_EXPIRES_AT = "2026-08-06T10:00:00.000Z";
+const TEST_NOW = Date.parse("2026-08-04T11:00:00.000Z");
+const TEST_OOB_CODE = "syntheticPasswordActionCode1234567890";
+const TEST_RAW_ACTION_URL = `https://${TEST_PROJECT_ID}.firebaseapp.com/__/auth/action?mode=resetPassword&oobCode=${TEST_OOB_CODE}&apiKey=${TEST_API_KEY}&continueUrl=${encodeURIComponent(TEST_CONTINUE_URL)}`;
+const TEST_ACTION_URL = `https://versorgungs-kompass.de/konto/passwort-festlegen?mode=resetPassword&oobCode=${TEST_OOB_CODE}&apiKey=${TEST_API_KEY}&continueUrl=${encodeURIComponent(TEST_CONTINUE_URL)}&lang=de`;
+
+function activeInvitation(overrides = {}) {
+  return {
+    version: "v1",
+    purpose: "password_invitation",
+    status: "active",
+    project_id: TEST_PROJECT_ID,
+    tenant_id: "",
+    uid: "password-user-1",
+    email: TEST_EMAIL,
+    continue_url: TEST_CONTINUE_URL,
+    prepared_at: "2026-08-04T09:00:00.000Z",
+    accepted_at: TEST_ACCEPTED_AT,
+    expires_at: TEST_EXPIRES_AT,
+    account_fingerprint: `sha256:${"1".repeat(64)}`,
+    guest_access_fingerprint: `sha256:${"2".repeat(64)}`,
+    binding_state_fingerprint: `sha256:${"3".repeat(64)}`,
+    profile_id: "11111111-1111-4111-8111-111111111111",
+    role: "viewer",
+    access_scope: "test_only",
+    scope_ref: "external-pilot:synthetic-password-user",
+    ...overrides
+  };
+}
 
 function explicitPasswordUser(overrides = {}) {
   return {
@@ -154,6 +191,15 @@ const identityClient = createIdentityPlatformPasswordResetClient({
         headers: { "content-type": "application/json" }
       });
     }
+    if (JSON.parse(options.body).returnOobLink === true) {
+      return new Response(JSON.stringify({
+        email: TEST_EMAIL,
+        oobLink: TEST_RAW_ACTION_URL
+      }), {
+        status: 200,
+        headers: { "content-type": "application/json" }
+      });
+    }
     return new Response(JSON.stringify({ email: TEST_EMAIL }), {
       status: 200,
       headers: { "content-type": "application/json" }
@@ -182,9 +228,10 @@ for (const invalidContinueUrl of [
 
 assert.deepEqual(await identityClient.lookupByEmail(TEST_EMAIL), implicitPasswordUser());
 assert.equal(await identityClient.sendPasswordReset(TEST_EMAIL, "198.51.100.42"), true);
-assert.equal(identityRequests.length, 2);
+assert.equal(await identityClient.generatePasswordResetActionUrl(TEST_EMAIL), TEST_ACTION_URL);
+assert.equal(identityRequests.length, 3);
 
-const [lookupRequest, sendRequest] = identityRequests;
+const [lookupRequest, sendRequest, generateRequest] = identityRequests;
 for (const request of identityRequests) {
   const parsedUrl = new URL(request.url);
   assert.equal(parsedUrl.origin, "https://identitytoolkit.googleapis.com");
@@ -215,6 +262,37 @@ assert.deepEqual(sendRequest.body, {
   returnOobLink: false,
   clientType: "CLIENT_TYPE_WEB"
 });
+assert.equal(
+  new URL(generateRequest.url).pathname,
+  `/v1/projects/${TEST_PROJECT_ID}/accounts:sendOobCode`
+);
+assert.deepEqual(generateRequest.body, {
+  requestType: "PASSWORD_RESET",
+  email: TEST_EMAIL,
+  continueUrl: TEST_CONTINUE_URL,
+  canHandleCodeInApp: false,
+  returnOobLink: true,
+  clientType: "CLIENT_TYPE_WEB"
+});
+
+const brandedIdentityClient = createIdentityPlatformPasswordResetClient({
+  projectId: TEST_PROJECT_ID,
+  apiKey: TEST_API_KEY,
+  continueUrl: TEST_CONTINUE_URL,
+  accessTokenProvider: async () => "test-oauth-access-token",
+  fetchImpl: async () => new Response(JSON.stringify({
+    email: TEST_EMAIL,
+    oobLink: TEST_ACTION_URL.replace("lang=de", "lang=en")
+  }), {
+    status: 200,
+    headers: { "content-type": "application/json" }
+  })
+});
+assert.equal(
+  await brandedIdentityClient.generatePasswordResetActionUrl(TEST_EMAIL),
+  TEST_ACTION_URL,
+  "Identity Platform darf den OOB-Link bereits auf dem kanonischen Portal-Origin liefern."
+);
 
 function errorResponse(code, status = 400) {
   return new Response(JSON.stringify({ error: { message: code } }), {
@@ -240,6 +318,11 @@ assert.equal(
   false,
   "Account-private sendOob-Fehler dürfen keine Kontoexistenz offenlegen."
 );
+assert.equal(
+  await privateLookupClient.generatePasswordResetActionUrl(TEST_EMAIL),
+  null,
+  "Ein nach Aktivierung nicht mehr gültiges Konto darf keinen Aktionslink erhalten."
+);
 
 const failingIdentityClient = createIdentityPlatformPasswordResetClient({
   projectId: TEST_PROJECT_ID,
@@ -258,6 +341,116 @@ await assert.rejects(
   ),
   "Infrastrukturfehler müssen als generischer 503-Vertrag enden."
 );
+
+const invitationObjectName = passwordInvitationObjectName(TEST_INVITATION_TOKEN);
+assert.match(invitationObjectName, /^active\/[a-f0-9]{64}\.json$/u);
+assert.equal(invitationObjectName.includes(TEST_INVITATION_TOKEN), false);
+for (const invalidToken of ["", "short", `${TEST_INVITATION_TOKEN}=`, TEST_INVITATION_TOKEN.slice(1)]) {
+  assert.throws(() => passwordInvitationObjectName(invalidToken), PasswordInvitationInvalidError);
+}
+assert.deepEqual(
+  validateActivePasswordInvitation(activeInvitation(), {
+    projectId: TEST_PROJECT_ID,
+    continueUrl: TEST_CONTINUE_URL,
+    now: TEST_NOW
+  }),
+  activeInvitation()
+);
+for (const invalidInvitationDocument of [
+  activeInvitation({ debug: true }),
+  activeInvitation({ version: 1 }),
+  activeInvitation({ access_scope: "standard" }),
+  activeInvitation({ uid: "short" }),
+  activeInvitation({ accepted_at: "2026-08-04T10:00:00Z" }),
+  activeInvitation({ expires_at: "2026-08-06T09:59:59.999Z" }),
+  activeInvitation({ continue_url: "https://attacker.example/start" })
+]) {
+  assert.throws(
+    () => validateActivePasswordInvitation(invalidInvitationDocument, {
+      projectId: TEST_PROJECT_ID,
+      continueUrl: TEST_CONTINUE_URL,
+      now: TEST_NOW
+    }),
+    PasswordInvitationInvalidError
+  );
+}
+assert.throws(
+  () => validateActivePasswordInvitation(activeInvitation(), {
+    projectId: TEST_PROJECT_ID,
+    continueUrl: TEST_CONTINUE_URL,
+    now: Date.parse(TEST_EXPIRES_AT)
+  }),
+  PasswordInvitationInvalidError,
+  "Die Einladung muss am exakten 48-Stunden-Ende abgelaufen sein."
+);
+
+const storageRequests = [];
+const activeInvitationJson = JSON.stringify(activeInvitation());
+const invitationStore = createPasswordInvitationStore({
+  bucketName: TEST_INVITATION_BUCKET,
+  accessTokenProvider: async () => "storage-access-token",
+  fetchImpl: async (url, options) => {
+    storageRequests.push({ url, options });
+    if (options.method === "GET") {
+      const requestUrl = new URL(url);
+      const body = requestUrl.searchParams.get("alt") === "media"
+        ? activeInvitationJson
+        : JSON.stringify({
+            name: invitationObjectName,
+            size: String(Buffer.byteLength(activeInvitationJson, "utf8")),
+            contentType: "application/json",
+            generation: "42"
+          });
+      return new Response(body, {
+        status: 200,
+        headers: {
+          "content-type": "application/json; charset=utf-8"
+        }
+      });
+    }
+    return new Response(null, { status: 204 });
+  }
+});
+assert.deepEqual(await invitationStore.getActive(invitationObjectName), {
+  generation: "42",
+  value: activeInvitation()
+});
+assert.equal(await invitationStore.deleteActive(invitationObjectName, "42"), true);
+assert.equal(storageRequests.length, 3);
+const storageMetadataUrl = new URL(storageRequests[0].url);
+assert.equal(storageMetadataUrl.origin, "https://storage.googleapis.com");
+assert.equal(
+  storageMetadataUrl.pathname,
+  `/storage/v1/b/${TEST_INVITATION_BUCKET}/o/${encodeURIComponent(invitationObjectName)}`
+);
+assert.deepEqual(
+  [...storageMetadataUrl.searchParams],
+  [["fields", "name,size,contentType,generation"]]
+);
+const storageMediaUrl = new URL(storageRequests[1].url);
+assert.equal(storageMediaUrl.pathname, storageMetadataUrl.pathname);
+assert.deepEqual([...storageMediaUrl.searchParams], [
+  ["alt", "media"],
+  ["generation", "42"]
+]);
+const storageDeleteUrl = new URL(storageRequests[2].url);
+assert.equal(storageDeleteUrl.pathname, storageMetadataUrl.pathname);
+assert.deepEqual([...storageDeleteUrl.searchParams], [["ifGenerationMatch", "42"]]);
+for (const request of storageRequests) {
+  assert.equal(request.options.headers.authorization, "Bearer storage-access-token");
+  assert.equal(request.options.redirect, "error");
+  assert.equal(request.options.headers["x-goog-user-project"], undefined);
+}
+
+const missingInvitationStore = createPasswordInvitationStore({
+  bucketName: TEST_INVITATION_BUCKET,
+  accessTokenProvider: async () => "storage-access-token",
+  fetchImpl: async (_url, options) => new Response(null, {
+    status: options.method === "DELETE" ? 412 : 404
+  })
+});
+assert.equal(await missingInvitationStore.getActive(invitationObjectName), null);
+assert.equal(await missingInvitationStore.deleteActive(invitationObjectName, "42"), false);
 
 let nowMs = 10_000;
 const rateLimiter = createPasswordResetRateLimiter({
@@ -322,6 +515,250 @@ for (const result of [eligibleResult, unknownResult, googleResult, invalidResult
 }
 assert.deepEqual(brokerCalls.lookup, [TEST_EMAIL, "unknown@example.invalid", "google@example.invalid"]);
 assert.deepEqual(brokerCalls.send, [{ email: TEST_EMAIL, clientIp: "198.51.100.42" }]);
+
+const invitationSequence = [];
+const invitationBroker = createPasswordResetBroker({
+  identityClient: {
+    async lookupByEmail(email) {
+      invitationSequence.push("identity-lookup");
+      return explicitPasswordUser({ email });
+    },
+    async sendPasswordReset() {
+      throw new Error("Der normale Reset-Versand darf beim Einlösen nicht laufen.");
+    },
+    async generatePasswordResetActionUrl(email) {
+      invitationSequence.push("oob-mint");
+      assert.equal(email, TEST_EMAIL);
+      return TEST_ACTION_URL;
+    }
+  },
+  invitationStore: {
+    async getActive(objectName) {
+      invitationSequence.push("invitation-get");
+      assert.equal(objectName, invitationObjectName);
+      return { generation: "42", value: activeInvitation() };
+    },
+    async deleteActive(objectName, generation) {
+      invitationSequence.push("conditional-delete");
+      assert.equal(objectName, invitationObjectName);
+      assert.equal(generation, "42");
+      return true;
+    }
+  },
+  projectId: TEST_PROJECT_ID,
+  continueUrl: TEST_CONTINUE_URL,
+  now: () => TEST_NOW,
+  minimumResponseMs: 0
+});
+assert.deepEqual(
+  await invitationBroker.request({
+    invitationToken: TEST_INVITATION_TOKEN,
+    clientIp: "198.51.100.60"
+  }),
+  { redeemed: true, actionUrl: TEST_ACTION_URL }
+);
+assert.deepEqual(invitationSequence, [
+  "invitation-get",
+  "identity-lookup",
+  "conditional-delete",
+  "oob-mint"
+]);
+
+const invitationDelayCalls = [];
+const durationInvitationBroker = createPasswordResetBroker({
+  identityClient: {
+    async lookupByEmail() {
+      return explicitPasswordUser();
+    },
+    async sendPasswordReset() {
+      return true;
+    },
+    async generatePasswordResetActionUrl() {
+      return TEST_ACTION_URL;
+    }
+  },
+  invitationStore: {
+    async getActive() {
+      return { generation: "47", value: activeInvitation() };
+    },
+    async deleteActive() {
+      return true;
+    }
+  },
+  projectId: TEST_PROJECT_ID,
+  continueUrl: TEST_CONTINUE_URL,
+  now: () => TEST_NOW,
+  delay: async (milliseconds) => invitationDelayCalls.push(milliseconds),
+  minimumResponseMs: 750
+});
+await assert.rejects(
+  () => durationInvitationBroker.request({
+    invitationToken: "invalid",
+    clientIp: "198.51.100.65"
+  }),
+  PasswordInvitationInvalidError
+);
+await durationInvitationBroker.request({
+  invitationToken: TEST_INVITATION_TOKEN,
+  clientIp: "198.51.100.66"
+});
+assert.deepEqual(
+  invitationDelayCalls,
+  [750, 750],
+  "Ungültige und gültige Einladungen müssen dieselbe Mindestdauer erhalten."
+);
+
+let racedMintCalls = 0;
+const racedInvitationBroker = createPasswordResetBroker({
+  identityClient: {
+    async lookupByEmail() {
+      return explicitPasswordUser();
+    },
+    async sendPasswordReset() {
+      return true;
+    },
+    async generatePasswordResetActionUrl() {
+      racedMintCalls += 1;
+      return TEST_ACTION_URL;
+    }
+  },
+  invitationStore: {
+    async getActive() {
+      return { generation: "43", value: activeInvitation() };
+    },
+    async deleteActive() {
+      return false;
+    }
+  },
+  projectId: TEST_PROJECT_ID,
+  continueUrl: TEST_CONTINUE_URL,
+  now: () => TEST_NOW,
+  minimumResponseMs: 0
+});
+await assert.rejects(
+  () => racedInvitationBroker.request({
+    invitationToken: TEST_INVITATION_TOKEN,
+    clientIp: "198.51.100.61"
+  }),
+  (error) => (
+    error instanceof PasswordInvitationInvalidError
+    && error.message === PASSWORD_INVITATION_INVALID_MESSAGE
+    && !error.message.includes(TEST_INVITATION_TOKEN)
+    && !error.message.includes(TEST_EMAIL)
+  ),
+  "Nur der Gewinner des generation-sicheren Deletes darf einen OOB-Code prägen."
+);
+assert.equal(racedMintCalls, 0);
+
+let expiredIdentityLookups = 0;
+const expiredInvitationBroker = createPasswordResetBroker({
+  identityClient: {
+    async lookupByEmail() {
+      expiredIdentityLookups += 1;
+      return explicitPasswordUser();
+    },
+    async sendPasswordReset() {
+      return true;
+    },
+    async generatePasswordResetActionUrl() {
+      return TEST_ACTION_URL;
+    }
+  },
+  invitationStore: {
+    async getActive() {
+      return { generation: "44", value: activeInvitation() };
+    },
+    async deleteActive() {
+      throw new Error("Eine abgelaufene Einladung darf nicht gelöscht werden.");
+    }
+  },
+  projectId: TEST_PROJECT_ID,
+  continueUrl: TEST_CONTINUE_URL,
+  now: () => Date.parse(TEST_EXPIRES_AT),
+  minimumResponseMs: 0
+});
+await assert.rejects(
+  () => expiredInvitationBroker.request({
+    invitationToken: TEST_INVITATION_TOKEN,
+    clientIp: "198.51.100.62"
+  }),
+  PasswordInvitationInvalidError
+);
+assert.equal(expiredIdentityLookups, 0);
+
+const wrongIdentityInvitationBroker = createPasswordResetBroker({
+  identityClient: {
+    async lookupByEmail() {
+      return explicitPasswordUser({ localId: "different-password-user" });
+    },
+    async sendPasswordReset() {
+      return true;
+    },
+    async generatePasswordResetActionUrl() {
+      throw new Error("Ein UID-Mismatch darf keinen OOB-Code prägen.");
+    }
+  },
+  invitationStore: {
+    async getActive() {
+      return { generation: "45", value: activeInvitation() };
+    },
+    async deleteActive() {
+      throw new Error("Ein UID-Mismatch darf die Einladung nicht verbrauchen.");
+    }
+  },
+  projectId: TEST_PROJECT_ID,
+  continueUrl: TEST_CONTINUE_URL,
+  now: () => TEST_NOW,
+  minimumResponseMs: 0
+});
+await assert.rejects(
+  () => wrongIdentityInvitationBroker.request({
+    invitationToken: TEST_INVITATION_TOKEN,
+    clientIp: "198.51.100.63"
+  }),
+  PasswordInvitationInvalidError
+);
+
+const mintFailureSequence = [];
+const mintFailureBroker = createPasswordResetBroker({
+  identityClient: {
+    async lookupByEmail() {
+      return explicitPasswordUser();
+    },
+    async sendPasswordReset() {
+      return true;
+    },
+    async generatePasswordResetActionUrl() {
+      mintFailureSequence.push("oob-mint-failed");
+      throw new Error(`private Identity failure for ${TEST_EMAIL}`);
+    }
+  },
+  invitationStore: {
+    async getActive() {
+      return { generation: "46", value: activeInvitation() };
+    },
+    async deleteActive() {
+      mintFailureSequence.push("conditional-delete");
+      return true;
+    }
+  },
+  projectId: TEST_PROJECT_ID,
+  continueUrl: TEST_CONTINUE_URL,
+  now: () => TEST_NOW,
+  minimumResponseMs: 0
+});
+await assert.rejects(
+  () => mintFailureBroker.request({
+    invitationToken: TEST_INVITATION_TOKEN,
+    clientIp: "198.51.100.64"
+  }),
+  (error) => (
+    error instanceof PasswordResetInfrastructureError
+    && !error.message.includes(TEST_EMAIL)
+    && !error.message.includes(TEST_INVITATION_TOKEN)
+  )
+);
+assert.deepEqual(mintFailureSequence, ["conditional-delete", "oob-mint-failed"]);
 
 let deliveryStartedResolve;
 let deliveryReleaseResolve;
@@ -405,7 +842,8 @@ const validServerConfiguration = passwordResetServerConfiguration({
   PASSWORD_RESET_ALLOWED_ORIGIN: "https://versorgungs-kompass.de",
   IAP_GCIP_PROJECT_ID: TEST_PROJECT_ID,
   IAP_GCIP_TENANT_ID: "",
-  IAP_EXTERNAL_AUTH_API_KEY: TEST_API_KEY
+  IAP_EXTERNAL_AUTH_API_KEY: TEST_API_KEY,
+  PASSWORD_INVITATION_BUCKET: TEST_INVITATION_BUCKET
 });
 assert.deepEqual(validServerConfiguration, {
   production: true,
@@ -413,6 +851,7 @@ assert.deepEqual(validServerConfiguration, {
   projectId: TEST_PROJECT_ID,
   tenantId: "",
   apiKey: TEST_API_KEY,
+  invitationBucketName: TEST_INVITATION_BUCKET,
   allowedOrigin: "https://versorgungs-kompass.de",
   allowedHost: "versorgungs-kompass.de",
   continueUrl: TEST_CONTINUE_URL
@@ -440,6 +879,7 @@ for (const invalidEnvironment of [
       IAP_GCIP_PROJECT_ID: TEST_PROJECT_ID,
       IAP_GCIP_TENANT_ID: "",
       IAP_EXTERNAL_AUTH_API_KEY: TEST_API_KEY,
+      PASSWORD_INVITATION_BUCKET: TEST_INVITATION_BUCKET,
       ...invalidEnvironment
     })
   );
@@ -532,7 +972,9 @@ const httpBrokerCalls = [];
 await withHttpHandler(localHttpConfiguration, {
   async request(request) {
     httpBrokerCalls.push(request);
-    return PASSWORD_RESET_ACCEPTED_RESPONSE;
+    return request.invitationToken
+      ? { redeemed: true, actionUrl: TEST_ACTION_URL }
+      : PASSWORD_RESET_ACCEPTED_RESPONSE;
   }
 }, async (port) => {
   const health = await httpRequest(port, { method: "GET", path: "/healthz" });
@@ -547,7 +989,18 @@ await withHttpHandler(localHttpConfiguration, {
   assert.deepEqual(accepted.json, PASSWORD_RESET_ACCEPTED_RESPONSE);
   assert.equal(accepted.headers["cache-control"], "no-store");
   assert.equal(accepted.headers["x-content-type-options"], "nosniff");
-  assert.deepEqual(httpBrokerCalls, [{ email: TEST_EMAIL, clientIp: "127.0.0.1" }]);
+
+  const redeemed = await httpRequest(port, {
+    headers: browserHeaders,
+    body: JSON.stringify({ invitationToken: TEST_INVITATION_TOKEN })
+  });
+  assert.equal(redeemed.status, 200);
+  assert.deepEqual(redeemed.json, { redeemed: true, actionUrl: TEST_ACTION_URL });
+  assert.equal(redeemed.headers["cache-control"], "no-store");
+  assert.deepEqual(httpBrokerCalls, [
+    { email: TEST_EMAIL, clientIp: "127.0.0.1" },
+    { invitationToken: TEST_INVITATION_TOKEN, clientIp: "127.0.0.1" }
+  ]);
 
   for (const requestVariant of [
     { method: "GET", path: PASSWORD_RESET_BROKER_PATH },
@@ -582,12 +1035,14 @@ await withHttpHandler(localHttpConfiguration, {
     ["ungültiges JSON", "{"],
     ["Array statt Objekt", "[]"],
     ["zusätzliches Feld", JSON.stringify({ email: TEST_EMAIL, debug: true })],
-    ["nicht-string E-Mail", JSON.stringify({ email: 42 })]
+    ["nicht-string E-Mail", JSON.stringify({ email: 42 })],
+    ["beide Zwecke", JSON.stringify({ email: TEST_EMAIL, invitationToken: TEST_INVITATION_TOKEN })],
+    ["nicht-string Einladung", JSON.stringify({ invitationToken: 42 })]
   ]) {
     const response = await httpRequest(port, { headers: browserHeaders, body });
     assert.equal(response.status, 400, `${label} muss 400 liefern.`);
   }
-  assert.equal(httpBrokerCalls.length, 1, "Abgewiesene HTTP-Anfragen dürfen den Broker nicht erreichen.");
+  assert.equal(httpBrokerCalls.length, 2, "Abgewiesene HTTP-Anfragen dürfen den Broker nicht erreichen.");
 });
 
 const originalConsoleError = console.error;
@@ -615,4 +1070,20 @@ try {
 assert.equal(capturedErrors.length, 1);
 assert.equal(capturedErrors[0].includes(TEST_EMAIL), false, "Server-Logs dürfen die Reset-E-Mail nicht enthalten.");
 
-console.log("Password Reset Broker Test OK: Eligibility, Neutralität, Identity-Platform-Vertrag, Rate-Limit und HTTP-Grenze sind abgesichert.");
+await withHttpHandler(localHttpConfiguration, {
+  async request() {
+    throw new PasswordInvitationInvalidError();
+  }
+}, async (port) => {
+  const response = await httpRequest(port, {
+    headers: browserHeaders,
+    body: JSON.stringify({ invitationToken: TEST_INVITATION_TOKEN })
+  });
+  assert.equal(response.status, 400);
+  assert.deepEqual(response.json, { error: PASSWORD_INVITATION_INVALID_MESSAGE });
+  assert.equal(response.text.includes(TEST_INVITATION_TOKEN), false);
+  assert.equal(response.text.includes(TEST_EMAIL), false);
+  assert.equal(response.headers["cache-control"], "no-store");
+});
+
+console.log("Password Reset Broker Test OK: Reset-Neutralität und atomare 48-Stunden-Einladungen sind abgesichert.");

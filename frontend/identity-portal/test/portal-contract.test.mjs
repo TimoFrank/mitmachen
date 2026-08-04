@@ -4,6 +4,10 @@ import test from "node:test";
 
 const appSource = await readFile(new URL("../src/app.jsx", import.meta.url), "utf8");
 const actionSource = await readFile(new URL("../src/action.jsx", import.meta.url), "utf8");
+const invitationSource = await readFile(
+  new URL("../src/password-invitation.js", import.meta.url),
+  "utf8"
+);
 const shellSource = await readFile(new URL("../src/shell.jsx", import.meta.url), "utf8");
 const stylesSource = await readFile(new URL("../src/styles.css", import.meta.url), "utf8");
 const teamsPreviewSource = await readFile(
@@ -141,8 +145,8 @@ test("keeps public-facing copy and assets on the branded portal", () => {
     assert.match(actionSource, new RegExp(asset.replaceAll(".", "\\."), "u"));
   }
   for (const stateCopy of [
-    "Dein Reset-Link wird sicher geprüft",
-    "Dieser Reset-Link ist nicht mehr gültig.",
+    "Dein sicherer Link wird geprüft",
+    "Dieser Link ist nicht mehr gültig.",
     "Alles bereit.",
     "Neues Passwort festlegen",
     "Reset-Link nicht verfügbar"
@@ -199,6 +203,42 @@ test("scrubs the one-time action code before validation or remote work", () => {
   );
 });
 
+test("keeps the 48-hour invitation in the fragment until an explicit password submit", () => {
+  assert.match(invitationSource, /#\$\{INVITATION_FRAGMENT_KEY\}=\$\{token\}/u);
+  assert.match(invitationSource, /credentials:\s*"omit"/u);
+  assert.match(invitationSource, /referrerPolicy:\s*"no-referrer"/u);
+  const submitStart = actionSource.indexOf("async function resetPassword(password)");
+  const redemption = actionSource.indexOf(
+    "await redeemPasswordInvitation(state.invitationToken)"
+  );
+  assert.ok(submitStart >= 0 && redemption > submitStart);
+  assert.match(
+    actionSource,
+    /history\.replaceState\(\{\}, "", window\.location\.pathname\)[\s\S]*root\.render\(<PasswordActionApp/u,
+    "Das Fragment muss vor dem Rendern des Einlösedialogs aus der sichtbaren URL entfernt sein."
+  );
+});
+
+test("retains a redeemed native action before its remote verification", () => {
+  const submitStart = actionSource.indexOf("async function resetPassword(password)");
+  const redemption = actionSource.indexOf(
+    "await redeemPasswordInvitation(state.invitationToken)",
+    submitStart
+  );
+  const persistAction = actionSource.indexOf("invitationToken: null", redemption);
+  const verification = actionSource.indexOf(
+    "await verifyPasswordResetCode(auth, action.oobCode)",
+    redemption
+  );
+  assert.ok(
+    submitStart >= 0
+      && redemption > submitStart
+      && persistAction > redemption
+      && verification > persistAction,
+    "Ein bereits erhaltener nativer Action-Code muss vor der Remote-Prüfung für einen Retry erhalten bleiben."
+  );
+});
+
 test("pins cache-busted portal assets without changing the eight-file surface", () => {
   assert.match(
     signInHtml,
@@ -210,10 +250,10 @@ test("pins cache-busted portal assets without changing the eight-file surface", 
   );
   assert.match(
     actionHtml,
-    /href="\/public\/auth\/assets\/action\.css\?v=20260731-1"/u
+    /href="\/public\/auth\/assets\/action\.css\?v=20260804-1"/u
   );
   assert.match(
     actionHtml,
-    /src="\/public\/auth\/assets\/action\.js\?v=20260731-1"/u
+    /src="\/public\/auth\/assets\/action\.js\?v=20260804-1"/u
   );
 });

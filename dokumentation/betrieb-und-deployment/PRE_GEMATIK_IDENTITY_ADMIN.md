@@ -65,19 +65,29 @@ Passwort-Testkonten werden vor diesem Login ausschließlich administrativ mit
 [`provision_pre_gematik_identity_platform_account.mjs`](../../scripts/provision_pre_gematik_identity_platform_account.mjs)
 create-only angelegt. Self-Signup bleibt aus. Das owner-only Eingabedokument
 liegt außerhalb von Git und enthält kein Passwort; ein intern zufällig
-erzeugtes Bootstrap-Geheimnis wird weder ausgegeben noch gespeichert. Der
-Operator schreibt ausschließlich die von Identity Platform erzeugte
-Password-Reset-URL als Set-password-Einladung create-only in eine owner-only
-Datei außerhalb des Worktrees. Weder Passwort noch Link oder Kontodaten dürfen
-in Git, Ticket, allgemeinem Chat, Shell-History, Konsolen- oder
-Operatorausgabe gelangen.
+erzeugtes Bootstrap-Geheimnis wird weder ausgegeben noch gespeichert. Ein bei
+der Kontoanlage technisch erzeugter nativer Identity-Platform-Link ist keine
+versandfähige Ersteinladung. Nach dem vollständigen Prebinding erzeugt der
+Einladungsoperator stattdessen 32 zufällige Bytes und schreibt ausschließlich
+den gebrandeten 48-Stunden-Link create-only in eine owner-only Datei außerhalb
+des Worktrees. Der Rohwert steht nur im URL-Fragment; der private
+Einladungs-Bucket speichert ausschließlich seinen bereichsgetrennten
+SHA-256-Bezeichner und den geprüften Konto-/Binding-Vertrag. Weder Passwort noch
+Link oder Kontodaten dürfen in Git, Ticket, allgemeinem Chat, Shell-History,
+Konsolen- oder Operatorausgabe gelangen.
+
+Der aktive `gcloud`-Nutzer muss dafür explizit in der geschützten Terraform-
+Eingabe `PASSWORD_INVITATION_OPERATOR_MEMBERS` stehen. Die eigene Operatorrolle
+ist auf Create, Get und Delete unter `prepared/` und `active/` begrenzt; sie
+enthält kein List, Update oder Restore. Projekt-Owner- und IAP-Zugriff ersetzen
+diese namentliche Bindung nicht.
 
 Die verbindliche Reihenfolge verhindert ausdrücklich den Zustand „Passwort
 gesetzt, aber kein App-Zugang“:
 
 1. password-only Identity-Platform-Konto create-only mit
-   `continue_url=https://versorgungs-kompass.de/start` anlegen. Die dabei
-   owner-only geschriebene Linkdatei noch nicht versenden.
+   `continue_url=https://versorgungs-kompass.de/start` anlegen. Einen dabei
+   technisch erzeugten nativen Link weder auswählen noch versenden.
 2. Mit
    [`provision_pre_gematik_identity_platform_guest_access.mjs`](../../scripts/provision_pre_gematik_identity_platform_guest_access.mjs)
    den genehmigten Zustand previewen. Bei einem vorhandenen aktiven Profil
@@ -96,8 +106,8 @@ gesetzt, aber kein App-Zugang“:
    Online-Weg besteht genau aus einem Preview, einem bestätigten Apply und
    einem anschließenden `unchanged`-Preview; er enthält keinen zweiten
    No-op-Apply.
-3. Erst danach einen neuen beziehungsweise Recovery-Link erzeugen oder den
-   noch gültigen Link aus der owner-only Datei auswählen. Mit
+3. Erst danach aus Konto-, Gastzugriffs- und erfolgreichem Post-Apply-Nachweis
+   eine inerte 48-Stunden-Einladung im privaten Bucket vorbereiten. Mit
    [`render_pre_gematik_guest_welcome_email.mjs`](../../scripts/render_pre_gematik_guest_welcome_email.mjs)
    und der Operation `RENDER_PRE_GEMATIK_GUEST_WELCOME_EMAIL` daraus
    create-only das geprüfte owner-only Paket aus Betreff, Text, HTML und EML
@@ -105,24 +115,32 @@ gesetzt, aber kein App-Zugang“:
    [`send_pre_gematik_guest_welcome_email.mjs`](../../scripts/send_pre_gematik_guest_welcome_email.mjs)
    und der Operation `SEND_PRE_GEMATIK_GUEST_WELCOME_EMAIL` unverändert über
    das gepinnte Domain-Postfach `zugang@versorgungs-kompass.de` senden. Der
-   Operator bestätigt den Einmal-Code unmittelbar vor Preview und Apply
-   nicht konsumierend als aktuell gültigen `PASSWORD_RESET` für die exakte
-   Empfängeradresse. Der mailidentitätsbasierte create-only Versandbeleg muss
-   `accepted` ausweisen; bei `unknown` gibt es ohne unabhängige
-   Zustellprüfung über seine bereits gespeicherte `Message-ID` keinen
-   Wiederholungsversand. Ist das Prebinding nicht exakt: **keine Mail**.
-4. Die Person setzt das Passwort auf
-   `https://versorgungs-kompass.de/konto/passwort-festlegen`, wählt
+   Sender bestätigt unmittelbar vor Preview und Apply den unveränderten
+   `prepared`-Datensatz für exakt Konto, Profil, `test_only`-Binding und
+   Mailfingerabdruck. Erst nach SMTP-Annahme wird daraus create-only ein
+   `active`-Datensatz mit `accepted_at` und exakt
+   `expires_at = accepted_at + 48 Stunden`; erst dann kann der Broker ihn
+   einmalig einlösen. Der mailidentitätsbasierte Versandbeleg muss `accepted`
+   ausweisen; bei unklarem SMTP- oder Aktivierungszustand gibt es ohne
+   unabhängige Prüfung über die bereits gespeicherte `Message-ID` und den
+   Fingerabdruck keinen Wiederholungsversand. Ist das Prebinding nicht exakt:
+   **keine Mail**.
+4. Die Person kann den Mail-Link ab SMTP-Annahme 48 Stunden lang öffnen. Ein
+   reiner GET oder Mail-Preview verbraucht nichts. Erst das bewusste Speichern
+   des neuen Passworts löscht die Einladung atomar, erzeugt just in time einen
+   frischen Identity-Platform-Code und setzt das Passwort auf
+   `https://versorgungs-kompass.de/konto/passwort-festlegen`. Danach wählt sie
    `Jetzt anmelden`, gelangt über `/start` zur Anmeldung und danach direkt in
    die App.
 5. Nach erfolgreichem Passwortsetzen und App-Login Linkdatei und gerendertes
    Mailpaket kontrolliert löschen.
 
-Diese Einladung ist kein passwortloser IAP-Login. Scheitert die Link-Erzeugung
-nach dem Account-Create, wird der Account nicht automatisch gelöscht und
-create-only nicht wiederholt; nach exaktem read-only Abgleich ist nur der
-ausdrücklich bestätigte Link-Recovery-Modus zulässig. Die vollständige Befehls-
-und Nachweisfolge steht im
+Diese Einladung ist kein passwortloser IAP-Login. Scheitert die
+Einladungsvorbereitung nach dem Account-Create, wird der Account nicht
+automatisch gelöscht und create-only nicht wiederholt. Eine neue Einladung
+setzt einen exakten read-only Konto- und Binding-Abgleich sowie einen neuen,
+ausdrücklich bestätigten create-only Ausgabepfad voraus. Die vollständige
+Befehls- und Nachweisfolge steht im
 [External-Identities-Pilotvertrag](PRE_GEMATIK_EXTERNAL_IDENTITIES_PILOT.md).
 
 Der Pilot verwendet keine vorgefertigte Hosted Login Page. Verbindlich sind die
@@ -839,10 +857,12 @@ Vor Öffnung des Dienstes sind alle Punkte erforderlich:
 8. Für den Passwortgast existiert keine kollidierende Pending-Anfrage und der
    Post-Login-Endpoint wurde nicht verwendet.
 9. Die Willkommensmail wurde erst nach vollständigem Gastzugriffs-Readback
-   versendet. Der
-   sichtbare Link führt über
-   `https://versorgungs-kompass.de/konto/passwort-festlegen`; `Jetzt anmelden`
-   führt über `/start` zur Anmeldung und anschließend direkt in die App.
+   versendet und ihre Einladung erst nach SMTP-Annahme für exakt 48 Stunden
+   aktiviert. Der sichtbare Link führt über
+   `https://versorgungs-kompass.de/konto/passwort-festlegen`; sein Token steht
+   ausschließlich im Fragment und wird atomar einmalig verwendet. `Jetzt
+   anmelden` führt über `/start` zur Anmeldung und anschließend direkt in die
+   App.
 10. Die owner-only Linkdatei und das gerenderte Mailpaket sind nach
     erfolgreichem Passwortsetzen und App-Login kontrolliert gelöscht.
 11. Der Gast-Widerruf wurde nicht-produktiv nachgewiesen: `--revoke` meldet
@@ -923,5 +943,6 @@ Subject-Remap ausschließlich ihre Subjects auf den gesicherten IAM-Zustand
 zurücksetzt. Erst danach wird die Runtime fail-closed auf IAM ausgerollt; der
 Deployment-Workflow reconciliert anschließend beide IAP-Ressourcen samt
 Reauthentication auf IAM und bestätigt den Zustand. Noch nicht versendete
-Linkdateien werden kontrolliert gelöscht. Die vollständige Reihenfolge steht im
+`prepared`-Einladungen und Linkdateien sowie noch aktive Einladungen der
+widerrufenen Bindung werden kontrolliert gelöscht. Die vollständige Reihenfolge steht im
 [External-Identities-Pilotvertrag](PRE_GEMATIK_EXTERNAL_IDENTITIES_PILOT.md).

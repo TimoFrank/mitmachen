@@ -13,6 +13,11 @@ import {
   identityPlatformAccountFingerprint,
   loadProtectedIdentityPlatformAccountDocument
 } from "./provision_pre_gematik_identity_platform_account.mjs";
+import {
+  PASSWORD_INVITATION_ORIGIN,
+  PASSWORD_INVITATION_PATH,
+  validatePasswordInvitationLink
+} from "./provision_pre_gematik_password_invitation.mjs";
 
 export const WELCOME_EMAIL_OPERATION = "RENDER_PRE_GEMATIK_GUEST_WELCOME_EMAIL";
 export const WELCOME_EMAIL_SUBJECT =
@@ -20,23 +25,14 @@ export const WELCOME_EMAIL_SUBJECT =
 export const WELCOME_EMAIL_SENDER_NAME = "#Mitmachen";
 export const WELCOME_EMAIL_SENDER_EMAIL = "zugang@versorgungs-kompass.de";
 export const EXPECTED_PILOT_END = "2026-09-30T16:00:00Z";
-export const PASSWORD_ACTION_ORIGIN = "https://versorgungs-kompass.de";
-export const PASSWORD_ACTION_PATH = "/konto/passwort-festlegen";
+export const PASSWORD_ACTION_ORIGIN = PASSWORD_INVITATION_ORIGIN;
+export const PASSWORD_ACTION_PATH = PASSWORD_INVITATION_PATH;
 
 const MAX_LINK_BYTES = 16 * 1024;
 const MAX_TEMPLATE_BYTES = 256 * 1024;
-const API_KEY_PATTERN = /^AIza[0-9A-Za-z_-]{35}$/u;
-const ACTION_CODE_PATTERN = /^[A-Za-z0-9_-]{20,1024}$/u;
 const EMAIL_PATTERN =
   /^[a-z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-z0-9](?:[a-z0-9.-]{0,251}[a-z0-9])?$/iu;
 const FINGERPRINT_PATTERN = /^sha256:[a-f0-9]{64}$/u;
-const ALLOWED_ACTION_PARAMETERS = new Set([
-  "apiKey",
-  "continueUrl",
-  "lang",
-  "mode",
-  "oobCode"
-]);
 const TEMPLATE_DIRECTORY = new URL("../config/pre-gematik/email/", import.meta.url);
 const TEXT_TEMPLATE = new URL(
   "pre-gematik-guest-welcome.txt",
@@ -69,9 +65,9 @@ const MAX_TOTAL_BRAND_ASSET_BYTES = 128 * 1024;
 const PNG_SIGNATURE = Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]);
 
 export const WELCOME_EMAIL_RELATED_BOUNDARY =
-  "vk-pre-gematik-welcome-related-v3";
+  "vk-pre-gematik-welcome-related-v4";
 export const WELCOME_EMAIL_ALTERNATIVE_BOUNDARY =
-  "vk-pre-gematik-welcome-alternative-v3";
+  "vk-pre-gematik-welcome-alternative-v4";
 export const WELCOME_EMAIL_BRAND_ASSET_SPECS = Object.freeze([
   Object.freeze({
     key: "versorgung",
@@ -210,52 +206,18 @@ async function assertOwnerOnlyRegularFile(filePath, label, maximumBytes, reposit
 }
 
 export function validateBrandedSetPasswordLink(value, document) {
-  if (
-    typeof value !== "string"
-    || value.length === 0
-    || value !== value.trim()
-    || Buffer.byteLength(value, "utf8") > MAX_LINK_BYTES
-    || /[\r\n\u0000-\u001f\u007f]/u.test(value)
-  ) {
+  if (Buffer.byteLength(String(value || ""), "utf8") > MAX_LINK_BYTES) {
     throw new IdentityPlatformOnboardingError(
       "Die geschuetzte Linkdatei enthaelt keinen gueltigen Einladungslink."
     );
   }
-  let parsed;
-  try {
-    parsed = new URL(value);
-  } catch {
+  const invitation = validatePasswordInvitationLink(value);
+  if (document.continue_url !== EXPECTED_CONTINUE_URL) {
     throw new IdentityPlatformOnboardingError(
-      "Die geschuetzte Linkdatei enthaelt keinen gueltigen Einladungslink."
+      "Der Einladungslink ist nicht exakt auf den gebrandeten 48-Stunden-Flow gepinnt."
     );
   }
-  const parameterNames = [...parsed.searchParams.keys()];
-  const exactParameters =
-    parameterNames.length === ALLOWED_ACTION_PARAMETERS.size
-    && parameterNames.every((name) =>
-      ALLOWED_ACTION_PARAMETERS.has(name)
-      && parsed.searchParams.getAll(name).length === 1
-    );
-  if (
-    parsed.origin !== PASSWORD_ACTION_ORIGIN
-    || parsed.pathname !== PASSWORD_ACTION_PATH
-    || parsed.username
-    || parsed.password
-    || parsed.hash
-    || parsed.href !== value
-    || !exactParameters
-    || parsed.searchParams.get("mode") !== "resetPassword"
-    || !API_KEY_PATTERN.test(parsed.searchParams.get("apiKey") || "")
-    || !ACTION_CODE_PATTERN.test(parsed.searchParams.get("oobCode") || "")
-    || parsed.searchParams.get("continueUrl") !== EXPECTED_CONTINUE_URL
-    || parsed.searchParams.get("lang") !== "de"
-    || document.continue_url !== EXPECTED_CONTINUE_URL
-  ) {
-    throw new IdentityPlatformOnboardingError(
-      "Der Einladungslink ist nicht exakt auf den gebrandeten Passwort-Flow gepinnt."
-    );
-  }
-  return parsed.href;
+  return invitation.href;
 }
 
 export async function loadProtectedBrandedSetPasswordLink(
@@ -351,7 +313,7 @@ function assertCanonicalBrandPng(contents, label) {
 
 function deriveWelcomeEmailCidToken(document, actionUrl) {
   const digest = createHash("sha256");
-  digest.update("versorgungs-kompass-pre-gematik-welcome-cid-v3\0", "utf8");
+  digest.update("versorgungs-kompass-pre-gematik-welcome-cid-v4\0", "utf8");
   digest.update(identityPlatformAccountFingerprint(document), "utf8");
   digest.update("\0", "utf8");
   digest.update(actionUrl, "utf8");
@@ -586,7 +548,7 @@ function renderEml({
     `Subject: ${encodedHeader(subject)}`,
     "MIME-Version: 1.0",
     `Content-Type: multipart/related; boundary="${WELCOME_EMAIL_RELATED_BOUNDARY}"; type="multipart/alternative"; start="<${rootContentId}>"`,
-    "X-Versorgungs-Kompass-Template: pre-gematik-guest-welcome-v3",
+    "X-Versorgungs-Kompass-Template: pre-gematik-guest-welcome-v4",
     "",
     `--${WELCOME_EMAIL_RELATED_BOUNDARY}`,
     `Content-Type: multipart/alternative; boundary="${WELCOME_EMAIL_ALTERNATIVE_BOUNDARY}"`,
@@ -866,6 +828,23 @@ function safeSummary({ apply, fingerprint, outputCreated = false }) {
   ].join("\n");
 }
 
+export function welcomeEmailRenderingFingerprint(rendered) {
+  if (
+    !rendered
+    || typeof rendered !== "object"
+    || typeof rendered.eml !== "string"
+    || rendered.eml.length === 0
+  ) {
+    throw new IdentityPlatformOnboardingError(
+      "Der Mail-Renderer-Fingerprint kann nicht sicher gebildet werden."
+    );
+  }
+  const digest = createHash("sha256");
+  digest.update("versorgungs-kompass-pre-gematik-welcome-rendering-v1\0", "utf8");
+  digest.update(rendered.eml, "utf8");
+  return `sha256:${digest.digest("hex")}`;
+}
+
 export async function executeWelcomeEmailRendering({
   document,
   actionUrl,
@@ -874,8 +853,6 @@ export async function executeWelcomeEmailRendering({
   templates,
   log = console.log
 }) {
-  const fingerprint = identityPlatformAccountFingerprint(document);
-  validateWelcomeEmailArguments(options, fingerprint);
   const rendered = await renderGuestWelcomeEmail({
     document,
     actionUrl,
@@ -884,6 +861,8 @@ export async function executeWelcomeEmailRendering({
     pilotEnd: options.pilotEnd,
     ...templates
   });
+  const fingerprint = welcomeEmailRenderingFingerprint(rendered);
+  validateWelcomeEmailArguments(options, fingerprint);
   if (!options.apply) {
     log(safeSummary({ apply: false, fingerprint }));
     return Object.freeze({ applied: false, outputCreated: false, rendered });

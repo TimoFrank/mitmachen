@@ -10,7 +10,7 @@ für {{RECIPIENT_EMAIL}} ist ein persönlicher, zeitlich begrenzter Testzugang z
 Richte jetzt deinen persönlichen Zugang ein:
 {{ACTION_URL}}
 
-Bitte öffne den Link innerhalb von 60 Minuten. Er kann nur einmal verwendet werden. Falls er nicht mehr gültig ist, antworte einfach auf diese E-Mail – wir senden dir dann eine neue Einladung.
+Bitte richte deinen Zugang innerhalb von 48 Stunden vollständig ein. Der Link kann nur einmal verwendet werden. Falls er nicht mehr gültig ist, antworte einfach auf diese E-Mail – wir senden dir dann eine neue Einladung.
 
 Nach dem Einrichten öffnest du:
 https://versorgungs-kompass.de/start
