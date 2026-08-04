@@ -147,11 +147,34 @@ resource "google_project_iam_member" "deployer_identity_platform_preflight_reade
 resource "google_project_iam_custom_role" "password_reset_broker" {
   role_id     = "preGematikPasswordResetBroker"
   title       = "Pre-gematik password reset broker"
-  description = "Look up Identity Platform users and send password-reset email only; no database, storage, or Identity Platform mutation permissions."
+  description = "Look up Identity Platform users and create password-reset codes only; no database or Identity Platform account-mutation permissions."
   stage       = "GA"
   permissions = [
     "firebaseauth.users.get",
     "firebaseauth.users.sendEmail",
+  ]
+}
+
+resource "google_project_iam_custom_role" "password_invitation_broker_storage" {
+  role_id     = "preGematikPasswordInvitationBroker"
+  title       = "Pre-gematik password invitation broker storage"
+  description = "Read and atomically consume active password invitations only; no list, create, or update permission."
+  stage       = "GA"
+  permissions = [
+    "storage.objects.delete",
+    "storage.objects.get",
+  ]
+}
+
+resource "google_project_iam_custom_role" "password_invitation_operator_storage" {
+  role_id     = "preGematikPasswordInvitationOperator"
+  title       = "Pre-gematik password invitation operator storage"
+  description = "Prepare, inspect, activate, and revoke password invitation objects without list, update, or restore permission."
+  stage       = "GA"
+  permissions = [
+    "storage.objects.create",
+    "storage.objects.delete",
+    "storage.objects.get",
   ]
 }
 

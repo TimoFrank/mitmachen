@@ -259,19 +259,33 @@ Sie enthält keine Selbstregistrierung, keine anonyme Anmeldung und kein
 Account-Linking. Die Oberfläche ruft ausschließlich den gleichursprünglichen,
 minimal privilegierten Broker über den exakten Pfad
 `POST /api/auth/password-reset` auf. Der Broker läuft in einem separaten
-Deployment ohne Datenbank-, Cloud-SQL-, Secret-Manager- oder Storage-Zugriff.
-Seine Workload Identity besitzt ausschließlich `firebaseauth.users.get` und
-`firebaseauth.users.sendEmail`. Er versendet nur für genau einen aktiven,
-verifizierten Passwort-only-Account einen Reset-Link; die Continue-URL ist
-serverseitig bytegenau auf `https://versorgungs-kompass.de/start` festgelegt.
+Deployment ohne Datenbank-, Cloud-SQL- oder Secret-Manager-Zugriff. Seine
+Workload Identity besitzt neben `firebaseauth.users.get` und
+`firebaseauth.users.sendEmail` ausschließlich Storage Get und Delete für den
+bedingten Objektprefix `active/` des privaten Einladungs-Buckets. List, Create,
+Update und Restore bleiben verboten. Er versendet nur für genau einen aktiven,
+verifizierten Passwort-only-Account einen Self-Service-Reset-Link; die
+Continue-URL ist serverseitig bytegenau auf
+`https://versorgungs-kompass.de/start` festgelegt.
+
+Der Broker verbraucht die aktive Wrapper-Einladung generationengepinnt, bevor
+er den nativen Provider-Code anfordert. Schlägt Identity Platform danach fehl
+oder geht die Antwort vor dem Browser verloren, bleibt die Einladung bewusst
+fail-closed verbraucht; sie wird weder wieder aktiviert noch automatisch
+erneut versendet. Der Operator prüft dann Konto und Binding erneut und bereitet
+eine neue create-only Einladung vor. Dieses Verhalten verhindert Replay und
+mehrere konkurrierende Gewinner. Das Broker-Backend verwendet dafür ein
+45-Sekunden-Timeout mit Reserve oberhalb der internen Einzelbudgets; der
+Browser wartet 50 Sekunden. So führt reguläre Providerlatenz nicht unnötig in
+diesen Recovery-Pfad.
 
 Der Reset erzeugt weder Nutzer, Profile noch Bindings und gewährt allein keinen
 Anwendungszugriff. Bekannte, unbekannte und nicht als Passwortkonto nutzbare
 Adressen erhalten denselben öffentlichen `202 {"accepted":true}`-Vertrag und
 dieselbe neutrale UI-Antwort; Kontodaten werden nicht protokolliert. Ein
-abgelaufener oder verbrauchter Einladungs- oder Reset-Link kann weiterhin
-administrativ als neuer owner-only Recovery-Link ersetzt werden. Vor jedem
-`GO` wird die tatsächlich
+abgelaufener oder verbrauchter Einladungslink wird nur nach erneutem
+Konto-/Binding-Readback durch einen neuen create-only Wrapperlink ersetzt; der
+Self-Service-Reset bleibt davon getrennt. Vor jedem `GO` wird die tatsächlich
 ausgelieferte Seite in einem privaten Browserfenster visuell geprüft; als
 Anmeldeprovider dürfen ausschließlich Google und E-Mail/Passwort sichtbar sein
 und Self-Signup muss verborgen sein.
@@ -321,9 +335,15 @@ Gates:
 6. Der öffentliche Reset-Broker ist nur unter dem exakten kanonischen
    `POST /api/auth/password-reset` erreichbar. Sein BackendService hat IAP
    bewusst deaktiviert, Access-Logging deaktiviert, eine eigene
-   Cloud-Armor-Rate-Limit-Policy und keine Datenbank- oder Storage-Credentials.
-   Für unbekannte, Google-only, gemischte oder anderweitig unzulässige Konten
-   wird keine Mail angestoßen.
+   Cloud-Armor-Rate-Limit-Policy und keine Datenbank- oder Secret-Credentials.
+   Er erhält nur den privaten Bucketnamen sowie die GKE Workload Identity. Die
+   bedingte Storage-Rolle erlaubt ausschließlich `storage.objects.get` und
+   `storage.objects.delete` unter `active/`; List, Create, Update und Restore
+   bleiben verboten. Das Helm-Schema pinnt den Backendtimeout bytegenau auf
+   45 Sekunden, der Deployment-Live-Gate bestätigt denselben tatsächlich
+   wirksamen GCE-Wert und der Browser begrenzt Fetch einschließlich Body auf
+   50 Sekunden. Für unbekannte, Google-only, gemischte oder anderweitig
+   unzulässige Konten wird keine Mail angestoßen.
 7. Ein echter erfolgreicher Google-Login über die eigene Loginseite ist
    höchstens 24 Stunden vor Deployment nachzuweisen. Außerdem wird der
    vollständige Passwortgast-Ablauf erst nach abgeschlossenem Prebinding
@@ -410,7 +430,7 @@ create-only Apply:
 ```bash
 node scripts/provision_pre_gematik_identity_platform_account.mjs \
   --input /absolut/owner-only/identity-platform-account.json \
-  --output /absolut/owner-only/set-password-link.txt \
+  --output /absolut/owner-only/native-password-reset-link-do-not-send.txt \
   --apply \
   --confirm-environment pre-gematik \
   --confirm-project example-project \
@@ -422,29 +442,22 @@ Der Operator prüft UID und E-Mail unmittelbar vor der Mutation erneut. Existier
 einer der Werte bereits, bricht er ohne Änderung ab. Beim Apply erzeugt er
 intern ein starkes zufälliges Bootstrap-Geheimnis, übergibt es ausschließlich
 an Identity Platform und gibt oder speichert es niemals. Anschließend erzeugt
-er für den angelegten Account einen Set-password-Link über den
-Password-Reset-Vertrag. Ausschließlich dieser Link wird create-only mit Modus
-`0600` in die bestätigte Datei außerhalb des Worktrees geschrieben. Die
-Standardausgabe enthält nur Modus, Mengen und Fingerprint, niemals E-Mail, UID,
-Passwort oder Link.
+er technisch einen nativen Identity-Platform-Reset-Link und schreibt ihn
+create-only mit Modus `0600` in die bestätigte Datei außerhalb des Worktrees.
+Dieser native Link ist **keine versandfähige Einladung** und darf weder in den
+Renderer noch in den SMTP-Operator übernommen werden. Die Datei bleibt bis zum
+kontrollierten Cleanup owner-only. Die Standardausgabe enthält nur Modus,
+Mengen und Fingerprint, niemals E-Mail, UID, Passwort oder Link.
 
-Der von der Admin-API erzeugte Rohlink kann den projektweiten Standard-API-Key
-und die Standardsprache `en` enthalten. Beides wird nicht an Gäste
-weitergegeben: Der Operator übernimmt ausschließlich den validierten
-Einmalcode, setzt den gepinnten referrer-beschränkten Portal-Key und `lang=de`
-und prüft den Code anschließend über `accounts:resetPassword` ohne
-`newPassword`. Dieser Readback bestätigt Projekt, Konto und Zweck des Codes,
-ohne ihn zu verbrauchen oder den Account zu verändern.
-
-**Die so erzeugte Linkdatei darf jetzt noch nicht versendet werden.** Sie bleibt
-owner-only, bis das App-Prebinding aus Abschnitt 5 vollständig angewendet,
-read-only bestätigt und im wartungsgebundenen Standard-/Reconcile-Weg
-zusätzlich als No-op wiederholt wurde. Für die Online-Neunutzeranlage genügt
-statt dieses No-op ausschließlich der vorgeschriebene Post-Apply-Preview mit
-`result=unchanged` und identischen Ist-/Soll-Fingerprints. Wenn der jeweils
-passende Nachweis nicht exakt gelingt, gibt es keine Willkommensmail und keine
-Linkweitergabe. Damit kann niemand zuerst ein Passwort setzen und anschließend
-wegen einer noch fehlenden App-Bindung am Versorgungs-Kompass scheitern.
+**Der native Link darf nicht versendet werden.** Erst wenn das App-Prebinding
+aus Abschnitt 5 vollständig angewendet und read-only bestätigt wurde, darf der
+separate 48-Stunden-Einladungsoperator ausgeführt werden. Für die
+Online-Neunutzeranlage ist dafür ausschließlich der vorgeschriebene
+Post-Apply-Preview mit `result=unchanged` und identischen
+Ist-/Soll-Fingerprints zulässig. Wenn der jeweils passende Nachweis nicht exakt
+gelingt, gibt es keine Willkommensmail und keine Linkweitergabe. Damit kann
+niemand zuerst ein Passwort setzen und anschließend wegen einer noch fehlenden
+App-Bindung am Versorgungs-Kompass scheitern.
 
 Scheitert der Account-Aufruf nach möglichem Commit, dessen unmittelbarer
 Read-back oder die Link-Erzeugung, wird der Account nicht automatisch gelöscht
@@ -455,7 +468,7 @@ mit einem neuen Output-Pfad wiederhergestellt werden:
 ```bash
 node scripts/provision_pre_gematik_identity_platform_account.mjs \
   --input /absolut/owner-only/identity-platform-account.json \
-  --output /absolut/owner-only/set-password-link-recovery.txt \
+  --output /absolut/owner-only/native-password-reset-link-recovery-do-not-send.txt \
   --recover-link-only \
   --apply \
   --confirm-environment pre-gematik \
@@ -464,14 +477,60 @@ node scripts/provision_pre_gematik_identity_platform_account.mjs \
   --confirm-fingerprint sha256:FINGERPRINT-AUS-PREVIEW
 ```
 
-Ein neuer beziehungsweise Recovery-Link wird erst nach erfolgreichem
-Prebinding erzeugt oder aus seiner owner-only Datei entnommen. Ein vor dem
-Prebinding erzeugter Link bleibt bis dahin ungeteilt und wird bei Erzeugung
-eines Recovery-Links kontrolliert verworfen. Vor dem Versand wird read-only
-bestätigt, dass der sichtbare Link mit
-`https://versorgungs-kompass.de/konto/passwort-festlegen` beginnt, als
-`continueUrl` exakt `https://versorgungs-kompass.de/start` trägt und weder
-`firebaseapp.com` noch den GCP-Projektnamen als sichtbaren Host enthält.
+Auch ein solcher Recovery-Link bleibt rein administrativ und wird nicht
+versendet. Die persönliche Einladung entsteht ausschließlich im nächsten
+Schritt aus einem neuen kryptografischen Wrapper-Token.
+
+Nach dem erfolgreichen Gast-Apply muss der geschützte Post-Apply-Preview als
+einzelnes JSON-Dokument vorliegen. Für die Online-Neunutzeranlage muss er exakt
+`mode=PREVIEW`, `result=unchanged`, je ein aktives Profil und Binding,
+`access_scope_verified=test_only`, identische Zustandsfingerprints sowie das
+erfolgreiche Online-Backup-/PITR-Gate bestätigen. Der private Bucketname ist
+der Terraform-Output `PASSWORD_INVITATION_BUCKET`. Die aktive `gcloud`-Identität
+muss zusätzlich namentlich in `PASSWORD_INVITATION_OPERATOR_MEMBERS` gebunden
+sein. Diese separate Bucket-Rolle erlaubt nur Create, Get und Delete unter
+`prepared/` und `active/`; sie erlaubt weder List, Update noch Restore und wird
+nicht aus Projekt-Owner- oder IAP-Rechten abgeleitet. Erst dann wird die
+Einladung zunächst read-only geplant:
+
+```bash
+node scripts/provision_pre_gematik_password_invitation.mjs \
+  --account-input /absolut/owner-only/identity-platform-account.json \
+  --guest-access-input /absolut/owner-only/guest-access.json \
+  --post-apply-evidence /absolut/owner-only/evidence-guest-post-preview/guest-preview.log \
+  --bucket example-project-vk-pre-gematik-invitations
+```
+
+Die Ausgabe darf ausschließlich den Operationsnamen, `mode=PREVIEW`, negative
+Mutationsindikatoren und den `input_fingerprint` enthalten. Der exakt
+bestätigte Apply schreibt anschließend ein neues owner-only Linkziel:
+
+```bash
+node scripts/provision_pre_gematik_password_invitation.mjs \
+  --account-input /absolut/owner-only/identity-platform-account.json \
+  --guest-access-input /absolut/owner-only/guest-access.json \
+  --post-apply-evidence /absolut/owner-only/evidence-guest-post-preview/guest-preview.log \
+  --bucket example-project-vk-pre-gematik-invitations \
+  --output /absolut/owner-only/password-invitation-link.txt \
+  --apply \
+  --confirm-environment pre-gematik \
+  --confirm-project example-project \
+  --confirm-operation PREPARE_PRE_GEMATIK_PASSWORD_INVITATION \
+  --confirm-fingerprint sha256:FINGERPRINT-AUS-PREVIEW
+```
+
+Der Operator erzeugt genau 32 zufällige Bytes und kodiert sie ohne Padding als
+43-stelliges Base64url-Token. Die Linkdatei enthält ausschließlich
+`https://versorgungs-kompass.de/konto/passwort-festlegen#einladung=<TOKEN>`.
+Der Tokenwert wird niemals in GCS oder auf stdout geschrieben. Im privaten
+Bucket entsteht create-only nur
+`prepared/<BEREICHGETRENNTER-SHA256>.json`; das Objekt ist höchstens 8 KiB
+groß und mit `status=prepared`, `accepted_at=null` und `expires_at=null` inert.
+Es bindet Projekt, tenantlose UID, E-Mail, `continue_url`, Konto-,
+Gastzugriffs- und Binding-Fingerprint, Profil, Rolle,
+`access_scope=test_only` und den unveränderten `scope_ref`. Der sichtbare
+Wrapperlink enthält weder nativen Identity-Platform-Code noch API-Key und wird
+von Renderer und Sender bytegenau erzwungen.
 
 Die Mail wird nicht frei aus der Linkdatei zusammengesetzt. Der versionierte
 Renderer
@@ -492,7 +551,7 @@ Absender ist ausschließlich das überwachte Domain-Postfach
 # Preview; erst nach vollständigem Prebinding ausführen
 node scripts/render_pre_gematik_guest_welcome_email.mjs \
   --input /absolut/owner-only/identity-platform-account.json \
-  --link-file /absolut/owner-only/set-password-link.txt \
+  --link-file /absolut/owner-only/password-invitation-link.txt \
   --sender-name "#Mitmachen" \
   --sender-email zugang@versorgungs-kompass.de \
   --pilot-end 2026-09-30T16:00:00Z
@@ -500,7 +559,7 @@ node scripts/render_pre_gematik_guest_welcome_email.mjs \
 # Create-only Mailpaket; Fingerprint exakt aus dem Preview übernehmen
 node scripts/render_pre_gematik_guest_welcome_email.mjs \
   --input /absolut/owner-only/identity-platform-account.json \
-  --link-file /absolut/owner-only/set-password-link.txt \
+  --link-file /absolut/owner-only/password-invitation-link.txt \
   --output-dir /absolut/owner-only/welcome-mail \
   --sender-name "#Mitmachen" \
   --sender-email zugang@versorgungs-kompass.de \
@@ -509,6 +568,12 @@ node scripts/render_pre_gematik_guest_welcome_email.mjs \
   --confirm-operation RENDER_PRE_GEMATIK_GUEST_WELCOME_EMAIL \
   --confirm-fingerprint sha256:FINGERPRINT-AUS-PREVIEW
 ```
+
+Der Renderer-Fingerprint bindet bytegenau die vollständige EML und damit
+Konto, persönlichen Wrapperlink, Absender, Pilotfrist, Text-/HTML-Vorlagen und
+Inline-Markenassets. Nach jeder Änderung an einem dieser Werte ist ein frischer
+Preview-Fingerprint erforderlich; ein früherer Konto- oder Mail-Preview darf
+nicht wiederverwendet werden.
 
 Das Postfach wird im bestehenden ALL-INKL-KAS als eigenständiges, nicht als
 Catch-all konfiguriertes Konto angelegt. Der Transport ist exakt auf
@@ -535,27 +600,28 @@ Versand aus einem persönlichen Mailkonto ist nicht zulässig, weil dabei der
 gebrandete CTA-Button verändert werden kann. Text- und HTML-Teil sind als
 Base64 mit SMTP-sicheren Zeilen kodiert. Unmittelbar vor dem Transport ergänzt
 der Operator genau einen `Date`- und einen eindeutigen `Message-ID`-Header.
-`IAP_EXTERNAL_AUTH_API_KEY` muss dabei auf den im Admin-Readback bestätigten
-Portal-Key gesetzt sein. Vor jedem Preview und Apply prüft der Operator den
-`oobCode` über
-[`accounts:resetPassword`](https://docs.cloud.google.com/identity-platform/docs/reference/rest/v1/accounts/resetPassword)
-ohne `newPassword`, also ohne ihn zu konsumieren. Nur ein aktuell gültiger
-`PASSWORD_RESET` für die exakte Empfängeradresse wird akzeptiert.
+Vor jedem Preview und Apply liest der Operator das zum Wrapper-Token gehörende
+`prepared`-Objekt über ein kurzlebiges `gcloud auth print-access-token` und
+generationengepinnt aus dem privaten Bucket. Nur der exakte, weiterhin inerte
+Konto-/Binding-Vertrag wird akzeptiert; native Identity-Platform-Reset-Links
+werden strikt abgelehnt.
 
 ```bash
 # Read-only Preview; Fingerprint übernehmen
 node scripts/send_pre_gematik_guest_welcome_email.mjs \
   --input /absolut/owner-only/identity-platform-account.json \
-  --link-file /absolut/owner-only/set-password-link.txt \
+  --link-file /absolut/owner-only/password-invitation-link.txt \
   --mail-file /absolut/owner-only/welcome-mail/welcome.eml \
-  --smtp-config /absolut/owner-only/smtp.json
+  --smtp-config /absolut/owner-only/smtp.json \
+  --invitation-bucket example-project-vk-pre-gematik-invitations
 
 # Einmaliger Versand mit deterministischem create-only Versandbeleg
 node scripts/send_pre_gematik_guest_welcome_email.mjs \
   --input /absolut/owner-only/identity-platform-account.json \
-  --link-file /absolut/owner-only/set-password-link.txt \
+  --link-file /absolut/owner-only/password-invitation-link.txt \
   --mail-file /absolut/owner-only/welcome-mail/welcome.eml \
   --smtp-config /absolut/owner-only/smtp.json \
+  --invitation-bucket example-project-vk-pre-gematik-invitations \
   --apply \
   --confirm-operation SEND_PRE_GEMATIK_GUEST_WELCOME_EMAIL \
   --confirm-fingerprint sha256:FINGERPRINT-AUS-PREVIEW
@@ -568,10 +634,16 @@ Belegpfad ist nicht per Kommandozeile wählbar, sondern liegt owner-only unter
 `~/.local/state/versorgungs-kompass/pre-gematik-welcome-email`. Ein vorhandener
 Versandbeleg blockiert jede unabsichtliche Wiederholung. Bereits der
 create-only Status `sending` enthält Startzeit und `Message-ID`, damit ein
-Abbruch nach SMTP-Annahme unabhängig korreliert werden kann. Der Status
-`accepted` bedeutet, dass der Domain-SMTP-Server die Nachricht angenommen hat.
-Bei `unknown` darf nicht erneut gesendet werden, bevor Zielpostfach und Beleg
-geprüft wurden.
+Abbruch nach SMTP-Annahme unabhängig korreliert werden kann. Nach SMTP-Annahme
+schreibt der Operator `active/<DIGEST>.json` ausschließlich
+create-only, setzt `accepted_at` auf den bestätigten Annahmezeitpunkt und
+`expires_at` exakt 48 Stunden später und löscht danach `prepared` nur mit
+dessen gelesener Generation. Erst der Belegstatus `accepted` zusammen mit
+`invitation_status=active`, Ablaufzeit und aktiver Generation bestätigt den
+vollständigen Versand. Bei `unknown` oder
+`smtp_accepted_activation_pending` darf nicht erneut gesendet werden.
+Stattdessen müssen Zielpostfach, `Message-ID`, Mailfingerabdruck sowie die
+konkrete `prepared`-/`active`-Generation reconciliiert werden.
 
 Vor der ersten echten Einladung wird eine Nachricht mit ausschließlich
 synthetischem Link an ein kontrolliertes Testpostfach gesendet. In dessen
@@ -588,8 +660,9 @@ Verbindlich sind:
   [strenge Password Policy](https://cloud.google.com/identity-platform/docs/password-policy),
 - vor Aktivierung unabhängig bestätigtes Eigentum an der E-Mail-Adresse und
   `emailVerified=true`,
-- Übergabe des Set-password-Links erst nach vollständigem Prebinding und
-  ausschließlich über einen genehmigten persönlichen Einzelkanal,
+- Übergabe des für 48 Stunden aktivierten Wrapperlinks erst nach vollständigem
+  Prebinding und ausschließlich über einen genehmigten persönlichen
+  Einzelkanal,
 - professionelle Willkommensmail mit eindeutigem Bezug zum
   Versorgungs-Kompass, persönlicher Anrede, kurzer Erklärung der Einladung,
   Ablauf-/Einmalhinweis, Supportkontakt und einem klar bezeichneten
@@ -602,24 +675,27 @@ Verbindlich sind:
   App-Zugang,
 - Linkdatei und gerendertes Mailpaket unmittelbar nach erfolgreichem
   Passwortsetzen und App-Login kontrolliert entfernen,
-- kein Passwort und kein Set-password-Link in Ticket, allgemeinem Chat, Git,
-  Shell-History, Konsolenausgabe oder Nachweis,
-- kein HTTP-Debug- oder Proxy-Logging für den Operator, weil der
-  browseröffentliche API-Key protokolltechnisch trotzdem nicht unnötig
-  vervielfältigt werden darf,
+- kein Passwort, Wrapperlink, natives Reset-Geheimnis oder vollständiger Token
+  in Ticket, allgemeinem Chat, Git, Shell-History, Konsolenausgabe oder
+  Nachweis,
+- kein HTTP-, GCS- oder Proxy-Debug-Logging für Operator und Broker, damit
+  Einladungs-Token, kurzlebiges Zugriffstoken und Kontobindung nicht in
+  Protokolle gelangen,
 - keine parallele Google- und Passwortidentität mit derselben E-Mail ohne
   ausdrücklich getestetes Account-Linking und
 - neue Konten niemals mit Rolle `admin` oder Scope `standard`.
 
-Der Set-password-Link ersetzt die Übermittlung eines Initialpassworts. Identity
-Platform besitzt keinen zusätzlich angenommenen, automatisch erzwungenen
-„Passwortwechsel beim ersten Login“-Schalter. Der Password-Reset-Link dient
-hier ausschließlich als Set-password-Einladung für den E-Mail/Passwort-
-Provider; er ist kein passwortloser IAP-Login und ersetzt nicht die
-anschließende Anmeldung mit dem gesetzten Passwort. Die Bindung ist zu diesem
-Zeitpunkt bereits vollständig aktiv und verifiziert. Kann das erfolgreiche
-Setzen und der anschließende App-Login nicht kontrolliert bestätigt werden,
-wird das Konto gesperrt; es wird nicht durch Post-Login-Enrollment repariert.
+Der Wrapperlink ersetzt die Übermittlung eines Initialpassworts. Beim ersten
+gültigen Austausch wird die aktive Einladung generationengepinnt gelöscht und
+erst dann serverseitig ein frischer, kurzlebiger Identity-Platform-Reset-Code
+für die eigene Passwortsetzseite erzeugt. Die 48-Stunden-Laufzeit stammt damit
+ausschließlich aus dem kontrollierten Einladungsvertrag und nicht aus einer
+vermeintlichen Identity-Platform-TTL-Konfiguration. Der Flow ist kein
+passwortloser IAP-Login und ersetzt nicht die anschließende Anmeldung mit dem
+gesetzten Passwort. Die Bindung ist zu diesem Zeitpunkt bereits vollständig
+aktiv und verifiziert. Kann das erfolgreiche Setzen und der anschließende
+App-Login nicht kontrolliert bestätigt werden, wird das Konto gesperrt; es
+wird nicht durch Post-Login-Enrollment repariert.
 
 ### 5. App-Bindungen
 
@@ -815,8 +891,10 @@ ob der Sollzustand bereits erreicht wurde oder eine getrennte Klärung nötig is
 `POST /api/auth/external-enrollment`, Pending-`requestId` und
 `provision_pre_gematik_test_access` werden für diesen Ablauf nicht verwendet.
 Eine daraus stammende Pending-Anfrage ist keine Vorstufe, sondern eine
-Kollision. Ohne exakt vollständiges Prebinding wird weder ein neuer
-Set-password-Link erzeugt beziehungsweise ausgewählt noch eine Mail versendet.
+Kollision. Ohne exakt vollständiges Prebinding wird weder ein inertes
+`prepared`-Objekt noch ein Wrapperlink erzeugt und keine Mail versendet. Der
+bei der Kontoanlage technisch erzeugte native Reset-Link bleibt ausdrücklich
+vom Einladungsweg ausgeschlossen.
 
 Vor Öffnung muss eine read-only Prüfung bestätigen:
 
@@ -861,7 +939,8 @@ werden.
    sein. Noch wird keine Einladung versendet.
 4. Jedes Passwortkonto create-only mit
    `continue_url=https://versorgungs-kompass.de/start` anlegen. Den zunächst
-   owner-only geschriebenen Set-password-Link nicht versenden. Anschließend
+   owner-only geschriebenen nativen Reset-Link nicht versenden und nicht für
+   die Willkommensmail auswählen. Anschließend
    für ein Bestandsprofil oder den Anzeigename-Reconcile den passenden
    wartungsgebundenen Gastzugriffsmodus zweimal mit stabilen Eingabe- und
    Istzustands-Fingerprints previewen: für ein Bestandsprofil
@@ -897,15 +976,18 @@ werden.
    Reauthentication und die gepinnte Login-/Projektkonfiguration prüfen. Ein
    Teilzustand löst die Workflow-Kompensation beziehungsweise den dokumentierten
    Rollback aus und öffnet den Dienst nicht.
-11. Erst jetzt für jedes exakt vorgebundene Passwortkonto einen neuen
-    beziehungsweise Recovery-Link in einer owner-only Datei erzeugen oder den
-    noch gültigen owner-only Link auswählen und über den genehmigten
-    persönlichen Kanal als professionelle Willkommensmail versenden. Bei
-    fehlendem Prebinding-Nachweis: **keine Mail**.
-12. Die Person öffnet den gebrandeten Link, setzt das Passwort, wählt
+11. Erst jetzt für jedes exakt vorgebundene Passwortkonto mit dem bestätigten
+    Post-Apply-Nachweis create-only ein inertes `prepared`-Objekt und den
+    owner-only Wrapperlink erzeugen. Mailpaket rendern und den Sender-Preview
+    ausführen. Erst nach der einmaligen Freigabe über den genehmigten
+    persönlichen Kanal versenden; nach SMTP-Annahme muss der Beleg die aktive,
+    exakt 48 Stunden gültige Einladung bestätigen. Bei fehlendem Prebinding-
+    oder Aktivierungsnachweis: **keine Mail beziehungsweise kein
+    Wiederholungsversand**.
+12. Die Person öffnet den gebrandeten Wrapperlink, setzt das Passwort, wählt
     `Jetzt anmelden`, gelangt über `/start` zur gemeinsamen Loginseite und
     erreicht nach E-Mail-/Passwort-Anmeldung direkt Frontend und API. Danach
-    wird die Linkdatei kontrolliert gelöscht.
+    werden Linkdatei und Mailpaket kontrolliert gelöscht.
 13. Vollständige positive und negative Abnahme ausführen. Erst danach endet
     das Wartungsfenster und der Dienst wird geöffnet.
 
@@ -982,13 +1064,16 @@ nicht durch spontane Konto-, IAM- oder Binding-Erweiterungen repariert.
   Passwortkonto nutzbare Adressen dieselbe neutrale UI-Antwort.
 - [ ] Der Broker ist nur per exaktem kanonischem
   `POST /api/auth/password-reset` erreichbar; sein Backend ist IAP-frei,
-  logfrei, Cloud-Armor-rate-limitiert und erhält keine Datenbank-, Storage- oder
-  Secret-Credentials.
+  logfrei, Cloud-Armor-rate-limitiert und erhält keine Datenbank- oder
+  Secret-Credentials. Bucketname und GKE Workload Identity sind gepinnt; unter
+  `active/` sind ausschließlich Storage Get und Delete erlaubt, niemals List,
+  Create, Update oder Restore.
 - [ ] Die eigene Passwortsetzseite wird unter
   `https://versorgungs-kompass.de/konto/passwort-festlegen` ausgeliefert. Der
-  Einladungs-/Recovery-Link bleibt gebrandet; der Self-Service-Reset verwendet
-  bis zur Aufhebung der Provider-Sperre den gepinnten Firebase-Action-Handler.
-  Jeder vom Broker ausgelöste Reset trägt unabhängig davon exakt
+  48-Stunden-Wrapperlink bleibt mit seinem Token ausschließlich im Fragment;
+  der Self-Service-Reset verwendet bis zur Aufhebung der Provider-Sperre den
+  gepinnten Firebase-Action-Handler. Jeder vom Broker ausgelöste frische Reset
+  trägt unabhängig davon exakt
   `continueUrl=https://versorgungs-kompass.de/start`.
 - [ ] Ein ungültiger, abgelaufener oder für eine nicht vorprovisionierte
   Adresse erzeugter Link legt weder Identity-Platform-Nutzer noch Profil,
@@ -1022,11 +1107,18 @@ nicht durch spontane Konto-, IAM- oder Binding-Erweiterungen repariert.
 - [ ] Für das Passwortkonto gibt es keine Pending-Anfrage; weder
   `POST /api/auth/external-enrollment` noch der v2-Testzugangsoperator wurden
   im Onboarding verwendet.
+- [ ] Der 48-Stunden-Einladungs-Preview bindet Account-, Gastzugriffs- und
+  Post-Apply-Nachweis. Der Apply hat ausschließlich ein höchstens 8 KiB großes,
+  inertes `prepared/<DIGEST>.json` und eine owner-only Wrapperlinkdatei erzeugt;
+  kein Token erschien in GCS oder stdout.
 - [ ] Die Willkommensmail wurde erst nach diesem Prebinding-Nachweis versendet.
   Sie wurde mit `RENDER_PRE_GEMATIK_GUEST_WELCOME_EMAIL` aus den versionierten
   Text-/HTML-Vorlagen erzeugt. Absender, nicht leerer Betreff, nicht leerer
   Text, Linkbeschriftung und sichtbarer Link verweisen eindeutig auf den
-  Versorgungs-Kompass; der „Gesendet“-Readback bestätigt Empfänger und Inhalt.
+  Versorgungs-Kompass. Der Versandbeleg bestätigt SMTP-Annahme,
+  `invitation_status=active`, eine exakt 48 Stunden spätere Ablaufzeit und die
+  aktive Objektgeneration; `prepared` wurde bedingt mit seiner gelesenen
+  Generation gelöscht.
 - [ ] Jedes Passwortkonto kann sich mit dem individuell gesetzten Passwort
   über `Jetzt anmelden` und `/start` direkt anmelden und erhält ausschließlich
   seine genehmigte Rolle und `test_only`-Grenze. Es erscheint kein Hinweis,
@@ -1078,10 +1170,11 @@ für ein bereits administrativ vorprovisioniertes und vollständig vorgebundenes
 Passwortkonto als Self-Service zulässig; es ändert weder Kontoidentität noch
 Profil, Binding, Rolle oder Scope. Die UI-Antwort bleibt unabhängig vom
 Kontostatus identisch, und der Broker setzt fest
-`continueUrl=https://versorgungs-kompass.de/start`. Der administrativ erzeugte
-owner-only Passwortsetz-/Recovery-Link bleibt als Fallback erhalten. Vor seiner
-erneuten Übergabe werden Pilotkonto und vollständiger `unchanged`-Prebinding-
-Zustand erneut bestätigt.
+`continueUrl=https://versorgungs-kompass.de/start`. Ein bei der Kontoanlage
+administrativ erzeugter nativer Reset-Link ist kein Fallback und wird niemals
+übergeben. Ist eine Ersteinladung abgelaufen, erfordert eine neue Einladung
+einen frischen `unchanged`-Readback, einen neuen Einladungs-Preview und einen
+neuen create-only Wrapperlinkpfad.
 
 Ein zusätzliches Konto ist nur dann eine Online-Neunutzeranlage, wenn noch
 weder App-Profil noch Binding oder kollidierende Pending-Anfrage existieren und
@@ -1099,8 +1192,9 @@ ist kein Online-Onboarding und bleibt wartungs- sowie
 
 Eine Person wird in dieser Reihenfolge gesperrt:
 
-1. Noch nicht versendete Set-password-/Recovery-Linkdateien kontrolliert
-   löschen und die Einladung nicht mehr zustellen.
+1. Noch nicht versendete Wrapperlink- und Mailpaket-Dateien sowie das zugehörige
+   inerte `prepared`-Objekt kontrolliert löschen. Eine noch aktive Einladung
+   generationengepinnt unter `active/` widerrufen und nicht mehr zustellen.
 2. Mit demselben owner-only `guest-access.json` einen read-only
    Widerrufs-Preview ausführen:
 
@@ -1217,8 +1311,10 @@ wird zusätzlich operativ zurückgebaut:
     Browserkonfiguration, OAuth-Redirect oder Ingressroute ist unzulässig.
 11. Loginseite und zugehörige Secrets, API-Keys oder temporäre
     Operatorberechtigungen nach Zielabgleich entfernen.
-12. Sämtliche noch vorhandenen owner-only Set-password-/Recovery-Linkdateien
-    kontrolliert löschen.
+12. Sämtliche noch vorhandenen owner-only Wrapperlink-/Mailpaket-Dateien,
+    inerten `prepared`-Objekte und aktiven Einladungen kontrolliert und bei GCS
+    generationengepinnt löschen. Administrative native Reset-/Recovery-Dateien
+    ebenfalls entfernen; sie wurden zu keinem Zeitpunkt versendet.
 
 Ein Rollback gilt erst als abgeschlossen, wenn beide Backends wieder denselben
 IAM-Modus besitzen, Reauthentication aktiv ist, der alte Binding-Fingerprint
@@ -1261,7 +1357,8 @@ kein sicherer Rückbau.
   anschließendem `unchanged`-No-op nachgewiesen ist,
 - keine Willkommensmail vor dem vollständigen Gastzugriffs-Readback versendet
   wurde, das nicht leere Text-/HTML-/EML-Paket aus der versionierten Vorlage
-  stammt und der gebrandete
+  stammt, der Beleg SMTP-Annahme und eine exakt 48 Stunden aktive Einladung
+  generationengenau bestätigt und der gebrandete
   Passwortsetz-/`Jetzt anmelden`-/`/start`-Ablauf direkt zum genehmigten
   App-Zugang führt,
 - beide Backends konsistent im External-Modus arbeiten,
@@ -1288,6 +1385,9 @@ kein sicherer Rückbau.
   `continueUrl=https://versorgungs-kompass.de/start` abweicht,
 - Linkversand vor vollständigem `unchanged`-Prebinding beziehungsweise vor dem
   zusätzlichen No-op-Nachweis eines wartungsgebundenen Weges,
+- einem nativen Reset-Link in der Willkommensmail, fehlendem oder abweichendem
+  `prepared`-Readback, einer nicht exakt 48 Stunden gültigen aktiven Einladung
+  oder einem Wiederholungsversand bei unklarem SMTP-/Aktivierungsbeleg,
 - Online-Neunutzeranlage ohne bestätigte automatische Backups, PITR oder
   vollständige Projekt-/Cluster-/Namespace-/Instanz-Pins beziehungsweise ohne
   getrennt beim Proxy-Start bestätigten Proxy-Pin sowie jedem

@@ -24,6 +24,7 @@ const requiredFiles = [
   "frontend/identity-portal/public/konto/passwort-festlegen/index.html",
   "frontend/identity-portal/src/app.jsx",
   "frontend/identity-portal/src/action.jsx",
+  "frontend/identity-portal/src/password-invitation.js",
   "frontend/identity-portal/src/password-reset.js",
   "dokumentation/betrieb-und-deployment/DEPLOYMENT_GCP_AUTOPILOT.md",
   "deploy/postgres/pre-gematik/README.md",
@@ -91,6 +92,7 @@ const contentChecks = [
       /--dns-endpoint/,
       /helm upgrade\s+--install|helm upgrade --install/,
       /FRONTEND_BUCKET/,
+      /PASSWORD_INVITATION_BUCKET/,
       /iapJwtAudience/,
       /IAP_OAUTH_BOOTSTRAP_SECRET_NAME/,
       /IAP_OAUTH_CLIENT_CREDENTIALS_SECRET_NAME/,
@@ -120,7 +122,7 @@ const contentChecks = [
       /DEPLOYER_SERVICE_ACCOUNT does not belong to GCP_PROJECT_ID/,
       /GAR_REPOSITORY does not belong to GCP_PROJECT_ID\/GCP_REGION/,
       /CLOUD_SQL_INSTANCE_CONNECTION_NAME does not belong to GCP_PROJECT_ID\/GCP_REGION/,
-      /All frontend and protected data buckets must be distinct/,
+      /All frontend, protected data, and password-invitation buckets must be distinct/,
       /gcloud storage buckets describe[^\n]+--raw/,
       /projectNumber/,
       /uniformBucketLevelAccess\.enabled == true/,
@@ -315,6 +317,19 @@ const contentChecks = [
     reason: "Das Custom UI bietet die vorgesehenen Google- und E-Mail/Passwort-Anmeldewege sowie den konto-neutralen Passwort-Reset ueber den gleichurspruenglichen Broker."
   },
   {
+    file: "frontend/identity-portal/src/password-invitation.js",
+    patterns: [
+      /INVITATION_FRAGMENT_KEY\s*=\s*"einladung"/,
+      /\/api\/auth\/password-reset/,
+      /credentials:\s*"omit"/,
+      /redirect:\s*"error"/,
+      /referrerPolicy:\s*"no-referrer"/,
+      /cache:\s*"no-store"/,
+      /response\.status !== 200/
+    ],
+    reason: "Die 48-Stunden-Einladung bleibt im URL-Fragment und wird erst per credential-freiem gleichurspruenglichem POST eingeloest."
+  },
+  {
     file: "frontend/identity-portal/src/password-reset.js",
     patterns: [
       /\/api\/auth\/password-reset/,
@@ -494,8 +509,8 @@ const contentChecks = [
   },
   {
     file: "deploy/terraform/gcp-autopilot/identities.tf",
-    patterns: [/assertion\.environment/, /attribute_condition\s*=\s*[^\n]*assertion\.ref/, /roles\/iam\.workloadIdentityUser/, /roles\/cloudsql\.client/, /workload_cloudsql_client[\s\S]*depends_on\s*=\s*\[google_container_cluster\.autopilot\]/, /iap\.webServices\.getIamPolicy/, /iap\.webServices\.setIamPolicy/, /compute\.urlMaps\.get/, /preGematikPublicBackendCutover[\s\S]*compute\.backendServices\.update[\s\S]*compute\.healthChecks\.useReadOnly/, /preGematikDeploymentVerifier/, /cloudsql\.instances\.get/, /storage\.buckets\.get/],
-    reason: "Workload Identity ist auf Repository, Environment und Git-Ref begrenzt; Cloud-SQL-, Bucket-, URL-Map-, Public-Cutover- und granulare IAP-Policy-Rechte sind explizit."
+    patterns: [/assertion\.environment/, /attribute_condition\s*=\s*[^\n]*assertion\.ref/, /roles\/iam\.workloadIdentityUser/, /roles\/cloudsql\.client/, /workload_cloudsql_client[\s\S]*depends_on\s*=\s*\[google_container_cluster\.autopilot\]/, /iap\.webServices\.getIamPolicy/, /iap\.webServices\.setIamPolicy/, /compute\.urlMaps\.get/, /preGematikPublicBackendCutover[\s\S]*compute\.backendServices\.update[\s\S]*compute\.healthChecks\.useReadOnly/, /preGematikDeploymentVerifier/, /cloudsql\.instances\.get/, /storage\.buckets\.get/, /preGematikPasswordInvitationBroker/, /storage\.objects\.get/, /storage\.objects\.delete/],
+    reason: "Workload Identity ist auf Repository, Environment und Git-Ref begrenzt; Cloud-SQL-, Bucket-, Einladungsobjekt-, URL-Map-, Public-Cutover- und granulare IAP-Policy-Rechte sind explizit."
   },
   {
     file: "deploy/terraform/gcp-autopilot/identity-platform.tf",
@@ -522,6 +537,16 @@ const contentChecks = [
       /status >= 500/
     ],
     reason: "Der oeffentliche Broker akzeptiert nur den exakten, credential-freien Browservertrag und protokolliert keine Kontodaten."
+  },
+  {
+    file: "deploy/helm/versorgungs-kompass/templates/password-reset-broker-deployment.yaml",
+    patterns: [
+      /PASSWORD_INVITATION_BUCKET/,
+      /passwordResetBroker\.invitationBucketName/,
+      /automountServiceAccountToken:\s*\{\{ \.Values\.passwordResetBroker\.serviceAccount\.automountServiceAccountToken \}\}/,
+      /toYaml \.Values\.securityContext/
+    ],
+    reason: "Der gehaertete Broker erhaelt nur den Namen des privaten Einladungs-Buckets und kurzlebige Workload-Credentials."
   },
   {
     file: "deploy/helm/versorgungs-kompass/templates/password-reset-broker-backendconfig.yaml",
@@ -560,8 +585,8 @@ const contentChecks = [
   },
   {
     file: "deploy/terraform/gcp-autopilot/storage.tf",
-    patterns: [/gke_frontend_workload_principal/, /gke_api_workload_principal/, /frontend_deployer_bucket_reader[\s\S]*roles\/storage\.legacyBucketReader/, /frontend_workload_bucket_reader[\s\S]*roles\/storage\.legacyBucketReader/, /frontend_workload_viewer/, /data\s+"google_iam_policy"\s+"data_bucket"/, /each\.key\s*==\s*"stakeholder_logos"[\s\S]*roles\/storage\.objectViewer[\s\S]*roles\/storage\.objectUser/, /members\s*=\s*\[local\.gke_api_workload_principal\]/, /resource\s+"google_storage_bucket_iam_policy"\s+"data"/, /removed\s*\{[\s\S]*from\s*=\s*google_storage_bucket_iam_member\.workload_object_user[\s\S]*destroy\s*=\s*false/, /frontend_workload_viewer[\s\S]*depends_on\s*=\s*\[google_container_cluster\.autopilot\]/, /frontend_workload_bucket_reader[\s\S]*depends_on\s*=\s*\[google_container_cluster\.autopilot\]/],
-    reason: "Frontend-Sync und Deployment bleiben getrennt; alle privaten Daten-Buckets erhalten eine autoritative, ausschliesslich auf den API-Workload begrenzte IAM-Policy."
+    patterns: [/gke_frontend_workload_principal/, /gke_api_workload_principal/, /frontend_deployer_bucket_reader[\s\S]*roles\/storage\.legacyBucketReader/, /frontend_workload_bucket_reader[\s\S]*roles\/storage\.legacyBucketReader/, /frontend_workload_viewer/, /data\s+"google_iam_policy"\s+"data_bucket"/, /each\.key\s*==\s*"stakeholder_logos"[\s\S]*roles\/storage\.objectViewer[\s\S]*roles\/storage\.objectUser/, /members\s*=\s*\[local\.gke_api_workload_principal\]/, /resource\s+"google_storage_bucket_iam_policy"\s+"data"/, /removed\s*\{[\s\S]*from\s*=\s*google_storage_bucket_iam_member\.workload_object_user[\s\S]*destroy\s*=\s*false/, /frontend_workload_viewer[\s\S]*depends_on\s*=\s*\[google_container_cluster\.autopilot\]/, /frontend_workload_bucket_reader[\s\S]*depends_on\s*=\s*\[google_container_cluster\.autopilot\]/, /password_invitation/, /uniform_bucket_level_access\s*=\s*true/, /public_access_prevention\s*=\s*"enforced"/, /versioning\s*\{[\s\S]*enabled\s*=\s*false/, /soft_delete_policy\s*\{[\s\S]*retention_duration_seconds\s*=\s*0/, /password_invitation_broker_storage\.name/, /password_invitation_operator_storage\.name/, /PASSWORD_INVITATION_OPERATOR_MEMBERS/, /\/objects\/prepared\//, /resource\.name\.startsWith\([^\n]*\/objects\/active\//],
+    reason: "Frontend-Sync und Deployment bleiben getrennt; Daten-Buckets bleiben autoritativ privat. Der Einladungs-Bucket ist nicht versioniert, der Broker bleibt auf active/ beschränkt, explizite Operatoren erhalten nur den create/get/delete-Vertrag unter prepared/ und active/, und der GitHub-Deployer erhält keine direkten GCS-Einladungsobjektrechte."
   },
   {
     file: "deploy/terraform/gcp-autopilot/sql.tf",
@@ -578,8 +603,8 @@ const contentChecks = [
 const forbiddenChecks = [
   {
     files: ["deploy/helm/versorgungs-kompass/templates/password-reset-broker-deployment.yaml"],
-    patterns: [/envFrom/, /secretKeyRef/, /DB_PASSWORD/, /cloud-sql/i, /\bstorage\b/i, /\bvolumes?:/],
-    reason: "Der oeffentliche Broker darf keine API-Konfiguration, Secrets, Datenbank-, Cloud-SQL- oder Storage-Anbindung erben."
+    patterns: [/envFrom/, /secretKeyRef/, /DB_PASSWORD/, /cloud-sql/i, /\bvolumes?:/],
+    reason: "Der oeffentliche Broker darf keine API-Konfiguration, Secrets, Datenbank-, Cloud-SQL- oder Volume-Anbindung erben; nur der Bucketname wird als nicht geheimer Wert gesetzt."
   },
   {
     files: ["deploy/helm/versorgungs-kompass/templates/frontend-public-deployment.yaml"],
@@ -627,6 +652,7 @@ const requiredEnvironment = [
   "API_BASE_URL",
   "FRONTEND_BASE_URL",
   "FRONTEND_BUCKET",
+  "PASSWORD_INVITATION_BUCKET",
   "DB_NAME",
   "DB_USER",
   "DB_PASSWORD_SECRET_NAME",
@@ -687,6 +713,25 @@ if (!dataPolicySource) {
   fail("Die Daten-Bucket-Policy darf weder Deployer/Projektrollen noch oeffentliche oder statische Service-Account-Member enthalten.");
 } else {
   ok("Die Daten-Bucket-Policy enthaelt keinen Deployer-, Projektrollen- oder oeffentlichen Zugriffspfad.");
+}
+
+const invitationPolicyStart = storageTerraform.indexOf(
+  'data "google_iam_policy" "password_invitation"'
+);
+const invitationPolicyEnd = storageTerraform.indexOf(
+  'resource "google_storage_bucket_iam_policy" "password_invitation"',
+  invitationPolicyStart
+);
+const invitationPolicySource = invitationPolicyStart >= 0
+  && invitationPolicyEnd > invitationPolicyStart
+  ? storageTerraform.slice(invitationPolicyStart, invitationPolicyEnd)
+  : "";
+if (!invitationPolicySource) {
+  fail("Die autoritative IAM-Definition fuer den Einladungs-Bucket konnte nicht abgegrenzt werden.");
+} else if (/roles\/storage\.objectAdmin|google_service_account\.deployer|allUsers|allAuthenticatedUsers/u.test(invitationPolicySource)) {
+  fail("Die Einladungs-Bucket-Policy darf weder Deployer-ObjectAdmin noch oeffentliche Member enthalten.");
+} else {
+  ok("Die Einladungs-Bucket-Policy enthaelt weder direkte Deployer-Objektrechte noch oeffentlichen Zugriff.");
 }
 
 for (const check of forbiddenChecks) {

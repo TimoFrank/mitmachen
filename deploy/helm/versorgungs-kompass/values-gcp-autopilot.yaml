@@ -37,6 +37,7 @@ passwordResetBroker:
   enabled: false
   replicaCount: 2
   port: 8080
+  invitationBucketName: ""
   podAnnotations: {}
   serviceAccount:
     create: true
@@ -49,7 +50,7 @@ passwordResetBroker:
   backendConfig:
     name: versorgungs-kompass-password-reset
     securityPolicyName: vk-pre-gematik-password-reset
-    timeoutSec: 10
+    timeoutSec: 45
     connectionDrainingTimeoutSec: 0
     healthCheck:
       type: HTTP

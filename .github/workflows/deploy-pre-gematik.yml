@@ -356,6 +356,7 @@ jobs:
       CONTACT_IMAGE_BUCKET: ${{ vars.CONTACT_IMAGE_BUCKET }}
       CONTACT_NOTE_ATTACHMENT_BUCKET: ${{ vars.CONTACT_NOTE_ATTACHMENT_BUCKET }}
       STAKEHOLDER_LOGO_BUCKET: ${{ vars.STAKEHOLDER_LOGO_BUCKET }}
+      PASSWORD_INVITATION_BUCKET: ${{ vars.PASSWORD_INVITATION_BUCKET }}
       CLOUD_SQL_INSTANCE_CONNECTION_NAME: ${{ vars.CLOUD_SQL_INSTANCE_CONNECTION_NAME }}
       GKE_INGRESS_IP_NAME: ${{ vars.GKE_INGRESS_IP_NAME }}
       K8S_NAMESPACE: ${{ vars.K8S_NAMESPACE }}
@@ -391,7 +392,8 @@ jobs:
             DB_NAME DB_USER DB_PASSWORD_SECRET_NAME
             IAP_OAUTH_BOOTSTRAP_SECRET_NAME
             PROFILE_IMAGE_BUCKET CONTACT_IMAGE_BUCKET
-            CONTACT_NOTE_ATTACHMENT_BUCKET STAKEHOLDER_LOGO_BUCKET CLOUD_SQL_INSTANCE_CONNECTION_NAME
+            CONTACT_NOTE_ATTACHMENT_BUCKET STAKEHOLDER_LOGO_BUCKET PASSWORD_INVITATION_BUCKET
+            CLOUD_SQL_INSTANCE_CONNECTION_NAME
             GKE_INGRESS_IP_NAME K8S_NAMESPACE
             IAP_OAUTH_CLIENT_CREDENTIALS_SECRET_NAME IAP_RESOURCE_ACCESS_PRINCIPAL
             IAP_PROJECT_BREAK_GLASS_SHA256
@@ -589,15 +591,15 @@ jobs:
             echo "GKE_INGRESS_IP_NAME is invalid." >&2
             exit 1
           fi
-          for bucket in "$FRONTEND_BUCKET" "$PROFILE_IMAGE_BUCKET" "$CONTACT_IMAGE_BUCKET" "$CONTACT_NOTE_ATTACHMENT_BUCKET" "$STAKEHOLDER_LOGO_BUCKET"; do
+          for bucket in "$FRONTEND_BUCKET" "$PROFILE_IMAGE_BUCKET" "$CONTACT_IMAGE_BUCKET" "$CONTACT_NOTE_ATTACHMENT_BUCKET" "$STAKEHOLDER_LOGO_BUCKET" "$PASSWORD_INVITATION_BUCKET"; do
             if [[ ! "$bucket" =~ ^[a-z0-9][a-z0-9._-]{1,61}[a-z0-9]$ ]]; then
               echo "A bucket variable is not a plain valid bucket name." >&2
               exit 1
             fi
           done
-          bucket_count="$(printf '%s\n' "$FRONTEND_BUCKET" "$PROFILE_IMAGE_BUCKET" "$CONTACT_IMAGE_BUCKET" "$CONTACT_NOTE_ATTACHMENT_BUCKET" "$STAKEHOLDER_LOGO_BUCKET" | sort --unique | wc -l | tr -d '[:space:]')"
-          if [[ "$bucket_count" != "5" ]]; then
-            echo "All frontend and protected data buckets must be distinct." >&2
+          bucket_count="$(printf '%s\n' "$FRONTEND_BUCKET" "$PROFILE_IMAGE_BUCKET" "$CONTACT_IMAGE_BUCKET" "$CONTACT_NOTE_ATTACHMENT_BUCKET" "$STAKEHOLDER_LOGO_BUCKET" "$PASSWORD_INVITATION_BUCKET" | sort --unique | wc -l | tr -d '[:space:]')"
+          if [[ "$bucket_count" != "6" ]]; then
+            echo "All frontend, protected data, and password-invitation buckets must be distinct." >&2
             exit 1
           fi
 
@@ -983,7 +985,7 @@ jobs:
             exit 1
           fi
 
-          for bucket in "$FRONTEND_BUCKET" "$PROFILE_IMAGE_BUCKET" "$CONTACT_IMAGE_BUCKET" "$CONTACT_NOTE_ATTACHMENT_BUCKET" "$STAKEHOLDER_LOGO_BUCKET"; do
+          for bucket in "$FRONTEND_BUCKET" "$PROFILE_IMAGE_BUCKET" "$CONTACT_IMAGE_BUCKET" "$CONTACT_NOTE_ATTACHMENT_BUCKET" "$STAKEHOLDER_LOGO_BUCKET" "$PASSWORD_INVITATION_BUCKET"; do
             bucket_metadata="$(gcloud storage buckets describe "gs://${bucket}" --raw --format=json)"
             if ! jq --exit-status \
               --arg bucket "$bucket" \
@@ -999,6 +1001,16 @@ jobs:
               exit 1
             fi
           done
+
+          invitation_bucket_metadata="$(gcloud storage buckets describe "gs://${PASSWORD_INVITATION_BUCKET}" --raw --format=json)"
+          if ! jq --exit-status '
+            ((.versioning.enabled // false) == false) and
+            ((.softDeletePolicy.retentionDurationSeconds // "0") | tostring) == "0" and
+            ((.retentionPolicy // null) == null)
+          ' <<< "$invitation_bucket_metadata" >/dev/null; then
+            echo "The password-invitation bucket must have no versioning, soft-delete retention, or retention policy." >&2
+            exit 1
+          fi
 
       - name: Connect to GKE through the DNS endpoint
         shell: bash
@@ -1884,6 +1896,7 @@ jobs:
               --set-string config.iapExternalAuthApiKey="$runtime_external_auth_api_key" \
               --set-string config.iapExternalAccessExpiresAt="$runtime_external_access_expires_at" \
               --set passwordResetBroker.enabled="$password_reset_broker_enabled" \
+              --set-string passwordResetBroker.invitationBucketName="$PASSWORD_INVITATION_BUCKET" \
               --set-string config.hospitationImportOwnerProfileId="$HOSPITATION_IMPORT_OWNER_PROFILE_ID" \
               --set-string frontend.backendConfig.iap.oauthClientCredentialsSecretName="$IAP_OAUTH_CLIENT_CREDENTIALS_SECRET_NAME" \
               --set-string frontend.publicEntry.image.repository="$PUBLIC_IMAGE_REPOSITORY" \
@@ -1966,6 +1979,7 @@ jobs:
                 .name == $expected_backend and
                 ((.iap.enabled // false) == false) and
                 .logConfig.enable == false and
+                .timeoutSec == 45 and
                 .customRequestHeaders == ["X-Password-Reset-Client-IP:{client_ip_address}"] and
                 ((.securityPolicy // "") | endswith("/securityPolicies/\($expected_policy)"))
               ' <<< "$password_reset_backend_state" >/dev/null 2>&1
@@ -3378,6 +3392,7 @@ jobs:
                   "NODE_ENV",
                   "PASSWORD_RESET_ALLOWED_ORIGIN",
                   "PASSWORD_RESET_BROKER_ENABLED",
+                  "PASSWORD_INVITATION_BUCKET",
                   "PORT"
                 ] | sort)
               ' >/dev/null

@@ -9,8 +9,13 @@ import path from "node:path";
 import {
   EXPECTED_CONTINUE_URL,
   IdentityPlatformOnboardingError,
+  identityPlatformAccountFingerprint,
   validateIdentityPlatformAccountDocument
 } from "./provision_pre_gematik_identity_platform_account.mjs";
+import {
+  PASSWORD_INVITATION_TTL_MS,
+  passwordInvitationTokenDigest
+} from "./provision_pre_gematik_password_invitation.mjs";
 import {
   EXPECTED_PILOT_END,
   WELCOME_EMAIL_BRAND_ASSET_SPECS,
@@ -30,7 +35,6 @@ import {
   parseWelcomeEmailSendArguments,
   validateWelcomeEmailEml,
   validateWelcomeEmailSmtpConfig,
-  verifyWelcomeEmailPasswordResetLink,
   welcomeEmailReceiptPath
 } from "./send_pre_gematik_guest_welcome_email.mjs";
 
@@ -80,101 +84,10 @@ const document = validateIdentityPlatformAccountDocument({
   email_ownership_verified: true,
   continue_url: EXPECTED_CONTINUE_URL
 });
-const apiKey = `AIza${"A".repeat(35)}`;
-const oobCode = `one-time-${"x".repeat(32)}`;
+const invitationToken = Buffer.alloc(32, 11).toString("base64url");
 const actionUrl =
   "https://versorgungs-kompass.de/konto/passwort-festlegen"
-  + `?mode=resetPassword&oobCode=${oobCode}&apiKey=${apiKey}`
-  + `&continueUrl=${encodeURIComponent(EXPECTED_CONTINUE_URL)}&lang=de`;
-let verificationRequest;
-const verifiedLink = await verifyWelcomeEmailPasswordResetLink({
-  actionUrl,
-  expectedEmail: document.email,
-  expectedApiKey: apiKey,
-  fetchImpl: async (url, init) => {
-    verificationRequest = { url, init };
-    return {
-      ok: true,
-      headers: {
-        get: (name) => name === "content-length" ? "80" : null
-      },
-      text: async () => JSON.stringify({
-        email: document.email,
-        requestType: "PASSWORD_RESET"
-      })
-    };
-  }
-});
-assert.deepEqual(verifiedLink, {
-  email: document.email,
-  requestType: "PASSWORD_RESET"
-});
-const verificationEndpoint = new URL(verificationRequest.url);
-assert.equal(
-  verificationEndpoint.origin,
-  "https://identitytoolkit.googleapis.com"
-);
-assert.equal(
-  verificationEndpoint.pathname,
-  "/v1/accounts:resetPassword"
-);
-assert.equal(verificationEndpoint.searchParams.get("key"), apiKey);
-assert.equal(verificationRequest.init.method, "POST");
-assert.equal(verificationRequest.init.redirect, "error");
-assert.equal(
-  verificationRequest.init.headers.referer,
-  "https://versorgungs-kompass.de/"
-);
-assert.deepEqual(
-  JSON.parse(verificationRequest.init.body),
-  { oobCode }
-);
-assert.ok(!Object.hasOwn(
-  JSON.parse(verificationRequest.init.body),
-  "newPassword"
-));
-await safeRejection(
-  () => verifyWelcomeEmailPasswordResetLink({
-    actionUrl,
-    expectedEmail: document.email,
-    expectedApiKey: `AIza${"B".repeat(35)}`,
-    fetchImpl: async () => {
-      throw new Error("must not run");
-    }
-  }),
-  /gepinnten/u
-);
-await safeRejection(
-  () => verifyWelcomeEmailPasswordResetLink({
-    actionUrl,
-    expectedEmail: document.email,
-    expectedApiKey: apiKey,
-    fetchImpl: async () => ({
-      ok: true,
-      headers: { get: () => null },
-      text: async () => JSON.stringify({
-        email: "other@example.invalid",
-        requestType: "PASSWORD_RESET"
-      })
-    })
-  }),
-  /Gastkonto/u
-);
-await safeRejection(
-  () => verifyWelcomeEmailPasswordResetLink({
-    actionUrl,
-    expectedEmail: document.email,
-    expectedApiKey: apiKey,
-    fetchImpl: async () => ({
-      ok: false,
-      headers: { get: () => null },
-      text: async () => JSON.stringify({
-        error: { message: "EXPIRED_OOB_CODE" }
-      })
-    })
-  }),
-  /abgelaufen/u
-);
+  + `#einladung=${invitationToken}`;
 const rendered = await renderGuestWelcomeEmail({
   document,
   actionUrl,
@@ -330,38 +243,79 @@ await fs.chmod(smtpPath, 0o600);
 await fs.chmod(accountPath, 0o600);
 await fs.chmod(linkPath, 0o600);
 
-const verifiedActionUrls = [];
-const verifySyntheticResetLink = async ({
+const invitationBucket = "vk-private-password-invitations-test";
+const preparedActionUrls = [];
+const invitationStore = Object.freeze({ test: true });
+const readSyntheticPreparedInvitation = async ({
   actionUrl: candidateActionUrl,
-  expectedEmail,
-  expectedApiKey
+  account,
+  store
 }) => {
-  const parsed = new URL(candidateActionUrl);
-  assert.equal(expectedEmail, document.email);
-  assert.equal(expectedApiKey, apiKey);
-  assert.equal(parsed.searchParams.get("apiKey"), apiKey);
-  assert.match(
-    parsed.searchParams.get("oobCode") || "",
-    /^[A-Za-z0-9_-]{20,1024}$/u
-  );
-  verifiedActionUrls.push(candidateActionUrl);
+  assert.equal(account.email, document.email);
+  assert.equal(store, invitationStore);
+  const tokenValue = candidateActionUrl.split("#einladung=")[1];
+  const digest = passwordInvitationTokenDigest(tokenValue);
+  preparedActionUrls.push(candidateActionUrl);
   return {
-    email: expectedEmail,
-    requestType: "PASSWORD_RESET"
+    digest,
+    generation: "123",
+    record: {
+      version: "v1",
+      purpose: "password_invitation",
+      status: "prepared",
+      project_id: document.project_id,
+      tenant_id: "",
+      uid: document.uid,
+      email: document.email,
+      continue_url: document.continue_url,
+      prepared_at: "2026-07-31T09:55:00.000Z",
+      accepted_at: null,
+      expires_at: null,
+      account_fingerprint: identityPlatformAccountFingerprint(document),
+      guest_access_fingerprint: `sha256:${"a".repeat(64)}`,
+      binding_state_fingerprint: `sha256:${"b".repeat(64)}`,
+      profile_id: "12345678-1234-4123-8123-123456789abc",
+      role: "viewer",
+      access_scope: "test_only",
+      scope_ref: "external-pilot:gematik"
+    }
+  };
+};
+const activationCalls = [];
+const activateSyntheticInvitation = async ({ prepared, acceptedAt, store }) => {
+  assert.equal(store, invitationStore);
+  activationCalls.push({ prepared, acceptedAt });
+  return {
+    digest: prepared.digest,
+    generation: "456",
+    record: {
+      ...prepared.record,
+      status: "active",
+      accepted_at: acceptedAt,
+      expires_at: new Date(
+        new Date(acceptedAt).valueOf() + PASSWORD_INVITATION_TTL_MS
+      ).toISOString()
+    }
   };
 };
 const executionContext = {
   repository,
-  expectedApiKey: apiKey,
   receiptDirectory,
-  verifyResetLink: verifySyntheticResetLink
+  invitationStoreFactory: ({ bucket, projectId }) => {
+    assert.equal(bucket, invitationBucket);
+    assert.equal(projectId, document.project_id);
+    return invitationStore;
+  },
+  readPreparedInvitation: readSyntheticPreparedInvitation,
+  activateInvitation: activateSyntheticInvitation
 };
 
 const previewOptions = parseWelcomeEmailSendArguments([
   "--input", accountPath,
   "--link-file", linkPath,
   "--mail-file", mailPath,
-  "--smtp-config", smtpPath
+  "--smtp-config", smtpPath,
+  "--invitation-bucket", invitationBucket
 ]);
 const previewLogs = [];
 let transportCalls = 0;
@@ -377,13 +331,12 @@ assert.equal(preview.applied, false);
 assert.equal(preview.accepted, false);
 assert.equal(transportCalls, 0);
 assert.equal(previewLogs.length, 1);
-assert.equal(verifiedActionUrls.length, 1);
+assert.equal(preparedActionUrls.length, 1);
 for (const secret of [
   password,
   document.email,
   actionUrl,
-  oobCode,
-  apiKey,
+  invitationToken,
   mailPath,
   smtpPath
 ]) {
@@ -395,6 +348,7 @@ const applyOptions = parseWelcomeEmailSendArguments([
   "--link-file", linkPath,
   "--mail-file", mailPath,
   "--smtp-config", smtpPath,
+  "--invitation-bucket", invitationBucket,
   "--apply",
   "--confirm-operation", WELCOME_EMAIL_SEND_OPERATION,
   "--confirm-fingerprint", preview.fingerprint
@@ -416,8 +370,10 @@ const accepted = await executeWelcomeEmailSend({
 });
 assert.equal(accepted.applied, true);
 assert.equal(accepted.accepted, true);
+assert.equal(accepted.activated, true);
 assert.equal(transportCalls, 1);
-assert.equal(verifiedActionUrls.length, 2);
+assert.equal(preparedActionUrls.length, 2);
+assert.equal(activationCalls.length, 1);
 assert.equal(
   transportedConfig,
   buildSmtpCurlConfig({
@@ -440,6 +396,7 @@ assert.equal(
 );
 assert.equal(applyLogs.length, 1);
 assert.match(applyLogs[0], /smtp_accepted=true/u);
+assert.match(applyLogs[0], /invitation_activated=true/u);
 const receiptPath = welcomeEmailReceiptPath(
   receiptDirectory,
   preview.fingerprint
@@ -447,6 +404,12 @@ const receiptPath = welcomeEmailReceiptPath(
 const receipt = JSON.parse(await fs.readFile(receiptPath, "utf8"));
 assert.equal(receipt.status, "accepted");
 assert.equal(receipt.accepted_at, "2026-07-31T10:00:00.000Z");
+assert.equal(receipt.invitation_status, "active");
+assert.equal(receipt.active_generation, "456");
+assert.equal(
+  receipt.invitation_expires_at,
+  "2026-08-02T10:00:00.000Z"
+);
 assert.equal(receipt.send_started_at, "2026-07-31T10:00:00.000Z");
 assert.equal(
   receipt.message_id,
@@ -545,8 +508,11 @@ await safeRejection(
   /existiert bereits/u
 );
 
-const failedOobCode = `second-one-time-${"y".repeat(32)}`;
-const failedActionUrl = actionUrl.replace(oobCode, failedOobCode);
+const failedInvitationToken = Buffer.alloc(32, 12).toString("base64url");
+const failedActionUrl = actionUrl.replace(
+  invitationToken,
+  failedInvitationToken
+);
 const failedRendered = await renderGuestWelcomeEmail({
   document,
   actionUrl: failedActionUrl,
@@ -609,6 +575,85 @@ assert.equal(failedReceipt.send_started_at, "2026-07-31T10:01:00.000Z");
 assert.equal(
   failedReceipt.message_id,
   "<22222222-2222-4222-8222-222222222222@versorgungs-kompass.de>"
+);
+
+const activationPendingToken = Buffer.alloc(32, 13).toString("base64url");
+const activationPendingUrl = actionUrl.replace(
+  invitationToken,
+  activationPendingToken
+);
+const activationPendingRendered = await renderGuestWelcomeEmail({
+  document,
+  actionUrl: activationPendingUrl,
+  senderName: WELCOME_EMAIL_SENDER_NAME,
+  senderEmail: WELCOME_EMAIL_SENDER_EMAIL,
+  pilotEnd: EXPECTED_PILOT_END,
+  textTemplate,
+  htmlTemplate
+});
+const activationPendingMailPath = path.join(
+  temporaryRoot,
+  "activation-pending-welcome.eml"
+);
+const activationPendingLinkPath = path.join(
+  temporaryRoot,
+  "activation-pending-link.txt"
+);
+await fs.writeFile(
+  activationPendingMailPath,
+  activationPendingRendered.eml,
+  { mode: 0o600 }
+);
+await fs.writeFile(
+  activationPendingLinkPath,
+  `${activationPendingUrl}\n`,
+  { mode: 0o600 }
+);
+const activationPendingPreviewOptions = {
+  ...previewOptions,
+  linkFile: activationPendingLinkPath,
+  mailFile: activationPendingMailPath
+};
+const activationPendingPreview = await executeWelcomeEmailSend({
+  options: activationPendingPreviewOptions,
+  ...executionContext,
+  transport: async () => {},
+  log: () => {}
+});
+const activationPendingApplyOptions = {
+  ...activationPendingPreviewOptions,
+  apply: true,
+  confirmOperation: WELCOME_EMAIL_SEND_OPERATION,
+  confirmFingerprint: activationPendingPreview.fingerprint
+};
+await safeRejection(
+  () => executeWelcomeEmailSend({
+    options: activationPendingApplyOptions,
+    ...executionContext,
+    transport: async () => {},
+    activateInvitation: async () => {
+      throw new Error("synthetic activation failure");
+    },
+    log: () => {},
+    now: () => new Date("2026-07-31T10:02:00.000Z"),
+    messageIdFactory: () => "33333333-3333-4333-8333-333333333333"
+  }),
+  /SMTP hat die Mail angenommen.*Nicht erneut senden/u
+);
+const activationPendingReceipt = JSON.parse(await fs.readFile(
+  welcomeEmailReceiptPath(
+    receiptDirectory,
+    activationPendingPreview.fingerprint
+  ),
+  "utf8"
+));
+assert.equal(
+  activationPendingReceipt.status,
+  "smtp_accepted_activation_pending"
+);
+assert.equal(
+  activationPendingReceipt.activation_status,
+  "reconciliation_required"
 );
 
 let receivedTransportBody = "";
@@ -704,6 +749,6 @@ if (process.platform !== "win32") {
 
 await fs.rm(temporaryRoot, { recursive: true, force: true });
 console.log(
-  "Gast-Willkommensmail-SMTP OK: Domain-Absender, TLS-Relay, create-only "
-  + "Versandbeleg und geheimnisfreie Ausgabe sind gepinnt."
+  "Gast-Willkommensmail-SMTP OK: Domain-Absender, TLS-Relay, prepared-Readback, "
+  + "SMTP-gebundene 48h-Aktivierung und Reconciliation-Beleg sind gepinnt."
 );

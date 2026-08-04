@@ -16,8 +16,6 @@ import {
 } from "./provision_pre_gematik_identity_platform_account.mjs";
 import {
   EXPECTED_PILOT_END,
-  PASSWORD_ACTION_ORIGIN,
-  PASSWORD_ACTION_PATH,
   WELCOME_EMAIL_ALTERNATIVE_BOUNDARY,
   WELCOME_EMAIL_BRAND_ASSET_SPECS,
   WELCOME_EMAIL_RELATED_BOUNDARY,
@@ -30,6 +28,14 @@ import {
   validateWelcomeEmailBrandMarkup,
   validateBrandedSetPasswordLink
 } from "./render_pre_gematik_guest_welcome_email.mjs";
+import {
+  PASSWORD_INVITATION_TTL_MS,
+  activatePreparedPasswordInvitation,
+  createPasswordInvitationGcsStore,
+  readBoundPreparedPasswordInvitation,
+  validatePasswordInvitationBucket,
+  validatePasswordInvitationLink
+} from "./provision_pre_gematik_password_invitation.mjs";
 
 export const WELCOME_EMAIL_SEND_OPERATION =
   "SEND_PRE_GEMATIK_GUEST_WELCOME_EMAIL";
@@ -39,22 +45,10 @@ export const WELCOME_EMAIL_SMTP_SECURITY = "implicit_tls";
 
 const MAX_MAIL_BYTES = 512 * 1024;
 const MAX_SMTP_CONFIG_BYTES = 16 * 1024;
-const MAX_IDENTITY_TOOLKIT_RESPONSE_BYTES = 64 * 1024;
-const IDENTITY_TOOLKIT_TIMEOUT_MS = 15_000;
-const IDENTITY_TOOLKIT_ORIGIN = "https://identitytoolkit.googleapis.com";
-const API_KEY_PATTERN = /^AIza[0-9A-Za-z_-]{35}$/u;
-const ACTION_CODE_PATTERN = /^[A-Za-z0-9_-]{20,1024}$/u;
 const EMAIL_PATTERN =
   /^[a-z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-z0-9](?:[a-z0-9.-]{0,251}[a-z0-9])?$/iu;
 const FINGERPRINT_PATTERN = /^sha256:[a-f0-9]{64}$/u;
 const PNG_SIGNATURE = Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]);
-const ALLOWED_ACTION_PARAMETERS = new Set([
-  "apiKey",
-  "continueUrl",
-  "lang",
-  "mode",
-  "oobCode"
-]);
 const EXPECTED_MAIL_HEADERS = Object.freeze([
   "content-type",
   "from",
@@ -329,7 +323,7 @@ export function validateWelcomeEmailEml(rawMail) {
   const encodedSubject =
     `=?UTF-8?B?${Buffer.from(WELCOME_EMAIL_SUBJECT, "utf8").toString("base64")}?=`;
   const contentTypeMatch = contentType.match(
-    /^multipart\/related; boundary="vk-pre-gematik-welcome-related-v3"; type="multipart\/alternative"; start="<(vk-welcome\.([a-f0-9]{24})@versorgungs-kompass\.de)>"$/u
+    /^multipart\/related; boundary="vk-pre-gematik-welcome-related-v4"; type="multipart\/alternative"; start="<(vk-welcome\.([a-f0-9]{24})@versorgungs-kompass\.de)>"$/u
   );
   if (
     from !== `${encodedSenderName} <${WELCOME_EMAIL_SENDER_EMAIL}>`
@@ -338,7 +332,7 @@ export function validateWelcomeEmailEml(rawMail) {
     || subject !== encodedSubject
     || mimeVersion !== "1.0"
     || !contentTypeMatch
-    || template !== "pre-gematik-guest-welcome-v3"
+    || template !== "pre-gematik-guest-welcome-v4"
   ) {
     throw new IdentityPlatformOnboardingError(
       "Die EML-Datei entspricht nicht dem freigegebenen Domain-Mailvertrag."
@@ -465,25 +459,7 @@ export function validateWelcomeEmailEml(rawMail) {
     .map((match) => match[0].replaceAll("&amp;", "&"));
   const actionUrls = remoteUrls.filter((url) => {
     try {
-      const parsed = new URL(url);
-      const parameterNames = [...parsed.searchParams.keys()];
-      const exactParameters =
-        parameterNames.length === ALLOWED_ACTION_PARAMETERS.size
-        && parameterNames.every((name) =>
-          ALLOWED_ACTION_PARAMETERS.has(name)
-          && parsed.searchParams.getAll(name).length === 1
-        );
-      return parsed.origin === PASSWORD_ACTION_ORIGIN
-        && parsed.pathname === PASSWORD_ACTION_PATH
-        && !parsed.username
-        && !parsed.password
-        && !parsed.hash
-        && exactParameters
-        && parsed.searchParams.get("mode") === "resetPassword"
-        && API_KEY_PATTERN.test(parsed.searchParams.get("apiKey") || "")
-        && ACTION_CODE_PATTERN.test(parsed.searchParams.get("oobCode") || "")
-        && parsed.searchParams.get("continueUrl") === EXPECTED_CONTINUE_URL
-        && parsed.searchParams.get("lang") === "de";
+      return validatePasswordInvitationLink(url).href === url;
     } catch {
       return false;
     }
@@ -496,13 +472,13 @@ export function validateWelcomeEmailEml(rawMail) {
     || continueUrls.length !== 1
   ) {
     throw new IdentityPlatformOnboardingError(
-      "Die EML-Datei enthaelt keinen exklusiven gebrandeten Einmal-Link."
+      "Die EML-Datei enthaelt keinen exklusiven gebrandeten 48-Stunden-Wrapperlink."
     );
   }
   if (
     (htmlPart.match(/<a\s+href=/gu) || []).length !== 1
     || !htmlPart.includes("Persönlichen Zugang einrichten")
-    || !textPart.includes("Bitte öffne den Link innerhalb von 60 Minuten.")
+    || !textPart.includes("Bitte richte deinen Zugang innerhalb von 48 Stunden vollständig ein.")
   ) {
     throw new IdentityPlatformOnboardingError(
       "Die EML-Datei entspricht nicht der freigegebenen Onboarding-Vorlage."
@@ -513,7 +489,7 @@ export function validateWelcomeEmailEml(rawMail) {
 
 function mailFingerprint(rawMail) {
   const digest = createHash("sha256");
-  digest.update("versorgungs-kompass-pre-gematik-welcome-mail-v3\0", "utf8");
+  digest.update("versorgungs-kompass-pre-gematik-welcome-mail-v4\0", "utf8");
   digest.update(rawMail, "utf8");
   return `sha256:${digest.digest("hex")}`;
 }
@@ -559,118 +535,6 @@ export function welcomeEmailReceiptPath(receiptDirectory, fingerprint) {
     receiptDirectory,
     `welcome-send-${fingerprint.slice("sha256:".length)}.json`
   );
-}
-
-function configuredIdentityPlatformApiKey(environment = process.env) {
-  const apiKey = String(environment.IAP_EXTERNAL_AUTH_API_KEY || "").trim();
-  if (!API_KEY_PATTERN.test(apiKey)) {
-    throw new IdentityPlatformOnboardingError(
-      "IAP_EXTERNAL_AUTH_API_KEY fehlt oder ist ungueltig."
-    );
-  }
-  return apiKey;
-}
-
-export async function verifyWelcomeEmailPasswordResetLink({
-  actionUrl,
-  expectedEmail,
-  expectedApiKey,
-  fetchImpl = globalThis.fetch
-}) {
-  const normalizedExpectedEmail = String(expectedEmail || "");
-  const normalizedExpectedApiKey = String(expectedApiKey || "");
-  if (
-    typeof fetchImpl !== "function"
-    || !EMAIL_PATTERN.test(normalizedExpectedEmail)
-    || normalizedExpectedEmail !== normalizedExpectedEmail.toLowerCase()
-    || !API_KEY_PATTERN.test(normalizedExpectedApiKey)
-  ) {
-    throw new IdentityPlatformOnboardingError(
-      "Die aktuelle Einmal-Link-Pruefung ist nicht sicher konfiguriert."
-    );
-  }
-  let parsedAction;
-  try {
-    parsedAction = new URL(actionUrl);
-  } catch {
-    throw new IdentityPlatformOnboardingError(
-      "Der Einmal-Link konnte nicht aktuell bestaetigt werden."
-    );
-  }
-  if (
-    parsedAction.origin !== PASSWORD_ACTION_ORIGIN
-    || parsedAction.pathname !== PASSWORD_ACTION_PATH
-    || parsedAction.searchParams.get("apiKey") !== normalizedExpectedApiKey
-  ) {
-    throw new IdentityPlatformOnboardingError(
-      "Der Einmal-Link verwendet nicht den gepinnten Identity-Platform-Key."
-    );
-  }
-  const endpoint = new URL(
-    "/v1/accounts:resetPassword",
-    IDENTITY_TOOLKIT_ORIGIN
-  );
-  endpoint.searchParams.set("key", normalizedExpectedApiKey);
-  let response;
-  try {
-    response = await fetchImpl(endpoint.href, {
-      method: "POST",
-      headers: {
-        accept: "application/json",
-        "content-type": "application/json",
-        referer: `${PASSWORD_ACTION_ORIGIN}/`
-      },
-      body: JSON.stringify({
-        oobCode: parsedAction.searchParams.get("oobCode")
-      }),
-      redirect: "error",
-      signal: AbortSignal.timeout(IDENTITY_TOOLKIT_TIMEOUT_MS)
-    });
-  } catch {
-    throw new IdentityPlatformOnboardingError(
-      "Der Einmal-Link konnte nicht aktuell gegen Identity Platform geprueft werden."
-    );
-  }
-  const contentLength = Number(
-    response?.headers?.get?.("content-length") || "0"
-  );
-  if (
-    Number.isFinite(contentLength)
-    && contentLength > MAX_IDENTITY_TOOLKIT_RESPONSE_BYTES
-  ) {
-    throw new IdentityPlatformOnboardingError(
-      "Identity Platform lieferte eine ungueltige Einmal-Link-Antwort."
-    );
-  }
-  let payload;
-  try {
-    const responseText = await response.text();
-    if (
-      Buffer.byteLength(responseText, "utf8")
-      > MAX_IDENTITY_TOOLKIT_RESPONSE_BYTES
-    ) {
-      throw new Error("response too large");
-    }
-    payload = responseText ? JSON.parse(responseText) : null;
-  } catch {
-    payload = null;
-  }
-  if (
-    response?.ok !== true
-    || !payload
-    || typeof payload !== "object"
-    || Array.isArray(payload)
-    || payload.requestType !== "PASSWORD_RESET"
-    || String(payload.email || "").toLowerCase() !== normalizedExpectedEmail
-  ) {
-    throw new IdentityPlatformOnboardingError(
-      "Der Einmal-Link ist abgelaufen, bereits benutzt oder gehoert nicht zu diesem Gastkonto."
-    );
-  }
-  return Object.freeze({
-    email: normalizedExpectedEmail,
-    requestType: "PASSWORD_RESET"
-  });
 }
 
 function transportMail(rawMail, { sentAt, messageId }) {
@@ -783,6 +647,7 @@ export function parseWelcomeEmailSendArguments(argv) {
     linkFile: "",
     mailFile: "",
     smtpConfig: "",
+    invitationBucket: "",
     confirmOperation: "",
     confirmFingerprint: ""
   };
@@ -791,6 +656,7 @@ export function parseWelcomeEmailSendArguments(argv) {
     ["--link-file", "linkFile"],
     ["--mail-file", "mailFile"],
     ["--smtp-config", "smtpConfig"],
+    ["--invitation-bucket", "invitationBucket"],
     ["--confirm-operation", "confirmOperation"],
     ["--confirm-fingerprint", "confirmFingerprint"]
   ]);
@@ -816,11 +682,13 @@ function validateApplyArguments(options, fingerprint) {
     || !options.linkFile
     || !options.mailFile
     || !options.smtpConfig
+    || !options.invitationBucket
   ) {
     throw new IdentityPlatformOnboardingError(
-      "Account-, Link-, EML- oder SMTP-Eingabe fehlt."
+      "Account-, Link-, EML-, SMTP- oder Einladungs-Bucket-Eingabe fehlt."
     );
   }
+  validatePasswordInvitationBucket(options.invitationBucket);
   if (!options.apply) {
     if (
       options.confirmOperation
@@ -917,12 +785,13 @@ async function writeReceipt(receiptPath, payload, { create = false } = {}) {
   await fs.writeFile(receiptPath, contents, { encoding: "utf8", mode: 0o600 });
 }
 
-function safeSummary({ apply, fingerprint, accepted = false }) {
+function safeSummary({ apply, fingerprint, accepted = false, activated = false }) {
   return [
     "schema_version=1",
     `operation=${WELCOME_EMAIL_SEND_OPERATION}`,
     `mode=${apply ? "APPLY" : "PREVIEW"}`,
     `smtp_accepted=${accepted}`,
+    `invitation_activated=${activated}`,
     `mail_fingerprint=${fingerprint}`
   ].join("\n");
 }
@@ -931,8 +800,10 @@ export async function executeWelcomeEmailSend({
   options,
   repository = repositoryRoot(),
   transport = curlSmtpTransport,
-  verifyResetLink = verifyWelcomeEmailPasswordResetLink,
-  expectedApiKey = configuredIdentityPlatformApiKey(),
+  invitationStoreFactory = ({ bucket, projectId }) =>
+    createPasswordInvitationGcsStore({ bucket, projectId }),
+  readPreparedInvitation = readBoundPreparedPasswordInvitation,
+  activateInvitation = activatePreparedPasswordInvitation,
   receiptDirectory = defaultWelcomeEmailReceiptDirectory(),
   log = console.log,
   now = () => new Date(),
@@ -989,16 +860,25 @@ export async function executeWelcomeEmailSend({
       "Der EML-Empfaenger stimmt nicht mit dem geschuetzten Gastkonto ueberein."
     );
   }
-  await verifyResetLink({
+  const invitationStore = invitationStoreFactory({
+    bucket: options.invitationBucket,
+    projectId: document.project_id
+  });
+  const preparedInvitation = await readPreparedInvitation({
     actionUrl,
-    expectedEmail: document.email,
-    expectedApiKey
+    account: document,
+    store: invitationStore
   });
   const fingerprint = mailFingerprint(mailFile.contents);
   validateApplyArguments(options, fingerprint);
   if (!options.apply) {
     log(safeSummary({ apply: false, fingerprint }));
-    return Object.freeze({ applied: false, accepted: false, fingerprint });
+    return Object.freeze({
+      applied: false,
+      accepted: false,
+      activated: false,
+      fingerprint
+    });
   }
 
   const receiptPath = await assertSafeReceiptPath(
@@ -1030,13 +910,6 @@ export async function executeWelcomeEmailSend({
       }),
       rawMail: rawTransportMail
     });
-    await writeReceipt(receiptPath, {
-      ...pending,
-      status: "accepted",
-      accepted_at: sentAt.toISOString()
-    });
-    log(safeSummary({ apply: true, fingerprint, accepted: true }));
-    return Object.freeze({ applied: true, accepted: true, fingerprint });
   } catch {
     await writeReceipt(receiptPath, {
       ...pending,
@@ -1047,6 +920,97 @@ export async function executeWelcomeEmailSend({
       "Der SMTP-Ausgang ist unklar. Nicht erneut senden, bevor der Versandbeleg und das Zielpostfach geprueft wurden."
     );
   }
+
+  const acceptedAt = now();
+  if (!(acceptedAt instanceof Date) || Number.isNaN(acceptedAt.valueOf())) {
+    await writeReceipt(receiptPath, {
+      ...pending,
+      status: "smtp_accepted_activation_pending",
+      accepted_at: null,
+      invitation_digest: preparedInvitation.digest,
+      prepared_generation: preparedInvitation.generation
+    }).catch(() => {});
+    throw new IdentityPlatformOnboardingError(
+      "SMTP hat die Mail angenommen, aber die Aktivierungszeit ist unklar. "
+      + "Nicht erneut senden; Versandbeleg und prepared-Generation abgleichen.",
+      1
+    );
+  }
+  const acceptedAtIso = acceptedAt.toISOString();
+  const activationPending = {
+    ...pending,
+    status: "smtp_accepted_activation_pending",
+    accepted_at: acceptedAtIso,
+    invitation_digest: preparedInvitation.digest,
+    prepared_generation: preparedInvitation.generation
+  };
+  await writeReceipt(receiptPath, activationPending).catch(() => {});
+
+  let activeInvitation;
+  try {
+    activeInvitation = await activateInvitation({
+      prepared: preparedInvitation,
+      acceptedAt: acceptedAtIso,
+      store: invitationStore
+    });
+  } catch {
+    await writeReceipt(receiptPath, {
+      ...activationPending,
+      activation_status: "reconciliation_required"
+    }).catch(() => {});
+    throw new IdentityPlatformOnboardingError(
+      "SMTP hat die Mail angenommen, aber die 48-Stunden-Einladung ist noch nicht "
+      + "bestaetigt aktiv. Nicht erneut senden; Versandbeleg sowie prepared-/active-"
+      + "Generation abgleichen und die Aktivierung reconciliieren.",
+      1
+    );
+  }
+  const expectedExpiry = new Date(
+    acceptedAt.valueOf() + PASSWORD_INVITATION_TTL_MS
+  ).toISOString();
+  if (
+    activeInvitation.record?.accepted_at !== acceptedAtIso
+    || activeInvitation.record?.expires_at !== expectedExpiry
+  ) {
+    await writeReceipt(receiptPath, {
+      ...activationPending,
+      activation_status: "reconciliation_required"
+    }).catch(() => {});
+    throw new IdentityPlatformOnboardingError(
+      "SMTP hat die Mail angenommen, aber die aktive Einladung ist nicht exakt auf "
+      + "48 Stunden bestaetigt. Nicht erneut senden; den Aktivierungsnachweis abgleichen.",
+      1
+    );
+  }
+  try {
+    await writeReceipt(receiptPath, {
+      ...pending,
+      status: "accepted",
+      accepted_at: acceptedAtIso,
+      invitation_status: "active",
+      invitation_expires_at: expectedExpiry,
+      invitation_digest: activeInvitation.digest,
+      active_generation: activeInvitation.generation
+    });
+  } catch {
+    throw new IdentityPlatformOnboardingError(
+      "SMTP hat die Mail angenommen und die Einladung wurde aktiviert, aber der "
+      + "Versandbeleg ist unvollstaendig. Nicht erneut senden; active-Generation abgleichen.",
+      1
+    );
+  }
+  log(safeSummary({
+    apply: true,
+    fingerprint,
+    accepted: true,
+    activated: true
+  }));
+  return Object.freeze({
+    applied: true,
+    accepted: true,
+    activated: true,
+    fingerprint
+  });
 }
 
 export function usage() {
@@ -1057,7 +1021,8 @@ Preview:
     --input /absolut/owner-only/account.json \\
     --link-file /absolut/owner-only/set-password-link.txt \\
     --mail-file /absolut/owner-only/welcome.eml \\
-    --smtp-config /absolut/owner-only/smtp.json
+    --smtp-config /absolut/owner-only/smtp.json \\
+    --invitation-bucket PRIVATE_INVITATION_BUCKET
 
 Einmaliger Versand:
   zusaetzlich --apply \\
@@ -1066,10 +1031,11 @@ Einmaliger Versand:
 
 Die SMTP-Konfiguration bleibt owner-only ausserhalb des Git-Worktrees. Passwort,
 Empfaenger und Einmal-Link werden nicht auf stdout ausgegeben.
-IAP_EXTERNAL_AUTH_API_KEY muss auf den freigegebenen Portal-Key gesetzt sein.
-Vor Preview und Apply wird der Code nicht konsumierend auf PASSWORD_RESET,
-aktuelle Gueltigkeit und die exakte Empfaengeradresse geprueft. Versandbelege
-liegen fest unter ~/.local/state/versorgungs-kompass/pre-gematik-welcome-email.`;
+Vor Preview und Apply wird das inerte prepared-Objekt generationengenau gegen
+Account und Wrapperlink geprueft. Erst nach SMTP-Annahme wird active create-only
+mit exakt 48 Stunden Laufzeit geschrieben und prepared bedingt geloescht.
+Versandbelege liegen fest unter
+~/.local/state/versorgungs-kompass/pre-gematik-welcome-email.`;
 }
 
 export async function main(argv = process.argv.slice(2)) {

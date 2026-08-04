@@ -52,6 +52,70 @@ resource "google_storage_bucket" "data" {
   depends_on = [google_project_service.required["storage.googleapis.com"]]
 }
 
+resource "google_storage_bucket" "password_invitation" {
+  name                        = local.password_invitation_bucket
+  location                    = var.GCP_REGION
+  storage_class               = "STANDARD"
+  uniform_bucket_level_access = true
+  public_access_prevention    = "enforced"
+  force_destroy               = false
+
+  versioning {
+    enabled = false
+  }
+
+  soft_delete_policy {
+    retention_duration_seconds = 0
+  }
+
+  lifecycle_rule {
+    action {
+      type = "Delete"
+    }
+
+    condition {
+      age = 3
+    }
+  }
+
+  depends_on = [google_project_service.required["storage.googleapis.com"]]
+}
+
+data "google_iam_policy" "password_invitation" {
+  binding {
+    role    = google_project_iam_custom_role.password_invitation_broker_storage.name
+    members = [local.gke_password_reset_workload_principal]
+
+    condition {
+      title       = "active-password-invitations-only"
+      description = "The public broker may read and consume only active invitation objects."
+      expression  = "resource.name.startsWith('projects/_/buckets/${google_storage_bucket.password_invitation.name}/objects/active/')"
+    }
+  }
+
+  dynamic "binding" {
+    for_each = length(var.PASSWORD_INVITATION_OPERATOR_MEMBERS) > 0 ? [true] : []
+
+    content {
+      role    = google_project_iam_custom_role.password_invitation_operator_storage.name
+      members = sort(tolist(var.PASSWORD_INVITATION_OPERATOR_MEMBERS))
+
+      condition {
+        title       = "password-invitation-operators-only"
+        description = "Explicit operators may use only prepared and active invitation objects."
+        expression  = "resource.name.startsWith('projects/_/buckets/${google_storage_bucket.password_invitation.name}/objects/prepared/') || resource.name.startsWith('projects/_/buckets/${google_storage_bucket.password_invitation.name}/objects/active/')"
+      }
+    }
+  }
+}
+
+resource "google_storage_bucket_iam_policy" "password_invitation" {
+  bucket      = google_storage_bucket.password_invitation.name
+  policy_data = data.google_iam_policy.password_invitation.policy_data
+
+  depends_on = [google_container_cluster.autopilot]
+}
+
 data "google_iam_policy" "data_bucket" {
   for_each = local.data_buckets
 

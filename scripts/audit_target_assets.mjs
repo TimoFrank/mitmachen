@@ -445,8 +445,8 @@ const identityPortalDocuments = [
   {
     relativePath: "public/auth/konto/passwort-festlegen/index.html",
     marker: "password",
-    stylesheet: "/public/auth/assets/action.css?v=20260731-1",
-    script: "/public/auth/assets/action.js?v=20260731-1"
+    stylesheet: "/public/auth/assets/action.css?v=20260804-1",
+    script: "/public/auth/assets/action.js?v=20260804-1"
   }
 ];
 for (const { relativePath, marker, stylesheet, script } of targetAuthMode === "iap" ? identityPortalDocuments : []) {

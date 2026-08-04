@@ -242,6 +242,17 @@ variable "IAP_ACCESS_MEMBERS" {
   }
 }
 
+variable "PASSWORD_INVITATION_OPERATOR_MEMBERS" {
+  description = "Explicit human operators allowed to prepare and activate password invitations. Keep this separate from IAP access and remove members when the pilot ends."
+  type        = set(string)
+  default     = []
+
+  validation {
+    condition     = alltrue([for member in var.PASSWORD_INVITATION_OPERATOR_MEMBERS : can(regex("^user:[^@\\s]+@[^@\\s]+$", member))])
+    error_message = "PASSWORD_INVITATION_OPERATOR_MEMBERS accepts only explicit user: principals."
+  }
+}
+
 variable "IAP_RESOURCE_ACCESS_PRINCIPAL" {
   description = "Google Group, or a directly auditable user for the single-person pilot, bound only to the generated API and frontend IAP backend services."
   type        = string
