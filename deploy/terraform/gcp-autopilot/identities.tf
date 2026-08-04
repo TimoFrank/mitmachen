@@ -178,6 +178,18 @@ resource "google_project_iam_custom_role" "password_invitation_operator_storage"
   ]
 }
 
+resource "google_project_iam_custom_role" "password_invitation_policy_admin" {
+  role_id     = "preGematikPasswordInvitationPolicyAdmin"
+  title       = "Pre-gematik password invitation policy administrator"
+  description = "Read and replace the dedicated invitation bucket policy without direct invitation-object permissions."
+  stage       = "GA"
+  permissions = [
+    "storage.buckets.get",
+    "storage.buckets.getIamPolicy",
+    "storage.buckets.setIamPolicy",
+  ]
+}
+
 resource "google_project_iam_member" "password_reset_broker" {
   project = var.GCP_PROJECT_ID
   role    = google_project_iam_custom_role.password_reset_broker.name

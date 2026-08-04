@@ -14,12 +14,14 @@ const [
   values,
   valuesGcp,
   valuesSchema,
+  variables,
   identities,
   locals,
   armor,
   storage,
   outputs,
-  workflow
+  workflow,
+  deploymentGuide
 ] = await Promise.all([
   read("deploy/helm/versorgungs-kompass/templates/password-reset-broker-deployment.yaml"),
   read("deploy/helm/versorgungs-kompass/templates/password-reset-broker-service.yaml"),
@@ -30,12 +32,14 @@ const [
   read("deploy/helm/versorgungs-kompass/values.yaml"),
   read("deploy/helm/versorgungs-kompass/values-gcp-autopilot.yaml"),
   read("deploy/helm/versorgungs-kompass/values.schema.json"),
+  read("deploy/terraform/gcp-autopilot/variables.tf"),
   read("deploy/terraform/gcp-autopilot/identities.tf"),
   read("deploy/terraform/gcp-autopilot/locals.tf"),
   read("deploy/terraform/gcp-autopilot/password-reset-broker.tf"),
   read("deploy/terraform/gcp-autopilot/storage.tf"),
   read("deploy/terraform/gcp-autopilot/outputs.tf"),
-  read(".github/workflows/deploy-pre-gematik.yml")
+  read(".github/workflows/deploy-pre-gematik.yml"),
+  read("dokumentation/betrieb-und-deployment/DEPLOYMENT_GCP_AUTOPILOT.md")
 ]);
 
 assert.match(deployment, /command:\s*\n\s*- node\s*\n\s*- api\/password-reset-server\.mjs/u);
@@ -138,6 +142,27 @@ assert.deepEqual(operatorStoragePermissions, [
 ]);
 assert.doesNotMatch(operatorStorageRoleBlock, /storage\.objects\.(?:list|update|restore)/u);
 
+const policyAdminRoleBlock = identities.match(
+  /resource "google_project_iam_custom_role" "password_invitation_policy_admin" \{[\s\S]*?\n\}/u
+)?.[0];
+assert.ok(policyAdminRoleBlock, "Die getrennte Policy-Admin-Rolle für den Einladungs-Bucket fehlt.");
+const policyAdminPermissions = [...policyAdminRoleBlock.matchAll(/"(storage\.[^"]+)"/gu)]
+  .map((match) => match[1])
+  .sort();
+assert.deepEqual(policyAdminPermissions, [
+  "storage.buckets.get",
+  "storage.buckets.getIamPolicy",
+  "storage.buckets.setIamPolicy"
+]);
+assert.doesNotMatch(policyAdminRoleBlock, /storage\.objects\./u);
+assert.match(variables, /variable "PASSWORD_INVITATION_POLICY_ADMIN_MEMBERS"/u);
+assert.match(
+  variables,
+  /length\(var\.PASSWORD_INVITATION_POLICY_ADMIN_MEMBERS\) > 0/u,
+  "Mindestens ein expliziter Policy-Administrator muss Pflicht sein."
+);
+assert.match(variables, /PASSWORD_INVITATION_POLICY_ADMIN_MEMBERS requires at least one explicit user: principal/u);
+
 assert.match(storage, /resource "google_storage_bucket" "password_invitation" \{/u);
 assert.match(
   storage,
@@ -168,10 +193,20 @@ assert.doesNotMatch(
 );
 assert.match(storage, /password_invitation_operator_storage\.name/u);
 assert.match(storage, /PASSWORD_INVITATION_OPERATOR_MEMBERS/u);
+assert.match(storage, /password_invitation_policy_admin\.name/u);
+assert.match(storage, /PASSWORD_INVITATION_POLICY_ADMIN_MEMBERS/u);
 assert.match(storage, /objects\/prepared\//u);
 assert.match(storage, /objects\/active\//u);
 assert.match(storage, /resource "google_storage_bucket_iam_policy" "password_invitation"/u);
 assert.match(outputs, /output "PASSWORD_INVITATION_BUCKET" \{[\s\S]*google_storage_bucket\.password_invitation\.name/u);
+assert.match(deploymentGuide, /temporary_password_invitation_policy_recovery/u);
+assert.match(deploymentGuide, /request\.time < timestamp/u);
+assert.match(deploymentGuide, /terraform untaint google_storage_bucket_iam_policy\.password_invitation/u);
+assert.match(deploymentGuide, /gcloud projects remove-iam-policy-binding/u);
+assert.match(deploymentGuide, /mittelbar neue\s+Objektrechte vergeben/u);
+assert.match(deploymentGuide, /Der State darf nicht mehr `tainted` sein/u);
+assert.match(deploymentGuide, /Schritt 5 darf nicht ausgeführt werden/u);
+assert.match(deploymentGuide, /Einpersonen-Pilot darf dieselbe namentliche Person\s+in beiden Listen stehen/u);
 
 assert.match(armor, /action\s*=\s*"rate_based_ban"/u);
 assert.match(armor, /request\.path == '\/api\/auth\/password-reset'/u);

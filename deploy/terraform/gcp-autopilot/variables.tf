@@ -253,6 +253,19 @@ variable "PASSWORD_INVITATION_OPERATOR_MEMBERS" {
   }
 }
 
+variable "PASSWORD_INVITATION_POLICY_ADMIN_MEMBERS" {
+  description = "Explicit trusted infrastructure administrators allowed to read and replace only the password-invitation bucket policy. This grants no direct invitation-object permissions but can change who receives them."
+  type        = set(string)
+
+  validation {
+    condition = (
+      length(var.PASSWORD_INVITATION_POLICY_ADMIN_MEMBERS) > 0 &&
+      alltrue([for member in var.PASSWORD_INVITATION_POLICY_ADMIN_MEMBERS : can(regex("^user:[^@\\s]+@[^@\\s]+$", member))])
+    )
+    error_message = "PASSWORD_INVITATION_POLICY_ADMIN_MEMBERS requires at least one explicit user: principal."
+  }
+}
+
 variable "IAP_RESOURCE_ACCESS_PRINCIPAL" {
   description = "Google Group, or a directly auditable user for the single-person pilot, bound only to the generated API and frontend IAP backend services."
   type        = string

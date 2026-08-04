@@ -701,6 +701,23 @@ for (const check of contentChecks) {
   }
 }
 
+const identitiesTerraform = source("deploy/terraform/gcp-autopilot/identities.tf");
+const policyAdminRoleSource = identitiesTerraform.match(
+  /resource "google_project_iam_custom_role" "password_invitation_policy_admin" \{[\s\S]*?\n\}/u
+)?.[0] || "";
+const policyAdminPermissions = [...policyAdminRoleSource.matchAll(/"(storage\.[^"]+)"/gu)]
+  .map((match) => match[1])
+  .sort();
+if (JSON.stringify(policyAdminPermissions) !== JSON.stringify([
+  "storage.buckets.get",
+  "storage.buckets.getIamPolicy",
+  "storage.buckets.setIamPolicy"
+])) {
+  fail("Die Einladungs-Policy-Admin-Rolle muss exakt Bucket- und IAM-Readback/Set-Rechte ohne Objektrechte besitzen.");
+} else {
+  ok("Die Einladungs-Policy-Admin-Rolle ist auf den Terraform-Readback und Policy-Ersatz begrenzt.");
+}
+
 const storageTerraform = source("deploy/terraform/gcp-autopilot/storage.tf");
 const dataPolicyStart = storageTerraform.indexOf('data "google_iam_policy" "data_bucket"');
 const dataPolicyEnd = storageTerraform.indexOf('resource "google_storage_bucket_iam_policy" "data"', dataPolicyStart);
@@ -730,8 +747,10 @@ if (!invitationPolicySource) {
   fail("Die autoritative IAM-Definition fuer den Einladungs-Bucket konnte nicht abgegrenzt werden.");
 } else if (/roles\/storage\.objectAdmin|google_service_account\.deployer|allUsers|allAuthenticatedUsers/u.test(invitationPolicySource)) {
   fail("Die Einladungs-Bucket-Policy darf weder Deployer-ObjectAdmin noch oeffentliche Member enthalten.");
+} else if (!/password_invitation_policy_admin\.name[\s\S]*PASSWORD_INVITATION_POLICY_ADMIN_MEMBERS/u.test(invitationPolicySource)) {
+  fail("Die autoritative Einladungs-Bucket-Policy muss den getrennten Pflicht-Policy-Admin fuer einen stabilen Readback enthalten.");
 } else {
-  ok("Die Einladungs-Bucket-Policy enthaelt weder direkte Deployer-Objektrechte noch oeffentlichen Zugriff.");
+  ok("Die Einladungs-Bucket-Policy enthaelt den getrennten Policy-Admin, aber weder direkte Deployer-Objektrechte noch oeffentlichen Zugriff.");
 }
 
 for (const check of forbiddenChecks) {

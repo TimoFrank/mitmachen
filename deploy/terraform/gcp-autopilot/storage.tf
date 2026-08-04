@@ -107,6 +107,11 @@ data "google_iam_policy" "password_invitation" {
       }
     }
   }
+
+  binding {
+    role    = google_project_iam_custom_role.password_invitation_policy_admin.name
+    members = sort(tolist(var.PASSWORD_INVITATION_POLICY_ADMIN_MEMBERS))
+  }
 }
 
 resource "google_storage_bucket_iam_policy" "password_invitation" {
