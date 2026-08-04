@@ -223,18 +223,85 @@ Projektbindung auf exakt diesen Bucket und maximal 90 Minuten:
    terraform untaint google_storage_bucket_iam_policy.password_invitation
    ```
 
-4. Einen vollständig frischen Plan mit der dauerhaften, unbedingten
-   Bucket-Level-Bindung erstellen. Ein alter gespeicherter Plan darf nicht
-   wiederverwendet werden. Der Plan darf weder Bucket-Zerstörung noch neue
-   direkte Objektberechtigungen für Policy-Admin oder GitHub-Deployer enthalten.
-   Erst nach dieser Prüfung den frischen Plan anwenden. Solange die temporäre
-   Projektbindung noch besteht, müssen anschließend der untainted State und die
-   dauerhafte Bucket-Level-Admin-Bindung im direkten Live-Readback nachgewiesen
-   werden:
+4. Einen vollständig frischen, ausdrücklich auf
+   `google_storage_bucket_iam_policy.password_invitation` begrenzten
+   Recovery-Plan mit der dauerhaften, unbedingten Bucket-Level-Bindung
+   erstellen. Dieser `-target`-Plan ist die fail-closed Ausnahme für die eine
+   bereits bekannte Recovery-Ressource. Ein Full-Root-Abgleich erfolgt getrennt
+   und erst mit vollständigem Variablensatz sowie Leserechten auf alle
+   verwalteten Ressourcen; er darf nicht Teil dieses Recovery-Apply sein. Ein
+   alter gespeicherter Plan darf nicht wiederverwendet werden.
+
+   Akzeptabel ist exakt eine Nicht-No-op-Änderung mit der Adresse
+   `google_storage_bucket_iam_policy.password_invitation` und der Aktion
+   `update`. Jede weitere Adresse oder jede `delete`-Aktion stoppt den Ablauf.
+   Das maschinelle Gate verlangt außerdem exakt die drei erwarteten
+   Binding-Klassen samt Pfad-Conditions, nicht leere Mitgliederlisten und
+   schließt den GitHub-Deployer aus. Im menschenlesbaren `terraform show` sind
+   die Operator- und Policy-Admin-Mitglieder zusätzlich bytegenau mit den
+   freigegebenen owner-only Eingabevariablen abzugleichen. Erst nach diesen
+   Prüfungen den frischen Plan anwenden. Solange die temporäre Projektbindung
+   noch besteht, müssen anschließend der untainted State und die dauerhafte
+   Bucket-Level-Admin-Bindung im direkten Live-Readback nachgewiesen werden:
 
    ```bash
-   terraform plan -out=password-invitation-policy-recovery.tfplan
+   terraform plan \
+     -target=google_storage_bucket_iam_policy.password_invitation \
+     -out=password-invitation-policy-recovery.tfplan
    terraform show password-invitation-policy-recovery.tfplan
+   terraform show -json password-invitation-policy-recovery.tfplan | \
+     jq --exit-status \
+       --arg project_id '<GCP_PROJECT_ID>' \
+       --arg project_number '<GCP_PROJECT_NUMBER>' \
+       --arg bucket '<PASSWORD_INVITATION_BUCKET>' '
+       # BEGIN PASSWORD_INVITATION_RECOVERY_PLAN_GATE
+       [.resource_changes[] | select(.change.actions != ["no-op"])] as $changes
+       | ($changes[0].change.after.policy_data | fromjson) as $policy
+       | ("projects/" + $project_id +
+          "/roles/preGematikPasswordInvitationBroker") as $broker_role
+       | ("projects/" + $project_id +
+          "/roles/preGematikPasswordInvitationOperator") as $operator_role
+       | ("projects/" + $project_id +
+          "/roles/preGematikPasswordInvitationPolicyAdmin") as $admin_role
+       | ("principal://iam.googleapis.com/projects/" + $project_number +
+          "/locations/global/workloadIdentityPools/" + $project_id +
+          ".svc.id.goog/subject/ns/pre-gematik/sa/versorgungs-kompass-password-reset")
+          as $broker_principal
+       | ("resource.name.startsWith(\u0027projects/_/buckets/" + $bucket +
+          "/objects/active/\u0027)") as $broker_condition
+       | ("resource.name.startsWith(\u0027projects/_/buckets/" + $bucket +
+          "/objects/prepared/\u0027) || resource.name.startsWith(\u0027projects/_/buckets/" +
+          $bucket + "/objects/active/\u0027)") as $operator_condition
+       | def invitation_bindings($role):
+           [$policy.bindings[] | select(.role == $role)];
+         invitation_bindings($broker_role) as $broker
+       | invitation_bindings($operator_role) as $operator
+       | invitation_bindings($admin_role) as $admin
+       | (($changes | length) == 1)
+       and ($changes[0].address == "google_storage_bucket_iam_policy.password_invitation")
+       and ($changes[0].change.actions == ["update"])
+       and ([$changes[].change.actions[]] | all(. != "delete"))
+       and (($policy.bindings | length) == 3)
+       and (([$policy.bindings[].role] | sort) ==
+         ([$broker_role, $operator_role, $admin_role] | sort))
+       and (all($policy.bindings[];
+         (.members | type) == "array" and (.members | length) > 0))
+       and (all($policy.bindings[].members[];
+         (contains("github-pre-gematik-deployer@") | not)))
+       and (($broker | length) == 1)
+       and (($broker[0].members | length) == 1)
+       and ($broker[0].members[0] == $broker_principal)
+       and ($broker[0].condition.title == "active-password-invitations-only")
+       and ($broker[0].condition.expression == $broker_condition)
+       and (($operator | length) == 1)
+       and (all($operator[0].members[]; startswith("user:")))
+       and ($operator[0].condition.title == "password-invitation-operators-only")
+       and ($operator[0].condition.expression == $operator_condition)
+       and (($admin | length) == 1)
+       and (all($admin[0].members[]; startswith("user:")))
+       and (($admin[0].condition // null) == null)
+       # END PASSWORD_INVITATION_RECOVERY_PLAN_GATE
+     '
    terraform apply password-invitation-policy-recovery.tfplan
    terraform state show google_storage_bucket_iam_policy.password_invitation
    gcloud storage buckets get-iam-policy \

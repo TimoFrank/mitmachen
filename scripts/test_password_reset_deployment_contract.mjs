@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { spawnSync } from "node:child_process";
 import { readFile } from "node:fs/promises";
 
 const root = new URL("../", import.meta.url);
@@ -202,6 +203,145 @@ assert.match(outputs, /output "PASSWORD_INVITATION_BUCKET" \{[\s\S]*google_stora
 assert.match(deploymentGuide, /temporary_password_invitation_policy_recovery/u);
 assert.match(deploymentGuide, /request\.time < timestamp/u);
 assert.match(deploymentGuide, /terraform untaint google_storage_bucket_iam_policy\.password_invitation/u);
+assert.match(
+  deploymentGuide,
+  /terraform plan \\\n\s+-target=google_storage_bucket_iam_policy\.password_invitation \\\n\s+-out=password-invitation-policy-recovery\.tfplan/u
+);
+assert.match(deploymentGuide, /Ein Full-Root-Abgleich erfolgt getrennt/u);
+assert.match(deploymentGuide, /\(\$changes\[0\]\.change\.after\.policy_data \| fromjson\) as \$policy/u);
+assert.match(deploymentGuide, /\(\(\$changes \| length\) == 1\)/u);
+assert.match(
+  deploymentGuide,
+  /\$changes\[0\]\.address == "google_storage_bucket_iam_policy\.password_invitation"/u
+);
+assert.match(deploymentGuide, /\$changes\[0\]\.change\.actions == \["update"\]/u);
+assert.match(deploymentGuide, /all\(\. != "delete"\)/u);
+assert.match(deploymentGuide, /\(\$policy\.bindings \| length\) == 3/u);
+assert.match(deploymentGuide, /preGematikPasswordInvitationBroker/u);
+assert.match(deploymentGuide, /preGematikPasswordInvitationOperator/u);
+assert.match(deploymentGuide, /preGematikPasswordInvitationPolicyAdmin/u);
+assert.match(deploymentGuide, /active-password-invitations-only/u);
+assert.match(deploymentGuide, /password-invitation-operators-only/u);
+assert.match(deploymentGuide, /github-pre-gematik-deployer@/u);
+assert.match(deploymentGuide, /bytegenau mit den\s+freigegebenen owner-only Eingabevariablen abzugleichen/u);
+assert.match(deploymentGuide, /Jede weitere Adresse oder jede `delete`-Aktion stoppt den Ablauf/u);
+
+const recoveryGateMatch = deploymentGuide.match(
+  /# BEGIN PASSWORD_INVITATION_RECOVERY_PLAN_GATE\n([\s\S]*?)\n\s*# END PASSWORD_INVITATION_RECOVERY_PLAN_GATE/u
+);
+assert.ok(recoveryGateMatch, "Das ausfuehrbare Recovery-Plan-Gate fehlt im Runbook.");
+const recoveryGate = recoveryGateMatch[1];
+const recoveryProjectId = "example-project";
+const recoveryProjectNumber = "123456789";
+const recoveryBucket = "example-password-invitations";
+const recoveryBrokerRole = `projects/${recoveryProjectId}/roles/preGematikPasswordInvitationBroker`;
+const recoveryOperatorRole = `projects/${recoveryProjectId}/roles/preGematikPasswordInvitationOperator`;
+const recoveryAdminRole = `projects/${recoveryProjectId}/roles/preGematikPasswordInvitationPolicyAdmin`;
+const recoveryBrokerPrincipal =
+  `principal://iam.googleapis.com/projects/${recoveryProjectNumber}/locations/global/` +
+  `workloadIdentityPools/${recoveryProjectId}.svc.id.goog/subject/ns/pre-gematik/` +
+  "sa/versorgungs-kompass-password-reset";
+const recoveryBrokerCondition =
+  `resource.name.startsWith('projects/_/buckets/${recoveryBucket}/objects/active/')`;
+const recoveryOperatorCondition =
+  `resource.name.startsWith('projects/_/buckets/${recoveryBucket}/objects/prepared/') || ` +
+  `resource.name.startsWith('projects/_/buckets/${recoveryBucket}/objects/active/')`;
+const recoveryPolicy = {
+  bindings: [
+    {
+      role: recoveryBrokerRole,
+      members: [recoveryBrokerPrincipal],
+      condition: {
+        title: "active-password-invitations-only",
+        expression: recoveryBrokerCondition
+      }
+    },
+    {
+      role: recoveryOperatorRole,
+      members: ["user:invitation-operator@example.invalid"],
+      condition: {
+        title: "password-invitation-operators-only",
+        expression: recoveryOperatorCondition
+      }
+    },
+    {
+      role: recoveryAdminRole,
+      members: ["user:invitation-policy-admin@example.invalid"]
+    }
+  ]
+};
+const recoveryPlan = (policy = recoveryPolicy, actions = ["update"]) => ({
+  resource_changes: [
+    {
+      address: "google_storage_bucket_iam_policy.password_invitation",
+      change: {
+        actions,
+        after: { policy_data: JSON.stringify(policy) }
+      }
+    }
+  ]
+});
+const runRecoveryGate = (plan) => {
+  const result = spawnSync(
+    "jq",
+    [
+      "--exit-status",
+      "--arg", "project_id", recoveryProjectId,
+      "--arg", "project_number", recoveryProjectNumber,
+      "--arg", "bucket", recoveryBucket,
+      recoveryGate
+    ],
+    { input: JSON.stringify(plan), encoding: "utf8" }
+  );
+  assert.ifError(result.error);
+  return result;
+};
+const expectRecoveryGateRejects = (label, plan) => {
+  const result = runRecoveryGate(plan);
+  assert.notEqual(result.status, 0, `${label} darf das Recovery-Plan-Gate nicht passieren.`);
+};
+
+assert.equal(
+  runRecoveryGate(recoveryPlan()).status,
+  0,
+  "Die exakte sichere Einladungs-Policy muss das Recovery-Plan-Gate passieren."
+);
+
+const recoveryPlanWithExtraResource = structuredClone(recoveryPlan());
+recoveryPlanWithExtraResource.resource_changes.push({
+  address: "google_storage_bucket.unrelated",
+  change: { actions: ["update"], after: {} }
+});
+expectRecoveryGateRejects("Eine zusaetzliche Ressource", recoveryPlanWithExtraResource);
+expectRecoveryGateRejects("Eine Delete-/Create-Aktion", recoveryPlan(recoveryPolicy, ["delete", "create"]));
+
+const broadConditionPolicy = structuredClone(recoveryPolicy);
+broadConditionPolicy.bindings[0].condition.expression = `true || ${recoveryBrokerCondition}`;
+expectRecoveryGateRejects("Eine immer wahre Broker-Condition", recoveryPlan(broadConditionPolicy));
+
+const foreignPrincipalPolicy = structuredClone(recoveryPolicy);
+foreignPrincipalPolicy.bindings[0].members = [recoveryBrokerPrincipal.replace(
+  `/projects/${recoveryProjectNumber}/`,
+  "/projects/987654321/"
+)];
+expectRecoveryGateRejects("Ein fremder Workload-Identity-Pool", recoveryPlan(foreignPrincipalPolicy));
+
+const emptyOperatorPolicy = structuredClone(recoveryPolicy);
+emptyOperatorPolicy.bindings[1].members = [];
+expectRecoveryGateRejects("Eine leere Operator-Bindung", recoveryPlan(emptyOperatorPolicy));
+
+const deployerOperatorPolicy = structuredClone(recoveryPolicy);
+deployerOperatorPolicy.bindings[1].members = [
+  "serviceAccount:github-pre-gematik-deployer@example-project.iam.gserviceaccount.com"
+];
+expectRecoveryGateRejects("Der GitHub-Deployer als Operator", recoveryPlan(deployerOperatorPolicy));
+
+const conditionedAdminPolicy = structuredClone(recoveryPolicy);
+conditionedAdminPolicy.bindings[2].condition = {
+  title: "unexpected-admin-condition",
+  expression: "true"
+};
+expectRecoveryGateRejects("Eine konditionierte Policy-Admin-Bindung", recoveryPlan(conditionedAdminPolicy));
 assert.match(deploymentGuide, /gcloud projects remove-iam-policy-binding/u);
 assert.match(deploymentGuide, /mittelbar neue\s+Objektrechte vergeben/u);
 assert.match(deploymentGuide, /Der State darf nicht mehr `tainted` sein/u);
