@@ -1,7 +1,7 @@
 # Deployment des Gematik-PoC auf Kubernetes
 
 Status: technisches Runbook
-Stand: 3. August 2026
+Stand: 4. August 2026
 
 GKE-Herkunft, Freeze-Regeln und offene Nachweise stehen kompakt in der
 [RC.5-Übergabenotiz](UEBERGABE_RC5_SOFTWARE_FACTORY.md).
@@ -90,7 +90,12 @@ Passwörter, Tokens, private Zertifikate, Daten-Snapshots und OIDC-Subjects werd
 
 Der aktuelle Target-Build unterstützt einen klar abgegrenzten, providerneutralen Adapter: Frontend und `/api` liegen same-origin hinter dem institutionellen Identity-Gateway. Das Frontend verwaltet selbst keine Tokens. Das Gateway entfernt vom Browser eingehende `Authorization`- und Identitätsheader und setzt zur nicht direkt erreichbaren API ausschließlich ein frisch geprüftes, signiertes JWT als `Authorization: Bearer <JWT>`. Issuer, Audience, JWKS sowie E-Mail- und Subject-Claim müssen den API-Laufzeitwerten entsprechen.
 
-Dieser Vertrag muss vor einem Deployment von den Plattformverantwortlichen bestätigt werden. Ein Cookie-only-Gateway oder eine browserseitige OAuth-/PKCE-Anmeldung ist mit dem aktuellen Stand nicht abgedeckt und benötigt einen eigenen Plattformadapter sowie einen weiteren RC. Der RC.5-Freeze ist bis zur Erzeugung des annotierten Tags, zum vollständigen RC-Nachweis und zum positiven Authentifizierungs-Smoke nicht deployment-freigegeben.
+Dieser Vertrag muss vor einem Deployment von den Plattformverantwortlichen
+bestätigt werden. Ein Cookie-only-Gateway oder eine browserseitige
+OAuth-/PKCE-Anmeldung ist mit dem aktuellen Stand nicht abgedeckt und benötigt
+einen eigenen Plattformadapter sowie eine neue Patch-Version. Der vorhandene
+Legacy-RC.5 ist bis zum vollständigen RC-Nachweis und zum positiven
+Authentifizierungs-Smoke nicht deployment-freigegeben.
 
 Der positive Smoke verwendet eine benannte Testidentität und weist nach:
 
@@ -101,9 +106,20 @@ Der positive Smoke verwendet eine benannte Testidentität und weist nach:
 
 ## 1. Release Candidate festlegen
 
-Ein Release Candidate erhält einen annotierten Tag nach dem Muster `poc-v<Version>-rc.<Nummer>`. Der Tag wird nicht verschoben. Jede Korrektur erhält einen neuen Tag.
+Ein neuer Release Candidate erhält einen signierten, annotierten Quelltag
+`vX.Y.Z`. Der Tag wird nicht verschoben. „Release Candidate“ ist der
+GitHub-Prerelease-Status und Bestandteil des Titels, kein Tag-Suffix. Jede
+Korrektur erhöht den Patchstand.
 
-Ein neuer RC-Tag wird erst nach Integration der Korrektur und erfolgreichen Gates auf dem nachgewiesenen `origin/main`-Commit erzeugt. Ein Feature-Branch erhält keinen vorläufigen RC-Tag.
+Ein neuer Quelltag wird erst nach Integration der Korrektur und erfolgreichen
+Gates auf dem nachgewiesenen `origin/main`-Commit erzeugt. Ein Feature-Branch
+erhält keinen vorläufigen Release-Tag. Tag-Objekt und Zielcommit werden getrennt
+verifiziert.
+
+Der folgende Checkout dokumentiert weiterhin den bereits festgelegten
+Legacy-RC.5. Die Jenkins-, Helm- und Nachweispfade werden erst in der geplanten
+Target-Migration auf das neue `vX.Y.Z`-Schema umgestellt; bis dahin ist dieser
+Block kein Muster für ein neues Release.
 
 ```bash
 git status --short

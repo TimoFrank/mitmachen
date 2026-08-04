@@ -514,7 +514,7 @@ function verifyBaseRef(ref) {
 
 function releasePlan() {
   const config = JSON.parse(readText(releaseConfigPath));
-  if (config.schemaVersion !== 1) throw new Error("config/release.json verwendet eine unbekannte schemaVersion.");
+  if (![1, 2].includes(config.schemaVersion)) throw new Error("config/release.json verwendet eine unbekannte schemaVersion.");
   if (!parseVersion(config.baselineVersion)) throw new Error("config/release.json enthält keine gültige baselineVersion.");
   if (!config.baselineRef) throw new Error("config/release.json enthält keine baselineRef.");
 
