@@ -90,11 +90,11 @@ assert.equal(displayVersion("1.1.0", { stable: true }), "1.1");
 assert.equal(displayVersion("1.0.1", { stable: true }), "1.0.1");
 assert.equal(
   releaseTitle("0.23.0", "weekly", { policy, theme: "Versorgung gemeinsam gestalten" }),
-  "Versorgungs-Kompass 0.23.0 — Release Candidate: Versorgung gemeinsam gestalten"
+  "0.23.0-0 Release Candidate"
 );
 assert.equal(
   releaseTitle("0.23.1", "hotfix", { policy }),
-  "Versorgungs-Kompass 0.23.1 — Release Candidate (Hotfix)"
+  "0.23.1 Release Candidate"
 );
 assert.equal(
   releaseTitle("1.0.0", "weekly", { policy, theme: "Zielbetrieb" }),

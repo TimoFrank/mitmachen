@@ -135,17 +135,21 @@ Checks sind.
 - Die Pages-Demo bleibt öffentlich, anonym und synthetisch. Das persönlich
   betriebene GKE verwendet IAP und GCP-spezifische Werte; es ist kein
   Zielbetriebsnachweis. Das Target verwendet OIDC und wird in der Software
-  Factory beziehungsweise später in GitLab gebaut.
+  Factory frisch gebaut. Vor dem Cutover ist GitHub die Quellautorität; danach
+  übernimmt das geschützte GitLab-Projekt diese Rolle.
 - Es gilt keine Cross-Channel-Promotion: GKE-/IAP-Images und Pages-Artefakte
   werden nicht zum Target umgetaggt. Die Software Factory baut die exakt
-  referenzierte Revision neu und dokumentiert Frontend-, Image- und
-  Chart-Digest. Eine Promotion ohne Rebuild ist erst innerhalb desselben
-  Target-Kanals und nur mit identischen Digests zulässig.
-- Die spätere GitLab-Übergabe überträgt vollständige Git-Objekte samt
-  signiertem Tag. Tag-Objekt-SHA, Zielcommit und Signer werden auf beiden Hosts
-  verifiziert. Ein ZIP des lokalen Arbeitsverzeichnisses, uncommittierte
-  Dateien, `dist/`, persönliche Infrastrukturwerte, Secrets und Daten gehören
-  nicht zur Übergabe.
+  referenzierte Revision neu und dokumentiert die Digests von Frontend, Image
+  und gerendertem Helm-Manifest. Eine Promotion ohne Rebuild ist erst innerhalb
+  desselben Target-Kanals und nur mit identischen Digests zulässig.
+- Die vorbereitete GitLab-Übergabe überträgt ein voraussetzungsfreies
+  Git-Bundle mit genau `main`, allen Tags und den vollständigen erreichbaren
+  Git-Objekten. Tagobjekt-SHA, Zielcommit, Signer, Ref-Inventar und Prüfsummen
+  werden auf beiden Seiten verifiziert. Das Prüfsummenmanifest besitzt eine
+  abgetrennte Signatur, die vor der Auswertung der Hashwerte gegen den extern
+  bestätigten Trust Anchor geprüft wird. Ein ZIP des lokalen
+  Arbeitsverzeichnisses, uncommittierte Dateien, `dist/`, persönliche
+  Infrastrukturwerte, Secrets und Daten gehören nicht zur Übergabe.
 - Nach dem GitLab-Cutover existiert genau eine beschreibbare führende
   Integrationslinie. Eine bidirektionale Parallelpflege von `main` in GitHub und
   GitLab ist nicht zulässig.
@@ -157,7 +161,10 @@ Checks sind.
   nachsigniert oder in das neue Namensschema überführt.
 
 Das aktuelle Vorgehen steht im
-[PoC-Durchstich](POC_GEMATIK_DURCHSTICH.md).
+[PoC-Durchstich](POC_GEMATIK_DURCHSTICH.md); der kontrollierte Quellenwechsel
+ist im
+[GitLab-/Software-Factory-Übergaberunbook](GITLAB_SOFTWARE_FACTORY_UEBERGABE.md)
+beschrieben.
 
 ## 6. Actions- und Abhängigkeitsrichtlinie
 

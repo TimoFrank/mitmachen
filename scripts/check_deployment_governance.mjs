@@ -418,11 +418,348 @@ forbidPattern(publishReleaseFile, publishRelease, /deploy-pre-gematik\.yml|dist\
 
 const jenkinsFile = "deploy/jenkins/Jenkinsfile.gematik";
 const jenkins = read(jenkinsFile);
+const packageFile = "package.json";
+const packageConfig = readJson(packageFile);
+const packageScripts = packageConfig?.scripts || {};
+const targetReadinessFile = ".github/workflows/target-readiness.yml";
+const targetReadiness = read(targetReadinessFile);
+const targetValuesFile = "deploy/helm/versorgungs-kompass/values-target-gematik.yaml";
+const targetValues = read(targetValuesFile);
+const targetSourceVerifierFile = "scripts/verify_target_release_source.mjs";
+const targetSourceVerifier = read(targetSourceVerifierFile);
+const sourceHandoffPackagerFile = "scripts/package_source_handoff.mjs";
+const sourceHandoffPackager = read(sourceHandoffPackagerFile);
+const sourceHandoffVerifierFile = "scripts/verify_source_handoff.mjs";
+const sourceHandoffVerifier = read(sourceHandoffVerifierFile);
+const securityEvidenceFile = "scripts/generate_security_evidence.mjs";
+const securityEvidence = read(securityEvidenceFile);
+
+function jenkinsStage(name, nextName) {
+  const startMarker = `    stage('${name}') {`;
+  const endMarker = `    stage('${nextName}') {`;
+  const start = jenkins.indexOf(startMarker);
+  const end = jenkins.indexOf(endMarker, start + startMarker.length);
+  if (start < 0 || end <= start) {
+    failures.push(`${jenkinsFile}: Stufenvertrag ${name} -> ${nextName} fehlt oder ist falsch angeordnet.`);
+    return "";
+  }
+  return jenkins.slice(start, end);
+}
+
+function declaredEvidenceInventory(stageSource, label) {
+  const declaration = stageSource.match(/expected_inventory="\$\(printf '%s\\n'\s+([\s\S]*?)\|\s*LC_ALL=C sort\)"/);
+  if (!declaration) {
+    failures.push(`${jenkinsFile}: ${label} besitzt kein geschlossenes expected_inventory.`);
+    return [];
+  }
+  return [...declaration[1].matchAll(/\b([a-z0-9-]+\.json)\b/g)].map((match) => match[1]);
+}
+
+const prePushEvidenceStage = jenkinsStage("Import pre-push Software Factory gates", "Push API image");
+const bootstrapStage = jenkinsStage("Bootstrap trusted main", "Verify signed target source");
+const verifySourceStage = jenkinsStage("Verify signed target source", "Install");
+const pushImageStage = jenkinsStage("Push API image", "Import post-push Cosign attestation");
+const postPushAttestationStage = jenkinsStage("Import post-push Cosign attestation", "Helm validate");
+const helmValidateStage = jenkinsStage("Helm validate", "Trivy configuration scan");
+const assembleEvidenceStage = jenkinsStage("Assemble security evidence", "Stage versioned frontend release");
+const frontendReleaseStage = jenkinsStage("Stage versioned frontend release", "Deploy API to Kubernetes");
+const deployApiStage = jenkinsStage("Deploy API to Kubernetes", "Smoke test");
+const smokeStage = jenkinsStage("Smoke test", "Record technical deployment evidence");
+const deploymentEvidenceStage = jenkins.slice(
+  jenkins.indexOf("    stage('Record technical deployment evidence') {"),
+  jenkins.indexOf("\n  post {")
+);
+
+requirePattern(jenkinsFile, jenkins, /agent\s*\{\s*label\s*['"]versorgungs-target-deployer['"]\s*\}/u, "Die Target-Pipeline muss einen dedizierten Deployer-Agenten verwenden.");
+requirePattern(jenkinsFile, jenkins, /disableConcurrentBuilds\(\)/u, "Parallele Target-Deployments desselben Jobs muessen gesperrt sein.");
+requirePattern(jenkinsFile, jenkins, /GIT_SSH_COMMAND\s*=\s*['"][^'"]*StrictHostKeyChecking=yes[^'"]*['"]/u, "Private Quellzugriffe muessen SSH-Hostschluessel fail-closed pruefen.");
+requirePattern(jenkinsFile, jenkins, /credentialsId:\s*['"]versorgungs-target-source-readonly-ssh-key['"]/u, "Der Bootstrap muss den geschuetzten read-only Quellschluessel verwenden.");
+requirePattern(jenkinsFile, bootstrapStage, /for required_tool in git node npm gpg jq ssh docker helm kubectl curl[\s\S]*FRONTEND_BUCKET_URI[\s\S]*command -v gcloud/u, "Der geschuetzte Runner muss alle spaeter benoetigten Tools vor Mutationen pruefen.");
+requirePattern(jenkinsFile, verifySourceStage, /sshagent\(credentials:\s*\['versorgungs-target-source-readonly-ssh-key'\]\)[\s\S]*protected target source must use an SSH remote/u, "Das Quell-Gate muss den read-only SSH-Zugang explizit binden und HTTPS fail-closed ablehnen.");
+requirePattern(jenkinsFile, helmValidateStage, /helmMetaCharacters\s*=\s*\/\[,=\{\}\\\\\]\//u, "Helm-Skalarwerte muessen gegen Metazeicheninjektion validiert werden.");
+requirePattern(jenkinsFile, helmValidateStage, /JSON\.parse\(env\.TARGET_API_ALLOWED_CIDRS_JSON\)[\s\S]*net\.isIP/u, "Gateway-CIDRs muessen semantisch validiert werden.");
+requirePattern(jenkinsFile, helmValidateStage, /--set-json networkPolicy\.ingress\.apiAllowedCidrs="\$TARGET_API_ALLOWED_CIDRS_JSON"/u, "Helm-Rendering muss geschuetzte Gateway-CIDRs verwenden.");
+requirePattern(jenkinsFile, deployApiStage, /versorgungs-target-kubeconfig[\s\S]*versorgungs-target-kube-context[\s\S]*--kubeconfig "\$KUBECONFIG"[\s\S]*--kube-context "\$TARGET_KUBE_CONTEXT"/u, "Deployment muss geschuetztes Kubeconfig und Zielkontext binden.");
+requirePattern(jenkinsFile, deployApiStage, /--set-json networkPolicy\.ingress\.apiAllowedCidrs="\$TARGET_API_ALLOWED_CIDRS_JSON"/u, "Deployment muss dieselben Gateway-CIDRs verwenden.");
+requirePattern(jenkinsFile, smokeStage, /versorgungs-oidc-smoke-bearer-token[\s\S]*Authorization: Bearer \$OIDC_SMOKE_BEARER_TOKEN[\s\S]*\.authMode == "oidc"[\s\S]*\.profile\.id == \$profile_id[\s\S]*\.profile\.role == \$role/u, "Der Target-Smoke muss positive OIDC-Profil- und Rollenbindung pruefen.");
+if ((smokeStage.match(/--connect-timeout 10/g) || []).length !== 3 || (smokeStage.match(/--max-time 30/g) || []).length !== 3) {
+  failures.push(`${jenkinsFile}: Alle drei HTTP-Smokes brauchen feste Verbindungs- und Gesamtlaufzeitgrenzen.`);
+}
+requirePattern("scripts/preflight_target_deployment.mjs", read("scripts/preflight_target_deployment.mjs"), /requiredCommands\s*=\s*\[[^\]]*"curl"[\s\S]*FRONTEND_BUCKET_URI[\s\S]*commandExists\("gcloud"\)/u, "Der fruehe Target-Preflight muss curl und bedingt gcloud pruefen.");
+requirePattern(jenkinsFile, deploymentEvidenceStage, /target-deployment-evidence\.json[\s\S]*technicalSmoke:[\s\S]*status:\s*"passed"[\s\S]*operationalAcceptance:[\s\S]*status:\s*"pending"[\s\S]*releaseStatus:\s*"not-authorized"/u, "Der technische Deploymentnachweis muss die ausstehende Betriebsabnahme fail-closed markieren.");
+
+for (const [scriptName, expectedCommand] of [
+  ["verify:target-release-source", "node scripts/verify_target_release_source.mjs"],
+  ["package:source-handoff", "node scripts/package_source_handoff.mjs"],
+  ["verify:source-handoff", "node scripts/verify_source_handoff.mjs"],
+  ["test:target-release-source", "node scripts/test_target_release_source.mjs"]
+]) {
+  if (packageScripts[scriptName] !== expectedCommand) {
+    failures.push(`${packageFile}: ${scriptName} muss exakt ${expectedCommand} ausfuehren.`);
+  }
+}
+if (packageScripts["check:poc-rc"] !== "npm run check:target-release") {
+  failures.push(`${packageFile}: check:poc-rc darf nur noch als historischer Alias auf check:target-release bestehen.`);
+}
+if (!/(?:^|&&\s*)npm run test:target-release-source(?:\s*&&|$)/.test(packageScripts["test:release-automation"] || "")) {
+  failures.push(`${packageFile}: test:release-automation muss test:target-release-source ausfuehren.`);
+}
+
 requirePattern(jenkinsFile, jenkins, /dist\/target/, "Jenkins muss aus dist/target publizieren.");
 requirePattern(jenkinsFile, jenkins, /audit_target_assets\.mjs/, "Jenkins muss das Target-Artefakt gegen die Target-Grenze pruefen.");
 forbidPattern(jenkinsFile, jenkins, /audit_public_assets\.mjs\s+--artifact-root\s+"?\$FRONTEND_ARTIFACT_DIR"?/, "Der Pages-Demo-Auditor darf nicht auf das Jenkins-Target angewendet werden.");
 requirePattern(jenkinsFile, jenkins, /image\.digest/, "Jenkins muss den aufgeloesten API-Image-Digest an Helm uebergeben.");
 forbidPattern(jenkinsFile, jenkins, /sync_github_pages\.sh|docs\/data\/supabase-config\.js|\brsync\b[^\n]*\bdocs\b/, "Jenkins darf nicht aus dem Pages-Artefakt docs/ deployen.");
+requirePattern(jenkinsFile, jenkins, /name:\s*'RELEASE_TAG'[\s\S]{0,240}defaultValue:\s*''/, "Jenkins muss RELEASE_TAG ohne impliziten Standard anfordern.");
+requirePattern(jenkinsFile, jenkins, /RELEASE_TAG[\s\S]{0,500}\^v\[0-9\]\+\\\.\[0-9\]\+\\\.\[0-9\]\+\$/, "Jenkins muss RELEASE_TAG streng als vX.Y.Z validieren.");
+requirePattern(
+  jenkinsFile,
+  jenkins,
+  /skipDefaultCheckout\(true\)[\s\S]*stage\('Bootstrap trusted main'\)[\s\S]*branches:\s*\[\[name:\s*'\*\/main'\]\][\s\S]*noTags:\s*true[\s\S]*refspec:\s*'\+refs\/heads\/main:refs\/remotes\/origin\/main'[\s\S]*stage\('Verify signed target source'\)/,
+  "Jenkins muss vor allen Quellpruefungen aus geschuetztem Remote-main bootstrappen."
+);
+for (const credentialName of [
+  "SOURCE_REPOSITORY_URL",
+  "RELEASE_TAG_GPG_PUBLIC_KEY_FILE",
+  "RELEASE_TAG_GPG_FINGERPRINT"
+]) {
+  requirePattern(
+    jenkinsFile,
+    jenkins,
+    new RegExp(`withCredentials\\(\\[[\\s\\S]*?(?:file|string)\\([\\s\\S]{0,220}variable:\\s*['\"]${credentialName}['\"]`),
+    `${credentialName} muss aus einem extern verwalteten Credential stammen.`
+  );
+}
+const jenkinsParameters = jenkins.match(/\n  parameters \{[\s\S]*?\n  \}\n\n  environment \{/)?.[0] || "";
+if (!jenkinsParameters) failures.push(`${jenkinsFile}: Parameterblock kann nicht sicher abgegrenzt werden.`);
+forbidPattern(jenkinsFile, jenkinsParameters, /EXTERNAL_SECURITY_EVIDENCE_ROOT/, "Der Evidence-Root darf kein Build-Parameter sein.");
+requirePattern(
+  jenkinsFile,
+  jenkins,
+  /EXTERNAL_SECURITY_EVIDENCE_ROOT\s*=\s*credentials\(['"][^'"]+['"]\)/,
+  "Der externe Evidence-Root muss aus einem Jenkins-Credential stammen."
+);
+forbidPattern(
+  jenkinsFile,
+  jenkins,
+  /params\.EXTERNAL_SECURITY_EVIDENCE_ROOT|\$\{params\.EXTERNAL_SECURITY_EVIDENCE_ROOT\}/,
+  "Der externe Evidence-Root darf nicht aus frei waehlbaren Parametern projiziert werden."
+);
+requirePattern(
+  jenkinsFile,
+  jenkins,
+  /verify_target_release_source\.mjs[\s\S]{0,900}--tag\s+"?\$RELEASE_TAG"?[\s\S]{0,900}--expected-repository-url\s+"?\$SOURCE_REPOSITORY_URL"?[\s\S]{0,900}--public-key-file\s+"?\$RELEASE_TAG_GPG_PUBLIC_KEY_FILE"?[\s\S]{0,900}--fingerprint\s+"?\$RELEASE_TAG_GPG_FINGERPRINT"?[\s\S]{0,900}source-tag-verification\.json/,
+  "Jenkins muss Quelle, Tagobjekt und externen Trust Anchor vor dem Build gemeinsam verifizieren."
+);
+for (const approval of ["REQUIRE_EXTERNAL_SECURITY_EVIDENCE", "TARGET_DEPLOYMENT_APPROVED"]) {
+  requirePattern(
+    jenkinsFile,
+    jenkins,
+    new RegExp(`(?:test\\s+[\"']?\\$${approval}[\"']?\\s*=\\s*[\"']true[\"']|params\\.${approval}\\s*(?:==|!=)\\s*true)`),
+    `${approval}=true muss explizit und fail-closed geprueft werden.`
+  );
+}
+requirePattern(jenkinsFile, jenkins, /HELM_TARGET_VALUES[\s\S]{0,180}values-target-gematik\.yaml/, "Jenkins muss das dedizierte Target-Overlay verwenden.");
+requirePattern(jenkinsFile, jenkins, /npm run check:target-release/, "Jenkins muss das operative Target-Release-Gate ausfuehren.");
+requirePattern(jenkinsFile, jenkins, /source-tag-verification\.json/, "Jenkins muss den Signatur- und Quellnachweis archivieren.");
+forbidPattern(jenkinsFile, jenkins, /poc-v|\bRC_TAG\b|--rc-tag|values-poc-gematik|HELM_POC_VALUES/i, "Jenkins darf keine Legacy-RC-Autorisierung verwenden.");
+forbidPattern(
+  jenkinsFile,
+  jenkins,
+  /RELEASE_TAG_GPG_PRIVATE_KEY|RELEASE_TAG_GPG_PASSPHRASE|git\s+tag\s+--sign|git\s+fetch[^\n]*(?:--force[^\n]*--tags|--tags[^\n]*--force|\+refs\/tags)/i,
+  "Jenkins darf weder private Signiermittel erhalten, Tags erzeugen noch Tags erzwungen laden."
+);
+
+const expectedPrePushInventory = [
+  "cosign-attestation-ready.json",
+  "dependency-track-gate.json",
+  "snyk-gate.json",
+  "sonarqube-gate.json"
+];
+if (!sameValue(declaredEvidenceInventory(prePushEvidenceStage, "Pre-push-Evidenz"), expectedPrePushInventory)) {
+  failures.push(`${jenkinsFile}: Pre-push-Evidenz muss exakt SonarQube, Snyk, Dependency-Track und Cosign-Bereitschaft enthalten.`);
+}
+requirePattern(
+  jenkinsFile,
+  prePushEvidenceStage,
+  /case "\$EXTERNAL_SECURITY_EVIDENCE_ROOT" in[\s\S]*\/\*\)[\s\S]*test ! -L "\$EXTERNAL_SECURITY_EVIDENCE_ROOT"[\s\S]*evidence_root="\$\(realpath "\$EXTERNAL_SECURITY_EVIDENCE_ROOT"\)"[\s\S]*test ! -w "\$evidence_root"/,
+  "Der externe Evidence-Root muss absolut, symlinkfrei und fuer Jenkins read-only sein."
+);
+requirePattern(
+  jenkinsFile,
+  prePushEvidenceStage,
+  /external_path="\$evidence_root\/\$BUILD_TAG"[\s\S]*external_dir="\$\(realpath "\$external_path"\)"[\s\S]*test ! -w "\$external_dir"[\s\S]*workspace_dir="\$\(realpath "\$WORKSPACE"\)"[\s\S]*"\$workspace_dir"\|"\$workspace_dir"\/\*/,
+  "Der externe Nachweispfad muss build-spezifisch, read-only und ausserhalb des Workspaces liegen."
+);
+requirePattern(
+  jenkinsFile,
+  prePushEvidenceStage,
+  /source_digest_before="\$\(sha256_file "\$source_file"\)"[\s\S]*cp -- "\$source_file" "\$SECURITY_EVIDENCE_DIR\/\$filename"[\s\S]*source_digest_after="\$\(sha256_file "\$source_file"\)"[\s\S]*imported_digest="\$\(sha256_file "\$SECURITY_EVIDENCE_DIR\/\$filename"\)"[\s\S]*test "\$source_digest_before" = "\$source_digest_after"[\s\S]*test "\$source_digest_before" = "\$imported_digest"/,
+  "Externe Pre-push-Nachweise muessen vor und nach der Kopie bytegenau gebunden werden."
+);
+for (const gate of [
+  "sonarqube:sonarqube-gate.json",
+  "snyk:snyk-gate.json",
+  "dependency-track:dependency-track-gate.json"
+]) {
+  if (!prePushEvidenceStage.includes(gate)) failures.push(`${jenkinsFile}: Pre-push-Gate fehlt: ${gate}`);
+}
+for (const binding of [
+  ".buildId == $build_id",
+  ".releaseTag == $release_tag",
+  ".sourceRevision == $source_revision",
+  ".sourceRepository == $source_repository",
+  ".imageRepository == $image_repository",
+  "(.sbomDigests | sort) == ([$api_sbom_digest, $frontend_sbom_digest] | sort)"
+]) {
+  if (!prePushEvidenceStage.includes(binding)) failures.push(`${jenkinsFile}: Pre-push-Evidenzbindung fehlt: ${binding}`);
+}
+requirePattern(
+  jenkinsFile,
+  prePushEvidenceStage,
+  /cosign-attestation-ready\.json[\s\S]*schemaVersion == "versorgungs-kompass-cosign-readiness\/v1"[\s\S]*\.status == "ready"/,
+  "Cosign-Bereitschaft muss vor dem Push geschlossen validiert werden."
+);
+forbidPattern(jenkinsFile, prePushEvidenceStage, /(?:^|[^-])cosign-attestation\.json/, "Die digestgebundene Attestation darf vor dem Push nicht vorliegen.");
+
+const expectedPostPushInventory = [
+  "cosign-attestation-ready.json",
+  "cosign-attestation.json",
+  "dependency-track-gate.json",
+  "snyk-gate.json",
+  "sonarqube-gate.json"
+];
+if (!sameValue(declaredEvidenceInventory(postPushAttestationStage, "Post-push-Evidenz"), expectedPostPushInventory)) {
+  failures.push(`${jenkinsFile}: Post-push-Evidenz darf exakt die digestgebundene Cosign-Attestation ergaenzen.`);
+}
+requirePattern(
+  jenkinsFile,
+  postPushAttestationStage,
+  /attempt=0[\s\S]*while \[ ! -e "\$attestation_path" \][\s\S]*attempt=\$\(\(attempt \+ 1\)\)[\s\S]*test "\$attempt" -le [1-9][0-9]*[\s\S]*sleep [1-9][0-9]*/,
+  "Das Warten auf die Cosign-Attestation muss begrenzt sein."
+);
+requirePattern(
+  jenkinsFile,
+  postPushAttestationStage,
+  /source_digest_before="\$\(sha256_file "\$resolved_attestation"\)"[\s\S]*cp -- "\$resolved_attestation" "\$SECURITY_EVIDENCE_DIR\/cosign-attestation\.json"[\s\S]*source_digest_after="\$\(sha256_file "\$resolved_attestation"\)"[\s\S]*imported_digest="\$\(sha256_file "\$SECURITY_EVIDENCE_DIR\/cosign-attestation\.json"\)"/,
+  "Die Cosign-Attestation muss waehrend der Kopie bytegenau stabil bleiben."
+);
+for (const binding of [
+  ".buildId == $build_id",
+  ".releaseTag == $release_tag",
+  ".sourceRevision == $source_revision",
+  ".sourceRepository == $source_repository",
+  ".imageRepository == $image_repository",
+  ".subject == $subject",
+  "(.sbomDigests | sort) == ([$api_sbom_digest, $frontend_sbom_digest] | sort)"
+]) {
+  if (!postPushAttestationStage.includes(binding)) failures.push(`${jenkinsFile}: Post-push-Cosign-Bindung fehlt: ${binding}`);
+}
+requirePattern(
+  jenkinsFile,
+  postPushAttestationStage,
+  /--arg subject "\$API_IMAGE_REPOSITORY@\$API_IMAGE_DIGEST"/,
+  "Cosign muss an den exakten Registry-Digest gebunden sein."
+);
+
+const orderedTargetStages = [
+  "Import pre-push Software Factory gates",
+  "Push API image",
+  "Import post-push Cosign attestation",
+  "Assemble security evidence",
+  "Stage versioned frontend release",
+  "Deploy API to Kubernetes",
+  "Smoke test",
+  "Record technical deployment evidence"
+].map((name) => jenkins.indexOf(`stage('${name}')`));
+if (!orderedTargetStages.every((offset, index) => offset >= 0 && (index === 0 || offset > orderedTargetStages[index - 1]))) {
+  failures.push(`${jenkinsFile}: Zweiphasige Evidence-, Push-, Frontend- und Deployment-Reihenfolge ist verletzt.`);
+}
+requirePattern(
+  jenkinsFile,
+  assembleEvidenceStage,
+  /node scripts\/generate_security_evidence\.mjs "\$@"/,
+  "Der finale Security-Nachweis muss in der abgegrenzten Post-push-Assemble-Stufe entstehen."
+);
+requirePattern(jenkinsFile, pushImageStage, /docker push "\$API_IMAGE"/, "Der Registry-Push muss in der abgegrenzten Push-Stufe liegen.");
+if ((jenkins.match(/docker push "\$API_IMAGE"/g) || []).length !== 1) {
+  failures.push(`${jenkinsFile}: Es darf genau einen Registry-Push hinter den Pre-push-Gates geben.`);
+}
+
+requirePattern(
+  jenkinsFile,
+  jenkins,
+  /GIT_NO_REPLACE_OBJECTS\s*=\s*['"]1['"]/,
+  "Jenkins muss Git-Replacement-Objekte fuer den gesamten Target-Lauf deaktivieren."
+);
+const remoteTagRecheck = /git for-each-ref --format='\%\(refname\)' refs\/replace[\s\S]*git rev-parse --git-path info\/grafts[\s\S]*git config --show-origin --get-regexp '\^url\\\.\.\*\\\.\(insteadof\|pushinsteadof\)\$'[\s\S]*git config --get remote\.origin\.url \| node scripts\/normalize_repository_url\.mjs[\s\S]*test "\$current_source_repository" = "\$SOURCE_REPOSITORY"[\s\S]*git ls-remote --exit-code --refs --tags origin "refs\/tags\/\$RELEASE_TAG"[\s\S]*test "\$1" = "\$RELEASE_TAG_OBJECT_SHA"[\s\S]*test "\$2" = "refs\/tags\/\$RELEASE_TAG"/;
+for (const [stageSource, label, sideEffect] of [
+  [pushImageStage, "Registry-Push", /docker push "\$API_IMAGE"/],
+  [frontendReleaseStage, "Frontend-Staging", /gcloud storage (?:rsync|cp)/],
+  [deployApiStage, "Kubernetes-Deployment", /helm upgrade --install/]
+]) {
+  requirePattern(jenkinsFile, stageSource, remoteTagRecheck, `${label} muss Remote-URL und Tagobjekt erneut pruefen.`);
+  requirePattern(jenkinsFile, stageSource, /sshagent\(credentials:\s*\['versorgungs-target-source-readonly-ssh-key'\]\)/u, `${label} muss den geschuetzten read-only Quellschluessel binden.`);
+  const lookupCount = (stageSource.match(/git ls-remote --exit-code --refs --tags origin "refs\/tags\/\$RELEASE_TAG"/g) || []).length;
+  if (lookupCount !== 1) failures.push(`${jenkinsFile}: ${label} braucht genau einen eindeutigen Tagobjekt-Lookup.`);
+  const recheckMatch = stageSource.match(remoteTagRecheck);
+  const sideEffectOffset = stageSource.search(sideEffect);
+  if (!recheckMatch || sideEffectOffset <= recheckMatch.index + recheckMatch[0].length) {
+    failures.push(`${jenkinsFile}: ${label} schreibt vor dem Remote-URL-/Tagobjekt-Recheck.`);
+  }
+}
+
+requirePattern(
+  jenkinsFile,
+  frontendReleaseStage,
+  /--arg schema_version "2"[\s\S]*--arg product_version "\$product_version"[\s\S]*schemaVersion: \(\$schema_version \| tonumber\)[\s\S]*productVersion: \$product_version/,
+  "Das Frontend-Release-Manifest v2 muss productVersion enthalten."
+);
+requirePattern(
+  securityEvidenceFile,
+  securityEvidence,
+  /Object\.keys\(frontendBuildManifest[\s\S]*"productVersion"[\s\S]*frontendBuildManifest\.productVersion !== productVersion/,
+  "Security-Evidenz v2 muss productVersion im geschlossenen Frontend-Buildmanifest pruefen."
+);
+
+requirePattern(targetReadinessFile, targetReadiness, /npm run check:target-release/, "Target-Readiness muss den operativen Target-Release-Check verwenden.");
+requirePattern(targetReadinessFile, targetReadiness, /values-target-gematik\.yaml/, "Target-Readiness muss das dedizierte Target-Overlay rendern.");
+forbidPattern(targetReadinessFile, targetReadiness, /check:poc-rc|values-poc-gematik\.yaml|poc-v/i, "Target-Readiness darf keine Legacy-RC-Autorisierung verwenden.");
+
+requirePattern(targetValuesFile, targetValues, /tag:\s*REPLACE_WITH_IMMUTABLE_IMAGE_TAG/, "Das Target-Overlay braucht einen fail-closed Image-Tag-Platzhalter.");
+requirePattern(targetValuesFile, targetValues, /apiAuthMode:\s*"oidc"/, "Das Target-Overlay muss OIDC erzwingen.");
+forbidPattern(targetValuesFile, targetValues, /poc-v|rc\.[0-9]+/i, "Das Target-Overlay darf keinen Legacy-RC-Tag enthalten.");
+
+for (const pattern of [
+  /remoteRefSha\(remote, remoteTagRef\)/,
+  /remoteRefSha\(remote, `\$\{remoteTagRef\}\^\{\}`/,
+  /gateRevision !== remoteMainRevision/,
+  /sourceRepository !== expectedRepositoryUrl/,
+  /verify_release_tag\.mjs/,
+  /tagSignatureVerified:\s*true/
+]) {
+  requirePattern(targetSourceVerifierFile, targetSourceVerifier, pattern, `Target-Quellvertrag fehlt: ${pattern}`);
+}
+forbidPattern(targetSourceVerifierFile, targetSourceVerifier, /git\s+tag|--force|poc-v|--rc-tag/i, "Der Target-Quellcheck muss read-only und frei von Legacy-Autorisierung bleiben.");
+
+for (const pattern of [/complete-git-bundle/, /refs\/heads\/main/, /refs\/tags\/\*/, /bundle", "verify"/, /singleWriterRequired:\s*true/, /bidirectionalSyncAllowed:\s*false/, /SHA256SUMS\.asc/, /--detach-sign/]) {
+  requirePattern(sourceHandoffPackagerFile, sourceHandoffPackager, pattern, `Quelluebergabe-Paketvertrag fehlt: ${pattern}`);
+}
+for (const pattern of [/assertExactKeys\(manifest/, /bundle", "verify"/, /fsck", "--strict", "--full"/, /out-of-band-required/, /verify_release_tag\.mjs/, /SHA256SUMS\.asc/]) {
+  requirePattern(sourceHandoffVerifierFile, sourceHandoffVerifier, pattern, `Quelluebergabe-Pruefvertrag fehlt: ${pattern}`);
+}
+const firstPackageSignatureCheck = sourceHandoffVerifier.indexOf("importTrustAnchorAndVerifyPackage({");
+const firstManifestRead = sourceHandoffVerifier.indexOf('readJson(manifestPath, "handoff-manifest.json")');
+if (firstPackageSignatureCheck < 0 || firstManifestRead < 0 || firstPackageSignatureCheck > firstManifestRead) {
+  failures.push(`${sourceHandoffVerifierFile}: Die Paket-Signatur muss vor Manifest und Pruefsummen ausgewertet werden.`);
+}
+forbidPattern(sourceHandoffPackagerFile, sourceHandoffPackager, /RELEASE_TAG_GPG_PRIVATE_KEY|RELEASE_TAG_GPG_PASSPHRASE|poc-v|--rc-tag/i, "Die Quelluebergabe darf keine privaten Signiermittel oder Legacy-Autorisierung kennen.");
+forbidPattern(sourceHandoffVerifierFile, sourceHandoffVerifier, /RELEASE_TAG_GPG_PRIVATE_KEY|RELEASE_TAG_GPG_PASSPHRASE|poc-v|--rc-tag/i, "Die Handoff-Pruefung darf keine privaten Signiermittel oder Legacy-Autorisierung kennen.");
+
+for (const pattern of [/versorgungs-kompass-security-evidence\/v2/, /releaseTag/, /tagObjectSha/, /signerFingerprint/, /tagSignatureVerified/, /source-tag-signature/, /source-tag-verification\.json/]) {
+  requirePattern(securityEvidenceFile, securityEvidence, pattern, `Security-Evidenz-v2-Vertrag fehlt: ${pattern}`);
+}
+forbidPattern(securityEvidenceFile, securityEvidence, /\brcTag\b|--rc-tag|poc-v/i, "Security-Evidenz v2 darf keine Legacy-RC-Felder akzeptieren.");
 
 const helmDeploymentFile = "deploy/helm/versorgungs-kompass/templates/deployment.yaml";
 const helmDeployment = read(helmDeploymentFile);

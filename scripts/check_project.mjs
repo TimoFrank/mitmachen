@@ -44,6 +44,7 @@ const syntaxFiles = [
   "scripts/lib/release_policy.mjs",
   "scripts/normalize_repository_url.mjs",
   "scripts/package_product_release.mjs",
+  "scripts/package_source_handoff.mjs",
   "scripts/print_product_version.mjs",
   "scripts/prepare_weekly_release.mjs",
   "scripts/prepare_target_frontend_config.mjs",
@@ -118,6 +119,7 @@ const syntaxFiles = [
   "scripts/test_product_version_propagation.mjs",
   "scripts/test_release_artifacts.mjs",
   "scripts/test_release_workflow_contracts.mjs",
+  "scripts/test_target_release_source.mjs",
   "scripts/test_weekly_release.mjs",
   "scripts/update_public_politics_directory.mjs",
   "scripts/update_politics_offline_snapshot.mjs",
@@ -127,6 +129,8 @@ const syntaxFiles = [
   "scripts/verify_product_release.mjs",
   "scripts/verify_release_artifacts.mjs",
   "scripts/verify_release_tag.mjs",
+  "scripts/verify_source_handoff.mjs",
+  "scripts/verify_target_release_source.mjs",
   "scripts/verify_publication_state.mjs"
 ];
 
@@ -195,6 +199,7 @@ const auditCommands = [
   ["node", ["scripts/test_product_release.mjs"]],
   ["node", ["scripts/test_release_artifacts.mjs"]],
   ["node", ["scripts/test_release_workflow_contracts.mjs"]],
+  ["node", ["scripts/test_target_release_source.mjs"]],
   ["node", ["scripts/test_product_version_propagation.mjs"]],
   ["node", ["scripts/test_migration_operator_contract.mjs"]],
   ["node", ["scripts/test_security_contracts.mjs"]],

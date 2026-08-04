@@ -4,6 +4,7 @@ Die Dokumentation ist nach Zweck gegliedert. Führende Frontend-Quellen liegen u
 
 ## Gematik-PoC
 
+- [GitLab-/Software-Factory-Übergabe](betrieb-und-deployment/GITLAB_SOFTWARE_FACTORY_UEBERGABE.md): aktueller Vertrag für signiertes Quellpaket, unabhängige Prüfung, einmaligen Import und Single-Writer-Cutover
 - [RC.5-Freeze und Übergabe an die Software Factory](betrieb-und-deployment/UEBERGABE_RC5_SOFTWARE_FACTORY.md): historische GKE-Herkunft, festgelegter Legacy-Tag, Buildtrennung, Verantwortungen und offene Nachweise
 - [Produkt-Release-Prozess](betrieb-und-deployment/PRODUKT_RELEASE_PROZESS.md): zentrale Version, Release-Candidate-Status, Changelog-Modell, Signaturen und drei Auslieferungskanäle
 - [PoC-Durchstich](betrieb-und-deployment/POC_GEMATIK_DURCHSTICH.md): Zweck, aktueller Stand, Ressourcen, Lieferumfang und Erfolgskriterien

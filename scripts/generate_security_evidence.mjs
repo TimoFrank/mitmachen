@@ -1,10 +1,29 @@
 import { createHash } from "node:crypto";
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { spawnSync } from "node:child_process";
+import {
+  existsSync,
+  lstatSync,
+  mkdirSync,
+  mkdtempSync,
+  readFileSync,
+  rmSync,
+  writeFileSync
+} from "node:fs";
+import { tmpdir } from "node:os";
 import path from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
-import { loadReleaseConfig } from "./lib/release_policy.mjs";
+import {
+  assertNewTechnicalTag,
+  formatTechnicalTag,
+  loadReleaseConfig,
+  parseProductVersion,
+  releaseTitle
+} from "./lib/release_policy.mjs";
+import { normalizeRepositoryUrl } from "./normalize_repository_url.mjs";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
+const releaseTagVerifier = path.join(root, "scripts/verify_release_tag.mjs");
+const FINGERPRINT_PATTERN = /^[0-9A-F]{40,64}$/u;
 const externalGateFiles = new Map([
   ["sonarqube", "sonarqube-gate.json"],
   ["snyk", "snyk-gate.json"],
@@ -24,6 +43,15 @@ function readJson(file) {
   }
 }
 
+function assertExactKeys(value, expected, label) {
+  if (!value || typeof value !== "object" || Array.isArray(value)) fail(`${label} muss ein Objekt sein.`);
+  const actual = Object.keys(value).sort();
+  const required = [...expected].sort();
+  if (JSON.stringify(actual) !== JSON.stringify(required)) {
+    fail(`${label} verletzt den geschlossenen Nachweisvertrag.`);
+  }
+}
+
 function sha256(file) {
   return `sha256:${createHash("sha256").update(readFileSync(file)).digest("hex")}`;
 }
@@ -37,6 +65,157 @@ function requiredFile(reportDir, name) {
 function reportReference(reportDir, name) {
   const file = requiredFile(reportDir, name);
   return { path: name, sha256: sha256(file) };
+}
+
+function hardenedGitEnvironment(extra = {}) {
+  const env = { ...process.env, ...extra };
+  for (const key of Object.keys(env)) {
+    if (/^(?:GIT_CONFIG_(?:COUNT|KEY_\d+|VALUE_\d+|PARAMETERS|GLOBAL|SYSTEM)|GIT_(?:DIR|WORK_TREE|COMMON_DIR|OBJECT_DIRECTORY|ALTERNATE_OBJECT_DIRECTORIES|REPLACE_REF_BASE))$/u.test(key)) {
+      delete env[key];
+    }
+  }
+  return {
+    ...env,
+    GIT_CONFIG_NOSYSTEM: "1",
+    GIT_CONFIG_GLOBAL: process.platform === "win32" ? "NUL" : "/dev/null",
+    GIT_NO_REPLACE_OBJECTS: "1",
+    GIT_TERMINAL_PROMPT: "0"
+  };
+}
+
+function git(sourceRoot, args) {
+  const result = spawnSync("git", ["--no-replace-objects", "-C", sourceRoot, ...args], {
+    encoding: "utf8",
+    env: hardenedGitEnvironment(),
+    stdio: ["ignore", "pipe", "pipe"]
+  });
+  if (result.status !== 0) fail(`Git-Trust-Prüfung fehlgeschlagen: ${args[0] || "git"}.`);
+  return String(result.stdout || "").trim();
+}
+
+function assertReleaseTitle(releaseConfig, actualTitle) {
+  const version = releaseConfig.productVersion;
+  const { patch } = parseProductVersion(version);
+  if (patch > 0) {
+    const expected = releaseTitle(version, "hotfix", { policy: releaseConfig.policy });
+    if (actualTitle !== expected) fail("Die signierte Tag-Annotation verletzt den Hotfix-Titelvertrag.");
+    return actualTitle;
+  }
+  const marker = "__VK_RELEASE_THEME__";
+  const template = releaseTitle(version, "weekly", { theme: marker, policy: releaseConfig.policy });
+  if (!template.includes(marker)) {
+    if (actualTitle !== template) fail("Die signierte Tag-Annotation verletzt den RC-Titelvertrag.");
+    return actualTitle;
+  }
+  const [prefix, suffix] = template.split(marker);
+  const theme = actualTitle.startsWith(prefix) && actualTitle.endsWith(suffix)
+    ? actualTitle.slice(prefix.length, actualTitle.length - suffix.length).trim()
+    : "";
+  if (!theme) fail("Die signierte Tag-Annotation verletzt den Leitthemenvertrag.");
+  return actualTitle;
+}
+
+function assertRegularTrustAnchor(file) {
+  let stats;
+  try {
+    stats = lstatSync(file);
+  } catch {
+    fail("Der extern bestätigte Release-Trust-Anchor fehlt.");
+  }
+  if (!stats.isFile() || stats.isSymbolicLink() || stats.size < 1 || stats.size > 1024 * 1024) {
+    fail("Der extern bestätigte Release-Trust-Anchor ist keine zulässige reguläre Datei.");
+  }
+}
+
+function reverifySourceTag({
+  sourceRoot,
+  sourceVerification,
+  releaseConfig,
+  expectedRepositoryUrl,
+  expectedSignerFingerprint,
+  publicKeyFile
+}) {
+  const normalizedRepository = normalizeRepositoryUrl(expectedRepositoryUrl);
+  const normalizedFingerprint = String(expectedSignerFingerprint || "").replaceAll(/\s+/gu, "").toUpperCase();
+  if (!FINGERPRINT_PATTERN.test(normalizedFingerprint)) fail("Der geschützte Signer-Fingerprint ist ungültig.");
+  if (normalizeRepositoryUrl(sourceVerification.sourceRepository) !== normalizedRepository) {
+    fail("Der Tag-Nachweis gehört nicht zur geschützten Repository-Autorität.");
+  }
+  if (sourceVerification.signerFingerprint !== normalizedFingerprint) {
+    fail("Der Tag-Nachweis gehört nicht zum geschützten Signing-Subkey.");
+  }
+  assertRegularTrustAnchor(publicKeyFile);
+
+  if (git(sourceRoot, ["status", "--porcelain", "--untracked-files=all"])) {
+    fail("Der Security-Checkout ist nicht sauber und entspricht daher nicht beweisbar dem signierten Quellstand.");
+  }
+  if (git(sourceRoot, ["for-each-ref", "--format=%(refname)", "refs/replace"])) {
+    fail("Der Security-Checkout enthält unerlaubte Replacement-Refs.");
+  }
+  for (const relativePath of ["info/grafts", "objects/info/alternates", "objects/info/http-alternates"]) {
+    const candidate = path.resolve(sourceRoot, git(sourceRoot, ["rev-parse", "--git-path", relativePath]));
+    if (existsSync(candidate)) fail(`Der Security-Checkout enthält eine Git-Objektumleitung (${relativePath}).`);
+  }
+  if (git(sourceRoot, ["rev-parse", "HEAD^{commit}"]) !== sourceVerification.sourceRevision) {
+    fail("Der Security-Checkout entspricht nicht dem signierten Quellcommit.");
+  }
+  const remoteUrls = git(sourceRoot, [
+    "config", "--get-all", `remote.${sourceVerification.remote}.url`
+  ]).split("\n").map((value) => value.trim()).filter(Boolean);
+  if (
+    remoteUrls.length !== 1
+    || normalizeRepositoryUrl(remoteUrls[0]) !== normalizedRepository
+  ) {
+    fail("Der Security-Checkout gehört nicht zur geschützten Repository-Autorität.");
+  }
+  const mainRevision = git(sourceRoot, [
+    "rev-parse", `${sourceVerification.mainRef}^{commit}`
+  ]);
+  if (mainRevision !== sourceVerification.gateRevision) {
+    fail("Der lokale geschützte main-Nachweis widerspricht der Quell-Gate-Revision.");
+  }
+  git(sourceRoot, [
+    "merge-base", "--is-ancestor", sourceVerification.sourceRevision, sourceVerification.mainRef
+  ]);
+  const actualTitle = assertReleaseTitle(
+    releaseConfig,
+    git(sourceRoot, ["for-each-ref", "--format=%(contents:subject)", `refs/tags/${sourceVerification.releaseTag}`])
+  );
+
+  const shortTempRoot = process.platform === "darwin" ? "/private/tmp" : tmpdir();
+  const gnupgHome = mkdtempSync(path.join(shortTempRoot, "vk-security-source-gnupg-"));
+  try {
+    const importResult = spawnSync("gpg", ["--batch", "--import", publicKeyFile], {
+      encoding: "utf8",
+      env: { ...process.env, GNUPGHOME: gnupgHome },
+      stdio: ["ignore", "pipe", "pipe"]
+    });
+    if (importResult.status !== 0) fail("Der externe Release-Trust-Anchor konnte nicht importiert werden.");
+    const secretResult = spawnSync("gpg", ["--batch", "--with-colons", "--list-secret-keys"], {
+      encoding: "utf8",
+      env: { ...process.env, GNUPGHOME: gnupgHome },
+      stdio: ["ignore", "pipe", "pipe"]
+    });
+    if (secretResult.status !== 0 || /^(?:sec|ssb):/mu.test(String(secretResult.stdout || ""))) {
+      fail("Der Release-Trust-Anchor darf kein privates Schlüsselmaterial enthalten.");
+    }
+    const verifierResult = spawnSync(process.execPath, [
+      releaseTagVerifier,
+      "--tag", sourceVerification.releaseTag,
+      "--commit-sha", sourceVerification.sourceRevision,
+      "--fingerprint", normalizedFingerprint,
+      "--expected-title", actualTitle,
+      "--remote-tag-object-sha", sourceVerification.tagObjectSha
+    ], {
+      cwd: sourceRoot,
+      encoding: "utf8",
+      env: hardenedGitEnvironment({ GNUPGHOME: gnupgHome }),
+      stdio: ["ignore", "pipe", "pipe"]
+    });
+    if (verifierResult.status !== 0) fail("Der signierte Quelltag konnte für den Security-Nachweis nicht erneut verifiziert werden.");
+  } finally {
+    rmSync(gnupgHome, { recursive: true, force: true });
+  }
 }
 
 function vulnerabilityCounts(results) {
@@ -147,7 +326,7 @@ function validateExternalGates(reportDir, required, subject) {
 export function generateSecurityEvidence({
   reportDir,
   output,
-  rcTag,
+  releaseTag,
   sourceRevision,
   apiImage,
   apiImageLocalDigest,
@@ -156,9 +335,17 @@ export function generateSecurityEvidence({
   buildUrl = "",
   observedAt = new Date().toISOString(),
   requireExternalGates = false,
-  sourceRoot = root
+  sourceRoot = root,
+  expectedRepositoryUrl,
+  expectedSignerFingerprint,
+  publicKeyFile
 }) {
-  if (!/^poc-v\d+\.\d+\.\d+-rc\.[1-9]\d*$/u.test(rcTag)) fail("Ungültiger PoC-RC-Tag.");
+  const releaseConfig = loadReleaseConfig(sourceRoot);
+  const { productVersion } = releaseConfig;
+  assertNewTechnicalTag(releaseTag, { policy: releaseConfig.policy });
+  if (releaseTag !== formatTechnicalTag(productVersion)) {
+    fail("Release-Tag und zentrale Produktversion stimmen nicht überein.");
+  }
   if (!/^[0-9a-f]{40}$/u.test(sourceRevision)) fail("Ungültiger Git-Commit.");
   if (!/@sha256:[0-9a-f]{64}$/u.test(apiImage)) fail("Das API-Image muss über einen unveränderlichen Digest referenziert werden.");
   if (!/^sha256:[0-9a-f]{64}$/u.test(apiImageLocalDigest)) {
@@ -168,7 +355,6 @@ export function generateSecurityEvidence({
     fail("Ungültiger API-Image-Config-Digest.");
   }
   if (Number.isNaN(Date.parse(observedAt))) fail("Ungültiger Prüfzeitpunkt.");
-  const { productVersion } = loadReleaseConfig(sourceRoot);
   if (buildUrl) {
     const parsedBuildUrl = new URL(buildUrl);
     if (!["http:", "https:"].includes(parsedBuildUrl.protocol) ||
@@ -178,6 +364,60 @@ export function generateSecurityEvidence({
       fail("Die Build-URL muss HTTP(S) verwenden und darf keine Zugangsdaten oder Fragmente enthalten.");
     }
   }
+
+  const sourceVerificationFile = requiredFile(reportDir, "source-tag-verification.json");
+  const sourceVerification = readJson(sourceVerificationFile);
+  assertExactKeys(sourceVerification, [
+    "schemaVersion",
+    "sourceRepository",
+    "gateRevision",
+    "releaseTag",
+    "productVersion",
+    "tagObjectSha",
+    "sourceRevision",
+    "signerFingerprint",
+    "tagSignatureVerified",
+    "remote",
+    "mainRef",
+    "verified"
+  ], "source-tag-verification.json");
+  let sourceRepository;
+  try {
+    sourceRepository = new URL(sourceVerification.sourceRepository);
+  } catch {
+    fail("Der Tag-Nachweis besitzt keine gültige Quell-Repository-URL.");
+  }
+  if (
+    sourceVerification.schemaVersion !== "versorgungs-kompass-target-source/v1"
+    || sourceRepository.protocol !== "https:"
+    || sourceRepository.username
+    || sourceRepository.password
+    || sourceRepository.search
+    || sourceRepository.hash
+    || !/^[0-9a-f]{40}$/u.test(sourceVerification.gateRevision || "")
+    || sourceVerification.releaseTag !== releaseTag
+    || sourceVerification.productVersion !== productVersion
+    || !/^[0-9a-f]{40}$/u.test(sourceVerification.tagObjectSha || "")
+    || sourceVerification.sourceRevision !== sourceRevision
+    || !/^[0-9A-F]{40,64}$/u.test(sourceVerification.signerFingerprint || "")
+    || sourceVerification.tagSignatureVerified !== true
+    || !/^[A-Za-z0-9][A-Za-z0-9._-]*$/u.test(sourceVerification.remote || "")
+    || sourceVerification.mainRef !== `refs/remotes/${sourceVerification.remote}/main`
+    || sourceVerification.verified !== true
+  ) {
+    fail("Der signierte Tag-Nachweis gehört nicht vollständig zur geprüften Target-Quelle.");
+  }
+  if (!expectedRepositoryUrl) fail("Die geschützte Quell-Repository-URL fehlt.");
+  if (!expectedSignerFingerprint) fail("Der geschützte Signer-Fingerprint fehlt.");
+  if (!publicKeyFile) fail("Der externe Release-Trust-Anchor fehlt.");
+  reverifySourceTag({
+    sourceRoot,
+    sourceVerification,
+    releaseConfig,
+    expectedRepositoryUrl,
+    expectedSignerFingerprint,
+    publicKeyFile: path.resolve(publicKeyFile)
+  });
 
   const apiImageBindingFile = requiredFile(reportDir, "api-image-binding.json");
   const apiImageBinding = readJson(apiImageBindingFile);
@@ -339,21 +579,34 @@ export function generateSecurityEvidence({
   });
   const externalPassed = externalGates.filter((gate) => gate.status === "reported-passed").length;
   const evidence = {
-    schemaVersion: "versorgungs-kompass-security-evidence/v1",
+    schemaVersion: "versorgungs-kompass-security-evidence/v2",
     assuranceProfile: requireExternalGates
       ? "software-factory-linked-precheck"
-      : "local-poc-precheck",
+      : "target-local-precheck",
     observedAt,
     subject: {
-      rcTag,
+      releaseTag,
       productVersion,
+      sourceRepository: sourceVerification.sourceRepository,
+      tagObjectSha: sourceVerification.tagObjectSha,
       sourceRevision,
+      signerFingerprint: sourceVerification.signerFingerprint,
+      tagSignatureVerified: true,
+      buildProfile: "target",
+      authMode: "oidc",
       frontendArtifactDigest: frontendBuildManifest.artifactDigest,
       apiImage,
       apiImageLocalDigest,
       apiImageConfigDigest
     },
     checks: [
+      {
+        id: "source-tag-signature",
+        status: "passed",
+        tagObjectSha: sourceVerification.tagObjectSha,
+        signerFingerprint: sourceVerification.signerFingerprint,
+        report: reportReference(reportDir, "source-tag-verification.json")
+      },
       {
         id: "api-image-binding",
         status: "passed",
@@ -423,7 +676,7 @@ export function generateSecurityEvidence({
     externalGates,
     summary: {
       status: "precheck-passed",
-      localPassed: 7,
+      localPassed: 8,
       externalPassed,
       externalNotRun: externalGates.length - externalPassed
     }
@@ -439,7 +692,7 @@ function parseArgs(argv) {
   const values = {
     reportDir: "",
     output: "",
-    rcTag: "",
+    releaseTag: "",
     sourceRevision: "",
     apiImage: "",
     apiImageLocalDigest: "",
@@ -447,14 +700,17 @@ function parseArgs(argv) {
     frontendManifest: "",
     buildUrl: "",
     observedAt: "",
-    requireExternalGates: false
+    requireExternalGates: false,
+    expectedRepositoryUrl: "",
+    expectedSignerFingerprint: "",
+    publicKeyFile: ""
   };
   for (let index = 0; index < argv.length; index += 1) {
     const argument = argv[index];
     const next = () => argv[++index] || "";
     if (argument === "--report-dir") values.reportDir = next();
     else if (argument === "--output") values.output = next();
-    else if (argument === "--rc-tag") values.rcTag = next();
+    else if (argument === "--release-tag") values.releaseTag = next();
     else if (argument === "--source-revision") values.sourceRevision = next();
     else if (argument === "--api-image") values.apiImage = next();
     else if (argument === "--api-image-local-digest") values.apiImageLocalDigest = next();
@@ -463,17 +719,23 @@ function parseArgs(argv) {
     else if (argument === "--build-url") values.buildUrl = next();
     else if (argument === "--observed-at") values.observedAt = next();
     else if (argument === "--require-external-gates") values.requireExternalGates = true;
+    else if (argument === "--expected-repository-url") values.expectedRepositoryUrl = next();
+    else if (argument === "--expected-signer-fingerprint") values.expectedSignerFingerprint = next();
+    else if (argument === "--public-key-file") values.publicKeyFile = next();
     else fail(`Unbekanntes Argument: ${argument}`);
   }
   for (const required of [
     "reportDir",
     "output",
-    "rcTag",
+    "releaseTag",
     "sourceRevision",
     "apiImage",
     "apiImageLocalDigest",
     "apiImageConfigDigest",
-    "frontendManifest"
+    "frontendManifest",
+    "expectedRepositoryUrl",
+    "expectedSignerFingerprint",
+    "publicKeyFile"
   ]) {
     if (!values[required]) fail(`--${required.replace(/[A-Z]/gu, (letter) => `-${letter.toLowerCase()}`)} ist erforderlich.`);
   }
@@ -482,6 +744,7 @@ function parseArgs(argv) {
     reportDir: path.resolve(values.reportDir),
     output: path.resolve(values.output),
     frontendManifest: path.resolve(values.frontendManifest),
+    publicKeyFile: path.resolve(values.publicKeyFile),
     observedAt: values.observedAt || new Date().toISOString()
   };
 }

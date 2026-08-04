@@ -25,6 +25,11 @@ Stand: 2026-08-04.
   „Release Candidate“ ist vor `v1.0.0` GitHub-Prerelease-Status und Titel, kein
   Tag-Suffix. Die bisherigen `poc-v…-rc.N`-Tags bleiben ausschließlich
   historische RC-Evidenz.
+- Der sichtbare Titel von `v0.23.0` lautet
+  `0.23.0-0 Release Candidate`; ein Patch heißt zum Beispiel
+  `0.23.1 Release Candidate`. Das zusätzliche `-0` des Wochenrelease-Titels
+  gehört weder zur Produktversion noch zum Git-Tag. Das Leitthema bleibt in
+  Release Notes und Changelog.
 - Die gemeinsame Version verbindet drei getrennte Kanäle: Pages-Demo
   (anonym/synthetisch), privates GKE (`pre-gematik`, IAP/GCP) und
   gematik-Target (`target`, OIDC/Software Factory). Gleiche Version bedeutet
@@ -35,11 +40,39 @@ Stand: 2026-08-04.
   Image-Digests und kanalspezifische Deployment-Manifeste bleiben zusätzliche,
   getrennte Identitäten.
 - Das interne `target`-Profil baut mit `TARGET_AUTH_MODE=oidc` providerneutral und ohne GCP Identity Portal oder dessen Abhängigkeiten. Der getrennte `pre-gematik`-Pfad behält für `auth-mode=iap` sein eigenes Portal und die vollständigen GCP-/IAP-Regressionen.
-- `npm run check:poc-rc` verwendet den OIDC-only-Artefaktvertrag und ist nach einem Root-`npm ci` ausführbar. Der vollständige Deployment-Trennungstest benötigt zusätzlich `npm ci --prefix frontend/identity-portal`, weil er auch den getrennten IAP-Referenzpfad prüft.
+- `npm run check:target-release` verwendet den OIDC-only-Artefaktvertrag und
+  ist nach einem Root-`npm ci` ausführbar. `check:poc-rc` bleibt nur als
+  historischer Alias. Der vollständige Deployment-Trennungstest benötigt
+  zusätzlich `npm ci --prefix frontend/identity-portal`, weil er auch den
+  getrennten IAP-Referenzpfad prüft.
 - `main` und die GitHub-Pages-Demo dürfen nach der RC-Bildung weiterlaufen.
   Neue gematik-Releases bleiben auf einem unveränderlichen signierten Quelltag,
   exaktem Commit sowie nachgewiesenen API- und Frontend-Digests. Der aktuelle
   Legacy-RC.5 ist nur annotiert und bleibt unverändert unsigniert.
+- Die geplante GitLab-Quellübergabe verwendet ein frisch verifiziertes,
+  voraussetzungsfreies Git-Bundle mit genau `refs/heads/main` und allen Tags.
+  `scripts/package_source_handoff.mjs` erzeugt Bundle, Manifest,
+  Schlüsselkopie, `SHA256SUMS` und dessen abgetrennte Signatur
+  `SHA256SUMS.asc`; `scripts/verify_source_handoff.mjs` authentisiert zuerst
+  das Prüfsummenmanifest und prüft danach externen Vertrauensanker, exaktes
+  Ref-Inventar, Prüfsummen, Bundle, `fsck`, Tagobjekt und Commit. Der private
+  Signing-Subkey bleibt außerhalb des Pakets. Das operative Runbook ist
+  [`../betrieb-und-deployment/GITLAB_SOFTWARE_FACTORY_UEBERGABE.md`](../betrieb-und-deployment/GITLAB_SOFTWARE_FACTORY_UEBERGABE.md).
+- Die Übergabe ist noch nicht operativ ausgeführt: Es wurde dadurch kein
+  GitLab-Projekt angelegt, kein Remote eingerichtet und nichts übertragen. Bis
+  zum Cutover ist GitHub einziger Writer, danach GitLab; eine bidirektionale
+  Synchronisation ist ausgeschlossen.
+- Der aktuelle Target-Vertrag kennt ausschließlich einen signierten
+  `vX.Y.Z`-Tag und einen frischen OIDC-Build. Pages-/GKE-Artefakte,
+  persönliche Werte, Secrets, Daten und OIDC-Subjects sind keine zulässigen
+  Übergabe- oder Build-Eingaben. RC.2 bis RC.5 und ihre Übergabenotiz bleiben
+  historische Evidenz, nicht operativer Fallback.
+- Die zentralen Target-Security-Gates werden zweiphasig und read-only aus
+  `EXTERNAL_SECURITY_EVIDENCE_ROOT/<BUILD_TAG>` importiert. SonarQube, Snyk,
+  Dependency-Track und Cosign-Bereitschaft binden den Build vor dem
+  Registry-Push; die spätere Cosign-Attestation bindet zusätzlich den exakten
+  Image-Digest. `not-run` ist nur lokale Vorprüfung. Ohne vollständige
+  Build-/Digestbindung gibt es kein Target-Deployment.
 - Die Release-Automatisierung trennt Wochenrelease und manuellen Hotfix, plant
   standardmäßig ohne Schreibzugriff, überspringt unveränderte Wochen und prüft
   Version, Dokumentprojektion, signierten Tag, Prerelease-Status sowie die drei
@@ -62,6 +95,11 @@ Stand: 2026-08-04.
   `main`-Pushes deployen keinen beweglichen Zwischenstand mehr. Bis zur
   Freigabe in Schritt 6 bleibt der zuletzt verifizierte Pages-Stand deshalb
   bewusst unverändert.
+- Unabhängig von der Freitagsfreigabe bleibt die erste stabile Version
+  `v1.0.0` eine ausdrückliche Folgeentscheidung in Schritt 6: Erst ein
+  erfolgreiches, verifiziertes
+  Target-Deployment darf deren GitHub-Stable-Release freigeben. Quellübergabe
+  oder Prerelease-Build allein reichen nicht aus.
 - Der freigegebene PoC-Datenstand wird separat aus der geschützten Anwendung übernommen. Während des Piloten ist die gematik-Kopie der gemeinsame bearbeitbare Bestand; eine automatische Synchronisation mit `mitmachen.timo-frank.de`, lokalen Varianten oder GitHub Pages existiert nicht.
 - Der RC wird in einem sauberen, separaten Checkout geprüft. Lokale uncommittete Dateien oder ein ZIP des Arbeitsordners sind kein Releaseartefakt.
 - Die private Hospitationsvariante wird mit `npm run start:local-hospitation` aus

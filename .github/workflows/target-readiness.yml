@@ -40,7 +40,7 @@ permissions:
 
 jobs:
   target-readiness:
-    name: PoC-/Target-Readiness
+    name: Target-Readiness
     runs-on: ubuntu-latest
 
     steps:
@@ -58,13 +58,13 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Check PoC RC contracts
-        run: npm run check:poc-rc
+      - name: Check target release contracts
+        run: npm run check:target-release
 
       - name: Build internal OIDC target without GCP portal
         shell: bash
         env:
-          API_BASE_URL: https://poc.example.invalid
+          API_BASE_URL: https://target.example.invalid
           TARGET_AUTH_MODE: oidc
         run: |
           set -euo pipefail
@@ -112,7 +112,7 @@ jobs:
             --tmpfs /tmp:rw,noexec,nosuid,size=64m \
             --publish 127.0.0.1:18081:8080 \
             --env API_AUTH_MODE=oidc \
-            --env ALLOWED_ORIGIN=https://poc.example.invalid \
+            --env ALLOWED_ORIGIN=https://target.example.invalid \
             --env OIDC_ISSUER=https://identity.example.invalid/issuer \
             --env OIDC_AUDIENCE=versorgungs-kompass \
             --env OIDC_JWKS_URL=https://identity.example.invalid/.well-known/jwks.json \
@@ -138,15 +138,15 @@ jobs:
         with:
           version: v3.19.0
 
-      - name: Render and validate minimal PoC Helm chart
+      - name: Render and validate target Helm chart
         run: |
           chart='deploy/helm/versorgungs-kompass'
           helm lint "$chart" \
-            --values "$chart/values-poc-gematik.yaml" \
+            --values "$chart/values-target-gematik.yaml" \
             --set-string image.digest=sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb
-          helm template poc-readiness "$chart" \
-            --namespace versorgungs-kompass-poc \
-            --values "$chart/values-poc-gematik.yaml" \
+          helm template target-readiness "$chart" \
+            --namespace versorgungs-kompass-target \
+            --values "$chart/values-target-gematik.yaml" \
             --set-string image.digest=sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb \
-            >/tmp/versorgungs-kompass-poc.yaml
-          test -s /tmp/versorgungs-kompass-poc.yaml
+            >/tmp/versorgungs-kompass-target.yaml
+          test -s /tmp/versorgungs-kompass-target.yaml

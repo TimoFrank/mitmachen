@@ -25,18 +25,19 @@ Der zugehörige öffentliche Schlüssel, der exakte Subkey-Fingerprint und die
 Signer-Identität liegen als nicht geheime Repository-Variablen für die
 unabhängige Verifikation bereit; bis dahin bleibt die Veröffentlichung über den
 Publish-Schalter gesperrt. Neue
-Target-Versionen ab `v0.23.0` werden über die Software
-Factory und später GitLab frisch aus einem unveränderlichen, signierten
-Quelltag gebaut und benötigen deshalb kein zusätzliches Environment im
-persönlichen GitHub-Repository. Der vorhandene Legacy-RC.5 bleibt davon
-ausgenommen: Sein Tag ist annotiert, aber unsigniert, und wird nicht
-nachsigniert.
+Target-Versionen ab `v0.23.0` werden durch die Software Factory frisch aus
+einem unveränderlichen, signierten Quelltag der jeweils führenden Quelle gebaut:
+GitHub bis zum Cutover, danach GitLab. Dafür benötigen sie kein zusätzliches
+Environment im persönlichen GitHub-Repository. Der Single-Writer-Cutover ist im
+[Übergaberunbook](../dokumentation/betrieb-und-deployment/GITLAB_SOFTWARE_FACTORY_UEBERGABE.md)
+definiert, aber noch nicht operativ ausgeführt. RC.2 bis RC.5 bleiben
+ausschließlich historische Evidenz und werden nicht nachsigniert.
 
 | Anwendung / Stufe | Zweck | Buildausgabe | Freigabe und Auslieferung |
 | --- | --- | --- | --- |
 | [`pages-demo`](pages-demo/deployment.json) | öffentliche Demo mit synthetischen CRM-/Fachdaten, kuratiertem Amtsträger-Verzeichnis und ohne Login | `dist/pages/` | automatisch über das GitHub-Environment `github-pages` |
 | [`pre-gematik`](pre-gematik/deployment.json) | geschützter Target-Pfad als technische GKE-Pre-Integration | `dist/target/` plus API-Image | nur manuell über das GitHub-Environment `pre-gematik` |
-| [`target`](target/deployment.json) | geschützter Target-Build für den gematik-PoC und einen späteren Zielpfad | `dist/target/` plus API-Image | kontrolliert aus einem festen RC über die Software Factory |
+| [`target`](target/deployment.json) | geschützter Target-Build für den gematik-PoC und einen späteren Zielpfad | `dist/target/` plus API-Image | manuell kontrolliert und frisch aus einem signierten `vX.Y.Z`-Tag der führenden Quelle über die Software Factory |
 
 `pre-gematik` ist der getrennte GCP-/IAP-Referenzpfad und kann das dortige Identity-Platform-Portal enthalten. `target` baut dagegen ein providerneutrales internes OIDC-Artefakt ohne Google-Identity-Platform-, Firebase- oder Portaldateien. OIDC-Issuer, Audience und JWKS bleiben Laufzeitkonfiguration der API.
 
@@ -56,6 +57,20 @@ einen signierten Tag `vX.Y.Z`; Kanal und Buildvariante stehen im jeweiligen
 Manifest. Die Baseline bleibt für die Herkunft erhalten. Historische
 `v0.21.0`, `v0.22.0` und `poc-v…-rc.N` werden weder umbenannt noch nachsigniert
 und beeinflussen das künftige Namensschema nicht.
+
+Für die institutionelle Übernahme erzeugt
+`scripts/package_source_handoff.mjs` aus der frisch geladenen GitHub-Quelle ein
+vollständiges Git-Bundle mit genau `main` und allen Tags sowie Manifest,
+öffentlicher Schlüsselkopie, `SHA256SUMS` und dessen abgetrennter OpenPGP-
+Signatur `SHA256SUMS.asc`. Der geschützte private Signing-Subkey bleibt im
+externen Keyring beziehungsweise Signieragenten und wird nicht übertragen.
+`scripts/verify_source_handoff.mjs` prüft das Paket mit einem unabhängig
+bestätigten Schlüssel und Fingerprint. Es authentisiert zuerst das
+Prüfsummenmanifest und prüft danach vollständige Ref-Parität, Tag-Signatur und
+`git fsck --strict --full`. Pages-/GKE-Artefakte,
+persönliche Werte, Secrets, Daten und OIDC-Subjects werden nicht mitübertragen.
+Bis zum Cutover bleibt GitHub einziger Writer, danach GitLab; bidirektionale
+Synchronisation ist ausgeschlossen.
 
 Die Versionsangabe in `package.json` gehört nur zum privaten npm-Arbeitsbereich
 und ist weder Produktversion noch Freigabe für GitHub Packages. Für Produkt,

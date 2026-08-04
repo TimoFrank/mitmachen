@@ -31,8 +31,8 @@ function runVerifier({
 }) {
   const version = tag.slice(1);
   const effectiveReleaseTitle = releaseTitle || (version.endsWith(".0")
-    ? `Versorgungs-Kompass ${version} — Release Candidate: Versorgung vernetzt`
-    : `Versorgungs-Kompass ${version} — Release Candidate (Hotfix)`);
+    ? `${version}-0 Release Candidate`
+    : `${version} Release Candidate`);
   const args = [
     verifier,
     "--tag", tag,
@@ -165,7 +165,7 @@ try {
   runVerifier({
     tag: "v0.23.0",
     releaseType: "weekly",
-    releaseTitle: "Versorgungs-Kompass 0.23.0 — Release Candidate: Falsches Thema",
+    releaseTitle: "0.23.0 Release Candidate",
     expectFailure: true,
     expectedError: "Release-Titel muss exakt"
   });
@@ -319,7 +319,7 @@ try {
       "Kurznotiz: Versorgung vernetzt",
       "Kurznotiz: Die Kontaktzuordnung behandelt die Randbedingung jetzt zuverlässig."
     );
-  const hotfixNotes = `# Versorgungs-Kompass 0.23.1 — Release Candidate (Hotfix)
+  const hotfixNotes = `# 0.23.1 Release Candidate
 
 ## Anlass
 

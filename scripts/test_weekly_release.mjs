@@ -271,7 +271,7 @@ Die bereinigte Baseline ist dokumentiert.
   assert(weeklyOutput.release_type === "weekly", "Weekly muss release_type=weekly ausgeben.");
   assert(weeklyOutput.current_version === "0.22.0", "Die Ausgangsversion muss ausgegeben werden.");
   assert(weeklyOutput.version === "0.23.0" && weeklyOutput.tag === "v0.23.0", "Weekly muss Minor erhöhen und Patch auf 0 setzen.");
-  assert(weeklyOutput.title === "Versorgungs-Kompass 0.23.0 — Release Candidate: Test-Leitthema", "Der RC-Titel muss dem Vertrag folgen.");
+  assert(weeklyOutput.title === "0.23.0-0 Release Candidate", "Der RC-Titel muss dem Vertrag folgen.");
   assert(weeklyOutput.github_prerelease === "true" && weeklyOutput.github_latest === "false", "Weekly vor 1.0 muss Prerelease und nicht Latest sein.");
   assert(weeklyOutput.notes_path === "dokumentation/release-notes/v0.23.0.md", "Der Notes-Pfad muss deterministisch sein.");
   assert(JSON.parse(read("config/release.json")).productVersion === "0.23.0", "productVersion muss auf 0.23.0 steigen.");
@@ -360,7 +360,7 @@ Die bereinigte Baseline ist dokumentiert.
   assert(hotfixOutput.version === "0.23.1" && hotfixOutput.tag === "v0.23.1", "Der Hotfix muss Patch um eins erhöhen.");
   assert(read("deploy/helm/versorgungs-kompass/Chart.yaml").includes("version: 0.23.1\nappVersion: \"0.23.1\""), "Hotfix muss beide Chart-Versionen aktualisieren.");
   assert(read("deploy/helm/versorgungs-kompass/values.yaml").includes('productVersion: "0.23.1"'), "Hotfix muss die Helm-Values-Version aktualisieren.");
-  assert(hotfixOutput.title === "Versorgungs-Kompass 0.23.1 — Release Candidate (Hotfix)", "Der Hotfix-Titel muss dem RC-Vertrag folgen.");
+  assert(hotfixOutput.title === "0.23.1 Release Candidate", "Der Hotfix-Titel muss dem RC-Vertrag folgen.");
   assert(read("frontend/app/versorgungs-kompass.js") === appBeforeHotfix, "Ein Hotfix darf keinen In-App-Haupteintrag erzeugen.");
   assert(read("CHANGELOG.md").includes("- **Hotfix v0.23.1:** Die Kontaktzuordnung behandelt die Randbedingung jetzt zuverlässig."), "Der Hotfix muss kompakt im laufenden Minor dokumentiert sein.");
   const hotfixNotes = read("dokumentation/release-notes/v0.23.1.md");
