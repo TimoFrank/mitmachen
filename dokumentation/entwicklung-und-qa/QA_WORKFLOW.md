@@ -1,6 +1,6 @@
 # QA Workflow
 
-Stand: 2026-07-21.
+Stand: 2026-08-04.
 
 Dieses Dokument legt fest, wie Änderungen am Versorgungs-Kompass geprüft werden, ohne für kleine Aufgaben unnötig viel Kontext und Testlaufzeit zu verbrauchen.
 
@@ -39,6 +39,23 @@ Releases sinnvoll. Beim ersten Infrastruktur-PoC blockiert nur der vorher
 vereinbarte Desktop-Kernpfad aus `npm run test:poc-smoke`; nicht betroffene visuelle Abweichungen dürfen mit
 Owner und Folgeschritt dokumentiert werden. Auth, Datenisolation, Secrets,
 Containerstart und API-/Target-Grenzen sind nie abwählbar.
+
+## Blockierende Gates für die Produkt-Release-Automatisierung
+
+Änderungen an Weekly-, Hotfix-, Tag- oder GitHub-Release-Logik benötigen
+zusätzlich zur passenden QA-Stufe:
+
+```bash
+npm run test:release-automation
+npm run check:deployment-governance
+```
+
+Die Tests decken zentrale Version, No-change-Skip, Wochen-/Hotfix-Projektion,
+deterministische Pflichtartefakte, signierte Tagobjekte und den statischen
+Workflowvertrag ab. Vor Aktivierung eines echten Releases folgen außerdem ein
+Planlauf ohne Schreibzugriff, ein isolierter Signaturtest ohne Push und der
+vollständige kontrollierte Dry-Run. Ein Pages-Nachweis ersetzt weder privaten
+GKE- noch gematik-Target-Nachweis.
 
 ## QA-Stufen
 

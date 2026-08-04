@@ -57,7 +57,69 @@ Die frühere [persönliche Pilotentscheidung](PRE_GEMATIK_ECHTDATEN_PILOT_ENTSCH
 - Negativprüfungen gegen Browser-SDK, Projekt-URLs, Schlüssel, direkte Provider-Datenpfade und unsichere Fallbacks bleiben Teil der Repository-Gates.
 - Das Löschen von Git-Dateien ist kein Nachweis für die Abschaltung externer Ressourcen. Projekte, Datenbank, Storage, Edge Functions, Auth-Nutzer und -Sessions, Schlüssel, Webhooks, DNS-Verweise und Sicherungen werden in einem separaten, freigegebenen Betriebsvorgang inventarisiert, gesperrt beziehungsweise gelöscht und protokolliert.
 
-## 4. Release Candidate und gematik-Zielpfad
+## 4. Geplantes GitHub Environment `release-signing`
+
+Das Workflow-Environment wird erst bei der abschließenden Signaturabnahme
+provisioniert und aktiviert. Bis dahin bleibt jede Veröffentlichung über
+`PRODUCT_RELEASE_PUBLISH_ENABLED` gesperrt.
+
+Auch die übrigen Einstellungen außerhalb des Repositories werden unmittelbar
+vor der Aktivierung erneut fail-closed geprüft. Am 4. August 2026 ist die
+Release-Immutability aktiviert; der Branchschutz von `main` ist jedoch noch
+nicht strikt und verlangt nur `Minimal repository check`. Ein
+veröffentlichender Lauf bleibt deshalb gesperrt, bis `strict=true` gilt und
+sowohl `Minimal repository check` als auch `PoC-/Target-Readiness` erforderliche
+Checks sind.
+
+- Deployment-Branch ist ausschließlich `main`.
+- Der private OpenPGP-Signiersubkey liegt nur im Environment-Secret
+  `RELEASE_TAG_GPG_PRIVATE_KEY`; seine erforderliche Passphrase liegt getrennt
+  in `RELEASE_TAG_GPG_PASSPHRASE`. Beide Secrets müssen vor einem
+  veröffentlichenden Lauf vorhanden sein. Der Export enthält den nur offline
+  verfügbaren, ausschließlich zur Zertifizierung befähigten Primary Key als
+  Stub und genau einen online nutzbaren Ed25519-Signiersubkey.
+- Das zusätzliche Environment-Secret `RELEASE_GOVERNANCE_READ_TOKEN` ist ein
+  ablaufender Fine-grained PAT für genau dieses Repository mit ausschließlich
+  `Administration: read`. Der Workflow verwendet ihn nur, um die aktive
+  Release-Immutability unmittelbar vor Tag-Erzeugung und Veröffentlichung sowie
+  den strikten Branchschutz vor dem Release-PR read-only nachzuweisen. Er
+  ersetzt weder `GITHUB_TOKEN` für Inhaltsänderungen noch den Signierschlüssel
+  und wird nach einem dokumentierten Zeitplan rotiert.
+- Erwarteter Fingerprint, öffentlicher Schlüssel, Signer-Name und verifizierte
+  Signer-E-Mail sind nicht geheime Repository-Variablen. So können auch die
+  separaten Verifikations- und Pages-Jobs darauf zugreifen, ohne das
+  `release-signing`-Environment oder dessen Secrets zu öffnen.
+  `RELEASE_TAG_GPG_FINGERPRINT` bezeichnet dabei ausdrücklich den Fingerprint
+  des Signing-Subkeys; der zugehörige öffentliche Schlüssel liegt in
+  `RELEASE_TAG_GPG_PUBLIC_KEY`. Der Workflow vergleicht beide vor jeder
+  Signatur und Verifikation exakt.
+- Der Signing-Job führt weder `npm ci` noch Repository-Skripte aus. Er verwendet
+  ein temporäres `GNUPGHOME`, protokolliert keine Schlüsseldaten und gibt den
+  privaten Schlüssel niemals als Output oder Artefakt weiter. Der
+  Branchschutz-Nachweis bleibt im repo-codefreien Bereitschaftsgate;
+  Immutability wird in zwei getrennten read-only Schritten unmittelbar vor Tag
+  und Veröffentlichung geprüft. Keiner dieser Schritte führt npm oder ein
+  Repository-Skript aus, und die nachfolgenden Mutationsschritte erben den
+  Governance-Token nicht.
+- Ein separater Job ohne privaten Schlüssel prüft Tagobjekt, Zielcommit,
+  Fingerprint, `git verify-tag` und den GitHub-Verifikationsstatus, bevor Pages
+  gebaut oder ein Release veröffentlicht werden darf.
+- Ein Tag-Ruleset für `v*` verbietet nach der kontrollierten Erzeugung jede
+  Aktualisierung und Löschung. Die vorhandene Release-Immutability bleibt
+  zusätzlich aktiv.
+- Vor dem ersten veröffentlichenden Lauf bestätigt ein read-only API-Nachweis
+  erneut die aktive Release-Immutability, den strikten Branchschutz und beide
+  erforderlichen Checks. Der Actions-Standardtoken reicht für den
+  Immutability-Endpunkt nicht aus; ein fehlender oder abgelaufener
+  Governance-Token stoppt den Lauf vor jeder irreversiblen Mutation. Erst
+  danach werden Signatur-Dry-Run, Publish-Schalter und zuletzt der Freitagsplan
+  freigegeben.
+- Damit der Freitagslauf ohne manuelle Unterbrechung arbeiten kann, erhält das
+  Environment nach erfolgreicher Abnahme keine Required Reviewer. Änderungen
+  an Environment, Trust Anchor oder Schlüsseln bleiben ein gesonderter,
+  protokollierter Betriebsvorgang.
+
+## 5. Release Candidate und gematik-Zielpfad
 
 - `main` bleibt bis zur institutionellen GitLab-Übernahme die führende
   Integrationslinie und Pages-Quelle. Das Target wird niemals automatisch aus
@@ -97,7 +159,7 @@ Die frühere [persönliche Pilotentscheidung](PRE_GEMATIK_ECHTDATEN_PILOT_ENTSCH
 Das aktuelle Vorgehen steht im
 [PoC-Durchstich](POC_GEMATIK_DURCHSTICH.md).
 
-## 5. Actions- und Abhängigkeitsrichtlinie
+## 6. Actions- und Abhängigkeitsrichtlinie
 
 - Standardberechtigung für `GITHUB_TOKEN`: read-only; Schreibrechte nur jobbezogen.
 - Externe Actions nur mit voller Commit-SHA, nicht nur mit beweglichem Tag.
@@ -105,7 +167,7 @@ Das aktuelle Vorgehen steht im
 - Die zulässigen Actions/Organisationen nach interner Supply-Chain-Richtlinie beschränken.
 - Selbst gehostete Runner als nicht isolierte Infrastruktur behandeln und Secretzugriff entsprechend begrenzen.
 
-## 6. Roadmap- und Backlog-Pflege
+## 7. Roadmap- und Backlog-Pflege
 
 - Milestones bündeln Issues nach Lieferziel oder Release. Der Fortschritt ergibt sich aus den tatsächlichen Issue-Zuständen, nicht aus manuell duplizierten Checklisten.
 - GitHub Projects pflegt Reihenfolge, Phase, Priorität und teamübergreifende Statusfelder in geeigneten Views.
@@ -113,10 +175,10 @@ Das aktuelle Vorgehen steht im
 - Roadmap-Zusammenfassungen verlinken Milestone, Project-View, Issues, Pull Requests oder Tests auf dem aktuellen Standardbranch. Commit-SHAs aus umgeschriebener oder bereinigter Historie sind kein dauerhafter Statusnachweis.
 - Abgeschlossene Roadmap-Issues werden geschlossen und bleiben als historische Zusammenfassung unverändert.
 
-## 7. CODEOWNERS
+## 8. CODEOWNERS
 
 `.github/CODEOWNERS` ist aktiv und nennt mit `@TimoFrank` ausschließlich einen bestätigten, realen Repository-Account. Damit ist heute eindeutig sichtbar, wer Änderungen an Anwendung, Deployment, Datenvertrag und Sicherheitsgrenzen fachlich beziehungsweise technisch prüfen muss. Sobald institutionelle Produkt-, Plattform-, Daten- und Security-Teams in der Zielorganisation existieren, ersetzt die Repository-Administration diesen Übergangs-Owner durch die bestätigten Teamhandles. Eine verpflichtende Code-Owner-Freigabe wird erst aktiviert, wenn mindestens eine zweite unabhängige Person reviewen kann.
 
-## 8. Nachweis
+## 9. Nachweis
 
 Die wirksamen Einstellungen werden vor dem PoC kurz im Release-Nachweis referenziert. Abweichungen erhalten Ansprechperson und Frist.

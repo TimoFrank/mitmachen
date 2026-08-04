@@ -121,6 +121,16 @@ Nachweise. Ein Abbruch darf weder eine Version überspringen noch einen
 vorhandenen Tag verschieben; die Wiederaufnahme akzeptiert einen Zwischenstand
 nur, wenn Version, Tag, Commit und Release-Unterlagen exakt zusammenpassen.
 
+Der Planer gibt dafür genau einen der folgenden Zustände aus:
+
+- `prepare`: Seit dem letzten veröffentlichten Tag liegen Änderungen vor. Der
+  Lauf erzeugt die neue Versionsprojektion und anschließend den Release-PR.
+- `noop`: Seit dem letzten veröffentlichten Tag liegen keine Änderungen vor.
+  Der Lauf endet erfolgreich ohne Versionssprung oder externe Mutation.
+- `resume`: Die zentrale Version ist bereits vollständig projiziert. Der Lauf
+  setzt genau diesen Commit und einen gegebenenfalls schon vorhandenen exakten
+  Tag fort, statt eine weitere Version zu berechnen.
+
 ## Release-Artefakte
 
 Der GitHub Release enthält für die öffentliche Demo:
@@ -188,15 +198,39 @@ Signaturstatus ist kein Muster für neue Tags. Die neue Regel beginnt mit
 
 ## Temporäre Freitags-Sperre
 
-Die bestehende Automatisierung veröffentlicht noch nicht vollständig nach
-diesem Vertrag. Deshalb bleibt der geplante Freitagslauf fail-closed gesperrt:
-Nur wenn die Repository-Variable `WEEKLY_RELEASE_SCHEDULE_ENABLED` exakt
-`true` ist, darf ein geplanter Lauf die Vorbereitung beginnen. Bis die
-Workflow-, Signatur-, Prerelease- und Hotfix-Umstellung samt Dry-Run geprüft ist,
-darf diese Variable nicht freigegeben werden. Auch manuelle Läufe nach der alten
-Logik sind in dieser Übergangsphase nicht freigegeben. Schritt 3 muss neben
-Workflow und Generator ausdrücklich die zentrale `productVersion` sowie die
-unterschiedliche Wochen-/Hotfix-Projektion aktualisieren.
+Die Automatisierung bildet diesen Vertrag technisch ab, wird aber erst nach dem
+abschließenden Signatur- und Dry-Run-Nachweis aktiviert. Zwei unabhängige
+Schalter sichern die Übergangsphase fail-closed:
+
+- Der geplante Freitagslauf startet nur, wenn
+  `WEEKLY_RELEASE_SCHEDULE_ENABLED=true` **und**
+  `PRODUCT_RELEASE_PUBLISH_ENABLED=true` gesetzt sind. Solange einer der beiden
+  Schalter fehlt oder einen anderen Wert hat, endet der Schedule-Lauf ohne
+  Planung oder Mutation.
+- Ein manueller Lauf bleibt unabhängig davon möglich, startet aber ohne die
+  ausdrücklich gewählte Publish-Option immer nur im schreibfreien Planmodus.
+
+Ein manueller Start verwendet standardmäßig den schreibfreien Planmodus. Er
+liest weder den privaten Signierschlüssel noch verändert er Branches, Tags,
+Releases oder Deployments. Vor der Aktivierung werden im gesonderten
+`release-signing`-Environment der private dedizierte OpenPGP-Signiersubkey und
+seine Passphrase sowie ein ablaufender, auf dieses Repository und
+`Administration: read` begrenzter Governance-Token provisioniert. Dieser Token
+prüft ausschließlich Release-Immutability und Branchschutz per read-only API.
+Der Branchschutz läuft in einem Job ohne Checkout; die beiden
+Immutability-Abfragen liegen jeweils in einem eigenen Schritt ohne npm oder
+Repository-Skript unmittelbar vor Tag und Veröffentlichung. Die eigentlichen
+Mutationsschritte erhalten den Token nicht. Fehlende oder ungültige
+Berechtigung blockiert vor Release-PR, Tag und Veröffentlichung.
+Öffentlicher Schlüssel, erwarteter
+Subkey-Fingerprint und Signer-Identität werden getrennt als nicht geheime
+Repository-Variablen hinterlegt. Danach folgen ein
+lokaler Signaturtest ohne Push, ein vollständiger kontrollierter Dry-Run und ein
+Tag-Ruleset gegen Aktualisierung und Löschung. Zusätzlich müssen die
+Release-Immutability sowie der strikte `main`-Branchschutz mit den erforderlichen
+Checks `Minimal repository check` und `PoC-/Target-Readiness` per read-only
+API-Nachweis bestätigt sein. Erst anschließend werden zuerst der
+Publish-Schalter und zuletzt der Freitagsplan freigegeben.
 
 ## Benachrichtigung
 

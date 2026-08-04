@@ -1,43 +1,26 @@
 name: Deploy GitHub Pages
 
 run-name: >-
-  Deploy GitHub Pages${{ inputs.revision && format(' ({0})', inputs.revision) || '' }}
+  Deploy GitHub Pages${{ inputs.release_tag && inputs.correlation_id && format(' ({0}; {1})', inputs.release_tag, inputs.correlation_id) || '' }}
 
 on:
-  push:
-    branches:
-      - main
-    paths:
-      - frontend/app/**
-      - frontend/map/**
-      - frontend/pages/mitmachen/**
-      - frontend/data/public-politics-directory.js
-      - frontend/data/demo-data.js
-      - frontend/data/demo-api.js
-      - frontend/data/data-service.js
-      - frontend/data/sector-registry.js
-      - frontend/data/hospitation-model.js
-      - frontend/data/hospitation-export.js
-      - frontend/data/activity-model.js
-      - frontend/data/document-text-extractor.js
-      - frontend/vendor/**
-      - public/**
-      - config/pages-demo/**
-      - config/deployment-profile.schema.json
-      - package.json
-      - package-lock.json
-      - scripts/build_static_frontend.sh
-      - scripts/audit_public_assets.mjs
-      - scripts/update_public_politics_directory.mjs
-      - scripts/update_politics_offline_snapshot.mjs
-      - scripts/html_metadata_tags.cjs
-      - scripts/check_deployment_governance.mjs
-      - .github/workflows/deploy-pages.yml
   workflow_dispatch:
     inputs:
       revision:
-        description: Optional exact commit from main to build and deploy
-        required: false
+        description: Exact release commit from main to build and deploy
+        required: true
+        type: string
+      release_tag:
+        description: Signed and GitHub-verified product release tag
+        required: true
+        type: string
+      artifact_digest:
+        description: Preflight-proven sha256 digest of the exact Pages artifact
+        required: true
+        type: string
+      correlation_id:
+        description: Unique parent release run correlation
+        required: true
         type: string
 
 permissions:
@@ -48,12 +31,110 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
+  release-source-gate:
+    name: Keep product release deployment behind its tag
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    outputs:
+      may_deploy: ${{ steps.gate.outputs.may_deploy }}
+
+    steps:
+      - name: Checkout requested revision without persisted credentials
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ inputs.revision || github.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Require product release tag before Pages
+        id: gate
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GNUPGHOME: ${{ runner.temp }}/pages-release-tag-gnupg
+          EXPECTED_ARTIFACT_DIGEST: ${{ inputs.artifact_digest }}
+          RELEASE_CORRELATION_ID: ${{ inputs.correlation_id }}
+          RELEASE_TAG: ${{ inputs.release_tag }}
+          RELEASE_TAG_GPG_FINGERPRINT: ${{ vars.RELEASE_TAG_GPG_FINGERPRINT }}
+          RELEASE_TAG_GPG_PUBLIC_KEY: ${{ vars.RELEASE_TAG_GPG_PUBLIC_KEY }}
+          REQUESTED_REVISION: ${{ inputs.revision }}
+        run: |
+          set -euo pipefail
+          current_version="$(jq --raw-output .productVersion config/release.json)"
+          [[ "$RELEASE_TAG" =~ ^v0\.[0-9]+\.[0-9]+$ ]]
+          [[ "$REQUESTED_REVISION" =~ ^[0-9a-f]{40}$ ]]
+          [[ "$EXPECTED_ARTIFACT_DIGEST" =~ ^sha256:[0-9a-f]{64}$ ]]
+          [[ "$RELEASE_CORRELATION_ID" =~ ^release-[0-9]+-[0-9]+$ ]]
+          [[ "$current_version" == "${RELEASE_TAG#v}" ]]
+
+          git fetch --no-tags origin main:refs/remotes/origin/main
+          git merge-base --is-ancestor "$REQUESTED_REVISION" refs/remotes/origin/main
+          [[ "$(git show refs/remotes/origin/main:config/release.json | jq --raw-output .productVersion)" == "${RELEASE_TAG#v}" ]]
+          semver_is_greater() {
+            local candidate_major candidate_minor candidate_patch
+            local requested_major requested_minor requested_patch
+            IFS=. read -r candidate_major candidate_minor candidate_patch <<<"${1#v}"
+            IFS=. read -r requested_major requested_minor requested_patch <<<"${RELEASE_TAG#v}"
+            ((
+              10#$candidate_major > 10#$requested_major
+              || (10#$candidate_major == 10#$requested_major && 10#$candidate_minor > 10#$requested_minor)
+              || (10#$candidate_major == 10#$requested_major && 10#$candidate_minor == 10#$requested_minor && 10#$candidate_patch > 10#$requested_patch)
+            ))
+          }
+          while IFS= read -r published_tag; do
+            if [[ "$published_tag" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]] && semver_is_greater "$published_tag"; then
+              echo "Published release ${published_tag} is newer than requested ${RELEASE_TAG}." >&2
+              exit 1
+            fi
+          done < <(gh api --paginate \
+            "repos/${GITHUB_REPOSITORY}/releases?per_page=100" \
+            --jq '.[] | select(.draft == false) | .tag_name')
+
+          remote_object="$(git ls-remote --refs --tags origin "refs/tags/${RELEASE_TAG}" | awk '{print $1}')"
+          [[ "$remote_object" =~ ^[0-9a-f]{40}$ ]]
+          if git show-ref --verify --quiet "refs/tags/${RELEASE_TAG}"; then
+            [[ "$(git rev-parse "refs/tags/${RELEASE_TAG}")" == "$remote_object" ]]
+          else
+            git fetch --no-tags origin "refs/tags/${RELEASE_TAG}:refs/tags/${RELEASE_TAG}"
+          fi
+
+          umask 077
+          [[ "$RELEASE_TAG_GPG_FINGERPRINT" =~ ^[0-9A-Fa-f]{40,64}$ ]]
+          test -n "$RELEASE_TAG_GPG_PUBLIC_KEY"
+          mkdir -p "$GNUPGHOME"
+          chmod 700 "$GNUPGHOME"
+          printf '%s' "$RELEASE_TAG_GPG_PUBLIC_KEY" | gpg --batch --import
+          github_verification_file="${RUNNER_TEMP}/pages-github-tag-verification.json"
+          gh api \
+            -H 'Accept: application/vnd.github+json' \
+            "repos/${GITHUB_REPOSITORY}/git/tags/${remote_object}" \
+            > "$github_verification_file"
+          node scripts/verify_release_tag.mjs \
+            --tag "$RELEASE_TAG" \
+            --commit-sha "$REQUESTED_REVISION" \
+            --fingerprint "$RELEASE_TAG_GPG_FINGERPRINT" \
+            --remote-tag-object-sha "$remote_object" \
+            --github-verification-json "$github_verification_file"
+
+          echo "may_deploy=true" >> "$GITHUB_OUTPUT"
+          {
+            echo "## Pages release-source gate"
+            echo
+            echo "- Release tag: \`${RELEASE_TAG:-none}\`"
+            echo "- Release commit: \`${REQUESTED_REVISION}\`"
+            echo "- Deploy: \`true\`"
+          } >> "$GITHUB_STEP_SUMMARY"
+
   build:
     name: Build isolated Pages artifact
-    if: github.ref == 'refs/heads/main'
+    needs: release-source-gate
+    if: github.ref == 'refs/heads/main' && needs.release-source-gate.outputs.may_deploy == 'true'
     runs-on: ubuntu-latest
     outputs:
       revision: ${{ steps.revision.outputs.sha }}
+      artifact_digest: ${{ steps.manifest.outputs.artifact_digest }}
     permissions:
       contents: read
 
@@ -99,7 +180,10 @@ jobs:
         run: npm run test:delivery-ui:desktop
 
       - name: Build Pages artifact
+        id: manifest
         shell: bash
+        env:
+          EXPECTED_ARTIFACT_DIGEST: ${{ inputs.artifact_digest }}
         run: |
           set -euo pipefail
           bash scripts/build_static_frontend.sh \
@@ -109,6 +193,9 @@ jobs:
           jq --exit-status --raw-output \
             '.artifactDigest | select(type == "string" and test("^sha256:[0-9a-f]{64}$"))' \
             dist/pages/build-manifest.json >/dev/null
+          artifact_digest="$(jq --raw-output .artifactDigest dist/pages/build-manifest.json)"
+          [[ "$artifact_digest" == "$EXPECTED_ARTIFACT_DIGEST" ]]
+          echo "artifact_digest=${artifact_digest}" >> "$GITHUB_OUTPUT"
 
       - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@7b1f4a764d45c48632c6b24a0339c27f5614fb0b # v4
@@ -140,6 +227,7 @@ jobs:
         shell: bash
         env:
           DEPLOYED_REVISION: ${{ needs.build.outputs.revision }}
+          EXPECTED_ARTIFACT_DIGEST: ${{ needs.build.outputs.artifact_digest }}
           PUBLIC_PAGE_URL: ${{ steps.deployment.outputs.page_url }}
         run: |
           set -euo pipefail
@@ -155,6 +243,7 @@ jobs:
           )
           demo_data_path="${RUNNER_TEMP}/pages-demo-data.js"
           demo_api_path="${RUNNER_TEMP}/pages-demo-api.js"
+          build_manifest_path="${RUNNER_TEMP}/pages-build-manifest.json"
           public_politics_path="${RUNNER_TEMP}/pages-public-politics-directory.js"
           runtime_config_path="${RUNNER_TEMP}/pages-runtime-config.js"
           root_app_path="${RUNNER_TEMP}/pages-index.html"
@@ -172,6 +261,8 @@ jobs:
             "${page_root}/demo/?${cache_buster}" >/dev/null
           curl --fail "${curl_retry_args[@]}" \
             "${page_root}/manifest.webmanifest?${cache_buster}" --output "$manifest_path"
+          curl --fail "${curl_retry_args[@]}" \
+            "${page_root}/build-manifest.json?${cache_buster}" --output "$build_manifest_path"
           curl --fail "${curl_retry_args[@]}" \
             "${page_root}/versorgungs-kompass-no-script.css?${cache_buster}" --output "$no_script_style_path"
           curl --fail "${curl_retry_args[@]}" \
@@ -208,6 +299,14 @@ jobs:
           grep --extended-regexp --quiet 'authMode:[[:space:]]*"anonymous-demo"' "$runtime_config_path"
           grep --extended-regexp --quiet 'apiBaseUrl:[[:space:]]*""' "$runtime_config_path"
           grep --extended-regexp --quiet 'requireApiGateway:[[:space:]]*false' "$runtime_config_path"
+          jq --exit-status \
+            --arg digest "$EXPECTED_ARTIFACT_DIGEST" \
+            --arg revision "$DEPLOYED_REVISION" '
+              .profile == "pages"
+              and .revision == $revision
+              and .artifactDigest == $digest
+              and (.artifactDigest | test("^sha256:[0-9a-f]{64}$"))
+            ' "$build_manifest_path" >/dev/null
           for app_label in Versorgung Auswertung Aktivitäten Stakeholder Expertenkreis Hospitationen Beobachtungen Fragebogen Dashboard Formate Teams; do
             grep --fixed-strings --quiet "$app_label" "$app_path"
           done

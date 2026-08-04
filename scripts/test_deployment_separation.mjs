@@ -80,11 +80,21 @@ function relativeFiles(directory) {
 
 function fingerprint(directory, { excludeManifest = false } = {}) {
   const hash = createHash("sha256");
-  for (const relative of relativeFiles(directory).filter((file) => !excludeManifest || file !== "build-manifest.json")) {
-    hash.update(relative.split(path.sep).join("/"));
-    hash.update("\0");
-    hash.update(fs.readFileSync(path.join(directory, relative)));
-    hash.update("\0");
+  const files = relativeFiles(directory).filter((file) => !excludeManifest || file !== "build-manifest.json");
+  const lengthPrefix = (value) => {
+    const frame = Buffer.alloc(8);
+    frame.writeBigUInt64BE(BigInt(value));
+    return frame;
+  };
+  hash.update(Buffer.from("versorgungs-kompass-artifact-tree-v2\0", "utf8"));
+  hash.update(lengthPrefix(files.length));
+  for (const relative of files) {
+    const normalizedPath = Buffer.from(relative.split(path.sep).join("/"), "utf8");
+    const content = fs.readFileSync(path.join(directory, relative));
+    hash.update(lengthPrefix(normalizedPath.length));
+    hash.update(normalizedPath);
+    hash.update(lengthPrefix(content.length));
+    hash.update(content);
   }
   return hash.digest("hex");
 }
