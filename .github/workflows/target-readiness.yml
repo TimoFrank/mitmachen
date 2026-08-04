@@ -89,12 +89,23 @@ jobs:
           set -euo pipefail
           image_name="versorgungs-kompass-api:target-readiness"
           container_name="vk-api-target-readiness-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
+          product_version="$(node scripts/print_product_version.mjs)"
+          source_url="${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}"
           cleanup() {
             docker rm --force "$container_name" >/dev/null 2>&1 || true
           }
           trap cleanup EXIT
 
-          docker build --file api/Dockerfile --tag "$image_name" .
+          docker build \
+            --build-arg PRODUCT_VERSION="$product_version" \
+            --build-arg SOURCE_REVISION="$GITHUB_SHA" \
+            --build-arg SOURCE_URL="$source_url" \
+            --file api/Dockerfile \
+            --tag "$image_name" \
+            .
+          [[ "$(docker image inspect "$image_name" --format '{{ index .Config.Labels "org.opencontainers.image.version" }}')" == "$product_version" ]]
+          [[ "$(docker image inspect "$image_name" --format '{{ index .Config.Labels "org.opencontainers.image.revision" }}')" == "$GITHUB_SHA" ]]
+          [[ "$(docker image inspect "$image_name" --format '{{ index .Config.Labels "org.opencontainers.image.source" }}')" == "$source_url" ]]
           docker run --detach \
             --name "$container_name" \
             --read-only \

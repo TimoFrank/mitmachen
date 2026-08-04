@@ -1,7 +1,10 @@
 import { existsSync, readFileSync } from "node:fs";
 import path from "node:path";
 import { loadReleaseConfig } from "./lib/release_policy.mjs";
-import { validateProductVersionProjection } from "./lib/release_projection.mjs";
+import {
+  validateHelmProductVersionProjection,
+  validateProductVersionProjection
+} from "./lib/release_projection.mjs";
 
 const root = process.cwd();
 const failures = [];
@@ -163,6 +166,11 @@ failures.push(...validateProductVersionProjection({
   changelog: read("CHANGELOG.md"),
   appHistory: read("frontend/app/versorgungs-kompass.js"),
   releaseNotesExists: existsSync(path.join(root, `dokumentation/release-notes/v${version}.md`))
+}));
+failures.push(...validateHelmProductVersionProjection({
+  productVersion: version,
+  chart: read("deploy/helm/versorgungs-kompass/Chart.yaml"),
+  values: read("deploy/helm/versorgungs-kompass/values.yaml")
 }));
 
 for (const [relativePath, patterns] of [

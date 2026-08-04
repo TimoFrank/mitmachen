@@ -599,8 +599,8 @@ assert.match(
 );
 assert.match(
   jenkinsSource,
-  /expected_version="\$\{rc_tag#poc-v\}"[\s\S]*expected_rc_suffix="\$\{expected_version##\*-\}"[\s\S]*chart_version=[\s\S]*chart_app_version=[\s\S]*poc_image_tag=[\s\S]*\*-"\$expected_rc_suffix"[\s\S]*test "\$chart_app_version" = "\$expected_version"[\s\S]*test "\$poc_image_tag" = "\$rc_tag"/,
-  "Jenkins muss RC-Tag, Helm-Chart-Suffix, appVersion und PoC-Image-Tag miteinander abgleichen."
+  /product_version="\$\(node scripts\/print_product_version\.mjs\)"[\s\S]*chart_version=[\s\S]*chart_app_version=[\s\S]*values_product_version=[\s\S]*poc_image_tag=[\s\S]*test "\$chart_version" = "\$product_version"[\s\S]*test "\$chart_app_version" = "\$product_version"[\s\S]*test "\$values_product_version" = "\$product_version"[\s\S]*test "\$poc_image_tag" = "\$rc_tag"/,
+  "Jenkins muss den Legacy-RC-Tag als unveränderliche Deployment-Referenz und Helm als zentrale Produktversionsprojektion getrennt prüfen."
 );
 assert.match(
   jenkinsSource,

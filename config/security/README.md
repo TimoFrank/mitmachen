@@ -12,7 +12,7 @@ Hier liegen die prüfbaren Regeln für die lokale Entwicklung, GitHub Actions un
 
 Die Jenkins-Pipeline schreibt die Rohberichte nach `dist/security-evidence/` und archiviert sie beim Build. Diese Dateien werden nicht von Hand in `SECURITY.md` übertragen.
 
-- `generate_frontend_sbom.mjs` erstellt eine CycloneDX-SBOM aus den vier versionierten Vendor-Paketen und prüft die Hashes aller ausgelieferten Dateien. Innere Abhängigkeiten bereits gebauter Browser-Bundles werden nicht aus dem aktuellen Lockfile abgeleitet, weil dies falsche Versionen ergeben könnte.
+- `generate_frontend_sbom.mjs` erstellt eine CycloneDX-SBOM aus den vier versionierten Vendor-Paketen, übernimmt die zentrale Produktversion und bindet Buildprofil, Quellrevision sowie Artefaktdigest. Es prüft die Hashes aller ausgelieferten Dateien. Innere Abhängigkeiten bereits gebauter Browser-Bundles werden nicht aus dem aktuellen Lockfile abgeleitet, weil dies falsche Versionen ergeben könnte.
 - Trivy prüft die Alpine-Basispakete und Node.js-Abhängigkeiten des API-Images, erstellt dessen CycloneDX-SBOM und prüft Dockerfile sowie Helm-Manifest.
 - `api-image-binding.json` weist die geprüfte Kette vom Registry-Digest über die lokalen OCI-Deskriptoren bis zur gescannten Image-Konfiguration nach.
 - `generate_security_evidence.mjs` prüft die Pflichtberichte und verbindet sie mit RC-Tag, Git-Commit, Image-Digest und Frontend-Digest.

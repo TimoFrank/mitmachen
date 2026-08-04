@@ -2,6 +2,7 @@ import { existsSync, readFileSync, readdirSync, statSync } from "node:fs";
 import { extname, join, relative, resolve, sep } from "node:path";
 import { fileURLToPath } from "node:url";
 import htmlMetadataTags from "./html_metadata_tags.cjs";
+import { loadReleaseConfig } from "./lib/release_policy.mjs";
 
 const { parseHtmlAttributes, scanHtmlStartTags } = htmlMetadataTags;
 
@@ -17,6 +18,7 @@ if (!artifactRootArgument || artifactRootArgument.startsWith("-")) {
 const artifactRoot = resolve(root, artifactRootArgument);
 const artifactLabel = relative(root, artifactRoot) || ".";
 const failures = [];
+const productVersion = loadReleaseConfig(root).productVersion;
 
 function assert(condition, message) {
   if (!condition) failures.push(message);
@@ -615,7 +617,13 @@ const manifestPath = join(artifactRoot, "build-manifest.json");
 if (existsSync(manifestPath)) {
   try {
     const manifest = JSON.parse(readFileSync(manifestPath, "utf8"));
+    assert(
+      JSON.stringify(Object.keys(manifest).sort()) === JSON.stringify(["artifactDigest", "productVersion", "profile", "revision"]),
+      `${artifactLabel}/build-manifest.json verletzt den geschlossenen Versionsvertrag`
+    );
     assert(manifest.profile === "target", `${artifactLabel}/build-manifest.json ist kein Target-Manifest`);
+    assert(manifest.productVersion === productVersion, `${artifactLabel}/build-manifest.json verwendet nicht die zentrale Produktversion ${productVersion}`);
+    assert(/^(?:[0-9a-f]{7,64}|unknown)$/i.test(manifest.revision || ""), `${artifactLabel}/build-manifest.json enthaelt keine gueltige Quellrevision`);
     assert(/^sha256:[0-9a-f]{64}$/.test(manifest.artifactDigest || ""), `${artifactLabel}/build-manifest.json enthaelt keinen gueltigen Artefakt-Digest`);
   } catch (error) {
     failures.push(`${artifactLabel}/build-manifest.json ist ungueltig: ${error.message}`);

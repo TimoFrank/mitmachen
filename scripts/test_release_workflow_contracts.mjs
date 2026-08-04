@@ -145,6 +145,12 @@ requirePattern(weekly, /branch:\s*timo\/release-\$\{\{\s*steps\.release\.outputs
   "Weekly-Release-Branches muessen der repositoryweiten timo/-Konvention folgen.");
 requirePattern(hotfix, /branch:\s*timo\/hotfix-\$\{\{\s*steps\.release\.outputs\.tag\s*\}\}/u,
   "Hotfix-Branches muessen der repositoryweiten timo/-Konvention folgen.");
+for (const [workflow, label] of [[weekly, "Weekly"], [hotfix, "Hotfix"]]) {
+  requirePattern(workflow, /add-paths:[\s\S]*deploy\/helm\/versorgungs-kompass\/Chart\.yaml[\s\S]*deploy\/helm\/versorgungs-kompass\/values\.yaml/u,
+    `${label}: Release-PR muss beide zentral versionierten Helm-Dateien aufnehmen.`);
+  requirePattern(workflow, /git diff --exit-code --[\s\S]*':!deploy\/helm\/versorgungs-kompass\/Chart\.yaml'[\s\S]*':!deploy\/helm\/versorgungs-kompass\/values\.yaml'/u,
+    `${label}: Release-Scope muss ausschließlich die projizierten Helm-Dateien zulassen.`);
+}
 
 const planIndex = publish.indexOf("  plan-release:");
 const preflightIndex = publish.indexOf("  preflight-release:");
@@ -261,6 +267,8 @@ requirePattern(publish, /build-and-deploy-pages:[\s\S]*needs:[\s\S]*- preflight-
   "Pages darf nur nach unabhaengiger Tag-Verifikation starten.");
 requirePattern(publish, /known_run_ids[\s\S]*gh workflow run deploy-pages\.yml[\s\S]*-f revision="\$RELEASE_SHA"[\s\S]*-f release_tag="\$RELEASE_TAG"[\s\S]*-f artifact_digest="\$EXPECTED_ARTIFACT_DIGEST"[\s\S]*-f correlation_id="\$correlation_id"[\s\S]*index\(\$id\)\) == null/u,
   "Der verifizierte Tag muss zusammen mit dem exakten Commit an Pages uebergeben werden.");
+requirePattern(pages, /--arg product_version "\$\{RELEASE_TAG#v\}"[\s\S]*\.productVersion == \$product_version[\s\S]*\.revision == \$revision[\s\S]*\.artifactDigest == \$digest/u,
+  "Der Pages-Build und der Live-Smoke muessen Produktversion, Commit und Digest gemeinsam binden.");
 requirePattern(publish, /package_product_release\.mjs[\s\S]*--output-dir dist\/release\/assets/u,
   "Die drei Pflichtartefakte muessen durch den zentralen Packager entstehen.");
 requirePattern(publish, /verify_release_artifacts\.mjs/u,

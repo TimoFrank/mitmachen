@@ -11,7 +11,11 @@ import {
   releaseTitle,
   validateReleaseConfig
 } from "./lib/release_policy.mjs";
-import { validateProductVersionProjection } from "./lib/release_projection.mjs";
+import {
+  updateHelmProductVersionProjection,
+  validateHelmProductVersionProjection,
+  validateProductVersionProjection
+} from "./lib/release_projection.mjs";
 
 const config = loadReleaseConfig();
 const policy = config.policy;
@@ -127,6 +131,28 @@ const weeklyProjection = validateProductVersionProjection({
   releaseNotesExists: true
 });
 assert.deepEqual(weeklyProjection, []);
+
+const helmProjection = updateHelmProductVersionProjection({
+  productVersion: "0.23.0",
+  chart: "apiVersion: v2\nversion: 0.22.0\nappVersion: \"0.22.0\"\n",
+  values: "productVersion: \"0.22.0\"\nreplicaCount: 2\n"
+});
+assert.deepEqual(validateHelmProductVersionProjection({
+  productVersion: "0.23.0",
+  chart: helmProjection.chart,
+  values: helmProjection.values
+}), []);
+for (const [chart, values, expected] of [
+  [helmProjection.chart.replace("version: 0.23.0", "version: 0.24.0"), helmProjection.values, /Chart\.version/u],
+  [helmProjection.chart.replace('appVersion: "0.23.0"', 'appVersion: "0.24.0"'), helmProjection.values, /Chart\.appVersion/u],
+  [helmProjection.chart, helmProjection.values.replace('productVersion: "0.23.0"', 'productVersion: "0.24.0"'), /values\.productVersion/u]
+]) {
+  assert.match(validateHelmProductVersionProjection({
+    productVersion: "0.23.0",
+    chart,
+    values
+  }).join("\n"), expected);
+}
 
 const hotfixProjection = validateProductVersionProjection({
   productVersion: "0.23.1",

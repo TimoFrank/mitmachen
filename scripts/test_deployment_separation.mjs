@@ -8,6 +8,7 @@ import htmlMetadataTags from "./html_metadata_tags.cjs";
 const { parseHtmlAttributes, scanHtmlStartTags } = htmlMetadataTags;
 
 const root = process.cwd();
+const productVersion = JSON.parse(fs.readFileSync(path.join(root, "config/release.json"), "utf8")).productVersion;
 const oidcOnly = process.argv.includes("--oidc-only");
 const distRoot = path.join(root, "dist");
 fs.mkdirSync(distRoot, { recursive: true });
@@ -1085,8 +1086,9 @@ try {
 
   for (const [directory, profile] of [[pagesDir, "pages"], [targetDir, "target"]]) {
     const manifest = JSON.parse(fs.readFileSync(path.join(directory, "build-manifest.json"), "utf8"));
-    assert.deepEqual(Object.keys(manifest).sort(), ["artifactDigest", "profile", "revision"]);
+    assert.deepEqual(Object.keys(manifest).sort(), ["artifactDigest", "productVersion", "profile", "revision"]);
     assert.equal(manifest.profile, profile);
+    assert.equal(manifest.productVersion, productVersion);
     assert.match(manifest.revision, /^(?:[0-9a-f]{7,64}|unknown)$/i);
     assert.match(manifest.artifactDigest, /^sha256:[0-9a-f]{64}$/);
     assert.equal(manifest.artifactDigest, `sha256:${fingerprint(directory, { excludeManifest: true })}`);

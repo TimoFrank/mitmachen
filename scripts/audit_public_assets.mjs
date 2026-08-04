@@ -3,6 +3,7 @@ import { execFileSync } from "node:child_process";
 import { dirname, extname, join, relative, resolve, sep } from "node:path";
 import { fileURLToPath } from "node:url";
 import htmlMetadataTags from "./html_metadata_tags.cjs";
+import { loadReleaseConfig } from "./lib/release_policy.mjs";
 import { parsePublicPoliticsDirectoryScript } from "./update_public_politics_directory.mjs";
 
 const { parseHtmlAttributes, scanHtmlStartTags } = htmlMetadataTags;
@@ -19,6 +20,7 @@ if (!artifactRootArgument || artifactRootArgument.startsWith("-")) {
 const artifactRoot = resolve(root, artifactRootArgument);
 const artifactLabel = relative(root, artifactRoot) || ".";
 const failures = [];
+const productVersion = loadReleaseConfig(root).productVersion;
 
 if (artifactRootIndex < 0) {
   execFileSync(
@@ -747,6 +749,23 @@ if (existsSync(miniMapHtmlPath) && existsSync(miniMapAppPath)) {
   const miniMapApp = readFileSync(miniMapAppPath, "utf8");
   assert(/data\/runtime-config\.js/.test(miniMapHtml), `${artifactLabel}/versorgungs-kompass-contact-mini-map.html laedt die Demo-Runtime nicht`);
   assert(/dataMode\s*!==\s*["']demo["'][\s\S]*?L\.tileLayer\s*\(/.test(miniMapApp), `${artifactLabel}/versorgungs-kompass-contact-mini-map.js begrenzt externe Kartenkacheln nicht auf den Target-Modus`);
+}
+
+const buildManifestPath = join(artifactRoot, "build-manifest.json");
+if (existsSync(buildManifestPath)) {
+  try {
+    const manifest = JSON.parse(readFileSync(buildManifestPath, "utf8"));
+    assert(
+      JSON.stringify(Object.keys(manifest).sort()) === JSON.stringify(["artifactDigest", "productVersion", "profile", "revision"]),
+      `${artifactLabel}/build-manifest.json verletzt den geschlossenen Versionsvertrag`
+    );
+    assert(manifest.profile === "pages", `${artifactLabel}/build-manifest.json ist kein Pages-Manifest`);
+    assert(manifest.productVersion === productVersion, `${artifactLabel}/build-manifest.json verwendet nicht die zentrale Produktversion ${productVersion}`);
+    assert(/^(?:[0-9a-f]{7,64}|unknown)$/i.test(manifest.revision || ""), `${artifactLabel}/build-manifest.json enthaelt keine gueltige Quellrevision`);
+    assert(/^sha256:[0-9a-f]{64}$/.test(manifest.artifactDigest || ""), `${artifactLabel}/build-manifest.json enthaelt keinen gueltigen Artefakt-Digest`);
+  } catch (error) {
+    failures.push(`${artifactLabel}/build-manifest.json ist ungueltig: ${error.message}`);
+  }
 }
 
 const demoDataPath = join(artifactRoot, "data", "demo-data.js");

@@ -120,6 +120,8 @@ try {
   };
   write(".gitignore", "dist/\n");
   write("config/release.json", `${JSON.stringify(baselineConfig, null, 2)}\n`);
+  write("deploy/helm/versorgungs-kompass/Chart.yaml", "apiVersion: v2\nname: versorgungs-kompass\nversion: 0.22.0\nappVersion: \"0.22.0\"\n");
+  write("deploy/helm/versorgungs-kompass/values.yaml", "productVersion: \"0.22.0\"\nreplicaCount: 2\n");
   write("frontend/app/versorgungs-kompass.js", `function fixture() {
       const appVersionHistory = [
         { version: "0.22.0", title: "Bestehende Basis" }
@@ -164,7 +166,7 @@ Die bereinigte Baseline ist dokumentiert.
 
 - Baseline erstellt.
 `);
-  git(["add", ".gitignore", "config/release.json", "frontend/app/versorgungs-kompass.js", "CHANGELOG.md", "README.md", "dokumentation/release-notes/v0.22.0.md"]);
+  git(["add", ".gitignore", "config/release.json", "deploy/helm/versorgungs-kompass/Chart.yaml", "deploy/helm/versorgungs-kompass/values.yaml", "frontend/app/versorgungs-kompass.js", "CHANGELOG.md", "README.md", "dokumentation/release-notes/v0.22.0.md"]);
   git(["commit", "-m", "Produktbasis 0.22.0 dokumentieren"]);
   git(["tag", "baseline"]);
   git(["tag", "v0.22.0"]);
@@ -220,7 +222,7 @@ Die bereinigte Baseline ist dokumentiert.
   git(["add", "ancestry-feature.txt"]);
   git(["commit", "-m", "Kandidatenänderung vorbereiten"]);
   runGenerator(["--release-type", "weekly", "--theme", "Ancestry-Test"]);
-  git(["add", "config/release.json", "README.md", "CHANGELOG.md", "frontend/app/versorgungs-kompass.js", "dokumentation/release-notes/v0.23.0.md"]);
+  git(["add", "config/release.json", "deploy/helm/versorgungs-kompass/Chart.yaml", "deploy/helm/versorgungs-kompass/values.yaml", "README.md", "CHANGELOG.md", "frontend/app/versorgungs-kompass.js", "dokumentation/release-notes/v0.23.0.md"]);
   git(["commit", "-m", "Testkandidat 0.23.0 vorbereiten"]);
   write("late-base.txt", "published later\n");
   git(["add", "late-base.txt"]);
@@ -273,6 +275,8 @@ Die bereinigte Baseline ist dokumentiert.
   assert(weeklyOutput.github_prerelease === "true" && weeklyOutput.github_latest === "false", "Weekly vor 1.0 muss Prerelease und nicht Latest sein.");
   assert(weeklyOutput.notes_path === "dokumentation/release-notes/v0.23.0.md", "Der Notes-Pfad muss deterministisch sein.");
   assert(JSON.parse(read("config/release.json")).productVersion === "0.23.0", "productVersion muss auf 0.23.0 steigen.");
+  assert(read("deploy/helm/versorgungs-kompass/Chart.yaml").includes("version: 0.23.0\nappVersion: \"0.23.0\""), "Weekly muss Chart.version und appVersion aktualisieren.");
+  assert(read("deploy/helm/versorgungs-kompass/values.yaml").includes('productVersion: "0.23.0"'), "Weekly muss die Helm-Values-Version aktualisieren.");
   assert(read("CHANGELOG.md").match(/^## Version 0\.23 -/gm)?.length === 1, "Der Changelog muss das Weekly genau einmal enthalten.");
   assert(read("frontend/app/versorgungs-kompass.js").match(/version: "0\.23\.0"/g)?.length === 1, "Die In-App-Historie muss das Weekly genau einmal enthalten.");
   const weeklyNotes = read("dokumentation/release-notes/v0.23.0.md");
@@ -293,7 +297,7 @@ Die bereinigte Baseline ist dokumentiert.
   assert(outputValues("dirty-resume-output.txt").mode === "resume", "Ein vorbereiteter Weekly muss mode=resume ausgeben.");
   assert(git(["status", "--porcelain"]) === preparedStatus, "Auch ein Resume-Dry-Run darf nichts verändern.");
 
-  git(["add", "config/release.json", "README.md", "CHANGELOG.md", "frontend/app/versorgungs-kompass.js", "dokumentation/release-notes/v0.23.0.md"]);
+  git(["add", "config/release.json", "deploy/helm/versorgungs-kompass/Chart.yaml", "deploy/helm/versorgungs-kompass/values.yaml", "README.md", "CHANGELOG.md", "frontend/app/versorgungs-kompass.js", "dokumentation/release-notes/v0.23.0.md"]);
   git(["commit", "-m", "Wochenrelease 0.23.0 vorbereiten"]);
   const weeklyReleaseCommit = git(["rev-parse", "HEAD"]);
   const committedResume = runGenerator(
@@ -354,6 +358,8 @@ Die bereinigte Baseline ist dokumentiert.
   const hotfixOutput = outputValues("hotfix-output.txt");
   assert(hotfixOutput.mode === "prepare" && hotfixOutput.release_type === "hotfix", "Der Hotfix muss explizit vorbereitet werden.");
   assert(hotfixOutput.version === "0.23.1" && hotfixOutput.tag === "v0.23.1", "Der Hotfix muss Patch um eins erhöhen.");
+  assert(read("deploy/helm/versorgungs-kompass/Chart.yaml").includes("version: 0.23.1\nappVersion: \"0.23.1\""), "Hotfix muss beide Chart-Versionen aktualisieren.");
+  assert(read("deploy/helm/versorgungs-kompass/values.yaml").includes('productVersion: "0.23.1"'), "Hotfix muss die Helm-Values-Version aktualisieren.");
   assert(hotfixOutput.title === "Versorgungs-Kompass 0.23.1 — Release Candidate (Hotfix)", "Der Hotfix-Titel muss dem RC-Vertrag folgen.");
   assert(read("frontend/app/versorgungs-kompass.js") === appBeforeHotfix, "Ein Hotfix darf keinen In-App-Haupteintrag erzeugen.");
   assert(read("CHANGELOG.md").includes("- **Hotfix v0.23.1:** Die Kontaktzuordnung behandelt die Randbedingung jetzt zuverlässig."), "Der Hotfix muss kompakt im laufenden Minor dokumentiert sein.");
@@ -363,7 +369,7 @@ Die bereinigte Baseline ist dokumentiert.
   }
   assert(!hotfixNotes.includes("## Neue und verbesserte Funktionen"), "Hotfix-Notes dürfen kein vollständiges Weekly vortäuschen.");
 
-  git(["add", "config/release.json", "README.md", "CHANGELOG.md", "dokumentation/release-notes/v0.23.1.md"]);
+  git(["add", "config/release.json", "deploy/helm/versorgungs-kompass/Chart.yaml", "deploy/helm/versorgungs-kompass/values.yaml", "README.md", "CHANGELOG.md", "dokumentation/release-notes/v0.23.1.md"]);
   git(["commit", "-m", "Hotfix 0.23.1 vorbereiten"]);
   const hotfixReleaseCommit = git(["rev-parse", "HEAD"]);
   git(["tag", "v0.23.1", hotfixReleaseCommit]);
@@ -380,7 +386,7 @@ Die bereinigte Baseline ist dokumentiert.
   assert(secondHotfixOutput.version === "0.23.2" && secondHotfixOutput.tag === "v0.23.2", "Der zweite Hotfix muss Patch erneut um eins erhöhen.");
   assert(read("frontend/app/versorgungs-kompass.js") === appBeforeSecondHotfix, "Auch der zweite Hotfix darf keinen In-App-Haupteintrag erzeugen.");
   assert(read("CHANGELOG.md").includes("Hotfix v0.23.1") && read("CHANGELOG.md").includes("Hotfix v0.23.2"), "Beide Hotfixes müssen im laufenden Minor dokumentiert sein.");
-  git(["add", "config/release.json", "README.md", "CHANGELOG.md", "dokumentation/release-notes/v0.23.2.md"]);
+  git(["add", "config/release.json", "deploy/helm/versorgungs-kompass/Chart.yaml", "deploy/helm/versorgungs-kompass/values.yaml", "README.md", "CHANGELOG.md", "dokumentation/release-notes/v0.23.2.md"]);
   git(["commit", "-m", "Hotfix 0.23.2 vorbereiten"]);
   const secondHotfixReleaseCommit = git(["rev-parse", "HEAD"]);
   git(["tag", "v0.23.2", secondHotfixReleaseCommit]);
@@ -407,7 +413,7 @@ Die bereinigte Baseline ist dokumentiert.
   assert(read("CHANGELOG.md").includes("### Hotfix v0.23.1") && read("CHANGELOG.md").includes("### Hotfix v0.23.2"), "Beide Hotfixes müssen im neuen Weekly-Changelog als übernommene Änderungen erscheinen.");
   assert(read("frontend/app/versorgungs-kompass.js").includes("Hotfix v0.23.1:") && read("frontend/app/versorgungs-kompass.js").includes("Hotfix v0.23.2:"), "Beide Hotfixes müssen mit dem nächsten Weekly in der In-App-Historie ankommen.");
 
-  git(["add", "config/release.json", "README.md", "CHANGELOG.md", "frontend/app/versorgungs-kompass.js", "dokumentation/release-notes/v0.24.0.md"]);
+  git(["add", "config/release.json", "deploy/helm/versorgungs-kompass/Chart.yaml", "deploy/helm/versorgungs-kompass/values.yaml", "README.md", "CHANGELOG.md", "frontend/app/versorgungs-kompass.js", "dokumentation/release-notes/v0.24.0.md"]);
   git(["commit", "-m", "Wochenrelease 0.24.0 vorbereiten"]);
   git(["tag", "v0.24.0"]);
 

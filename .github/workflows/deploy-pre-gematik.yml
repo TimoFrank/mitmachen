@@ -56,6 +56,7 @@ jobs:
       contents: read
     outputs:
       image_tag: ${{ steps.metadata.outputs.image_tag }}
+      product_version: ${{ steps.metadata.outputs.product_version }}
 
     steps:
       - name: Checkout requested revision
@@ -75,7 +76,11 @@ jobs:
             echo "The image tag is not a valid Docker tag." >&2
             exit 1
           fi
+          product_version="$(jq --exit-status --raw-output \
+            '.productVersion | select(type == "string" and test("^(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)$"))' \
+            config/release.json)"
           echo "image_tag=$image_tag" >> "$GITHUB_OUTPUT"
+          echo "product_version=$product_version" >> "$GITHUB_OUTPUT"
 
       - name: Set up Node.js
         uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
@@ -191,9 +196,14 @@ jobs:
           trap cleanup EXIT
 
           docker build \
+            --build-arg PRODUCT_VERSION="$PRODUCT_VERSION" \
+            --build-arg SOURCE_REVISION="$GITHUB_SHA" \
+            --build-arg SOURCE_URL="${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}" \
             --file deploy/frontend-public/Dockerfile \
             --tag "versorgungs-kompass-public-entry:${IMAGE_TAG}" \
             .
+          [[ "$(docker image inspect "versorgungs-kompass-public-entry:${IMAGE_TAG}" --format '{{ index .Config.Labels "org.opencontainers.image.version" }}')" == "$PRODUCT_VERSION" ]]
+          [[ "$(docker image inspect "versorgungs-kompass-public-entry:${IMAGE_TAG}" --format '{{ index .Config.Labels "org.opencontainers.image.revision" }}')" == "$GITHUB_SHA" ]]
           docker run --detach \
             --name "$container_name" \
             --read-only \
@@ -266,6 +276,7 @@ jobs:
             http://127.0.0.1:18084/public/media/social/mitmachen-share-v3.png)" == "403" ]]
         env:
           IMAGE_TAG: ${{ steps.metadata.outputs.image_tag }}
+          PRODUCT_VERSION: ${{ steps.metadata.outputs.product_version }}
 
       - name: Build and smoke-test API container
         shell: bash
@@ -278,9 +289,14 @@ jobs:
           trap cleanup EXIT
 
           docker build \
+            --build-arg PRODUCT_VERSION="$PRODUCT_VERSION" \
+            --build-arg SOURCE_REVISION="$GITHUB_SHA" \
+            --build-arg SOURCE_URL="${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}" \
             --file api/Dockerfile \
             --tag "${IMAGE_NAME}:${IMAGE_TAG}" \
             .
+          [[ "$(docker image inspect "${IMAGE_NAME}:${IMAGE_TAG}" --format '{{ index .Config.Labels "org.opencontainers.image.version" }}')" == "$PRODUCT_VERSION" ]]
+          [[ "$(docker image inspect "${IMAGE_NAME}:${IMAGE_TAG}" --format '{{ index .Config.Labels "org.opencontainers.image.revision" }}')" == "$GITHUB_SHA" ]]
           docker run --detach \
             --name "$container_name" \
             --read-only \
@@ -307,6 +323,7 @@ jobs:
           exit 1
         env:
           IMAGE_TAG: ${{ steps.metadata.outputs.image_tag }}
+          PRODUCT_VERSION: ${{ steps.metadata.outputs.product_version }}
 
   deploy:
     name: Deploy to GCP Autopilot
@@ -1476,9 +1493,14 @@ jobs:
           file: api/Dockerfile
           push: true
           tags: ${{ steps.config.outputs.image_repository }}:${{ needs.validate.outputs.image_tag }}
+          build-args: |
+            PRODUCT_VERSION=${{ needs.validate.outputs.product_version }}
+            SOURCE_REVISION=${{ github.sha }}
+            SOURCE_URL=${{ github.server_url }}/${{ github.repository }}
           labels: |
             org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
             org.opencontainers.image.revision=${{ github.sha }}
+            org.opencontainers.image.version=${{ needs.validate.outputs.product_version }}
           cache-from: type=gha,scope=pre-gematik-api
           cache-to: type=gha,mode=max,scope=pre-gematik-api
           provenance: mode=max
@@ -1489,6 +1511,7 @@ jobs:
         env:
           IMAGE_REPOSITORY: ${{ steps.config.outputs.image_repository }}
           IMAGE_DIGEST: ${{ steps.build.outputs.digest }}
+          PRODUCT_VERSION: ${{ needs.validate.outputs.product_version }}
         run: |
           set -euo pipefail
           if [[ ! "$IMAGE_DIGEST" =~ ^sha256:[0-9a-f]{64}$ ]]; then
@@ -1500,6 +1523,9 @@ jobs:
           mkdir -p "$scan_dir/trivy-cache"
           image_ref="${IMAGE_REPOSITORY}@${IMAGE_DIGEST}"
           docker pull "$image_ref"
+          [[ "$(docker image inspect "$image_ref" --format '{{ index .Config.Labels "org.opencontainers.image.version" }}')" == "$PRODUCT_VERSION" ]]
+          [[ "$(docker image inspect "$image_ref" --format '{{ index .Config.Labels "org.opencontainers.image.revision" }}')" == "$GITHUB_SHA" ]]
+          [[ "$(docker image inspect "$image_ref" --format '{{ index .Config.Labels "org.opencontainers.image.source" }}')" == "${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}" ]]
           docker image save --output "$scan_dir/api-image.tar" "$image_ref"
           docker run --rm \
             --cap-drop=ALL \
@@ -1523,6 +1549,7 @@ jobs:
         env:
           FRONTEND_RELEASE_ID: ${{ needs.validate.outputs.image_tag }}
           API_IMAGE_DIGEST: ${{ steps.build.outputs.digest }}
+          PRODUCT_VERSION: ${{ needs.validate.outputs.product_version }}
         run: |
           set -euo pipefail
           npm ci --prefix frontend/identity-portal
@@ -1569,6 +1596,7 @@ jobs:
           jq --null-input \
             --arg schema_version "1" \
             --arg release_id "$FRONTEND_RELEASE_ID" \
+            --arg product_version "$PRODUCT_VERSION" \
             --arg source_revision "$GITHUB_SHA" \
             --arg source_repository "$GITHUB_REPOSITORY" \
             --arg artifact_uri "$release_uri" \
@@ -1577,6 +1605,7 @@ jobs:
             '{
               schemaVersion: ($schema_version | tonumber),
               releaseId: $release_id,
+              productVersion: $product_version,
               sourceRevision: $source_revision,
               sourceRepository: $source_repository,
               artifactUri: $artifact_uri,
@@ -1604,9 +1633,14 @@ jobs:
           file: deploy/frontend-public/Dockerfile
           push: true
           tags: ${{ steps.config.outputs.public_image_repository }}:${{ needs.validate.outputs.image_tag }}
+          build-args: |
+            PRODUCT_VERSION=${{ needs.validate.outputs.product_version }}
+            SOURCE_REVISION=${{ github.sha }}
+            SOURCE_URL=${{ github.server_url }}/${{ github.repository }}
           labels: |
             org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
             org.opencontainers.image.revision=${{ github.sha }}
+            org.opencontainers.image.version=${{ needs.validate.outputs.product_version }}
           cache-from: type=gha,scope=pre-gematik-public-entry
           cache-to: type=gha,mode=max,scope=pre-gematik-public-entry
           provenance: mode=max
@@ -1617,6 +1651,7 @@ jobs:
         env:
           PUBLIC_IMAGE_REPOSITORY: ${{ steps.config.outputs.public_image_repository }}
           PUBLIC_IMAGE_DIGEST: ${{ steps.public-build.outputs.digest }}
+          PRODUCT_VERSION: ${{ needs.validate.outputs.product_version }}
         run: |
           set -euo pipefail
           if [[ ! "$PUBLIC_IMAGE_DIGEST" =~ ^sha256:[0-9a-f]{64}$ ]]; then
@@ -1635,6 +1670,9 @@ jobs:
           mkdir -p "$scan_dir/trivy-cache"
           public_image_ref="${PUBLIC_IMAGE_REPOSITORY}@${PUBLIC_IMAGE_DIGEST}"
           docker pull "$public_image_ref"
+          [[ "$(docker image inspect "$public_image_ref" --format '{{ index .Config.Labels "org.opencontainers.image.version" }}')" == "$PRODUCT_VERSION" ]]
+          [[ "$(docker image inspect "$public_image_ref" --format '{{ index .Config.Labels "org.opencontainers.image.revision" }}')" == "$GITHUB_SHA" ]]
+          [[ "$(docker image inspect "$public_image_ref" --format '{{ index .Config.Labels "org.opencontainers.image.source" }}')" == "${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}" ]]
           docker image save --output "$scan_dir/public-entry-image.tar" "$public_image_ref"
           docker run --rm \
             --cap-drop=ALL \

@@ -29,6 +29,11 @@ Stand: 2026-08-04.
   (anonym/synthetisch), privates GKE (`pre-gematik`, IAP/GCP) und
   gematik-Target (`target`, OIDC/Software Factory). Gleiche Version bedeutet
   gleiche Quelle, nicht baugleiche oder gegenseitig promotierbare Artefakte.
+- `config/release.json.productVersion` wird fail-closed in die vierteiligen
+  Frontend-Build-Manifeste, die CycloneDX-Frontend-SBOM, alle drei
+  Helm-Versionsfelder und die OCI-Metadaten der Anwendungsimages projiziert.
+  Image-Digests und kanalspezifische Deployment-Manifeste bleiben zusätzliche,
+  getrennte Identitäten.
 - Das interne `target`-Profil baut mit `TARGET_AUTH_MODE=oidc` providerneutral und ohne GCP Identity Portal oder dessen Abhängigkeiten. Der getrennte `pre-gematik`-Pfad behält für `auth-mode=iap` sein eigenes Portal und die vollständigen GCP-/IAP-Regressionen.
 - `npm run check:poc-rc` verwendet den OIDC-only-Artefaktvertrag und ist nach einem Root-`npm ci` ausführbar. Der vollständige Deployment-Trennungstest benötigt zusätzlich `npm ci --prefix frontend/identity-portal`, weil er auch den getrennten IAP-Referenzpfad prüft.
 - `main` und die GitHub-Pages-Demo dürfen nach der RC-Bildung weiterlaufen.

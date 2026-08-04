@@ -18,6 +18,9 @@ COPY --chown=101:101 dist/target/public/auth/brand/versorgungs-kompass.svg /usr/
 COPY --chown=101:101 dist/target/public/media/social/mitmachen-share-v3.png /usr/share/nginx/html/public/media/social/mitmachen-share-v3.png
 COPY --chown=101:101 deploy/helm/versorgungs-kompass/files/frontend-public.conf /etc/nginx/conf.d/default.conf
 
+ARG PRODUCT_VERSION
+ARG SOURCE_REVISION
+ARG SOURCE_URL
 RUN test "$(find /usr/share/nginx/html -mindepth 1 -maxdepth 1 -type f | wc -l | tr -d ' ')" = "1" \
     && test "$(find /usr/share/nginx/html -type f | wc -l | tr -d ' ')" = "10" \
     && test "$(find /usr/share/nginx/html/public/auth -type f | wc -l | tr -d ' ')" = "8" \
@@ -31,7 +34,17 @@ RUN test "$(find /usr/share/nginx/html -mindepth 1 -maxdepth 1 -type f | wc -l |
     && grep -Fq 'enableLocalPreview: false' /usr/share/nginx/html/public/auth/portal-config.js \
     && ! grep -R -Fq 'REPLACE_WITH_' /usr/share/nginx/html/public/auth \
     && nginx -t \
-    && chown 101:101 /tmp/nginx.pid
+    && chown 101:101 /tmp/nginx.pid \
+    && printf '%s' "$PRODUCT_VERSION" | grep -Eq '^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$' \
+    && printf '%s' "$SOURCE_REVISION" | grep -Eq '^[0-9a-fA-F]{40,64}$' \
+    && printf '%s' "$SOURCE_URL" | grep -Eq '^https://[A-Za-z0-9.-]+(:[0-9]{1,5})?(/[A-Za-z0-9._~%+-]+)+$'
+
+LABEL org.opencontainers.image.title="Versorgungs-Kompass Public Entry" \
+      org.opencontainers.image.description="Oeffentlicher IAP-Einstieg des privaten pre-gematik-Kanals" \
+      org.opencontainers.image.licenses="Apache-2.0" \
+      org.opencontainers.image.source="$SOURCE_URL" \
+      org.opencontainers.image.revision="$SOURCE_REVISION" \
+      org.opencontainers.image.version="$PRODUCT_VERSION"
 
 USER 101:101
 

@@ -13,6 +13,7 @@ const apiImageLocalDigest = `sha256:${"e".repeat(64)}`;
 const apiImageConfigDigest = `sha256:${"d".repeat(64)}`;
 const apiImagePlatformManifestDigest = `sha256:${"f".repeat(64)}`;
 const frontendArtifactDigest = `sha256:${"c".repeat(64)}`;
+const productVersion = JSON.parse(readFileSync(path.join(process.cwd(), "config/release.json"), "utf8")).productVersion;
 
 function writeJson(name, value) {
   writeFileSync(path.join(reportDir, name), `${JSON.stringify(value, null, 2)}\n`);
@@ -109,20 +110,32 @@ try {
       component: {
         type: "application",
         name: "versorgungs-kompass-frontend",
+        version: productVersion,
         hashes: [{ alg: "SHA-256", content: frontendArtifactDigest.slice("sha256:".length) }],
-        properties: [{
-          name: "versorgungs-kompass:frontend-artifact-digest",
-          value: frontendArtifactDigest
-        }]
+        properties: [
+          { name: "versorgungs-kompass:product-version", value: productVersion },
+          { name: "versorgungs-kompass:build-profile", value: "target" },
+          { name: "versorgungs-kompass:source-revision", value: "a".repeat(40) },
+          {
+            name: "versorgungs-kompass:frontend-artifact-digest",
+            value: frontendArtifactDigest
+          }
+        ]
       }
     },
     components: [{ type: "library", name: "leaflet", version: "1.9.4" }]
   });
-  writeFileSync(frontendManifest, `${JSON.stringify({ artifactDigest: frontendArtifactDigest })}\n`);
+  writeFileSync(frontendManifest, `${JSON.stringify({
+    profile: "target",
+    productVersion,
+    revision: "a".repeat(40),
+    artifactDigest: frontendArtifactDigest
+  })}\n`);
 
   const evidence = generate();
   assert.equal(evidence.summary.status, "precheck-passed");
   assert.equal(evidence.summary.localPassed, 7);
+  assert.equal(evidence.subject.productVersion, productVersion);
   assert.equal(evidence.externalGates.every((gate) => gate.status === "not-run"), true);
   assert.throws(() => generate({ requireExternalGates: true }), /Zentrales Software-Factory-Gate fehlt/u);
 
@@ -132,6 +145,24 @@ try {
   });
   assert.throws(() => generate(), /Bindungsnachweis gehört nicht vollständig/u);
   writeJson("api-image-binding.json", apiImageBinding);
+
+  const validFrontendSbom = readFileSync(path.join(reportDir, "frontend-sbom.cdx.json"), "utf8");
+  const wrongVersionSbom = JSON.parse(validFrontendSbom);
+  wrongVersionSbom.metadata.component.version = "999.0.0";
+  writeJson("frontend-sbom.cdx.json", wrongVersionSbom);
+  assert.throws(() => generate(), /Frontend-SBOM gehört nicht zur zentralen Produktversion/u);
+  writeFileSync(path.join(reportDir, "frontend-sbom.cdx.json"), validFrontendSbom);
+
+  for (const [propertyName, value] of [
+    ["versorgungs-kompass:build-profile", "pages"],
+    ["versorgungs-kompass:source-revision", "b".repeat(40)]
+  ]) {
+    const wrongBindingSbom = JSON.parse(validFrontendSbom);
+    wrongBindingSbom.metadata.component.properties.find((property) => property.name === propertyName).value = value;
+    writeJson("frontend-sbom.cdx.json", wrongBindingSbom);
+    assert.throws(() => generate(), /Frontend-SBOM gehört nicht zum Buildprofil und zur Quellrevision/u);
+  }
+  writeFileSync(path.join(reportDir, "frontend-sbom.cdx.json"), validFrontendSbom);
 
   writeJson("trivy-image.json", {});
   assert.throws(() => generate(), /erwartete Trivy-Format/u);

@@ -356,6 +356,7 @@ requirePattern(
 requirePattern(weeklyFile, weekly, /gh\s+pr\s+checks[\s\S]*?--required[\s\S]*?--watch[\s\S]*?autoMergeRequest/, "Weekly Release muss alle erforderlichen Checks abwarten und vorhandenes Auto-Merge ausschliessen.");
 requirePattern(weeklyFile, weekly, /merge_payload=.*[\s\S]*?\{sha:\s*\$sha,\s*merge_method:\s*"squash"[\s\S]*?gh\s+api[\s\S]*?--method\s+PUT[\s\S]*?pulls\/\$\{PR_NUMBER\}\/merge/, "Weekly Release muss den geprueften Head atomar per REST-Squash binden.");
 requirePattern(weeklyFile, weekly, /add-paths:\s*\|[\s\S]*?config\/release\.json/, "Die zentrale Produktversion muss Bestandteil des Weekly-Release-PR sein.");
+requirePattern(weeklyFile, weekly, /add-paths:[\s\S]*deploy\/helm\/versorgungs-kompass\/Chart\.yaml[\s\S]*deploy\/helm\/versorgungs-kompass\/values\.yaml/, "Weekly Release muss die Helm-Versionsprojektion vollständig committen.");
 requirePattern(weeklyFile, weekly, /uses:\s*\.\/\.github\/workflows\/publish-release\.yml[\s\S]*?release_type:\s*weekly/, "Weekly Release muss den gemeinsamen Publish-Vertrag mit Typ weekly verwenden.");
 
 const hotfixFile = ".github/workflows/hotfix-release.yml";
@@ -379,6 +380,7 @@ forbidPattern(hotfixFile, hotfixReadinessSection, /actions\/checkout|actions\/se
 requirePattern(hotfixFile, hotfix, /prepare-release:[\s\S]*?needs:[\s\S]*?-\s+signing-readiness[\s\S]*?if:\s*needs\.release-gate\.outputs\.may_publish\s*==\s*'true'/, "Die Hotfix-Vorbereitung darf erst nach Publish-Gate und Signing-Bereitschaft starten.");
 requirePattern(hotfixFile, hotfix, /git\s+diff\s+--exit-code\s+--\s+frontend\/app\/versorgungs-kompass\.js/, "Ein Hotfix darf den In-App-Changelog nicht veraendern.");
 requirePattern(hotfixFile, hotfix, /add-paths:\s*\|[\s\S]*?config\/release\.json/, "Die zentrale Produktversion muss Bestandteil des Hotfix-PR sein.");
+requirePattern(hotfixFile, hotfix, /add-paths:[\s\S]*deploy\/helm\/versorgungs-kompass\/Chart\.yaml[\s\S]*deploy\/helm\/versorgungs-kompass\/values\.yaml/, "Hotfix Release muss die Helm-Versionsprojektion vollständig committen.");
 requirePattern(
   hotfixFile,
   hotfix,

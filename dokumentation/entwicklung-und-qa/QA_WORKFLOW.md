@@ -51,8 +51,9 @@ npm run check:deployment-governance
 ```
 
 Die Tests decken zentrale Version, No-change-Skip, Wochen-/Hotfix-Projektion,
-deterministische Pflichtartefakte, signierte Tagobjekte und den statischen
-Workflowvertrag ab. Vor Aktivierung eines echten Releases folgen außerdem ein
+Build-Manifest, SBOM, Helm- und OCI-Metadaten, deterministische
+Pflichtartefakte, signierte Tagobjekte und den statischen Workflowvertrag ab.
+Vor Aktivierung eines echten Releases folgen außerdem ein
 Planlauf ohne Schreibzugriff, ein isolierter Signaturtest ohne Push und der
 vollständige kontrollierte Dry-Run. Ein Pages-Nachweis ersetzt weder privaten
 GKE- noch gematik-Target-Nachweis.

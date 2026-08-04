@@ -103,9 +103,9 @@ Artefaktsignatur; die Git-Tag-Signatur ersetzt diese nicht.
    erfolgreich ohne Schreibzugriff.
 2. Der Generator berechnet genau eine neue Version und erstellt die zum Anlass
    passenden Release-Unterlagen.
-3. Ein Release-PR aktualisiert zentrale Produktversion, Changelog, Release
-   Notes und – nur beim Wochenrelease – In-App-Historie. Repository- und
-   Browserprüfungen laufen auf seinem exakten Head-Commit.
+3. Ein Release-PR aktualisiert zentrale Produktversion, Helm-Projektion,
+   Changelog, Release Notes und – nur beim Wochenrelease – In-App-Historie.
+   Repository- und Browserprüfungen laufen auf seinem exakten Head-Commit.
 4. Der geprüfte PR wird nach `main` integriert. Eine Änderung von `main`
    zwischen Planung und Merge bricht den Lauf fail-closed ab.
 5. Auf dem nachgewiesenen Merge-Commit wird genau ein signierter, annotierter
@@ -144,6 +144,12 @@ oder Echtdaten-Artefakte werden nicht an den öffentlichen GitHub Release
 angehängt. GitHub Packages ist deshalb kein Pflichtbestandteil dieses
 Produkt-Release-Kanals; eine spätere Container-Registry-Entscheidung bleibt ein
 eigener Infrastrukturvertrag.
+
+Die zentrale Produktversion wird zusätzlich in Build-Manifest, Frontend-SBOM,
+Helm-Chart und OCI-Metadaten der Anwendungsimages projiziert. Diese gemeinsame
+Kennung belegt die Quelle, nicht die Baugleichheit der Kanäle. Pages-, private
+GKE- und Target-Artefakte werden weiterhin getrennt gebaut und nie
+kanalübergreifend promotet.
 
 ## Freigabe von `v1.0.0`
 
@@ -195,6 +201,13 @@ Die Tags `v0.21.0`, `v0.22.0` sowie `poc-v0.1.0-rc.2` bis
 nachsigniert oder neu auf einen anderen Commit gelegt. Ihr historischer
 Signaturstatus ist kein Muster für neue Tags. Die neue Regel beginnt mit
 `v0.23.0`.
+
+Bis zur gesonderten Migration der Target-Pipeline behandelt die bestehende
+Jenkins-Referenzprüfung einen solchen `poc-v…-rc.N`-Tag ausschließlich als
+unveränderliche Deployment-Referenz. Die Produktversion wird auch dort allein
+aus `config/release.json` in Helm und Images projiziert; die Pipeline erzeugt
+keinen neuen Legacy-Tag. Die Umstellung dieser Autorisierung auf signierte
+`vX.Y.Z`-Tags bleibt Teil des eigenen Target-/GitLab-Schritts.
 
 ## Temporäre Freitags-Sperre
 

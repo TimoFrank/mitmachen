@@ -8,7 +8,10 @@ import {
   releaseTitle,
   validateReleaseConfig
 } from "./lib/release_policy.mjs";
-import { validateProductVersionProjection } from "./lib/release_projection.mjs";
+import {
+  validateHelmProductVersionProjection,
+  validateProductVersionProjection
+} from "./lib/release_projection.mjs";
 
 const gitFileMaxBuffer = 64 * 1024 * 1024;
 
@@ -302,6 +305,8 @@ const appSource = readAt(commitSha, "frontend/app/versorgungs-kompass.js");
 const changelog = readAt(commitSha, "CHANGELOG.md");
 const readme = readAt(commitSha, "README.md");
 const notes = readAt(commitSha, notesPath);
+const helmChart = readAt(commitSha, "deploy/helm/versorgungs-kompass/Chart.yaml");
+const helmValues = readAt(commitSha, "deploy/helm/versorgungs-kompass/values.yaml");
 const projectionFailures = validateProductVersionProjection({
   productVersion: version,
   readme,
@@ -309,6 +314,11 @@ const projectionFailures = validateProductVersionProjection({
   appHistory: appSource,
   releaseNotesExists: true
 });
+projectionFailures.push(...validateHelmProductVersionProjection({
+  productVersion: version,
+  chart: helmChart,
+  values: helmValues
+}));
 if (projectionFailures.length) {
   throw new Error(`Unvollständige Produktversionsprojektion für ${version}:\n- ${projectionFailures.join("\n- ")}`);
 }
@@ -342,8 +352,19 @@ assertDocumentationConsistency({
 if (artifactRoot) {
   const manifestPath = path.join(artifactRoot, "build-manifest.json");
   if (!existsSync(manifestPath)) throw new Error(`Build-Manifest fehlt: ${manifestPath}`);
-  const manifest = JSON.parse(read(manifestPath));
+  let manifest;
+  try {
+    manifest = JSON.parse(read(manifestPath));
+  } catch (error) {
+    throw new Error(`Build-Manifest ist kein gültiges JSON (${error.message}).`);
+  }
+  if (JSON.stringify(Object.keys(manifest || {}).sort()) !== JSON.stringify(["artifactDigest", "productVersion", "profile", "revision"])) {
+    throw new Error("Build-Manifest entspricht nicht dem geschlossenen Versionsvertrag.");
+  }
   if (manifest.profile !== "pages") throw new Error("Release-Artefakt verwendet nicht das Pages-Profil.");
+  if (manifest.productVersion !== version) {
+    throw new Error(`Build-Manifest referenziert Produktversion ${manifest.productVersion} statt ${version}.`);
+  }
   if (manifest.revision !== commitSha) {
     throw new Error(`Build-Manifest referenziert ${manifest.revision} statt ${commitSha}.`);
   }
