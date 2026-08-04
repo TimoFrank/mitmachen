@@ -77,6 +77,21 @@ Objekte unter `prepared/` und `active/` anlegen, lesen und löschen; List-,
 Update- und Restore-Rechte fehlen. Projekt-Owner-, IAP- oder Gruppenstatus
 erteilen keinen impliziten Einladungszugriff.
 
+Die autoritative Bucket-Policy bindet zusätzlich ausschließlich die namentlich
+bestätigten `PASSWORD_INVITATION_POLICY_ADMIN_MEMBERS` an eine getrennte
+Policy-Admin-Rolle. Sie darf diesen einen Bucket und seine IAM-Policy lesen
+sowie die Policy ersetzen, besitzt aber keine direkten Rechte auf
+Einladungsobjekte. `storage.buckets.setIamPolicy` kann mittelbar neue
+Objektrechte vergeben und ist deshalb eine vertrauenswürdige
+Infrastruktur-Autorität. Diese sicherheitskritische Liste bleibt minimal und
+vom GitHub-Deployer getrennt. Policy-Admin- und Operatorrolle bleiben technisch
+getrennt; im dokumentierten Einpersonen-Pilot darf dieselbe namentliche Person
+in beiden Listen stehen. Sie bündelt damit direkte Operatorrechte und die
+mittelbare Policy-Eskalationsmacht und muss als besonders privilegierter
+Principal geprüft werden. Die Bindung verhindert, dass sich der ausführende
+Infrastruktur-Administrator beim kontrollierten Ersetzen der Policy bereits vor
+dem abschließenden Readback selbst aussperrt.
+
 Der GitHub-Deployer erhält keine direkten GCS-Objektrechte auf diesem Bucket.
 Die für Deployment-Preflights erforderlichen Bucket-Metadaten liest er
 ausschließlich über die getrennte, projektweite Verifier-Rolle. Als
@@ -166,7 +181,89 @@ terraform plan -out=pre-gematik.tfplan
 terraform apply pre-gematik.tfplan
 ```
 
-Vor `apply` die Zielwerte in `terraform.tfvars.example` prüfen und als lokale `terraform.tfvars` übernehmen. Insbesondere muss die private Google Group bereits existieren und für IAM sichtbar sein. Sie steht nicht in `IAP_ACCESS_MEMBERS`, sondern wird später vom Workflow an die beiden konkreten Backend Services gebunden. Jeder menschliche Einladungsoperator muss zusätzlich und namentlich in `PASSWORD_INVITATION_OPERATOR_MEMBERS` stehen; diese Liste darf weder aus Projekt-Ownern noch aus IAP-Mitgliedschaften abgeleitet werden. `terraform.tfvars`, Plan-Dateien, State, der reale State-Bucket-Name und lokale Credentials bleiben außerhalb von Git. Das eingecheckte `backend.tf` enthält nur das stabile State-Präfix.
+Vor `apply` die Zielwerte in `terraform.tfvars.example` prüfen und als lokale `terraform.tfvars` übernehmen. Insbesondere muss die private Google Group bereits existieren und für IAM sichtbar sein. Sie steht nicht in `IAP_ACCESS_MEMBERS`, sondern wird später vom Workflow an die beiden konkreten Backend Services gebunden. Jeder menschliche Einladungsoperator muss zusätzlich und namentlich in `PASSWORD_INVITATION_OPERATOR_MEMBERS` stehen; diese Liste darf weder aus Projekt-Ownern noch aus IAP-Mitgliedschaften abgeleitet werden. Das ausführende Infrastrukturkonto muss über die getrennte Rolle namentlich in `PASSWORD_INVITATION_POLICY_ADMIN_MEMBERS` stehen; diese Rolle liest nur diesen Bucket und dessen Policy und darf die Policy ersetzen, erhält aber keine direkten Objektrechte. Weil sie über Policy-Änderungen mittelbar Objektrechte vergeben kann, bleibt sie eine streng begrenzte vertrauenswürdige Infrastruktur-Autorität. Im Einpersonen-Pilot ist eine bewusst dokumentierte Überschneidung der beiden Nutzerlisten erlaubt; der gemeinsame Principal trägt dann beide Berechtigungsklassen. `terraform.tfvars`, Plan-Dateien, State, der reale State-Bucket-Name und lokale Credentials bleiben außerhalb von Git. Das eingecheckte `backend.tf` enthält nur das stabile State-Präfix.
+
+### Einmaliger Bootstrap einer bestehenden autoritativen Einladungs-Policy
+
+Wurde die Bucket-Policy bereits ohne Policy-Admin-Bindung angewendet, kann ein
+erfolgreiches `setIamPolicy` dem ausführenden Konto den anschließenden Readback
+entziehen. Ein bloßes `terraform untaint` reicht dann nicht. Der Bootstrap
+verwendet dieselbe neue Custom Role, aber vorübergehend als konditionierte
+Projektbindung auf exakt diesen Bucket und maximal 90 Minuten:
+
+1. Die Custom Role isoliert und ohne State-Refresh planen und anwenden:
+
+   ```bash
+   terraform plan -refresh=false \
+     -target=google_project_iam_custom_role.password_invitation_policy_admin \
+     -out=password-invitation-policy-admin-bootstrap.tfplan
+   terraform apply password-invitation-policy-admin-bootstrap.tfplan
+   ```
+
+2. Einen kanonischen UTC-Ablaufzeitpunkt in maximal 90 Minuten festlegen und
+   dieselbe Role vorübergehend auf Projektebene binden. Die vollständige
+   Condition muss für die spätere Entfernung unverändert aufbewahrt werden:
+
+   ```bash
+   gcloud projects add-iam-policy-binding <GCP_PROJECT_ID> \
+     --member='user:<POLICY_ADMIN_EMAIL>' \
+     --role='projects/<GCP_PROJECT_ID>/roles/preGematikPasswordInvitationPolicyAdmin' \
+     --condition='expression=resource.name == "projects/_/buckets/<PASSWORD_INVITATION_BUCKET>" && request.time < timestamp("<UTC-ABLAUF-IN-MAXIMAL-90-MINUTEN>"),title=temporary_password_invitation_policy_recovery,description=Expires automatically and is removed after recovery'
+   ```
+
+3. Bucket und Live-Policy direkt lesen, den versionierten Remote-State sichern
+   und erst nach dem nachgewiesenen erfolgreichen früheren Policy-Write den
+   falschen Taint entfernen:
+
+   ```bash
+   gcloud storage buckets describe gs://<PASSWORD_INVITATION_BUCKET>
+   gcloud storage buckets get-iam-policy \
+     gs://<PASSWORD_INVITATION_BUCKET> --format=json
+   terraform state pull > /owner-only/terraform-state-before-invitation-recovery.json
+   terraform untaint google_storage_bucket_iam_policy.password_invitation
+   ```
+
+4. Einen vollständig frischen Plan mit der dauerhaften, unbedingten
+   Bucket-Level-Bindung erstellen. Ein alter gespeicherter Plan darf nicht
+   wiederverwendet werden. Der Plan darf weder Bucket-Zerstörung noch neue
+   direkte Objektberechtigungen für Policy-Admin oder GitHub-Deployer enthalten.
+   Erst nach dieser Prüfung den frischen Plan anwenden. Solange die temporäre
+   Projektbindung noch besteht, müssen anschließend der untainted State und die
+   dauerhafte Bucket-Level-Admin-Bindung im direkten Live-Readback nachgewiesen
+   werden:
+
+   ```bash
+   terraform plan -out=password-invitation-policy-recovery.tfplan
+   terraform show password-invitation-policy-recovery.tfplan
+   terraform apply password-invitation-policy-recovery.tfplan
+   terraform state show google_storage_bucket_iam_policy.password_invitation
+   gcloud storage buckets get-iam-policy \
+     gs://<PASSWORD_INVITATION_BUCKET> --format=json
+   ```
+
+   Der State darf nicht mehr `tainted` sein; die Live-Policy muss Broker,
+   Operator und den erwarteten Policy-Admin enthalten. Fehlt einer dieser
+   Nachweise, bleibt die temporäre Bindung bis zur fail-closed Klärung bestehen
+   und Schritt 5 darf nicht ausgeführt werden.
+
+5. Die temporäre Projektbindung sofort mit exakt derselben Condition entfernen:
+
+   ```bash
+   gcloud projects remove-iam-policy-binding <GCP_PROJECT_ID> \
+     --member='user:<POLICY_ADMIN_EMAIL>' \
+     --role='projects/<GCP_PROJECT_ID>/roles/preGematikPasswordInvitationPolicyAdmin' \
+     --condition='expression=resource.name == "projects/_/buckets/<PASSWORD_INVITATION_BUCKET>" && request.time < timestamp("<UTC-ABLAUF-IN-MAXIMAL-90-MINUTEN>"),title=temporary_password_invitation_policy_recovery,description=Expires automatically and is removed after recovery'
+   ```
+
+6. Bucket-Metadaten und IAM-Policy erneut direkt lesen. Nur wenn der Zugriff
+   nach Entfernung der Projektbindung bestehen bleibt, trägt die dauerhafte
+   Bucket-Bindung den Terraform-Readback. Cloud Asset Inventory muss danach
+   ausschließlich Broker, Operator und Policy-Admin ausweisen.
+
+Bei einer späteren Rotation der Policy-Admins muss mindestens der ausführende
+Principal bis nach dem erfolgreichen Policy-Readback in der finalen Liste
+verbleiben. Erst danach darf seine alte Bindung in einem weiteren geprüften
+Apply entfernt werden; sonst entsteht derselbe Selbstausschluss erneut.
 
 Vor dem Public-Entry-Cutover muss dieser Terraform-Stand erneut angewendet sein: Er ergänzt beim bereits ausgerollten Deployer die rein lesende Berechtigung `compute.urlMaps.get` und die separate, auf den Cutover begrenzte Rolle mit `compute.backendServices.update` sowie `compute.healthChecks.useReadOnly`. Der Anwendungs-Workflow prüft die URL-Map-Berechtigung anhand der bestehenden GKE URL Map, bevor Phase A den Ingress verändert. Die Update-Berechtigung wird ausschließlich dafür verwendet, IAP am bereits eindeutig aufgelösten Public-Backend zu deaktivieren; `compute.healthChecks.useReadOnly` erlaubt dabei nur, den bereits gebundenen Health Check unverändert weiterzuverwenden. `gcloud --iap=disabled` erhält den vorhandenen Custom-OAuth-Client. Ein bloßer App-Workflow-Lauf ersetzt dieses Infrastruktur-Update nicht.
 
@@ -405,6 +502,7 @@ Der aufrufende Workflow kann die Rechte nicht über die im wiederverwendbaren Wo
 - [ ] Der API-Workload-Principal darf nur das benötigte Secret, Cloud SQL und die drei Daten-Buckets verwenden.
 - [ ] Der Passwort-Broker darf im Einladungs-Bucket ausschließlich `active/`-Objekte lesen und löschen; List-, Create-, Update-, Restore-, DB- und Secret-Rechte fehlen.
 - [ ] Ausschließlich die namentlich bestätigten `PASSWORD_INVITATION_OPERATOR_MEMBERS` dürfen unter `prepared/` und `active/` anlegen, lesen und löschen; List-, Update- und Restore-Rechte fehlen.
+- [ ] Ausschließlich die namentlich bestätigten `PASSWORD_INVITATION_POLICY_ADMIN_MEMBERS` dürfen den Einladungs-Bucket und seine IAM-Policy lesen beziehungsweise die Policy ersetzen; direkte Einladungsobjektrechte fehlen und die mittelbare Policy-Eskalationsmacht ist als vertrauenswürdige Infrastruktur-Autorität geprüft. Eine Einpersonen-Überschneidung mit den Operator-Membern ist ausdrücklich dokumentiert und als kombinierte Berechtigung bewertet.
 - [ ] Der Einladungs-Bucket erzwingt UBLA und Public Access Prevention und besitzt weder Versionierung noch Retention oder Soft Delete.
 - [ ] Der getrennte Frontend-Workload-Principal darf nur das statische Artefakt aus dem Frontend-Bucket lesen.
 - [ ] Die Public-Entry-KSA besitzt keine Cloud-IAM-Bindung; der Public-Pod hat `egress: []` und verwendet ausschließlich das digest-gepinnte Zehn-Dateien-Image.

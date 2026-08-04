@@ -46,6 +46,13 @@ PASSWORD_INVITATION_OPERATOR_MEMBERS = [
   "user:invitation-operator@example.invalid",
 ]
 
+# Separate trusted infrastructure identities that may read and replace this
+# bucket's IAM policy. They have no direct object permissions, but setIamPolicy
+# can change who receives object permissions, so keep this list minimal.
+PASSWORD_INVITATION_POLICY_ADMIN_MEMBERS = [
+  "user:invitation-policy-admin@example.invalid",
+]
+
 # The workflow binds this group only after it has identified the two generated IAP backend services.
 IAP_RESOURCE_ACCESS_PRINCIPAL = "group:pre-gematik-access@example.invalid"
 
