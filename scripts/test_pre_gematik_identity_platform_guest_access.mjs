@@ -15,6 +15,7 @@ import {
   GuestAccessProfileCreationCommitOutcomeUnknownError,
   GuestAccessProfileDisplayNameReconciliationCommitOutcomeUnknownError,
   GuestAccessRevocationCommitOutcomeUnknownError,
+  assertFreshGcpOnlineOnboardingGate,
   buildIdentityPlatformGuestPreBindingPlan,
   buildIdentityPlatformGuestProfileCreationPlan,
   buildIdentityPlatformGuestProfileDisplayNameReconciliationPlan,
@@ -33,7 +34,10 @@ import {
   verifyIdentityPlatformPasswordGuest
 } from "./provision_pre_gematik_identity_platform_guest_access.mjs";
 import { createIdentityToolkitAdminClient } from "./provision_pre_gematik_identity_platform_account.mjs";
-import { SafeCliError } from "./provision_iap_identity_bindings.mjs";
+import {
+  SafeCliError,
+  identityTargetFingerprint
+} from "./provision_iap_identity_bindings.mjs";
 
 const projectRoot = new URL("../", import.meta.url);
 const operatorSource = await fs.readFile(
@@ -68,6 +72,24 @@ const documentValue = {
   role: "editor",
   scope_ref: "external-pilot:test-timo"
 };
+
+const onlineOnboardingGate = Object.freeze({
+  ok: true,
+  fingerprint: `sha256:${"d".repeat(64)}`,
+  gatePolicy: "online-guest-onboarding",
+  backupPosture: Object.freeze({
+    automatedBackups: true,
+    pointInTimeRecovery: true,
+    transactionLogRetentionDays: 7,
+    retainedBackups: 14,
+    retentionUnit: "COUNT",
+    latestSuccessfulAutomatedBackupId: "20300615110000",
+    latestSuccessfulAutomatedBackupEndTime: "2030-06-15T11:15:00.000Z"
+  }),
+  targetDatabase: Object.freeze({
+    connectionName: "pilot-project-123:example-region1:example-private-postgres"
+  })
+});
 const document = validateIdentityPlatformGuestAccessDocument(documentValue);
 const fingerprint = identityPlatformGuestAccessFingerprint(document);
 const subject =
@@ -730,11 +752,13 @@ class MockTransactionalClient {
     bindings = [],
     requests = [],
     database = "versorgungs_kompass",
-    failCommit = false
+    failCommit = false,
+    failBindingInsert = false
   } = {}) {
     this.state = structuredClone({ profiles, bindings, requests });
     this.database = database;
     this.failCommit = failCommit;
+    this.failBindingInsert = failBindingInsert;
     this.calls = [];
     this.snapshot = null;
   }
@@ -794,6 +818,9 @@ class MockTransactionalClient {
       return { rows: [], rowCount: 1 };
     }
     if (normalized.startsWith("insert into public.identity_bindings")) {
+      if (this.failBindingInsert) {
+        throw new Error("simulated binding insert failure");
+      }
       this.state.bindings.push({
         issuer: values[0],
         subject: values[1],
@@ -875,6 +902,7 @@ const newGuestPreview = await executeIdentityPlatformGuestProfileCreationTransac
   fingerprint,
   apply: false,
   verifyIdentity: verifiedIdentityCallback(),
+  onlineOnboardingGate,
   log: (value) => newGuestPreviewLogs.push(value)
 });
 assert.equal(newGuestPreview.action, "create_profile_and_binding");
@@ -884,6 +912,17 @@ assert.equal(newGuestPreviewOutput.operation, GUEST_ACCESS_CREATE_PROFILE_OPERAT
 assert.equal(newGuestPreviewOutput.profile_count, 0);
 assert.equal(newGuestPreviewOutput.binding_count, 0);
 assert.equal(newGuestPreviewOutput.profile_binding_complete, false);
+assert.deepEqual(newGuestPreviewOutput.online_onboarding_gate, {
+  gate_policy: "online-guest-onboarding",
+  gate_fingerprint: onlineOnboardingGate.fingerprint,
+  automated_backups: true,
+  point_in_time_recovery: true,
+  transaction_log_retention_days: 7,
+  retained_backups: 14,
+  retention_unit: "COUNT",
+  latest_successful_automated_backup_id: "20300615110000",
+  latest_successful_automated_backup_end_time: "2030-06-15T11:15:00.000Z"
+});
 
 const newGuestApplyLogs = [];
 const newGuestFinalState = await executeIdentityPlatformGuestProfileCreationTransaction({
@@ -894,6 +933,7 @@ const newGuestFinalState = await executeIdentityPlatformGuestProfileCreationTran
   confirmedCurrentStateFingerprint: newGuestPreview.currentStateFingerprint,
   expectedDatabase: "versorgungs_kompass",
   verifyIdentity: verifiedIdentityCallback(),
+  onlineOnboardingGate,
   log: (value) => newGuestApplyLogs.push(value)
 });
 assert.equal(newGuestFinalState.action, "unchanged");
@@ -1004,6 +1044,40 @@ assert.deepEqual(
 );
 assert.ok(newGuestIdentityDriftClient.calls.some((call) => call.sql === "rollback"));
 assert.ok(!newGuestIdentityDriftClient.calls.some((call) => call.sql === "commit"));
+
+const newGuestBindingInsertFailureClient = new MockTransactionalClient({
+  failBindingInsert: true
+});
+await assert.rejects(
+  () => executeIdentityPlatformGuestProfileCreationTransaction({
+    client: newGuestBindingInsertFailureClient,
+    document,
+    fingerprint,
+    apply: true,
+    confirmedCurrentStateFingerprint: newGuestCreationPlan.currentStateFingerprint,
+    expectedDatabase: "versorgungs_kompass",
+    verifyIdentity: verifiedIdentityCallback(),
+    log: () => {}
+  }),
+  /simulated binding insert failure/u
+);
+assert.deepEqual(
+  newGuestBindingInsertFailureClient.state,
+  { profiles: [], bindings: [], requests: [] },
+  "Ein fehlgeschlagener Binding-INSERT muss das zuvor angelegte Profil zurueckrollen."
+);
+assert.ok(
+  newGuestBindingInsertFailureClient.calls.some(
+    (call) => call.sql.startsWith("insert into public.profiles")
+  )
+);
+assert.ok(
+  newGuestBindingInsertFailureClient.calls.some(
+    (call) => call.sql.startsWith("insert into public.identity_bindings")
+  )
+);
+assert.ok(newGuestBindingInsertFailureClient.calls.some((call) => call.sql === "rollback"));
+assert.ok(!newGuestBindingInsertFailureClient.calls.some((call) => call.sql === "commit"));
 
 const newGuestStalePreviewClient = new MockTransactionalClient();
 await safeRejection(
@@ -1635,6 +1709,124 @@ if (process.platform !== "win32") {
       { repository }
     ),
     /owner-only/u
+  );
+}
+
+const managedTargetUrl =
+  "postgresql://access-admin:private-secret@127.0.0.1:5433/versorgungs_kompass?sslmode=disable";
+const syntheticGateResult = Object.freeze({
+  ok: true,
+  fingerprint: `sha256:${"c".repeat(64)}`,
+  targetDatabase: Object.freeze({
+    connectionName: `${document.project_id}:example-region1:example-private-postgres`
+  })
+});
+const stopAfterGate = new Error("stop after selected GCP gate");
+
+for (const invalidOnlineGate of [
+  syntheticGateResult,
+  { ...syntheticGateResult, gatePolicy: "maintenance-migration" },
+  { ...syntheticGateResult, gatePolicy: "online-guest-onboarding" },
+  {
+    ...syntheticGateResult,
+    gatePolicy: "online-guest-onboarding",
+    backupPosture: {
+      automatedBackups: true,
+      pointInTimeRecovery: false
+    }
+  },
+  {
+    ...syntheticGateResult,
+    gatePolicy: "online-guest-onboarding",
+    backupPosture: {
+      automatedBackups: true,
+      pointInTimeRecovery: true,
+      transactionLogRetentionDays: 7,
+      retainedBackups: 0,
+      retentionUnit: "COUNT",
+      latestSuccessfulAutomatedBackupId: "20300615110000",
+      latestSuccessfulAutomatedBackupEndTime: "2030-06-15T11:15:00.000Z"
+    }
+  }
+]) {
+  await safeRejection(
+    () => assertFreshGcpOnlineOnboardingGate(
+      {},
+      async () => invalidOnlineGate
+    ),
+    /Online-Neunutzeranlage erfordert/u
+  );
+}
+assert.deepEqual(
+  await assertFreshGcpOnlineOnboardingGate(
+    {},
+    async () => ({
+      ...syntheticGateResult,
+      gatePolicy: "online-guest-onboarding",
+      backupPosture: onlineOnboardingGate.backupPosture
+    })
+  ),
+  {
+    ...syntheticGateResult,
+    gatePolicy: "online-guest-onboarding",
+    backupPosture: onlineOnboardingGate.backupPosture
+  }
+);
+
+async function selectedManagedGate(argumentsList) {
+  const calls = { migration: 0, online: 0 };
+  await assert.rejects(
+    identityPlatformGuestAccessMain(
+      argumentsList,
+      {
+        PRE_GEMATIK_ACCESS_REPOSITORY_ROOT: repository,
+        PRE_GEMATIK_ACCESS_EXPECTED_PROJECT_ID: document.project_id,
+        PRE_GEMATIK_ACCESS_ADMIN_DATABASE_URL: managedTargetUrl,
+        PRE_GEMATIK_ACCESS_TARGET_SHA256: identityTargetFingerprint(managedTargetUrl),
+        CLOUD_SQL_AUTH_PROXY_CONNECT_MODE: "private-ip"
+      },
+      {
+        authFactory: async () => ({}),
+        gcpGate: async () => {
+          calls.migration += 1;
+          return syntheticGateResult;
+        },
+        onlineOnboardingGcpGate: async () => {
+          calls.online += 1;
+          return {
+            ...syntheticGateResult,
+            gatePolicy: "online-guest-onboarding",
+            backupPosture: onlineOnboardingGate.backupPosture
+          };
+        },
+        proxyFactory: async () => {
+          throw stopAfterGate;
+        },
+        proxyVerifier: () => {}
+      }
+    ),
+    (error) => error === stopAfterGate
+  );
+  return calls;
+}
+
+assert.deepEqual(
+  await selectedManagedGate([
+    "--input", inputPath,
+    "--create-profile-and-prebind"
+  ]),
+  { migration: 0, online: 1 },
+  "Ausschliesslich die atomare Neunutzeranlage muss das Online-Onboarding-Gate nutzen."
+);
+for (const modeArguments of [
+  [],
+  ["--reconcile-profile-display-name-and-prebind"],
+  ["--revoke"]
+]) {
+  assert.deepEqual(
+    await selectedManagedGate(["--input", inputPath, ...modeArguments]),
+    { migration: 1, online: 0 },
+    "Bestands-, Reconcile- und Revoke-Modi muessen beim Migrationsgate bleiben."
   );
 }
 await fs.rm(temporaryRoot, { recursive: true, force: true });

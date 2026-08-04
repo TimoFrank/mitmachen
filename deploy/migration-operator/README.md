@@ -3,7 +3,10 @@
 Dieser Operator ist der eng begrenzte Ausführungsweg für die Phasen
 `identity-preview`, `identity-apply`, `guest-preview` und `guest-apply` gegen
 die private Cloud-SQL-Instanz von `pre-gematik`. Er läuft als kurzlebiger Job
-im GKE-Netz und ist kein Bestandteil des Anwendungs-Deployments.
+im GKE-Netz und ist kein Bestandteil des Anwendungs-Deployments. Innerhalb der
+Gastphasen existiert genau ein Online-Betriebsfall: die atomare Neunutzeranlage
+mit `GUEST_ACCESS_CREATE_PROFILE_AND_PREBIND=true`. Alle anderen Identity-,
+Gast-, Reconcile- und Remap-Vorgänge bleiben wartungsgebunden.
 
 Datenbank- und Dateiimporte sind abgeschlossen und aus Image, Quellcode,
 Konfiguration und Clustervertrag entfernt. Der Verzeichnisname
@@ -37,16 +40,36 @@ Datenimport.
 
 ## Harte Startbedingungen
 
-Nicht starten beziehungsweise sofort abbrechen, wenn einer dieser Punkte fehlt:
+Für jede Phase sind unabhängig geprüfte Projekt-, Instanz- und
+Proxy-Fingerprints, der kurzlebige Login aus dem geschützten Prepare-Schritt,
+die vollständige owner-only Soll-Datei außerhalb des Git-Worktrees und die
+fachliche Freigabe der erwarteten Änderung Pflicht.
+
+Für `identity-preview`/`identity-apply`, Subject-Remaps, Standard-Prebinding,
+Anzeigename-Reconcile und jeden Widerruf gelten zusätzlich unverändert:
 
 1. geschlossenes Wartungsfenster und gesperrter Anwendungszugriff,
 2. konkretes erfolgreiches Cloud-SQL-Backup unmittelbar vor der Änderung,
-3. unabhängig geprüfte Projekt-, Instanz- und Proxy-Fingerprints,
-4. kurzlebiger Login aus dem jeweils geschützten Prepare-Schritt,
-5. vollständige owner-only Soll-Datei außerhalb des Git-Worktrees,
-6. zwei identische Previews mit identischen Eingabe-, Ist- und
-   Sollzustands-Fingerprints,
-7. fachliche Freigabe der erwarteten Änderungen.
+3. zwei identische Previews mit identischen Eingabe-, Ist- und
+   Sollzustands-Fingerprints sowie
+4. das bisherige GCP-/Cloud-SQL-/Backup-Gate einschließlich
+   `PRE_IMPORT_BACKUP_ID`.
+
+Nur wenn in `guest-preview` und `guest-apply`
+`GUEST_ACCESS_CREATE_PROFILE_AND_PREBIND=true` und gleichzeitig
+`GUEST_ACCESS_RECONCILE_PROFILE_DISPLAY_NAME_AND_PREBIND=false` gesetzt sind,
+wählt der Code automatisch das getrennte Online-Onboarding-Gate. Die
+Anwendung bleibt dabei erreichbar; ein ad-hoc erzeugtes
+`PRE_IMPORT_BACKUP_ID` wird weder verlangt noch als Umgehung ausgewertet. Das
+Online-Gate bestätigt fail-closed das gepinnte Zielprojekt, den laufenden
+Cluster, Namespace, die private laufende Cloud-SQL-Instanz mit PostgreSQL 16,
+aktivierte automatische Backups und Point-in-time Recovery (PITR), positive
+Backup- und Transaktionslog-Aufbewahrung sowie einen höchstens 36 Stunden alten
+erfolgreichen automatischen PostgreSQL-16-Snapshot. Aufbewahrungswerte und
+Recovery-Punkt werden zusammen mit Projekt und Instanz im Gate-Fingerprint
+gebunden; der Proxy-Pin wird getrennt unmittelbar beim Proxy-Start verifiziert.
+Fehlt eine dieser Bedingungen, ist die
+Online-Neunutzeranlage `NO-GO`. Kein anderer Modus darf dieses Gate verwenden.
 
 ## 1. Image und Proxy unveränderlich festlegen
 
@@ -91,10 +114,15 @@ Zielprojekt zugeordnet:
 - `roles/cloudsql.viewer`
 - `roles/cloudsql.client`
 
-`roles/cloudsql.viewer` deckt zugleich die Projekt- und Backup-Leseprüfung ab.
-Nach der Zuordnung muss `npm run check:pre-gematik-migration-gcp` mit derselben
-Identität erfolgreich sein. Es wird weder eine Schlüsseldatei noch ein GSA-Key
-angelegt.
+`roles/cloudsql.viewer` deckt zugleich die Projekt-, Instanz- und
+Backupkonfigurations-Leseprüfung ab. Im wartungsgebundenen Vertrag umfasst sie
+zusätzlich die Prüfung des konkreten Voränderungs-Backups. Dort muss nach der
+Zuordnung `npm run check:pre-gematik-migration-gcp` mit derselben Identität
+erfolgreich sein. Im Online-Neunutzervertrag rufen `guest-preview` und
+`guest-apply` stattdessen automatisch das getrennte Online-Gate auf und
+sind nur nach dessen erfolgreicher Prüfung ausführbar; der
+`check:pre-gematik-migration-gcp`-Befehl wird nicht als Ersatz dafür verwendet.
+Es wird weder eine Schlüsseldatei noch ein GSA-Key angelegt.
 
 Nur während `guest-preview` und `guest-apply` erhält derselbe Principal diese
 beiden zusätzlichen Rollen:
@@ -190,8 +218,16 @@ mit `EXPECTED_TARGET_PROJECT_ID`. Dieser Wert muss zusätzlich exakt
 
 Die phasenminimale `operator.env` enthält Gate, Proxy-Pin, Zielprojekt, Phase,
 Modus und nur bei Apply die bestätigten Gast-Fingerprints. Sie enthält keine
-Identity-Admin- oder anderen phasenfremden Credentials. Zusammengeführt werden
-exakt diese drei Dateien:
+Identity-Admin- oder anderen phasenfremden Credentials. Für Standard-Prebinding
+und Anzeigename-Reconcile gehört das konkrete `PRE_IMPORT_BACKUP_ID` zum Gate.
+Im Online-Neunutzer-Modus bleibt es ungesetzt; dort prüft der automatisch
+ausgewählte Online-Gate stattdessen aktivierte automatische Backups und PITR,
+positive Aufbewahrungswerte und einen aktuellen erfolgreichen automatischen
+Recovery-Punkt. Die geschützte Gastoperator-Ausgabe enthält dazu unter
+`online_onboarding_gate` die Policy, den Gate-Fingerprint, die geprüfte
+Recovery-Posture und den Recovery-Punkt; dieser nicht personenbezogene
+Gate-Nachweis wird zusammen mit den Fachfingerprints gesichert.
+Zusammengeführt werden exakt diese drei Dateien:
 
 ```bash
 kubectl --namespace pre-gematik create secret generic \
@@ -218,11 +254,12 @@ Bestandsprofil aktiv.
 ausschließlich `--create-profile-and-prebind` und leitet für Apply die Operation
 `CREATE_PROFILE_AND_PREBIND_IDENTITY_PLATFORM_PASSWORD_GUEST` ab. Dieser Modus
 ist nur für einen vollständig leeren relevanten Profil- und Binding-Zustand
-zulässig. Mit umgekehrten Werten erlaubt der Operator ausschließlich den
-separat geprüften Anzeigename-Reconcile bei gleicher Profil-ID, E-Mail und Rolle
-sowie noch nicht vorhandenem Binding und Enrollment-Request. Zwei aktive Modi,
-andere Profiländerungen, ein Teilzustand oder ein Moduswechsel zwischen Preview
-und Apply sind `NO-GO`.
+zulässig und ist der einzige Online-Modus. Mit umgekehrten Werten erlaubt der
+Operator ausschließlich den wartungsgebundenen, separat geprüften
+Anzeigename-Reconcile bei gleicher Profil-ID, E-Mail und Rolle sowie noch nicht
+vorhandenem Binding und Enrollment-Request. Zwei aktive Modi, andere
+Profiländerungen, ein Teilzustand oder ein Moduswechsel zwischen Preview und
+Apply sind `NO-GO`.
 
 Bei Apply muss `CONFIRM_GUEST_ACCESS_OPERATION` exakt aus demselben Preview
 übernommen werden. Hinzu kommen
@@ -270,27 +307,53 @@ Der vollständige Rollback-Roster wird vor einem Subject-Remap als unveränderte
 No-op und nach dem Apply zweimal als tatsächlicher Rückweg previewt. Ein
 positiver Remap-Zähler darf nie durch `0` bestätigt werden.
 
-### Guest-Vertrag
+### Wartungsgebundener Guest-Vertrag
 
 1. `guest-preview` zweimal mit demselben `guest-access.json` und demselben
-   Gastmodus ausführen. Eingabe-, Ist- und Soll-Fingerprint, Operation,
-   Ergebnis und Zähler müssen identisch sein.
+   Standard- oder Reconcile-Modus ausführen. Eingabe-, Ist- und
+   Soll-Fingerprint, Operation, Ergebnis und Zähler müssen identisch sein.
 2. `guest-apply` genau einmal mit Operation, Eingabe-Fingerprint und
    Ist-Fingerprint aus diesem Preview ausführen.
 3. Danach ein neues `guest-preview` ausführen. Erwartet werden
    `result=unchanged`, ein vollständiges Profil-Binding und identische Ist- und
-   Soll-Fingerprints. Im Reconcile-Modus muss zusätzlich der Anzeigename passen;
-   im Neunutzer-Modus müssen Profil und Binding vollständig vorliegen.
+   Soll-Fingerprints. Im Reconcile-Modus muss zusätzlich der Anzeigename
+   passen.
 4. Der ausdrücklich bestätigte No-op verwendet in derselben `guest-apply`-Phase
    den neuen Ist-Fingerprint aus Schritt 3. Er muss `result=unchanged` liefern
    und darf weder ein Profil aktualisieren noch ein Binding anlegen. Ein letzter
    Preview bleibt unverändert.
 
-Die Wiederholungen sind bestätigte No-ops nach einem erfolgreichen Readback und
-keine automatischen Retries. Bei unbekanntem Commit-Ausgang oder fehlender
-Evidenz wird Apply nie blind wiederholt. Zuerst ermittelt eine neue
-Preview-Phase den tatsächlichen Zustand. Standardmodus, Anzeigename-Reconcile,
-Neunutzeranlage und Widerruf werden nicht gegeneinander ausgetauscht; der
+### Online-Neunutzervertrag
+
+Nur der Modus `GUEST_ACCESS_CREATE_PROFILE_AND_PREBIND=true` bei gleichzeitig
+deaktiviertem Anzeigename-Reconcile darf bei laufender Anwendung ausgeführt
+werden. Sein Ablauf ist bewusst genau begrenzt:
+
+1. Ein `guest-preview` mit dem owner-only `guest-access.json` und dem
+   Online-Neunutzer-Modus muss `result=create_profile_and_binding`, einen
+   vollständig leeren relevanten Istzustand sowie stabile Eingabe-, Ist- und
+   Soll-Fingerprints melden.
+2. Genau ein fachlich bestätigter `guest-apply` übernimmt Operation,
+   Eingabe-Fingerprint und Ist-Fingerprint aus diesem Preview. Er legt Profil
+   und aktive `test_only`-Bindung in derselben serialisierbaren Transaktion an.
+3. Ein neuer `guest-preview` mit unverändertem Modus muss
+   `result=unchanged`, das vollständige Profil-Binding und identische Ist- und
+   Soll-Fingerprints melden. Erst dieser Readback schließt die Anlage ab und
+   öffnet das Mail-Gate.
+
+Ein zweiter No-op-Apply gehört ausdrücklich nicht zum Online-Vertrag. Die
+laufende Anwendung wird weder gesperrt noch skaliert; konkurrierende
+Onboarding-/Enrollment-Schreibvorgänge werden durch Transaktion, Advisory Lock,
+Fingerprints und Datenbank-Constraints fail-closed serialisiert.
+
+Die Wiederholungen des Wartungsvertrags sind bestätigte No-ops nach einem
+erfolgreichen Readback und keine automatischen Retries. Bei unbekanntem
+Commit-Ausgang oder fehlender Evidenz wird Apply in keinem Modus blind
+wiederholt. Zuerst ermittelt eine neue Preview-Phase den tatsächlichen Zustand;
+im Online-Neunutzervertrag entscheidet ausschließlich dieser vollständige
+Readback über den bereits erreichten Zustand und das weitere Vorgehen.
+Standardmodus, Anzeigename-Reconcile, Neunutzeranlage und Widerruf werden nicht
+gegeneinander ausgetauscht; der
 Operator exponiert `--create-profile-and-prebind` ausschließlich bei explizitem
 `GUEST_ACCESS_CREATE_PROFILE_AND_PREBIND=true` und gleichzeitig deaktiviertem
 Anzeigename-Reconcile. `--revoke` bleibt nicht exponiert.

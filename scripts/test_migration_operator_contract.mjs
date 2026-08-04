@@ -38,6 +38,28 @@ const operatorSource = readFileSync(
 const serviceAccount = readFileSync(new URL("deploy/migration-operator/serviceaccount.yaml", root), "utf8");
 const networkPolicy = readFileSync(new URL("deploy/migration-operator/networkpolicy.yaml", root), "utf8");
 
+const hardStartConditions = operatorRunbook.match(
+  /## Harte Startbedingungen[\s\S]*?(?=\n## 1\.)/u
+);
+assert.ok(hardStartConditions, "Der differenzierte Startvertrag fehlt.");
+assert.match(
+  hardStartConditions[0],
+  /`identity-preview`\/`identity-apply`[\s\S]*geschlossenes Wartungsfenster[\s\S]*`PRE_IMPORT_BACKUP_ID`/u
+);
+assert.match(
+  hardStartConditions[0],
+  /`GUEST_ACCESS_CREATE_PROFILE_AND_PREBIND=true`[\s\S]*`GUEST_ACCESS_RECONCILE_PROFILE_DISPLAY_NAME_AND_PREBIND=false`/u
+);
+assert.match(
+  hardStartConditions[0],
+  /Anwendung bleibt dabei erreichbar[\s\S]*`PRE_IMPORT_BACKUP_ID` wird weder verlangt/u
+);
+assert.match(
+  hardStartConditions[0],
+  /automatische Backups[\s\S]*Point-in-time Recovery \(PITR\)/u
+);
+assert.match(hardStartConditions[0], /Kein anderer Modus darf dieses Gate verwenden/u);
+
 const fingerprint = `sha256:${"a".repeat(64)}`;
 const environment = {
   EXPECTED_TARGET_PROJECT_ID: "target-project-123",
@@ -579,9 +601,17 @@ assert.match(
   migrationEnvironmentExample,
   /^GUEST_ACCESS_RECONCILE_PROFILE_DISPLAY_NAME_AND_PREBIND=false$/mu
 );
+assert.match(
+  migrationEnvironmentExample,
+  /Leave unset only when[\s\S]*GUEST_ACCESS_CREATE_PROFILE_AND_PREBIND=true[\s\S]*online gate verifies automatic backups and PITR/u
+);
+assert.match(
+  migrationEnvironmentExample,
+  /Exactly[\s\S]*create=true plus reconcile=false selects the online new-user contract/u
+);
 
 const identityExecutionSection = operatorRunbook.match(
-  /### Identity-Vertrag[\s\S]*?(?=\n### Guest-Vertrag)/u
+  /### Identity-Vertrag[\s\S]*?(?=\n### Wartungsgebundener Guest-Vertrag)/u
 );
 assert.ok(identityExecutionSection, "Der Identity-Preview-/Apply-Vertrag fehlt.");
 assert.match(identityExecutionSection[0], /`identity-preview` zweimal/u);
@@ -592,9 +622,9 @@ assert.match(identityExecutionSection[0], /darf kein\s+`INSERT` oder `UPDATE` er
 assert.match(identityExecutionSection[0], /vollständige Rollback-Roster/u);
 
 const guestExecutionSection = operatorRunbook.match(
-  /### Guest-Vertrag[\s\S]*?(?=\n## 5\.)/u
+  /### Wartungsgebundener Guest-Vertrag[\s\S]*?(?=\n### Online-Neunutzervertrag)/u
 );
-assert.ok(guestExecutionSection, "Der Guest-Preview-/Apply-Vertrag fehlt.");
+assert.ok(guestExecutionSection, "Der wartungsgebundene Guest-Preview-/Apply-Vertrag fehlt.");
 assert.match(guestExecutionSection[0], /`guest-preview` zweimal/u);
 assert.match(guestExecutionSection[0], /`guest-apply` genau einmal/u);
 assert.match(guestExecutionSection[0], /`result=unchanged`/u);
@@ -603,12 +633,47 @@ assert.match(
   guestExecutionSection[0],
   /weder ein Profil aktualisieren noch ein Binding anlegen/u
 );
-assert.match(guestExecutionSection[0], /wird Apply nie blind wiederholt/u);
-assert.match(
+assert.match(guestExecutionSection[0], /Preview bleibt unverändert/u);
+assert.doesNotMatch(
   guestExecutionSection[0],
+  /Neunutzer/u,
+  "Die Online-Neunutzeranlage darf nicht in den Wartungsvertrag einsortiert sein."
+);
+
+const onlineOnboardingExecutionSection = operatorRunbook.match(
+  /### Online-Neunutzervertrag[\s\S]*?(?=\n## 5\.)/u
+);
+assert.ok(onlineOnboardingExecutionSection, "Der Online-Neunutzervertrag fehlt.");
+assert.match(
+  onlineOnboardingExecutionSection[0],
+  /`GUEST_ACCESS_CREATE_PROFILE_AND_PREBIND=true`[\s\S]*laufender Anwendung/u
+);
+assert.match(
+  onlineOnboardingExecutionSection[0],
+  /`guest-preview`[\s\S]*`result=create_profile_and_binding`[\s\S]*vollständig leeren relevanten Istzustand/u
+);
+assert.match(
+  onlineOnboardingExecutionSection[0],
+  /Genau ein fachlich bestätigter `guest-apply`[\s\S]*serialisierbaren Transaktion/u
+);
+assert.match(
+  onlineOnboardingExecutionSection[0],
+  /neuer `guest-preview`[\s\S]*`result=unchanged`[\s\S]*Mail-Gate/u
+);
+assert.match(
+  onlineOnboardingExecutionSection[0],
+  /zweiter No-op-Apply gehört ausdrücklich nicht zum Online-Vertrag/u
+);
+assert.match(
+  onlineOnboardingExecutionSection[0],
+  /laufende Anwendung wird weder gesperrt noch skaliert/u
+);
+assert.match(onlineOnboardingExecutionSection[0], /wird Apply in keinem Modus blind/u);
+assert.match(
+  onlineOnboardingExecutionSection[0],
   /exponiert `--create-profile-and-prebind` ausschließlich[\s\S]*GUEST_ACCESS_CREATE_PROFILE_AND_PREBIND=true/u
 );
-assert.match(guestExecutionSection[0], /`--revoke` bleibt nicht exponiert/u);
+assert.match(onlineOnboardingExecutionSection[0], /`--revoke` bleibt nicht exponiert/u);
 
 const evidenceSection = operatorRunbook.match(
   /## 5\. Geschützte Evidenzübergabe[\s\S]*?(?=\n## 6\.)/u
