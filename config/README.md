@@ -1,8 +1,23 @@
 # Konfiguration der Auslieferungswege
 
-Dieser Ordner beschreibt zwei klar getrennte Artefaktpfade: die öffentliche Demo und den geschützten Target-Pfad. Der Target-Pfad hat die technischen Stufen `pre-gematik` und `target`, ist fachlich aber dieselbe Anwendung. **`target` ist ein Buildprofil, keine Aussage über Produktionsreife.** Seine nächste Nutzung ist ein gematik-interner Nutzungspilot mit einem freigegebenen Datenstand. Die Dateien `deployment.json` sind maschinenlesbare Verträge: Der Repository-Check prüft Buildprofil, Ausgabe, Freigabetor, Datenmodus und Deployment-Einstieg.
+Dieser Ordner beschreibt drei getrennte Auslieferungskanäle: die öffentliche
+Pages-Demo, das private GKE mit GCP/IAP und den gematik-Zielpfad mit OIDC. Die
+beiden geschützten Kanäle verwenden denselben Quellbestand und Target-Buildpfad,
+aber getrennte Deploymentprofile; sie sind weder baugleich noch gegenseitig
+promotierbar. **`target` ist ein Buildprofil,
+keine Aussage über Produktionsreife.** Seine nächste Nutzung ist ein
+gematik-interner Nutzungspilot mit einem freigegebenen Datenstand. Die Dateien
+`deployment.json` sind maschinenlesbare Verträge: Der Repository-Check prüft
+Buildprofil, Ausgabe, Freigabetor, Datenmodus und Deployment-Einstieg.
 
-Technisch gibt es derzeit genau zwei GitHub-Environments: `github-pages` für die öffentliche Demo und `pre-gematik` für die manuell freigegebene GKE-Pre-Integration. Der gematik-PoC soll über die Software Factory aus einem unveränderlichen RC bereitgestellt werden und benötigt deshalb kein zusätzliches Environment im persönlichen GitHub-Repository.
+Technisch gibt es derzeit genau zwei GitHub-Environments: `github-pages` für
+die öffentliche Demo und `pre-gematik` für die manuell freigegebene
+GKE-Pre-Integration. Neue Target-Versionen ab `v0.23.0` werden über die Software
+Factory und später GitLab frisch aus einem unveränderlichen, signierten
+Quelltag gebaut und benötigen deshalb kein zusätzliches Environment im
+persönlichen GitHub-Repository. Der vorhandene Legacy-RC.5 bleibt davon
+ausgenommen: Sein Tag ist annotiert, aber unsigniert, und wird nicht
+nachsigniert.
 
 | Anwendung / Stufe | Zweck | Buildausgabe | Freigabe und Auslieferung |
 | --- | --- | --- | --- |
@@ -22,11 +37,17 @@ Die Datenpflege ist vom Release getrennt. Der operative Datenbestand liegt aussc
 
 Security-Konfigurationen liegen gebündelt unter [`security/`](security/README.md). Toolbedingt verbleibt nur `.semgrepignore` im Repository-Root.
 
-[`release.json`](release.json) definiert die einmalige, datenschutzbereinigte
-Baseline des öffentlichen Produkt-Release-Kanals. Spätere veröffentlichte
-`vX.Y.Z`-Releases werden ausschließlich über ihre erreichbaren GitHub-Tags
-fortgeschrieben; lokale Alt-Tags und `poc-v`-Tags beeinflussen diese Version
-nicht.
+[`release.json`](release.json) definiert die zentrale Produktversion und den
+gemeinsamen Releasevertrag. Neue Quellstände verwenden kanalübergreifend genau
+einen signierten Tag `vX.Y.Z`; Kanal und Buildvariante stehen im jeweiligen
+Manifest. Die Baseline bleibt für die Herkunft erhalten. Historische
+`v0.21.0`, `v0.22.0` und `poc-v…-rc.N` werden weder umbenannt noch nachsigniert
+und beeinflussen das künftige Namensschema nicht.
+
+Die Versionsangabe in `package.json` gehört nur zum privaten npm-Arbeitsbereich
+und ist weder Produktversion noch Freigabe für GitHub Packages. Für Produkt,
+Git-Tag, Release Notes und spätere Build-Manifeste ist ausschließlich
+`release.json.productVersion` führend.
 
 ## Gemeinsamer Markenvertrag
 

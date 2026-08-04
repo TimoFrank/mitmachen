@@ -74,9 +74,22 @@ und identifizierende Falldaten sind für diesen Nutzungspiloten ausgeschlossen.
 | --- | --- | --- |
 | [GitHub-Pages-Demo](https://timofrank.github.io/mitmachen/) | Demo | Fiktive Beispieldaten, öffentlich verfügbar |
 | [GKE-Demo](https://versorgungs-kompass.de/) | Geschützte Pre-Integration | Persönlicher GCP-/IAP-Referenzpfad; nicht der gematik-Zielbetrieb |
-| gematik-PoC | RC.5-Freeze | Providerneutraler OIDC-Release-Candidate für den internen Nutzungspiloten |
+| gematik-PoC | Legacy-RC.5 | Providerneutraler OIDC-Release-Candidate als historische Übergabeevidenz |
 
-GitHub Pages veröffentlicht die öffentliche Demo. Die GKE-Pre-Integration läuft getrennt unter versorgungs-kompass.de; die bisherige Adresse mitmachen.timo-frank.de bleibt als HTTPS-Weiterleitung erhalten. Der dort nachgewiesene Quellstand `e6e8fc35b2502abcfe5ee40718189d5a0f4da25d` ist vollständig in `main` integriert und bildet die Anwendungsbasis des RC.5-Freeze. Verbindlich wird RC.5 erst nach Merge, grünen RC-Gates und Erzeugung des annotierten Remote-Tags `poc-v0.1.0-rc.5`. Die IAP-Artefakte der GKE-Pre-Integration werden nicht umgetaggt; die Software Factory baut das providerneutrale OIDC-Frontend und das API-Image neu. Der freigegebene Datenstand wird weiterhin getrennt aus der geschützten Anwendung übernommen und ist kein Buildartefakt. Herkunft, Freeze-Regeln und offene Nachweise stehen in der [RC.5-Übergabenotiz](dokumentation/betrieb-und-deployment/UEBERGABE_RC5_SOFTWARE_FACTORY.md); Umfang und benötigte Ressourcen beschreibt der [PoC-Durchstich](dokumentation/betrieb-und-deployment/POC_GEMATIK_DURCHSTICH.md).
+GitHub Pages veröffentlicht die öffentliche Demo. Die GKE-Pre-Integration läuft
+getrennt unter versorgungs-kompass.de; die bisherige Adresse
+mitmachen.timo-frank.de bleibt als HTTPS-Weiterleitung erhalten. Der
+historische RC.5 ist mit dem unveränderlichen Remote-Tag
+`poc-v0.1.0-rc.5` auf Commit
+`2e54916d626eccc90e7572b5bac958aafd54fd92` festgehalten. Dieser Legacy-Tag
+wird nicht umbenannt oder nachsigniert. Die IAP-Artefakte der GKE-Pre-Integration
+werden nicht umgetaggt; die Software Factory baut das providerneutrale
+OIDC-Frontend und das API-Image neu. Der freigegebene Datenstand wird weiterhin
+getrennt aus der geschützten Anwendung übernommen und ist kein Buildartefakt.
+Herkunft und Freeze-Regeln stehen in der
+[RC.5-Übergabenotiz](dokumentation/betrieb-und-deployment/UEBERGABE_RC5_SOFTWARE_FACTORY.md);
+Umfang und benötigte Ressourcen beschreibt der
+[PoC-Durchstich](dokumentation/betrieb-und-deployment/POC_GEMATIK_DURCHSTICH.md).
 
 Die geschützte GCP-Anwendung nutzt ausschließlich PostgreSQL in Cloud SQL als Datenbank und private GCS-Buckets als Objektspeicher. Supabase-Laufzeitcode, Schemaquellen und Migrationswerkzeuge gehören nicht mehr zum aktuellen Repository. Das Inventarisieren, Sperren und Löschen eventuell noch vorhandener Supabase-Projekte, Edge Functions, Schlüssel oder Sicherungen ist ein separater, protokollierter Betriebsvorgang; das Entfernen aus Git nimmt diese Provider-Ressourcen nicht automatisch außer Betrieb.
 
@@ -105,14 +118,25 @@ tests/                    Browser- und Integrationsprüfungen
 ## Build- und Release-Trennung
 
 ```text
-Pages:   frontend/ + public/ -> dist/pages/  -> GitHub Pages
-PoC:     frontend/ + public/ -> dist/target/ -> internes Hosting
-API:     api/                -> Image-Digest -> Kubernetes
+Pages-Demo:     vX.Y.Z -> pages-demo   -> dist/pages/  -> GitHub Pages
+Privates GKE:   vX.Y.Z -> pre-gematik -> dist/target/ + IAP-Image
+Gematik-Target: vX.Y.Z -> target       -> dist/target/ + OIDC-Image -> Software Factory/GitLab
 ```
 
-Ein PoC-Release wird durch einen unveränderlichen RC-Tag festgelegt. Weitere Änderungen auf `main`, in lokalen Arbeitsständen oder für GitHub Pages verändern diesen Stand nicht. Ein Fehler wird in einem neuen RC behoben; bestehende Tags und Image-Digests bleiben unverändert.
+Neue Releases verwenden genau einen vollständigen, signierten Quelltag
+`vX.Y.Z`. Alle `0.x`-Versionen sind bei GitHub „Release Candidates“; ein Hotfix
+erhöht den Patchstand. Profil, Authentisierung und
+Artefaktdigests bleiben kanalbezogen. Gleiche Version bedeutet gleiche Quelle,
+nicht baugleiche Artefakte. Weitere Änderungen auf `main` oder in lokalen
+Arbeitsständen verändern einen getaggten Stand nicht.
 
-Öffentliche Produkt-Releases werden freitags automatisiert über [GitHub Releases](https://github.com/TimoFrank/mitmachen/releases) bereitgestellt, sofern seit dem letzten Stand Änderungen vorliegen. Ablauf, Versionsregeln, Artefakte und Benachrichtigung beschreibt der [Produkt-Release-Prozess](dokumentation/betrieb-und-deployment/PRODUKT_RELEASE_PROZESS.md).
+Wochenreleases werden freitags über
+[GitHub Releases](https://github.com/TimoFrank/mitmachen/releases)
+bereitgestellt, sofern seit dem letzten Stand Änderungen vorliegen. Hotfixes
+können unter der Woche als Patch folgen. Während der Umstellung ist der geplante
+Lauf gesperrt. Ablauf, Versionsregeln, Artefakte und
+Benachrichtigung beschreibt der
+[Produkt-Release-Prozess](dokumentation/betrieb-und-deployment/PRODUKT_RELEASE_PROZESS.md).
 
 Die [RC.5-Übergabenotiz](dokumentation/betrieb-und-deployment/UEBERGABE_RC5_SOFTWARE_FACTORY.md) ist der Einstieg für die Software Factory. Der technische Ablauf des PoC steht im [Deployment-Runbook](dokumentation/betrieb-und-deployment/DEPLOYMENT_GEMATIK_K8S.md). Ausführbare Artefakte sind unter [`deploy/`](deploy/README.md) beschrieben. Weitere Referenzen: [Security](SECURITY.md), [Dokumentationsindex](dokumentation/README.md) und [Mitwirken](CONTRIBUTING.md).
 

@@ -1,6 +1,6 @@
 # Current State
 
-Stand: 2026-08-01.
+Stand: 2026-08-04.
 
 ## Aktiver Arbeitsmodus
 
@@ -20,9 +20,26 @@ Stand: 2026-08-01.
 ## Release Candidate und parallele Entwicklung
 
 - Führendes Vorgehen: [`../betrieb-und-deployment/POC_GEMATIK_DURCHSTICH.md`](../betrieb-und-deployment/POC_GEMATIK_DURCHSTICH.md).
+- Der neue Produkt-Release-Vertrag gilt ab `v0.23.0`: Ein vollständiger,
+  signierter Quelltag `vX.Y.Z` bezeichnet die gemeinsame Produktversion.
+  „Release Candidate“ ist vor `v1.0.0` GitHub-Prerelease-Status und Titel, kein
+  Tag-Suffix. Die bisherigen `poc-v…-rc.N`-Tags bleiben ausschließlich
+  historische RC-Evidenz.
+- Die gemeinsame Version verbindet drei getrennte Kanäle: Pages-Demo
+  (anonym/synthetisch), privates GKE (`pre-gematik`, IAP/GCP) und
+  gematik-Target (`target`, OIDC/Software Factory). Gleiche Version bedeutet
+  gleiche Quelle, nicht baugleiche oder gegenseitig promotierbare Artefakte.
 - Das interne `target`-Profil baut mit `TARGET_AUTH_MODE=oidc` providerneutral und ohne GCP Identity Portal oder dessen Abhängigkeiten. Der getrennte `pre-gematik`-Pfad behält für `auth-mode=iap` sein eigenes Portal und die vollständigen GCP-/IAP-Regressionen.
 - `npm run check:poc-rc` verwendet den OIDC-only-Artefaktvertrag und ist nach einem Root-`npm ci` ausführbar. Der vollständige Deployment-Trennungstest benötigt zusätzlich `npm ci --prefix frontend/identity-portal`, weil er auch den getrennten IAP-Referenzpfad prüft.
-- `main` und die GitHub-Pages-Demo dürfen nach der RC-Bildung weiterlaufen. Der gematik-PoC bleibt auf einem unveränderlichen RC-Tag, exaktem Commit sowie nachgewiesenen API- und Frontend-Digests.
+- `main` und die GitHub-Pages-Demo dürfen nach der RC-Bildung weiterlaufen.
+  Neue gematik-Releases bleiben auf einem unveränderlichen signierten Quelltag,
+  exaktem Commit sowie nachgewiesenen API- und Frontend-Digests. Der aktuelle
+  Legacy-RC.5 ist nur annotiert und bleibt unverändert unsigniert.
+- Der alte geplante Freitagslauf ist fail-closed gesperrt. Die Policy und ihre
+  Tests sind definiert; Workflow, Tag-Signatur, Prerelease-Status und
+  Hotfix-Projektion werden im folgenden Umsetzungsschritt angepasst. Bis dahin
+  sind weder geplante noch manuelle Produkt-Releases nach der alten Logik
+  freigegeben.
 - Der freigegebene PoC-Datenstand wird separat aus der geschützten Anwendung übernommen. Während des Piloten ist die gematik-Kopie der gemeinsame bearbeitbare Bestand; eine automatische Synchronisation mit `mitmachen.timo-frank.de`, lokalen Varianten oder GitHub Pages existiert nicht.
 - Der RC wird in einem sauberen, separaten Checkout geprüft. Lokale uncommittete Dateien oder ein ZIP des Arbeitsordners sind kein Releaseartefakt.
 - Die private Hospitationsvariante wird mit `npm run start:local-hospitation` aus

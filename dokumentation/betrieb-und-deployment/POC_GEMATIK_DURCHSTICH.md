@@ -1,7 +1,7 @@
 # Gematik-PoC: interner Nutzungspilot
 
 Status: Vorbereitung des internen Nutzungspiloten
-Stand: 3. August 2026
+Stand: 4. August 2026
 
 Für die technische Übergabe ist die
 [RC.5-Übergabenotiz](UEBERGABE_RC5_SOFTWARE_FACTORY.md) der kompakte Einstieg.
@@ -25,7 +25,7 @@ gematik OIDC-Identität -> bestehendes oder neu angelegtes Profil
 
 | Bereich | Stand |
 | --- | --- |
-| Quellstand | `poc-v0.1.0-rc.4` bleibt unverändert auf Commit `7e0d7d133278cc3f86ad9e73c15d592cb838cf58`; der RC.5-Freeze übernimmt die in `main` integrierte GKE-Quellbasis `e6e8fc35b2502abcfe5ee40718189d5a0f4da25d` und wird erst durch den annotierten Remote-Tag auf dem grün geprüften Freeze-Commit verbindlich |
+| Quellstand | Der historische Tag `poc-v0.1.0-rc.5` liegt unveränderlich auf Commit `2e54916d626eccc90e7572b5bac958aafd54fd92`; Build-, Deployment- und Pilotnachweise stehen weiterhin aus |
 | Anwendung | Providerneutraler OIDC-Target-Build, API-Container und Helm-Chart sind vorbereitet |
 | Anmeldung | Der unterstützte Identity-Gateway-Vertrag ist beschrieben; Bestätigung durch die Plattformverantwortlichen und ein authentifizierter Smoke stehen noch aus |
 | Daten | Schema und Datenklassen sind bekannt; der bisherige Importweg muss an die gematik-Datenbank und den gewählten Dateispeicher angebunden werden |
@@ -48,7 +48,14 @@ gematik OIDC-Identität -> bestehendes oder neu angelegtes Profil
 
 Für den ersten Durchstich genügt eine API-Instanz. Neue Datei- und Bild-Uploads bleiben deaktiviert. Fehlt ein passender Objektspeicher, wird zunächst nur der strukturierte Datenbestand übernommen; Datei-Verweise werden dabei nicht als funktionierend ausgewiesen.
 
-Der RC.5-Freeze überführt die seit RC.4 integrierten Anwendungsänderungen in den providerneutralen Zielpfad. Der vorbereitete Stand ist nicht für ein Deployment oder den Pilotstart freigegeben. Dafür müssen zunächst der annotierte RC.5-Tag und alle RC-Gates nachgewiesen sein; zusätzlich muss die gematik-Plattform bestätigen, dass ihr Identity-Gateway den im Deployment-Runbook beschriebenen Bearer-Token-Vertrag erfüllt. Ein Cookie-only-Gateway oder eine browserseitige OAuth-/PKCE-Anmeldung wäre ein anderer Plattformadapter und erfordert vor dem Pilotstart einen weiteren RC.
+Der RC.5-Freeze überführt die seit RC.4 integrierten Anwendungsänderungen in den
+providerneutralen Zielpfad. Der getaggte Stand ist noch nicht für ein Deployment
+oder den Pilotstart freigegeben. Dafür müssen alle RC-Gates auf exakt diesem Tag
+nachgewiesen sein; zusätzlich muss die gematik-Plattform bestätigen, dass ihr
+Identity-Gateway den im Deployment-Runbook beschriebenen Bearer-Token-Vertrag
+erfüllt. Ein Cookie-only-Gateway oder eine browserseitige OAuth-/PKCE-Anmeldung
+wäre ein anderer Plattformadapter und erfordert vor dem Pilotstart eine neue
+Patch-Version.
 
 ## Was das Entwicklungsteam liefert
 
@@ -63,7 +70,7 @@ Der RC.5-Freeze überführt die seit RC.4 integrierten Anwendungsänderungen in 
 
 | Aufgabe | Verantwortung |
 | --- | --- |
-| Anwendung und verwendete Bibliotheken | Das Entwicklungsteam bewertet neue Befunde, erstellt Korrekturen und liefert einen neuen RC. |
+| Anwendung und verwendete Bibliotheken | Das Entwicklungsteam bewertet neue Befunde, erstellt Korrekturen und liefert eine neue Patch-Version als Release Candidate. |
 | Namespace, OIDC, Datenbank und zentrale Scanner | Die gematik-IT stellt die vereinbarten Plattformressourcen und die Ergebnisse der Software Factory bereit. |
 | Nutzerkreis und freigegebener Datenumfang | Die fachlich verantwortliche Person bestätigt Personen und Datenklassen. |
 | Fortführung nach der Auswertung | Entwicklung, IT und Fachteam entscheiden gemeinsam über den nächsten Schritt. |
@@ -80,9 +87,21 @@ Während des Testzeitraums ist der gematik-PoC der gemeinsame bearbeitbare Besta
 
 ## Release und parallele Weiterentwicklung
 
-Der RC-Tag bleibt unverändert. Frontend und API werden aus demselben Commit gebaut und über Manifest beziehungsweise Image-Digest eindeutig zugeordnet. Änderungen auf `main`, in Feature-Branches, in lokalen Varianten oder auf GitHub Pages können parallel weiterlaufen. Diese Wege verwenden keine Echtdaten aus dem PoC. Benötigt der PoC eine Softwareänderung, entsteht ein neuer RC-Tag.
+Für neue Releases bleibt der signierte Quelltag unverändert. Frontend und API
+werden aus demselben Commit gebaut und über Manifest beziehungsweise
+Image-Digest eindeutig zugeordnet. Änderungen auf `main`, in Feature-Branches,
+in lokalen Varianten oder auf GitHub Pages können parallel weiterlaufen. Diese
+Wege verwenden keine Echtdaten aus dem PoC. Benötigt der PoC eine
+Softwareänderung, entsteht eine neue Patch-Version mit eigenem `vX.Y.Z`-Tag.
+„Release Candidate“ ist dabei Release-Metadatum, kein Tag-Suffix. Der aktuelle
+Legacy-RC.5 ist dagegen annotiert, aber unsigniert, und wird nicht nachsigniert.
+Der vollständige Zukunftsvertrag steht im
+[Produkt-Release-Prozess](PRODUKT_RELEASE_PROZESS.md).
 
-Der annotierte Tag `poc-v0.1.0-rc.4` bleibt die unveränderte bisherige Referenz. Der am 3. August 2026 erfolgreich in GKE ausgelieferte Quellstand `e6e8fc35b2502abcfe5ee40718189d5a0f4da25d` liegt vollständig in `origin/main` und 13 Integrationscommits nach RC.4. Für RC.5 werden darauf nur die RC-Metadaten und Übergabeunterlagen ergänzt. `poc-v0.1.0-rc.5` wird erst nach Merge und erfolgreicher RC-QA auf dem nachgewiesenen `origin/main`-Freeze-Commit erzeugt; RC.4 wird nicht verschoben.
+Die annotierten Legacy-Tags `poc-v0.1.0-rc.4` und
+`poc-v0.1.0-rc.5` bleiben unverändert auf ihren historischen Commits. Sie
+werden weder nachsigniert noch in das neue Namensschema überführt. Die
+persönlichen GKE-Artefakte werden nicht in den Zielpfad promotet.
 
 ## Erfolgskriterien
 

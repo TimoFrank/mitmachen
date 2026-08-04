@@ -1,27 +1,31 @@
 # RC.5-Freeze und Übergabe an die Software Factory
 
-- **Status:** Freeze vorbereitet; annotierter Remote-Tag, Software-Factory-Build,
-  Deployment und Pilotstart ausstehend
-- **Stand:** 3. August 2026
+- **Status:** Legacy-Freeze und annotierter Remote-Tag festgelegt;
+  Software-Factory-Build, Deployment und Pilotstart ausstehend
+- **Stand:** 4. August 2026
+
+> Dieses Dokument bleibt die historische RC.5-Evidenz. Sein Tag- und
+> Versionsschema wird nicht auf neue Releases übertragen. Ab `v0.23.0` gilt der
+> [Produkt-Release-Prozess](PRODUKT_RELEASE_PROZESS.md).
 
 ## Verbindlicher Freeze-Vertrag
 
 | Nachweis | Wert |
 | --- | --- |
 | Quell-Repository | `https://github.com/TimoFrank/mitmachen` |
-| Vorgesehener annotierter RC-Tag | `poc-v0.1.0-rc.5` |
+| Historischer annotierter RC-Tag | `poc-v0.1.0-rc.5` |
 | Integrierte Anwendungsbasis | `e6e8fc35b2502abcfe5ee40718189d5a0f4da25d` |
-| Formaler RC.5-Commit | wird erst nach Integration dieses Freeze-PRs und erfolgreicher RC-QA durch den annotierten Remote-Tag festgelegt |
+| Formaler RC.5-Commit | `2e54916d626eccc90e7572b5bac958aafd54fd92` |
 | RC.5-Build- und Security-Nachweise | ausstehend; müssen auf dem exakten getaggten Commit entstehen |
 | Anwendung | interner Nutzungspilot für benannte gematik-Mitarbeitende |
 | Freigabestatus | nicht deployment- oder pilotstart-freigegeben |
 
 Der bisherige annotierte Tag `poc-v0.1.0-rc.4` bleibt unverändert auf Commit
-`7e0d7d133278cc3f86ad9e73c15d592cb838cf58`. Der vorgesehene RC.5-Tag existiert
-im Freeze-PR noch nicht. Er darf erst nach Merge und grünen Gates einmalig auf
-dem nachgewiesenen `origin/main`-Commit erzeugt und gepusht werden. Ein
-Feature-Branch erhält keinen vorläufigen Tag; ein veröffentlichter RC-Tag wird
-niemals verschoben.
+`7e0d7d133278cc3f86ad9e73c15d592cb838cf58`. Der historische RC.5-Tag liegt
+unveränderlich auf Commit
+`2e54916d626eccc90e7572b5bac958aafd54fd92` in `origin/main`. Er wird weder
+verschoben, umbenannt noch nachsigniert. Noch ausstehende RC.5-Nachweise müssen
+sich weiterhin exakt auf diesen Tag und Commit beziehen.
 
 Der Versorgungs-Kompass ist keine TI-Anwendung und kein Gegenstand eines
 TI-Zulassungsverfahrens. Gesundheits-, Patienten- und identifizierende
@@ -51,7 +55,7 @@ Laufzeitpunkt; er ist kein dauerhafter Nachweis des späteren Clusterzustands.
 GKE verwendet den getrennten GCP-/IAP-Pre-Integrationspfad. Seine Images und
 Frontend-Artefakte werden weder umgetaggt noch in die gematik-Registry
 promotet. Die Software Factory baut das providerneutrale OIDC-Frontend und das
-API-Image frisch aus dem später getaggten RC.5-Commit und weist dafür neue,
+API-Image frisch aus dem getaggten RC.5-Commit und weist dafür neue,
 zusammengehörige Digests nach.
 
 ## Inhalt von RC.5 gegenüber RC.4
@@ -81,10 +85,10 @@ Integrationscommits nach RC.4:
 - geordneten Repository-Root ([#221](https://github.com/TimoFrank/mitmachen/pull/221)).
 
 Die Login-Härtung ist im gemeinsamen Repository enthalten, gehört aber nicht
-zum gebauten OIDC-Target-Artefakt. Dieser Freeze ergänzt auf der genannten
-Anwendungsbasis ausschließlich RC.5-Metadaten und Übergabeunterlagen. Kommen
-vor dem Merge weitere Commits nach `origin/main`, muss ihr Einfluss auf den
-Freeze erneut bewertet werden, bevor ein Tag erzeugt wird.
+zum gebauten OIDC-Target-Artefakt. Der getaggte Freeze ergänzt auf der genannten
+Anwendungsbasis ausschließlich RC.5-Metadaten und Übergabeunterlagen. Spätere
+Commits in `origin/main` verändern RC.5 nicht; eine Softwarekorrektur benötigt
+eine neue, nach dem aktuellen Produkt-Release-Vertrag benannte Version.
 
 ## Technische Freeze-Pins
 
@@ -100,8 +104,8 @@ Die Jenkins-Referenzpipeline prüft zusätzlich, dass genau ein annotierter
 Remote-Tag am Build-Commit liegt, der Commit in `origin/main` enthalten ist und
 Tag, Chart-Version, App-Version sowie Image-Tag zusammenpassen.
 
-Vor dem Start in der Software Factory muss der Tag nach dem späteren Push
-mindestens so verifiziert werden:
+Vor dem Start in der Software Factory muss der vorhandene Remote-Tag nach dem
+Fetch mindestens so verifiziert werden:
 
 ```bash
 git fetch --prune --tags origin
@@ -119,7 +123,7 @@ Commit für Build, Frontend-Manifest, API-Image, SBOMs und Security-Nachweise.
 Der erste gemeinsame Schritt ist bewusst auf Repository- und Build-Integration
 begrenzt:
 
-1. Repository-Historie und den später erzeugten einzelnen annotierten RC.5-Tag
+1. Repository-Historie und den vorhandenen einzelnen annotierten RC.5-Tag
    unverändert in das Git-Repository der Software Factory übernehmen oder dort
    referenzieren.
 2. Jenkins-Pipeline, Target-Frontend, API-Image und Helm-Chart reproduzierbar
@@ -258,9 +262,7 @@ noch in Git, Mail, Chat oder Build-Artefakte geschrieben.
 ## Empfohlene Reihenfolge
 
 ```text
-Freeze-PR integrieren
-  -> exakten origin/main-Commit und vollständige RC-QA nachweisen
-  -> einzelnen annotierten RC.5-Tag erzeugen und pushen
+vorhandenen RC.5-Tag und Zielcommit erneut verifizieren
   -> Historie und Tag in der Software Factory referenzieren oder spiegeln
   -> OIDC-Frontend und API frisch bauen, prüfen und Digests festhalten
   -> Zielplattform und Identity-Gateway bestätigen

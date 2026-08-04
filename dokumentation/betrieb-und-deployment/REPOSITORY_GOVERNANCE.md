@@ -1,6 +1,6 @@
 # Repository-Governance vor PoC und späterem Regelbetrieb
 
-Stand: 22. Juli 2026
+Stand: 4. August 2026
 
 Ein Teil dieser Einstellungen liegt außerhalb des Git-Repositories. Der technische Basisschutz ist aktiv. Für den aktuellen Gematik-PoC werden ein sauberer, unveränderlicher RC und die vereinbarten Prüfungen benötigt. Weitere Organisationsregeln werden erst bei einem späteren Ausbau festgelegt.
 
@@ -22,13 +22,15 @@ zustimmende Review, wird aber erst nach dem erforderlichen Check auf seinem
 exakten Head-Commit automatisch gemergt. Ändert sich `main` währenddessen,
 bricht der Lauf ab und muss den Release neu planen.
 
-Öffentliche Produkt-Releases folgen dem Schema `vX.Y.Z`. Nach dem Merge werden
-der exakte Commit erneut geprüft, das öffentliche Pages-Demo-Artefakt gebaut und
-deployed und erst danach ein annotierter Einzel-Tag sowie ein GitHub Release
-veröffentlicht. Patch-Releases können manuell angestoßen werden; Wochen ohne
-Änderungen erzeugen keinen Release. GitHub benachrichtigt die Release-Abonnenten
-erst nach der Veröffentlichung. Produkt-Releases lösen niemals automatisch
-einen PoC- oder Zielbetrieb-Deploy aus.
+Neue Produkt-Releases verwenden genau einen signierten, annotierten Git-Tag im
+Schema `vX.Y.Z`. Alle `0.x`-Versionen werden bei GitHub als Prerelease und nicht als
+`Latest` veröffentlicht. Nach dem Merge werden Tagobjekt und Zielcommit
+verifiziert; anschließend wird das öffentliche Pages-Demo-Artefakt aus exakt
+dieser Revision gebaut, deployed und geprüft. Patch-Releases können manuell
+angestoßen werden; Wochen ohne Änderungen erzeugen keinen Release. GitHub
+benachrichtigt die Release-Abonnenten erst nach der Veröffentlichung.
+Produkt-Releases lösen niemals automatisch einen privaten GKE- oder
+Zielbetrieb-Deploy aus.
 
 ## 2. GitHub Environment `github-pages`
 
@@ -55,15 +57,42 @@ Die frühere [persönliche Pilotentscheidung](PRE_GEMATIK_ECHTDATEN_PILOT_ENTSCH
 - Negativprüfungen gegen Browser-SDK, Projekt-URLs, Schlüssel, direkte Provider-Datenpfade und unsichere Fallbacks bleiben Teil der Repository-Gates.
 - Das Löschen von Git-Dateien ist kein Nachweis für die Abschaltung externer Ressourcen. Projekte, Datenbank, Storage, Edge Functions, Auth-Nutzer und -Sessions, Schlüssel, Webhooks, DNS-Verweise und Sicherungen werden in einem separaten, freigegebenen Betriebsvorgang inventarisiert, gesperrt beziehungsweise gelöscht und protokolliert.
 
-## 4. gematik-PoC und Release Candidate
+## 4. Release Candidate und gematik-Zielpfad
 
-- `main` bleibt Integrationslinie und Pages-Quelle; der PoC wird niemals automatisch aus dem jeweils neuesten `main` deployed.
-- Ein kurzlebiger Stabilisierungsbranch ist zulässig, aber keine Umgebung. Verbindlich ist ein annotierter, nie bewegter Tag wie `poc-v0.1.0-rc.1` auf einem sauberen Commit.
-- Ein Fix erzeugt `rc.2`. RC-Tags werden weder verschoben noch durch `git push --force` ersetzt.
-- Die gematik Software Factory baut die eindeutig referenzierte Revision und dokumentiert Image-Digest, Frontend-Revision, Chart, Schema und Datenrichtlinie. Zeitpunkt, Prüfsumme und Ergebnis der geschützten Datenübernahme werden getrennt vom Build festgehalten.
-- Wegen der zuvor bereinigten Git-Historie können alte lokale Tags existieren, die es auf `origin` nicht mehr gibt. Für den ersten RC ist ein frischer Clone mit `--no-tags` die sicherste Ausgangsbasis; niemals pauschal `git push --tags`, sondern nur den ausdrücklich freigegebenen RC-Tag pushen.
-- Ein ZIP des lokalen Arbeitsverzeichnisses, uncommittete Dateien, `dist/pages/` und lokale Exporte gehören nicht ins Übergabepaket.
-- Ein möglicher späterer Regelbetrieb wird nicht als unkontrolliertes Environment des persönlichen GitHub-Repositories angelegt und benötigt eine eigene Freigabe.
+- `main` bleibt bis zur institutionellen GitLab-Übernahme die führende
+  Integrationslinie und Pages-Quelle. Das Target wird niemals automatisch aus
+  dem jeweils neuesten `main` deployed.
+- Für alle neuen Versionen gibt es nur den signierten, annotierten Git-Tag
+  `vX.Y.Z`. „Release Candidate“ ist vor `v1.0.0` GitHub-Prerelease-Status und
+  Titelbestandteil, keine zweite Tagfamilie. Ein Fix erhöht den Patchstand, zum
+  Beispiel von `v0.23.0` auf `v0.23.1`.
+- Ein kurzlebiger Stabilisierungsbranch ist zulässig, aber keine Umgebung. Der
+  freigegebene Tag ist unveränderlich und zeigt auf genau einen geprüften
+  Commit. Vorhandene Tags werden weder verschoben noch durch Force Push
+  ersetzt.
+- Die Pages-Demo bleibt öffentlich, anonym und synthetisch. Das persönlich
+  betriebene GKE verwendet IAP und GCP-spezifische Werte; es ist kein
+  Zielbetriebsnachweis. Das Target verwendet OIDC und wird in der Software
+  Factory beziehungsweise später in GitLab gebaut.
+- Es gilt keine Cross-Channel-Promotion: GKE-/IAP-Images und Pages-Artefakte
+  werden nicht zum Target umgetaggt. Die Software Factory baut die exakt
+  referenzierte Revision neu und dokumentiert Frontend-, Image- und
+  Chart-Digest. Eine Promotion ohne Rebuild ist erst innerhalb desselben
+  Target-Kanals und nur mit identischen Digests zulässig.
+- Die spätere GitLab-Übergabe überträgt vollständige Git-Objekte samt
+  signiertem Tag. Tag-Objekt-SHA, Zielcommit und Signer werden auf beiden Hosts
+  verifiziert. Ein ZIP des lokalen Arbeitsverzeichnisses, uncommittierte
+  Dateien, `dist/`, persönliche Infrastrukturwerte, Secrets und Daten gehören
+  nicht zur Übergabe.
+- Nach dem GitLab-Cutover existiert genau eine beschreibbare führende
+  Integrationslinie. Eine bidirektionale Parallelpflege von `main` in GitHub und
+  GitLab ist nicht zulässig.
+- Zeitpunkt, Prüfsumme und Ergebnis einer geschützten Datenübernahme werden
+  getrennt vom Build festgehalten. `v1.0.0` setzt ein verifiziertes
+  gematik-Deployment voraus; Pages oder privates GKE erfüllen dieses Gate nicht.
+- Die historischen Tags `v0.21.0`, `v0.22.0` und
+  `poc-v0.1.0-rc.2` bis `poc-v0.1.0-rc.5` bleiben unverändert. Sie werden nicht
+  nachsigniert oder in das neue Namensschema überführt.
 
 Das aktuelle Vorgehen steht im
 [PoC-Durchstich](POC_GEMATIK_DURCHSTICH.md).
