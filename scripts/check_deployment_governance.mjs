@@ -286,6 +286,42 @@ forbidPattern(targetFile, target, /sync_github_pages\.sh|docs\/data\/supabase-co
 const weeklyFile = ".github/workflows/weekly-release.yml";
 const weekly = read(weeklyFile);
 forbidPattern(weeklyFile, weekly, /git\s+push[^\n]*(?:HEAD:main|origin\s+main)|git\s+push\s+origin\s+HEAD:main/, "Weekly Release darf nicht direkt nach main schreiben.");
+requirePattern(
+  weeklyFile,
+  weekly,
+  /release-schedule-gate:[\s\S]*?outputs:\s*\n\s+may_run:\s*\$\{\{\s*steps\.gate\.outputs\.may_run\s*\}\}/,
+  "Das Schedule-Gate muss seine Entscheidung als Job-Ausgabe bereitstellen."
+);
+requirePattern(
+  weeklyFile,
+  weekly,
+  /EVENT_NAME:\s*\$\{\{\s*github\.event_name\s*\}\}/,
+  "Das Schedule-Gate muss den tatsaechlichen GitHub-Ausloeser auswerten."
+);
+requirePattern(
+  weeklyFile,
+  weekly,
+  /SCHEDULE_ENABLED:\s*\$\{\{\s*vars\.WEEKLY_RELEASE_SCHEDULE_ENABLED\s*\}\}/,
+  "Der geplante Weekly Release muss die explizite Freigabevariable auswerten."
+);
+requirePattern(
+  weeklyFile,
+  weekly,
+  /if \[\[ "\$EVENT_NAME" == "schedule" && "\$\{SCHEDULE_ENABLED:-\}" != "true" \]\]; then[\s\S]*?may_run=false/,
+  "Der geplante Weekly Release muss ohne explizites true fail-closed gesperrt bleiben."
+);
+requirePattern(
+  weeklyFile,
+  weekly,
+  /echo "may_run=\$\{may_run\}" >> "\$GITHUB_OUTPUT"/,
+  "Das Schedule-Gate muss seine Entscheidung an GitHub Actions uebergeben."
+);
+requirePattern(
+  weeklyFile,
+  weekly,
+  /prepare-release:\s*\n\s+name:[^\n]+\n\s+needs:\s*release-schedule-gate\s*\n\s+if:\s*\$\{\{\s*needs\.release-schedule-gate\.outputs\.may_run\s*==\s*'true'\s*\}\}/,
+  "Die Release-Vorbereitung darf nur nach dem erfolgreichen Schedule-Gate starten."
+);
 requirePattern(weeklyFile, weekly, /pull-requests:\s*write/, "Der vorbereitende Weekly-Release-Prozess muss einen reviewbaren Pull Request erzeugen koennen.");
 requirePattern(weeklyFile, weekly, /workflow\s+run\s+repo-check\.yml/, "Weekly Release muss den erforderlichen Check auf dem Kandidatenbranch explizit starten.");
 requirePattern(weeklyFile, weekly, /--match-head-commit/, "Weekly Release muss den geprueften PR-Head beim Merge festschreiben.");

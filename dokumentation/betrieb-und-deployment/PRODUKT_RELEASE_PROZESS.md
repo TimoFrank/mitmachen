@@ -1,6 +1,6 @@
 # Automatische Produkt-Releases
 
-Stand: 22. Juli 2026
+Stand: 4. August 2026
 
 Dieses Runbook beschreibt ausschließlich die öffentlichen Produkt-Releases des
 Versorgungs-Kompass unter
@@ -17,6 +17,23 @@ endet der Lauf erfolgreich, ohne Version, Tag oder Release anzulegen.
 - Wochenrelease mit Funktionen oder Verbesserungen: `minor`
 - außerplanmäßige Fehlerkorrektur: `patch`
 - bestehende Tags oder Releases werden nie verschoben oder überschrieben
+
+## Temporäre Freitags-Sperre
+
+Während der Umstellung auf den neuen Versions-, Signatur- und
+Auslieferungsvertrag bleibt der geplante Freitagslauf fail-closed gesperrt. Ein
+geplanter Lauf darf die Release-Vorbereitung nur starten, wenn die
+Repository-Variable `WEEKLY_RELEASE_SCHEDULE_ENABLED` exakt auf `true` gesetzt
+ist. Fehlt die Variable oder enthält sie einen anderen Wert, dokumentiert der
+Workflow die Sperre in seiner Zusammenfassung und erzeugt weder Pull Request
+noch Tag oder Release.
+
+Manuelle Workflow-Läufe bleiben für bewusste Wiederaufnahmen verfügbar. Sie
+sind kein Dry-Run: Jeder manuelle Start führt den vollständigen
+veröffentlichenden Release-Ablauf aus und darf deshalb nur nach Prüfung der
+gewählten Version ausgelöst werden. Die Freitagsfreigabe darf erst nach
+Integration und erfolgreicher Prüfung des neuen Release-Vertrags gesetzt
+werden.
 
 Die datenschutzbereinigte Produkt-Baseline ist in `config/release.json` als
 Version `0.20.0` und mit ihrem Commit festgehalten. Der erste formale GitHub

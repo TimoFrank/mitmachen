@@ -26,8 +26,47 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
+  release-schedule-gate:
+    name: Check scheduled release gate
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    outputs:
+      may_run: ${{ steps.gate.outputs.may_run }}
+
+    steps:
+      - name: Evaluate scheduled release permission
+        id: gate
+        shell: bash
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          SCHEDULE_ENABLED: ${{ vars.WEEKLY_RELEASE_SCHEDULE_ENABLED }}
+        run: |
+          set -euo pipefail
+
+          may_run=true
+          if [[ "$EVENT_NAME" == "schedule" && "${SCHEDULE_ENABLED:-}" != "true" ]]; then
+            may_run=false
+          fi
+          echo "may_run=${may_run}" >> "$GITHUB_OUTPUT"
+
+          {
+            echo "## Weekly release schedule gate"
+            echo
+            echo "- Trigger: \`${EVENT_NAME}\`"
+            if [[ "$may_run" == "true" ]]; then
+              echo "- Status: allowed"
+            else
+              echo "- Status: blocked"
+              echo "- Reason: \`WEEKLY_RELEASE_SCHEDULE_ENABLED\` is not exactly \`true\`."
+              echo "- Manual runs remain available, but execute the complete publishing release flow (no dry run)."
+            fi
+          } >> "$GITHUB_STEP_SUMMARY"
+
   prepare-release:
     name: Prepare and merge release
+    needs: release-schedule-gate
+    if: ${{ needs.release-schedule-gate.outputs.may_run == 'true' }}
     runs-on: ubuntu-latest
     permissions:
       actions: write
