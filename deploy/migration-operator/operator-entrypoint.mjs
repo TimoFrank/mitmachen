@@ -28,8 +28,12 @@ const EVIDENCE_ACKNOWLEDGEMENT_TIMEOUT_MS = 15 * 60 * 1000;
 const PROXY_EXECUTABLE = "/usr/local/bin/cloud-sql-proxy";
 const IDENTITY_OPERATION = "UPSERT_IAP_IDENTITY_BINDINGS";
 const GUEST_ACCESS_OPERATION = "PREBIND_IDENTITY_PLATFORM_PASSWORD_GUEST";
+const GUEST_ACCESS_CREATE_PROFILE_OPERATION =
+  "CREATE_PROFILE_AND_PREBIND_IDENTITY_PLATFORM_PASSWORD_GUEST";
 const GUEST_ACCESS_RECONCILE_PROFILE_DISPLAY_NAME_OPERATION =
   "RECONCILE_PROFILE_DISPLAY_NAME_AND_PREBIND_IDENTITY_PLATFORM_PASSWORD_GUEST";
+const GUEST_ACCESS_CREATE_PROFILE_MODE_ENV =
+  "GUEST_ACCESS_CREATE_PROFILE_AND_PREBIND";
 const GUEST_ACCESS_RECONCILE_MODE_ENV =
   "GUEST_ACCESS_RECONCILE_PROFILE_DISPLAY_NAME_AND_PREBIND";
 const TARGET_DATABASE_NAME = "versorgungs_kompass";
@@ -77,19 +81,36 @@ function identitySubjectRemapArguments(environment, { apply = false } = {}) {
 }
 
 function guestAccessMode(environment) {
-  const mode = environment[GUEST_ACCESS_RECONCILE_MODE_ENV];
-  if (mode !== "true" && mode !== "false") {
+  const createProfileMode = environment[GUEST_ACCESS_CREATE_PROFILE_MODE_ENV];
+  const reconcileDisplayNameMode = environment[GUEST_ACCESS_RECONCILE_MODE_ENV];
+  if (createProfileMode !== "true" && createProfileMode !== "false") {
+    throw new MigrationOperatorError(
+      `${GUEST_ACCESS_CREATE_PROFILE_MODE_ENV} must be exactly true or false.`
+    );
+  }
+  if (reconcileDisplayNameMode !== "true" && reconcileDisplayNameMode !== "false") {
     throw new MigrationOperatorError(
       `${GUEST_ACCESS_RECONCILE_MODE_ENV} must be exactly true or false.`
     );
   }
+  if (createProfileMode === "true" && reconcileDisplayNameMode === "true") {
+    throw new MigrationOperatorError(
+      "Guest access create-profile and display-name reconciliation modes are mutually exclusive."
+    );
+  }
+  if (createProfileMode === "true") {
+    return Object.freeze({
+      arguments: Object.freeze(["--create-profile-and-prebind"]),
+      operation: GUEST_ACCESS_CREATE_PROFILE_OPERATION
+    });
+  }
   return Object.freeze({
     arguments: Object.freeze(
-      mode === "true"
+      reconcileDisplayNameMode === "true"
         ? ["--reconcile-profile-display-name-and-prebind"]
         : []
     ),
-    operation: mode === "true"
+    operation: reconcileDisplayNameMode === "true"
       ? GUEST_ACCESS_RECONCILE_PROFILE_DISPLAY_NAME_OPERATION
       : GUEST_ACCESS_OPERATION
   });
