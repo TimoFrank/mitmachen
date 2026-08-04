@@ -115,10 +115,10 @@ jobs:
 
           if [[ "$RELEASE_TYPE" == "weekly" ]]; then
             [[ "$patch" == "0" ]]
-            [[ "$RELEASE_TITLE" =~ ^Versorgungs-Kompass\ 0\.[0-9]+\.0\ —\ Release\ Candidate:\ .+ ]]
+            [[ "$RELEASE_TITLE" == "${RELEASE_TAG#v}-0 Release Candidate" ]]
           else
             (( 10#$patch > 0 ))
-            [[ "$RELEASE_TITLE" == "Versorgungs-Kompass ${RELEASE_TAG#v} — Release Candidate (Hotfix)" ]]
+            [[ "$RELEASE_TITLE" == "${RELEASE_TAG#v} Release Candidate" ]]
           fi
 
           may_publish=false

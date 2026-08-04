@@ -1,11 +1,24 @@
 pipeline {
-  agent any
+  agent { label 'versorgungs-target-deployer' }
+
+  // Der Job muss dieses Jenkinsfile aus dem geschuetzten main-Zweig laden.
+  // Erst der nachfolgende Bootstrap stellt dessen aktuellen Remote-Stand her;
+  // Kandidaten-Code wird ausschliesslich nach dem Signatur-Gate ausgecheckt.
+  options {
+    skipDefaultCheckout(true)
+    disableConcurrentBuilds()
+  }
 
   parameters {
     string(
+      name: 'RELEASE_TAG',
+      defaultValue: '',
+      description: 'Explizit freigegebener, signierter Produkt-Tag im Format vX.Y.Z.'
+    )
+    string(
       name: 'FRONTEND_BUCKET_URI',
       defaultValue: '',
-      description: 'Optional gs:// URI for versioned frontend staging; blank archives dist/target in Jenkins for the PoC.'
+      description: 'Optional gs:// URI for versioned frontend staging; blank archives dist/target in Jenkins.'
     )
     string(
       name: 'DB_SSL_CA_SECRET_NAME',
@@ -44,8 +57,13 @@ pipeline {
     )
     booleanParam(
       name: 'REQUIRE_EXTERNAL_SECURITY_EVIDENCE',
+      defaultValue: true,
+      description: 'Muss fuer Target-Deployments true bleiben; verlangt SonarQube-, Snyk-, Dependency-Track- und Cosign-Nachweise der Software Factory.'
+    )
+    booleanParam(
+      name: 'TARGET_DEPLOYMENT_APPROVED',
       defaultValue: false,
-      description: 'Require passed SonarQube, Snyk, Dependency-Track and Cosign evidence files supplied by the Software Factory.'
+      description: 'Explizite, kontrollierte Freigabe fuer Registry-Push, Frontend-Staging und Kubernetes-Deployment.'
     )
   }
 
@@ -57,14 +75,18 @@ pipeline {
     API_BASE_URL = credentials('versorgungs-api-base-url')
     FRONTEND_BASE_URL = credentials('versorgungs-frontend-base-url')
     FRONTEND_BUCKET_URI = "${params.FRONTEND_BUCKET_URI}"
+    EXTERNAL_SECURITY_EVIDENCE_ROOT = credentials('versorgungs-external-security-evidence-root')
+    GIT_NO_REPLACE_OBJECTS = '1'
+    GIT_SSH_COMMAND = 'ssh -oBatchMode=yes -oStrictHostKeyChecking=yes -oConnectTimeout=15 -oServerAliveInterval=15 -oServerAliveCountMax=2'
     FRONTEND_ARTIFACT_DIR = 'dist/target'
     SECURITY_EVIDENCE_DIR = 'dist/security-evidence'
     API_IMAGE_SCAN_DIR = 'dist/api-image-scan'
     REQUIRE_EXTERNAL_SECURITY_EVIDENCE = "${params.REQUIRE_EXTERNAL_SECURITY_EVIDENCE}"
+    TARGET_DEPLOYMENT_APPROVED = "${params.TARGET_DEPLOYMENT_APPROVED}"
     K8S_NAMESPACE = credentials('versorgungs-k8s-namespace')
     HELM_RELEASE = 'versorgungs-kompass'
     HELM_CHART = 'deploy/helm/versorgungs-kompass'
-    HELM_POC_VALUES = 'deploy/helm/versorgungs-kompass/values-poc-gematik.yaml'
+    HELM_TARGET_VALUES = 'deploy/helm/versorgungs-kompass/values-target-gematik.yaml'
     DB_HOST = credentials('versorgungs-postgres-host')
     DB_PORT = '5432'
     DB_NAME = 'versorgungs_kompass'
@@ -79,6 +101,7 @@ pipeline {
     OIDC_JWKS_URL = credentials('versorgungs-oidc-jwks-url')
     OIDC_EMAIL_CLAIM = 'email'
     OIDC_SUBJECT_CLAIM = 'sub'
+    TARGET_API_ALLOWED_CIDRS_JSON = credentials('versorgungs-target-api-allowed-cidrs-json')
     DATA_POLICY = 'approved-classes-only'
     // Neue Uploads bleiben aus. Optionale private Buckets machen bereits
     // übernommene Bilder und Anhänge lesbar.
@@ -89,69 +112,131 @@ pipeline {
   }
 
   stages {
-    stage('Prepare evidence workspace') {
+    stage('Bootstrap trusted main') {
       steps {
+        script {
+          deleteDir()
+          def trustedRemote = scm.userRemoteConfigs[0]
+          checkout([
+            $class: 'GitSCM',
+            branches: [[name: '*/main']],
+            doGenerateSubmoduleConfigurations: false,
+            extensions: [
+              [$class: 'CloneOption', depth: 0, honorRefspec: false, noTags: true, reference: '', shallow: false],
+              [$class: 'PruneStaleBranch']
+            ],
+            userRemoteConfigs: [[
+              credentialsId: 'versorgungs-target-source-readonly-ssh-key',
+              name: 'origin',
+              refspec: '+refs/heads/main:refs/remotes/origin/main',
+              url: trustedRemote.url
+            ]]
+          ])
+        }
         sh '''
-          rm -rf -- "$SECURITY_EVIDENCE_DIR" "$API_IMAGE_SCAN_DIR"
-          mkdir -p "$SECURITY_EVIDENCE_DIR" "$API_IMAGE_SCAN_DIR"
-          printf '%s\n' "$BUILD_TAG" >"$SECURITY_EVIDENCE_DIR/build-id.txt"
+          set -eu
+          for required_tool in git node npm gpg jq ssh docker helm kubectl curl; do
+            command -v "$required_tool" >/dev/null 2>&1 || {
+              echo "Required protected-runner tool is missing: $required_tool" >&2
+              exit 1
+            }
+          done
+          if [ -n "$FRONTEND_BUCKET_URI" ]; then
+            command -v gcloud >/dev/null 2>&1 || {
+              echo "gcloud is required when FRONTEND_BUCKET_URI is configured." >&2
+              exit 1
+            }
+          fi
         '''
       }
     }
 
-    stage('Verify immutable PoC RC') {
+    stage('Verify signed target source') {
       steps {
-        script {
-          env.RC_TAG = sh(
-            returnStdout: true,
-            script: '''
-              set -eu
-              git fetch --force --tags origin '+refs/heads/main:refs/remotes/origin/main' >/dev/null
-              test -z "$(git status --porcelain --untracked-files=all)" || {
-                echo "The PoC RC checkout is not clean." >&2
+        sshagent(credentials: ['versorgungs-target-source-readonly-ssh-key']) {
+          withCredentials([
+            file(
+              credentialsId: 'versorgungs-release-tag-gpg-public-key',
+              variable: 'RELEASE_TAG_GPG_PUBLIC_KEY_FILE'
+            ),
+            string(
+              credentialsId: 'versorgungs-release-tag-gpg-fingerprint',
+              variable: 'RELEASE_TAG_GPG_FINGERPRINT'
+            ),
+            string(
+              credentialsId: 'versorgungs-target-source-repository-url',
+              variable: 'SOURCE_REPOSITORY_URL'
+            )
+          ]) {
+            sh '''
+            set -eu
+            test "$REQUIRE_EXTERNAL_SECURITY_EVIDENCE" = "true" || {
+              echo "External security evidence is mandatory for the target path." >&2
+              exit 1
+            }
+            printf '%s\n' "$RELEASE_TAG" \
+              | grep -Eq '^v[0-9]+\.[0-9]+\.[0-9]+$' || {
+                echo "RELEASE_TAG must use the exact vX.Y.Z format." >&2
                 exit 1
               }
-              rc_tags="$(git tag --points-at HEAD --list 'poc-v*-rc.*')"
-              test "$(printf '%s\n' "$rc_tags" | sed '/^$/d' | wc -l | tr -d ' ')" = "1" || {
-                echo "HEAD must have exactly one poc-v<semver>-rc.<n> tag." >&2
+            test -z "$(git status --porcelain --untracked-files=all)" || {
+              echo "The trusted main checkout is not clean." >&2
+              exit 1
+            }
+            source_remote_url="$(git config --get remote.origin.url)"
+            printf '%s\n' "$source_remote_url" \
+              | grep -Eq '^(ssh://|[A-Za-z0-9._-]+@[A-Za-z0-9.-]+:)' || {
+                echo "The protected target source must use an SSH remote." >&2
                 exit 1
               }
-              rc_tag="$(printf '%s\n' "$rc_tags" | sed -n '1p')"
-              printf '%s\n' "$rc_tag" | grep -Eq '^poc-v[0-9]+\.[0-9]+\.[0-9]+-rc\.[1-9][0-9]*$' || {
-                echo "Invalid PoC RC tag: $rc_tag" >&2
-                exit 1
-              }
-              test "$(git cat-file -t "refs/tags/$rc_tag")" = "tag" || {
-                echo "PoC RC tag must be annotated." >&2
-                exit 1
-              }
-              head_sha="$(git rev-parse --verify 'HEAD^{commit}')"
-              remote_sha="$(git ls-remote --tags origin "refs/tags/${rc_tag}^{}" | awk 'NR == 1 { print $1 }')"
-              test -n "$remote_sha" && test "$remote_sha" = "$head_sha" || {
-                echo "PoC RC tag must exist on origin and resolve to the checked-out commit." >&2
-                exit 1
-              }
-              git merge-base --is-ancestor "$head_sha" refs/remotes/origin/main || {
-                echo "PoC RC tag must resolve to a commit contained in origin/main." >&2
-                exit 1
-              }
-              product_version="$(node scripts/print_product_version.mjs)"
-              chart_version="$(awk -F ':[[:space:]]*' '$1 == "version" { gsub(/"/, "", $2); print $2; exit }' deploy/helm/versorgungs-kompass/Chart.yaml)"
-              chart_app_version="$(awk -F ':[[:space:]]*' '$1 == "appVersion" { gsub(/"/, "", $2); print $2; exit }' deploy/helm/versorgungs-kompass/Chart.yaml)"
-              values_product_version="$(awk -F ':[[:space:]]*' '$1 == "productVersion" { gsub(/"/, "", $2); print $2; exit }' deploy/helm/versorgungs-kompass/values.yaml)"
-              poc_image_tag="$(awk '$1 == "tag:" { print $2; exit }' deploy/helm/versorgungs-kompass/values-poc-gematik.yaml)"
-              test "$chart_version" = "$product_version" \
-                && test "$chart_app_version" = "$product_version" \
-                && test "$values_product_version" = "$product_version" || {
-                echo "Helm chart and values must match the central product version." >&2
-                exit 1
-              }
-              test "$poc_image_tag" = "$rc_tag" || {
-                echo "PoC RC tag and PoC image tag differ." >&2
-                exit 1
-              }
-              printf '%s' "$rc_tag"
+
+            rm -rf -- "$SECURITY_EVIDENCE_DIR" "$API_IMAGE_SCAN_DIR"
+            mkdir -p "$SECURITY_EVIDENCE_DIR" "$API_IMAGE_SCAN_DIR"
+            printf '%s\n' "$BUILD_TAG" >"$SECURITY_EVIDENCE_DIR/build-id.txt"
+
+            node scripts/verify_target_release_source.mjs \
+              --tag "$RELEASE_TAG" \
+              --remote origin \
+              --expected-repository-url "$SOURCE_REPOSITORY_URL" \
+              --public-key-file "$RELEASE_TAG_GPG_PUBLIC_KEY_FILE" \
+              --fingerprint "$RELEASE_TAG_GPG_FINGERPRINT" \
+              --output "$SECURITY_EVIDENCE_DIR/source-tag-verification.json"
+
+            jq --exit-status --raw-output '.tagObjectSha' \
+              "$SECURITY_EVIDENCE_DIR/source-tag-verification.json" \
+              >"$SECURITY_EVIDENCE_DIR/release-tag-object-sha.txt"
+            jq --exit-status --raw-output '.sourceRevision' \
+              "$SECURITY_EVIDENCE_DIR/source-tag-verification.json" \
+              >"$SECURITY_EVIDENCE_DIR/source-revision.txt"
+            jq --exit-status --raw-output '.signerFingerprint' \
+              "$SECURITY_EVIDENCE_DIR/source-tag-verification.json" \
+              >"$SECURITY_EVIDENCE_DIR/release-tag-signer-fingerprint.txt"
+            jq --exit-status --raw-output '.sourceRepository' \
+              "$SECURITY_EVIDENCE_DIR/source-tag-verification.json" \
+              >"$SECURITY_EVIDENCE_DIR/source-repository.txt"
+
+            source_revision="$(cat "$SECURITY_EVIDENCE_DIR/source-revision.txt")"
+            git checkout --detach "$source_revision"
+            test "$(git rev-parse --verify 'HEAD^{commit}')" = "$source_revision"
+            test -z "$(git status --porcelain --untracked-files=all)" || {
+              echo "The verified target checkout is not clean." >&2
+              exit 1
+            }
             '''
+          }
+        }
+        script {
+          env.RELEASE_TAG_OBJECT_SHA = readFile(
+            "${env.SECURITY_EVIDENCE_DIR}/release-tag-object-sha.txt"
+          ).trim()
+          env.SOURCE_REVISION = readFile(
+            "${env.SECURITY_EVIDENCE_DIR}/source-revision.txt"
+          ).trim()
+          env.RELEASE_TAG_SIGNER_FINGERPRINT = readFile(
+            "${env.SECURITY_EVIDENCE_DIR}/release-tag-signer-fingerprint.txt"
+          ).trim()
+          env.SOURCE_REPOSITORY = readFile(
+            "${env.SECURITY_EVIDENCE_DIR}/source-repository.txt"
           ).trim()
         }
       }
@@ -171,7 +256,7 @@ pipeline {
 
     stage('Static checks') {
       steps {
-        sh 'npm run check:poc-rc'
+        sh 'npm run check:target-release'
         sh 'npm run deploy:preflight'
       }
     }
@@ -273,9 +358,13 @@ pipeline {
       steps {
         sh '''
           set -eu
-          test -n "$RC_TAG"
+          test -n "$RELEASE_TAG"
+          test "$(git rev-parse --verify 'HEAD^{commit}')" = "$SOURCE_REVISION" || {
+            echo "The checkout no longer matches the verified release source." >&2
+            exit 1
+          }
           test -z "$(git status --porcelain --untracked-files=all)" || {
-            echo "The checkout changed after RC verification; refusing to build." >&2
+            echo "The checkout changed after release verification; refusing to build." >&2
             exit 1
           }
           test "$API_AUTH_MODE" = "oidc"
@@ -316,7 +405,8 @@ pipeline {
           set -eu
           product_version="$(node scripts/print_product_version.mjs)"
           source_revision="$(git rev-parse --verify HEAD)"
-          source_url="$(git config --get remote.origin.url | node scripts/normalize_repository_url.mjs)"
+          test "$source_revision" = "$SOURCE_REVISION"
+          source_url="$SOURCE_REPOSITORY"
           docker build \
             --build-arg PRODUCT_VERSION="$product_version" \
             --build-arg SOURCE_REVISION="$source_revision" \
@@ -571,15 +661,234 @@ pipeline {
       }
     }
 
-    stage('Push API image') {
+    // Integrationsgrenze: Die zentrale Software Factory publiziert je BUILD_TAG
+    // atomar und danach unveraenderlich in einen fuer Jenkins nur lesbaren Ordner. Quell-/SBOM-Gates und
+    // Cosign-Bereitschaft muessen vor dem Push vorliegen; die an den erst dann
+    // bekannten Registry-Digest gebundene Attestation folgt nach dem Push.
+    stage('Import pre-push Software Factory gates') {
       steps {
         sh '''
           set -eu
+          test "$REQUIRE_EXTERNAL_SECURITY_EVIDENCE" = "true"
+          printf '%s\n' "$BUILD_TAG" | grep -Eq '^[A-Za-z0-9][A-Za-z0-9._-]{0,254}$' || {
+            echo "BUILD_TAG is not safe for the external evidence path." >&2
+            exit 1
+          }
+          case "$EXTERNAL_SECURITY_EVIDENCE_ROOT" in
+            /*) ;;
+            *)
+              echo "EXTERNAL_SECURITY_EVIDENCE_ROOT must be an absolute protected node path." >&2
+              exit 1
+              ;;
+          esac
+          test ! -L "$EXTERNAL_SECURITY_EVIDENCE_ROOT"
+          evidence_root="$(realpath "$EXTERNAL_SECURITY_EVIDENCE_ROOT")"
+          test -d "$evidence_root" && test -r "$evidence_root" && test ! -w "$evidence_root" || {
+            echo "The protected Software Factory evidence root must be read-only for Jenkins." >&2
+            exit 1
+          }
+          external_path="$evidence_root/$BUILD_TAG"
+          test ! -L "$external_path"
+          external_dir="$(realpath "$external_path")"
+          test "$external_dir" = "$external_path" || {
+            echo "The build-specific evidence path must not traverse symbolic links." >&2
+            exit 1
+          }
+          test -d "$external_dir" && test -r "$external_dir" || {
+            echo "The external Software Factory evidence directory is not readable." >&2
+            exit 1
+          }
+          test ! -w "$external_dir" || {
+            echo "The external Software Factory evidence directory must be read-only for Jenkins." >&2
+            exit 1
+          }
+          workspace_dir="$(realpath "$WORKSPACE")"
+          case "$external_dir" in
+            "$workspace_dir"|"$workspace_dir"/*)
+              echo "External security evidence must not originate inside the candidate workspace." >&2
+              exit 1
+              ;;
+          esac
+
+          expected_inventory="$(printf '%s\n' \
+            cosign-attestation-ready.json \
+            dependency-track-gate.json \
+            snyk-gate.json \
+            sonarqube-gate.json | LC_ALL=C sort)"
+          actual_inventory="$(
+            find "$external_dir" -mindepth 1 -maxdepth 1 -printf '%f\n' | LC_ALL=C sort
+          )"
+          test "$actual_inventory" = "$expected_inventory" || {
+            echo "The pre-push evidence directory contains missing or unexpected entries." >&2
+            exit 1
+          }
+
+          sha256_file() {
+            node -e '
+              const fs = require("node:fs");
+              const crypto = require("node:crypto");
+              process.stdout.write(`sha256:${crypto.createHash("sha256").update(fs.readFileSync(process.argv[1])).digest("hex")}`);
+            ' "$1"
+          }
+          import_gate() {
+            filename="$1"
+            test ! -L "$external_dir/$filename" || {
+              echo "$filename must not be a symbolic link." >&2
+              exit 1
+            }
+            source_file="$(realpath "$external_dir/$filename")"
+            case "$source_file" in
+              "$external_dir"/*) ;;
+              *)
+                echo "$filename escapes the external evidence directory." >&2
+                exit 1
+                ;;
+            esac
+            test -f "$source_file" && test -r "$source_file" && test ! -w "$source_file" || {
+              echo "$filename must be a read-only regular file supplied by the Software Factory." >&2
+              exit 1
+            }
+            file_size="$(wc -c <"$source_file" | tr -d ' ')"
+            test "$file_size" -ge 2 && test "$file_size" -le 1048576 || {
+              echo "$filename violates the 2-byte to 1-MiB evidence size contract." >&2
+              exit 1
+            }
+            source_digest_before="$(sha256_file "$source_file")"
+            cp -- "$source_file" "$SECURITY_EVIDENCE_DIR/$filename"
+            source_digest_after="$(sha256_file "$source_file")"
+            imported_digest="$(sha256_file "$SECURITY_EVIDENCE_DIR/$filename")"
+            test "$source_digest_before" = "$source_digest_after" \
+              && test "$source_digest_before" = "$imported_digest" || {
+                echo "$filename changed while it was imported." >&2
+                exit 1
+              }
+          }
+
+          import_gate sonarqube-gate.json
+          import_gate snyk-gate.json
+          import_gate dependency-track-gate.json
+          import_gate cosign-attestation-ready.json
+
+          test "$(find "$external_dir" -mindepth 1 -maxdepth 1 -printf '%f\n' | LC_ALL=C sort)" \
+            = "$expected_inventory" || {
+              echo "The pre-push evidence inventory changed while it was imported." >&2
+              exit 1
+            }
+          api_sbom_digest="$(sha256_file "$SECURITY_EVIDENCE_DIR/api-sbom.cdx.json")"
+          frontend_sbom_digest="$(sha256_file "$SECURITY_EVIDENCE_DIR/frontend-sbom.cdx.json")"
+          for contract in \
+            sonarqube:sonarqube-gate.json \
+            snyk:snyk-gate.json \
+            dependency-track:dependency-track-gate.json; do
+            tool="${contract%%:*}"
+            filename="${contract#*:}"
+            jq --exit-status \
+              --arg tool "$tool" \
+              --arg build_id "$BUILD_TAG" \
+              --arg release_tag "$RELEASE_TAG" \
+              --arg source_revision "$SOURCE_REVISION" \
+              --arg source_repository "$SOURCE_REPOSITORY" \
+              --arg image_repository "$API_IMAGE_REPOSITORY" \
+              --arg api_sbom_digest "$api_sbom_digest" \
+              --arg frontend_sbom_digest "$frontend_sbom_digest" '
+                keys == [
+                  "analysisId", "buildId", "evaluatedAt", "imageRepository", "policyId",
+                  "releaseTag", "sbomDigests", "sourceRepository", "sourceRevision", "status", "tool"
+                ]
+                and .tool == $tool
+                and .status == "passed"
+                and .buildId == $build_id
+                and .releaseTag == $release_tag
+                and .sourceRevision == $source_revision
+                and .sourceRepository == $source_repository
+                and .imageRepository == $image_repository
+                and (.analysisId | type == "string" and test("\\S"))
+                and (.policyId | type == "string" and test("\\S"))
+                and (.evaluatedAt | type == "string" and test("^[0-9]{4}-[0-9]{2}-[0-9]{2}T"))
+                and ((.sbomDigests | sort) == ([$api_sbom_digest, $frontend_sbom_digest] | sort))
+              ' "$SECURITY_EVIDENCE_DIR/$filename" >/dev/null
+            node -e '
+              const fs = require("node:fs");
+              const report = JSON.parse(fs.readFileSync(process.argv[1], "utf8"));
+              if (Number.isNaN(Date.parse(report.evaluatedAt))) process.exit(1);
+            ' "$SECURITY_EVIDENCE_DIR/$filename"
+          done
+          jq --exit-status \
+            --arg build_id "$BUILD_TAG" \
+            --arg release_tag "$RELEASE_TAG" \
+            --arg source_revision "$SOURCE_REVISION" \
+            --arg source_repository "$SOURCE_REPOSITORY" \
+            --arg image_repository "$API_IMAGE_REPOSITORY" \
+            --arg api_sbom_digest "$api_sbom_digest" \
+            --arg frontend_sbom_digest "$frontend_sbom_digest" '
+              keys == [
+                "buildId", "imageRepository", "releaseTag", "sbomDigests", "schemaVersion",
+                "sourceRepository", "sourceRevision", "status"
+              ]
+              and .schemaVersion == "versorgungs-kompass-cosign-readiness/v1"
+              and .status == "ready"
+              and .buildId == $build_id
+              and .releaseTag == $release_tag
+              and .sourceRevision == $source_revision
+              and .sourceRepository == $source_repository
+              and .imageRepository == $image_repository
+              and ((.sbomDigests | sort) == ([$api_sbom_digest, $frontend_sbom_digest] | sort))
+            ' "$SECURITY_EVIDENCE_DIR/cosign-attestation-ready.json" >/dev/null
+        '''
+      }
+    }
+
+    stage('Push API image') {
+      steps {
+        sshagent(credentials: ['versorgungs-target-source-readonly-ssh-key']) {
+          sh '''
+          set -eu
+          test "$REQUIRE_EXTERNAL_SECURITY_EVIDENCE" = "true" || {
+            echo "External security evidence is mandatory before the registry push." >&2
+            exit 1
+          }
+          test "$TARGET_DEPLOYMENT_APPROVED" = "true" || {
+            echo "TARGET_DEPLOYMENT_APPROVED must be true before the registry push." >&2
+            exit 1
+          }
+          test "$(git rev-parse --verify 'HEAD^{commit}')" = "$SOURCE_REVISION"
+          test -z "$(git status --porcelain --untracked-files=all)" || {
+            echo "The verified checkout changed before the registry push." >&2
+            exit 1
+          }
+          test -z "$(git for-each-ref --format='%(refname)' refs/replace)" || {
+            echo "Git replacement refs are forbidden before the registry push." >&2
+            exit 1
+          }
+          grafts_path="$(git rev-parse --git-path info/grafts)"
+          test ! -s "$grafts_path" || {
+            echo "Git grafts are forbidden before the registry push." >&2
+            exit 1
+          }
+          if git config --show-origin --get-regexp '^url\..*\.(insteadof|pushinsteadof)$' >/dev/null 2>&1; then
+            echo "Git URL rewrite rules are forbidden before the registry push." >&2
+            exit 1
+          fi
+          current_source_repository="$(
+            git config --get remote.origin.url | node scripts/normalize_repository_url.mjs
+          )"
+          test "$current_source_repository" = "$SOURCE_REPOSITORY" || {
+            echo "remote.origin.url no longer matches the verified source repository." >&2
+            exit 1
+          }
+          remote_tag_line="$(
+            git ls-remote --exit-code --refs --tags origin "refs/tags/$RELEASE_TAG"
+          )"
+          test "$(printf '%s\n' "$remote_tag_line" | sed '/^$/d' | wc -l | tr -d ' ')" = "1"
+          set -- $remote_tag_line
+          test "$1" = "$RELEASE_TAG_OBJECT_SHA"
+          test "$2" = "refs/tags/$RELEASE_TAG"
           # Der Jenkins-Agent wird durch die Plattform vorab an seiner Registry
           # authentisiert (Credential Helper, Robot Account oder Workload Identity).
           # Die Referenzpipeline schreibt deshalb keine Registry-Credentials aus.
           docker push "$API_IMAGE"
-        '''
+          '''
+        }
         script {
           def imageDigest = sh(
             script: '''
@@ -618,42 +927,226 @@ pipeline {
       }
     }
 
+    stage('Import post-push Cosign attestation') {
+      steps {
+        sh '''
+          set -eu
+          printf '%s\n' "$BUILD_TAG" | grep -Eq '^[A-Za-z0-9][A-Za-z0-9._-]{0,254}$'
+          test ! -L "$EXTERNAL_SECURITY_EVIDENCE_ROOT"
+          evidence_root="$(realpath "$EXTERNAL_SECURITY_EVIDENCE_ROOT")"
+          external_path="$evidence_root/$BUILD_TAG"
+          test ! -L "$external_path"
+          external_dir="$(realpath "$external_path")"
+          test "$external_dir" = "$external_path"
+          test -d "$external_dir" && test -r "$external_dir" && test ! -w "$external_dir"
+
+          attestation_path="$external_dir/cosign-attestation.json"
+          attempt=0
+          while [ ! -e "$attestation_path" ]; do
+            attempt=$((attempt + 1))
+            test "$attempt" -le 120 || {
+              echo "Timed out waiting for the digest-bound Cosign attestation." >&2
+              exit 1
+            }
+            sleep 5
+          done
+
+          expected_inventory="$(printf '%s\n' \
+            cosign-attestation-ready.json \
+            cosign-attestation.json \
+            dependency-track-gate.json \
+            snyk-gate.json \
+            sonarqube-gate.json | LC_ALL=C sort)"
+          actual_inventory="$(
+            find "$external_dir" -mindepth 1 -maxdepth 1 -printf '%f\n' | LC_ALL=C sort
+          )"
+          test "$actual_inventory" = "$expected_inventory" || {
+            echo "The post-push evidence directory contains missing or unexpected entries." >&2
+            exit 1
+          }
+          test ! -L "$attestation_path"
+          resolved_attestation="$(realpath "$attestation_path")"
+          test "$resolved_attestation" = "$attestation_path"
+          test -f "$resolved_attestation" && test -r "$resolved_attestation" \
+            && test ! -w "$resolved_attestation" || {
+              echo "cosign-attestation.json must be an immutable, read-only regular file." >&2
+              exit 1
+            }
+          file_size="$(wc -c <"$resolved_attestation" | tr -d ' ')"
+          test "$file_size" -ge 2 && test "$file_size" -le 1048576 || {
+            echo "cosign-attestation.json violates the 2-byte to 1-MiB evidence size contract." >&2
+            exit 1
+          }
+          sha256_file() {
+            node -e '
+              const fs = require("node:fs");
+              const crypto = require("node:crypto");
+              process.stdout.write(`sha256:${crypto.createHash("sha256").update(fs.readFileSync(process.argv[1])).digest("hex")}`);
+            ' "$1"
+          }
+          source_digest_before="$(sha256_file "$resolved_attestation")"
+          cp -- "$resolved_attestation" "$SECURITY_EVIDENCE_DIR/cosign-attestation.json"
+          source_digest_after="$(sha256_file "$resolved_attestation")"
+          imported_digest="$(sha256_file "$SECURITY_EVIDENCE_DIR/cosign-attestation.json")"
+          test "$source_digest_before" = "$source_digest_after" \
+            && test "$source_digest_before" = "$imported_digest" || {
+              echo "cosign-attestation.json changed while it was imported." >&2
+              exit 1
+            }
+          test "$(find "$external_dir" -mindepth 1 -maxdepth 1 -printf '%f\n' | LC_ALL=C sort)" \
+            = "$expected_inventory" || {
+              echo "The post-push evidence inventory changed while it was imported." >&2
+              exit 1
+            }
+          api_sbom_digest="$(sha256_file "$SECURITY_EVIDENCE_DIR/api-sbom.cdx.json")"
+          frontend_sbom_digest="$(sha256_file "$SECURITY_EVIDENCE_DIR/frontend-sbom.cdx.json")"
+          jq --exit-status \
+            --arg build_id "$BUILD_TAG" \
+            --arg release_tag "$RELEASE_TAG" \
+            --arg source_revision "$SOURCE_REVISION" \
+            --arg source_repository "$SOURCE_REPOSITORY" \
+            --arg image_repository "$API_IMAGE_REPOSITORY" \
+            --arg subject "$API_IMAGE_REPOSITORY@$API_IMAGE_DIGEST" \
+            --arg api_sbom_digest "$api_sbom_digest" \
+            --arg frontend_sbom_digest "$frontend_sbom_digest" '
+              keys == [
+                "analysisId", "buildId", "evaluatedAt", "imageRepository", "policyId",
+                "releaseTag", "sbomDigests", "sourceRepository", "sourceRevision", "status",
+                "subject", "tool"
+              ]
+              and .tool == "cosign"
+              and .status == "passed"
+              and .buildId == $build_id
+              and .releaseTag == $release_tag
+              and .sourceRevision == $source_revision
+              and .sourceRepository == $source_repository
+              and .imageRepository == $image_repository
+              and .subject == $subject
+              and (.analysisId | type == "string" and test("\\S"))
+              and (.policyId | type == "string" and test("\\S"))
+              and (.evaluatedAt | type == "string" and test("^[0-9]{4}-[0-9]{2}-[0-9]{2}T"))
+              and ((.sbomDigests | sort) == ([$api_sbom_digest, $frontend_sbom_digest] | sort))
+            ' "$SECURITY_EVIDENCE_DIR/cosign-attestation.json" >/dev/null
+          node -e '
+            const fs = require("node:fs");
+            const report = JSON.parse(fs.readFileSync(process.argv[1], "utf8"));
+            if (Number.isNaN(Date.parse(report.evaluatedAt))) process.exit(1);
+          ' "$SECURITY_EVIDENCE_DIR/cosign-attestation.json"
+        '''
+      }
+    }
+
     stage('Helm validate') {
       steps {
         sh '''
+          set -eu
+          node --input-type=module <<'NODE'
+            import net from "node:net";
+
+            const env = process.env;
+            const fail = (message) => { throw new Error(message); };
+            const helmMetaCharacters = /[,={}\\]/u;
+            const requiredScalars = [
+              "API_IMAGE_REPOSITORY", "API_IMAGE_DIGEST", "API_BASE_URL",
+              "FRONTEND_BASE_URL", "API_AUTH_MODE", "OIDC_ISSUER", "OIDC_AUDIENCE",
+              "OIDC_JWKS_URL", "OIDC_EMAIL_CLAIM", "OIDC_SUBJECT_CLAIM", "DB_HOST",
+              "DB_PORT", "DB_NAME", "DB_USER", "DB_SSL_CA_SECRET_KEY",
+              "DB_PASSWORD_SECRET_NAME"
+            ];
+            const optionalScalars = [
+              "DB_SSL_CA_SECRET_NAME", "DB_SSL_SERVERNAME", "PROFILE_IMAGE_BUCKET",
+              "CONTACT_IMAGE_BUCKET", "CONTACT_NOTE_ATTACHMENT_BUCKET",
+              "STAKEHOLDER_LOGO_BUCKET"
+            ];
+            for (const name of requiredScalars) {
+              const value = String(env[name] || "");
+              if (!value || helmMetaCharacters.test(value)) fail(`${name} besitzt keinen sicheren Helm-Skalarwert.`);
+            }
+            for (const name of optionalScalars) {
+              if (helmMetaCharacters.test(String(env[name] || ""))) fail(`${name} besitzt keinen sicheren Helm-Skalarwert.`);
+            }
+            if (env.API_AUTH_MODE !== "oidc") fail("API_AUTH_MODE muss oidc sein.");
+            if (!/^sha256:[0-9a-f]{64}$/u.test(env.API_IMAGE_DIGEST)) fail("API_IMAGE_DIGEST ist ungueltig.");
+            if (!/^[a-z0-9][a-z0-9._:/-]{2,511}$/u.test(env.API_IMAGE_REPOSITORY)) fail("API_IMAGE_REPOSITORY ist ungueltig.");
+            if (!/^[a-z0-9](?:[-a-z0-9.]{0,251}[a-z0-9])?$/u.test(env.DB_HOST)) fail("DB_HOST ist ungueltig.");
+            if (!/^[A-Za-z_][A-Za-z0-9_-]{0,62}$/u.test(env.DB_NAME) || !/^[A-Za-z_][A-Za-z0-9_-]{0,62}$/u.test(env.DB_USER)) {
+              fail("Datenbankname oder -benutzer ist ungueltig.");
+            }
+            const dnsLabel = /^[a-z0-9](?:[-a-z0-9.]{0,251}[a-z0-9])?$/u;
+            if (!dnsLabel.test(env.DB_PASSWORD_SECRET_NAME)) fail("DB_PASSWORD_SECRET_NAME ist ungueltig.");
+            if (env.DB_SSL_CA_SECRET_NAME && !dnsLabel.test(env.DB_SSL_CA_SECRET_NAME)) fail("DB_SSL_CA_SECRET_NAME ist ungueltig.");
+            if (!/^[A-Za-z0-9._-]{1,253}$/u.test(env.DB_SSL_CA_SECRET_KEY)) fail("DB_SSL_CA_SECRET_KEY ist ungueltig.");
+            for (const name of ["PROFILE_IMAGE_BUCKET", "CONTACT_IMAGE_BUCKET", "CONTACT_NOTE_ATTACHMENT_BUCKET", "STAKEHOLDER_LOGO_BUCKET"]) {
+              const value = String(env[name] || "");
+              if (value && (value.length < 3 || value.length > 222 || !/^[a-z0-9][a-z0-9._-]*[a-z0-9]$/u.test(value))) {
+                fail(`${name} ist kein zulaessiger Bucketname.`);
+              }
+            }
+            const plainOrigin = (name) => {
+              const value = env[name];
+              const parsed = new URL(value);
+              if (parsed.protocol !== "https:" || parsed.username || parsed.password || parsed.pathname !== "/" || parsed.search || parsed.hash) {
+                fail(`${name} muss ein reiner HTTPS-Origin sein.`);
+              }
+              return parsed;
+            };
+            const apiOrigin = plainOrigin("API_BASE_URL");
+            if (plainOrigin("FRONTEND_BASE_URL").origin !== apiOrigin.origin) fail("API und Frontend muessen same-origin sein.");
+            for (const name of ["OIDC_ISSUER", "OIDC_JWKS_URL"]) {
+              const parsed = new URL(env[name]);
+              if (parsed.protocol !== "https:" || parsed.username || parsed.password || parsed.search || parsed.hash) fail(`${name} ist ungueltig.`);
+            }
+            let cidrs;
+            try { cidrs = JSON.parse(env.TARGET_API_ALLOWED_CIDRS_JSON); } catch { fail("TARGET_API_ALLOWED_CIDRS_JSON ist kein JSON."); }
+            if (!Array.isArray(cidrs) || cidrs.length < 1 || cidrs.length > 32 || new Set(cidrs).size !== cidrs.length) {
+              fail("TARGET_API_ALLOWED_CIDRS_JSON muss 1 bis 32 eindeutige CIDRs enthalten.");
+            }
+            for (const cidr of cidrs) {
+              if (typeof cidr !== "string" || cidr.includes(",") || cidr.includes("=")) fail("Gateway-CIDR ist ungueltig.");
+              const parts = cidr.split("/");
+              const family = parts.length === 2 ? net.isIP(parts[0]) : 0;
+              const prefix = Number(parts[1]);
+              if (!family || !/^\d{1,3}$/u.test(parts[1] || "") || prefix < 0 || prefix > (family === 4 ? 32 : 128)) fail("Gateway-CIDR ist ungueltig.");
+              if (cidr === "0.0.0.0/0" || cidr === "::/0" || /^(?:192\.0\.2\.|198\.51\.100\.|203\.0\.113\.)/u.test(parts[0]) || /^2001:db8:/iu.test(parts[0])) {
+                fail("Gateway-CIDR darf weder global offen noch ein Dokumentationsplatzhalter sein.");
+              }
+            }
+NODE
           API_HOST="$(node -e 'console.log(new URL(process.env.API_BASE_URL).host)')"
           helm lint "$HELM_CHART" \
-            --values "$HELM_POC_VALUES" \
-            --set image.repository="$API_IMAGE_REPOSITORY" \
-            --set image.tag="$BUILD_NUMBER" \
+            --values "$HELM_TARGET_VALUES" \
+            --set-string image.repository="$API_IMAGE_REPOSITORY" \
+            --set-string image.tag="$BUILD_NUMBER" \
             --set-string image.digest="$API_IMAGE_DIGEST" \
-            --set ingress.host="$API_HOST"
+            --set-string ingress.host="$API_HOST" \
+            --set-json networkPolicy.ingress.apiAllowedCidrs="$TARGET_API_ALLOWED_CIDRS_JSON"
           helm template "$HELM_RELEASE" "$HELM_CHART" \
             --namespace "$K8S_NAMESPACE" \
-            --values "$HELM_POC_VALUES" \
-            --set image.repository="$API_IMAGE_REPOSITORY" \
-            --set image.tag="$BUILD_NUMBER" \
+            --values "$HELM_TARGET_VALUES" \
+            --set-string image.repository="$API_IMAGE_REPOSITORY" \
+            --set-string image.tag="$BUILD_NUMBER" \
             --set-string image.digest="$API_IMAGE_DIGEST" \
-            --set ingress.host="$API_HOST" \
-            --set config.allowedOrigin="$FRONTEND_BASE_URL" \
-            --set config.apiAuthMode="$API_AUTH_MODE" \
+            --set-string ingress.host="$API_HOST" \
+            --set-string config.allowedOrigin="$FRONTEND_BASE_URL" \
+            --set-string config.apiAuthMode="$API_AUTH_MODE" \
             --set-string config.oidcIssuer="$OIDC_ISSUER" \
             --set-string config.oidcAudience="$OIDC_AUDIENCE" \
             --set-string config.oidcJwksUrl="$OIDC_JWKS_URL" \
             --set-string config.oidcEmailClaim="$OIDC_EMAIL_CLAIM" \
             --set-string config.oidcSubjectClaim="$OIDC_SUBJECT_CLAIM" \
-            --set database.host="$DB_HOST" \
-            --set database.port="$DB_PORT" \
-            --set database.name="$DB_NAME" \
-            --set database.user="$DB_USER" \
+            --set-string database.host="$DB_HOST" \
+            --set-string database.port="$DB_PORT" \
+            --set-string database.name="$DB_NAME" \
+            --set-string database.user="$DB_USER" \
             --set-string database.sslCaSecretName="$DB_SSL_CA_SECRET_NAME" \
             --set-string database.sslCaSecretKey="$DB_SSL_CA_SECRET_KEY" \
             --set-string database.sslServerName="$DB_SSL_SERVERNAME" \
-            --set secrets.databasePasswordSecretName="$DB_PASSWORD_SECRET_NAME" \
-            --set storage.profileImageBucket="$PROFILE_IMAGE_BUCKET" \
-            --set storage.contactImageBucket="$CONTACT_IMAGE_BUCKET" \
-            --set storage.contactNoteAttachmentBucket="$CONTACT_NOTE_ATTACHMENT_BUCKET" \
-            --set storage.stakeholderLogoBucket="$STAKEHOLDER_LOGO_BUCKET" \
+            --set-string secrets.databasePasswordSecretName="$DB_PASSWORD_SECRET_NAME" \
+            --set-string storage.profileImageBucket="$PROFILE_IMAGE_BUCKET" \
+            --set-string storage.contactImageBucket="$CONTACT_IMAGE_BUCKET" \
+            --set-string storage.contactNoteAttachmentBucket="$CONTACT_NOTE_ATTACHMENT_BUCKET" \
+            --set-string storage.stakeholderLogoBucket="$STAKEHOLDER_LOGO_BUCKET" \
+            --set-json networkPolicy.ingress.apiAllowedCidrs="$TARGET_API_ALLOWED_CIDRS_JSON" \
             >"$SECURITY_EVIDENCE_DIR/versorgungs-kompass-rendered.yaml"
         '''
       }
@@ -717,25 +1210,43 @@ pipeline {
 
     stage('Assemble security evidence') {
       steps {
-        sh '''
-          set -eu
-          set -- \
-            --report-dir "$SECURITY_EVIDENCE_DIR" \
-            --output "$SECURITY_EVIDENCE_DIR/security-evidence.json" \
-            --rc-tag "$RC_TAG" \
-            --source-revision "$(git rev-parse --verify HEAD)" \
-            --api-image "$API_IMAGE_REPOSITORY@$API_IMAGE_DIGEST" \
-            --api-image-local-digest "$API_IMAGE_ID" \
-            --api-image-config-digest "$API_IMAGE_CONFIG_DIGEST" \
-            --frontend-manifest "$FRONTEND_ARTIFACT_DIR/build-manifest.json"
-          if [ -n "${BUILD_URL:-}" ]; then
-            set -- "$@" --build-url "$BUILD_URL"
-          fi
-          if [ "$REQUIRE_EXTERNAL_SECURITY_EVIDENCE" = "true" ]; then
-            set -- "$@" --require-external-gates
-          fi
-          node scripts/generate_security_evidence.mjs "$@"
-        '''
+        withCredentials([
+          file(
+            credentialsId: 'versorgungs-release-tag-gpg-public-key',
+            variable: 'RELEASE_TAG_GPG_PUBLIC_KEY_FILE'
+          ),
+          string(
+            credentialsId: 'versorgungs-release-tag-gpg-fingerprint',
+            variable: 'RELEASE_TAG_GPG_FINGERPRINT'
+          ),
+          string(
+            credentialsId: 'versorgungs-target-source-repository-url',
+            variable: 'SOURCE_REPOSITORY_URL'
+          )
+        ]) {
+          sshagent(credentials: ['versorgungs-target-source-readonly-ssh-key']) {
+            sh '''
+            set -eu
+            set -- \
+              --report-dir "$SECURITY_EVIDENCE_DIR" \
+              --output "$SECURITY_EVIDENCE_DIR/security-evidence.json" \
+              --release-tag "$RELEASE_TAG" \
+              --source-revision "$SOURCE_REVISION" \
+              --api-image "$API_IMAGE_REPOSITORY@$API_IMAGE_DIGEST" \
+              --api-image-local-digest "$API_IMAGE_ID" \
+              --api-image-config-digest "$API_IMAGE_CONFIG_DIGEST" \
+              --frontend-manifest "$FRONTEND_ARTIFACT_DIR/build-manifest.json" \
+              --expected-repository-url "$SOURCE_REPOSITORY_URL" \
+              --expected-signer-fingerprint "$RELEASE_TAG_GPG_FINGERPRINT" \
+              --public-key-file "$RELEASE_TAG_GPG_PUBLIC_KEY_FILE" \
+              --require-external-gates
+            if [ -n "${BUILD_URL:-}" ]; then
+              set -- "$@" --build-url "$BUILD_URL"
+            fi
+            node scripts/generate_security_evidence.mjs "$@"
+            '''
+          }
+        }
       }
     }
 
@@ -749,26 +1260,37 @@ pipeline {
           if (!(sourceRevision ==~ /[0-9a-f]{40}/)) {
             error('Could not resolve an immutable Git source revision for the frontend release.')
           }
+          if (sourceRevision != env.SOURCE_REVISION) {
+            error('The frontend release no longer matches the verified source revision.')
+          }
           env.FRONTEND_SOURCE_REVISION = sourceRevision
-          env.FRONTEND_RELEASE_ID = "${env.RC_TAG}-git-${sourceRevision.take(12)}"
+          env.FRONTEND_RELEASE_ID = "${params.RELEASE_TAG}-git-${sourceRevision.take(12)}"
           if (env.FRONTEND_BUCKET_URI?.trim()) {
             env.FRONTEND_RELEASE_URI = "${env.FRONTEND_BUCKET_URI.replaceAll('/+$', '')}/releases/${env.FRONTEND_RELEASE_ID}"
           } else {
             env.FRONTEND_RELEASE_URI = "jenkins://${env.JOB_NAME}/${env.BUILD_NUMBER}/dist/target"
           }
         }
-        sh '''
+        sshagent(credentials: ['versorgungs-target-source-readonly-ssh-key']) {
+          sh '''
           set -eu
-          manifest_path="$WORKSPACE/frontend-release-manifest.json"
+          test "$(git rev-parse --verify 'HEAD^{commit}')" = "$SOURCE_REVISION"
+          test -z "$(git status --porcelain --untracked-files=all)" || {
+            echo "The verified checkout changed before frontend release assembly." >&2
+            exit 1
+          }
+          manifest_path="$SECURITY_EVIDENCE_DIR/frontend-release-manifest.json"
           frontend_artifact_digest="$(jq --exit-status --raw-output \
             '.artifactDigest | select(type == "string" and test("^sha256:[0-9a-f]{64}$"))' \
             "$FRONTEND_ARTIFACT_DIR/build-manifest.json")"
           chart_version="$(awk -F ':[[:space:]]*' '$1 == "version" { gsub(/"/, "", $2); print $2; exit }' "$HELM_CHART/Chart.yaml")"
-          test -n "$chart_version"
+          product_version="$(node scripts/print_product_version.mjs)"
+          test -n "$chart_version" && test "$chart_version" = "$product_version"
           sha256_file() {
             node -e 'const fs = require("node:fs"); const crypto = require("node:crypto"); process.stdout.write(crypto.createHash("sha256").update(fs.readFileSync(process.argv[1])).digest("hex"));' "$1"
           }
-          poc_values_digest="sha256:$(sha256_file "$HELM_POC_VALUES")"
+          target_values_digest="sha256:$(sha256_file "$HELM_TARGET_VALUES")"
+          rendered_helm_manifest_digest="sha256:$(sha256_file "$SECURITY_EVIDENCE_DIR/versorgungs-kompass-rendered.yaml")"
           schema_digest="sha256:$(sha256_file deploy/postgres/pre-gematik/schema.sql)"
           migration_contract_digest="$(node scripts/hash_pre_gematik_migration_contract.mjs)"
           identity_binding_digest="sha256:$(sha256_file deploy/postgres/poc-gematik/bind-oidc-identity.sql)"
@@ -776,17 +1298,22 @@ pipeline {
           api_sbom_digest="sha256:$(sha256_file "$SECURITY_EVIDENCE_DIR/api-sbom.cdx.json")"
           frontend_sbom_digest="sha256:$(sha256_file "$SECURITY_EVIDENCE_DIR/frontend-sbom.cdx.json")"
           jq --null-input \
-            --arg schema_version "1" \
+            --arg schema_version "2" \
             --arg release_id "$FRONTEND_RELEASE_ID" \
-            --arg rc_tag "$RC_TAG" \
+            --arg release_tag "$RELEASE_TAG" \
+            --arg tag_object_sha "$RELEASE_TAG_OBJECT_SHA" \
+            --arg signer_fingerprint "$RELEASE_TAG_SIGNER_FINGERPRINT" \
+            --arg product_version "$product_version" \
             --arg source_revision "$FRONTEND_SOURCE_REVISION" \
+            --arg source_repository "$SOURCE_REPOSITORY" \
             --arg build_number "$BUILD_NUMBER" \
             --arg artifact_uri "$FRONTEND_RELEASE_URI" \
             --arg api_image_repository "$API_IMAGE_REPOSITORY" \
             --arg api_image_digest "$API_IMAGE_DIGEST" \
             --arg frontend_artifact_digest "$frontend_artifact_digest" \
             --arg chart_version "$chart_version" \
-            --arg poc_values_digest "$poc_values_digest" \
+            --arg target_values_digest "$target_values_digest" \
+            --arg rendered_helm_manifest_digest "$rendered_helm_manifest_digest" \
             --arg schema_digest "$schema_digest" \
             --arg data_policy "$DATA_POLICY" \
             --arg migration_contract_digest "$migration_contract_digest" \
@@ -798,8 +1325,13 @@ pipeline {
             '{
               schemaVersion: ($schema_version | tonumber),
               releaseId: $release_id,
-              rcTag: $rc_tag,
+              releaseTag: $release_tag,
+              tagObjectSha: $tag_object_sha,
+              signerFingerprint: $signer_fingerprint,
+              tagSignatureVerified: true,
+              productVersion: $product_version,
               sourceRevision: $source_revision,
+              sourceRepository: $source_repository,
               buildNumber: $build_number,
               artifactUri: $artifact_uri,
               apiImage: ($api_image_repository + "@" + $api_image_digest),
@@ -807,7 +1339,8 @@ pipeline {
               apiImageDigest: $api_image_digest,
               frontendArtifactDigest: $frontend_artifact_digest,
               chartVersion: $chart_version,
-              pocValuesDigest: $poc_values_digest,
+              targetValuesDigest: $target_values_digest,
+              renderedHelmManifestDigest: $rendered_helm_manifest_digest,
               database: {
                 schemaDigest: $schema_digest,
                 dataPolicy: $data_policy,
@@ -835,6 +1368,38 @@ pipeline {
             }' > "$manifest_path"
 
           if [ -n "$FRONTEND_BUCKET_URI" ]; then
+            test "$REQUIRE_EXTERNAL_SECURITY_EVIDENCE" = "true"
+            test "$TARGET_DEPLOYMENT_APPROVED" = "true" || {
+              echo "TARGET_DEPLOYMENT_APPROVED must be true before frontend staging." >&2
+              exit 1
+            }
+            test -z "$(git for-each-ref --format='%(refname)' refs/replace)" || {
+              echo "Git replacement refs are forbidden before frontend staging." >&2
+              exit 1
+            }
+            grafts_path="$(git rev-parse --git-path info/grafts)"
+            test ! -s "$grafts_path" || {
+              echo "Git grafts are forbidden before frontend staging." >&2
+              exit 1
+            }
+            if git config --show-origin --get-regexp '^url\..*\.(insteadof|pushinsteadof)$' >/dev/null 2>&1; then
+              echo "Git URL rewrite rules are forbidden before frontend staging." >&2
+              exit 1
+            fi
+            current_source_repository="$(
+              git config --get remote.origin.url | node scripts/normalize_repository_url.mjs
+            )"
+            test "$current_source_repository" = "$SOURCE_REPOSITORY" || {
+              echo "remote.origin.url no longer matches the verified source repository." >&2
+              exit 1
+            }
+            remote_tag_line="$(
+              git ls-remote --exit-code --refs --tags origin "refs/tags/$RELEASE_TAG"
+            )"
+            test "$(printf '%s\n' "$remote_tag_line" | sed '/^$/d' | wc -l | tr -d ' ')" = "1"
+            set -- $remote_tag_line
+            test "$1" = "$RELEASE_TAG_OBJECT_SHA"
+            test "$2" = "refs/tags/$RELEASE_TAG"
             case "$FRONTEND_BUCKET_URI" in
               gs://*) ;;
               *)
@@ -842,7 +1407,7 @@ pipeline {
                 exit 1
                 ;;
             esac
-            marker_error="$WORKSPACE/frontend-release-marker-describe.err"
+            marker_error="$SECURITY_EVIDENCE_DIR/frontend-release-marker-describe.err"
             if gcloud storage objects describe \
               "$FRONTEND_RELEASE_URI/deployment-manifest.json" \
               --format='value(name)' >/dev/null 2>"$marker_error"; then
@@ -860,55 +1425,149 @@ pipeline {
             gcloud storage objects describe "$FRONTEND_RELEASE_URI/build-manifest.json" --format='value(name)'
             gcloud storage objects describe "$FRONTEND_RELEASE_URI/deployment-manifest.json" --format='value(name)'
           else
-            echo "No frontend bucket configured; Jenkins will archive the immutable PoC frontend artifact."
+            echo "No frontend bucket configured; Jenkins will archive the immutable target frontend artifact."
           fi
           echo "Frontend release $FRONTEND_RELEASE_ID is staged; the hosting platform must promote this immutable release explicitly."
-        '''
-        archiveArtifacts artifacts: 'frontend-release-manifest.json,dist/target/**', fingerprint: true
+          '''
+        }
+        archiveArtifacts artifacts: 'dist/security-evidence/frontend-release-manifest.json,dist/target/**', fingerprint: true
       }
     }
 
     stage('Deploy API to Kubernetes') {
       steps {
-        sh '''
+        withCredentials([
+          file(
+            credentialsId: 'versorgungs-target-kubeconfig',
+            variable: 'KUBECONFIG'
+          ),
+          string(
+            credentialsId: 'versorgungs-target-kube-context',
+            variable: 'TARGET_KUBE_CONTEXT'
+          )
+        ]) {
+          sshagent(credentials: ['versorgungs-target-source-readonly-ssh-key']) {
+            sh '''
+          set -eu
+          test -f "$KUBECONFIG" && test ! -L "$KUBECONFIG" || {
+            echo "The protected target kubeconfig must be a regular, symlink-free file." >&2
+            exit 1
+          }
+          test -n "$TARGET_KUBE_CONTEXT"
+          test "$(kubectl --kubeconfig "$KUBECONFIG" config get-contexts "$TARGET_KUBE_CONTEXT" -o name)" = "$TARGET_KUBE_CONTEXT" || {
+            echo "The protected target Kubernetes context is unavailable." >&2
+            exit 1
+          }
+          test "$REQUIRE_EXTERNAL_SECURITY_EVIDENCE" = "true"
+          test "$TARGET_DEPLOYMENT_APPROVED" = "true" || {
+            echo "TARGET_DEPLOYMENT_APPROVED must be true before the Kubernetes deployment." >&2
+            exit 1
+          }
+          test "$(git rev-parse --verify 'HEAD^{commit}')" = "$SOURCE_REVISION"
+          test -z "$(git status --porcelain --untracked-files=all)" || {
+            echo "The verified checkout changed before the Kubernetes deployment." >&2
+            exit 1
+          }
+          test -z "$(git for-each-ref --format='%(refname)' refs/replace)" || {
+            echo "Git replacement refs are forbidden before the Kubernetes deployment." >&2
+            exit 1
+          }
+          grafts_path="$(git rev-parse --git-path info/grafts)"
+          test ! -s "$grafts_path" || {
+            echo "Git grafts are forbidden before the Kubernetes deployment." >&2
+            exit 1
+          }
+          if git config --show-origin --get-regexp '^url\..*\.(insteadof|pushinsteadof)$' >/dev/null 2>&1; then
+            echo "Git URL rewrite rules are forbidden before the Kubernetes deployment." >&2
+            exit 1
+          fi
+          current_source_repository="$(
+            git config --get remote.origin.url | node scripts/normalize_repository_url.mjs
+          )"
+          test "$current_source_repository" = "$SOURCE_REPOSITORY" || {
+            echo "remote.origin.url no longer matches the verified source repository." >&2
+            exit 1
+          }
+          remote_tag_line="$(
+            git ls-remote --exit-code --refs --tags origin "refs/tags/$RELEASE_TAG"
+          )"
+          test "$(printf '%s\n' "$remote_tag_line" | sed '/^$/d' | wc -l | tr -d ' ')" = "1"
+          set -- $remote_tag_line
+          test "$1" = "$RELEASE_TAG_OBJECT_SHA"
+          test "$2" = "refs/tags/$RELEASE_TAG"
           API_HOST="$(node -e 'console.log(new URL(process.env.API_BASE_URL).host)')"
           helm upgrade --install "$HELM_RELEASE" "$HELM_CHART" \
+            --kubeconfig "$KUBECONFIG" \
+            --kube-context "$TARGET_KUBE_CONTEXT" \
             --namespace "$K8S_NAMESPACE" \
-            --values "$HELM_POC_VALUES" \
+            --values "$HELM_TARGET_VALUES" \
             --atomic \
             --wait \
             --timeout 10m \
-            --set image.repository="$API_IMAGE_REPOSITORY" \
-            --set image.tag="$BUILD_NUMBER" \
+            --set-string image.repository="$API_IMAGE_REPOSITORY" \
+            --set-string image.tag="$BUILD_NUMBER" \
             --set-string image.digest="$API_IMAGE_DIGEST" \
-            --set ingress.host="$API_HOST" \
-            --set config.allowedOrigin="$FRONTEND_BASE_URL" \
-            --set config.apiAuthMode="$API_AUTH_MODE" \
+            --set-string ingress.host="$API_HOST" \
+            --set-string config.allowedOrigin="$FRONTEND_BASE_URL" \
+            --set-string config.apiAuthMode="$API_AUTH_MODE" \
             --set-string config.oidcIssuer="$OIDC_ISSUER" \
             --set-string config.oidcAudience="$OIDC_AUDIENCE" \
             --set-string config.oidcJwksUrl="$OIDC_JWKS_URL" \
             --set-string config.oidcEmailClaim="$OIDC_EMAIL_CLAIM" \
             --set-string config.oidcSubjectClaim="$OIDC_SUBJECT_CLAIM" \
-            --set database.host="$DB_HOST" \
-            --set database.port="$DB_PORT" \
-            --set database.name="$DB_NAME" \
-            --set database.user="$DB_USER" \
+            --set-string database.host="$DB_HOST" \
+            --set-string database.port="$DB_PORT" \
+            --set-string database.name="$DB_NAME" \
+            --set-string database.user="$DB_USER" \
             --set-string database.sslCaSecretName="$DB_SSL_CA_SECRET_NAME" \
             --set-string database.sslCaSecretKey="$DB_SSL_CA_SECRET_KEY" \
             --set-string database.sslServerName="$DB_SSL_SERVERNAME" \
-            --set secrets.databasePasswordSecretName="$DB_PASSWORD_SECRET_NAME" \
-            --set storage.profileImageBucket="$PROFILE_IMAGE_BUCKET" \
-            --set storage.contactImageBucket="$CONTACT_IMAGE_BUCKET" \
-            --set storage.contactNoteAttachmentBucket="$CONTACT_NOTE_ATTACHMENT_BUCKET" \
-            --set storage.stakeholderLogoBucket="$STAKEHOLDER_LOGO_BUCKET"
-        '''
+            --set-string secrets.databasePasswordSecretName="$DB_PASSWORD_SECRET_NAME" \
+            --set-string storage.profileImageBucket="$PROFILE_IMAGE_BUCKET" \
+            --set-string storage.contactImageBucket="$CONTACT_IMAGE_BUCKET" \
+            --set-string storage.contactNoteAttachmentBucket="$CONTACT_NOTE_ATTACHMENT_BUCKET" \
+            --set-string storage.stakeholderLogoBucket="$STAKEHOLDER_LOGO_BUCKET" \
+            --set-json networkPolicy.ingress.apiAllowedCidrs="$TARGET_API_ALLOWED_CIDRS_JSON"
+            '''
+          }
+        }
       }
     }
 
     stage('Smoke test') {
       steps {
-        sh '''
+        withCredentials([
+          file(
+            credentialsId: 'versorgungs-target-kubeconfig',
+            variable: 'KUBECONFIG'
+          ),
+          string(
+            credentialsId: 'versorgungs-target-kube-context',
+            variable: 'TARGET_KUBE_CONTEXT'
+          ),
+          string(
+            credentialsId: 'versorgungs-oidc-smoke-bearer-token',
+            variable: 'OIDC_SMOKE_BEARER_TOKEN'
+          ),
+          string(
+            credentialsId: 'versorgungs-oidc-smoke-profile-id',
+            variable: 'OIDC_SMOKE_PROFILE_ID'
+          ),
+          string(
+            credentialsId: 'versorgungs-oidc-smoke-role',
+            variable: 'OIDC_SMOKE_ROLE'
+          )
+        ]) {
+          sh '''
           set -eu
+          test -f "$KUBECONFIG" && test ! -L "$KUBECONFIG"
+          test "$(kubectl --kubeconfig "$KUBECONFIG" config get-contexts "$TARGET_KUBE_CONTEXT" -o name)" = "$TARGET_KUBE_CONTEXT"
+          printf '%s\n' "$OIDC_SMOKE_BEARER_TOKEN" | grep -Eq '^[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+$' || {
+            echo "The short-lived OIDC smoke credential is not a JWT." >&2
+            exit 1
+          }
+          printf '%s\n' "$OIDC_SMOKE_PROFILE_ID" | grep -Eq '^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$'
+          printf '%s\n' "$OIDC_SMOKE_ROLE" | grep -Eq '^(viewer|editor|admin)$'
           smoke_dir="$(mktemp -d)"
           trap 'rm -rf -- "$smoke_dir"' EXIT
 
@@ -916,6 +1575,8 @@ pipeline {
             path="$1"
             output="$2"
             status="$(curl --silent --show-error \
+              --connect-timeout 10 \
+              --max-time 30 \
               --output "$output" \
               --write-out '%{http_code}' \
               "$API_BASE_URL$path")"
@@ -929,10 +1590,12 @@ pipeline {
             }
           }
 
-          kubectl -n "$K8S_NAMESPACE" rollout status "deployment/${HELM_RELEASE}-api" --timeout=180s
+          kubectl --kubeconfig "$KUBECONFIG" --context "$TARGET_KUBE_CONTEXT" \
+            -n "$K8S_NAMESPACE" rollout status "deployment/${HELM_RELEASE}-api" --timeout=180s
           assert_ok_json /api/healthz "$smoke_dir/healthz.json"
           assert_ok_json /api/readyz "$smoke_dir/readyz.json"
-          session_status="$(curl -sS -o /dev/null -w '%{http_code}' "$API_BASE_URL/api/session")"
+          session_status="$(curl --silent --show-error --connect-timeout 10 --max-time 30 \
+            --output /dev/null --write-out '%{http_code}' "$API_BASE_URL/api/session")"
           case "$session_status" in
             302|401|403) ;;
             *)
@@ -940,6 +1603,152 @@ pipeline {
               exit 1
               ;;
           esac
+          oidc_session_status="$(curl --silent --show-error \
+            --connect-timeout 10 \
+            --max-time 30 \
+            --output "$smoke_dir/oidc-session.json" \
+            --write-out '%{http_code}' \
+            --header "Authorization: Bearer $OIDC_SMOKE_BEARER_TOKEN" \
+            "$API_BASE_URL/api/session")"
+          test "$oidc_session_status" = "200" || {
+            echo "Authenticated OIDC session returned HTTP $oidc_session_status instead of 200." >&2
+            exit 1
+          }
+          jq --exit-status \
+            --arg profile_id "$OIDC_SMOKE_PROFILE_ID" \
+            --arg role "$OIDC_SMOKE_ROLE" '
+              .authMode == "oidc"
+              and .enforcement == "server-side"
+              and .profile.id == $profile_id
+              and .profile.role == $role
+              and (.capabilities | type == "object")
+            ' "$smoke_dir/oidc-session.json" >/dev/null || {
+              echo "Authenticated OIDC session is not bound to the approved profile and role." >&2
+              exit 1
+            }
+          '''
+        }
+      }
+    }
+
+    stage('Record technical deployment evidence') {
+      steps {
+        sh '''
+          set -eu
+          test "$TARGET_DEPLOYMENT_APPROVED" = "true"
+          test "$(git rev-parse --verify 'HEAD^{commit}')" = "$SOURCE_REVISION"
+          frontend_manifest="$SECURITY_EVIDENCE_DIR/frontend-release-manifest.json"
+          security_evidence="$SECURITY_EVIDENCE_DIR/security-evidence.json"
+          rendered_manifest="$SECURITY_EVIDENCE_DIR/versorgungs-kompass-rendered.yaml"
+          for evidence_file in "$frontend_manifest" "$security_evidence" "$rendered_manifest"; do
+            test -f "$evidence_file" && test ! -L "$evidence_file"
+          done
+          jq --exit-status \
+            --arg release_tag "$RELEASE_TAG" \
+            --arg tag_object_sha "$RELEASE_TAG_OBJECT_SHA" \
+            --arg source_revision "$SOURCE_REVISION" \
+            --arg source_repository "$SOURCE_REPOSITORY" \
+            --arg api_image_digest "$API_IMAGE_DIGEST" '
+              .releaseTag == $release_tag
+              and .tagObjectSha == $tag_object_sha
+              and .sourceRevision == $source_revision
+              and .sourceRepository == $source_repository
+              and .apiImageDigest == $api_image_digest
+              and (.frontendArtifactDigest | test("^sha256:[0-9a-f]{64}$"))
+              and (.renderedHelmManifestDigest | test("^sha256:[0-9a-f]{64}$"))
+            ' "$frontend_manifest" >/dev/null
+
+          sha256_file() {
+            node -e 'const fs = require("node:fs"); const crypto = require("node:crypto"); process.stdout.write(crypto.createHash("sha256").update(fs.readFileSync(process.argv[1])).digest("hex"));' "$1"
+          }
+          recorded_at="$(date -u '+%Y-%m-%dT%H:%M:%SZ')"
+          frontend_manifest_digest="sha256:$(sha256_file "$frontend_manifest")"
+          security_evidence_digest="sha256:$(sha256_file "$security_evidence")"
+          frontend_artifact_digest="$(jq --exit-status --raw-output '.frontendArtifactDigest' "$frontend_manifest")"
+          rendered_helm_manifest_digest="$(jq --exit-status --raw-output '.renderedHelmManifestDigest' "$frontend_manifest")"
+          output="$SECURITY_EVIDENCE_DIR/target-deployment-evidence.json"
+          temporary_output="$output.tmp"
+          trap 'rm -f -- "$temporary_output"' EXIT
+          jq --null-input \
+            --arg schema_version "versorgungs-kompass-target-deployment/v1" \
+            --arg recorded_at "$recorded_at" \
+            --arg build_id "$BUILD_TAG" \
+            --arg build_url "${BUILD_URL:-}" \
+            --arg release_tag "$RELEASE_TAG" \
+            --arg tag_object_sha "$RELEASE_TAG_OBJECT_SHA" \
+            --arg source_revision "$SOURCE_REVISION" \
+            --arg source_repository "$SOURCE_REPOSITORY" \
+            --arg signer_fingerprint "$RELEASE_TAG_SIGNER_FINGERPRINT" \
+            --arg namespace "$K8S_NAMESPACE" \
+            --arg helm_release "$HELM_RELEASE" \
+            --arg api_image "$API_IMAGE_REPOSITORY@$API_IMAGE_DIGEST" \
+            --arg frontend_release_id "$FRONTEND_RELEASE_ID" \
+            --arg frontend_artifact_digest "$frontend_artifact_digest" \
+            --arg frontend_manifest_digest "$frontend_manifest_digest" \
+            --arg rendered_helm_manifest_digest "$rendered_helm_manifest_digest" \
+            --arg security_evidence_digest "$security_evidence_digest" '
+              {
+                schemaVersion: $schema_version,
+                recordedAt: $recorded_at,
+                buildId: $build_id,
+                buildUrl: $build_url,
+                releaseTag: $release_tag,
+                tagObjectSha: $tag_object_sha,
+                sourceRevision: $source_revision,
+                sourceRepository: $source_repository,
+                signerFingerprint: $signer_fingerprint,
+                target: {
+                  environment: "gematik-target",
+                  namespace: $namespace,
+                  helmRelease: $helm_release
+                },
+                approval: {
+                  deploymentApproved: true
+                },
+                artifacts: {
+                  apiImage: $api_image,
+                  frontendReleaseId: $frontend_release_id,
+                  frontendArtifactDigest: $frontend_artifact_digest,
+                  frontendManifestDigest: $frontend_manifest_digest,
+                  renderedHelmManifestDigest: $rendered_helm_manifest_digest,
+                  securityEvidenceDigest: $security_evidence_digest
+                },
+                technicalSmoke: {
+                  status: "passed",
+                  healthz: "passed",
+                  readyz: "passed",
+                  unauthenticatedSessionDenied: true,
+                  authenticatedOidcSession: {
+                    status: "passed",
+                    authMode: "oidc",
+                    enforcement: "server-side",
+                    expectedProfileMatched: true,
+                    expectedRoleMatched: true,
+                    capabilitiesObject: true
+                  }
+                },
+                operationalAcceptance: {
+                  status: "pending",
+                  requiredChecks: [
+                    "frontend-login",
+                    "tampered-token-rejection",
+                    "gateway-network-isolation",
+                    "role-matrix",
+                    "synthetic-crud-with-cleanup",
+                    "database-sample"
+                  ]
+                },
+                releaseStatus: "not-authorized"
+              }
+            ' >"$temporary_output"
+          jq --exit-status '
+            .schemaVersion == "versorgungs-kompass-target-deployment/v1"
+            and .technicalSmoke.status == "passed"
+            and .operationalAcceptance.status == "pending"
+            and .releaseStatus == "not-authorized"
+          ' "$temporary_output" >/dev/null
+          mv -- "$temporary_output" "$output"
+          trap - EXIT
         '''
       }
     }

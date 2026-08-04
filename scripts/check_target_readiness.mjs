@@ -13,7 +13,7 @@ const requiredFiles = [
   "deploy/jenkins/Jenkinsfile.gematik",
   "deploy/helm/versorgungs-kompass/Chart.yaml",
   "deploy/helm/versorgungs-kompass/values.yaml",
-  "deploy/helm/versorgungs-kompass/values-poc-gematik.yaml",
+  "deploy/helm/versorgungs-kompass/values-target-gematik.yaml",
   "deploy/helm/versorgungs-kompass/values.schema.json",
   "deploy/helm/versorgungs-kompass/templates/deployment.yaml",
   "deploy/helm/versorgungs-kompass/templates/service.yaml",
@@ -32,6 +32,11 @@ const requiredFiles = [
   "frontend/public-entry/public-entry.css",
   "scripts/generate_frontend_sbom.mjs",
   "scripts/generate_security_evidence.mjs",
+  "scripts/package_source_handoff.mjs",
+  "scripts/verify_release_tag.mjs",
+  "scripts/verify_source_handoff.mjs",
+  "scripts/verify_target_release_source.mjs",
+  "scripts/test_target_release_source.mjs",
   "scripts/check_deployment_governance.mjs",
   "scripts/test_deployment_separation.mjs",
   "scripts/prepare_local_hospitation.mjs",
@@ -49,13 +54,13 @@ const requiredText = [
   },
   {
     file: "dokumentation/betrieb-und-deployment/POC_GEMATIK_DURCHSTICH.md",
-    patterns: [/Non-Prod/i, /Datenstand.*geschützten Anwendung/i, /OIDC|SSO/i, /PostgreSQL/i, /RC-Tag/i, /parallele Weiterentwicklung/i, /Synchronisation.*nicht/i, /nicht für ein\s+Deployment[\s\S]{0,160}freigegeben/i],
-    reason: "PoC-Dokument nennt Zweck, Ressourcen, Release-Trennung und Erfolgskriterien."
+    patterns: [/Non-Prod/i, /Datenstand.*geschützten Anwendung/i, /OIDC|SSO/i, /PostgreSQL/i, /signiert(?:er|en|e)?[\s\S]{0,80}(?:vX\.Y\.Z-Tag|Quelltag)/i, /vX\.Y\.Z/i, /parallele Weiterentwicklung/i, /Synchronisation.*nicht/i, /erst für Deployment[\s\S]{0,120}freigegeben,\s*wenn/i],
+    reason: "PoC-Dokument nennt Zweck, Ressourcen, signierten Quelltag, Release-Trennung und Erfolgskriterien."
   },
   {
     file: "dokumentation/betrieb-und-deployment/DEPLOYMENT_GEMATIK_K8S.md",
-    patterns: [/Jenkins/i, /Kubernetes/i, /Helm/i, /dedizierte.*Datenbank/i, /Identity-Gateway-Vertrag/i, /Authorization: Bearer <JWT>/i, /API kann netzseitig nicht.*Umgehung.*Gateways/i],
-    reason: "Technische Referenz beschreibt Software Factory, Kubernetes und den PoC-Datenbankpfad."
+    patterns: [/Jenkins/i, /Kubernetes/i, /Helm/i, /signierten, annotierten Quelltag/i, /vX\.Y\.Z/i, /dedizierte.*Datenbank/i, /Identity-Gateway-Vertrag/i, /Authorization: Bearer <JWT>/i, /API kann netzseitig nicht.*Umgehung.*Gateways/i],
+    reason: "Technische Referenz beschreibt Software Factory, signierte Quellfreigabe, Kubernetes und den Target-Datenbankpfad."
   },
   {
     file: "deploy/postgres/poc-gematik/README.md",
@@ -90,7 +95,7 @@ const requiredText = [
   {
     file: "scripts/preflight_target_deployment.mjs",
     patterns: [/ARTIFACT_REGISTRY/, /K8S_NAMESPACE/, /API_AUTH_MODE/],
-    reason: "Preflight kennt zentrale PoC-/Target-Plattformvariablen."
+    reason: "Preflight kennt zentrale Target-Plattformvariablen."
   },
   {
     file: "api/Dockerfile",
@@ -99,8 +104,56 @@ const requiredText = [
   },
   {
     file: "deploy/jenkins/Jenkinsfile.gematik",
-    patterns: [/Smoke API image/, /API_AUTH_MODE=oidc/, /OIDC_ISSUER/, /OIDC_AUDIENCE/, /OIDC_JWKS_URL/, /api\/healthz/, /archiveArtifacts[^\n]*dist\/target/, /FRONTEND_BUCKET_URI/, /migrationContractDigest/, /approved-classes-only/, /frontend-sbom\.cdx\.json/, /security-evidence\.json/, /REQUIRE_EXTERNAL_SECURITY_EVIDENCE/],
-    reason: "Jenkins prüft den Containerstart, archiviert Frontend und Security-Nachweise und weist die Datenrichtlinie ohne Daten-Snapshot nach."
+    patterns: [
+      /name:\s*'RELEASE_TAG'[\s\S]*defaultValue:\s*''/,
+      /RELEASE_TAG[\s\S]{0,300}\^v\[0-9\][^\n]*\\\.[^\n]*\\\.[^\n]*\$/,
+      /TARGET_DEPLOYMENT_APPROVED[\s\S]{0,300}(?:==|=)\s*['"]?true/i,
+      /REQUIRE_EXTERNAL_SECURITY_EVIDENCE[\s\S]{0,300}(?:==|=)\s*['"]?true/i,
+      /skipDefaultCheckout\(true\)[\s\S]*stage\('Bootstrap trusted main'\)[\s\S]*branches:\s*\[\[name:\s*'\*\/main'\]\][\s\S]*noTags:\s*true[\s\S]*refspec:\s*'\+refs\/heads\/main:refs\/remotes\/origin\/main'/,
+      /withCredentials\(\[[\s\S]*?string\([\s\S]{0,220}variable:\s*'SOURCE_REPOSITORY_URL'/,
+      /withCredentials\(\[[\s\S]*?file\([\s\S]{0,220}variable:\s*'RELEASE_TAG_GPG_PUBLIC_KEY_FILE'/,
+      /withCredentials\(\[[\s\S]*?string\([\s\S]{0,220}variable:\s*'RELEASE_TAG_GPG_FINGERPRINT'/,
+      /verify_target_release_source\.mjs/,
+      /--expected-repository-url/,
+      /--public-key-file/,
+      /--fingerprint/,
+      /source-tag-verification\.json/,
+      /HELM_TARGET_VALUES[\s\S]{0,180}values-target-gematik\.yaml/,
+      /npm run check:target-release/,
+      /Smoke API image/,
+      /API_AUTH_MODE=oidc/,
+      /OIDC_ISSUER/,
+      /OIDC_AUDIENCE/,
+      /OIDC_JWKS_URL/,
+      /api\/healthz/,
+      /archiveArtifacts[^\n]*dist\/target/,
+      /FRONTEND_BUCKET_URI/,
+      /migrationContractDigest/,
+      /approved-classes-only/,
+      /frontend-sbom\.cdx\.json/,
+      /security-evidence\.json/
+    ],
+    reason: "Jenkins bindet die kontrollierte Target-Freigabe an signierte Quelle, externe Trust Anchors, OIDC-Build und vollständige Nachweise."
+  },
+  {
+    file: "scripts/verify_target_release_source.mjs",
+    patterns: [/\^v/, /expected-repository-url/, /public-key-file/, /fingerprint/, /remoteTagObjectSha/, /gateRevision/, /tagSignatureVerified:\s*true/, /verify_release_tag\.mjs/],
+    reason: "Das Target-Quell-Gate bindet Produkt-Tag, geschützte Quellautorität, Tagobjekt, main-Bootstrap und Signatur."
+  },
+  {
+    file: "scripts/package_source_handoff.mjs",
+    patterns: [/complete-git-bundle/, /refs\/heads\/main/, /refs\/tags\/\*/, /source-tag-verification\.json/, /singleWriterRequired:\s*true/, /bidirectionalSyncAllowed:\s*false/],
+    reason: "Die GitLab-Übergabe enthält vollständige Git-Objekte und einen Ein-Schreiber-Vertrag."
+  },
+  {
+    file: "scripts/verify_source_handoff.mjs",
+    patterns: [/bundle", "verify"/, /fsck", "--strict", "--full"/, /tagSignatureVerified/, /verify_release_tag\.mjs/, /out-of-band-required/],
+    reason: "Die empfangende Seite prüft Bundle, Ref-Inventar, externen Trust Anchor und signiertes Tag erneut."
+  },
+  {
+    file: "scripts/generate_security_evidence.mjs",
+    patterns: [/versorgungs-kompass-security-evidence\/v2/, /releaseTag/, /tagObjectSha/, /signerFingerprint/, /tagSignatureVerified/, /source-tag-signature/],
+    reason: "Security-Evidenz v2 bindet den signierten Produkt-Tag und seine Quellidentität."
   },
   {
     file: ".github/workflows/target-readiness.yml",
@@ -115,9 +168,10 @@ const requiredText = [
       /OIDC_AUDIENCE=versorgungs-kompass/,
       /OIDC_JWKS_URL=https:\/\/identity\.example\.invalid\/\.well-known\/jwks\.json/,
       /api\/healthz/,
-      /values-poc-gematik\.yaml/
+      /npm run check:target-release/,
+      /values-target-gematik\.yaml/
     ],
-    reason: "Target-Readiness prueft den portalunabhaengigen OIDC-Build, Containerstart und das minimale PoC-Overlay."
+    reason: "Target-Readiness prueft den portalunabhaengigen OIDC-Build, Containerstart und das Target-Overlay."
   },
   {
     file: ".github/workflows/deploy-pre-gematik.yml",
@@ -136,6 +190,10 @@ const syntaxFiles = [
   "scripts/prepare_target_frontend_config.mjs",
   "scripts/preflight_target_deployment.mjs",
   "scripts/check_deployment_governance.mjs",
+  "scripts/package_source_handoff.mjs",
+  "scripts/verify_source_handoff.mjs",
+  "scripts/verify_target_release_source.mjs",
+  "scripts/test_target_release_source.mjs",
   "scripts/test_deployment_separation.mjs",
   "scripts/prepare_local_hospitation.mjs",
   "scripts/check_target_readiness.mjs"
@@ -148,7 +206,27 @@ const forbiddenText = [
   {
     file: "deploy/jenkins/Jenkinsfile.gematik",
     pattern: /seedDigest|seedVersion|bind-test-identity/iu,
-    reason: "Der RC-Nachweis darf keinen synthetischen Seed oder Demo-Identity-Vertrag als PoC-Datenstand ausweisen."
+    reason: "Der Target-Nachweis darf keinen synthetischen Seed oder Demo-Identity-Vertrag als Ziel-Datenstand ausweisen."
+  },
+  {
+    file: "deploy/jenkins/Jenkinsfile.gematik",
+    pattern: /poc-v|RC_TAG|--rc-tag|values-poc-gematik|HELM_POC_VALUES/iu,
+    reason: "Der aktive Target-Pfad darf keine Legacy-Tag-Autorisierung oder das historische RC-Overlay verwenden."
+  },
+  {
+    file: "deploy/jenkins/Jenkinsfile.gematik",
+    pattern: /RELEASE_TAG_GPG_PRIVATE_KEY|RELEASE_TAG_GPG_PASSPHRASE|git\s+tag\s+--sign|git\s+fetch[^\n]*(?:--force[^\n]*--tags|--tags[^\n]*--force)/iu,
+    reason: "Die Target-Pipeline darf weder private Signierschlüssel erhalten, Tags erzeugen noch Remote-Tags erzwungen übernehmen."
+  },
+  {
+    file: ".github/workflows/target-readiness.yml",
+    pattern: /check:poc-rc|values-poc-gematik\.yaml|poc-v/iu,
+    reason: "Der operative Readiness-Check muss ausschließlich den neuen Target-Vertrag verwenden."
+  },
+  {
+    file: "scripts/generate_security_evidence.mjs",
+    pattern: /\brcTag\b|--rc-tag|poc-v/iu,
+    reason: "Security-Evidenz v2 darf keine Legacy-Tagfelder akzeptieren."
   },
   {
     file: "dokumentation/betrieb-und-deployment/POC_GEMATIK_DURCHSTICH.md",
@@ -185,7 +263,7 @@ for (const check of requiredText) {
   const source = readText(check.file);
   const missing = check.patterns.filter((pattern) => !pattern.test(source));
   if (missing.length) {
-    fail(`${check.file}: erwartete PoC-/Target-Hinweise fehlen (${missing.map(String).join(", ")}).`);
+    fail(`${check.file}: erwartete Target-Hinweise fehlen (${missing.map(String).join(", ")}).`);
   } else {
     ok(check.reason);
   }
@@ -244,4 +322,4 @@ if (failures.length) {
   process.exit(1);
 }
 
-console.log("\nTarget Readiness Check OK: PoC-Dokumente, RC-Vertrag und technische Target-Anker sind plausibel.");
+console.log("\nTarget Readiness Check OK: signierter Quellvertrag, Übergabe und technische Target-Anker sind plausibel.");

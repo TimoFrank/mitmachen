@@ -1,0 +1,92 @@
+# Providerneutrales Target-Overlay fuer die gematik-Software-Factory.
+# Alle *.example.invalid-Werte und NetworkPolicy-CIDRs sind fail-closed
+# Platzhalter und muessen durch geschuetzte Plattformwerte ersetzt werden.
+# Der Deploymentjob muss image.repository, image.tag und image.digest mit den
+# Werten des im selben Lauf gebauten und geprueften Images ueberschreiben.
+
+replicaCount: 2
+
+image:
+  repository: registry.example.invalid/versorgungs-kompass-api
+  tag: REPLACE_WITH_IMMUTABLE_IMAGE_TAG
+  digest: ""
+
+# Das institutionelle Gateway stellt Frontend und /api same-origin bereit.
+# Das Chart erzeugt bewusst keinen plattformspezifischen Ingress-Adapter.
+ingress:
+  enabled: false
+  className: ""
+  host: target.example.invalid
+  tls:
+    enabled: true
+    secretName: versorgungs-kompass-target-tls
+
+config:
+  allowedOrigin: "https://target.example.invalid"
+  apiAuthMode: "oidc"
+  oidcIssuer: "https://identity.example.invalid"
+  oidcAudience: "versorgungs-kompass-target"
+  oidcJwksUrl: "https://identity.example.invalid/.well-known/jwks.json"
+  attachmentUploadMode: "disabled"
+  imageUploadMode: "disabled"
+  logRequests: "1"
+
+database:
+  host: "postgres.target.example.invalid"
+  port: "5432"
+  name: "versorgungs_kompass"
+  user: "vk_app"
+  ssl: "verify-full"
+  sslCaSecretName: ""
+  sslCaSecretKey: "ca.crt"
+  sslServerName: ""
+  poolMax: "3"
+
+secrets:
+  databasePasswordSecretName: "versorgungs-kompass-target-db"
+  databasePasswordSecretKey: "password"
+
+# Neue Uploads bleiben aus. Bereits freigegebene Bestandsdateien koennen ueber
+# geschuetzte, plattformspezifische Overrides angebunden werden.
+storage:
+  profileImageBucket: ""
+  contactImageBucket: ""
+  contactNoteAttachmentBucket: ""
+  stakeholderLogoBucket: ""
+
+# Das statische OIDC-Target-Frontend wird als eigenes Artefakt hinter demselben
+# institutionellen Gateway bereitgestellt; der GCS-Sync-Pfad bleibt aus.
+frontend:
+  enabled: false
+  bucketName: ""
+  releasePrefix: "releases"
+  contentRevision: ""
+
+resources:
+  requests:
+    cpu: 100m
+    memory: 256Mi
+  limits:
+    cpu: 500m
+    memory: 512Mi
+
+podDisruptionBudget:
+  enabled: true
+  minAvailable: 1
+
+rollout:
+  maxUnavailable: 0
+  maxSurge: 1
+
+networkPolicy:
+  enabled: true
+  ingress:
+    # TEST-NET-Platzhalter; vor Deployment auf die Gateway-CIDRs setzen.
+    apiAllowedCidrs:
+      - 192.0.2.0/32
+    frontendAllowedCidrs:
+      - 192.0.2.0/32
+  metadataServer:
+    # Providerneutrale Fail-closed-Platzhalter; nur bei Plattformbedarf ersetzen.
+    dataplaneV2Ip: 192.0.2.0/32
+    workloadIdentityIp: 192.0.2.0/32

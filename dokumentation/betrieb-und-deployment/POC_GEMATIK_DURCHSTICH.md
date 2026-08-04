@@ -3,8 +3,11 @@
 Status: Vorbereitung des internen Nutzungspiloten
 Stand: 4. August 2026
 
-Für die technische Übergabe ist die
-[RC.5-Übergabenotiz](UEBERGABE_RC5_SOFTWARE_FACTORY.md) der kompakte Einstieg.
+Für die technische Quellübergabe ist das
+[GitLab-/Software-Factory-Übergaberunbook](GITLAB_SOFTWARE_FACTORY_UEBERGABE.md)
+der führende Einstieg. Die
+[RC.5-Übergabenotiz](UEBERGABE_RC5_SOFTWARE_FACTORY.md) bleibt unveränderte
+historische Evidenz.
 
 ## Zweck
 
@@ -15,7 +18,7 @@ Der Versorgungs-Kompass ist dabei eine interne Anwendung für gematik-Mitarbeite
 Der PoC bleibt ein zeitlich begrenzter technischer und fachlicher Durchstich. Die Daten sind kein Bestandteil des Repositories, des Container-Images oder der Build-Artefakte.
 
 ```text
-RC-Tag -> Software Factory -> Frontend und API -> interner Kubernetes-Namespace
+signierter vX.Y.Z-Tag -> Software Factory -> frischer OIDC-Build -> interner Kubernetes-Namespace
 
 geschützter Datenstand -> einmalige Übernahme -> PoC-Datenbank
 gematik OIDC-Identität -> bestehendes oder neu angelegtes Profil
@@ -25,7 +28,8 @@ gematik OIDC-Identität -> bestehendes oder neu angelegtes Profil
 
 | Bereich | Stand |
 | --- | --- |
-| Quellstand | Der historische Tag `poc-v0.1.0-rc.5` liegt unveränderlich auf Commit `2e54916d626eccc90e7572b5bac958aafd54fd92`; Build-, Deployment- und Pilotnachweise stehen weiterhin aus |
+| Aktueller Quellvertrag | Der Target-Pfad akzeptiert ausschließlich einen signierten, annotierten `vX.Y.Z`-Tag; Tagobjekt, Zielcommit und Signer-Fingerprint werden vor dem frischen Build nachgewiesen |
+| Historische Evidenz | RC.2 bis RC.5 und die RC.5-Übergabenotiz bleiben unverändert; sie sind kein aktueller Pipeline-Eingang |
 | Anwendung | Providerneutraler OIDC-Target-Build, API-Container und Helm-Chart sind vorbereitet |
 | Anmeldung | Der unterstützte Identity-Gateway-Vertrag ist beschrieben; Bestätigung durch die Plattformverantwortlichen und ein authentifizierter Smoke stehen noch aus |
 | Daten | Schema und Datenklassen sind bekannt; der bisherige Importweg muss an die gematik-Datenbank und den gewählten Dateispeicher angebunden werden |
@@ -48,10 +52,9 @@ gematik OIDC-Identität -> bestehendes oder neu angelegtes Profil
 
 Für den ersten Durchstich genügt eine API-Instanz. Neue Datei- und Bild-Uploads bleiben deaktiviert. Fehlt ein passender Objektspeicher, wird zunächst nur der strukturierte Datenbestand übernommen; Datei-Verweise werden dabei nicht als funktionierend ausgewiesen.
 
-Der RC.5-Freeze überführt die seit RC.4 integrierten Anwendungsänderungen in den
-providerneutralen Zielpfad. Der getaggte Stand ist noch nicht für ein Deployment
-oder den Pilotstart freigegeben. Dafür müssen alle RC-Gates auf exakt diesem Tag
-nachgewiesen sein; zusätzlich muss die gematik-Plattform bestätigen, dass ihr
+Ein konkreter neuer Release Candidate ist erst für Deployment und Pilotstart
+freigegeben, wenn alle RC-Gates auf exakt seinem signierten `vX.Y.Z`-Tag
+nachgewiesen sind. Zusätzlich muss die gematik-Plattform bestätigen, dass ihr
 Identity-Gateway den im Deployment-Runbook beschriebenen Bearer-Token-Vertrag
 erfüllt. Ein Cookie-only-Gateway oder eine browserseitige OAuth-/PKCE-Anmeldung
 wäre ein anderer Plattformadapter und erfordert vor dem Pilotstart eine neue
@@ -59,7 +62,9 @@ Patch-Version.
 
 ## Was das Entwicklungsteam liefert
 
-- eine fest benannte Version mit Git-Commit, API-Image und fertigem Frontend-Artefakt,
+- einen signierten `vX.Y.Z`-Tag mit Tagobjekt, Git-Commit, Fingerprint und
+  erfolgreichem Quellnachweis,
+- ein frisch daraus gebautes API-Image und Target-Frontend mit eigenen Digests,
 - die Kubernetes-Konfiguration ohne Passwörter oder Tokens,
 - Datenbankschema und Beschreibung des einmaligen Datenimports,
 - ein Skript zur Zuordnung der gematik-Anmeldung zu einem Profil,
@@ -93,21 +98,25 @@ Image-Digest eindeutig zugeordnet. Änderungen auf `main`, in Feature-Branches,
 in lokalen Varianten oder auf GitHub Pages können parallel weiterlaufen. Diese
 Wege verwenden keine Echtdaten aus dem PoC. Benötigt der PoC eine
 Softwareänderung, entsteht eine neue Patch-Version mit eigenem `vX.Y.Z`-Tag.
-„Release Candidate“ ist dabei Release-Metadatum, kein Tag-Suffix. Der aktuelle
-Legacy-RC.5 ist dagegen annotiert, aber unsigniert, und wird nicht nachsigniert.
+„Release Candidate“ ist dabei Release-Metadatum, kein Tag-Suffix. Für
+`v0.23.0` lautet der GitHub-Prerelease-Titel
+`0.23.0-0 Release Candidate`; ein Patch heißt zum Beispiel
+`0.23.1 Release Candidate`. Das Leitthema steht in Release Notes und
+Changelog.
 Der vollständige Zukunftsvertrag steht im
 [Produkt-Release-Prozess](PRODUKT_RELEASE_PROZESS.md).
 
-Die annotierten Legacy-Tags `poc-v0.1.0-rc.4` und
-`poc-v0.1.0-rc.5` bleiben unverändert auf ihren historischen Commits. Sie
-werden weder nachsigniert noch in das neue Namensschema überführt. Die
-persönlichen GKE-Artefakte werden nicht in den Zielpfad promotet.
+Die Legacy-Tags RC.2 bis RC.5 bleiben unverändert auf ihren historischen
+Commits. Sie werden weder nachsigniert noch in das neue Namensschema überführt
+und sind kein operativer Target-Eingang. Die persönlichen GKE-Artefakte werden
+nicht in den Zielpfad promotet.
 
 ## Erfolgskriterien
 
 Der Durchstich ist abgeschlossen, wenn:
 
-1. der RC in der Software Factory reproduzierbar gebaut wurde,
+1. Quellübergabe, Signatur und Ref-Parität nachgewiesen sind und der RC in der
+   Software Factory frisch aus seinem `vX.Y.Z`-Tag gebaut wurde,
 2. die interne HTTPS-Adresse und die OIDC-Anmeldung funktionieren,
 3. der vereinbarte Datenstand ohne Demo-Daten übernommen und durch Mengen sowie eine nicht personenbezogene Prüfsumme bestätigt wurde,
 4. mindestens eine Lese- und eine Schreibrolle den vereinbarten Kernablauf nutzen kann,
@@ -116,7 +125,8 @@ Der Durchstich ist abgeschlossen, wenn:
 
 ## Technische Unterlagen
 
-- [RC.5-Freeze und Übergabe an die Software Factory](UEBERGABE_RC5_SOFTWARE_FACTORY.md)
+- [Aktuelle Quellübergabe an GitLab und Software Factory](GITLAB_SOFTWARE_FACTORY_UEBERGABE.md)
+- [Historischer RC.5-Freeze](UEBERGABE_RC5_SOFTWARE_FACTORY.md)
 - [Deployment-Runbook für Kubernetes](DEPLOYMENT_GEMATIK_K8S.md)
 - [Datenbank und Datenübernahme](../../deploy/postgres/poc-gematik/README.md)
 - [Aktueller Datenweg und historischer Providerwechsel](SUPABASE_CLOUD_SQL_MIGRATION.md)

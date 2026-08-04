@@ -21,8 +21,8 @@
       "allowedAlternateLabel": "Proof of Concept",
       "githubPrerelease": true,
       "githubLatest": false,
-      "titlePattern": "Versorgungs-Kompass {version} — Release Candidate: {theme}",
-      "hotfixTitlePattern": "Versorgungs-Kompass {version} — Release Candidate (Hotfix)"
+      "titlePattern": "{version}-0 Release Candidate",
+      "hotfixTitlePattern": "{version} Release Candidate"
     },
     "stable": {
       "firstVersion": "1.0.0",

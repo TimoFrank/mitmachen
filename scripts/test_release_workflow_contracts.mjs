@@ -468,7 +468,7 @@ try {
   run("git", ["add", "source.txt"], { cwd: repository });
   run("git", ["commit", "-m", "First release source"], { cwd: repository, env });
   const firstCommit = run("git", ["rev-parse", "HEAD"], { cwd: repository });
-  const title = "Versorgungs-Kompass 0.23.0 — Release Candidate: Vertragstest";
+  const title = "0.23.0-0 Release Candidate";
   run("git", ["tag", "--sign", "--local-user", `${fingerprint}!`, "-m", title, "v0.23.0", firstCommit], {
     cwd: repository,
     env

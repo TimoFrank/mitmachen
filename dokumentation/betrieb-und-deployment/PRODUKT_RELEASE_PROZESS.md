@@ -23,7 +23,7 @@ daher gleiche Quelle, nicht baugleiche Artefakte.
 | --- | --- | --- | --- |
 | Pages-Demo | `pages-demo` | öffentlich, anonym, synthetische Daten und freigegebenes öffentliches Verzeichnis | GitHub Actions baut `dist/pages/` und veröffentlicht über `github-pages` |
 | privates GKE | `pre-gematik` | IAP, persönliche GCP-Infrastruktur, getrennt freigegebener Datenstand | eigener GKE-Build, manuelle Freigabe über `pre-gematik` |
-| gematik-Zielpfad | `target` | OIDC, Zielplattformwerte und getrennt übernommener Datenstand | Software Factory beziehungsweise später GitLab baut Target-Frontend und API neu |
+| gematik-Zielpfad | `target` | OIDC, Zielplattformwerte und getrennt übernommener Datenstand | Die Software Factory baut Target-Frontend und API frisch aus dem signierten Produkt-Tag der führenden Quelle: GitHub bis Cutover, danach GitLab |
 
 Zwischen diesen Kanälen gibt es keine Artefakt-Promotion. Insbesondere werden
 IAP-Images oder persönliche GKE-Konfiguration nicht in den gematik-Zielpfad
@@ -35,8 +35,8 @@ zusätzlichen Git-Tags.
 
 | Anlass | Technischer Tag | GitHub-Status | Titel | Versionssprung |
 | --- | --- | --- | --- | --- |
-| Freitag vor `1.0.0` | `v0.23.0` | GitHub-Prerelease, nicht `Latest` | `Versorgungs-Kompass 0.23.0 — Release Candidate: <Leitthema>` | Minor |
-| Hotfix vor `1.0.0` | `v0.23.1` | GitHub-Prerelease, nicht `Latest` | `Versorgungs-Kompass 0.23.1 — Release Candidate (Hotfix)` | Patch |
+| Freitag vor `1.0.0` | `v0.23.0` | GitHub-Prerelease, nicht `Latest` | `0.23.0-0 Release Candidate` | Minor |
+| Hotfix vor `1.0.0` | `v0.23.1` | GitHub-Prerelease, nicht `Latest` | `0.23.1 Release Candidate` | Patch |
 | Freitag ab `1.0.0` | zum Beispiel `v1.1.0` | Stable und `Latest` | zum Beispiel `Versorgungs-Kompass 1.1: <Leitthema>` | Minor |
 | Hotfix ab `1.0.0` | zum Beispiel `v1.1.1` | Stable und `Latest` | `Versorgungs-Kompass 1.1.1 — Hotfix` | Patch |
 
@@ -45,6 +45,11 @@ sichtbare Titel eines stabilen Releases darf bei Patch `0` auf `1.0`, `1.1`
 oder `1.2` gekürzt werden. Als verständliche Kandidatenbezeichnungen sind
 „Release Candidate“ und, bei einem fachlich eingegrenzten Demonstrator,
 „Proof of Concept“ erlaubt; „PoC-Kandidat“ wird nicht verwendet.
+Bei einem `0.x`-Wochenrelease kennzeichnet das zusätzliche `-0` ausschließlich
+den sichtbaren Prerelease-Titel; es ist weder Teil der Produktversion noch des
+Git-Tags. Das allgemeine Titelmuster lautet `X.Y.0-0 Release Candidate`; bei
+einem Patch lautet es `X.Y.Z Release Candidate`. Das Leitthema steht in Release
+Notes und Changelog, nicht im technischen Tag.
 
 ## Freitagsrelease
 
@@ -120,6 +125,8 @@ Build im gematik-Zielpfad aus. Diese Kanäle haben eigene Freigaben und
 Nachweise. Ein Abbruch darf weder eine Version überspringen noch einen
 vorhandenen Tag verschieben; die Wiederaufnahme akzeptiert einen Zwischenstand
 nur, wenn Version, Tag, Commit und Release-Unterlagen exakt zusammenpassen.
+Der aktuelle Target-Pfad akzeptiert ausschließlich einen signierten
+`vX.Y.Z`-Tag; einen operativen `poc-v…`-Fallback gibt es nicht.
 
 Der Planer gibt dafür genau einen der folgenden Zustände aus:
 
@@ -156,7 +163,8 @@ kanalübergreifend promotet.
 `v1.0.0` darf erst veröffentlicht und als `Latest` markiert werden, wenn der
 gematik-Zielpfad aus dem vorgesehenen Software-Factory-/GitLab-Build erfolgreich
 deployed und verifiziert wurde. Der Nachweis umfasst mindestens OIDC,
-Ziel-Smoke-Test, Quell-SHA und die Digests von Frontend, API-Image und Chart.
+Ziel-Smoke-Test, Quell-SHA sowie Frontend-Digest, API-Image-Digest und Digest
+des gerenderten Helm-Manifests.
 Eine erfolgreiche Pages-Demo oder ein Deployment auf das private GKE erfüllt
 diese Freigabebedingung ausdrücklich nicht.
 
@@ -179,20 +187,31 @@ läuft einmalig in dieser Reihenfolge:
    veröffentlicht. Schlägt das Target-Deployment fehl, bleiben Tag und Version
    unverändert; die Veröffentlichung bleibt gesperrt.
 
+Diese ausdrückliche Autorisierung der ersten stabilen Version bleibt der
+gesonderte Folgeschritt 6. Weder die Quellübergabe noch ein erfolgreicher
+Prerelease-Target-Build schaltet `v1.0.0` automatisch frei.
+
 ## Übergabe an GitLab und Software Factory
 
-Bis zur institutionellen Übernahme bleibt GitHub die führende
-Integrationslinie. Die spätere Übergabe erfolgt über vollständige Git-Objekte
-und den freigegebenen signierten Tag, nicht als ZIP eines Arbeitsordners. Auf
-GitHub und GitLab werden Tag-Objekt-SHA und aufgelöster Commit-SHA verglichen.
-Die Software Factory baut das OIDC-Target frisch aus diesem Commit.
+Das führende operative Runbook ist die
+[Übergabe an GitLab und die Software Factory](GITLAB_SOFTWARE_FACTORY_UEBERGABE.md).
+Die Übergabe verwendet ein frisch verifiziertes, voraussetzungsfreies
+Git-Bundle mit genau `refs/heads/main` und allen Tags. Manifest,
+`SHA256SUMS`, dessen abgetrennte Signatur `SHA256SUMS.asc`, Tagobjekt,
+Zielcommit und vollständiges Ref-Inventar werden vor und nach dem Import
+geprüft; die Paket-Signatur wird vor den enthaltenen Hashwerten authentisiert
+und `git fsck --strict --full` muss auf beiden Seiten erfolgreich sein.
+Öffentlicher Schlüssel und Fingerprint werden unabhängig und außerhalb des
+Pakets als Vertrauensanker bestätigt. Der private Signing-Subkey bleibt in der
+geschützten Signierumgebung.
 
-Nicht Teil der Übergabe sind Pages- oder GKE-Artefakte, persönliche
-GCP-/IAP-Werte, Secrets, Daten, Snapshots oder OIDC-Subjects. Nach dem Cutover
-gibt es genau eine beschreibbare führende `main`-Linie; eine bidirektionale
-Parallelpflege von GitHub und GitLab ist nicht zulässig. Die technische
-Migration der bestehenden Target-Pipeline wird in einem eigenen Schritt
-umgesetzt.
+Bis zum Cutover ist GitHub die einzige beschreibbare Integrationslinie, danach
+GitLab. Eine bidirektionale Synchronisation ist ausgeschlossen. Die geschützte
+GitLab-Pipeline akzeptiert für den manuellen Target-Job nur einen signierten
+`vX.Y.Z`-Tag und baut das OIDC-Target frisch aus dessen Commit. Nicht Teil der
+Übergabe sind Pages- oder GKE-Artefakte, persönliche GCP-/IAP-Werte, Secrets,
+Daten, Snapshots oder OIDC-Subjects. Das Runbook plant den Transfer; ein
+GitLab-Projekt, Remote oder Push wird dadurch nicht automatisch angelegt.
 
 ## Legacy-Tags
 
@@ -202,12 +221,12 @@ nachsigniert oder neu auf einen anderen Commit gelegt. Ihr historischer
 Signaturstatus ist kein Muster für neue Tags. Die neue Regel beginnt mit
 `v0.23.0`.
 
-Bis zur gesonderten Migration der Target-Pipeline behandelt die bestehende
-Jenkins-Referenzprüfung einen solchen `poc-v…-rc.N`-Tag ausschließlich als
-unveränderliche Deployment-Referenz. Die Produktversion wird auch dort allein
-aus `config/release.json` in Helm und Images projiziert; die Pipeline erzeugt
-keinen neuen Legacy-Tag. Die Umstellung dieser Autorisierung auf signierte
-`vX.Y.Z`-Tags bleibt Teil des eigenen Target-/GitLab-Schritts.
+Die RC.2- bis RC.5-Tags und
+[`UEBERGABE_RC5_SOFTWARE_FACTORY.md`](UEBERGABE_RC5_SOFTWARE_FACTORY.md) sind
+ausschließlich historische Evidenz. Die aktuelle Target-Autorisierung kennt
+keinen operativen `poc-v…-rc.N`-Tag. Historische Builds bleiben über ihren
+damaligen Quellstand nachvollziehbar, werden aber nicht in die neue
+GitLab-Pipeline übernommen oder nachträglich verändert.
 
 ## Temporäre Freitags-Sperre
 

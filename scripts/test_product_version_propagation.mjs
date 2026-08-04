@@ -98,9 +98,34 @@ for (const argument of ["PRODUCT_VERSION", "SOURCE_REVISION", "SOURCE_URL"]) {
   assert.match(jenkins, new RegExp(`--build-arg ${argument}=`), `Software-Factory-Build übergibt ${argument} nicht.`);
 }
 assert.match(jenkins, /org\.opencontainers\.image\.version/u);
-assert.match(jenkins, /source_url="\$\(git config --get remote\.origin\.url \| node scripts\/normalize_repository_url\.mjs\)"/u);
-assert.doesNotMatch(jenkins, /raw_source_url/u);
-assert.match(jenkins, /test "\$chart_version" = "\$product_version"[\s\S]*test "\$chart_app_version" = "\$product_version"[\s\S]*test "\$values_product_version" = "\$product_version"/u);
+assert.match(
+  jenkins,
+  /jq --exit-status --raw-output '\.sourceRepository'[\s\S]*source-repository\.txt[\s\S]*env\.SOURCE_REPOSITORY = readFile/u,
+  "Die OCI-Quell-URL muss aus dem signierten Target-Quellnachweis stammen."
+);
+assert.match(jenkins, /source_url="\$SOURCE_REPOSITORY"/u);
+assert.match(jenkins, /test "\$source_revision" = "\$SOURCE_REVISION"/u);
+assert.doesNotMatch(
+  jenkins,
+  /source_url="\$\(git config --get remote\.origin\.url|raw_source_url/u,
+  "Der Kandidaten-Checkout darf die verifizierte Quellautoritaet nicht neu oder ungeprueft ableiten."
+);
+const targetSourceVerifier = read("scripts/verify_target_release_source.mjs");
+assert.match(
+  targetSourceVerifier,
+  /validateReleaseConfig\(JSON\.parse\([\s\S]*git\(\["show", `\$\{sourceRevision\}:config\/release\.json`\]\)/u,
+  "Das Target-Gate muss die Produktversion aus dem getaggten Quellstand lesen."
+);
+assert.match(
+  targetSourceVerifier,
+  /expectedTag = formatTechnicalTag\(releaseConfig\.productVersion\)[\s\S]*releaseTag !== expectedTag/u,
+  "Der Target-Produkt-Tag muss exakt zur zentralen Produktversion passen."
+);
+assert.match(
+  jenkins,
+  /verify_target_release_source\.mjs[\s\S]*--tag "\$RELEASE_TAG"[\s\S]*helm lint "\$HELM_CHART"[\s\S]*--values "\$HELM_TARGET_VALUES"/u,
+  "Jenkins muss erst die getaggte Produktversion verifizieren und danach das Target-Chart mit seinem Versionsvertrag linten."
+);
 
 const pages = read(".github/workflows/deploy-pages.yml");
 assert.match(pages, /\.productVersion == \$product_version/u, "Pages muss die Produktversion im Build und live prüfen.");

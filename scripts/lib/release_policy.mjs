@@ -244,8 +244,8 @@ export function validateReleaseConfig(config) {
   assertEqual(policy.releaseCandidate.allowedAlternateLabel, "Proof of Concept", "policy.releaseCandidate.allowedAlternateLabel");
   assertEqual(policy.releaseCandidate.githubPrerelease, true, "policy.releaseCandidate.githubPrerelease");
   assertEqual(policy.releaseCandidate.githubLatest, false, "policy.releaseCandidate.githubLatest");
-  assertEqual(policy.releaseCandidate.titlePattern, "Versorgungs-Kompass {version} — Release Candidate: {theme}", "policy.releaseCandidate.titlePattern");
-  assertEqual(policy.releaseCandidate.hotfixTitlePattern, "Versorgungs-Kompass {version} — Release Candidate (Hotfix)", "policy.releaseCandidate.hotfixTitlePattern");
+  assertEqual(policy.releaseCandidate.titlePattern, "{version}-0 Release Candidate", "policy.releaseCandidate.titlePattern");
+  assertEqual(policy.releaseCandidate.hotfixTitlePattern, "{version} Release Candidate", "policy.releaseCandidate.hotfixTitlePattern");
 
   assertExactKeys(policy.stable, [
     "firstVersion",

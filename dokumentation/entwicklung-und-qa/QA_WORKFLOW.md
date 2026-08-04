@@ -17,17 +17,20 @@ Pages bleibt als öffentliche Demo aktiv. Eine erfolgreiche Pages-Prüfung ist k
 
 Der [PoC-Durchstich](../betrieb-und-deployment/POC_GEMATIK_DURCHSTICH.md)
 ist für einen PoC-RC führend. Der Check läuft auf einem sauberen Checkout des
-exakten RC-Commits, nicht auf einem beweglichen lokalen Arbeitsstand.
+aktuellen geschützten `main`; gebaut wird anschließend ausschließlich der
+nachgewiesene Commit eines signierten `vX.Y.Z`-Tags. Ein beweglicher lokaler
+Arbeitsstand oder operativer `poc-v…`-Tag ist nicht zulässig.
 
 Mindestens blockierend sind:
 
-- der schlanke, PoC-spezifische Repo-Vertrag `npm run check:poc-rc`,
+- der schlanke Target-Release-Vertrag `npm run check:target-release`,
 - Dependency-, SAST- und Secret-Prüfungen der CI,
 - Target-Readiness, Target-Artefaktaudit, Security- und Deployment-Verträge,
 - API-Image bauen, als Non-Root-Prozess starten und `/api/healthz` prüfen,
 - Helm linten und mit kleinen PoC-Werten rendern,
 - nach Deployment OIDC-/Session-, DB- und synthetischen CRUD-Smoke ausführen,
-- Tag, Commit, API-Digest und Frontend-Hash gemeinsam nachweisen.
+- Quell-URL, `main`-SHA, Tagobjekt, Commit, Signer-Fingerprint,
+  API-Digest und Frontend-Hash gemeinsam nachweisen.
 
 Target-Readiness, der vorhandene `validate_only`-Pfad von
 `deploy-pre-gematik.yml` und die Jenkins-Referenzpipeline bauen und starten das
@@ -39,6 +42,63 @@ Releases sinnvoll. Beim ersten Infrastruktur-PoC blockiert nur der vorher
 vereinbarte Desktop-Kernpfad aus `npm run test:poc-smoke`; nicht betroffene visuelle Abweichungen dürfen mit
 Owner und Folgeschritt dokumentiert werden. Auth, Datenisolation, Secrets,
 Containerstart und API-/Target-Grenzen sind nie abwählbar.
+
+### Quellübergabe- und Target-Gate
+
+Vor einer GitLab-Übernahme gilt zusätzlich das
+[Übergaberunbook](../betrieb-und-deployment/GITLAB_SOFTWARE_FACTORY_UEBERGABE.md).
+Die Übergabeprüfung ist unabhängig von einem Pages- oder GKE-Build:
+
+1. `scripts/package_source_handoff.mjs` wird in einem sauberen Checkout des
+   frisch geladenen autoritativen GitHub-`main` für einen expliziten signierten
+   `vX.Y.Z`-Tag ausgeführt. Öffentliche Schlüsseldatei und neues leeres
+   Ausgabeverzeichnis liegen außerhalb dieses Checkouts.
+2. Das Ergebnis muss genau Bundle, `handoff-manifest.json`,
+   `release-signing-public-key.asc`, `SHA256SUMS` und die abgetrennte Signatur
+   `SHA256SUMS.asc` enthalten. Das Bundle umfasst genau `refs/heads/main` und
+   alle `refs/tags/*`. Der geschützte Signing-Subkey bleibt außerhalb von Paket
+   und Repository.
+3. Die empfangende Seite führt `scripts/verify_source_handoff.mjs` mit einer
+   unabhängig bestätigten öffentlichen Schlüsseldatei, dem außerhalb des
+   Pakets bestätigten Fingerprint und der erwarteten GitHub-Quell-URL aus.
+4. Die abgetrennte Signatur des Prüfsummenmanifests wird vor dessen Hashwerten
+   und Manifestfeldern geprüft. Danach müssen Prüfsummen, exaktes Ref-Inventar,
+   `git bundle verify`, Mirror-Import, `git fsck --strict --full`, Tagobjekt,
+   Zielcommit, Tag-Signatur und Produktversion gemeinsam erfolgreich sein.
+5. Nach dem einmaligen Import werden GitHub, Manifest, Bundle und ein frischer
+   GitLab-Mirror erneut vollständig verglichen. Erst dann darf der
+   Single-Writer-Cutover erklärt werden.
+6. Jeder manuelle Target-Lauf führt
+   `scripts/verify_target_release_source.mjs` gegen die dann autoritative
+   GitLab-URL, den extern bestätigten Schlüssel und Fingerprint aus. Erst danach
+   wird der nachgewiesene Commit frisch mit `TARGET_AUTH_MODE=oidc` gebaut.
+
+Der echte Target-Lauf benötigt zusätzlich einen dedizierten geschützten
+Deployment-Runner, ein nur jobgebundenes Kubeconfig samt explizitem Kontext,
+geschützte reale Gateway-CIDRs und kurzlebige OIDC-Smoke-Zugangsdaten. Die
+Referenzpipeline belegt automatisiert nur technischen Rollout, Health,
+Readiness, anonyme Ablehnung und eine positive serverseitige Profil- und
+Rollenbindung. Frontend-/Login-Fluss, manipulierter Token, Netzisolation,
+zweite Rolle, synthetischer CRUD mit Bereinigung und DB-Stichprobe bleiben ein
+separates blockierendes Abnahmeprotokoll. Ohne dieses darf der Lauf nicht als
+vollständig `deployed` oder als Release-Freigabe bewertet werden.
+
+Pages-/GKE-Artefakte, persönliche Werte, Secrets, Daten, Snapshots und
+OIDC-Subjects sind weder Transfer-Sidecars noch Target-Build-Eingaben. Die
+RC.2- bis RC.5-Tags bleiben historische Evidenz und werden in diesem Gate nicht
+als Legacy-Fallback akzeptiert. Das Anlegen eines Projekts, Remotes oder Pushes
+ist kein lokaler QA-Schritt und benötigt eine gesonderte operative Freigabe.
+
+Für einen echten Target-Lauf sind zentrale Nachweise verpflichtend; `not-run`
+ist nur für eine lokale Vorprüfung zulässig. Vor dem Registry-Push müssen unter
+dem read-only Pfad `EXTERNAL_SECURITY_EVIDENCE_ROOT/<BUILD_TAG>` exakt die drei
+erfolgreichen Analyse-Gates und die Cosign-Bereitschaft liegen. Sie müssen
+Build-ID, Produkt-Tag, Quell-URL/-SHA, Image-Repository und beide SBOM-Digests
+binden. Nach dem Push muss die zusätzliche Cosign-Attestation exakt den
+veröffentlichten Image-Digest als Subject binden. Fehlende, zusätzliche,
+beschreibbare, während des Imports veränderte oder widersprüchliche Dateien
+stoppen vor Helm, Evidence-Zusammenführung und Deployment. Ein bereits
+gepushtes Image bleibt bei fehlender Post-Push-Attestation unfreigegeben.
 
 ## Blockierende Gates für die Produkt-Release-Automatisierung
 
