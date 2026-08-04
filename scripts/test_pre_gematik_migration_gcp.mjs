@@ -4,6 +4,7 @@ import assert from "node:assert/strict";
 import {
   MigrationGcpGateError,
   checkPreGematikMigrationGcp,
+  checkPreGematikOnlineOnboardingGcp,
   createGcloudJsonRunner,
   isReadOnlyGcloudInvocation,
   loadGateConfiguration,
@@ -36,6 +37,13 @@ function environment(overrides = {}) {
   };
 }
 
+function onlineOnboardingEnvironment(overrides = {}) {
+  const value = environment(overrides);
+  delete value.PRE_IMPORT_BACKUP_ID;
+  delete value.PRE_IMPORT_BACKUP_NOT_BEFORE;
+  return value;
+}
+
 function fixtures(overrides = {}) {
   const clusterResource = `//container.googleapis.com/projects/${TEST_CONTEXT.projectId}/locations/${TEST_CONTEXT.region}/clusters/${TEST_CONTEXT.clusterName}`;
   const base = {
@@ -64,6 +72,15 @@ function fixtures(overrides = {}) {
       databaseVersion: "POSTGRES_16",
       ipAddresses: [{ type: "PRIVATE", ipAddress: "10.23.45.67" }],
       settings: {
+        backupConfiguration: {
+          enabled: true,
+          pointInTimeRecoveryEnabled: true,
+          transactionLogRetentionDays: 7,
+          backupRetentionSettings: {
+            retainedBackups: 14,
+            retentionUnit: "COUNT"
+          }
+        },
         ipConfiguration: {
           ipv4Enabled: false,
           privateNetwork: "projects/example-network-host/global/networks/example-private-network"
@@ -75,14 +92,40 @@ function fixtures(overrides = {}) {
       instance: TEST_CONTEXT.instanceName,
       location: TEST_CONTEXT.region,
       status: "SUCCESSFUL",
+      type: "AUTOMATED",
+      backupKind: "SNAPSHOT",
+      databaseVersion: "POSTGRES_16",
       endTime: "2030-06-15T11:15:00.000Z",
       selfLink: `https://sqladmin.googleapis.com/sql/v1beta4/projects/${TEST_CONTEXT.projectId}/instances/${TEST_CONTEXT.instanceName}/backupRuns/${TEST_CONTEXT.backupId}`
     }
   };
-  return {
+  const merged = {
     ...base,
     ...overrides
   };
+  if (!("onlineBackups" in overrides)) {
+    merged.onlineBackups = [structuredClone(merged.backup)];
+  }
+  return merged;
+}
+
+async function expectOnlineOnboardingGateFailure(instanceSettings) {
+  await assert.rejects(
+    checkPreGematikOnlineOnboardingGcp(
+      onlineOnboardingEnvironment(),
+      {
+        runGcloud: mockRunner(fixtures({
+          instance: {
+            ...fixtures().instance,
+            settings: instanceSettings
+          }
+        })),
+        now: () => NOW
+      }
+    ),
+    (error) => error instanceof MigrationGcpGateError
+      && error.code === "ONLINE_RECOVERY_POSTURE_INVALID"
+  );
 }
 
 function mockRunner(data, calls = []) {
@@ -94,6 +137,7 @@ function mockRunner(data, calls = []) {
     if (signature.startsWith("container clusters describe")) return structuredClone(data.cluster);
     if (signature.startsWith("asset search-all-resources")) return structuredClone(data.namespaces);
     if (signature.startsWith("sql instances describe")) return structuredClone(data.instance);
+    if (signature.startsWith("sql backups list")) return structuredClone(data.onlineBackups);
     if (signature.startsWith("sql backups describe")) return structuredClone(data.backup);
     throw new Error("unexpected mock invocation");
   };
@@ -132,6 +176,154 @@ async function expectGateFailure(overrides, code) {
     ].includes(argument)),
     false
   );
+}
+
+{
+  const calls = [];
+  const onlineResult = await checkPreGematikOnlineOnboardingGcp(
+    onlineOnboardingEnvironment(),
+    { runGcloud: mockRunner(fixtures(), calls), now: () => NOW }
+  );
+  assert.deepEqual(
+    Object.keys(onlineResult).sort(),
+    ["backupPosture", "fingerprint", "gatePolicy", "ok", "targetDatabase"]
+  );
+  assert.equal(onlineResult.ok, true);
+  assert.equal(onlineResult.gatePolicy, "online-guest-onboarding");
+  assert.deepEqual(onlineResult.backupPosture, {
+    automatedBackups: true,
+    pointInTimeRecovery: true,
+    transactionLogRetentionDays: 7,
+    retainedBackups: 14,
+    retentionUnit: "COUNT",
+    latestSuccessfulAutomatedBackupId: TEST_CONTEXT.backupId,
+    latestSuccessfulAutomatedBackupEndTime: "2030-06-15T11:15:00.000Z"
+  });
+  assert.match(onlineResult.fingerprint, /^sha256:[a-f0-9]{64}$/u);
+  assert.deepEqual(onlineResult.targetDatabase, {
+    connectionName: `${TEST_CONTEXT.projectId}:${TEST_CONTEXT.region}:${TEST_CONTEXT.instanceName}`
+  });
+  assert.equal(calls.length, 5);
+  assert.equal(
+    calls.some((call) => call[0] === "sql" && call[1] === "backups" && call[2] === "describe"),
+    false,
+    "Online-Onboarding darf kein ad-hoc benanntes Backup beschreiben oder verlangen."
+  );
+  assert.equal(
+    calls.some((call) => call[0] === "sql" && call[1] === "backups" && call[2] === "list"),
+    true,
+    "Online-Onboarding muss einen aktuellen erfolgreichen automatischen Recovery-Punkt lesen."
+  );
+  assert.equal(calls.every(isReadOnlyGcloudInvocation), true);
+
+  const migrationResult = await checkPreGematikMigrationGcp(
+    loadGateConfiguration(environment()),
+    { runGcloud: mockRunner(fixtures()), now: () => NOW }
+  );
+  assert.notEqual(
+    onlineResult.fingerprint,
+    migrationResult.fingerprint,
+    "Die Online-Policy und ihre Recovery-Posture muessen im Fingerprint gebunden sein."
+  );
+}
+
+{
+  const settings = fixtures().instance.settings;
+  await expectOnlineOnboardingGateFailure({
+    ...settings,
+    backupConfiguration: {
+      ...settings.backupConfiguration,
+      enabled: false
+    }
+  });
+  await expectOnlineOnboardingGateFailure({
+    ...settings,
+    backupConfiguration: {
+      ...settings.backupConfiguration,
+      pointInTimeRecoveryEnabled: false
+    }
+  });
+  await expectOnlineOnboardingGateFailure({
+    ...settings,
+    backupConfiguration: undefined
+  });
+  await expectOnlineOnboardingGateFailure({
+    ...settings,
+    backupConfiguration: {
+      ...settings.backupConfiguration,
+      transactionLogRetentionDays: 0
+    }
+  });
+  await expectOnlineOnboardingGateFailure({
+    ...settings,
+    backupConfiguration: {
+      ...settings.backupConfiguration,
+      backupRetentionSettings: {
+        ...settings.backupConfiguration.backupRetentionSettings,
+        retainedBackups: 0
+      }
+    }
+  });
+}
+
+for (const onlineBackups of [
+  [],
+  [{ ...fixtures().backup, status: "FAILED" }],
+  [{ ...fixtures().backup, type: "ON_DEMAND" }],
+  [{ ...fixtures().backup, endTime: "2030-06-13T23:59:59.000Z" }]
+]) {
+  await assert.rejects(
+    checkPreGematikOnlineOnboardingGcp(
+      onlineOnboardingEnvironment(),
+      { runGcloud: mockRunner(fixtures({ onlineBackups })), now: () => NOW }
+    ),
+    (error) => error instanceof MigrationGcpGateError
+      && error.code === "ONLINE_RECOVERY_POINT_INVALID"
+  );
+}
+
+{
+  const baseline = await checkPreGematikOnlineOnboardingGcp(
+    onlineOnboardingEnvironment(),
+    { runGcloud: mockRunner(fixtures()), now: () => NOW }
+  );
+  const changedInstance = structuredClone(fixtures().instance);
+  changedInstance.settings.backupConfiguration.backupRetentionSettings.retainedBackups = 13;
+  const changedRetention = await checkPreGematikOnlineOnboardingGcp(
+    onlineOnboardingEnvironment(),
+    { runGcloud: mockRunner(fixtures({ instance: changedInstance })), now: () => NOW }
+  );
+  const newerRecoveryPoint = await checkPreGematikOnlineOnboardingGcp(
+    onlineOnboardingEnvironment(),
+    {
+      runGcloud: mockRunner(fixtures({
+        onlineBackups: [{
+          ...fixtures().backup,
+          id: "20300615113000",
+          endTime: "2030-06-15T11:30:00.000Z",
+          selfLink: `https://sqladmin.googleapis.com/sql/v1beta4/projects/${TEST_CONTEXT.projectId}/instances/${TEST_CONTEXT.instanceName}/backupRuns/20300615113000`
+        }]
+      })),
+      now: () => NOW
+    }
+  );
+  assert.notEqual(baseline.fingerprint, changedRetention.fingerprint);
+  assert.notEqual(baseline.fingerprint, newerRecoveryPoint.fingerprint);
+}
+
+{
+  const calls = [];
+  await assert.rejects(
+    checkPreGematikOnlineOnboardingGcp(
+      onlineOnboardingEnvironment({
+        PRE_GEMATIK_GCP_PROJECT_SHA256: `sha256:${"0".repeat(64)}`
+      }),
+      { runGcloud: mockRunner(fixtures(), calls), now: () => NOW }
+    ),
+    (error) => error instanceof MigrationGcpGateError
+      && error.code === "PROJECT_PIN_MISMATCH"
+  );
+  assert.deepEqual(calls, []);
 }
 
 {

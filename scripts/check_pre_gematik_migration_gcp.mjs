@@ -12,12 +12,14 @@ const RESOURCE_NAME_PATTERN = /^[a-z](?:[-a-z0-9]{0,61}[a-z0-9])?$/u;
 const BACKUP_ID_PATTERN = /^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$/u;
 const SHA256_PIN_PATTERN = /^sha256:[a-f0-9]{64}$/u;
 const MAX_CLOCK_SKEW_MS = 5 * 60 * 1000;
+const MAX_ONLINE_AUTOMATED_BACKUP_AGE_MS = 36 * 60 * 60 * 1000;
 
 const READ_ONLY_GCLOUD_PREFIXES = Object.freeze([
   Object.freeze(["projects", "describe"]),
   Object.freeze(["container", "clusters", "describe"]),
   Object.freeze(["asset", "search-all-resources"]),
   Object.freeze(["sql", "instances", "describe"]),
+  Object.freeze(["sql", "backups", "list"]),
   Object.freeze(["sql", "backups", "describe"])
 ]);
 
@@ -33,16 +35,22 @@ const FORBIDDEN_GCLOUD_ARGUMENTS = new Set([
   "update"
 ]);
 
-const REQUIRED_ENVIRONMENT = Object.freeze([
+const REQUIRED_CONTEXT_ENVIRONMENT = Object.freeze([
   "GCP_PROJECT_ID",
   "GCP_REGION",
   "GKE_CLUSTER_NAME",
   "GKE_LOCATION",
   "K8S_NAMESPACE",
   "CLOUD_SQL_INSTANCE_CONNECTION_NAME",
-  "PRE_GEMATIK_GCP_PROJECT_SHA256",
+  "PRE_GEMATIK_GCP_PROJECT_SHA256"
+]);
+
+const REQUIRED_ENVIRONMENT = Object.freeze([
+  ...REQUIRED_CONTEXT_ENVIRONMENT,
   "PRE_IMPORT_BACKUP_ID"
 ]);
+
+export const ONLINE_ONBOARDING_GATE_POLICY = "online-guest-onboarding";
 
 export class MigrationGcpGateError extends Error {
   constructor(code, message) {
@@ -111,10 +119,10 @@ function parseConnectionName(connectionName) {
   return Object.freeze({ projectId, region, instanceName });
 }
 
-export function loadGateConfiguration(environment = process.env) {
-  for (const key of REQUIRED_ENVIRONMENT) {
+function loadContextConfiguration(environment, requiredEnvironment, contextLabel) {
+  for (const key of requiredEnvironment) {
     if (typeof environment[key] !== "string" || environment[key].length === 0 || environment[key] !== environment[key].trim()) {
-      throw gateError("CONFIG_MISSING", "Der geschuetzte Migrationskontext ist unvollstaendig.");
+      throw gateError("CONFIG_MISSING", `Der geschuetzte ${contextLabel} ist unvollstaendig.`);
     }
   }
 
@@ -125,8 +133,6 @@ export function loadGateConfiguration(environment = process.env) {
   const namespace = environment.K8S_NAMESPACE;
   const connectionName = environment.CLOUD_SQL_INSTANCE_CONNECTION_NAME;
   const projectPin = environment.PRE_GEMATIK_GCP_PROJECT_SHA256;
-  const backupId = environment.PRE_IMPORT_BACKUP_ID;
-  const backupNotBefore = environment.PRE_IMPORT_BACKUP_NOT_BEFORE || "";
 
   if (!PROJECT_ID_PATTERN.test(projectId)) {
     throw gateError("CONFIG_INVALID", "Der GCP-Kontext ist ungueltig.");
@@ -138,13 +144,6 @@ export function loadGateConfiguration(environment = process.env) {
   if (!SHA256_PIN_PATTERN.test(projectPin)) {
     throw gateError("PROJECT_PIN_INVALID", "Der geschuetzte Projekt-Pin ist ungueltig.");
   }
-  if (!BACKUP_ID_PATTERN.test(backupId)) {
-    throw gateError("BACKUP_ID_INVALID", "Die konkrete Backup-Referenz ist ungueltig.");
-  }
-  if (backupNotBefore) {
-    parseIsoInstant(backupNotBefore, "BACKUP_TIME_BOUND_INVALID", "Die Backup-Zeitgrenze ist ungueltig.");
-  }
-
   const connection = parseConnectionName(connectionName);
   if (
     clusterLocation !== region
@@ -162,10 +161,39 @@ export function loadGateConfiguration(environment = process.env) {
     clusterLocation,
     namespace,
     connectionName,
-    instanceName: connection.instanceName,
+    instanceName: connection.instanceName
+  });
+}
+
+export function loadGateConfiguration(environment = process.env) {
+  const context = loadContextConfiguration(
+    environment,
+    REQUIRED_ENVIRONMENT,
+    "Migrationskontext"
+  );
+  const backupId = environment.PRE_IMPORT_BACKUP_ID;
+  const backupNotBefore = environment.PRE_IMPORT_BACKUP_NOT_BEFORE || "";
+
+  if (!BACKUP_ID_PATTERN.test(backupId)) {
+    throw gateError("BACKUP_ID_INVALID", "Die konkrete Backup-Referenz ist ungueltig.");
+  }
+  if (backupNotBefore) {
+    parseIsoInstant(backupNotBefore, "BACKUP_TIME_BOUND_INVALID", "Die Backup-Zeitgrenze ist ungueltig.");
+  }
+
+  return Object.freeze({
+    ...context,
     backupId,
     backupNotBefore
   });
+}
+
+export function loadOnlineOnboardingGateConfiguration(environment = process.env) {
+  return loadContextConfiguration(
+    environment,
+    REQUIRED_CONTEXT_ENVIRONMENT,
+    "Online-Onboarding-Kontext"
+  );
 }
 
 function normalizeGateConfiguration(value) {
@@ -183,6 +211,21 @@ function normalizeGateConfiguration(value) {
     });
   }
   return loadGateConfiguration(value);
+}
+
+function normalizeOnlineOnboardingGateConfiguration(value) {
+  if (value && typeof value === "object" && !Array.isArray(value) && "projectId" in value) {
+    return loadOnlineOnboardingGateConfiguration({
+      GCP_PROJECT_ID: value.projectId,
+      GCP_REGION: value.region,
+      GKE_CLUSTER_NAME: value.clusterName,
+      GKE_LOCATION: value.clusterLocation,
+      K8S_NAMESPACE: value.namespace,
+      CLOUD_SQL_INSTANCE_CONNECTION_NAME: value.connectionName,
+      PRE_GEMATIK_GCP_PROJECT_SHA256: value.projectPin
+    });
+  }
+  return loadOnlineOnboardingGateConfiguration(value);
 }
 
 export function isReadOnlyGcloudInvocation(argumentsList) {
@@ -301,6 +344,40 @@ function verifyInstance(instance, config) {
   return Object.freeze(privateServerAddresses);
 }
 
+function verifyOnlineBackupPosture(instance) {
+  const backupConfiguration = instance?.settings?.backupConfiguration;
+  const retentionSettings = backupConfiguration?.backupRetentionSettings;
+  const transactionLogRetentionDays = backupConfiguration?.transactionLogRetentionDays;
+  const retainedBackups = retentionSettings?.retainedBackups;
+  if (
+    !backupConfiguration
+    || typeof backupConfiguration !== "object"
+    || Array.isArray(backupConfiguration)
+    || backupConfiguration.enabled !== true
+    || backupConfiguration.pointInTimeRecoveryEnabled !== true
+    || !Number.isInteger(transactionLogRetentionDays)
+    || transactionLogRetentionDays < 1
+    || !retentionSettings
+    || typeof retentionSettings !== "object"
+    || Array.isArray(retentionSettings)
+    || retentionSettings.retentionUnit !== "COUNT"
+    || !Number.isInteger(retainedBackups)
+    || retainedBackups < 1
+  ) {
+    throw gateError(
+      "ONLINE_RECOVERY_POSTURE_INVALID",
+      "Automatische Cloud-SQL-Backups und Point-in-Time-Recovery konnten nicht bestaetigt werden."
+    );
+  }
+  return Object.freeze({
+    automatedBackups: true,
+    pointInTimeRecovery: true,
+    transactionLogRetentionDays,
+    retainedBackups,
+    retentionUnit: "COUNT"
+  });
+}
+
 function normalizedBackupId(value) {
   if (typeof value === "string" && BACKUP_ID_PATTERN.test(value)) return value;
   if (typeof value === "number" && Number.isSafeInteger(value) && value >= 0) return String(value);
@@ -373,6 +450,48 @@ function verifyBackup(backup, config, nowMilliseconds) {
   return backup.endTime;
 }
 
+function verifyRecentAutomatedBackup(backups, config, nowMilliseconds) {
+  if (!Array.isArray(backups) || backups.length !== 1) {
+    throw gateError(
+      "ONLINE_RECOVERY_POINT_INVALID",
+      "Ein aktueller erfolgreicher automatischer Cloud-SQL-Wiederherstellungspunkt konnte nicht bestaetigt werden."
+    );
+  }
+  const backup = backups[0];
+  assertPlainObject(
+    backup,
+    "ONLINE_RECOVERY_POINT_INVALID",
+    "Ein aktueller erfolgreicher automatischer Cloud-SQL-Wiederherstellungspunkt konnte nicht bestaetigt werden."
+  );
+  const backupId = normalizedBackupId(backup.id);
+  const backupEnd = parseIsoInstant(
+    backup.endTime,
+    "ONLINE_RECOVERY_POINT_INVALID",
+    "Ein aktueller erfolgreicher automatischer Cloud-SQL-Wiederherstellungspunkt konnte nicht bestaetigt werden."
+  );
+  if (
+    !backupId
+    || backup.instance !== config.instanceName
+    || backup.location !== config.region
+    || backup.status !== "SUCCESSFUL"
+    || backup.type !== "AUTOMATED"
+    || backup.backupKind !== "SNAPSHOT"
+    || backup.databaseVersion !== "POSTGRES_16"
+    || !backupSelfLinkMatches(backup.selfLink, { ...config, backupId })
+    || backupEnd > nowMilliseconds + MAX_CLOCK_SKEW_MS
+    || backupEnd < nowMilliseconds - MAX_ONLINE_AUTOMATED_BACKUP_AGE_MS
+  ) {
+    throw gateError(
+      "ONLINE_RECOVERY_POINT_INVALID",
+      "Ein aktueller erfolgreicher automatischer Cloud-SQL-Wiederherstellungspunkt konnte nicht bestaetigt werden."
+    );
+  }
+  return Object.freeze({
+    id: backupId,
+    endTime: backup.endTime
+  });
+}
+
 function canonicalFingerprint(config, backupEndTime, privateServerAddresses) {
   const canonical = JSON.stringify({
     version: 1,
@@ -391,6 +510,76 @@ function canonicalFingerprint(config, backupEndTime, privateServerAddresses) {
   return `sha256:${sha256(canonical)}`;
 }
 
+function canonicalOnlineOnboardingFingerprint(
+  config,
+  privateServerAddresses,
+  backupPosture,
+  recoveryPoint
+) {
+  const canonical = JSON.stringify({
+    version: 2,
+    gatePolicy: ONLINE_ONBOARDING_GATE_POLICY,
+    projectPin: config.projectPin,
+    cluster: [config.clusterName, config.clusterLocation, config.namespace],
+    cloudSql: [
+      config.connectionName,
+      "RUNNABLE",
+      "POSTGRES_16",
+      "PRIVATE",
+      privateServerAddresses
+    ],
+    backupPosture: [
+      "AUTOMATED",
+      backupPosture.retainedBackups,
+      backupPosture.retentionUnit,
+      "PITR",
+      backupPosture.transactionLogRetentionDays
+    ],
+    recoveryPoint: [
+      recoveryPoint.id,
+      "SUCCESSFUL",
+      "AUTOMATED",
+      "SNAPSHOT",
+      recoveryPoint.endTime
+    ]
+  });
+  return `sha256:${sha256(canonical)}`;
+}
+
+function contextReadArguments(config) {
+  return Object.freeze({
+    project: Object.freeze([
+      "projects", "describe", config.projectId,
+      "--format=json"
+    ]),
+    cluster: Object.freeze([
+      "container", "clusters", "describe", config.clusterName,
+      `--project=${config.projectId}`,
+      `--region=${config.clusterLocation}`,
+      "--format=json"
+    ]),
+    namespace: Object.freeze([
+      "asset", "search-all-resources",
+      `--scope=projects/${config.projectId}`,
+      "--asset-types=k8s.io/Namespace",
+      `--query=displayName=${config.namespace}`,
+      "--format=json"
+    ]),
+    instance: Object.freeze([
+      "sql", "instances", "describe", config.instanceName,
+      `--project=${config.projectId}`,
+      "--format=json"
+    ])
+  });
+}
+
+function verifyContextReadback({ project, cluster, namespaceAssets, instance }, config) {
+  verifyProject(project, config);
+  verifyCluster(cluster, config);
+  verifyNamespaceAssets(namespaceAssets, config);
+  return verifyInstance(instance, config);
+}
+
 export async function checkPreGematikMigrationGcp(
   rawConfiguration,
   { runGcloud = createGcloudJsonRunner(), now = () => new Date() } = {}
@@ -407,28 +596,7 @@ export async function checkPreGematikMigrationGcp(
     throw gateError("CLOCK_INVALID", "Die lokale Zeitbasis ist ungueltig.");
   }
 
-  const projectArguments = [
-    "projects", "describe", config.projectId,
-    "--format=json"
-  ];
-  const clusterArguments = [
-    "container", "clusters", "describe", config.clusterName,
-    `--project=${config.projectId}`,
-    `--region=${config.clusterLocation}`,
-    "--format=json"
-  ];
-  const namespaceArguments = [
-    "asset", "search-all-resources",
-    `--scope=projects/${config.projectId}`,
-    "--asset-types=k8s.io/Namespace",
-    `--query=displayName=${config.namespace}`,
-    "--format=json"
-  ];
-  const instanceArguments = [
-    "sql", "instances", "describe", config.instanceName,
-    `--project=${config.projectId}`,
-    "--format=json"
-  ];
+  const contextArguments = contextReadArguments(config);
   const backupArguments = [
     "sql", "backups", "describe", config.backupId,
     `--instance=${config.instanceName}`,
@@ -437,22 +605,87 @@ export async function checkPreGematikMigrationGcp(
   ];
 
   const [project, cluster, namespaceAssets, instance, backup] = await Promise.all([
-    runGcloud(projectArguments),
-    runGcloud(clusterArguments),
-    runGcloud(namespaceArguments),
-    runGcloud(instanceArguments),
+    runGcloud(contextArguments.project),
+    runGcloud(contextArguments.cluster),
+    runGcloud(contextArguments.namespace),
+    runGcloud(contextArguments.instance),
     runGcloud(backupArguments)
   ]);
 
-  verifyProject(project, config);
-  verifyCluster(cluster, config);
-  verifyNamespaceAssets(namespaceAssets, config);
-  const privateServerAddresses = verifyInstance(instance, config);
+  const privateServerAddresses = verifyContextReadback(
+    { project, cluster, namespaceAssets, instance },
+    config
+  );
   const backupEndTime = verifyBackup(backup, config, nowMilliseconds);
 
   return Object.freeze({
     ok: true,
     fingerprint: canonicalFingerprint(config, backupEndTime, privateServerAddresses),
+    targetDatabase: Object.freeze({
+      connectionName: config.connectionName
+    })
+  });
+}
+
+export async function checkPreGematikOnlineOnboardingGcp(
+  rawConfiguration,
+  { runGcloud = createGcloudJsonRunner(), now = () => new Date() } = {}
+) {
+  const config = normalizeOnlineOnboardingGateConfiguration(rawConfiguration);
+
+  if (!pinsEqual(projectIdPin(config.projectId), config.projectPin)) {
+    throw gateError("PROJECT_PIN_MISMATCH", "Der GCP-Projektkontext stimmt nicht mit dem geschuetzten Pin ueberein.");
+  }
+
+  const nowValue = now();
+  const nowMilliseconds = nowValue instanceof Date ? nowValue.getTime() : Number.NaN;
+  if (!Number.isFinite(nowMilliseconds)) {
+    throw gateError("CLOCK_INVALID", "Die lokale Zeitbasis ist ungueltig.");
+  }
+
+  const contextArguments = contextReadArguments(config);
+  const automatedBackupArguments = [
+    "sql", "backups", "list",
+    `--instance=${config.instanceName}`,
+    `--project=${config.projectId}`,
+    "--filter=status=SUCCESSFUL AND type=AUTOMATED",
+    "--sort-by=~endTime",
+    "--limit=1",
+    "--format=json"
+  ];
+  const [project, cluster, namespaceAssets, instance, automatedBackups] = await Promise.all([
+    runGcloud(contextArguments.project),
+    runGcloud(contextArguments.cluster),
+    runGcloud(contextArguments.namespace),
+    runGcloud(contextArguments.instance),
+    runGcloud(automatedBackupArguments)
+  ]);
+  const privateServerAddresses = verifyContextReadback(
+    { project, cluster, namespaceAssets, instance },
+    config
+  );
+  const configuredBackupPosture = verifyOnlineBackupPosture(instance);
+  const recoveryPoint = verifyRecentAutomatedBackup(
+    automatedBackups,
+    config,
+    nowMilliseconds
+  );
+  const backupPosture = Object.freeze({
+    ...configuredBackupPosture,
+    latestSuccessfulAutomatedBackupId: recoveryPoint.id,
+    latestSuccessfulAutomatedBackupEndTime: recoveryPoint.endTime
+  });
+
+  return Object.freeze({
+    ok: true,
+    gatePolicy: ONLINE_ONBOARDING_GATE_POLICY,
+    backupPosture,
+    fingerprint: canonicalOnlineOnboardingFingerprint(
+      config,
+      privateServerAddresses,
+      configuredBackupPosture,
+      recoveryPoint
+    ),
     targetDatabase: Object.freeze({
       connectionName: config.connectionName
     })

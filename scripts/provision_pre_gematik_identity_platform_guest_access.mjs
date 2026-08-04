@@ -21,10 +21,15 @@ import {
 } from "./provision_iap_identity_bindings.mjs";
 import {
   CloudSqlManagedProxyError,
+  assertCloudSqlGateTarget,
   assertManagedCloudSqlProxyMatchesGate,
   startManagedCloudSqlAuthProxy
 } from "./lib/cloud-sql-managed-proxy.mjs";
-import { checkPreGematikMigrationGcp } from "./check_pre_gematik_migration_gcp.mjs";
+import {
+  ONLINE_ONBOARDING_GATE_POLICY,
+  checkPreGematikMigrationGcp,
+  checkPreGematikOnlineOnboardingGcp
+} from "./check_pre_gematik_migration_gcp.mjs";
 
 const { Client } = pg;
 
@@ -53,6 +58,7 @@ const PROFILE_ID_PATTERN =
   /^[a-f0-9]{8}-[a-f0-9]{4}-4[a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$/u;
 const SCOPE_REF_PATTERN = /^[a-z0-9][a-z0-9._:-]*$/u;
 const FINGERPRINT_PATTERN = /^sha256:[a-f0-9]{64}$/u;
+const BACKUP_ID_PATTERN = /^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$/u;
 
 function isPlainObject(value) {
   if (!value || typeof value !== "object" || Array.isArray(value)) return false;
@@ -853,6 +859,44 @@ function assertVerifiedEvidence(evidence, document) {
   }
 }
 
+function selectOnlineOnboardingGateEvidence(gateResult) {
+  const posture = gateResult?.backupPosture;
+  const recoveryEndTime = posture?.latestSuccessfulAutomatedBackupEndTime;
+  if (
+    gateResult?.gatePolicy !== ONLINE_ONBOARDING_GATE_POLICY
+    || !FINGERPRINT_PATTERN.test(gateResult?.fingerprint || "")
+    || !isPlainObject(posture)
+    || posture.automatedBackups !== true
+    || posture.pointInTimeRecovery !== true
+    || !Number.isInteger(posture.transactionLogRetentionDays)
+    || posture.transactionLogRetentionDays < 1
+    || !Number.isInteger(posture.retainedBackups)
+    || posture.retainedBackups < 1
+    || posture.retentionUnit !== "COUNT"
+    || typeof posture.latestSuccessfulAutomatedBackupId !== "string"
+    || !BACKUP_ID_PATTERN.test(posture.latestSuccessfulAutomatedBackupId)
+    || typeof recoveryEndTime !== "string"
+    || !/^\d{4}-\d{2}-\d{2}T/u.test(recoveryEndTime)
+    || !Number.isFinite(Date.parse(recoveryEndTime))
+  ) {
+    throw new CloudSqlManagedProxyError(
+      "The GCP gate did not provide the online onboarding recovery contract.",
+      "TARGET_ONLINE_ONBOARDING_GATE_INVALID"
+    );
+  }
+  return Object.freeze({
+    gate_policy: gateResult.gatePolicy,
+    gate_fingerprint: gateResult.fingerprint,
+    automated_backups: true,
+    point_in_time_recovery: true,
+    transaction_log_retention_days: posture.transactionLogRetentionDays,
+    retained_backups: posture.retainedBackups,
+    retention_unit: posture.retentionUnit,
+    latest_successful_automated_backup_id: posture.latestSuccessfulAutomatedBackupId,
+    latest_successful_automated_backup_end_time: recoveryEndTime
+  });
+}
+
 export function formatIdentityPlatformGuestAccessResult({
   applied,
   action,
@@ -889,12 +933,13 @@ export function formatIdentityPlatformGuestProfileCreationResult({
   inputFingerprint,
   currentStateFingerprint,
   expectedStateFingerprint,
-  complete
+  complete,
+  onlineOnboardingGate = null
 }) {
   const stateIsComplete = applied || action === "unchanged";
   const profileCount = stateIsComplete ? 1 : 0;
   const bindingCount = stateIsComplete ? 1 : 0;
-  return JSON.stringify({
+  const result = {
     schema_version: 1,
     operation: GUEST_ACCESS_CREATE_PROFILE_OPERATION,
     mode: applied ? "APPLY" : "PREVIEW",
@@ -911,7 +956,13 @@ export function formatIdentityPlatformGuestProfileCreationResult({
     input_fingerprint: inputFingerprint,
     current_state_fingerprint: currentStateFingerprint,
     expected_state_fingerprint: expectedStateFingerprint
-  });
+  };
+  if (onlineOnboardingGate) {
+    result.online_onboarding_gate = selectOnlineOnboardingGateEvidence(
+      onlineOnboardingGate
+    );
+  }
+  return JSON.stringify(result);
 }
 
 export function formatIdentityPlatformGuestProfileDisplayNameReconciliationResult({
@@ -1318,6 +1369,7 @@ export async function executeIdentityPlatformGuestProfileCreationTransaction({
   confirmedCurrentStateFingerprint = "",
   expectedDatabase = "",
   verifyIdentity,
+  onlineOnboardingGate = null,
   log = console.log
 }) {
   const document = validateIdentityPlatformGuestAccessDocument(documentValue);
@@ -1367,7 +1419,8 @@ export async function executeIdentityPlatformGuestProfileCreationTransaction({
         inputFingerprint: fingerprint,
         currentStateFingerprint: plan.currentStateFingerprint,
         expectedStateFingerprint: plan.expectedStateFingerprint,
-        complete: plan.action === "unchanged"
+        complete: plan.action === "unchanged",
+        onlineOnboardingGate
       }));
       return plan;
     }
@@ -1442,7 +1495,8 @@ export async function executeIdentityPlatformGuestProfileCreationTransaction({
       inputFingerprint: fingerprint,
       currentStateFingerprint: finalPlan.currentStateFingerprint,
       expectedStateFingerprint: plan.expectedStateFingerprint,
-      complete: true
+      complete: true,
+      onlineOnboardingGate
     }));
     return finalPlan;
   } catch (error) {
@@ -1658,6 +1712,10 @@ leitet den IAP-Subject selbst ab und legt im Standardmodus ausschliesslich ein a
 test_only-Binding auf ein bereits vorhandenes, exakt gepinntes Profil an. Nur der
 ausdrueckliche --create-profile-and-prebind-Modus darf aus einem vollstaendig leeren
 Zielzustand Profil und test_only-Binding atomar anlegen; jeder Teilzustand bricht ab.
+Nur dieser Modus verwendet den Online-Onboarding-GCP-Gate: Die Anwendung bleibt
+erreichbar; automatische Backups und Point-in-Time-Recovery muessen aktiv sein. Alle
+anderen Modi behalten den Migrationsgate mit konkretem frischem Backup und dem
+betrieblich vorgeschriebenen Wartungsfenster.
 Der ausdrueckliche --reconcile-profile-display-name-and-prebind-Modus akzeptiert
 nur ein ansonsten exakt passendes aktives Bestandsprofil mit abweichendem Anzeigenamen
 und ohne Binding; er gleicht genau diesen Anzeigenamen und das test_only-Binding atomar
@@ -1675,6 +1733,23 @@ function safeError(error) {
     + "E-Mail, UID, Profil und Subject wurden nicht ausgegeben.";
 }
 
+export async function assertFreshGcpOnlineOnboardingGate(
+  environment,
+  gcpGate = checkPreGematikOnlineOnboardingGcp
+) {
+  const gateResult = await gcpGate(environment);
+  try {
+    assertCloudSqlGateTarget(gateResult);
+    selectOnlineOnboardingGateEvidence(gateResult);
+  } catch (error) {
+    if (!(error instanceof CloudSqlManagedProxyError)) throw error;
+    throw new SafeCliError(
+      "Online-Neunutzeranlage erfordert ein frisches GCP-, Cloud-SQL-, Backup- und PITR-Gate."
+    );
+  }
+  return gateResult;
+}
+
 export async function main(
   argv = process.argv.slice(2),
   environment = process.env,
@@ -1682,6 +1757,7 @@ export async function main(
     ClientClass = Client,
     authFactory = defaultIdentityPlatformAuth,
     gcpGate = checkPreGematikMigrationGcp,
+    onlineOnboardingGcpGate = checkPreGematikOnlineOnboardingGcp,
     proxyFactory = startManagedCloudSqlAuthProxy,
     proxyVerifier = assertManagedCloudSqlProxyMatchesGate
   } = {}
@@ -1736,9 +1812,13 @@ export async function main(
         : "vk-identity-platform-guest-prebinding";
   const useManagedProxy = options.apply
     || environment.CLOUD_SQL_AUTH_PROXY_CONNECT_MODE !== undefined;
+  const readFreshGcpGate = options.createProfileAndPrebind
+    ? () => assertFreshGcpOnlineOnboardingGate(environment, onlineOnboardingGcpGate)
+    : () => assertFreshGcpMigrationGate(environment, gcpGate);
   const gateResult = useManagedProxy
-    ? await assertFreshGcpMigrationGate(environment, gcpGate)
+    ? await readFreshGcpGate()
     : null;
+  let verifiedGateResult = gateResult;
 
   let proxy = null;
   let client = null;
@@ -1764,8 +1844,9 @@ export async function main(
     }
     await client.connect();
     if (proxy) {
-      const freshGate = await assertFreshGcpMigrationGate(environment, gcpGate);
+      const freshGate = await readFreshGcpGate();
       proxyVerifier(proxy, freshGate);
+      verifiedGateResult = freshGate;
     }
     const executeTransaction = options.revoke
       ? executeIdentityPlatformGuestRevocationTransaction
@@ -1781,7 +1862,10 @@ export async function main(
       apply: options.apply,
       confirmedCurrentStateFingerprint: options.confirmCurrentStateFingerprint,
       expectedDatabase: options.confirmDatabase,
-      verifyIdentity
+      verifyIdentity,
+      onlineOnboardingGate: options.createProfileAndPrebind
+        ? verifiedGateResult
+        : null
     });
   } finally {
     if (client) await client.end().catch(() => {});

@@ -80,19 +80,22 @@ gesetzt, aber kein App-Zugang“:
    owner-only geschriebene Linkdatei noch nicht versenden.
 2. Mit
    [`provision_pre_gematik_identity_platform_guest_access.mjs`](../../scripts/provision_pre_gematik_identity_platform_guest_access.mjs)
-   den genehmigten Zustand zweimal mit stabilen `input_fingerprint`- und
-   `current_state_fingerprint`-Werten previewen. Bei einem vorhandenen aktiven
-   Profil ausdrücklich mit `PREBIND_IDENTITY_PLATFORM_PASSWORD_GUEST`
-   anwenden. Weicht bei ansonsten identischen geprüften Kernfeldern nur der
-   Profil-Anzeigename vom doppelt verifizierten Identity-Platform-Anzeigenamen
-   ab und fehlt das Binding vollständig, ist ausschließlich die separate
-   Operation
+   den genehmigten Zustand previewen. Bei einem vorhandenen aktiven Profil
+   ausdrücklich mit `PREBIND_IDENTITY_PLATFORM_PASSWORD_GUEST` anwenden.
+   Weicht bei ansonsten identischen geprüften Kernfeldern nur der
+   Profil-Anzeigename vom doppelt verifizierten
+   Identity-Platform-Anzeigenamen ab und fehlt das Binding vollständig, ist
+   ausschließlich die separate Operation
    `RECONCILE_PROFILE_DISPLAY_NAME_AND_PREBIND_IDENTITY_PLATFORM_PASSWORD_GUEST`
-   zulässig. Nur bei einem vollständig neuen Gast
+   zulässig. Diese beiden wartungsgebundenen Wege verwenden zwei identische
+   Previews, den bestätigten Apply, den `unchanged`-Readback, einen bestätigten
+   No-op und einen letzten Preview. Nur bei einem vollständig neuen Gast
    `--create-profile-and-prebind` und
    `CREATE_PROFILE_AND_PREBIND_IDENTITY_PLATFORM_PASSWORD_GUEST` verwenden;
-   dabei werden Profil und `test_only`-Bindung atomar angelegt. Jeden Modus als
-   `unchanged`-Readback sowie bestätigt ausgeführten No-op abnehmen.
+   dabei werden Profil und `test_only`-Bindung atomar angelegt. Dieser eine
+   Online-Weg besteht genau aus einem Preview, einem bestätigten Apply und
+   einem anschließenden `unchanged`-Preview; er enthält keinen zweiten
+   No-op-Apply.
 3. Erst danach einen neuen beziehungsweise Recovery-Link erzeugen oder den
    noch gültigen Link aus der owner-only Datei auswählen. Mit
    [`render_pre_gematik_guest_welcome_email.mjs`](../../scripts/render_pre_gematik_guest_welcome_email.mjs)
@@ -158,19 +161,32 @@ Da die Zielinstanz nur eine private IP besitzt, werden Standard-Prebinding,
 der Anzeigename-Sonderfall und die atomare Neunutzeranlage produktiv
 ausschließlich über die Phasen `guest-preview` und `guest-apply` des
 [GKE-Migrationsoperators](../../deploy/migration-operator/README.md)
-ausgeführt. Beide Phasen erzwingen `private-ip`, einen frischen
-GCP-/Cloud-SQL-/Backup-Gate, den gepinnten Proxy, den festen owner-only Input
-`/protected-input/run/guest-access.json` und Bestätigungen aus der geschützten
-Env-Datei. Die folgenden direkten Script-Aufrufe dokumentieren den
-zugrundeliegenden fachlichen Vertrag; sie sind kein alternativer produktiver
-Netzpfad. Die GKE-Phasen exponieren die Neunutzeranlage nur über den expliziten,
-standardmäßig deaktivierten Schalter
+ausgeführt. Beide Phasen erzwingen `private-ip`, den gepinnten Proxy, den
+festen owner-only Input `/protected-input/run/guest-access.json` und
+Bestätigungen aus der geschützten Env-Datei. Standard-Prebinding und
+Anzeigename-Reconcile verwenden weiterhin den frischen
+GCP-/Cloud-SQL-/Backup-Gate mit konkretem `PRE_IMPORT_BACKUP_ID` und dürfen nur
+im geschlossenen Wartungsfenster laufen. Ausschließlich die atomare
+Neunutzeranlage wählt code-seitig das getrennte Online-Gate: Es bestätigt
+Projekt, laufenden Cluster, Namespace, private laufende PostgreSQL-16-Instanz,
+aktivierte automatische Backups und PITR sowie den Ziel-Pin. Der Proxy-Pin wird
+getrennt unmittelbar beim Proxy-Start verifiziert. In
+diesem Vertrag gehören positive Backup- und Transaktionslog-Aufbewahrung sowie
+ein höchstens 36 Stunden alter erfolgreicher automatischer PostgreSQL-16-
+Snapshot zum Gate; alle Istwerte und der Recovery-Punkt sind im
+Gate-Fingerprint gebunden. In diesem einen Modus bleibt die Anwendung
+erreichbar und es wird kein ad-hoc `PRE_IMPORT_BACKUP_ID` verlangt. Die
+folgenden direkten Script-Aufrufe
+dokumentieren den zugrundeliegenden fachlichen Vertrag; sie sind kein
+alternativer produktiver Netzpfad. Die GKE-Phasen exponieren die
+Neunutzeranlage nur über den expliziten, standardmäßig deaktivierten Schalter
 `GUEST_ACCESS_CREATE_PROFILE_AND_PREBIND`; den Widerruf exponieren sie nicht.
 Im Standardmodus sind dieser Schalter und
 `GUEST_ACCESS_RECONCILE_PROFILE_DISPLAY_NAME_AND_PREBIND` ausdrücklich
 `false`.
 
-Vor dem Apply werden zwei getrennte Previews ausgeführt:
+Vor dem Apply von Standard-Prebinding oder Anzeigename-Reconcile werden zwei
+getrennte Previews ausgeführt:
 
 ```bash
 node scripts/provision_pre_gematik_identity_platform_guest_access.mjs \
@@ -235,20 +251,26 @@ Bei unbekanntem COMMIT-Ausgang wird niemals blind wiederholt, sondern zuerst
 ein neuer Preview gesichert.
 
 Fehlt für einen echten Neunutzer das App-Profil vollständig, ist statt des
-Standardmodus ausschließlich der getrennte Preview mit
+Standardmodus ausschließlich der getrennte Online-Preview mit
 `--create-profile-and-prebind` zulässig. Nur ein vollständig leerer relevanter
 Zustand darf `result=create_profile_and_binding` melden. Der Apply benötigt
 die eigene Operation
 `CREATE_PROFILE_AND_PREBIND_IDENTITY_PLATFORM_PASSWORD_GUEST` sowie beide
 Preview-Fingerprints und legt Profil plus aktive `test_only`-Bindung in einer
 serialisierbaren Transaktion an. Profil-ohne-Binding, Binding-ohne-Profil,
-Pending-Anfrage oder Drift sind `NO-GO`. Anschließend sind ebenfalls
-`unchanged`-Readback, bestätigter No-op und letzter Preview Pflicht.
+Pending-Anfrage oder Drift sind `NO-GO`. Danach ist genau ein neuer Preview
+mit demselben Modus Pflicht; er muss `result=unchanged`, das vollständige
+Profil-Binding und identische Ist-/Soll-Fingerprints melden. Ein zweiter
+No-op-Apply und ein weiterer Abschluss-Preview gehören ausdrücklich nicht zum
+Online-Neunutzervertrag.
 Im GKE-Operator bleiben dazu in Preview und Apply
 `GUEST_ACCESS_CREATE_PROFILE_AND_PREBIND=true` und
 `GUEST_ACCESS_RECONCILE_PROFILE_DISPLAY_NAME_AND_PREBIND=false` gesetzt. Der
 Operator bildet diesen Modus ausschließlich auf `--create-profile-and-prebind`
-und `CREATE_PROFILE_AND_PREBIND_IDENTITY_PLATFORM_PASSWORD_GUEST` ab.
+und `CREATE_PROFILE_AND_PREBIND_IDENTITY_PLATFORM_PASSWORD_GUEST` ab und wählt
+nur dadurch das Online-Gate. Bei unbekanntem Commit-Ausgang wird der Apply nie
+blind wiederholt; ein neuer vollständiger Preview-Readback entscheidet, ob der
+Sollzustand bereits erreicht ist.
 
 ### Verbindlicher Gast-Widerruf
 
@@ -384,8 +406,6 @@ dump files](https://docs.cloud.google.com/sql/docs/postgres/import-export/import
 ## Voraussetzungen
 
 - erfolgreicher Echtdatenimport und Reconciliation,
-- konkretes erfolgreiches Vorimport-Backup und frischer GCP-Gate,
-- Dienst bleibt bis nach G-04b für Nutzer geschlossen,
 - genehmigtes personenbezogenes Voll-Soll-Roster und daraus erzeugte,
   geschützte vollständige `iap-bindings.json` außerhalb des Repositories,
 - für jeden Passwortgast eine genehmigte Profil-ID und Rolle sowie getrennte
@@ -396,9 +416,29 @@ dump files](https://docs.cloud.google.com/sql/docs/postgres/import-export/import
   Anzeigename-Abweichung in den geprüften Kernfeldern darf über den separat
   bestätigten Reconcile-plus-Prebinding-Modus korrigiert werden,
 - dediziertes GKE-Migrationsoperator-Image per Digest,
-- Operatorverzeichnis lokal `0700`, Eingaben und Ergebnisse `0600`,
-- zwei getrennte identische Eigenprüfungs-Previews durch den Pilot-Owner; dies
-  ist ausdrücklich kein institutionelles Vier-Augen-Prinzip.
+- Operatorverzeichnis lokal `0700`, Eingaben und Ergebnisse `0600`.
+
+Für Rollen-Bootstrap, Identity-/Subject-Remap, Standard-Prebinding,
+Anzeigename-Reconcile und Widerruf sind zusätzlich ein konkretes erfolgreiches
+Voränderungs-Backup, das frische GCP-/Backup-Gate, ein geschlossener Dienst und
+zwei getrennte identische Eigenprüfungs-Previews durch den Pilot-Owner Pflicht;
+dies ist ausdrücklich kein institutionelles Vier-Augen-Prinzip.
+
+Nur die Neuanlage aus einem vollständig leeren Profil-/Binding-Zustand darf bei
+laufendem Dienst erfolgen. Dafür müssen
+`GUEST_ACCESS_CREATE_PROFILE_AND_PREBIND=true` und
+`GUEST_ACCESS_RECONCILE_PROFILE_DISPLAY_NAME_AND_PREBIND=false` gesetzt sein.
+Das code-seitig ausgewählte Online-Gate muss Projekt, Cluster, Namespace,
+private laufende PostgreSQL-16-Instanz, automatische Backups, PITR, positive
+Backup- und Transaktionslog-Aufbewahrung, einen höchstens 36 Stunden alten
+erfolgreichen automatischen Snapshot und den Ziel-Pin bestätigen; der Proxy-Pin
+wird getrennt unmittelbar beim Proxy-Start verifiziert. Der Ablauf
+umfasst genau einen Preview, einen bestätigten Apply und einen
+`unchanged`-Post-Apply-Preview. Jede geschützte Fachausgabe enthält unter
+`online_onboarding_gate` die Policy, den Gate-Fingerprint, die geprüften
+Aufbewahrungswerte und den aktuellen Recovery-Punkt. Ein konkretes ad-hoc
+`PRE_IMPORT_BACKUP_ID`, eine Zugriffssperre, ein zweiter Vorab-Preview oder ein
+No-op-Apply sind in diesem Online-Vertrag weder erforderlich noch zulässig.
 
 ## 1. Rollen-Bootstrap ohne `postgres`-Passwort
 
@@ -681,7 +721,7 @@ kubectl --namespace pre-gematik create secret generic \
 
 Der dedizierte Operator stellt die Phasen `identity-preview` und
 `identity-apply` bereit. Beide verwenden den privaten, gepinnten Cloud
-SQL Auth Proxy und denselben frischen GCP-/Backup-Gate. `identity-preview`
+SQL Auth Proxy und dasselbe frische GCP-/Backup-Gate. `identity-preview`
 führt immer `ROLLBACK` aus. Für den persönlichen Pilot werden zwei getrennte
 Preview-Jobs erzeugt und deren vollständige, nicht personenbezogene
 Fingerprint-Zeile muss identisch sein.
@@ -716,7 +756,12 @@ Binding atomar ab oder legt im expliziten Neunutzer-Modus Profil und
 `test_only`-Bindung atomar an. Alle drei Modi laufen über
 `guest-preview`/`guest-apply` des privaten GKE-Operators; die Neunutzeranlage
 ist dort ausschließlich mit ihrem expliziten, standardmäßig deaktivierten
-Env-Schalter exponiert. Der Widerruf bleibt dort bewusst nicht exponiert.
+Env-Schalter exponiert. Nur bei exakt diesem Schalter wählt der Gastoperator
+das Online-Gate für automatische Backups und PITR statt des konkreten
+Voränderungs-Backups; positive Aufbewahrungswerte und ein aktueller
+erfolgreicher automatischer Snapshot sind dabei zusätzlich fail-closed geprüft
+und im Gate-Fingerprint gebunden. Standard-Prebinding und Reconcile bleiben im
+Wartungsvertrag. Der Widerruf bleibt dort bewusst nicht exponiert.
 
 Der bestätigte `current_state_fingerprint` umfasst Issuer, aktuelles Subject,
 Profil-ID, Binding-Aktivität, `access_scope`, `scope_ref`, Profilrolle und
@@ -781,7 +826,10 @@ Vor Öffnung des Dienstes sind alle Punkte erforderlich:
    mit dem expliziten Neunutzer-Modus atomar samt Profil angelegt. Beim
    isolierten Anzeigename-Sonderfall wurden Name plus Binding atomar
    abgeglichen; Readback und bestätigter Wiederholungslauf derselben
-   `guest-apply`-Phase melden `result=unchanged`.
+   `guest-apply`-Phase melden `result=unchanged`. Für die Online-Neunutzeranlage
+   belegt stattdessen der genau einmal ausgeführte Post-Apply-Preview
+   `result=unchanged` und identische Ist-/Soll-Fingerprints; ein No-op-Apply
+   wird dort nicht ausgeführt.
 5. Eine gültig signierte, aber ungebundene IAP-Identität erhält `403`; dasselbe
    gilt nach Deaktivierung einer Bindung.
 6. `vk_app` kann die Bindung lesen, aber `INSERT`, `UPDATE` und `DELETE` werden
@@ -806,6 +854,10 @@ Vor Öffnung des Dienstes sind alle Punkte erforderlich:
 Bei `IDENTITY_COMMIT_OUTCOME_UNKNOWN` keinen zweiten Apply starten. Mit einer
 neuen read-only Verbindung den vollständigen Zustandsfingerprint prüfen und
 erst danach über Fortsetzung oder Restore entscheiden.
+Dasselbe gilt bei `GUEST_ACCESS_PROFILE_CREATION_COMMIT_OUTCOME_UNKNOWN`: Der
+Online-Apply wird nie blind wiederholt. Ein neuer `guest-preview` mit
+unverändertem Create-Modus muss den vollständigen Istzustand read-only
+ermitteln; nur dieser Readback entscheidet über das weitere Vorgehen.
 
 ## 5. Vollständiger Cleanup
 
@@ -827,8 +879,11 @@ Nach bestandener Abnahme:
    `IAP_EXTERNAL_AUTH_API_KEY` in `identity-platform-readback.env` bleibt davon
    jedoch unberührt. Solange diese Datei noch besteht, ist der Cleanup nicht
    abgeschlossen,
-6. Fingerprints, Cloud-SQL-Operation, Backup-ID und Abnahmenachweis geschützt
-   gemäß Aufbewahrungsentscheidung behalten.
+6. Fingerprints, Cloud-SQL-Operation und Abnahmenachweis geschützt gemäß
+   Aufbewahrungsentscheidung behalten. Beim Wartungsvertrag gehört die
+   konkrete Backup-ID, beim Online-Neunutzervertrag der Nachweis aktivierter
+   automatischer Backups und PITR, positiver Aufbewahrungswerte, eines aktuellen
+   erfolgreichen automatischen Recovery-Punkts und des Gate-Fingerprints dazu.
 
 `vk_identity_admin` bleibt als gesperrte `NOLOGIN`-Rolle mit ausschließlich der
 nicht erbenden und nicht setzbaren Owner-Administration bestehen. Das vermeidet
@@ -837,8 +892,14 @@ erweitert ohne zugeordneten Login keinen fachlichen Zugriffsweg.
 
 ## Rollback
 
-Vor der Dienstöffnung kann die gesamte Datenbank auf das bestätigte
-Vorimport-Backup zurückgesetzt werden. Wenn ausschließlich eine
+Für den wartungsgebundenen Cutover kann die gesamte Datenbank vor der
+Dienstöffnung auf das bestätigte Vorimport-Backup zurückgesetzt werden. Die
+Online-Neunutzeranlage besitzt bewusst kein einzelvorgangsbezogenes
+ad-hoc-Backup; automatische Backups und PITR bilden dort die technisch geprüfte
+Recovery-Grundlage. Das Gate bestätigt zusätzlich positive Aufbewahrungswerte
+und einen höchstens 36 Stunden alten erfolgreichen automatischen Snapshot; ein
+Restore ist eine gesonderte Incident-Entscheidung,
+kein normaler Onboarding-Schritt. Wenn ausschließlich eine
 Passwortgast-Bindung falsch aktiviert wurde und der Datenbestand korrekt ist,
 wird sie über
 `provision_pre_gematik_identity_platform_guest_access.mjs --revoke`

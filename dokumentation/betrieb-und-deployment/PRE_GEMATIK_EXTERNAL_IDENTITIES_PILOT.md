@@ -3,7 +3,7 @@
 Status: Umsetzungs- und Betriebsvertrag für `pre-gematik`; **noch kein
 Live-Nachweis und keine institutionelle Freigabe**
 
-Stand: 30. Juli 2026
+Stand: 4. August 2026
 
 ## Zweck und enger Geltungsbereich
 
@@ -166,7 +166,9 @@ datenbankseitig verboten.
 
 Die Anwendung erzeugt, verknüpft oder repariert keine Bindung. Ein
 Passwortkonto wird vor der Einladung administrativ und exakt auf sein bereits
-vorhandenes aktives Profil gebunden. Der frühere Post-Login-Weg über
+vorhandenes aktives Profil gebunden oder im ausdrücklich getrennten
+Online-Neunutzervertrag atomar zusammen mit genau einem neuen Profil angelegt.
+Der frühere Post-Login-Weg über
 `POST /api/auth/external-enrollment`, eine Pending-Anfrage und den
 v2-Testzugangsoperator ist für Passwortgäste **kein aktiver Sollweg**. Er darf
 weder durch die Loginseite noch manuell aufgerufen werden; eine vorhandene
@@ -193,8 +195,9 @@ Vor jeder Plattformänderung enthält das geschützte Roster für jedes Konto:
 - stabile Identity-Platform-UID,
 - bei Google zusätzlich die unabhängig bestätigte Google-Provider-ID,
 - erwartetes vollständiges äußeres IAP-Subject,
-- bei bestehenden Google-Nutzern und Passwortkonten jeweils die bereits
-  vorhandene Profil-ID,
+- bei bestehenden Google-Nutzern und Passwortkonten mit Bestandsprofil die
+  bereits vorhandene Profil-ID, bei einem echten Neunutzer die vorab
+  genehmigte neue Profil-ID,
 - Rolle,
 - `access_scope` und gegebenenfalls `scope_ref`,
 - Aktivierungs- und Ablaufzeitpunkt,
@@ -435,10 +438,13 @@ ohne ihn zu verbrauchen oder den Account zu verändern.
 
 **Die so erzeugte Linkdatei darf jetzt noch nicht versendet werden.** Sie bleibt
 owner-only, bis das App-Prebinding aus Abschnitt 5 vollständig angewendet,
-read-only bestätigt und als No-op wiederholt wurde. Wenn dieser Nachweis nicht
-exakt gelingt, gibt es keine Willkommensmail und keine Linkweitergabe. Damit
-kann niemand zuerst ein Passwort setzen und anschließend wegen einer noch
-fehlenden App-Bindung am Versorgungs-Kompass scheitern.
+read-only bestätigt und im wartungsgebundenen Standard-/Reconcile-Weg
+zusätzlich als No-op wiederholt wurde. Für die Online-Neunutzeranlage genügt
+statt dieses No-op ausschließlich der vorgeschriebene Post-Apply-Preview mit
+`result=unchanged` und identischen Ist-/Soll-Fingerprints. Wenn der jeweils
+passende Nachweis nicht exakt gelingt, gibt es keine Willkommensmail und keine
+Linkweitergabe. Damit kann niemand zuerst ein Passwort setzen und anschließend
+wegen einer noch fehlenden App-Bindung am Versorgungs-Kompass scheitern.
 
 Scheitert der Account-Aufruf nach möglichem Commit, dessen unmittelbarer
 Read-back oder die Link-Erzeugung, wird der Account nicht automatisch gelöscht
@@ -664,10 +670,32 @@ zurück, verlangt exakt einen aktiven, verifizierten, tenantlosen
 `password`-Account und leitet das namespacete IAP-Subject selbst ab. E-Mail
 oder Rosterwerte dürfen nicht als Subjectersatz verwendet werden.
 
+Die Betriebsgrenze ist code-seitig an den Modusschalter gebunden:
+
+- Standard-Prebinding, Anzeigename-Reconcile, Identity-/Subject-Remap und
+  Widerruf bleiben im geschlossenen Wartungsfenster und benötigen ein
+  konkretes erfolgreiches Voränderungs-Backup samt `PRE_IMPORT_BACKUP_ID`.
+- Nur `GUEST_ACCESS_CREATE_PROFILE_AND_PREBIND=true` bei gleichzeitig
+  `GUEST_ACCESS_RECONCILE_PROFILE_DISPLAY_NAME_AND_PREBIND=false` wählt das
+  Online-Onboarding-Gate. Die App bleibt erreichbar. Statt eines ad-hoc
+  Backups prüft das Gate fail-closed Zielprojekt, laufenden Cluster, Namespace,
+  private laufende Cloud-SQL-Instanz mit PostgreSQL 16, aktivierte automatische
+  Backups und PITR, positive Backup- und Transaktionslog-Aufbewahrung, einen
+  höchstens 36 Stunden alten erfolgreichen automatischen PostgreSQL-16-Snapshot
+  sowie den unabhängigen Ziel-Pin. Diese Istwerte und der Recovery-Punkt sind
+  im Gate-Fingerprint gebunden; der unabhängige Proxy-Pin wird getrennt
+  unmittelbar beim Proxy-Start verifiziert.
+
+Das Online-Gate ist kein frei setzbarer Backup-Bypass. Ein anderer Modus, ein
+fehlendes Backup-/PITR-Merkmal oder ein abweichender Kontext stoppt die
+Ausführung.
+
 Mit der in
 [PRE_GEMATIK_IDENTITY_ADMIN.md](PRE_GEMATIK_IDENTITY_ADMIN.md)
-beschriebenen kurzlebigen, least-privilege Operatorverbindung werden zuerst
-zwei getrennte read-only Previews ausgeführt:
+beschriebenen kurzlebigen, least-privilege Operatorverbindung werden im
+Standard- und Reconcile-Modus zuerst zwei getrennte read-only Previews
+ausgeführt. Für die Online-Neunutzeranlage gilt stattdessen der weiter unten
+beschriebene einzelne Preview:
 
 Für die private Cloud-SQL-Zielinstanz laufen Standard-Prebinding,
 Anzeigename-Sonderfall und atomare Neunutzeranlage produktiv ausschließlich als
@@ -743,12 +771,13 @@ Danach wird dieselbe `guest-apply`-Phase mit dem **neuen**
 und ein letzter Preview gesichert. Ein unbekannter COMMIT-Ausgang ist kein
 Grund für einen blinden Job-Neustart; zuerst folgt ein neuer Preview.
 
-Für einen echten Neunutzer ohne App-Profil werden stattdessen zwei identische
-GKE-Previews mit `GUEST_ACCESS_CREATE_PROFILE_AND_PREBIND=true` und
+Für einen echten Neunutzer ohne App-Profil wird stattdessen genau ein
+GKE-Preview mit `GUEST_ACCESS_CREATE_PROFILE_AND_PREBIND=true` und
 `GUEST_ACCESS_RECONCILE_PROFILE_DISPLAY_NAME_AND_PREBIND=false` ausgeführt. Der
 Operator bildet diesen Modus ausschließlich auf
-`--create-profile-and-prebind` ab. Nur ein vollständig leerer relevanter
-Zustand darf `result=create_profile_and_binding` melden:
+`--create-profile-and-prebind` ab und wählt damit automatisch den
+Online-Onboarding-Gate. Nur ein vollständig leerer relevanter Zustand darf
+`result=create_profile_and_binding` melden:
 
 ```bash
 node scripts/provision_pre_gematik_identity_platform_guest_access.mjs \
@@ -769,11 +798,19 @@ node scripts/provision_pre_gematik_identity_platform_guest_access.mjs \
 
 Profil und aktive `test_only`-Bindung werden in derselben serialisierbaren
 Transaktion angelegt. Der anschließende Preview mit demselben Flag muss
-`result=unchanged` und identische Ist-/Soll-Fingerprints melden; ein
-ausdrücklich bestätigter zweiter Apply bleibt No-op. Der Standardmodus und der
+`result=unchanged`, das vollständige Profil-Binding und identische
+Ist-/Soll-Fingerprints melden. Damit ist der Online-Ablauf vollständig: genau
+ein Preview, genau ein mit dessen Operation und Fingerprints bestätigter Apply
+und genau ein Post-Apply-Preview. Ein zweiter No-op-Apply oder weiterer
+Abschluss-Preview wird nicht ausgeführt. Der Standardmodus und der
 Neunutzer-Modus dürfen niemals gegeneinander ausgetauscht werden. Ein
-vorhandener Teilzustand, eine Pending-Anfrage oder irgendeine Abweichung
-stoppt fail-closed.
+vorhandener Teilzustand, eine Pending-Anfrage oder irgendeine Abweichung stoppt
+fail-closed.
+
+Bei `GUEST_ACCESS_PROFILE_CREATION_COMMIT_OUTCOME_UNKNOWN` wird der Apply nie
+blind neu gestartet. Ein neuer vollständiger `guest-preview` mit unverändertem
+Create-Modus liest den tatsächlichen Zustand; nur dieser Readback entscheidet,
+ob der Sollzustand bereits erreicht wurde oder eine getrennte Klärung nötig ist.
 
 `POST /api/auth/external-enrollment`, Pending-`requestId` und
 `provision_pre_gematik_test_access` werden für diesen Ablauf nicht verwendet.
@@ -793,7 +830,9 @@ Vor Öffnung muss eine read-only Prüfung bestätigen:
   aktive Profil oder den atomaren Neunutzer-Nachweis sowie genau eine passende
   aktive Binding-Zeile,
 - keine zu UID, E-Mail, Profil oder Subject kollidierende Pending-Anfrage und
-- den bestätigten `unchanged`-/No-op-Nachweis vor dem Linkversand.
+- vor dem Linkversand den bestätigten `unchanged`-Readback und bei den
+  wartungsgebundenen Standard-/Reconcile-Wegen zusätzlich deren
+  No-op-Nachweis.
 
 ## Cutover
 
@@ -823,17 +862,20 @@ werden.
 4. Jedes Passwortkonto create-only mit
    `continue_url=https://versorgungs-kompass.de/start` anlegen. Den zunächst
    owner-only geschriebenen Set-password-Link nicht versenden. Anschließend
-   den passenden Gastzugriffsmodus zweimal mit stabilen Eingabe- und
+   für ein Bestandsprofil oder den Anzeigename-Reconcile den passenden
+   wartungsgebundenen Gastzugriffsmodus zweimal mit stabilen Eingabe- und
    Istzustands-Fingerprints previewen: für ein Bestandsprofil
    `PREBIND_IDENTITY_PLATFORM_PASSWORD_GUEST`; bei der isolierten,
    ansonsten exakt gepinnten Anzeigename-Abweichung ausschließlich
    `RECONCILE_PROFILE_DISPLAY_NAME_AND_PREBIND_IDENTITY_PLATFORM_PASSWORD_GUEST`
-   über `guest-preview`/`guest-apply`; für einen vollständig neuen Gast
-   ausdrücklich
-   `CREATE_PROFILE_AND_PREBIND_IDENTITY_PLATFORM_PASSWORD_GUEST` mit
-   `--create-profile-and-prebind`. Anschließend per `unchanged`-Readback sowie
-   bestätigt ausgeführtem No-op abnehmen. Ein unerwarteter Teilzustand oder
-   jede andere Abweichung ist `NO-GO`.
+   über `guest-preview`/`guest-apply`. Für einen vollständig neuen Gast dagegen
+   genau einen Online-Preview mit `--create-profile-and-prebind` und der
+   Operation `CREATE_PROFILE_AND_PREBIND_IDENTITY_PLATFORM_PASSWORD_GUEST`
+   ausführen. Die wartungsgebundenen Wege per
+   `unchanged`-Readback, bestätigtem No-op und Abschluss-Preview abnehmen; die
+   Online-Neunutzeranlage endet nach genau einem bestätigten Apply mit genau
+   einem `unchanged`-Post-Apply-Preview. Ein unerwarteter Teilzustand oder jede
+   andere Abweichung ist `NO-GO`.
 5. Den vollständigen Subject-Remap für die bestehenden Google-Nutzer sowie
    seinen Rückweg zweimal previewen.
 6. Nutzerzugriff sperren beziehungsweise Wartungsfenster beginnen.
@@ -959,12 +1001,24 @@ nicht durch spontane Konto-, IAM- oder Binding-Erweiterungen repariert.
   `result=create_binding` oder vollständig neuer Gast mit
   `--create-profile-and-prebind`,
   `CREATE_PROFILE_AND_PREBIND_IDENTITY_PLATFORM_PASSWORD_GUEST` und
-  `result=create_profile_and_binding`. Zwei Previews melden jeweils stabile
-  `input_fingerprint`- und `current_state_fingerprint`-Werte.
-- [ ] Apply, anschließender `unchanged`-Readback, bestätigter No-op und
-  abschließender Readback belegen genau eine aktive `test_only`-Bindung mit
-  genehmigtem `scope_ref`; im Standardmodus wurde kein Profil, im expliziten
-  Neunutzer-Modus wurden Profil und Binding atomar angelegt.
+  `result=create_profile_and_binding`. Standard-/Reconcile-Modi besitzen zwei
+  stabile Previews; der Online-Neunutzer-Modus besitzt genau einen Preview mit
+  stabilen `input_fingerprint`- und `current_state_fingerprint`-Werten.
+- [ ] Nur der Online-Neunutzer-Modus lief bei erreichbarer App und ohne ad-hoc
+  `PRE_IMPORT_BACKUP_ID`; sein Gate bestätigt Projekt, Cluster, Namespace,
+  private PostgreSQL-16-Instanz, automatische Backups, PITR, positive
+  Aufbewahrungswerte, einen aktuellen erfolgreichen automatischen Snapshot
+  sowie den Ziel-Pin; der Proxy-Pin wird getrennt beim Proxy-Start verifiziert.
+  Die geschützte Fachausgabe enthält Policy,
+  Gate-Fingerprint, Recovery-Posture und Recovery-Punkt unter
+  `online_onboarding_gate`. Standard, Reconcile, Remap und Widerruf liefen ausschließlich im
+  Wartungsfenster mit konkretem Voränderungs-Backup.
+- [ ] Apply und anschließender `unchanged`-Readback belegen genau eine aktive
+  `test_only`-Bindung mit genehmigtem `scope_ref`; im Standardmodus wurde kein
+  Profil, im expliziten Neunutzer-Modus wurden Profil und Binding atomar
+  angelegt. Bestandsprofil- und Reconcile-Wege besitzen zusätzlich den
+  bestätigten No-op und Abschluss-Readback; im Online-Neunutzer-Modus wurden
+  diese beiden zusätzlichen Schritte nicht ausgeführt.
 - [ ] Für das Passwortkonto gibt es keine Pending-Anfrage; weder
   `POST /api/auth/external-enrollment` noch der v2-Testzugangsoperator wurden
   im Onboarding verwendet.
@@ -1028,6 +1082,18 @@ Kontostatus identisch, und der Broker setzt fest
 owner-only Passwortsetz-/Recovery-Link bleibt als Fallback erhalten. Vor seiner
 erneuten Übergabe werden Pilotkonto und vollständiger `unchanged`-Prebinding-
 Zustand erneut bestätigt.
+
+Ein zusätzliches Konto ist nur dann eine Online-Neunutzeranlage, wenn noch
+weder App-Profil noch Binding oder kollidierende Pending-Anfrage existieren und
+der genehmigte Sollzustand vollständig über
+`CREATE_PROFILE_AND_PREBIND_IDENTITY_PLATFORM_PASSWORD_GUEST` angelegt wird.
+Die App bleibt während der exakten Folge `guest-preview` → bestätigter
+`guest-apply` → `guest-preview` mit `result=unchanged` erreichbar. Das
+Online-Gate muss automatische Backups und PITR sowie den vollständigen
+Zielkontext bestätigen. Ein Bestandsprofil, Anzeigename-Reconcile,
+Identity-/Subject-Remap, Rollen-/Scope-Änderung, E-Mail-Änderung oder Widerruf
+ist kein Online-Onboarding und bleibt wartungs- sowie
+`PRE_IMPORT_BACKUP_ID`-pflichtig.
 
 ## Individuelles Offboarding
 
@@ -1184,8 +1250,12 @@ kein sicherer Rückbau.
 - jedes Passwortkonto vor der Einladung entweder auf sein vorhandenes aktives
   Profil vorgebunden, im isolierten Anzeigename-Sonderfall atomar abgeglichen
   oder im expliziten Neunutzer-Modus atomar samt Profil angelegt wurde, exakt
-  eine aktive `test_only`-Bindung besitzt und der `unchanged`-/No-op-Nachweis
-  vorliegt,
+  eine aktive `test_only`-Bindung besitzt und der `unchanged`-Nachweis vorliegt;
+  für die wartungsgebundenen Bestandsprofil-/Reconcile-Wege liegt zusätzlich
+  der No-op-Nachweis vor,
+- für jede Online-Neunutzeranlage der Nachweis des Gates zu laufendem Zielkontext,
+  automatischen Backups, PITR und Pins vorliegt und kein anderer Modus ohne
+  Wartungsfenster sowie konkrete Backup-ID ausgeführt wurde,
 - der `--revoke`-Widerruf mit
   `REVOKE_IDENTITY_PLATFORM_PASSWORD_GUEST_ACCESS`, beiden Fingerprints und
   anschließendem `unchanged`-No-op nachgewiesen ist,
@@ -1216,9 +1286,15 @@ kein sicherer Rückbau.
   bekannte und unbekannte Adressen unterscheidbar beantwortet, kein gehärtetes
   Broker-Backend verwendet oder von
   `continueUrl=https://versorgungs-kompass.de/start` abweicht,
-- Linkversand vor vollständigem `unchanged`-/No-op-Prebinding,
-- fehlendem oder inaktivem Bestandsprofil, fehlender `test_only`-Bindung oder
-  einer kollidierenden Pending-Anfrage,
+- Linkversand vor vollständigem `unchanged`-Prebinding beziehungsweise vor dem
+  zusätzlichen No-op-Nachweis eines wartungsgebundenen Weges,
+- Online-Neunutzeranlage ohne bestätigte automatische Backups, PITR oder
+  vollständige Projekt-/Cluster-/Namespace-/Instanz-Pins beziehungsweise ohne
+  getrennt beim Proxy-Start bestätigten Proxy-Pin sowie jedem
+  anderen Gast-/Identity-/Reconcile-/Remap-Vorgang ohne Wartungsfenster und
+  konkrete Backup-ID,
+- fehlendem oder inaktivem Bestandsprofil im Standard-/Reconcile-Modus,
+  fehlender `test_only`-Bindung oder einer kollidierenden Pending-Anfrage,
 - Verwendung von `POST /api/auth/external-enrollment` oder des
   Pending-v2-Ablaufs für einen Passwortgast,
 - fehlendem erfolgreichen `--revoke`-Preview-/Apply-/No-op-Nachweis für die
