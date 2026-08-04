@@ -149,11 +149,13 @@ try {
   git(["config", "user.email", "release-test@example.invalid"]);
   write(".gitignore", "dist/\n");
   write("config/release.json", releaseConfig("0.23.0"));
+  write("deploy/helm/versorgungs-kompass/Chart.yaml", "apiVersion: v2\nname: versorgungs-kompass\nversion: 0.23.0\nappVersion: \"0.23.0\"\n");
+  write("deploy/helm/versorgungs-kompass/values.yaml", "productVersion: \"0.23.0\"\n");
   write("frontend/app/versorgungs-kompass.js", weeklyApp);
   write("CHANGELOG.md", weeklyChangelog);
   write("README.md", weeklyReadme);
   write("dokumentation/release-notes/v0.23.0.md", weeklyNotes);
-  git(["add", ".gitignore", "config/release.json", "frontend/app/versorgungs-kompass.js", "CHANGELOG.md", "README.md", "dokumentation/release-notes/v0.23.0.md"]);
+  git(["add", ".gitignore", "config/release.json", "deploy/helm/versorgungs-kompass/Chart.yaml", "deploy/helm/versorgungs-kompass/values.yaml", "frontend/app/versorgungs-kompass.js", "CHANGELOG.md", "README.md", "dokumentation/release-notes/v0.23.0.md"]);
   git(["commit", "-m", "Wochenrelease 0.23.0 dokumentieren"]);
   git(["tag", "baseline"]);
   const weeklyCommit = git(["rev-parse", "HEAD"]);
@@ -175,10 +177,29 @@ try {
 
   write("dist/pages/build-manifest.json", `${JSON.stringify({
     profile: "pages",
+    productVersion: "0.23.0",
     revision: weeklyCommit,
     artifactDigest: `sha256:${"a".repeat(64)}`
   }, null, 2)}\n`);
   runVerifier({ tag: "v0.23.0", releaseType: "weekly", artifactRoot: "dist/pages" });
+  const validArtifactManifest = readFileSync(path.join(fixture, "dist/pages/build-manifest.json"), "utf8");
+  write("dist/pages/build-manifest.json", validArtifactManifest.replace('"productVersion": "0.23.0"', '"productVersion": "0.23.1"'));
+  runVerifier({
+    tag: "v0.23.0",
+    releaseType: "weekly",
+    artifactRoot: "dist/pages",
+    expectFailure: true,
+    expectedError: "Produktversion 0.23.1 statt 0.23.0"
+  });
+  write("dist/pages/build-manifest.json", validArtifactManifest.replace(/^  "productVersion"[^\n]*\n/m, ""));
+  runVerifier({
+    tag: "v0.23.0",
+    releaseType: "weekly",
+    artifactRoot: "dist/pages",
+    expectFailure: true,
+    expectedError: "geschlossenen Versionsvertrag"
+  });
+  write("dist/pages/build-manifest.json", validArtifactManifest);
 
   runVerifier({
     tag: "v0.23.1",
@@ -259,6 +280,33 @@ try {
       expectedError: "In-App-Titel muss dem Weekly-Leitthema"
     })
   );
+  for (const [branch, file, mutate, expectedError] of [
+    [
+      "invalid-helm-chart-version",
+      "deploy/helm/versorgungs-kompass/Chart.yaml",
+      (source) => source.replace("version: 0.23.0", "version: 0.24.0"),
+      "Helm Chart.version"
+    ],
+    [
+      "invalid-helm-app-version",
+      "deploy/helm/versorgungs-kompass/Chart.yaml",
+      (source) => source.replace('appVersion: "0.23.0"', 'appVersion: "0.24.0"'),
+      "Helm Chart.appVersion"
+    ],
+    [
+      "invalid-helm-values-version",
+      "deploy/helm/versorgungs-kompass/values.yaml",
+      (source) => source.replace('productVersion: "0.23.0"', 'productVersion: "0.24.0"'),
+      "Helm values.productVersion"
+    ]
+  ]) {
+    onCommittedBranch(
+      branch,
+      [file],
+      () => write(file, mutate(readFileSync(path.join(fixture, file), "utf8"))),
+      () => runVerifier({ tag: "v0.23.0", expectFailure: true, expectedError })
+    );
+  }
   assert(git(["status", "--porcelain"]) === "", "Die negativen Weekly-Tests müssen vollständig zurückgesetzt sein.");
 
   const hotfixChangelog = weeklyChangelog.replace(
@@ -298,10 +346,12 @@ Gezielter Regressionstest und vollständige Projektprüfung waren erfolgreich.
 - Changelog: https://example.invalid/changelog
 `;
   write("config/release.json", releaseConfig("0.23.1"));
+  write("deploy/helm/versorgungs-kompass/Chart.yaml", "apiVersion: v2\nname: versorgungs-kompass\nversion: 0.23.1\nappVersion: \"0.23.1\"\n");
+  write("deploy/helm/versorgungs-kompass/values.yaml", "productVersion: \"0.23.1\"\n");
   write("CHANGELOG.md", hotfixChangelog);
   write("README.md", hotfixReadme);
   write("dokumentation/release-notes/v0.23.1.md", hotfixNotes);
-  git(["add", "config/release.json", "CHANGELOG.md", "README.md", "dokumentation/release-notes/v0.23.1.md"]);
+  git(["add", "config/release.json", "deploy/helm/versorgungs-kompass/Chart.yaml", "deploy/helm/versorgungs-kompass/values.yaml", "CHANGELOG.md", "README.md", "dokumentation/release-notes/v0.23.1.md"]);
   git(["commit", "-m", "Hotfix 0.23.1 dokumentieren"]);
 
   const verifiedHotfix = runVerifier({ tag: "v0.23.1" });
@@ -312,6 +362,8 @@ Gezielter Regressionstest und vollständige Projektprüfung waren erfolgreich.
     "invalid-historical-hotfix-app-entry",
     [
       "config/release.json",
+      "deploy/helm/versorgungs-kompass/Chart.yaml",
+      "deploy/helm/versorgungs-kompass/values.yaml",
       "frontend/app/versorgungs-kompass.js",
       "CHANGELOG.md",
       "README.md",
@@ -319,6 +371,8 @@ Gezielter Regressionstest und vollständige Projektprüfung waren erfolgreich.
     ],
     () => {
       write("config/release.json", releaseConfig("0.23.2"));
+      write("deploy/helm/versorgungs-kompass/Chart.yaml", "apiVersion: v2\nname: versorgungs-kompass\nversion: 0.23.2\nappVersion: \"0.23.2\"\n");
+      write("deploy/helm/versorgungs-kompass/values.yaml", "productVersion: \"0.23.2\"\n");
       write("frontend/app/versorgungs-kompass.js", weeklyApp.replace(
         "{ version: \"0.23.0\", title: \"Versorgung vernetzt\" },",
         "{ version: \"0.23.1\", title: \"Unzulässiger älterer Hotfix\" },\n        { version: \"0.23.0\", title: \"Versorgung vernetzt\" },"

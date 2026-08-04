@@ -867,6 +867,10 @@ REVISION="$(git -C "$ROOT_DIR" rev-parse --verify HEAD 2>/dev/null || true)"
 if ! printf '%s' "$REVISION" | grep -Eq '^[0-9a-fA-F]{7,64}$'; then
   REVISION="unknown"
 fi
+PRODUCT_VERSION="$(node "$ROOT_DIR/scripts/print_product_version.mjs")"
+if ! printf '%s' "$PRODUCT_VERSION" | grep -Eq '^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$'; then
+  fail "config/release.json enthaelt keine gueltige Produktversion."
+fi
 
 if [ "$PROFILE" = "pages" ]; then
   build_pages
@@ -927,8 +931,8 @@ for (const { file, relative } of files) {
 console.log(`sha256:${hash.digest("hex")}`);
 NODE
 )"
-printf '{\n  "profile": "%s",\n  "revision": "%s",\n  "artifactDigest": "%s"\n}\n' \
-  "$PROFILE" "$REVISION" "$ARTIFACT_DIGEST" > "$STAGE_DIR/build-manifest.json"
+printf '{\n  "profile": "%s",\n  "productVersion": "%s",\n  "revision": "%s",\n  "artifactDigest": "%s"\n}\n' \
+  "$PROFILE" "$PRODUCT_VERSION" "$REVISION" "$ARTIFACT_DIGEST" > "$STAGE_DIR/build-manifest.json"
 
 mkdir -p "$(dirname "$OUTPUT_DIR")"
 rm -rf -- "$OUTPUT_DIR"

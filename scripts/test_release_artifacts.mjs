@@ -49,6 +49,7 @@ function sourceManifest(artifactRoot, overrides = {}) {
   const digest = calculateArtifactDigest(readArtifactTree(artifactRoot));
   return {
     profile: "pages",
+    productVersion,
     revision: commitSha,
     artifactDigest: digest,
     ...overrides
@@ -367,7 +368,8 @@ try {
     ["wrong-profile", { profile: "target" }, /Profil pages/u],
     ["wrong-revision", { revision: "c".repeat(40) }, /statt/u],
     ["wrong-digest", { artifactDigest: `sha256:${"0".repeat(64)}` }, /Inhaltsdigest/u],
-    ["wrong-source-version", { productVersion: "0.23.1" }, /Produktversion/u]
+    ["wrong-source-version", { productVersion: "0.23.1" }, /Produktversion/u],
+    ["missing-source-version", { productVersion: undefined }, /geschlossenen Versionsvertrag/u]
   ]) {
     const invalidPages = path.join(fixtureRoot, label);
     createPagesArtifact(invalidPages, overrides);
@@ -439,7 +441,7 @@ try {
   const cliTag = `v${cliProductVersion}`;
   const cliCommit = "b".repeat(40);
   const cliPages = path.join(fixtureRoot, "cli-pages");
-  createPagesArtifact(cliPages, { revision: cliCommit });
+  createPagesArtifact(cliPages, { revision: cliCommit, productVersion: cliProductVersion });
   const cliOutput = path.join(fixtureRoot, "cli-release");
   const githubOutput = path.join(fixtureRoot, "github-output.txt");
   const packageResult = spawnSync(process.execPath, [

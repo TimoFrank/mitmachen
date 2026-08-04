@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { appendFileSync, existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync } from "node:fs";
+import { appendFileSync, existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import { spawnSync } from "node:child_process";
 import { generateFrontendSbom } from "./generate_frontend_sbom.mjs";
@@ -10,6 +10,7 @@ mkdirSync(fixtureBase, { recursive: true });
 const fixtureRoot = mkdtempSync(path.join(fixtureBase, ".frontend-sbom-test-"));
 const targetRoot = path.join(fixtureRoot, "target");
 const sbomPath = path.join(fixtureRoot, "frontend-sbom.cdx.json");
+const productVersion = JSON.parse(readFileSync(path.join(root, "config/release.json"), "utf8")).productVersion;
 
 function run(command, args) {
   const result = spawnSync(command, args, { cwd: root, encoding: "utf8" });
@@ -34,6 +35,26 @@ try {
   const bom = generateFrontendSbom({ output: sbomPath, artifactRoot: targetRoot });
   assert.equal(bom.bomFormat, "CycloneDX");
   assert.equal(bom.specVersion, "1.6");
+  assert.equal(bom.metadata.component.version, productVersion);
+  assert.equal(
+    bom.metadata.component["bom-ref"],
+    `pkg:generic/versorgungs-kompass-frontend@${productVersion}`,
+    "Die Frontend-SBOM muss die zentrale Produktversion statt der privaten npm-Workspace-Version verwenden."
+  );
+  assert.equal(bom.metadata.component.purl, bom.metadata.component["bom-ref"]);
+  assert.equal(bom.dependencies[0].ref, bom.metadata.component["bom-ref"]);
+  assert.equal(
+    bom.metadata.component.properties.some(
+      (property) => property.name === "versorgungs-kompass:product-version" && property.value === productVersion
+    ),
+    true
+  );
+  assert.equal(
+    bom.metadata.component.properties.some(
+      (property) => property.name === "versorgungs-kompass:build-profile" && property.value === "target"
+    ),
+    true
+  );
   assert.equal(bom.components.length, 4, "Die SBOM darf keine inneren Bundle-Abhängigkeiten aus dem Lockfile erfinden.");
   const componentNames = new Set(bom.components.map((component) => component.name));
   for (const expected of ["leaflet", "mammoth", "pdfjs-dist", "xlsx-js-style"]) {
@@ -69,6 +90,17 @@ try {
   const firstGeneration = readFileSync(sbomPath, "utf8");
   generateFrontendSbom({ output: sbomPath, artifactRoot: targetRoot });
   assert.equal(readFileSync(sbomPath, "utf8"), firstGeneration, "Die Frontend-SBOM muss reproduzierbar sein.");
+
+  const buildManifestPath = path.join(targetRoot, "build-manifest.json");
+  const validBuildManifest = readFileSync(buildManifestPath, "utf8");
+  const mismatchedBuildManifest = JSON.parse(validBuildManifest);
+  mismatchedBuildManifest.productVersion = "999.0.0";
+  writeFileSync(buildManifestPath, `${JSON.stringify(mismatchedBuildManifest, null, 2)}\n`);
+  assert.throws(
+    () => generateFrontendSbom({ output: sbomPath, artifactRoot: targetRoot }),
+    /Produktversion 999\.0\.0 statt/u
+  );
+  writeFileSync(buildManifestPath, validBuildManifest);
 
   appendFileSync(path.join(targetRoot, "vendor/leaflet/leaflet.js"), "\n// manipuliert\n");
   assert.throws(

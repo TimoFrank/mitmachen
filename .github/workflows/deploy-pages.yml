@@ -184,6 +184,7 @@ jobs:
         shell: bash
         env:
           EXPECTED_ARTIFACT_DIGEST: ${{ inputs.artifact_digest }}
+          RELEASE_TAG: ${{ inputs.release_tag }}
         run: |
           set -euo pipefail
           bash scripts/build_static_frontend.sh \
@@ -191,7 +192,11 @@ jobs:
             --output dist/pages
           node scripts/audit_public_assets.mjs --artifact-root dist/pages
           jq --exit-status --raw-output \
-            '.artifactDigest | select(type == "string" and test("^sha256:[0-9a-f]{64}$"))' \
+            --arg product_version "${RELEASE_TAG#v}" '
+              select(.productVersion == $product_version)
+              | .artifactDigest
+              | select(type == "string" and test("^sha256:[0-9a-f]{64}$"))
+            ' \
             dist/pages/build-manifest.json >/dev/null
           artifact_digest="$(jq --raw-output .artifactDigest dist/pages/build-manifest.json)"
           [[ "$artifact_digest" == "$EXPECTED_ARTIFACT_DIGEST" ]]
@@ -229,6 +234,7 @@ jobs:
           DEPLOYED_REVISION: ${{ needs.build.outputs.revision }}
           EXPECTED_ARTIFACT_DIGEST: ${{ needs.build.outputs.artifact_digest }}
           PUBLIC_PAGE_URL: ${{ steps.deployment.outputs.page_url }}
+          RELEASE_TAG: ${{ inputs.release_tag }}
         run: |
           set -euo pipefail
           page_root="${PUBLIC_PAGE_URL%/}"
@@ -301,8 +307,10 @@ jobs:
           grep --extended-regexp --quiet 'requireApiGateway:[[:space:]]*false' "$runtime_config_path"
           jq --exit-status \
             --arg digest "$EXPECTED_ARTIFACT_DIGEST" \
+            --arg product_version "${RELEASE_TAG#v}" \
             --arg revision "$DEPLOYED_REVISION" '
               .profile == "pages"
+              and .productVersion == $product_version
               and .revision == $revision
               and .artifactDigest == $digest
               and (.artifactDigest | test("^sha256:[0-9a-f]{64}$"))

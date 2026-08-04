@@ -26,6 +26,7 @@ spec:
     metadata:
       labels:
         {{- include "versorgungs-kompass.frontendPublicSelectorLabels" . | nindent 8 }}
+        app.kubernetes.io/version: {{ include "versorgungs-kompass.productVersion" . | quote }}
       {{- with $podAnnotations }}
       annotations:
         {{- toYaml . | nindent 8 }}

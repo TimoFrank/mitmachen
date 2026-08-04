@@ -10,12 +10,18 @@ import {
   releaseTitle,
   validateReleaseConfig
 } from "./lib/release_policy.mjs";
-import { validateProductVersionProjection } from "./lib/release_projection.mjs";
+import {
+  updateHelmProductVersionProjection,
+  validateHelmProductVersionProjection,
+  validateProductVersionProjection
+} from "./lib/release_projection.mjs";
 
 const appPath = "frontend/app/versorgungs-kompass.js";
 const changelogPath = "CHANGELOG.md";
 const readmePath = "README.md";
 const releaseConfigPath = "config/release.json";
+const helmChartPath = "deploy/helm/versorgungs-kompass/Chart.yaml";
+const helmValuesPath = "deploy/helm/versorgungs-kompass/values.yaml";
 const releaseNotesDirectory = "dokumentation/release-notes";
 const generatedNotesPath = "dist/release/weekly-notes.md";
 const defaultIcon = "start";
@@ -682,6 +688,8 @@ function projectionSources(version, ref = "") {
       readme: readText(readmePath),
       changelog: readText(changelogPath),
       appHistory: readText(appPath),
+      helmChart: readText(helmChartPath),
+      helmValues: readText(helmValuesPath),
       releaseNotesExists: existsSync(notesPath),
       notes: existsSync(notesPath) ? readText(notesPath) : ""
     };
@@ -691,6 +699,8 @@ function projectionSources(version, ref = "") {
     readme: readTextAt(ref, readmePath),
     changelog: readTextAt(ref, changelogPath),
     appHistory: readTextAt(ref, appPath),
+    helmChart: readTextAt(ref, helmChartPath),
+    helmValues: readTextAt(ref, helmValuesPath),
     releaseNotesExists,
     notes: releaseNotesExists ? readTextAt(ref, notesPath) : ""
   };
@@ -705,6 +715,11 @@ function assertProductProjection(version, { ref = "" } = {}) {
     appHistory: sources.appHistory,
     releaseNotesExists: sources.releaseNotesExists
   });
+  failures.push(...validateHelmProductVersionProjection({
+    productVersion: version,
+    chart: sources.helmChart,
+    values: sources.helmValues
+  }));
   const exactReleaseLink = `https://github.com/TimoFrank/mitmachen/releases/tag/v${version}`;
   if (sources.readme.split(exactReleaseLink).length - 1 !== 1) {
     failures.push(`${readmePath}: v${version} muss genau einmal als aktueller Release verlinkt sein.`);
@@ -773,6 +788,8 @@ function releaseProjectionIsDirty(version) {
     readmePath,
     changelogPath,
     appPath,
+    helmChartPath,
+    helmValuesPath,
     notesPathFor(version)
   ]));
 }
@@ -1068,6 +1085,11 @@ function releasePlan() {
     });
   }
   assertNotesContract(notes, releaseType, version);
+  const projectedHelm = updateHelmProductVersionProjection({
+    productVersion: version,
+    chart: readText(helmChartPath),
+    values: readText(helmValuesPath)
+  });
 
   return {
     shouldRelease: true,
@@ -1089,7 +1111,9 @@ function releasePlan() {
     projectedConfigSource: releaseConfigWithVersion(config, version),
     projectedAppSource,
     projectedChangelogSource,
-    projectedReadmeSource: updateReadme(readText(readmePath), release)
+    projectedReadmeSource: updateReadme(readText(readmePath), release),
+    projectedHelmChartSource: projectedHelm.chart,
+    projectedHelmValuesSource: projectedHelm.values
   };
 }
 
@@ -1135,6 +1159,8 @@ if (dryRun) {
     writeText(appPath, plan.projectedAppSource);
     writeText(changelogPath, plan.projectedChangelogSource);
     writeText(readmePath, plan.projectedReadmeSource);
+    writeText(helmChartPath, plan.projectedHelmChartSource);
+    writeText(helmValuesPath, plan.projectedHelmValuesSource);
     mkdirSync(releaseNotesDirectory, { recursive: true });
     writeText(plan.notesPath, plan.notes);
     assertProductProjection(plan.version);

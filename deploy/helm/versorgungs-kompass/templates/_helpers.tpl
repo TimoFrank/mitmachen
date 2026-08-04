@@ -15,11 +15,22 @@
 {{- end -}}
 {{- end -}}
 
+{{- define "versorgungs-kompass.productVersion" -}}
+{{- $productVersion := required "productVersion is required" .Values.productVersion | toString -}}
+{{- if ne $productVersion (.Chart.Version | toString) -}}
+{{- fail "productVersion must match Chart.version" -}}
+{{- end -}}
+{{- if ne $productVersion (.Chart.AppVersion | toString) -}}
+{{- fail "productVersion must match Chart.appVersion" -}}
+{{- end -}}
+{{- $productVersion -}}
+{{- end -}}
+
 {{- define "versorgungs-kompass.labels" -}}
 helm.sh/chart: {{ .Chart.Name }}-{{ .Chart.Version | replace "+" "_" }}
 app.kubernetes.io/name: {{ include "versorgungs-kompass.name" . }}
 app.kubernetes.io/instance: {{ .Release.Name }}
-app.kubernetes.io/version: {{ .Chart.AppVersion | quote }}
+app.kubernetes.io/version: {{ include "versorgungs-kompass.productVersion" . | quote }}
 app.kubernetes.io/managed-by: {{ .Release.Service }}
 {{- end -}}
 

@@ -2,6 +2,7 @@ import { createHash } from "node:crypto";
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
+import { loadReleaseConfig } from "./lib/release_policy.mjs";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 
@@ -48,10 +49,11 @@ export function generateFrontendSbom({
   artifactRoot = "",
   sourceRoot = root
 }) {
-  const packageJson = readJson(path.join(sourceRoot, "package.json"));
+  const { productVersion } = loadReleaseConfig(sourceRoot);
   const lockfile = readJson(path.join(sourceRoot, "package-lock.json"));
   const assetManifest = readJson(path.join(sourceRoot, "frontend/vendor/THIRD_PARTY_ASSETS.json"));
   const groupedAssets = new Map();
+  let buildManifest = null;
 
   if (assetManifest.generatedFromLockfile !== "package-lock.json") {
     fail("Das Vendor-Manifest muss aus package-lock.json erzeugt sein.");
@@ -62,6 +64,27 @@ export function generateFrontendSbom({
     if (!existsSync(shippedManifest)) fail("THIRD_PARTY_ASSETS.json fehlt im Frontend-Artefakt.");
     if (sha256(shippedManifest) !== sha256(path.join(sourceRoot, "frontend/vendor/THIRD_PARTY_ASSETS.json"))) {
       fail("Das Vendor-Manifest im Frontend-Artefakt stimmt nicht mit der Quelle überein.");
+    }
+
+    const buildManifestPath = path.join(artifactRoot, "build-manifest.json");
+    if (!existsSync(buildManifestPath)) fail("build-manifest.json fehlt im Frontend-Artefakt.");
+    buildManifest = readJson(buildManifestPath);
+    const expectedKeys = ["artifactDigest", "productVersion", "profile", "revision"];
+    const actualKeys = Object.keys(buildManifest || {}).sort();
+    if (JSON.stringify(actualKeys) !== JSON.stringify(expectedKeys)) {
+      fail("build-manifest.json entspricht nicht dem geschlossenen Versionsvertrag.");
+    }
+    if (!new Set(["pages", "target"]).has(buildManifest.profile)) {
+      fail("build-manifest.json besitzt kein freigegebenes Buildprofil.");
+    }
+    if (buildManifest.productVersion !== productVersion) {
+      fail(`build-manifest.json nennt Produktversion ${buildManifest.productVersion} statt ${productVersion}.`);
+    }
+    if (!/^(?:[0-9a-f]{7,64}|unknown)$/iu.test(buildManifest.revision)) {
+      fail("build-manifest.json besitzt keine gültige Quellrevision.");
+    }
+    if (!/^sha256:[0-9a-f]{64}$/u.test(buildManifest.artifactDigest)) {
+      fail("Das Frontend-Artefakt besitzt keinen gültigen artifactDigest.");
     }
   }
 
@@ -120,24 +143,23 @@ export function generateFrontendSbom({
     return component;
   }).sort((left, right) => left["bom-ref"].localeCompare(right["bom-ref"]));
 
-  const applicationRef = `pkg:npm/versorgungs-kompass-frontend@${encodeURIComponent(packageJson.version)}`;
+  const applicationRef = `pkg:generic/versorgungs-kompass-frontend@${encodeURIComponent(productVersion)}`;
   const metadataProperties = [
+    { name: "versorgungs-kompass:product-version", value: productVersion },
     { name: "versorgungs-kompass:source-lockfile", value: "package-lock.json" },
     { name: "versorgungs-kompass:vendor-manifest", value: "frontend/vendor/THIRD_PARTY_ASSETS.json" },
     { name: "versorgungs-kompass:scope", value: "direct-vendored-browser-bundles" },
     { name: "versorgungs-kompass:transitive-bundle-inventory", value: "not-inferred" }
   ];
-  if (artifactRoot) {
-    const buildManifestPath = path.join(artifactRoot, "build-manifest.json");
-    if (!existsSync(buildManifestPath)) fail("build-manifest.json fehlt im Frontend-Artefakt.");
-    const buildManifest = readJson(buildManifestPath);
-    if (!/^sha256:[0-9a-f]{64}$/u.test(buildManifest.artifactDigest || "")) {
-      fail("Das Frontend-Artefakt besitzt keinen gültigen artifactDigest.");
-    }
-    metadataProperties.push({
-      name: "versorgungs-kompass:frontend-artifact-digest",
-      value: buildManifest.artifactDigest
-    });
+  if (buildManifest) {
+    metadataProperties.push(
+      { name: "versorgungs-kompass:build-profile", value: buildManifest.profile },
+      { name: "versorgungs-kompass:source-revision", value: buildManifest.revision },
+      {
+        name: "versorgungs-kompass:frontend-artifact-digest",
+        value: buildManifest.artifactDigest
+      }
+    );
   }
 
   const bom = {
@@ -149,7 +171,8 @@ export function generateFrontendSbom({
         type: "application",
         "bom-ref": applicationRef,
         name: "versorgungs-kompass-frontend",
-        version: packageJson.version,
+        version: productVersion,
+        purl: applicationRef,
         properties: metadataProperties
       }
     },

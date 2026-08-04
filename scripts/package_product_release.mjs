@@ -156,14 +156,16 @@ function parseSourceManifest(entries, { productVersion, commitSha }) {
   if (!sourceManifest || typeof sourceManifest !== "object" || Array.isArray(sourceManifest)) {
     fail("Pages-build-manifest.json muss ein Objekt sein.");
   }
-  const allowedKeys = new Set(["artifactDigest", "productVersion", "profile", "revision"]);
-  const unexpected = Object.keys(sourceManifest).filter((key) => !allowedKeys.has(key));
-  if (unexpected.length) fail(`Pages-build-manifest.json besitzt unerwartete Felder: ${unexpected.join(", ")}.`);
+  const expectedKeys = ["artifactDigest", "productVersion", "profile", "revision"];
+  const actualKeys = Object.keys(sourceManifest).sort();
+  if (JSON.stringify(actualKeys) !== JSON.stringify(expectedKeys)) {
+    fail("Pages-build-manifest.json entspricht nicht dem geschlossenen Versionsvertrag.");
+  }
   if (sourceManifest.profile !== "pages") fail("Pages-build-manifest.json verwendet nicht das Profil pages.");
   if (sourceManifest.revision !== commitSha) {
     fail(`Pages-build-manifest.json nennt ${sourceManifest.revision} statt ${commitSha}.`);
   }
-  if (sourceManifest.productVersion && sourceManifest.productVersion !== productVersion) {
+  if (sourceManifest.productVersion !== productVersion) {
     fail(`Pages-build-manifest.json nennt Produktversion ${sourceManifest.productVersion} statt ${productVersion}.`);
   }
   const artifactDigest = calculateArtifactDigest(entries);

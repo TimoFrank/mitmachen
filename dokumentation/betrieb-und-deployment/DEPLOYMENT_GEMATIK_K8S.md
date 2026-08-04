@@ -155,11 +155,37 @@ npm run build:target
 
 node scripts/audit_target_assets.mjs --artifact-root dist/target
 
+PRODUCT_VERSION="$(node -e '
+  const fs = require("fs");
+  const config = JSON.parse(fs.readFileSync("config/release.json", "utf8"));
+  const version = config.productVersion;
+  if (!/^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$/.test(version || "")) process.exit(1);
+  process.stdout.write(version);
+' 2>/dev/null || true)"
+if [ -z "$PRODUCT_VERSION" ]; then
+  if git tag --points-at HEAD --list 'poc-v0.1.0-rc.5' | grep -Fxq 'poc-v0.1.0-rc.5'; then
+    PRODUCT_VERSION="0.1.0"
+  else
+    echo "Keine zentrale Produktversion für diesen Quellstand gefunden." >&2
+    exit 1
+  fi
+fi
+SOURCE_REVISION="$(git rev-parse --verify HEAD)"
+SOURCE_URL="https://github.com/TimoFrank/mitmachen"
 docker build \
+  --build-arg PRODUCT_VERSION="$PRODUCT_VERSION" \
+  --build-arg SOURCE_REVISION="$SOURCE_REVISION" \
+  --build-arg SOURCE_URL="$SOURCE_URL" \
   -f api/Dockerfile \
   -t "<registry>/<repository>:poc-v0.1.0-rc.5" \
   .
 ```
+
+Der Fallback `0.1.0` gilt ausschließlich für den unveränderten historischen
+RC.5. Dessen damaliges Dockerfile kennt die neuen OCI-Buildargumente und
+Labels noch nicht; Git-Historie und Image-Digest bleiben deshalb seine
+maßgeblichen Nachweise. Der zentrale, fail-closed OCI-Vertrag gilt für neue
+Quellstände und wird nicht rückwirkend in den Legacy-Tag geschrieben.
 
 Der providerneutrale OIDC-Frontend-Build benötigt nur den internen HTTPS-Origin. `OIDC_ISSUER`, `OIDC_AUDIENCE` und `OIDC_JWKS_URL` sind geschützte API-Laufzeitwerte und werden nicht in das statische Frontend geschrieben. Google Identity Platform, Firebase-Konfiguration, GCP-Projektwerte und das frühere IAP-Identity-Portal sind kein Bestandteil dieses OIDC-Artefakts. Der getrennte GCP-Pre-Integrationspfad mit `auth-mode=iap` behält sein eigenes Portal und seine eigenen Prüfungen.
 

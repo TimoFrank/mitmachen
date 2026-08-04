@@ -484,6 +484,8 @@ jobs:
           git diff --exit-code -- \
             . \
             ':!config/release.json' \
+            ':!deploy/helm/versorgungs-kompass/Chart.yaml' \
+            ':!deploy/helm/versorgungs-kompass/values.yaml' \
             ':!README.md' \
             ':!CHANGELOG.md' \
             ':!frontend/app/versorgungs-kompass.js' \
@@ -515,6 +517,8 @@ jobs:
           body-path: ${{ steps.release.outputs.notes_path }}
           add-paths: |
             config/release.json
+            deploy/helm/versorgungs-kompass/Chart.yaml
+            deploy/helm/versorgungs-kompass/values.yaml
             README.md
             CHANGELOG.md
             frontend/app/versorgungs-kompass.js

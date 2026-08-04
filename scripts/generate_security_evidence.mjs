@@ -2,6 +2,7 @@ import { createHash } from "node:crypto";
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
+import { loadReleaseConfig } from "./lib/release_policy.mjs";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const externalGateFiles = new Map([
@@ -167,6 +168,7 @@ export function generateSecurityEvidence({
     fail("Ungültiger API-Image-Config-Digest.");
   }
   if (Number.isNaN(Date.parse(observedAt))) fail("Ungültiger Prüfzeitpunkt.");
+  const { productVersion } = loadReleaseConfig(sourceRoot);
   if (buildUrl) {
     const parsedBuildUrl = new URL(buildUrl);
     if (!["http:", "https:"].includes(parsedBuildUrl.protocol) ||
@@ -299,6 +301,14 @@ export function generateSecurityEvidence({
   }
 
   const frontendBuildManifest = readJson(frontendManifest);
+  if (JSON.stringify(Object.keys(frontendBuildManifest || {}).sort()) !== JSON.stringify(["artifactDigest", "productVersion", "profile", "revision"])) {
+    fail("Das Frontend-Manifest verletzt den geschlossenen Versionsvertrag.");
+  }
+  if (frontendBuildManifest.profile !== "target" ||
+      frontendBuildManifest.productVersion !== productVersion ||
+      frontendBuildManifest.revision !== sourceRevision) {
+    fail("Das Frontend-Manifest gehört nicht zur zentralen Produktversion und Quellrevision.");
+  }
   if (!/^sha256:[0-9a-f]{64}$/u.test(frontendBuildManifest.artifactDigest || "")) {
     fail("Das Frontend-Manifest besitzt keinen gültigen Artefakt-Digest.");
   }
@@ -306,6 +316,14 @@ export function generateSecurityEvidence({
     frontendSbom.metadata?.component,
     "versorgungs-kompass:frontend-artifact-digest"
   );
+  if (frontendSbom.metadata?.component?.version !== productVersion ||
+      propertyValue(frontendSbom.metadata?.component, "versorgungs-kompass:product-version") !== productVersion) {
+    fail("Die Frontend-SBOM gehört nicht zur zentralen Produktversion.");
+  }
+  if (propertyValue(frontendSbom.metadata?.component, "versorgungs-kompass:build-profile") !== frontendBuildManifest.profile ||
+      propertyValue(frontendSbom.metadata?.component, "versorgungs-kompass:source-revision") !== sourceRevision) {
+    fail("Die Frontend-SBOM gehört nicht zum Buildprofil und zur Quellrevision des Frontend-Manifests.");
+  }
   const frontendSbomHash = frontendSbom.metadata?.component?.hashes?.find(
     (hash) => hash.alg === "SHA-256"
   )?.content;
@@ -328,6 +346,7 @@ export function generateSecurityEvidence({
     observedAt,
     subject: {
       rcTag,
+      productVersion,
       sourceRevision,
       frontendArtifactDigest: frontendBuildManifest.artifactDigest,
       apiImage,

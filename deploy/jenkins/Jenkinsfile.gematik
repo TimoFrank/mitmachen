@@ -135,20 +135,15 @@ pipeline {
                 echo "PoC RC tag must resolve to a commit contained in origin/main." >&2
                 exit 1
               }
-              expected_version="${rc_tag#poc-v}"
-              expected_rc_suffix="${expected_version##*-}"
+              product_version="$(node scripts/print_product_version.mjs)"
               chart_version="$(awk -F ':[[:space:]]*' '$1 == "version" { gsub(/"/, "", $2); print $2; exit }' deploy/helm/versorgungs-kompass/Chart.yaml)"
               chart_app_version="$(awk -F ':[[:space:]]*' '$1 == "appVersion" { gsub(/"/, "", $2); print $2; exit }' deploy/helm/versorgungs-kompass/Chart.yaml)"
+              values_product_version="$(awk -F ':[[:space:]]*' '$1 == "productVersion" { gsub(/"/, "", $2); print $2; exit }' deploy/helm/versorgungs-kompass/values.yaml)"
               poc_image_tag="$(awk '$1 == "tag:" { print $2; exit }' deploy/helm/versorgungs-kompass/values-poc-gematik.yaml)"
-              case "$chart_version" in
-                *-"$expected_rc_suffix") ;;
-                *)
-                  echo "PoC RC tag and Helm chart version use different RC suffixes." >&2
-                  exit 1
-                  ;;
-              esac
-              test "$chart_app_version" = "$expected_version" || {
-                echo "PoC RC tag and Helm appVersion differ." >&2
+              test "$chart_version" = "$product_version" \
+                && test "$chart_app_version" = "$product_version" \
+                && test "$values_product_version" = "$product_version" || {
+                echo "Helm chart and values must match the central product version." >&2
                 exit 1
               }
               test "$poc_image_tag" = "$rc_tag" || {
@@ -318,7 +313,20 @@ pipeline {
     stage('Build API image') {
       steps {
         sh '''
-          docker build -f api/Dockerfile -t "$API_IMAGE" .
+          set -eu
+          product_version="$(node scripts/print_product_version.mjs)"
+          source_revision="$(git rev-parse --verify HEAD)"
+          source_url="$(git config --get remote.origin.url | node scripts/normalize_repository_url.mjs)"
+          docker build \
+            --build-arg PRODUCT_VERSION="$product_version" \
+            --build-arg SOURCE_REVISION="$source_revision" \
+            --build-arg SOURCE_URL="$source_url" \
+            -f api/Dockerfile \
+            -t "$API_IMAGE" \
+            .
+          test "$(docker image inspect "$API_IMAGE" --format '{{ index .Config.Labels "org.opencontainers.image.version" }}')" = "$product_version"
+          test "$(docker image inspect "$API_IMAGE" --format '{{ index .Config.Labels "org.opencontainers.image.revision" }}')" = "$source_revision"
+          test "$(docker image inspect "$API_IMAGE" --format '{{ index .Config.Labels "org.opencontainers.image.source" }}')" = "$source_url"
           docker image save --output "$API_IMAGE_SCAN_DIR/api-image.tar" "$API_IMAGE"
         '''
         script {

@@ -59,8 +59,11 @@ und beeinflussen das künftige Namensschema nicht.
 
 Die Versionsangabe in `package.json` gehört nur zum privaten npm-Arbeitsbereich
 und ist weder Produktversion noch Freigabe für GitHub Packages. Für Produkt,
-Git-Tag, Release Notes und spätere Build-Manifeste ist ausschließlich
-`release.json.productVersion` führend.
+Git-Tag, Release Notes, Build-Manifeste, Frontend-SBOM, Helm-Chart und
+Anwendungsimages ist ausschließlich `release.json.productVersion` führend.
+Der Release-Planer projiziert denselben Wert in `Chart.version`,
+`Chart.appVersion` und `values.yaml.productVersion`; manuelle Abweichungen
+stoppen die Repository- und Release-Prüfung.
 
 ## Gemeinsamer Markenvertrag
 
