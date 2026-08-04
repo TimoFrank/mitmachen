@@ -64,6 +64,16 @@ npm run check
 npm run build:pages
 ```
 
-Ein freigegebener Push auf `main` startet ausschließlich den Pages-Workflow. Das GKE-Deployment bleibt ein eigener, manueller und geschützter Vorgang.
+Bei Änderungen am Produkt-Release-Prozess zusätzlich:
+
+```bash
+npm run test:release-automation
+npm run check:deployment-governance
+```
+
+Pages wird ausschließlich aus einem verifizierten, signierten Produkt-Tag über
+den Release-Workflow ausgeliefert. Ein gewöhnlicher Push auf `main` löst kein
+Deployment aus. Das GKE-Deployment bleibt ein eigener, manueller und
+geschützter Vorgang.
 
 Bitte füge keine Zugangsdaten, Service-Role-Keys, produktiven Exporte oder personenbezogenen Daten hinzu.

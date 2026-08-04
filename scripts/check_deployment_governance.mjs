@@ -116,7 +116,7 @@ const profileExpectations = [
     delivery: {
       kind: "github-pages-actions",
       entrypoint: ".github/workflows/deploy-pages.yml",
-      trigger: "main-push"
+      trigger: "product-release"
     },
     route: "/",
     dataMode: "demo",
@@ -244,6 +244,11 @@ for (const workflowName of workflowFiles) {
 
 const pagesFile = ".github/workflows/deploy-pages.yml";
 const pages = read(pagesFile);
+forbidPattern(pagesFile, pages, /^\s{2}push:\s*$/m, "Pages darf keinen beweglichen main-Push mehr automatisch als Produktstand ausliefern.");
+requirePattern(pagesFile, pages, /workflow_dispatch:[\s\S]*?revision:[\s\S]*?required:\s*true[\s\S]*?release_tag:[\s\S]*?required:\s*true/, "Pages muss exakten Commit und signierten Produkt-Tag verpflichtend anfordern.");
+requirePattern(pagesFile, pages, /RELEASE_TAG_GPG_FINGERPRINT:[^\n]*vars\.RELEASE_TAG_GPG_FINGERPRINT[\s\S]*?RELEASE_TAG_GPG_PUBLIC_KEY:[^\n]*vars\.RELEASE_TAG_GPG_PUBLIC_KEY/, "Pages muss den oeffentlichen Repository-Trust-Anchor verwenden.");
+requirePattern(pagesFile, pages, /github-tag-verification\.json[\s\S]*?verify_release_tag\.mjs[\s\S]*?--github-verification-json/, "Pages muss lokale und GitHub-seitige Tagverifikation vor dem Build verbinden.");
+forbidPattern(pagesFile, pages, /RELEASE_TAG_GPG_PRIVATE_KEY|RELEASE_TAG_GPG_PASSPHRASE/, "Pages darf niemals private Signing-Secrets referenzieren.");
 requirePattern(pagesFile, pages, /environment:\s*[\s\S]*?name:\s*github-pages/, "Environment github-pages fehlt.");
 requirePattern(pagesFile, pages, /dist\/pages/, "Pages muss aus dist/pages deployen.");
 requirePattern(pagesFile, pages, /pages:\s*write/, "pages: write fehlt.");
@@ -289,8 +294,8 @@ forbidPattern(weeklyFile, weekly, /git\s+push[^\n]*(?:HEAD:main|origin\s+main)|g
 requirePattern(
   weeklyFile,
   weekly,
-  /release-schedule-gate:[\s\S]*?outputs:\s*\n\s+may_run:\s*\$\{\{\s*steps\.gate\.outputs\.may_run\s*\}\}/,
-  "Das Schedule-Gate muss seine Entscheidung als Job-Ausgabe bereitstellen."
+  /release-gate:[\s\S]*?outputs:[\s\S]*?may_plan:\s*\$\{\{\s*steps\.gate\.outputs\.may_plan\s*\}\}[\s\S]*?may_publish:\s*\$\{\{\s*steps\.gate\.outputs\.may_publish\s*\}\}/,
+  "Das Weekly-Gate muss Planung und Veröffentlichung getrennt entscheiden."
 );
 requirePattern(
   weeklyFile,
@@ -301,39 +306,113 @@ requirePattern(
 requirePattern(
   weeklyFile,
   weekly,
+  /PUBLISH_ENABLED:\s*\$\{\{\s*vars\.PRODUCT_RELEASE_PUBLISH_ENABLED\s*\}\}/,
+  "Der geplante Weekly Release muss den globalen Publish-Schalter auswerten."
+);
+requirePattern(
+  weeklyFile,
+  weekly,
   /SCHEDULE_ENABLED:\s*\$\{\{\s*vars\.WEEKLY_RELEASE_SCHEDULE_ENABLED\s*\}\}/,
   "Der geplante Weekly Release muss die explizite Freigabevariable auswerten."
 );
 requirePattern(
   weeklyFile,
   weekly,
-  /if \[\[ "\$EVENT_NAME" == "schedule" && "\$\{SCHEDULE_ENABLED:-\}" != "true" \]\]; then[\s\S]*?may_run=false/,
-  "Der geplante Weekly Release muss ohne explizites true fail-closed gesperrt bleiben."
+  /if \[\[ "\$EVENT_NAME" == "schedule" \]\]; then[\s\S]*?SCHEDULE_ENABLED:-[^\n]*!= "true"[\s\S]*?may_plan=false[\s\S]*?PUBLISH_ENABLED:-[^\n]*!= "true"[\s\S]*?may_plan=false/,
+  "Der Schedule-Lauf muss bei jedem fehlenden Freigabeschalter fail-closed enden."
 );
 requirePattern(
   weeklyFile,
   weekly,
-  /echo "may_run=\$\{may_run\}" >> "\$GITHUB_OUTPUT"/,
-  "Das Schedule-Gate muss seine Entscheidung an GitHub Actions uebergeben."
+  /publish:[\s\S]*?required:\s*true[\s\S]*?default:\s*false[\s\S]*?type:\s*boolean/,
+  "Ein manueller Weekly-Lauf muss standardmaessig ein schreibfreier Plan sein."
 );
 requirePattern(
   weeklyFile,
   weekly,
-  /prepare-release:\s*\n\s+name:[^\n]+\n\s+needs:\s*release-schedule-gate\s*\n\s+if:\s*\$\{\{\s*needs\.release-schedule-gate\.outputs\.may_run\s*==\s*'true'\s*\}\}/,
-  "Die Release-Vorbereitung darf nur nach dem erfolgreichen Schedule-Gate starten."
+  /plan-release:[\s\S]*?persist-credentials:\s*false[\s\S]*?prepare_weekly_release\.mjs\s+--dry-run\s+--release-type\s+weekly[\s\S]*?signing-readiness:/,
+  "Der Weekly-Plan muss ohne persistierte Zugangsdaten und ohne Mutation laufen."
+);
+const weeklyPlanSection = weekly.match(/\n  plan-release:[\s\S]*?\n  signing-readiness:/)?.[0] || "";
+forbidPattern(weeklyFile, weeklyPlanSection, /release-signing|RELEASE_TAG_GPG_PRIVATE_KEY|RELEASE_TAG_GPG_PASSPHRASE/, "Der schreibfreie Weekly-Plan darf weder Signing-Environment noch private Signing-Secrets referenzieren.");
+const weeklyReadinessSection = weekly.match(/\n  signing-readiness:[\s\S]*?\n  prepare-release:/)?.[0] || "";
+requirePattern(weeklyFile, weeklyReadinessSection, /environment:[\s\S]*?name:\s*release-signing/, "Publishing muss die isolierte Signing-Bereitschaft vor dem Merge pruefen.");
+requirePattern(weeklyFile, weeklyReadinessSection, /RELEASE_TAG_GPG_PRIVATE_KEY:[^\n]*secrets\.RELEASE_TAG_GPG_PRIVATE_KEY/, "Die Signing-Bereitschaft muss den privaten Subkey aus dem Environment lesen.");
+requirePattern(weeklyFile, weeklyReadinessSection, /RELEASE_TAG_GPG_PASSPHRASE:[^\n]*secrets\.RELEASE_TAG_GPG_PASSPHRASE/, "Die Signing-Bereitschaft muss die Passphrase getrennt aus dem Environment lesen.");
+forbidPattern(weeklyFile, weeklyReadinessSection, /actions\/checkout|actions\/setup-node|npm\s+(?:ci|install)|scripts\//, "Der Signing-Bereitschaftsjob darf keinen Repository-Code ausfuehren.");
+requirePattern(
+  weeklyFile,
+  weekly,
+  /prepare-release:[\s\S]*?needs:[\s\S]*?-\s+signing-readiness[\s\S]*?if:\s*needs\.release-gate\.outputs\.may_publish\s*==\s*'true'/,
+  "Die Release-Vorbereitung darf erst nach Publish-Gate und Signing-Bereitschaft starten."
 );
 requirePattern(weeklyFile, weekly, /pull-requests:\s*write/, "Der vorbereitende Weekly-Release-Prozess muss einen reviewbaren Pull Request erzeugen koennen.");
-requirePattern(weeklyFile, weekly, /workflow\s+run\s+repo-check\.yml/, "Weekly Release muss den erforderlichen Check auf dem Kandidatenbranch explizit starten.");
-requirePattern(weeklyFile, weekly, /--match-head-commit/, "Weekly Release muss den geprueften PR-Head beim Merge festschreiben.");
+requirePattern(
+  weeklyFile,
+  weekly,
+  /for workflow in repo-check\.yml target-readiness\.yml; do[\s\S]*?known_run_ids[\s\S]*?gh workflow run "\$workflow"[\s\S]*?headSha == \$sha[\s\S]*?index\(\$id\)\) == null[\s\S]*?gh run watch/,
+  "Weekly Release muss beide erforderlichen Checks korreliert auf dem exakten Kandidatencommit starten."
+);
+requirePattern(weeklyFile, weekly, /gh\s+pr\s+checks[\s\S]*?--required[\s\S]*?--watch[\s\S]*?autoMergeRequest/, "Weekly Release muss alle erforderlichen Checks abwarten und vorhandenes Auto-Merge ausschliessen.");
+requirePattern(weeklyFile, weekly, /merge_payload=.*[\s\S]*?\{sha:\s*\$sha,\s*merge_method:\s*"squash"[\s\S]*?gh\s+api[\s\S]*?--method\s+PUT[\s\S]*?pulls\/\$\{PR_NUMBER\}\/merge/, "Weekly Release muss den geprueften Head atomar per REST-Squash binden.");
+requirePattern(weeklyFile, weekly, /add-paths:\s*\|[\s\S]*?config\/release\.json/, "Die zentrale Produktversion muss Bestandteil des Weekly-Release-PR sein.");
+requirePattern(weeklyFile, weekly, /uses:\s*\.\/\.github\/workflows\/publish-release\.yml[\s\S]*?release_type:\s*weekly/, "Weekly Release muss den gemeinsamen Publish-Vertrag mit Typ weekly verwenden.");
+
+const hotfixFile = ".github/workflows/hotfix-release.yml";
+const hotfix = read(hotfixFile);
+forbidPattern(hotfixFile, hotfix, /^\s*schedule:\s*$/m, "Hotfixes duerfen keinen Zeitplan besitzen.");
+requirePattern(hotfixFile, hotfix, /publish:[\s\S]*?required:\s*true[\s\S]*?default:\s*false[\s\S]*?type:\s*boolean/, "Ein manueller Hotfix muss standardmaessig ein schreibfreier Plan sein.");
+for (const input of ["reason", "correction", "risk", "verification"]) {
+  requirePattern(hotfixFile, hotfix, new RegExp(`\\n      ${input}:[\\s\\S]*?required:\\s*true[\\s\\S]*?type:\\s*string`), `Hotfix-Eingabe ${input} muss verpflichtend sein.`);
+}
+for (const variable of ["HOTFIX_REASON", "HOTFIX_CORRECTION", "HOTFIX_RISK", "HOTFIX_VERIFICATION"]) {
+  const occurrences = hotfix.match(new RegExp(`${variable}:`, "g"))?.length || 0;
+  if (occurrences < 2) failures.push(`${hotfixFile}: ${variable} muss sowohl Plan als auch Vorbereitung erreichen.`);
+}
+requirePattern(hotfixFile, hotfix, /PUBLISH_ENABLED:\s*\$\{\{\s*vars\.PRODUCT_RELEASE_PUBLISH_ENABLED\s*\}\}/, "Hotfix-Publishing muss den globalen Publish-Schalter auswerten.");
+requirePattern(hotfixFile, hotfix, /persist-credentials:\s*false[\s\S]*?prepare_weekly_release\.mjs\s+--dry-run\s+--release-type\s+hotfix/, "Der Hotfix-Plan muss ohne persistierte Zugangsdaten und ohne Mutation laufen.");
+const hotfixPlanSection = hotfix.match(/\n  plan-release:[\s\S]*?\n  signing-readiness:/)?.[0] || "";
+forbidPattern(hotfixFile, hotfixPlanSection, /release-signing|RELEASE_TAG_GPG_PRIVATE_KEY|RELEASE_TAG_GPG_PASSPHRASE/, "Der schreibfreie Hotfix-Plan darf weder Signing-Environment noch private Signing-Secrets referenzieren.");
+const hotfixReadinessSection = hotfix.match(/\n  signing-readiness:[\s\S]*?\n  prepare-release:/)?.[0] || "";
+requirePattern(hotfixFile, hotfixReadinessSection, /environment:[\s\S]*?name:\s*release-signing/, "Hotfix-Publishing muss die isolierte Signing-Bereitschaft vor dem Merge pruefen.");
+forbidPattern(hotfixFile, hotfixReadinessSection, /actions\/checkout|actions\/setup-node|npm\s+(?:ci|install)|scripts\//, "Der Hotfix-Signing-Bereitschaftsjob darf keinen Repository-Code ausfuehren.");
+requirePattern(hotfixFile, hotfix, /prepare-release:[\s\S]*?needs:[\s\S]*?-\s+signing-readiness[\s\S]*?if:\s*needs\.release-gate\.outputs\.may_publish\s*==\s*'true'/, "Die Hotfix-Vorbereitung darf erst nach Publish-Gate und Signing-Bereitschaft starten.");
+requirePattern(hotfixFile, hotfix, /git\s+diff\s+--exit-code\s+--\s+frontend\/app\/versorgungs-kompass\.js/, "Ein Hotfix darf den In-App-Changelog nicht veraendern.");
+requirePattern(hotfixFile, hotfix, /add-paths:\s*\|[\s\S]*?config\/release\.json/, "Die zentrale Produktversion muss Bestandteil des Hotfix-PR sein.");
+requirePattern(
+  hotfixFile,
+  hotfix,
+  /for workflow in repo-check\.yml target-readiness\.yml; do[\s\S]*?known_run_ids[\s\S]*?gh workflow run "\$workflow"[\s\S]*?headSha == \$sha[\s\S]*?index\(\$id\)\) == null[\s\S]*?gh run watch/,
+  "Hotfix Release muss beide erforderlichen Checks korreliert auf dem exakten Kandidatencommit starten."
+);
+requirePattern(hotfixFile, hotfix, /gh\s+pr\s+checks[\s\S]*?--required[\s\S]*?--watch[\s\S]*?autoMergeRequest/, "Hotfix Release muss alle erforderlichen Checks abwarten und vorhandenes Auto-Merge ausschliessen.");
+requirePattern(hotfixFile, hotfix, /merge_payload=.*[\s\S]*?\{sha:\s*\$sha,\s*merge_method:\s*"squash"[\s\S]*?gh\s+api[\s\S]*?--method\s+PUT[\s\S]*?pulls\/\$\{PR_NUMBER\}\/merge/, "Hotfix Release muss den geprueften Head atomar per REST-Squash binden.");
+requirePattern(hotfixFile, hotfix, /uses:\s*\.\/\.github\/workflows\/publish-release\.yml[\s\S]*?release_type:\s*hotfix/, "Hotfix Release muss den gemeinsamen Publish-Vertrag mit Typ hotfix verwenden.");
 
 const publishReleaseFile = ".github/workflows/publish-release.yml";
 const publishRelease = read(publishReleaseFile);
-requirePattern(publishReleaseFile, publishRelease, /\^v\[0-9\]\+/, "Produkt-Releases muessen auf vX.Y.Z begrenzt sein.");
-requirePattern(publishReleaseFile, publishRelease, /git\s+tag\s+--annotate/, "Produkt-Releases benoetigen einen annotierten Tag.");
+requirePattern(publishReleaseFile, publishRelease, /\^v\(\[0-9\]\+\)\\\.\(\[0-9\]\+\)\\\.\(\[0-9\]\+\)\$/, "Produkt-Releases muessen streng als vX.Y.Z validiert sein.");
+requirePattern(publishReleaseFile, publishRelease, /major[^\n]*==\s*"0"|"\$major"\s*==\s*"0"/, "Die Automatisierung muss Releases ab v1.0.0 dem gesonderten Target-Gate ueberlassen.");
+requirePattern(publishReleaseFile, publishRelease, /environment:[\s\S]*?name:\s*release-signing/, "Der private Signierschluessel darf nur im Environment release-signing verwendet werden.");
+requirePattern(publishReleaseFile, publishRelease, /git\s+tag\s+--sign[\s\S]*?--local-user/, "Produkt-Releases benoetigen einen annotierten, mit dem exakten Subkey signierten Tag.");
+forbidPattern(publishReleaseFile, publishRelease, /git\s+(?:tag|push)[^\n]*--force/, "Release-Tags duerfen nie erzwungen ersetzt werden.");
+requirePattern(publishReleaseFile, publishRelease, /verify-signed-tag:[\s\S]*?permissions:[\s\S]*?contents:\s*read[\s\S]*?verify_release_tag\.mjs/, "Ein separater Job ohne Schreibrecht muss den Remote-Tag pruefen.");
+const publicVerificationSection = publishRelease.match(/\n  verify-signed-tag:[\s\S]*?\n  build-and-deploy-pages:/)?.[0] || "";
+forbidPattern(publishReleaseFile, publicVerificationSection, /RELEASE_TAG_GPG_PRIVATE_KEY|RELEASE_TAG_GPG_PASSPHRASE/, "Die unabhaengige Tag-Pruefung darf keine privaten Signing-Secrets referenzieren.");
+requirePattern(publishReleaseFile, publishRelease, /build-and-deploy-pages:[\s\S]*?needs:[\s\S]*?-\s+verify-signed-tag/, "Pages darf erst nach unabhaengiger Tag-Pruefung gebaut werden.");
+requirePattern(publishReleaseFile, publishRelease, /package_product_release\.mjs[\s\S]*?verify_release_artifacts\.mjs/, "Die drei Release-Artefakte muessen reproduzierbar gepackt und lokal geprueft werden.");
+requirePattern(publishReleaseFile, publishRelease, /versorgungs-kompass-\$\{RELEASE_TAG\}-pages\.zip/, "Das versionierte Pages-ZIP fehlt als Pflichtartefakt.");
+requirePattern(publishReleaseFile, publishRelease, /build-manifest\.json/, "build-manifest.json fehlt als Pflichtartefakt.");
+requirePattern(publishReleaseFile, publishRelease, /SHA256SUMS/, "SHA256SUMS fehlt als Pflichtartefakt.");
 requirePattern(publishReleaseFile, publishRelease, /gh\s+release\s+create/, "GitHub Release muss durch den Publish-Workflow erstellt werden.");
 requirePattern(publishReleaseFile, publishRelease, /--verify-tag/, "GitHub Release muss einen vorhandenen Tag verifizieren.");
 requirePattern(publishReleaseFile, publishRelease, /verify_product_release\.mjs/, "Publish-Workflow muss Release-Dokumente und Commit pruefen.");
-forbidPattern(publishReleaseFile, publishRelease, /deploy-pre-gematik|poc-v/, "Oeffentliche Produkt-Releases duerfen keinen PoC- oder Target-Deploy ausloesen.");
+requirePattern(publishReleaseFile, publishRelease, /--draft[\s\S]*?--prerelease[\s\S]*?--latest=false/, "GitHub Releases muessen zuerst als Draft und danach als Prerelease ohne Latest-Status entstehen.");
+forbidPattern(publishReleaseFile, publishRelease, /gh\s+release\s+upload[^\n]*--clobber/, "Ein fortgesetzter Draft darf vorhandene Assets nicht ueberschreiben.");
+requirePattern(publishReleaseFile, publishRelease, /Unexpected asset in existing draft[\s\S]*?cmp\s+--silent[\s\S]*?missing_assets/, "Ein fortgesetzter Draft muss vorhandene Assets als exakte Teilmenge bytegenau pruefen.");
+requirePattern(publishReleaseFile, publishRelease, /isImmutable[\s\S]*?gh\s+release\s+verify\s+"\$RELEASE_TAG"/, "Die Veroeffentlichung muss auf Immutability und Release-Attestierung warten.");
+requirePattern(publishReleaseFile, publishRelease, /gh\s+release\s+verify-asset\s+"\$RELEASE_TAG"/, "Jedes heruntergeladene Release-Asset muss gegen seine Attestierung geprueft werden.");
+forbidPattern(publishReleaseFile, publishRelease, /deploy-pre-gematik\.yml|dist\/target|\bpre-gematik\b|poc-v/i, "Oeffentliche Produkt-Releases duerfen keinen PoC-, GKE- oder Target-Deploy ausloesen.");
 
 const jenkinsFile = "deploy/jenkins/Jenkinsfile.gematik";
 const jenkins = read(jenkinsFile);

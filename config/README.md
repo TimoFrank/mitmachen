@@ -12,7 +12,20 @@ Buildprofil, Ausgabe, Freigabetor, Datenmodus und Deployment-Einstieg.
 
 Technisch gibt es derzeit genau zwei GitHub-Environments: `github-pages` für
 die öffentliche Demo und `pre-gematik` für die manuell freigegebene
-GKE-Pre-Integration. Neue Target-Versionen ab `v0.23.0` werden über die Software
+GKE-Pre-Integration. Das im Release-Workflow referenzierte dritte Environment
+`release-signing` wird erst bei der abschließenden Signaturabnahme mit genau
+einem privaten Ed25519-Signiersubkey, dem Stub des offline gehaltenen
+Certify-only-Primary-Keys und der Passphrase provisioniert. Ein getrenntes,
+ablaufendes Fine-grained-PAT-Secret mit ausschließlich `Administration: read`
+für dieses Repository erlaubt dort zusätzlich den read-only Nachweis von
+Release-Immutability und Branchschutz; es wird nicht für Inhaltsänderungen
+verwendet und nicht an npm, Repository-Skripte oder Mutationsschritte
+weitergegeben.
+Der zugehörige öffentliche Schlüssel, der exakte Subkey-Fingerprint und die
+Signer-Identität liegen als nicht geheime Repository-Variablen für die
+unabhängige Verifikation bereit; bis dahin bleibt die Veröffentlichung über den
+Publish-Schalter gesperrt. Neue
+Target-Versionen ab `v0.23.0` werden über die Software
 Factory und später GitLab frisch aus einem unveränderlichen, signierten
 Quelltag gebaut und benötigen deshalb kein zusätzliches Environment im
 persönlichen GitHub-Repository. Der vorhandene Legacy-RC.5 bleibt davon

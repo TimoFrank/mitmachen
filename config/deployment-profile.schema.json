@@ -56,7 +56,7 @@
         },
         "entrypoint": { "type": "string", "minLength": 1 },
         "trigger": {
-          "enum": ["main-push", "manual-approval", "controlled-release"]
+          "enum": ["product-release", "manual-approval", "controlled-release"]
         }
       }
     },

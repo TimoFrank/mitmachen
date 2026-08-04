@@ -1,5 +1,16 @@
 import { execFileSync } from "node:child_process";
 import { existsSync, mkdirSync, readFileSync, readdirSync, writeFileSync } from "node:fs";
+import {
+  compareProductVersions,
+  formatTechnicalTag,
+  loadReleaseConfig,
+  nextProductVersion,
+  parseProductVersion,
+  releaseMetadata,
+  releaseTitle,
+  validateReleaseConfig
+} from "./lib/release_policy.mjs";
+import { validateProductVersionProjection } from "./lib/release_projection.mjs";
 
 const appPath = "frontend/app/versorgungs-kompass.js";
 const changelogPath = "CHANGELOG.md";
@@ -8,6 +19,7 @@ const releaseConfigPath = "config/release.json";
 const releaseNotesDirectory = "dokumentation/release-notes";
 const generatedNotesPath = "dist/release/weekly-notes.md";
 const defaultIcon = "start";
+const gitFileMaxBuffer = 64 * 1024 * 1024;
 const dryRun = process.argv.includes("--dry-run");
 const releaseIntroduction =
   "#Mitmachen verbindet Menschen, die die digitale Versorgung gemeinsam gestalten. Der Versorgungs-Kompass macht Kontakte, Organisationen, Wissen und Aktivitäten sichtbar und hilft dem Netzwerk, die Versorgung gemeinsam weiterzuentwickeln.";
@@ -58,6 +70,13 @@ function readText(path) {
   return readFileSync(path, "utf8");
 }
 
+function readTextAt(ref, path) {
+  return execFileSync("git", ["show", `${ref}:${path}`], {
+    encoding: "utf8",
+    maxBuffer: gitFileMaxBuffer
+  });
+}
+
 function writeText(path, value) {
   writeFileSync(path, value, "utf8");
 }
@@ -72,6 +91,14 @@ function gitSucceeds(args) {
     return true;
   } catch {
     return false;
+  }
+}
+
+function gitOutput(args) {
+  try {
+    return git(args);
+  } catch {
+    return "";
   }
 }
 
@@ -94,14 +121,6 @@ function formatVersion(parts) {
 
 function compactVersion(version) {
   return String(version || "").replace(/\.0$/, "");
-}
-
-function highestVersion(values) {
-  return values
-    .map(parseVersion)
-    .filter(Boolean)
-    .sort(compareVersions)
-    .at(-1);
 }
 
 function appVersions(appSource) {
@@ -150,20 +169,6 @@ function gitTags({ reachableOnly = false } = {}) {
   return output ? output.split("\n").filter(Boolean) : [];
 }
 
-function nextMinorVersion(current) {
-  return [current[0], current[1] + 1, 0];
-}
-
-function nextPatchVersion(current) {
-  return [current[0], current[1], current[2] + 1];
-}
-
-function nextVersion(current, bump) {
-  if (bump === "minor") return nextMinorVersion(current);
-  if (bump === "patch") return nextPatchVersion(current);
-  throw new Error(`Unbekannter Versionssprung: ${bump}`);
-}
-
 function releaseDateLabel(now = new Date()) {
   return new Intl.DateTimeFormat("de-DE", {
     day: "numeric",
@@ -182,7 +187,7 @@ function latestTagName(tags) {
 }
 
 function commitsSince(baseRef) {
-  const output = git(["log", "--format=%H%x09%s", "--no-merges", `${baseRef}..HEAD`]);
+  const output = git(["log", "--format=%H%x09%s", `${baseRef}..HEAD`]);
   return output
     ? output.split("\n").filter(Boolean).map((line) => {
       const separator = line.indexOf("\t");
@@ -414,6 +419,39 @@ function updateChangelog(source, release) {
   return `${lines.join("\n").replace(/\n{4,}/g, "\n\n\n").trimEnd()}\n`;
 }
 
+function updateChangelogWithHotfix(source, { version, correction }) {
+  const parsed = parseProductVersion(version);
+  const minorVersion = `${parsed.major}.${parsed.minor}`;
+  const headerPattern = new RegExp(`^## Version ${minorVersion.replaceAll(".", "\\.")} -`, "m");
+  const header = headerPattern.exec(source);
+  if (!header) {
+    throw new Error(`Der Hotfix ${version} besitzt keinen bestehenden Changelog-Abschnitt Version ${minorVersion}.`);
+  }
+  if (new RegExp(`Hotfix v${version.replaceAll(".", "\\.")}(?=[:;,.)!?\\s]|$)`).test(source)) {
+    throw new Error(`Der Changelog enthält Hotfix v${version} bereits.`);
+  }
+
+  const sectionStart = header.index;
+  const rest = source.slice(sectionStart + header[0].length);
+  const followingHeaderOffset = rest.search(/^## Version /m);
+  const sectionEnd = followingHeaderOffset === -1
+    ? source.length
+    : sectionStart + header[0].length + followingHeaderOffset;
+  const section = source.slice(sectionStart, sectionEnd);
+  const previousHotfixOffset = section.search(/^- \*\*Hotfix v\d+\.\d+\.\d+:/m);
+  const firstSubheadingOffset = section.search(/^### /m);
+  const relativeInsert = previousHotfixOffset >= 0
+    ? previousHotfixOffset
+    : firstSubheadingOffset >= 0
+      ? firstSubheadingOffset
+      : section.length;
+  const insertIndex = sectionStart + relativeInsert;
+  const entry = `- **Hotfix v${version}:** ${correction}\n\n`;
+  const prefix = source.slice(0, insertIndex).replace(/\s*$/, "\n\n");
+  const suffix = source.slice(insertIndex).replace(/^\s*/, "");
+  return `${prefix}${entry}${suffix}`.replace(/\n{4,}/g, "\n\n\n").trimEnd() + "\n";
+}
+
 function releaseBlock({ version, date, title }, heading = "## Aktueller Release") {
   return `${heading}
 
@@ -438,13 +476,33 @@ function updateReadme(source, release) {
 }
 
 function technicalChangesMarkdown(commits) {
-  return commits
+  const entries = commits
     .slice(0, 50)
     .map(({ sha, subject }) => `- ${subject} ([${sha.slice(0, 7)}](https://github.com/TimoFrank/mitmachen/commit/${sha}))`)
     .join("\n");
+  return entries || "- Keine zusätzlichen Commits seit dem vorherigen Produkt-Release.";
 }
 
-function notesMarkdown({ version, tag, title, summary, changes, commits, baseRef }) {
+function carryoversMarkdown(carryovers) {
+  if (!carryovers.length) return "";
+  return `
+## Mitgeführte Hotfixes
+
+${carryovers.map(({ version, correction }) => `- **Hotfix v${version}:** ${correction}`).join("\n")}
+`;
+}
+
+function notesMarkdown({
+  version,
+  tag,
+  title,
+  summary,
+  changes,
+  notesChanges = changes,
+  commits,
+  baseRef,
+  carryovers = []
+}) {
   return `# ${title}
 
 ${releaseIntroduction}
@@ -455,7 +513,51 @@ ${summary}
 
 ## Neue und verbesserte Funktionen
 
-${changesMarkdown(changes)}
+${changesMarkdown(notesChanges)}
+${carryoversMarkdown(carryovers)}
+
+## Technische Änderungen
+
+${technicalChangesMarkdown(commits)}
+
+## Prüfungen
+
+- Zentrale Version, Release-Unterlagen, Repository- und Browser-Verträge werden auf dem exakten Release-Commit geprüft.
+- Der GitHub Release wird erst nach verifiziertem signiertem Tag, geprüftem Pages-Deployment und erfolgreicher Kontrolle aller drei Pflichtartefakte veröffentlicht.
+
+## Bekannte Einschränkungen
+
+- Version ${version} ist ein Release Candidate vor dem gesondert freizugebenden gematik-Zielbetrieb.
+- Die öffentliche Pages-Demo arbeitet anonym mit synthetischen Daten; sie ist weder baugleich mit dem privaten GKE-Betrieb noch mit dem OIDC-Target.
+
+## Links
+
+- Öffentliche Demo: https://timofrank.github.io/mitmachen/
+- Vollständiger Vergleich: https://github.com/TimoFrank/mitmachen/compare/${baseRef}...${tag}
+- Changelog: https://github.com/TimoFrank/mitmachen/blob/${tag}/CHANGELOG.md
+- Interner PoC: Auslieferung über den vereinbarten Target-Kanal
+- Technischer Durchstich: https://github.com/TimoFrank/mitmachen/blob/main/dokumentation/betrieb-und-deployment/POC_GEMATIK_DURCHSTICH.md
+`;
+}
+
+function hotfixNotesMarkdown({ version, tag, releaseTitle: publicTitle, details, commits, baseRef }) {
+  return `# ${publicTitle}
+
+## Anlass
+
+${details.reason}
+
+## Korrektur
+
+${details.correction}
+
+## Risiko
+
+${details.risk}
+
+## Prüfung
+
+${details.verification}
 
 ## Technische Änderungen
 
@@ -466,8 +568,6 @@ ${technicalChangesMarkdown(commits)}
 - Öffentliche Demo: https://timofrank.github.io/mitmachen/
 - Vollständiger Vergleich: https://github.com/TimoFrank/mitmachen/compare/${baseRef}...${tag}
 - Changelog: https://github.com/TimoFrank/mitmachen/blob/${tag}/CHANGELOG.md
-- Interner PoC: Auslieferung über den vereinbarten Target-Kanal
-- Technischer Durchstich: https://github.com/TimoFrank/mitmachen/blob/main/dokumentation/betrieb-und-deployment/POC_GEMATIK_DURCHSTICH.md
 `;
 }
 
@@ -486,11 +586,8 @@ function argumentValue(name) {
   const inline = process.argv.find((argument) => argument.startsWith(prefix));
   if (inline) return inline.slice(prefix.length);
   const index = process.argv.indexOf(`--${name}`);
-  return index >= 0 ? process.argv[index + 1] || "" : "";
-}
-
-function versionCount(versions, target) {
-  return versions.filter((version) => version === target).length;
+  const following = index >= 0 ? process.argv[index + 1] || "" : "";
+  return following.startsWith("--") ? "" : following;
 }
 
 function notesPathFor(version) {
@@ -503,6 +600,203 @@ function notesTitle(source, version) {
   return title;
 }
 
+function inputValue(argumentName, environmentName) {
+  return (argumentValue(argumentName) || process.env[environmentName] || "").trim();
+}
+
+function requestedReleaseType(config) {
+  const explicit = inputValue("release-type", "RELEASE_TYPE");
+  const bump = inputValue("bump", "RELEASE_BUMP");
+  if (explicit && !["weekly", "hotfix"].includes(explicit)) {
+    throw new Error(`Unbekannter Release-Anlass: ${explicit}`);
+  }
+  if (bump && !["minor", "patch"].includes(bump)) {
+    throw new Error(`Unbekannter Versionssprung: ${bump}`);
+  }
+  const fromBump = bump === "patch" ? "hotfix" : bump === "minor" ? "weekly" : "";
+  if (explicit && fromBump && explicit !== fromBump) {
+    throw new Error(`Release-Anlass ${explicit} widerspricht dem Versionssprung ${bump}.`);
+  }
+  const releaseType = explicit || fromBump || "weekly";
+  const expectedBump = config.policy.cadence[releaseType].bump;
+  if (bump && bump !== expectedBump) {
+    throw new Error(`Der Release-Anlass ${releaseType} benötigt den Versionssprung ${expectedBump}.`);
+  }
+  return releaseType;
+}
+
+function normalizedHotfixDetails() {
+  const details = {
+    reason: inputValue("hotfix-reason", "HOTFIX_REASON"),
+    correction: inputValue("hotfix-correction", "HOTFIX_CORRECTION"),
+    risk: inputValue("hotfix-risk", "HOTFIX_RISK"),
+    verification: inputValue("hotfix-verification", "HOTFIX_VERIFICATION")
+  };
+  const missing = Object.entries(details)
+    .filter(([, value]) => !value)
+    .map(([key]) => key);
+  if (missing.length) {
+    throw new Error(`Ein Hotfix benötigt Anlass, Korrektur, Risiko und Prüfung (fehlend: ${missing.join(", ")}).`);
+  }
+  for (const [key, value] of Object.entries(details)) {
+    details[key] = value.replace(/\s+/g, " ").trim();
+  }
+  return details;
+}
+
+function notesSection(source, heading) {
+  const escaped = heading.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  const header = new RegExp(`^## ${escaped}\\s*$`, "m").exec(source);
+  if (!header) return "";
+  const contentStart = header.index + header[0].length;
+  const remaining = source.slice(contentStart).replace(/^\r?\n+/, "");
+  const nextHeader = remaining.search(/^## /m);
+  return (nextHeader === -1 ? remaining : remaining.slice(0, nextHeader)).trim();
+}
+
+function hotfixDetailsFromNotes(source, version) {
+  const details = {
+    reason: notesSection(source, "Anlass"),
+    correction: notesSection(source, "Korrektur"),
+    risk: notesSection(source, "Risiko"),
+    verification: notesSection(source, "Prüfung")
+  };
+  if (Object.values(details).some((value) => !value)) {
+    throw new Error(`Die Hotfix-Notes für ${version} benötigen Anlass, Korrektur, Risiko und Prüfung.`);
+  }
+  return details;
+}
+
+function inferTransitionType(fromVersion, toVersion) {
+  const from = parseProductVersion(fromVersion);
+  const to = parseProductVersion(toVersion);
+  if (to.major === from.major && to.minor === from.minor + 1 && to.patch === 0) return "weekly";
+  if (to.major === from.major && to.minor === from.minor && to.patch === from.patch + 1) return "hotfix";
+  throw new Error(`Der Versionsübergang ${fromVersion} -> ${toVersion} ist weder Weekly noch Hotfix.`);
+}
+
+function projectionSources(version, ref = "") {
+  const notesPath = notesPathFor(version);
+  if (!ref) {
+    return {
+      readme: readText(readmePath),
+      changelog: readText(changelogPath),
+      appHistory: readText(appPath),
+      releaseNotesExists: existsSync(notesPath),
+      notes: existsSync(notesPath) ? readText(notesPath) : ""
+    };
+  }
+  const releaseNotesExists = gitSucceeds(["cat-file", "-e", `${ref}:${notesPath}`]);
+  return {
+    readme: readTextAt(ref, readmePath),
+    changelog: readTextAt(ref, changelogPath),
+    appHistory: readTextAt(ref, appPath),
+    releaseNotesExists,
+    notes: releaseNotesExists ? readTextAt(ref, notesPath) : ""
+  };
+}
+
+function assertProductProjection(version, { ref = "" } = {}) {
+  const sources = projectionSources(version, ref);
+  const failures = validateProductVersionProjection({
+    productVersion: version,
+    readme: sources.readme,
+    changelog: sources.changelog,
+    appHistory: sources.appHistory,
+    releaseNotesExists: sources.releaseNotesExists
+  });
+  const exactReleaseLink = `https://github.com/TimoFrank/mitmachen/releases/tag/v${version}`;
+  if (sources.readme.split(exactReleaseLink).length - 1 !== 1) {
+    failures.push(`${readmePath}: v${version} muss genau einmal als aktueller Release verlinkt sein.`);
+  }
+  if (failures.length) {
+    throw new Error(`Unvollständige Produktversionsprojektion für ${version}:\n- ${failures.join("\n- ")}`);
+  }
+  return sources;
+}
+
+function assertNoFutureProjection(
+  productVersion,
+  appVersionList,
+  changelogVersionList,
+  changelogSource,
+  noteVersionList,
+  readmeSource,
+  reachableTags
+) {
+  const current = parseProductVersion(productVersion);
+  const weeklyVersion = `${current.major}.${current.minor}.0`;
+  const readmeVersionList = [
+    ...readmeSource.matchAll(/\/releases\/tag\/v(\d+\.\d+\.\d+)/g)
+  ].map((match) => match[1]);
+  const hotfixVersionList = [
+    ...changelogSource.matchAll(/Hotfix v(\d+\.\d+\.\d+)/g)
+  ].map((match) => match[1]);
+  const futureEntries = [
+    ...appVersionList.filter((version) => compareProductVersions(version, weeklyVersion) > 0).map((version) => `App ${version}`),
+    ...changelogVersionList.filter((version) => compareProductVersions(version, weeklyVersion) > 0).map((version) => `Changelog ${version}`),
+    ...hotfixVersionList.filter((version) => compareProductVersions(version, productVersion) > 0).map((version) => `Changelog-Hotfix ${version}`),
+    ...noteVersionList.filter((version) => compareProductVersions(version, productVersion) > 0).map((version) => `Notes ${version}`),
+    ...readmeVersionList.filter((version) => compareProductVersions(version, productVersion) > 0).map((version) => `README ${version}`),
+    ...reachableTags
+      .filter((tag) => /^v\d+\.\d+\.\d+$/.test(tag))
+      .filter((tag) => compareProductVersions(tag.slice(1), productVersion) > 0)
+      .map((tag) => `Tag ${tag}`)
+  ];
+  if (futureEntries.length) {
+    throw new Error(`Höhere Version als config/release.json.productVersion gefunden: ${futureEntries.join(", ")}.`);
+  }
+}
+
+function assertNoForbiddenHotfixProjection(config, appVersionList, changelogVersionList) {
+  const forbidden = [
+    ...appVersionList
+      .filter((version) => parseProductVersion(version).patch > 0)
+      .filter((version) => compareProductVersions(version, config.policy.effectiveFromVersion) >= 0)
+      .map((version) => `In-App ${version}`),
+    ...changelogVersionList
+      .filter((version) => parseProductVersion(version).patch > 0)
+      .filter((version) => compareProductVersions(version, config.policy.effectiveFromVersion) >= 0)
+      .map((version) => `Changelog-Abschnitt ${version}`)
+  ];
+  if (forbidden.length) {
+    throw new Error(`Unzulässige Hotfix-Projektionen gefunden: ${forbidden.join(", ")}.`);
+  }
+}
+
+function releaseProjectionIsDirty(version) {
+  return Boolean(gitOutput([
+    "status",
+    "--porcelain",
+    "--",
+    releaseConfigPath,
+    readmePath,
+    changelogPath,
+    appPath,
+    notesPathFor(version)
+  ]));
+}
+
+function hotfixCarryovers(currentVersion) {
+  const current = parseProductVersion(currentVersion);
+  if (current.patch === 0) return [];
+  const carryovers = [];
+  for (let patch = 1; patch <= current.patch; patch += 1) {
+    const version = `${current.major}.${current.minor}.${patch}`;
+    const path = notesPathFor(version);
+    if (!existsSync(path)) {
+      throw new Error(`Hotfix-Carry-forward ist unvollständig: ${path} fehlt.`);
+    }
+    const details = hotfixDetailsFromNotes(readText(path), version);
+    carryovers.push({ version, correction: details.correction });
+  }
+  return carryovers;
+}
+
+function releaseConfigWithVersion(config, version) {
+  return `${JSON.stringify({ ...config, productVersion: version }, null, 2)}\n`;
+}
+
 function verifyBaseRef(ref) {
   if (!gitSucceeds(["cat-file", "-e", `${ref}^{commit}`])) {
     throw new Error(`Release-Basis ${ref} ist im aktuellen Checkout nicht vorhanden.`);
@@ -512,11 +806,36 @@ function verifyBaseRef(ref) {
   }
 }
 
+function assertNotesContract(notes, releaseType, version) {
+  notesTitle(notes, version);
+  if (releaseType === "weekly") {
+    for (const heading of [
+      `Das steckt in Version ${version}`,
+      "Neue und verbesserte Funktionen",
+      "Technische Änderungen",
+      "Prüfungen",
+      "Bekannte Einschränkungen"
+    ]) {
+      if (!notesSection(notes, heading)) {
+        throw new Error(`Die Weekly-Notes für ${version} benötigen den ausgefüllten Abschnitt ${heading}.`);
+      }
+    }
+    return;
+  }
+  hotfixDetailsFromNotes(notes, version);
+  if (!notesSection(notes, "Technische Änderungen")) {
+    throw new Error(`Die Hotfix-Notes für ${version} benötigen ausgefüllte technische Änderungen.`);
+  }
+}
+
 function releasePlan() {
-  const config = JSON.parse(readText(releaseConfigPath));
-  if (![1, 2].includes(config.schemaVersion)) throw new Error("config/release.json verwendet eine unbekannte schemaVersion.");
-  if (!parseVersion(config.baselineVersion)) throw new Error("config/release.json enthält keine gültige baselineVersion.");
-  if (!config.baselineRef) throw new Error("config/release.json enthält keine baselineRef.");
+  const config = loadReleaseConfig();
+  const releaseType = requestedReleaseType(config);
+  const productVersion = config.productVersion;
+  const currentParsed = parseProductVersion(productVersion);
+  if (currentParsed.major >= 1) {
+    throw new Error("Automatische Weekly-/Hotfix-Releases ab 1.0.0 sind ohne Zielbetriebsfreigabe gesperrt.");
+  }
 
   const appSource = readText(appPath);
   const changelogSource = readText(changelogPath);
@@ -526,12 +845,33 @@ function releasePlan() {
   assertUniqueVersions("Die In-App-Historie", appVersionList);
   assertUniqueVersions("Der Changelog", changelogVersionList);
   assertUniqueVersions("Die Release Notes", noteVersionList);
+  assertNoForbiddenHotfixProjection(config, appVersionList, changelogVersionList);
+  const currentSources = assertProductProjection(productVersion);
+  if (compareProductVersions(productVersion, config.policy.effectiveFromVersion) >= 0) {
+    assertNotesContract(
+      currentSources.notes,
+      currentParsed.patch === 0 ? "weekly" : "hotfix",
+      productVersion
+    );
+  }
 
   const reachableTags = gitTags({ reachableOnly: true });
+  assertNoFutureProjection(
+    productVersion,
+    appVersionList,
+    changelogVersionList,
+    changelogSource,
+    noteVersionList,
+    readText(readmePath),
+    reachableTags
+  );
   const releasedTagWasProvided = Object.hasOwn(process.env, "RELEASED_TAG");
+  if (!releasedTagWasProvided && !dryRun) {
+    throw new Error("RELEASED_TAG muss für einen schreibenden Release-Lauf explizit gesetzt sein; Git-Tags allein belegen keine GitHub-Veröffentlichung.");
+  }
   const releasedTag = releasedTagWasProvided
     ? String(process.env.RELEASED_TAG || "").trim()
-    : latestTagName(reachableTags);
+    : latestTagName(reachableTags.filter((tag) => /^v\d+\.\d+\.\d+$/.test(tag)));
   if (releasedTag && !/^v\d+\.\d+\.\d+$/.test(releasedTag)) {
     throw new Error(`RELEASED_TAG ist kein Produkt-Release-Tag: ${releasedTag}`);
   }
@@ -539,166 +879,268 @@ function releasePlan() {
     throw new Error(`Der veröffentlichte Release-Tag ${releasedTag} ist von HEAD aus nicht erreichbar.`);
   }
 
-  const baselineVersion = parseVersion(config.baselineVersion);
-  const releasedVersion = parseVersion(releasedTag);
-  const currentVersion = highestVersion([config.baselineVersion, releasedTag]);
-  if (!currentVersion) throw new Error("Die aktuelle Produktversion konnte nicht bestimmt werden.");
-
-  const releasedTagIsCurrent = releasedVersion && compareVersions(releasedVersion, baselineVersion) >= 0;
-  const baseRef = releasedTagIsCurrent ? releasedTag : config.baselineRef;
+  const releasedVersion = releasedTag ? releasedTag.slice(1) : config.baselineVersion;
+  const baseRef = releasedTag || config.baselineRef;
   verifyBaseRef(baseRef);
-
-  const currentVersionText = formatVersion(currentVersion);
-  const planningHead = git(["rev-parse", "HEAD"]);
-  const allProjectedVersions = new Set([...appVersionList, ...changelogVersionList, ...noteVersionList]);
-  const futureVersions = [...allProjectedVersions]
-    .filter((version) => compareVersions(parseVersion(version), currentVersion) > 0)
-    .sort((left, right) => compareVersions(parseVersion(left), parseVersion(right)));
-
-  const completePendingVersions = [];
-  for (const version of futureVersions) {
-    const state = {
-      app: versionCount(appVersionList, version),
-      changelog: versionCount(changelogVersionList, version),
-      notes: versionCount(noteVersionList, version)
-    };
-    if (state.app === 1 && state.changelog === 1 && state.notes === 1) {
-      completePendingVersions.push(version);
-      continue;
+  if (
+    releasedTag
+    && compareProductVersions(releasedVersion, config.policy.effectiveFromVersion) >= 0
+  ) {
+    let releasedConfig;
+    try {
+      releasedConfig = JSON.parse(readTextAt(releasedTag, releaseConfigPath));
+      validateReleaseConfig(releasedConfig);
+    } catch (error) {
+      throw new Error(`Der veröffentlichte Tag ${releasedTag} enthält keine lesbare zentrale Release-Konfiguration (${error.message}).`);
     }
-    throw new Error(
-      `Unvollständiger Release-Stand für ${version}: App=${state.app}, Changelog=${state.changelog}, Notes=${state.notes}.`
+    if (releasedConfig.productVersion !== releasedVersion) {
+      throw new Error(
+        `Der veröffentlichte Tag ${releasedTag} enthält productVersion ${releasedConfig.productVersion || "unbekannt"} statt ${releasedVersion}.`
+      );
+    }
+    const releasedSources = assertProductProjection(releasedVersion, { ref: releasedTag });
+    const releasedParsed = parseProductVersion(releasedVersion);
+    assertNotesContract(
+      releasedSources.notes,
+      releasedParsed.patch === 0 ? "weekly" : "hotfix",
+      releasedVersion
     );
   }
-  if (completePendingVersions.length > 1) {
-    throw new Error(`Mehrere unveröffentlichte Releases gefunden: ${completePendingVersions.join(", ")}`);
+  if (!releasedTag && compareProductVersions(productVersion, config.baselineVersion) !== 0) {
+    throw new Error(`Ohne veröffentlichten Produkt-Tag muss productVersion der Baseline ${config.baselineVersion} entsprechen.`);
+  }
+  const releasedComparison = compareProductVersions(releasedVersion, productVersion);
+  if (releasedComparison > 0) {
+    throw new Error(`Die veröffentlichte Version ${releasedVersion} liegt über productVersion ${productVersion}.`);
   }
 
-  if (completePendingVersions.length === 1) {
-    const version = completePendingVersions[0];
-    const tag = `v${version}`;
-    const notesPath = notesPathFor(version);
-    const notes = readText(notesPath);
-    const targetSha = git(["log", "-1", "--format=%H", "--", notesPath]);
-    if (!targetSha && !dryRun) throw new Error(`Der Quell-Commit für ${notesPath} konnte nicht bestimmt werden.`);
-    const existingTag = gitTags().includes(tag);
-    if (existingTag && git(["rev-list", "-n", "1", tag]) !== targetSha) {
+  const planningHead = git(["rev-parse", "HEAD"]);
+  if (releasedComparison < 0) {
+    const pendingType = inferTransitionType(releasedVersion, productVersion);
+    if (pendingType !== releaseType) {
+      throw new Error(`Der ausstehende ${pendingType}-Release ${productVersion} kann nicht als ${releaseType} fortgesetzt werden.`);
+    }
+    const metadata = releaseMetadata(productVersion, { policy: config.policy });
+    if (metadata.phase !== "release-candidate") {
+      throw new Error(`Der ausstehende Release ${productVersion} ist kein zulässiger automatischer Release Candidate.`);
+    }
+
+    const dirtyProjection = releaseProjectionIsDirty(productVersion);
+    if (dirtyProjection && !dryRun) {
+      throw new Error(`Der ausstehende Release ${productVersion} ist noch nicht committed und kann nur im Dry-Run geprüft werden.`);
+    }
+    const committedTarget = gitOutput(["log", "-1", "--format=%H", "--", releaseConfigPath]);
+    if (!dirtyProjection && !committedTarget) {
+      throw new Error(`Der Quell-Commit für ${releaseConfigPath} konnte nicht bestimmt werden.`);
+    }
+    const targetSha = dirtyProjection ? planningHead : committedTarget;
+    if (!gitSucceeds(["merge-base", "--is-ancestor", baseRef, targetSha])) {
+      throw new Error(`Der vorbereitete Release-Commit ${targetSha} liegt nicht nach der veröffentlichten Basis ${baseRef}.`);
+    }
+    let sources = assertProductProjection(productVersion);
+    if (!dirtyProjection) {
+      const targetConfig = JSON.parse(readTextAt(targetSha, releaseConfigPath));
+      if (targetConfig.productVersion !== productVersion) {
+        throw new Error(`${targetSha} enthält productVersion ${targetConfig.productVersion} statt ${productVersion}.`);
+      }
+      sources = assertProductProjection(productVersion, { ref: targetSha });
+    }
+    assertNotesContract(sources.notes, pendingType, productVersion);
+
+    const tag = formatTechnicalTag(productVersion);
+    if (gitTags().includes(tag) && git(["rev-list", "-n", "1", tag]) !== targetSha) {
       throw new Error(`${tag} zeigt nicht auf den vorbereiteten Release-Commit ${targetSha}.`);
     }
-    const title = notesTitle(notes, version);
+    const theme = pendingType === "weekly" ? notesTitle(sources.notes, productVersion) : "";
+    const publicTitle = releaseTitle(productVersion, pendingType, { policy: config.policy, theme });
     return {
       shouldRelease: true,
       mode: "resume",
       reason: "pending_release",
-      version,
+      releaseType: pendingType,
+      version: productVersion,
       tag,
-      title,
-      releaseTitle: `Versorgungs-Kompass ${tag}: ${title}`,
-      notesPath,
-      notes,
+      title: pendingType === "weekly" ? theme : hotfixDetailsFromNotes(sources.notes, productVersion).correction,
+      releaseTitle: publicTitle,
+      notesPath: notesPathFor(productVersion),
+      notes: sources.notes,
       baseRef,
-      targetSha: targetSha || planningHead,
+      targetSha,
       planningHead,
-      currentVersion: currentVersionText
+      currentVersion: productVersion,
+      metadata
     };
   }
 
-  const commits = meaningfulCommits(commitsSince(baseRef));
-  if (!commits.length) {
+  const allCommits = commitsSince(baseRef);
+  const hasChanges = !gitSucceeds(["diff", "--quiet", `${baseRef}..HEAD`, "--"]);
+  if (!hasChanges) {
     return {
       shouldRelease: false,
-      mode: "skip",
+      mode: "noop",
       reason: "no_changes",
-      currentVersion: currentVersionText,
+      releaseType,
+      currentVersion: productVersion,
       baseRef,
       planningHead
     };
   }
+  const relevantCommits = meaningfulCommits(allCommits);
+  const commits = relevantCommits.length ? relevantCommits : allCommits;
 
-  const bump = argumentValue("bump") || process.env.RELEASE_BUMP || config.defaultBump;
-  const version = formatVersion(nextVersion(currentVersion, bump));
-  const tag = `v${version}`;
-  if (allProjectedVersions.has(version)) {
-    throw new Error(`Die nächste Version ${version} ist bereits in einem Release-Dokument vorhanden.`);
+  const version = nextProductVersion(productVersion, releaseType, {
+    hasChanges: true,
+    policy: config.policy
+  });
+  const nextParsed = parseProductVersion(version);
+  if (nextParsed.major >= 1 || compareProductVersions(version, config.policy.stable.firstVersion) >= 0) {
+    throw new Error(`Der automatische Release ${version} würde die gesperrte Stable-Grenze erreichen.`);
+  }
+  const metadata = releaseMetadata(version, { policy: config.policy });
+  if (metadata.phase !== "release-candidate") {
+    throw new Error(`Der automatische Release ${version} liegt außerhalb der Release-Candidate-Phase.`);
+  }
+  const tag = formatTechnicalTag(version);
+  if (noteVersionList.includes(version)) {
+    throw new Error(`Die nächste Version ${version} ist bereits in den Release Notes vorhanden.`);
   }
   if (gitTags().includes(tag)) {
     throw new Error(`Der Tag ${tag} existiert bereits, ist aber kein veröffentlichter Release der aktuellen Historie.`);
   }
 
-  const changes = releaseChanges(commits);
-  const { title, summary } = uniqueReleaseTheme(releaseTheme(commits), appSource, version);
-  const release = {
-    version,
-    tag,
-    date: releaseDateLabel(),
-    title,
-    summary,
-    changes,
-    commits,
-    baseRef
-  };
+  const date = releaseDateLabel();
+  const themeInput = inputValue("theme", "THEME").replace(/\s+/g, " ");
+  if (releaseType === "hotfix" && themeInput) {
+    throw new Error("Ein Hotfix erhält kein eigenes Leitthema.");
+  }
+  const carryovers = releaseType === "weekly" ? hotfixCarryovers(productVersion) : [];
+  const carryoverChanges = carryovers.map(({ version: hotfixVersion, correction }) => ({
+    group: `hotfix-${hotfixVersion}`,
+    title: `Hotfix v${hotfixVersion}`,
+    description: correction
+  }));
+  const themeCommits = [
+    ...commits,
+    ...carryovers.map(({ correction }) => ({ sha: "", subject: correction }))
+  ];
+
+  let release;
+  let publicTitle;
+  let notes;
+  let projectedAppSource = appSource;
+  let projectedChangelogSource;
+  if (releaseType === "weekly") {
+    const automaticTheme = uniqueReleaseTheme(releaseTheme(themeCommits), appSource, version);
+    const title = themeInput || automaticTheme.title;
+    const newChanges = releaseChanges(commits);
+    release = {
+      version,
+      tag,
+      date,
+      title,
+      summary: automaticTheme.summary,
+      changes: [...carryoverChanges, ...newChanges],
+      notesChanges: newChanges,
+      commits,
+      baseRef,
+      carryovers
+    };
+    publicTitle = releaseTitle(version, releaseType, { policy: config.policy, theme: title });
+    notes = notesMarkdown(release);
+    projectedAppSource = updateAppHistory(appSource, release);
+    projectedChangelogSource = updateChangelog(changelogSource, release);
+  } else {
+    const details = normalizedHotfixDetails();
+    publicTitle = releaseTitle(version, releaseType, { policy: config.policy });
+    release = {
+      version,
+      tag,
+      date,
+      title: details.correction,
+      details,
+      commits,
+      baseRef
+    };
+    notes = hotfixNotesMarkdown({ ...release, releaseTitle: publicTitle });
+    projectedChangelogSource = updateChangelogWithHotfix(changelogSource, {
+      version,
+      correction: details.correction
+    });
+  }
+  assertNotesContract(notes, releaseType, version);
+
   return {
     shouldRelease: true,
     mode: "prepare",
     reason: "changes_detected",
+    releaseType,
     version,
     tag,
-    title,
-    releaseTitle: `Versorgungs-Kompass ${tag}: ${title}`,
+    title: release.title,
+    releaseTitle: publicTitle,
     notesPath: notesPathFor(version),
-    notes: notesMarkdown(release),
+    notes,
     baseRef,
     targetSha: "",
     planningHead,
-    currentVersion: currentVersionText,
+    currentVersion: productVersion,
+    metadata,
     release,
-    appSource,
-    changelogSource
+    projectedConfigSource: releaseConfigWithVersion(config, version),
+    projectedAppSource,
+    projectedChangelogSource,
+    projectedReadmeSource: updateReadme(readText(readmePath), release)
+  };
+}
+
+function githubOutputs(plan) {
+  const common = {
+    should_release: plan.shouldRelease ? "true" : "false",
+    mode: plan.mode,
+    reason: plan.reason,
+    release_type: plan.releaseType,
+    current_version: plan.currentVersion,
+    base_ref: plan.baseRef,
+    planning_head: plan.planningHead
+  };
+  if (!plan.shouldRelease) return common;
+  return {
+    ...common,
+    tag: plan.tag,
+    title: plan.releaseTitle,
+    version: plan.version,
+    notes_path: plan.notesPath,
+    target_sha: plan.targetSha,
+    github_prerelease: String(plan.metadata.githubPrerelease),
+    github_latest: String(plan.metadata.githubLatest)
   };
 }
 
 const plan = releasePlan();
 
 if (dryRun) {
+  writeGithubOutput(githubOutputs(plan));
   if (!plan.shouldRelease) {
     console.log(`Kein Release erforderlich (${plan.reason}); aktuell ist ${plan.currentVersion}.`);
   } else {
     console.log(plan.notes);
-    console.log(`${plan.mode === "resume" ? "Fortsetzen" : "Vorschau"} für ${plan.tag}: ${plan.title}`);
+    console.log(`${plan.mode === "resume" ? "Fortsetzen" : "Vorschau"} für ${plan.tag}: ${plan.releaseTitle}`);
   }
 } else if (!plan.shouldRelease) {
-  writeGithubOutput({
-    should_release: "false",
-    mode: plan.mode,
-    reason: plan.reason,
-    current_version: plan.currentVersion,
-    base_ref: plan.baseRef,
-    planning_head: plan.planningHead
-  });
+  writeGithubOutput(githubOutputs(plan));
   console.log(`Kein Release erforderlich (${plan.reason}); aktuell ist ${plan.currentVersion}.`);
 } else {
   if (plan.mode === "prepare") {
-    writeText(appPath, updateAppHistory(plan.appSource, plan.release));
-    writeText(changelogPath, updateChangelog(plan.changelogSource, plan.release));
-    writeText(readmePath, updateReadme(readText(readmePath), plan.release));
+    writeText(releaseConfigPath, plan.projectedConfigSource);
+    writeText(appPath, plan.projectedAppSource);
+    writeText(changelogPath, plan.projectedChangelogSource);
+    writeText(readmePath, plan.projectedReadmeSource);
     mkdirSync(releaseNotesDirectory, { recursive: true });
     writeText(plan.notesPath, plan.notes);
+    assertProductProjection(plan.version);
   }
   mkdirSync("dist/release", { recursive: true });
   writeText(generatedNotesPath, plan.notes);
-
-  writeGithubOutput({
-    should_release: "true",
-    mode: plan.mode,
-    reason: plan.reason,
-    tag: plan.tag,
-    title: plan.releaseTitle,
-    version: plan.version,
-    notes_path: plan.notesPath,
-    base_ref: plan.baseRef,
-    target_sha: plan.targetSha,
-    planning_head: plan.planningHead
-  });
-
-  console.log(`${plan.mode === "resume" ? "Fortsetzbar" : "Vorbereitet"}: ${plan.tag} – ${plan.title}`);
+  writeGithubOutput(githubOutputs(plan));
+  console.log(`${plan.mode === "resume" ? "Fortsetzbar" : "Vorbereitet"}: ${plan.tag} – ${plan.releaseTitle}`);
 }

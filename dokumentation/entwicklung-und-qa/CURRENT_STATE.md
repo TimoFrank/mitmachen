@@ -35,11 +35,28 @@ Stand: 2026-08-04.
   Neue gematik-Releases bleiben auf einem unveränderlichen signierten Quelltag,
   exaktem Commit sowie nachgewiesenen API- und Frontend-Digests. Der aktuelle
   Legacy-RC.5 ist nur annotiert und bleibt unverändert unsigniert.
-- Der alte geplante Freitagslauf ist fail-closed gesperrt. Die Policy und ihre
-  Tests sind definiert; Workflow, Tag-Signatur, Prerelease-Status und
-  Hotfix-Projektion werden im folgenden Umsetzungsschritt angepasst. Bis dahin
-  sind weder geplante noch manuelle Produkt-Releases nach der alten Logik
-  freigegeben.
+- Die Release-Automatisierung trennt Wochenrelease und manuellen Hotfix, plant
+  standardmäßig ohne Schreibzugriff, überspringt unveränderte Wochen und prüft
+  Version, Dokumentprojektion, signierten Tag, Prerelease-Status sowie die drei
+  öffentlichen Pflichtartefakte fail-closed. Ein Release Candidate wird erst
+  nach verifiziertem Tag und geprüftem Pages-Deployment veröffentlicht; private
+  GKE- und Target-Deployments werden dabei nicht ausgelöst.
+- Der Betrieb bleibt bis zur Signaturabnahme gesperrt. Der geplante
+  Freitagslauf startet nur mit `WEEKLY_RELEASE_SCHEDULE_ENABLED=true` und
+  `PRODUCT_RELEASE_PUBLISH_ENABLED=true`; manuelle Läufe bleiben ohne explizite
+  Publish-Option schreibfreie Planläufe. Das Environment `release-signing` mit
+  privatem dediziertem OpenPGP-Signiersubkey, Passphrase und eng begrenztem
+  read-only Governance-Token, die öffentlichen
+  Repository-Trust-Anchor-Variablen sowie das Tag-Ruleset werden erst im
+  abschließenden Signatur-/Dry-Run-Schritt provisioniert. Die
+  Release-Immutability ist bereits aktiv;
+  der derzeit noch nicht strikte `main`-Branchschutz und der noch nicht als
+  erforderlich konfigurierte Check `PoC-/Target-Readiness` verhindern bewusst
+  die Freigabe vor Schritt 6.
+- Die Pages-Demo ist an den Produkt-Release-Trigger gebunden; gewöhnliche
+  `main`-Pushes deployen keinen beweglichen Zwischenstand mehr. Bis zur
+  Freigabe in Schritt 6 bleibt der zuletzt verifizierte Pages-Stand deshalb
+  bewusst unverändert.
 - Der freigegebene PoC-Datenstand wird separat aus der geschützten Anwendung übernommen. Während des Piloten ist die gematik-Kopie der gemeinsame bearbeitbare Bestand; eine automatische Synchronisation mit `mitmachen.timo-frank.de`, lokalen Varianten oder GitHub Pages existiert nicht.
 - Der RC wird in einem sauberen, separaten Checkout geprüft. Lokale uncommittete Dateien oder ein ZIP des Arbeitsordners sind kein Releaseartefakt.
 - Die private Hospitationsvariante wird mit `npm run start:local-hospitation` aus

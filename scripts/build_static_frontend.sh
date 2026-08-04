@@ -909,11 +909,20 @@ const files = walk(artifactRoot)
   .map((file) => ({ file, relative: path.relative(artifactRoot, file).split(path.sep).join("/") }))
   .sort((left, right) => left.relative < right.relative ? -1 : left.relative > right.relative ? 1 : 0);
 const hash = crypto.createHash("sha256");
+const lengthPrefix = (value) => {
+  const frame = Buffer.alloc(8);
+  frame.writeBigUInt64BE(BigInt(value));
+  return frame;
+};
+hash.update(Buffer.from("versorgungs-kompass-artifact-tree-v2\0", "utf8"));
+hash.update(lengthPrefix(files.length));
 for (const { file, relative } of files) {
-  hash.update(relative);
-  hash.update("\0");
-  hash.update(fs.readFileSync(file));
-  hash.update("\0");
+  const relativeBytes = Buffer.from(relative, "utf8");
+  const content = fs.readFileSync(file);
+  hash.update(lengthPrefix(relativeBytes.length));
+  hash.update(relativeBytes);
+  hash.update(lengthPrefix(content.length));
+  hash.update(content);
 }
 console.log(`sha256:${hash.digest("hex")}`);
 NODE

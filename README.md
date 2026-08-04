@@ -133,9 +133,10 @@ Arbeitsständen verändern einen getaggten Stand nicht.
 Wochenreleases werden freitags über
 [GitHub Releases](https://github.com/TimoFrank/mitmachen/releases)
 bereitgestellt, sofern seit dem letzten Stand Änderungen vorliegen. Hotfixes
-können unter der Woche als Patch folgen. Während der Umstellung ist der geplante
-Lauf gesperrt. Ablauf, Versionsregeln, Artefakte und
-Benachrichtigung beschreibt der
+können unter der Woche als Patch folgen. Die Automatisierung besitzt einen
+schreibfreien Planmodus und bleibt bis zur Signaturabnahme doppelt gesperrt:
+Weder der Freitagsplan noch die eigentliche Veröffentlichung sind derzeit
+freigegeben. Ablauf, Versionsregeln, Artefakte und Benachrichtigung beschreibt der
 [Produkt-Release-Prozess](dokumentation/betrieb-und-deployment/PRODUKT_RELEASE_PROZESS.md).
 
 Die [RC.5-Übergabenotiz](dokumentation/betrieb-und-deployment/UEBERGABE_RC5_SOFTWARE_FACTORY.md) ist der Einstieg für die Software Factory. Der technische Ablauf des PoC steht im [Deployment-Runbook](dokumentation/betrieb-und-deployment/DEPLOYMENT_GEMATIK_K8S.md). Ausführbare Artefakte sind unter [`deploy/`](deploy/README.md) beschrieben. Weitere Referenzen: [Security](SECURITY.md), [Dokumentationsindex](dokumentation/README.md) und [Mitwirken](CONTRIBUTING.md).
