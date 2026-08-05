@@ -193,7 +193,7 @@ test("scrubs the one-time action code before validation or remote work", () => {
   );
   const configValidationPosition = actionSource.indexOf("assertProductionConfig(config)");
   const actionRenderPosition = actionSource.indexOf(
-    "root.render(<PasswordActionApp config={config} actionHref={initialActionHref} />)"
+    "root.render(<PasswordActionApp config={config} takeActionHref={takeActionHref} />)"
   );
   assert.ok(scrubPosition >= 0, "Action-URL-Scrubbing fehlt.");
   assert.ok(
@@ -209,7 +209,7 @@ test("keeps the 48-hour invitation in the fragment until an explicit password su
   assert.match(invitationSource, /referrerPolicy:\s*"no-referrer"/u);
   const submitStart = actionSource.indexOf("async function resetPassword(password)");
   const redemption = actionSource.indexOf(
-    "await redeemPasswordInvitation(state.invitationToken)"
+    "await redeemPasswordInvitation(invitationToken)"
   );
   assert.ok(submitStart >= 0 && redemption > submitStart);
   assert.match(
@@ -219,23 +219,91 @@ test("keeps the 48-hour invitation in the fragment until an explicit password su
   );
 });
 
-test("retains a redeemed native action before its remote verification", () => {
+test("retains an invitation only in React state until password confirmation", () => {
   const submitStart = actionSource.indexOf("async function resetPassword(password)");
   const redemption = actionSource.indexOf(
-    "await redeemPasswordInvitation(state.invitationToken)",
+    "await redeemPasswordInvitation(invitationToken)",
     submitStart
   );
-  const persistAction = actionSource.indexOf("invitationToken: null", redemption);
+  const persistAction = actionSource.indexOf("action = parseActionUrl", redemption);
   const verification = actionSource.indexOf(
     "await verifyPasswordResetCode(auth, action.oobCode)",
     redemption
   );
+  const confirmation = actionSource.indexOf(
+    "await confirmPasswordReset(auth, action.oobCode, password)",
+    verification
+  );
+  const finalization = actionSource.indexOf(
+    "await finalizePasswordInvitation(invitationToken)",
+    confirmation
+  );
+  const releaseToken = actionSource.indexOf("invitationToken: null", finalization);
   assert.ok(
     submitStart >= 0
       && redemption > submitStart
       && persistAction > redemption
       && verification > persistAction,
     "Ein bereits erhaltener nativer Action-Code muss vor der Remote-Prüfung für einen Retry erhalten bleiben."
+  );
+  assert.doesNotMatch(
+    actionSource.slice(persistAction, confirmation),
+    /invitationToken:\s*null/u,
+    "Das Einladungstoken darf vor dem Passwort-Confirm nicht aus dem React-Speicher entfernt werden."
+  );
+  assert.ok(
+    confirmation > verification
+      && finalization > confirmation
+      && releaseToken > finalization,
+    "Nach dem Passwort-Confirm muss die Einladung finalisiert und anschließend freigegeben werden."
+  );
+  assert.doesNotMatch(actionSource, /localStorage|sessionStorage|document\.cookie/u);
+  assert.doesNotMatch(
+    actionSource,
+    /^const initialActionHref\s*=|^let initialActionHref\s*=/mu,
+    "Der vollständige Bearer-Link darf nicht in einer langlebigen Modulvariable verbleiben."
+  );
+  assert.match(
+    actionSource,
+    /let pendingActionHref = window\.location\.href[\s\S]*const takeActionHref = \(\) => \{[\s\S]*pendingActionHref = ""/u,
+    "Der einmalige Reader muss seine einzige vollständige URL-Kopie beim Lesen leeren."
+  );
+  assert.match(
+    actionSource,
+    /status: "success",\s*action: null,\s*email: "",\s*invitationToken: null/u,
+    "Nach bestätigtem Passwortsetzen müssen Token und OOB-Aktion aus dem React-State verschwinden."
+  );
+});
+
+test("handles completed invitations and temporary broker failures explicitly", () => {
+  assert.match(actionSource, /if \(redeemed\.completed\)[\s\S]*status: "completed"/u);
+  assert.match(
+    actionSource,
+    /isTemporaryPasswordActionError\(submitError\)[\s\S]*technische Störung[\s\S]*versuche es erneut/u
+  );
+  assert.match(
+    actionSource,
+    /action = parseActionUrl\(redeemed\.actionUrl, config\);[\s\S]*catch \{[\s\S]*throw new TemporaryPasswordInvitationError\(\)/u,
+    "Eine semantisch ungültige Broker-Action-URL ist ein temporärer Brokervertrag, kein Linkablauf."
+  );
+  assert.match(
+    actionSource,
+    /catch \(confirmError\)[\s\S]*await finalizePasswordInvitation\(invitationToken\)[\s\S]*if \(result\.finalized\)[\s\S]*status: "completed"[\s\S]*throw confirmError/u
+  );
+  assert.match(actionSource, /title="Das Passwort wurde bereits geändert\."/u);
+  assert.match(actionSource, /Melde dich mit deinem aktuellen\s+Passwort an/u);
+  assert.doesNotMatch(
+    actionSource.match(/else if \(state\.status === "completed"\)[\s\S]*?\n  \} else \{/u)?.[0] || "",
+    /Dein Passwort wurde gespeichert/u
+  );
+  assert.match(
+    actionSource,
+    /verifyPasswordResetCode\(auth, parsedAction\.oobCode\)[\s\S]*isTemporaryPasswordActionError\(error\)[\s\S]*status: temporary \? "temporary-error" : "error"/u,
+    "Auch die initiale Prüfung nativer Reset-Links muss Firebase-Störungen als temporär behandeln."
+  );
+  assert.match(
+    actionSource,
+    /async function retryInitialVerification\(\)[\s\S]*verifyPasswordResetCode\(auth, action\.oobCode\)[\s\S]*Erneut versuchen/u
   );
 });
 

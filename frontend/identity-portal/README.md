@@ -21,9 +21,10 @@ Anwendung noch Cloud-Ressourcen und enthält keine Deployment-Automation.
   privilegierten Broker nur für bestehende, verifizierte Passwort-only-Konten
 - persönliche Ersteinladung über ein 32-Byte-Token ausschließlich im
   URL-Fragment; keine Einlösung beim Laden oder durch normale Mail-Previews
-- exakt 48 Stunden ab SMTP-Annahme und atomar einmalig durch ein bedingtes
-  Delete im privaten Einladungs-Bucket; der native Reset-Code entsteht erst
-  beim bewussten Speichern des Passworts
+- exakt 48 Stunden ab SMTP-Annahme und atomar einmalig durch eine generationen-
+  und metagenerationengepinnte Zustandsmaschine im privaten
+  Einladungs-Bucket; der native Reset-Code entsteht erst beim bewussten
+  Speichern des Passworts
 - generische Broker- und UI-Rückmeldung unabhängig von der Kontoexistenz
 - lokal gebündelte, gepinnte npm-Artefakte; keine CDN-Runtime
 - exakter API-Key-Abgleich zwischen IAP-Link und lokaler Konfiguration
@@ -96,8 +97,8 @@ OAuth-Client-Secrets oder personenbezogenen Soll-Roster in diese Datei gelangen.
    separaten Broker-Service routen. Nur dieser Dienst besitzt die nötigen
    Identity-Platform-Rechte; er erhält keine Datenbank- oder Secret-Rechte.
    Im eigenen Einladungs-Bucket darf er ausschließlich anhand eines bekannten
-   `active/`-Objektnamens lesen und bedingt löschen, aber weder auflisten,
-   anlegen, ändern noch wiederherstellen.
+   `active/`-Objektnamens lesen, generationen- und metagenerationengepinnt
+   aktualisieren, aber weder auflisten, anlegen, löschen noch wiederherstellen.
 6. `versorgungs-kompass.de` als Auth-Domain verwenden und
    `https://versorgungs-kompass.de/__/auth/handler` im Google-OAuth-Client als
    primären Redirect hinterlegen.
@@ -120,10 +121,28 @@ Bei einer Ersteinladung entfernt das Portal das Fragment vor dem Rendern aus
 der sichtbaren Adresse und führt beim Laden keinen Brokeraufruf aus. Erst der
 Passwort-Submit sendet das Token gleichursprünglich und ohne Cookies oder
 Authorization. Der Broker prüft Ablauf, Projekt, UID, E-Mail und den exakten
-password-only-Nutzer, konsumiert das aktive Objekt generationgebunden und
-erzeugt danach einen frischen Identity-Platform-Reset-Code. So bleibt der
-Mail-Link technisch 48 Stunden nutzbar, obwohl die Laufzeit nativer
-Identity-Platform-OOB-Codes nicht konfigurierbar ist.
+password-only-Nutzer. Der unveränderliche Objektinhalt bleibt bestehen; die
+Custom Metadata durchläuft generationen- und metagenerationengepinnt
+`active` → `minting` → `issued` → `consumed` beziehungsweise `uncertain`.
+`issued` enthält den Provider-Action-Link nur tokengebunden mit AES-256-GCM
+verschlüsselt. Verliert der Browser die erste Antwort, liefert derselbe
+Einladungs-Token bei einem Retry exakt denselben Code und löst keinen zweiten
+Provider-Request aus.
+
+Der Provider-Action-Link darf einen anderen syntaktisch gültigen
+Provider-API-Key als den gepinnten Portal-API-Key enthalten. Der Broker setzt
+in der ausgegebenen URL ausschließlich den Portal-API-Key ein und prüft den
+exakten `oobCode` damit read-only auf die gebundene E-Mail und
+`requestType=PASSWORD_RESET`. Nach erfolgreichem Passwortsetzen ruft das
+Portal denselben `POST /api/auth/password-reset` mit
+`{invitationToken, finalize: true}` auf. Der Broker bestätigt das
+Passwort-Update per Readback und setzt `issued` per CAS auf `consumed`; das
+Objekt bleibt bis zum Bucket-Lifecycle erhalten. Nur definitive Fehler vor dem
+Provider-Request oder definitive Provider-4xx-Antworten dürfen auf `active`
+zurücksetzen. Ein unklarer Providerausgang wird `uncertain` und niemals
+automatisch erneut gemintet. So bleibt der Mail-Link technisch 48 Stunden
+nutzbar, obwohl die Laufzeit nativer Identity-Platform-OOB-Codes nicht
+konfigurierbar ist.
 
 Der Browser benötigt weiterhin den öffentlichen Identity-Platform-Web-API-Key
 für die Anmeldung. Soll die Passwort-only-Regel auch gegen direkte Aufrufe der

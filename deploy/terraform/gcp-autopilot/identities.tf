@@ -158,11 +158,11 @@ resource "google_project_iam_custom_role" "password_reset_broker" {
 resource "google_project_iam_custom_role" "password_invitation_broker_storage" {
   role_id     = "preGematikPasswordInvitationBroker"
   title       = "Pre-gematik password invitation broker storage"
-  description = "Read and atomically consume active password invitations only; no list, create, or update permission."
+  description = "Read and drive generation- and metageneration-pinned active password invitation states; no list, create, delete, or restore permission."
   stage       = "GA"
   permissions = [
-    "storage.objects.delete",
     "storage.objects.get",
+    "storage.objects.update",
   ]
 }
 

@@ -261,10 +261,12 @@ minimal privilegierten Broker über den exakten Pfad
 `POST /api/auth/password-reset` auf. Der Broker läuft in einem separaten
 Deployment ohne Datenbank- oder Cloud-SQL-Zugriff. Seine
 Workload Identity besitzt neben `firebaseauth.users.get` und
-`firebaseauth.users.sendEmail` ausschließlich Storage Get und Delete für den
+`firebaseauth.users.sendEmail` ausschließlich Storage Get und Update für den
 bedingten Objektprefix `active/` des privaten Einladungs-Buckets. List, Create,
-Update und Restore bleiben verboten. Zusätzlich darf sie nur die aktive
-Version des dedizierten SMTP-Passwort-Secrets lesen. Der Broker versendet die
+Delete und Restore bleiben verboten. Update ist ausschließlich für
+generationen- und metagenerationengepinnte Zustandswechsel der bereits
+vorhandenen Objekte zulässig. Zusätzlich darf die Workload Identity nur die
+aktive Version des dedizierten SMTP-Passwort-Secrets lesen. Der Broker versendet die
 versionierte #Mitmachen-Mail per SMTPS ausschließlich über
 `w01abca0.kasserver.com:465` als `zugang@versorgungs-kompass.de`; seine
 NetworkPolicy öffnet dafür nur TCP 465. Er versendet nur für genau einen aktiven,
@@ -272,16 +274,45 @@ verifizierten Passwort-only-Account einen Self-Service-Reset-Link; die
 Continue-URL ist serverseitig bytegenau auf
 `https://versorgungs-kompass.de/start` festgelegt.
 
-Der Broker verbraucht die aktive Wrapper-Einladung generationengepinnt, bevor
-er den nativen Provider-Code anfordert. Schlägt Identity Platform danach fehl
-oder geht die Antwort vor dem Browser verloren, bleibt die Einladung bewusst
-fail-closed verbraucht; sie wird weder wieder aktiviert noch automatisch
-erneut versendet. Der Operator prüft dann Konto und Binding erneut und bereitet
-eine neue create-only Einladung vor. Dieses Verhalten verhindert Replay und
-mehrere konkurrierende Gewinner. Das Broker-Backend verwendet dafür ein
-45-Sekunden-Timeout mit Reserve oberhalb der internen Einzelbudgets; der
-Browser wartet 50 Sekunden. So führt reguläre Providerlatenz nicht unnötig in
-diesen Recovery-Pfad.
+Der unveränderliche Objektinhalt bindet Konto und Einladung; ausschließlich die
+Custom Metadata bildet die generationen- und metagenerationengepinnten Zustände
+`active` → `minting` → `issued` → `consumed` beziehungsweise `uncertain` ab.
+Der CAS-Wechsel von `active` auf `minting` bestimmt genau einen Gewinner. Nach
+erfolgreicher Erzeugung und Read-only-Prüfung speichert der Broker den
+Provider-Action-Link tokengebunden mit AES-256-GCM verschlüsselt in der Custom
+Metadata und wechselt auf `issued`. Ein Antwort-Retry mit demselben
+Einladungs-Token liefert exakt denselben entschlüsselten Code; er löst keinen
+zweiten Provider-Request aus.
+
+Nach dem erfolgreichen Passwort-Update ruft der Browser denselben
+`POST /api/auth/password-reset` mit
+`{invitationToken, finalize: true}` auf. Erst der erfolgreiche
+Password-Update-Readback des Brokers erlaubt den CAS-Wechsel von `issued` auf
+`consumed`; das Objekt bleibt bis zum Bucket-Lifecycle erhalten. Definitive
+Fehler vor dem Provider-Request oder definitive Provider-4xx-Antworten dürfen
+`minting` per CAS auf `active` zurücksetzen. Bei Timeout, Verbindungsabbruch
+oder einem sonst unklaren Providerausgang wird die Einladung dagegen
+`uncertain` und niemals automatisch erneut gemintet. Der Operator reconciliiert
+diesen Zustand geschützt, bevor gegebenenfalls eine neue create-only Einladung
+vorbereitet wird. Das Broker-Backend verwendet ein 45-Sekunden-Timeout mit
+Reserve oberhalb der internen Einzelbudgets; der Browser wartet 50 Sekunden.
+
+Die einmalige Umstellung vom bisherigen Delete-Vertrag auf `cas-v2` darf nicht
+als überlappendes Rolling Update erfolgen: Der Deployment-Workflow skaliert
+zuerst jedes Broker-Deployment ohne die Protokollannotation
+`versorgungs-kompass.de/password-invitation-protocol=cas-v2` auf null und
+bestätigt die Abwesenheit aller alten Pods. Danach muss die wirksame Brokerrolle
+exakt nur Storage Get und Update enthalten; Delete bleibt verboten. Erst dann
+startet der neue Broker. Ein fehlgeschlagenes Gate hält den Broker bewusst
+fail-closed offline, damit alter Delete-Code und neue CAS-Logik niemals
+gleichzeitig dieselbe generationenstabile Einladung verarbeiten.
+
+Der Zwei-POST-Vertrag aus Redeem und Finalize ist auch an der Edge abgebildet:
+Cloud Armor erlaubt 30 Requests je 300 Sekunden und Quell-IP, bevor 429 greift;
+der Stunden-Ban beginnt erst oberhalb von 120 Requests. So sind mindestens 15
+vollständige Pilot-Onboardings im selben Fünf-Minuten-Fenster auch hinter einem
+gemeinsamen gematik-NAT möglich. 429 und interne temporäre Limits werden im
+Portal als technische Störung mit Retry behandelt, niemals als Linkablauf.
 
 Der Reset erzeugt weder Nutzer, Profile noch Bindings und gewährt allein keinen
 Anwendungszugriff. Bekannte, unbekannte und nicht als Passwortkonto nutzbare
@@ -333,9 +364,13 @@ Gates:
 5. Einladungs-, administrative Recovery- und Self-Service-Reset-Links werden
    vom gebrandeten Custom Handler auf der Passwortsetzseite verarbeitet. Für
    den Self-Service-Reset akzeptiert der Broker ausschließlich den vom Provider
-   frisch zurückgegebenen, vollständig validierten OOB-Link und projiziert
-   dessen `mode`, `oobCode`, `apiKey`, `continueUrl` und `lang` auf den
-   kanonischen Custom Handler. Die vom Broker gesetzte `continue_url` jedes
+   frisch zurückgegebenen, vollständig validierten OOB-Link. Dessen
+   syntaktisch gültiger Provider-API-Key darf vom gepinnten Portal-API-Key
+   abweichen; der Broker projiziert `mode`, `oobCode`, den gepinnten
+   Portal-API-Key, `continueUrl` und `lang` auf den kanonischen Custom Handler.
+   Vor der Ausgabe prüft er den exakten `oobCode` über den gepinnten
+   Portal-API-Key read-only auf die gebundene E-Mail und
+   `requestType=PASSWORD_RESET`. Die vom Broker gesetzte `continue_url` jedes
    Self-Service-Reset-Links ist bytegenau
    `https://versorgungs-kompass.de/start` und nicht browsersteuerbar.
 6. Der öffentliche Reset-Broker ist nur unter dem exakten kanonischen
@@ -345,8 +380,10 @@ Gates:
    den privaten Bucketnamen, das dedizierte SMTP-Passwort über einen exakten
    Kubernetes-`secretKeyRef` sowie die GKE Workload Identity. Die
    bedingte Storage-Rolle erlaubt ausschließlich `storage.objects.get` und
-   `storage.objects.delete` unter `active/`; List, Create, Update und Restore
-   bleiben verboten. Das Helm-Schema pinnt den Backendtimeout bytegenau auf
+   `storage.objects.update` unter `active/`; List, Create, Delete und Restore
+   bleiben verboten. Update dient ausschließlich den
+   generationen- und metagenerationengepinnten CAS-Zustandswechseln. Das
+   Helm-Schema pinnt den Backendtimeout bytegenau auf
    45 Sekunden, der Deployment-Live-Gate bestätigt denselben tatsächlich
    wirksamen GCE-Wert und der Browser begrenzt Fetch einschließlich Body auf
    50 Sekunden. Für unbekannte, Google-only, gemischte oder anderweitig
@@ -806,9 +843,14 @@ Verbindlich sind:
 - neue Konten niemals mit Rolle `admin` oder Scope `standard`.
 
 Der Wrapperlink ersetzt die Übermittlung eines Initialpassworts. Beim ersten
-gültigen Austausch wird die aktive Einladung generationengepinnt gelöscht und
-erst dann serverseitig ein frischer, kurzlebiger Identity-Platform-Reset-Code
-für die eigene Passwortsetzseite erzeugt. Die 48-Stunden-Laufzeit stammt damit
+gültigen Austausch wechselt die aktive Einladung generationen- und
+metagenerationengepinnt von `active` auf `minting`. Der serverseitig erzeugte,
+kurzlebige Identity-Platform-Reset-Code wird erst nach seiner exakten
+Read-only-Prüfung als tokengebunden AES-256-GCM-verschlüsselter Action-Link in
+der Custom Metadata des Zustands `issued` abgelegt. Ein Retry liefert denselben
+Code. Nach dem Passwort-Update-Readback finalisiert
+`{invitationToken, finalize: true}` die Einladung als `consumed`; das Objekt
+bleibt bis zum Lifecycle bestehen. Die 48-Stunden-Laufzeit stammt damit
 ausschließlich aus dem kontrollierten Einladungsvertrag und nicht aus einer
 vermeintlichen Identity-Platform-TTL-Konfiguration. Der Flow ist kein
 passwortloser IAP-Login und ersetzt nicht die anschließende Anmeldung mit dem
@@ -1187,8 +1229,9 @@ nicht durch spontane Konto-, IAM- oder Binding-Erweiterungen repariert.
   logfrei, Cloud-Armor-rate-limitiert und erhält keine Datenbank-Credentials.
   Bucketname, das einzelne synchronisierte SMTP-Passwort-Secret und GKE
   Workload Identity sind gepinnt; unter
-  `active/` sind ausschließlich Storage Get und Delete erlaubt, niemals List,
-  Create, Update oder Restore.
+  `active/` sind ausschließlich Storage Get und Update erlaubt, niemals List,
+  Create, Delete oder Restore. Update ist auf generationen- und
+  metagenerationengepinnte CAS-Zustandswechsel begrenzt.
 - [ ] Die eigene Passwortsetzseite wird unter
   `https://versorgungs-kompass.de/konto/passwort-festlegen` ausgeliefert. Der
   48-Stunden-Wrapperlink bleibt mit seinem Token ausschließlich im Fragment;

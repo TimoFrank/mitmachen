@@ -68,13 +68,55 @@ konfigurierbar ist nur die Referenz auf das dedizierte Passwort-Secret; die
 NetworkPolicy ergänzt für diesen Pod ausschließlich TCP 465. Für
 48-Stunden-Ersteinladungen darf seine Workload Identity im eigenen privaten
 Einladungs-Bucket ausschließlich ein anhand des geheimen Tokens bestimmtes
-`active/`-Objekt lesen und bedingt löschen. Sie darf keine Objekte auflisten,
-anlegen, verändern oder wiederherstellen und besitzt weiterhin keinen
+`active/`-Objekt lesen und generationen- sowie metagenerationengepinnt
+aktualisieren. Sie darf keine Objekte auflisten, anlegen, löschen oder
+wiederherstellen und besitzt weiterhin keinen
 Datenbankzugriff und außer dem einen SMTP-Passwort-Secret keinen weiteren
 Secret-Zugriff. Der Bucket verwendet UBLA und erzwungene Public
 Access Prevention; Versionierung, Retention und Soft Delete sind für die
 atomare Einmalverwendung deaktiviert. Der Ablauf wird im Broker selbst geprüft,
 nicht durch den verzögerten Lifecycle-Cleanup.
+
+Der unveränderliche Objektinhalt bindet weiterhin Konto und Einladung; nur die
+Custom Metadata bildet die generationen- und metagenerationengepinnten Zustände
+`active` → `minting` → `issued` → `consumed` beziehungsweise `uncertain` ab.
+Im Zustand `issued` liegt der validierte Provider-Action-Link ausschließlich
+tokengebunden mit AES-256-GCM verschlüsselt in der Custom Metadata. Ein
+Antwort-Retry mit demselben Einladungs-Token entschlüsselt und liefert exakt
+denselben Code, statt einen weiteren Provider-Code anzufordern. Erst nachdem
+der Browser das Passwort erfolgreich gespeichert hat, ruft er denselben
+`POST /api/auth/password-reset` mit
+`{invitationToken, finalize: true}` auf. Der Broker bestätigt das
+Passwort-Update durch einen Provider-Readback und setzt `issued` per CAS auf
+`consumed`; das Objekt bleibt bis zum Bucket-Lifecycle erhalten.
+
+Nur definitive Fehler vor dem Provider-Request oder eine definitive
+Provider-4xx-Antwort dürfen `minting` per CAS wieder auf `active` setzen. Bei
+Timeout, Verbindungsabbruch oder einem sonst unklaren Providerausgang wird die
+Einladung `uncertain` und niemals automatisch erneut gemintet. Der vom
+Provider gelieferte Action-Link darf einen anderen syntaktisch gültigen
+Provider-API-Key enthalten. Der Broker projiziert ihn auf den gepinnten
+Portal-API-Key und prüft den exakten `oobCode` read-only auf die gebundene
+E-Mail und `requestType=PASSWORD_RESET`, bevor er `issued` veröffentlicht.
+
+Die erstmalige Migration vom löschenden Broker auf dieses `cas-v2`-Protokoll
+ist ausdrücklich kein Rolling Update. Der Deployment-Workflow skaliert ein
+vorhandenes Broker-Deployment ohne die Pod-Annotation
+`versorgungs-kompass.de/password-invitation-protocol=cas-v2` zuerst auf null
+und wartet, bis kein alter Broker-Pod mehr existiert. Erst danach akzeptiert er
+die Infrastrukturrolle, wenn sie exakt nur `storage.objects.get` und
+`storage.objects.update` enthält und insbesondere kein Delete-Recht mehr
+besitzt. Bei einem fehlgeschlagenen Gate bleibt der Passwort-Broker
+fail-closed nicht verfügbar; erst der anschließende Helm-Lauf startet
+ausschließlich `cas-v2`-Pods. Spätere Releases desselben Protokolls dürfen
+wieder normal rollen.
+
+Da jede vollständige Einladung genau einen Redeem- und einen Finalize-POST
+benötigt, erlaubt Cloud Armor pro Quell-IP 30 Requests in 300 Sekunden und
+bannt erst oberhalb von 120 Requests pro Stunde. Damit passen mindestens 15
+vollständige Pilot-Onboardings durch ein gemeinsames Unternehmens-NAT in das
+Kurzzeitfenster. Eine 429-Antwort wird im Portal als vorübergehende Störung und
+nicht als abgelaufene Einladung angezeigt.
 
 Die owner-only Vorbereitungs- und SMTP-Operatoren verwenden eine davon
 getrennte, explizite Nutzerbindung aus
@@ -590,7 +632,8 @@ Der aufrufende Workflow kann die Rechte nicht über die im wiederverwendbaren Wo
 - [ ] `vk-pre-gematik-iap-oauth-bootstrap` enthält gültiges JSON mit nicht leeren `client_id`- und `client_secret`-Strings; der Deployer darf nur dieses Bootstrap-Secret lesen.
 - [ ] Für Datenbank- und SMTP-Passwortrotation sind die getrennten anschließenden API- beziehungsweise Passwort-Reset-Rollouts dokumentiert und getestet.
 - [ ] Der API-Workload-Principal darf nur das benötigte Secret, Cloud SQL und die drei Daten-Buckets verwenden.
-- [ ] Der Passwort-Broker darf im Einladungs-Bucket ausschließlich `active/`-Objekte lesen und löschen; List-, Create-, Update-, Restore- und DB-Rechte fehlen. In Secret Manager darf er ausschließlich die aktive Version des dedizierten Reset-SMTP-Secrets lesen.
+- [ ] Der Passwort-Broker darf im Einladungs-Bucket ausschließlich `active/`-Objekte lesen und generationen- sowie metagenerationengepinnt aktualisieren; List-, Create-, Delete-, Restore- und DB-Rechte fehlen. In Secret Manager darf er ausschließlich die aktive Version des dedizierten Reset-SMTP-Secrets lesen.
+- [ ] Vor der einmaligen `cas-v2`-Migration wurden alle alten Broker-Pods auf null skaliert und als abwesend bestätigt; erst danach wurde die exakte Get-/Update-Rolle ohne Delete ausgerollt und der neue Broker gestartet.
 - [ ] Ausschließlich die namentlich bestätigten `PASSWORD_INVITATION_OPERATOR_MEMBERS` dürfen unter `prepared/` und `active/` anlegen, lesen und löschen; List-, Update- und Restore-Rechte fehlen.
 - [ ] Ausschließlich die namentlich bestätigten `PASSWORD_INVITATION_POLICY_ADMIN_MEMBERS` dürfen den Einladungs-Bucket und seine IAM-Policy lesen beziehungsweise die Policy ersetzen; direkte Einladungsobjektrechte fehlen und die mittelbare Policy-Eskalationsmacht ist als vertrauenswürdige Infrastruktur-Autorität geprüft. Eine Einpersonen-Überschneidung mit den Operator-Membern ist ausdrücklich dokumentiert und als kombinierte Berechtigung bewertet.
 - [ ] Der Einladungs-Bucket erzwingt UBLA und Public Access Prevention und besitzt weder Versionierung noch Retention oder Soft Delete.

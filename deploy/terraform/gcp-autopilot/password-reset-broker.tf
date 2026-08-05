@@ -21,14 +21,14 @@ resource "google_compute_security_policy" "password_reset_broker" {
       enforce_on_key = "IP"
 
       rate_limit_threshold {
-        count        = 5
+        count        = 30
         interval_sec = 300
       }
 
       ban_duration_sec = 3600
 
       ban_threshold {
-        count        = 20
+        count        = 120
         interval_sec = 3600
       }
     }
