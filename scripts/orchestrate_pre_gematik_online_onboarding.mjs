@@ -52,6 +52,7 @@ const RUN_LOCK = "vk-pre-gematik-online-onboarding-lock";
 const PASSWORD_RESET_DEPLOYMENT = "versorgungs-kompass-password-reset";
 const PASSWORD_RESET_CONTAINER = "password-reset-broker";
 const JOURNAL_DIRECTORY = "online-onboarding-journal";
+const LAST_APPLIED_CONFIGURATION_ANNOTATION = "kubectl.kubernetes.io/last-applied-configuration";
 const MAX_PROTECTED_FILE_BYTES = 128 * 1024;
 const MAX_COMMAND_OUTPUT_BYTES = 4 * 1024 * 1024;
 const COMMAND_TIMEOUT_MS = 30_000;
@@ -223,6 +224,78 @@ function canonicalJson(value) {
     )).join(",")}}`;
   }
   return JSON.stringify(value);
+}
+
+function normalizeStaticResourceMetadata(metadata, label) {
+  if (!isPlainObject(metadata)) {
+    throw new OnlineOnboardingError(`${label}-Metadaten sind ungueltig.`);
+  }
+  const labels = metadata.labels == null ? {} : metadata.labels;
+  const annotations = metadata.annotations == null ? {} : metadata.annotations;
+  if (!isPlainObject(labels) || !isPlainObject(annotations)) {
+    throw new OnlineOnboardingError(`${label}-Metadaten sind ungueltig.`);
+  }
+  const contractAnnotations = { ...annotations };
+  delete contractAnnotations[LAST_APPLIED_CONFIGURATION_ANNOTATION];
+  const ownerReferences = metadata.ownerReferences == null ? [] : metadata.ownerReferences;
+  const finalizers = metadata.finalizers == null ? [] : metadata.finalizers;
+  if (!Array.isArray(ownerReferences) || !Array.isArray(finalizers)) {
+    throw new OnlineOnboardingError(`${label}-Metadaten sind ungueltig.`);
+  }
+  return Object.freeze({
+    name: metadata.name ?? "",
+    namespace: metadata.namespace ?? "",
+    generateName: metadata.generateName ?? "",
+    labels,
+    annotations: contractAnnotations,
+    ownerReferences,
+    finalizers,
+    deletionTimestamp: metadata.deletionTimestamp ?? null,
+    deletionGracePeriodSeconds: metadata.deletionGracePeriodSeconds ?? null
+  });
+}
+
+export function staticKubernetesResourceContract(value, label = "Kubernetes-Ressource") {
+  if (!isPlainObject(value)) {
+    throw new OnlineOnboardingError(`${label} ist ungueltig.`);
+  }
+  const common = {
+    apiVersion: value.apiVersion ?? "",
+    kind: value.kind ?? "",
+    metadata: normalizeStaticResourceMetadata(value.metadata, label)
+  };
+  if (value.kind === "ServiceAccount") {
+    const imagePullSecrets = value.imagePullSecrets == null ? [] : value.imagePullSecrets;
+    const secrets = value.secrets == null ? [] : value.secrets;
+    if (!Array.isArray(imagePullSecrets) || !Array.isArray(secrets)) {
+      throw new OnlineOnboardingError(`${label} ist ungueltig.`);
+    }
+    return Object.freeze({
+      ...common,
+      automountServiceAccountToken: value.automountServiceAccountToken ?? null,
+      imagePullSecrets,
+      secrets
+    });
+  }
+  if (value.kind === "NetworkPolicy") {
+    if (!isPlainObject(value.spec)) {
+      throw new OnlineOnboardingError(`${label} ist ungueltig.`);
+    }
+    return Object.freeze({
+      ...common,
+      spec: {
+        ...value.spec,
+        ingress: value.spec.ingress ?? [],
+        egress: value.spec.egress ?? []
+      }
+    });
+  }
+  throw new OnlineOnboardingError(`${label} besitzt keinen freigegebenen Ressourcentyp.`);
+}
+
+export function staticKubernetesResourceContractsEqual(expected, actual) {
+  return canonicalJson(staticKubernetesResourceContract(expected, "Soll-Ressource"))
+    === canonicalJson(staticKubernetesResourceContract(actual, "Ist-Ressource"));
 }
 
 function sha256(value) {
@@ -1981,17 +2054,8 @@ export class CommandOnlineOnboardingRuntime {
         ["networkpolicy", NETWORK_POLICY, "deploy/migration-operator/networkpolicy.yaml"]
       ]) {
         const metadata = await this.resourceMetadata(kind, name);
-        if (metadata) {
-          const difference = await this.kubectl(
-            ["diff", `--filename=${path.join(repository, manifestPath)}`],
-            {
-              label: `${kind}-Vertragspruefung`,
-              acceptedExitCodes: [0, 1]
-            }
-          );
-          if (difference.exitCode !== 0) {
-            throw new OnlineOnboardingError(`${kind}/${name} weicht vom freigegebenen Vertrag ab.`);
-          }
+        if (metadata && !await this.staticResourceMatchesManifest(kind, name, manifestPath)) {
+          throw new OnlineOnboardingError(`${kind}/${name} weicht vom freigegebenen Vertrag ab.`);
         }
       }
     }
@@ -2019,6 +2083,20 @@ export class CommandOnlineOnboardingRuntime {
       holderId: holderId === "<no value>" ? "" : holderId,
       fingerprint: fingerprint === "<no value>" ? "" : fingerprint
     });
+  }
+
+  async staticResourceMatchesManifest(kind, name, relativePath) {
+    ensureSafePathSegment(kind, "Kubernetes-Ressourcentyp");
+    ensureSafePathSegment(name, "Kubernetes-Ressourcenname");
+    const manifestPath = path.join(this.context.repository, relativePath);
+    const expected = parseJsonOutput((await this.kubectl([
+      "create", "--dry-run=client", `--filename=${manifestPath}`, "-o", "json"
+    ], { label: `${kind}-Sollvertrag-Readback` })).stdout, `${kind}-Sollvertrag-Readback`);
+    const actual = parseJsonOutput((await this.kubectl([
+      "--namespace", this.context.baseEnvironment.K8S_NAMESPACE,
+      "get", kind, name, "-o", "json"
+    ], { label: `${kind}-Istvertrag-Readback` })).stdout, `${kind}-Istvertrag-Readback`);
+    return staticKubernetesResourceContractsEqual(expected, actual);
   }
 
   async acquireLock({ fingerprint, holderId, resume, cleanupOnly = false }) {
@@ -2199,11 +2277,7 @@ export class CommandOnlineOnboardingRuntime {
     ]) {
       const existing = await this.resourceMetadata(kind, name);
       if (existing) {
-        const difference = await this.kubectl(
-          ["diff", `--filename=${path.join(this.context.repository, relativePath)}`],
-          { label: `${kind}-Vertragspruefung`, acceptedExitCodes: [0, 1] }
-        );
-        if (difference.exitCode !== 0) {
+        if (!await this.staticResourceMatchesManifest(kind, name, relativePath)) {
           throw new OnlineOnboardingError(`${kind}/${name} weicht vom freigegebenen Vertrag ab.`);
         }
       } else {
@@ -2214,11 +2288,7 @@ export class CommandOnlineOnboardingRuntime {
         if (!await this.resourceMetadata(kind, name)) {
           throw new OnlineOnboardingError(`${kind}/${name} wurde nicht create-only bereitgestellt.`);
         }
-        const difference = await this.kubectl(
-          ["diff", `--filename=${path.join(this.context.repository, relativePath)}`],
-          { label: `${kind}-Post-Create-Vertragspruefung`, acceptedExitCodes: [0, 1] }
-        );
-        if (difference.exitCode !== 0) {
+        if (!await this.staticResourceMatchesManifest(kind, name, relativePath)) {
           throw new OnlineOnboardingError(`${kind}/${name} ist nach Create nicht vertragstreu.`);
         }
       }
