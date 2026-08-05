@@ -2441,18 +2441,59 @@ export class CommandOnlineOnboardingRuntime {
   }
 
   async listCloudSqlUser(login) {
+    assertText(login, "Access-Operator-Login", 96, /^vk_access_operator_[0-9]{8}_[a-f0-9]{10}$/u);
     const output = await this.gcloud([
       "sql", "users", "list",
       `--project=${this.context.baseEnvironment.GCP_PROJECT_ID}`,
       `--instance=${this.context.baseEnvironment.cloudSqlInstance}`,
-      `--filter=name=${login} AND type=BUILT_IN`,
+      `--filter=name=${login}`,
       "--format=json"
     ], { label: "Kurzlebiger Cloud-SQL-Login-Readback" });
     const users = parseJsonOutput(output.stdout, "Kurzlebiger Cloud-SQL-Login-Readback");
-    if (!Array.isArray(users) || users.length > 1) {
+    if (
+      !Array.isArray(users)
+      || users.length > 1
+      || users.some((user) => !this.accessOperatorCloudSqlUserIdentityMatchesContract(user, login))
+    ) {
       throw new OnlineOnboardingError("Der kurzlebige Cloud-SQL-Login ist nicht eindeutig.");
     }
     return users;
+  }
+
+  async describeCloudSqlUser(login) {
+    assertText(login, "Access-Operator-Login", 96, /^vk_access_operator_[0-9]{8}_[a-f0-9]{10}$/u);
+    const output = await this.gcloud([
+      "sql", "users", "describe", login,
+      `--project=${this.context.baseEnvironment.GCP_PROJECT_ID}`,
+      `--instance=${this.context.baseEnvironment.cloudSqlInstance}`,
+      "--format=json"
+    ], { label: "Kurzlebiger Cloud-SQL-Login-Detailreadback" });
+    return parseJsonOutput(output.stdout, "Kurzlebiger Cloud-SQL-Login-Detailreadback");
+  }
+
+  accessOperatorCloudSqlUserIdentityMatchesContract(user, login) {
+    return (
+      isPlainObject(user)
+      && user.kind === "sql#user"
+      && user.name === login
+      && user.host === ""
+      && user.instance === this.context.baseEnvironment.cloudSqlInstance
+      && user.project === this.context.baseEnvironment.GCP_PROJECT_ID
+      && (!Object.hasOwn(user, "type") || user.type === "BUILT_IN")
+      && (
+        !Object.hasOwn(user, "iamStatus")
+        || user.iamStatus === "IAM_STATUS_UNSPECIFIED"
+      )
+    );
+  }
+
+  accessOperatorCloudSqlUserMatchesContract(user, login) {
+    return (
+      this.accessOperatorCloudSqlUserIdentityMatchesContract(user, login)
+      && Array.isArray(user.databaseRoles)
+      && user.databaseRoles.length === 1
+      && user.databaseRoles[0] === "vk_access_enrollment_admin"
+    );
   }
 
   accessOperatorLoginFingerprint(login) {
@@ -2626,16 +2667,21 @@ export class CommandOnlineOnboardingRuntime {
       });
       await this.waitForCloudSqlCreateOperation(createOperation.name);
       const users = await this.listCloudSqlUser(login);
-      const roles = users[0]?.databaseRoles;
       if (
         users.length !== 1
         || users[0]?.name !== login
-        || users[0]?.type !== "BUILT_IN"
-        || !Array.isArray(roles)
-        || roles.length !== 1
-        || roles[0] !== "vk_access_enrollment_admin"
+        || users[0]?.kind !== "sql#user"
+        || users[0]?.host !== ""
+        || users[0]?.instance !== this.context.baseEnvironment.cloudSqlInstance
+        || users[0]?.project !== this.context.baseEnvironment.GCP_PROJECT_ID
       ) {
-        throw new OnlineOnboardingError("Der kurzlebige Cloud-SQL-Login hat nicht exakt die freigegebene Rolle.");
+        throw new OnlineOnboardingError("Der kurzlebige Cloud-SQL-Login ist nicht exakt zielgebunden.");
+      }
+      const user = await this.describeCloudSqlUser(login);
+      if (!this.accessOperatorCloudSqlUserMatchesContract(user, login)) {
+        throw new OnlineOnboardingError(
+          "Der kurzlebige Cloud-SQL-Login hat nicht exakt die freigegebene Rolle."
+        );
       }
       return Object.freeze({ directory, login });
     } catch (error) {
@@ -2669,18 +2715,35 @@ export class CommandOnlineOnboardingRuntime {
         "Der Cloud-SQL-Create-Operationsanker besitzt keinen zugehoerigen Intent."
       );
     }
+    let createOperation = null;
     if (operationMarker) {
-      await this.waitForCloudSqlCreateOperation(operationMarker.operation_id, {
+      createOperation = await this.waitForCloudSqlCreateOperation(operationMarker.operation_id, {
         allowFailure: true
       });
     }
     const users = await this.listCloudSqlUser(login);
+    if (!intent && users.length === 1) {
+      throw new OnlineOnboardingError(
+        "Der vorbestehende Cloud-SQL-Login besitzt keinen Create-Intent; Zugangsverzeichnis und Cluster-Lock bleiben erhalten."
+      );
+    }
+    if (createOperation?.failed && users.length === 1) {
+      throw new OnlineOnboardingError(
+        "Die fehlgeschlagene Cloud-SQL-Create-Operation darf keinen vorhandenen Login entfernen; Zugangsverzeichnis und Cluster-Lock bleiben erhalten."
+      );
+    }
     if (intent && !operationMarker && users.length === 0) {
       throw new OnlineOnboardingError(
         "Der Cloud-SQL-Create-Ausgang ist unbekannt; Zugangsverzeichnis und Cluster-Lock bleiben erhalten."
       );
     }
     if (users.length === 1) {
+      const user = await this.describeCloudSqlUser(login);
+      if (!this.accessOperatorCloudSqlUserMatchesContract(user, login)) {
+        throw new OnlineOnboardingError(
+          "Der kurzlebige Cloud-SQL-Login ist vor dem Cleanup nicht exakt ziel- und rollengebunden."
+        );
+      }
       await this.gcloud([
         "sql", "users", "delete", login,
         `--project=${this.context.baseEnvironment.GCP_PROJECT_ID}`,
