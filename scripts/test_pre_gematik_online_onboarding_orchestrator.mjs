@@ -37,6 +37,8 @@ import {
   onlineOnboardingFingerprint,
   parseOnlineOnboardingArguments,
   runCommand,
+  staticKubernetesResourceContract,
+  staticKubernetesResourceContractsEqual,
   validateBaseEnvironment,
   validateOperatorRelease
 } from "./orchestrate_pre_gematik_online_onboarding.mjs";
@@ -52,6 +54,180 @@ async function safeRejection(action, pattern) {
   await assert.rejects(
     action,
     (error) => error instanceof OnlineOnboardingError && pattern.test(error.message)
+  );
+}
+
+const staticResourceLabels = {
+  "app.kubernetes.io/name": "versorgungs-kompass",
+  "app.kubernetes.io/component": "identity-operator"
+};
+const expectedServiceAccountResource = {
+  apiVersion: "v1",
+  kind: "ServiceAccount",
+  metadata: {
+    name: "vk-pre-gematik-migration-operator",
+    namespace: "pre-gematik",
+    labels: staticResourceLabels
+  },
+  automountServiceAccountToken: false
+};
+const liveServiceAccountResource = {
+  ...structuredClone(expectedServiceAccountResource),
+  metadata: {
+    ...structuredClone(expectedServiceAccountResource.metadata),
+    annotations: {
+      "kubectl.kubernetes.io/last-applied-configuration": "synthetic-managed-value"
+    },
+    creationTimestamp: "2026-08-05T08:00:00Z",
+    generation: 4,
+    managedFields: [{ manager: "kubectl-client-side-apply" }],
+    resourceVersion: "12345",
+    uid: "synthetic-service-account-uid"
+  }
+};
+assert.equal(
+  staticKubernetesResourceContractsEqual(
+    expectedServiceAccountResource,
+    liveServiceAccountResource
+  ),
+  true,
+  "Reine Kubernetes-Laufzeitmetadaten duerfen den statischen Vertrag nicht veraendern."
+);
+assert.deepEqual(
+  staticKubernetesResourceContract(liveServiceAccountResource).metadata.annotations,
+  {}
+);
+
+const expectedNetworkPolicyResource = {
+  apiVersion: "networking.k8s.io/v1",
+  kind: "NetworkPolicy",
+  metadata: {
+    name: "vk-pre-gematik-migration-operator",
+    namespace: "pre-gematik",
+    labels: staticResourceLabels
+  },
+  spec: {
+    podSelector: { matchLabels: staticResourceLabels },
+    policyTypes: ["Ingress", "Egress"],
+    ingress: [],
+    egress: [{ ports: [{ protocol: "TCP", port: 443 }] }]
+  }
+};
+const liveNetworkPolicyResource = {
+  ...structuredClone(expectedNetworkPolicyResource),
+  metadata: {
+    ...structuredClone(expectedNetworkPolicyResource.metadata),
+    annotations: {
+      "kubectl.kubernetes.io/last-applied-configuration": "synthetic-managed-value"
+    },
+    creationTimestamp: "2026-08-05T08:00:00Z",
+    generation: 4,
+    resourceVersion: "67890",
+    uid: "synthetic-network-policy-uid"
+  },
+  spec: {
+    ...structuredClone(expectedNetworkPolicyResource.spec)
+  }
+};
+delete liveNetworkPolicyResource.spec.ingress;
+assert.equal(
+  staticKubernetesResourceContractsEqual(
+    expectedNetworkPolicyResource,
+    liveNetworkPolicyResource
+  ),
+  true,
+  "Eine serverseitig ausgelassene leere Ingress-Liste muss dem deny-all-Soll entsprechen."
+);
+
+for (const [label, expected, mutate] of [
+  ["ServiceAccount-Automount", expectedServiceAccountResource, (value) => {
+    value.automountServiceAccountToken = true;
+  }],
+  ["ServiceAccount-Annotation", expectedServiceAccountResource, (value) => {
+    value.metadata.annotations = { "iam.gke.io/gcp-service-account": "foreign@example.invalid" };
+  }],
+  ["ServiceAccount-ImagePullSecret", expectedServiceAccountResource, (value) => {
+    value.imagePullSecrets = [{ name: "foreign-registry" }];
+  }],
+  ["ServiceAccount-Secret", expectedServiceAccountResource, (value) => {
+    value.secrets = [{ name: "foreign-token" }];
+  }],
+  ["Ressourcen-Label", expectedNetworkPolicyResource, (value) => {
+    value.metadata.labels["unexpected.example/label"] = "present";
+  }],
+  ["Ressourcen-Owner", expectedNetworkPolicyResource, (value) => {
+    value.metadata.ownerReferences = [{ uid: "foreign-owner" }];
+  }],
+  ["Ressourcen-Finalizer", expectedNetworkPolicyResource, (value) => {
+    value.metadata.finalizers = ["foreign.example/finalizer"];
+  }],
+  ["Ressource-in-Loeschung", expectedNetworkPolicyResource, (value) => {
+    value.metadata.deletionTimestamp = "2026-08-05T08:00:00Z";
+  }],
+  ["NetworkPolicy-Egress", expectedNetworkPolicyResource, (value) => {
+    value.spec.egress.push({ ports: [{ protocol: "TCP", port: 5432 }] });
+  }],
+  ["NetworkPolicy-Ingress", expectedNetworkPolicyResource, (value) => {
+    value.spec.ingress.push({ from: [{ podSelector: {} }] });
+  }],
+  ["NetworkPolicy-PodSelector", expectedNetworkPolicyResource, (value) => {
+    value.spec.podSelector = {};
+  }]
+]) {
+  const actual = structuredClone(expected);
+  mutate(actual);
+  assert.equal(
+    staticKubernetesResourceContractsEqual(expected, actual),
+    false,
+    `${label} muss den statischen Vertrag verletzen.`
+  );
+}
+
+{
+  const calls = [];
+  const runtime = new CommandOnlineOnboardingRuntime(
+    {
+      baseEnvironment: { K8S_NAMESPACE: "pre-gematik" },
+      repository: "/synthetic/repository"
+    },
+    {
+      commandRunner: async (command, argumentsList) => {
+        calls.push([command, ...argumentsList]);
+        assert.equal(command, "kubectl");
+        if (argumentsList[0] === "create") {
+          assert.equal(argumentsList.includes("--dry-run=client"), true);
+          return Object.freeze({
+            stdout: `${JSON.stringify(expectedServiceAccountResource)}\n`,
+            stderr: "",
+            exitCode: 0
+          });
+        }
+        assert.deepEqual(argumentsList, [
+          "--namespace", "pre-gematik",
+          "get", "serviceaccount", "vk-pre-gematik-migration-operator", "-o", "json"
+        ]);
+        return Object.freeze({
+          stdout: `${JSON.stringify(liveServiceAccountResource)}\n`,
+          stderr: "",
+          exitCode: 0
+        });
+      }
+    }
+  );
+  assert.equal(
+    await runtime.staticResourceMatchesManifest(
+      "serviceaccount",
+      "vk-pre-gematik-migration-operator",
+      "deploy/migration-operator/serviceaccount.yaml"
+    ),
+    true
+  );
+  assert.equal(calls.length, 2);
+  assert.equal(calls.some((call) => call.includes("diff")), false);
+  assert.equal(
+    calls.some((call) => call[1] === "create" && !call.includes("--dry-run=client")),
+    false,
+    "Der Laufzeitvergleich darf keine schreibende Kubernetes-Operation ausfuehren."
   );
 }
 
