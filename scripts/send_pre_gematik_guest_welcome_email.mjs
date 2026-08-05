@@ -22,6 +22,8 @@ import {
   WELCOME_EMAIL_SENDER_EMAIL,
   WELCOME_EMAIL_SENDER_NAME,
   WELCOME_EMAIL_SUBJECT,
+  WELCOME_EMAIL_TEMPLATE_ID,
+  containsHiddenEmailContent,
   loadProtectedBrandedSetPasswordLink,
   loadWelcomeEmailTemplates,
   renderGuestWelcomeEmail,
@@ -318,21 +320,17 @@ export function validateWelcomeEmailEml(rawMail) {
     headers,
     "x-versorgungs-kompass-template"
   );
-  const encodedSenderName =
-    `=?UTF-8?B?${Buffer.from(WELCOME_EMAIL_SENDER_NAME, "utf8").toString("base64")}?=`;
-  const encodedSubject =
-    `=?UTF-8?B?${Buffer.from(WELCOME_EMAIL_SUBJECT, "utf8").toString("base64")}?=`;
   const contentTypeMatch = contentType.match(
-    /^multipart\/related; boundary="vk-pre-gematik-welcome-related-v4"; type="multipart\/alternative"; start="<(vk-welcome\.([a-f0-9]{24})@versorgungs-kompass\.de)>"$/u
+    /^multipart\/related; boundary="vk-pre-gematik-welcome-related-v5"; type="multipart\/alternative"; start="<(vk-welcome\.([a-f0-9]{24})@versorgungs-kompass\.de)>"$/u
   );
   if (
-    from !== `${encodedSenderName} <${WELCOME_EMAIL_SENDER_EMAIL}>`
+    from !== `${WELCOME_EMAIL_SENDER_NAME} <${WELCOME_EMAIL_SENDER_EMAIL}>`
     || replyTo !== `<${WELCOME_EMAIL_SENDER_EMAIL}>`
     || !/^<[^<>]+>$/u.test(to)
-    || subject !== encodedSubject
+    || subject !== WELCOME_EMAIL_SUBJECT
     || mimeVersion !== "1.0"
     || !contentTypeMatch
-    || template !== "pre-gematik-guest-welcome-v4"
+    || template !== WELCOME_EMAIL_TEMPLATE_ID
   ) {
     throw new IdentityPlatformOnboardingError(
       "Die EML-Datei entspricht nicht dem freigegebenen Domain-Mailvertrag."
@@ -422,6 +420,11 @@ export function validateWelcomeEmailEml(rawMail) {
   validateWelcomeEmailBrandMarkup(htmlPart, brandAssets);
   const decodedCombined = `${textPart}\n${htmlPart}`;
   const lower = decodedCombined.toLowerCase();
+  if (containsHiddenEmailContent(decodedCombined)) {
+    throw new IdentityPlatformOnboardingError(
+      "Die EML-Datei enthaelt verborgene Inhalte."
+    );
+  }
   for (const forbidden of [
     "firebase",
     "steam-capsule",
@@ -489,7 +492,7 @@ export function validateWelcomeEmailEml(rawMail) {
 
 function mailFingerprint(rawMail) {
   const digest = createHash("sha256");
-  digest.update("versorgungs-kompass-pre-gematik-welcome-mail-v4\0", "utf8");
+  digest.update("versorgungs-kompass-pre-gematik-welcome-mail-v5\0", "utf8");
   digest.update(rawMail, "utf8");
   return `sha256:${digest.digest("hex")}`;
 }

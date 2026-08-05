@@ -24,6 +24,7 @@ export const WELCOME_EMAIL_SUBJECT =
   "#Mitmachen: Dein Testzugang zum Versorgungs-Kompass";
 export const WELCOME_EMAIL_SENDER_NAME = "#Mitmachen";
 export const WELCOME_EMAIL_SENDER_EMAIL = "zugang@versorgungs-kompass.de";
+export const WELCOME_EMAIL_TEMPLATE_ID = "pre-gematik-guest-welcome-v5";
 export const EXPECTED_PILOT_END = "2026-09-30T16:00:00Z";
 export const PASSWORD_ACTION_ORIGIN = PASSWORD_INVITATION_ORIGIN;
 export const PASSWORD_ACTION_PATH = PASSWORD_INVITATION_PATH;
@@ -33,6 +34,8 @@ const MAX_TEMPLATE_BYTES = 256 * 1024;
 const EMAIL_PATTERN =
   /^[a-z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-z0-9](?:[a-z0-9.-]{0,251}[a-z0-9])?$/iu;
 const FINGERPRINT_PATTERN = /^sha256:[a-f0-9]{64}$/u;
+const HIDDEN_EMAIL_CONTENT_PATTERN =
+  /(?:display\s*:\s*none|visibility\s*:\s*hidden|max-height\s*:\s*0|color\s*:\s*transparent|mso-hide\s*:\s*all|opacity\s*:\s*0(?:\.0+)?(?=\s*(?:[;'"!]|$))|<[^>]*\shidden(?=[\s=>/])|(?:left|right|top|bottom|text-indent)\s*:\s*-\s*(?:999|[1-9]\d{3,})(?:px|em|rem)|&(?:zwnj|zwj|lrm|rlm|zerowidthspace|nobreak|applyfunction|invisibletimes|invisiblecomma);|&#0*(?:847|1564|6158|820[3-7]|823[4-8]|828[89]|829\d|830[0-3]|65279);|&#x0*(?:34f|61c|180e|200[b-f]|202[a-e]|206[0-9a-f]|feff);|[\u034f\u061c\u180e\u200b-\u200f\u202a-\u202e\u2060-\u206f\ufeff])/iu;
 const TEMPLATE_DIRECTORY = new URL("../config/pre-gematik/email/", import.meta.url);
 const TEXT_TEMPLATE = new URL(
   "pre-gematik-guest-welcome.txt",
@@ -65,9 +68,9 @@ const MAX_TOTAL_BRAND_ASSET_BYTES = 128 * 1024;
 const PNG_SIGNATURE = Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]);
 
 export const WELCOME_EMAIL_RELATED_BOUNDARY =
-  "vk-pre-gematik-welcome-related-v4";
+  "vk-pre-gematik-welcome-related-v5";
 export const WELCOME_EMAIL_ALTERNATIVE_BOUNDARY =
-  "vk-pre-gematik-welcome-alternative-v4";
+  "vk-pre-gematik-welcome-alternative-v5";
 export const WELCOME_EMAIL_BRAND_ASSET_SPECS = Object.freeze([
   Object.freeze({
     key: "versorgung",
@@ -138,6 +141,10 @@ export const WELCOME_EMAIL_BRAND_ASSET_SPECS = Object.freeze([
     sourceSha256: "bf8c72c1a11dca3aea91fb21d2abefc0b2ffec8bfa5f9c8dc6c88e558118e2a1"
   })
 ]);
+
+export function containsHiddenEmailContent(value) {
+  return typeof value === "string" && HIDDEN_EMAIL_CONTENT_PATTERN.test(value);
+}
 
 function safeText(value, label, maximumLength, pattern) {
   if (
@@ -379,6 +386,11 @@ function assertTemplateContract(template, kind) {
       `Die versionierte ${kind}-Mailvorlage ist leer oder zu gross.`
     );
   }
+  if (containsHiddenEmailContent(template)) {
+    throw new IdentityPlatformOnboardingError(
+      `Die versionierte ${kind}-Mailvorlage enthaelt verborgene Inhalte.`
+    );
+  }
   const actualPlaceholders = [...template.matchAll(/\{\{([A-Z_]+)\}\}/gu)]
     .map((match) => match[1]);
   const unique = [...new Set(actualPlaceholders)].sort();
@@ -453,6 +465,11 @@ export function validateWelcomeEmailBrandMarkup(html, brandAssets) {
 
 function assertRenderedMailContract(text, html, actionUrl, brandAssets) {
   const combined = `${text}\n${html}`.toLowerCase();
+  if (containsHiddenEmailContent(combined)) {
+    throw new IdentityPlatformOnboardingError(
+      "Die gerenderte Willkommensmail enthaelt verborgene Inhalte."
+    );
+  }
   if (/cid:/iu.test(text)) {
     throw new IdentityPlatformOnboardingError(
       "Die Text-Mail darf keine eingebetteten Content-IDs enthalten."
@@ -516,8 +533,13 @@ function assertRenderedMailContract(text, html, actionUrl, brandAssets) {
   }
 }
 
-function encodedHeader(value) {
-  return `=?UTF-8?B?${Buffer.from(value, "utf8").toString("base64")}?=`;
+function asciiHeader(value) {
+  if (!/^[\x20-\x7e]+$/u.test(value)) {
+    throw new IdentityPlatformOnboardingError(
+      "Die Willkommensmail besitzt keinen kanonischen ASCII-Header."
+    );
+  }
+  return value;
 }
 
 function crlf(value) {
@@ -542,13 +564,13 @@ function renderEml({
   brandAssets
 }) {
   const lines = [
-    `From: ${encodedHeader(senderName)} <${senderEmail}>`,
+    `From: ${asciiHeader(senderName)} <${senderEmail}>`,
     `Reply-To: <${senderEmail}>`,
     `To: <${recipient}>`,
-    `Subject: ${encodedHeader(subject)}`,
+    `Subject: ${asciiHeader(subject)}`,
     "MIME-Version: 1.0",
     `Content-Type: multipart/related; boundary="${WELCOME_EMAIL_RELATED_BOUNDARY}"; type="multipart/alternative"; start="<${rootContentId}>"`,
-    "X-Versorgungs-Kompass-Template: pre-gematik-guest-welcome-v4",
+    `X-Versorgungs-Kompass-Template: ${WELCOME_EMAIL_TEMPLATE_ID}`,
     "",
     `--${WELCOME_EMAIL_RELATED_BOUNDARY}`,
     `Content-Type: multipart/alternative; boundary="${WELCOME_EMAIL_ALTERNATIVE_BOUNDARY}"`,

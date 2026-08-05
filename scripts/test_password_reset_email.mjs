@@ -102,6 +102,10 @@ assert.equal((htmlTemplate.match(/\{\{ACTION_URL\}\}/gu) || []).length, 3);
 assert.equal((textTemplate.match(/\{\{ACTION_URL\}\}/gu) || []).length, 1);
 assert.doesNotMatch(htmlTemplate, /https?:\/\/|javascript:|data:|url\s*\(/iu);
 assert.doesNotMatch(textTemplate, /https?:\/\/|javascript:|data:/iu);
+assert.doesNotMatch(
+  htmlTemplate,
+  /display\s*:\s*none|visibility\s*:\s*hidden|max-height\s*:\s*0|color\s*:\s*transparent|mso-hide\s*:\s*all|&zwnj;|&#(?:0*847|x0*34f);|[\u034f\u200b\u200c]/iu
+);
 
 assert.deepEqual(
   PASSWORD_RESET_EMAIL_BRAND_ASSETS.map((asset) => ({
@@ -159,6 +163,10 @@ assert.match(rendered.html, /#Mitmachen/u);
 assert.match(rendered.text, /^#Mitmachen$/mu);
 assert.doesNotMatch(rendered.html, /\{\{|\}\}/u);
 assert.doesNotMatch(rendered.text, /\{\{|\}\}/u);
+assert.doesNotMatch(
+  rendered.html,
+  /display\s*:\s*none|visibility\s*:\s*hidden|max-height\s*:\s*0|color\s*:\s*transparent|mso-hide\s*:\s*all|&zwnj;|&#(?:0*847|x0*34f);|[\u034f\u200b\u200c]/iu
+);
 const htmlWithoutActionUrl = rendered.html.split(escapedActionUrl).join("");
 assert.doesNotMatch(
   htmlWithoutActionUrl,
@@ -204,6 +212,25 @@ await assert.rejects(
   }),
   /nicht freigegebene Inhalte/u
 );
+for (const hiddenMarkup of [
+  '<div style="display:none;opacity:0">Verborgener Inhalt</div>',
+  "<div hidden>Verborgener Inhalt</div>",
+  '<div style="position:absolute;left:-9999px">Verborgener Inhalt</div>',
+  "<div>Verborgener Inhalt\u200d</div>"
+]) {
+  await assert.rejects(
+    () => renderPasswordResetEmail({
+      actionUrl,
+      readFile: async (url, encoding) => {
+        if (String(url) === String(htmlTemplateUrl)) {
+          return htmlTemplate.replace("</body>", `${hiddenMarkup}</body>`);
+        }
+        return readFile(url, encoding);
+      }
+    }),
+    /nicht freigegebene Inhalte/u
+  );
+}
 await assert.rejects(
   () => renderPasswordResetEmail({
     actionUrl,

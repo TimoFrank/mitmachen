@@ -147,7 +147,11 @@ safeFailure(
 for (const activeMarkup of [
   '<svg onload="alert(1)"></svg>',
   '<div style="background-image:url(data:text/plain,unsafe)">Unsicher</div>',
-  '<object data="cid:brand"></object>'
+  '<object data="cid:brand"></object>',
+  '<div style="display:none;opacity:0">Verborgener Inhalt</div>',
+  "<div hidden>Verborgener Inhalt</div>",
+  '<div style="position:absolute;left:-9999px">Verborgener Inhalt</div>',
+  "<div>Verborgener Inhalt\ufeff</div>"
 ]) {
   const unsafeHtml = rendered.html.replace(
     "</body>",
@@ -159,7 +163,7 @@ for (const activeMarkup of [
   );
   safeFailure(
     () => validateWelcomeEmailEml(unsafeEml),
-    /aktive Inhalte|eingebetteten Signets/u
+    /aktive Inhalte|eingebetteten Signets|verborgene Inhalte/u
   );
 }
 

@@ -8,7 +8,7 @@ export const PASSWORD_RESET_EMAIL_SMTP_PORT = 465;
 export const PASSWORD_RESET_EMAIL_SENDER_EMAIL = "zugang@versorgungs-kompass.de";
 export const PASSWORD_RESET_EMAIL_SENDER_NAME = "#Mitmachen";
 export const PASSWORD_RESET_EMAIL_SUBJECT = "#Mitmachen: Passwort zurücksetzen";
-export const PASSWORD_RESET_EMAIL_TEMPLATE_ID = "pre-gematik-password-reset-v1";
+export const PASSWORD_RESET_EMAIL_TEMPLATE_ID = "pre-gematik-password-reset-v2";
 
 const PASSWORD_RESET_ACTION_ORIGIN = "https://versorgungs-kompass.de";
 const PASSWORD_RESET_ACTION_PATH = "/konto/passwort-festlegen";
@@ -25,6 +25,8 @@ const MAX_TEMPLATE_BYTES = 64 * 1024;
 const MAX_RENDERED_PART_BYTES = 128 * 1024;
 const MAX_ASSET_BYTES = 32 * 1024;
 const PNG_SIGNATURE = Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]);
+const HIDDEN_EMAIL_CONTENT_PATTERN =
+  /(?:display\s*:\s*none|visibility\s*:\s*hidden|max-height\s*:\s*0|color\s*:\s*transparent|mso-hide\s*:\s*all|opacity\s*:\s*0(?:\.0+)?(?=\s*(?:[;'"!]|$))|<[^>]*\shidden(?=[\s=>/])|(?:left|right|top|bottom|text-indent)\s*:\s*-\s*(?:999|[1-9]\d{3,})(?:px|em|rem)|&(?:zwnj|zwj|lrm|rlm|zerowidthspace|nobreak|applyfunction|invisibletimes|invisiblecomma);|&#0*(?:847|1564|6158|820[3-7]|823[4-8]|828[89]|829\d|830[0-3]|65279);|&#x0*(?:34f|61c|180e|200[b-f]|202[a-e]|206[0-9a-f]|feff);|[\u034f\u061c\u180e\u200b-\u200f\u202a-\u202e\u2060-\u206f\ufeff])/iu;
 const TEMPLATE_DIRECTORY = new URL(
   "../config/pre-gematik/email/",
   import.meta.url
@@ -156,6 +158,7 @@ function validateHtmlTemplate(value) {
     || hrefs.some((href) => href !== "{{ACTION_URL}}")
     || sources.length !== expectedSources.length
     || sources.some((source, index) => source !== expectedSources[index])
+    || HIDDEN_EMAIL_CONTENT_PATTERN.test(template)
     || /<(?:script|iframe|object|embed|form|input|button|video|audio|svg|link|base)\b/iu.test(template)
     || /(?:https?:|\/\/|javascript:|data:|url\s*\()/iu.test(template)
     || /\b(?:width|height)="1"/iu.test(template)
@@ -314,6 +317,7 @@ function validateRenderedHtml(html, escapedActionUrl, cids) {
     || hrefs.some((href) => href !== escapedActionUrl)
     || sources.length !== cids.length
     || sources.some((source, index) => source !== `cid:${cids[index]}`)
+    || HIDDEN_EMAIL_CONTENT_PATTERN.test(html)
     || /\{\{|\}\}/u.test(html)
     || /<(?:script|iframe|object|embed|form|input|button|video|audio|svg|link|base)\b/iu.test(html)
     || /(?:https?:|\/\/|javascript:|data:|url\s*\()/iu.test(withoutActionUrl)

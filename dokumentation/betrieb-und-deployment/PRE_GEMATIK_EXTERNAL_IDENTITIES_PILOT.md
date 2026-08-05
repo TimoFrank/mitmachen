@@ -545,7 +545,11 @@ Renderer
 erzeugt nach einem Preview ein create-only, owner-only Mailpaket mit Betreff,
 Text, HTML und importierbarer EML-Datei. Der Renderer lehnt leere Vorlagen,
 fremde Hosts, Firebase-/Projektlinks, zusätzliche URL-Parameter, Remote-Bilder,
-SVG-/Data-Assets, aktive Inhalte, Tracking, Skripte und Header-Injection ab.
+SVG-/Data-Assets, aktive Inhalte, Tracking, Skripte, Header-Injection sowie
+typische, in diesen Transaktionsmails nicht benötigte HTML-, CSS- und
+Zero-Width-Muster für verborgene Inhalte ab. ASCII-Werte für Absender und
+Betreff bleiben ungefalzt und werden nicht als überlanges RFC-2047-Encoded-Word
+ausgegeben.
 Die vier kanonischen Kompass-Signets werden ausschließlich als hashgepinnte,
 transparente 72×72-PNGs mit eindeutigen Content-IDs in `multipart/related`
 eingebettet; unbekannte, zusätzliche, vertauschte oder veränderte CID-Assets
