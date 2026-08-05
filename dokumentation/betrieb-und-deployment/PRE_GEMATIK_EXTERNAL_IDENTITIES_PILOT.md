@@ -645,6 +645,115 @@ vollständigen Versand. Bei `unknown` oder
 Stattdessen müssen Zielpostfach, `Message-ID`, Mailfingerabdruck sowie die
 konkrete `prepared`-/`active`-Generation reconciliiert werden.
 
+#### Beschleunigter resumierbarer Online-Neunutzerweg
+
+Für weitere vollständig neue Passwortgäste darf der lokale
+[`orchestrate_pre_gematik_online_onboarding.mjs`](../../scripts/orchestrate_pre_gematik_online_onboarding.mjs)
+die oben beschriebenen Einzeloperationen bis zur versandbereiten Mail
+automatisieren. Er ist eine Orchestrierung desselben Vertrags und kein neuer
+fachlicher oder privilegierter Datenpfad. Bestandsprofil, Anzeigename-Reconcile,
+Subject-Remap, Widerruf, Rollen- oder Scope-Änderung bleiben ausgeschlossen und
+verwenden weiterhin ihren wartungsgebundenen Einzelvertrag.
+
+Der Online-Orchestrator akzeptiert ausschließlich die explizite Kombination
+`GUEST_ACCESS_CREATE_PROFILE_AND_PREBIND=true` und
+`GUEST_ACCESS_RECONCILE_PROFILE_DISPLAY_NAME_AND_PREBIND=false`. Die App bleibt
+dabei verfügbar: Es gibt kein Wartungsfenster, keinen App-Lock, keine Downtime
+und kein Skalieren von Frontend oder API. Automatische Backups, PITR, positive
+Aufbewahrung und der aktuelle erfolgreiche Recovery-Punkt werden weiterhin in
+jeder Gastphase frisch fail-closed geprüft. Ein ad-hoc gesetztes
+`PRE_IMPORT_BACKUP_ID` gehört nicht zu diesem Modus und kann das Gate nicht
+ersetzen.
+
+Das bereits geprüfte Linux/AMD64-Operator-Image darf releasebezogen für mehrere
+Neunutzerläufe wiederverwendet werden. Eine aufgelöste owner-only Kopie von
+[`online-onboarding-operator-release.example.json`](../../config/pre-gematik/online-onboarding-operator-release.example.json)
+bindet Quellcommit, regionalen unveränderlichen Image-Digest, den aus diesem
+Image gelesenen Proxy-Pin, privaten Einladungs-Bucket, Freigabeende und
+Pilotfrist. Ein Image-Neubau pro Person ist weder ein Sicherheitsgate noch
+erforderlich. Bei Quelländerung, neuem Digest, abgelaufener oder widerrufener
+Freigabe wird der Release dagegen nicht wiederverwendet.
+
+Die phasenminimale Zielumgebung wird aus
+[`online-onboarding.env.example`](../../config/pre-gematik/online-onboarding.env.example)
+in eine geschützte Datei aufgelöst. Account- und Gastzugriffsdokument,
+Identity-Platform-Readback-Env, SMTP-Konfiguration, Run-Verzeichnis und alle
+daraus entstehenden Journale, Evidenzen, Links und Mailartefakte liegen
+owner-only außerhalb des Git-Worktrees. Das Run-Verzeichnis besitzt Modus
+`0700`, Dateien Modus `0600`; Symlinks, unbekannte Felder und ungebundene
+Eingaben werden abgewiesen.
+
+Ein read-only Plan erzeugt einen Fingerprint über Account, Gastzugriff,
+Zielumgebung und Operator-Release. Genau ein damit bestätigter Apply-Aufruf
+führt danach ohne manuelle Kubernetes-Unterbrechung diese feste Folge aus:
+
+1. zwei identische Account-Previews und genau einen create-only Account-Apply;
+   der technisch erzeugte native Reset-Link wird direkt nach dem exakten
+   Account-Readback gelöscht und niemals in den Mailpfad übernommen,
+2. genau einen `guest-preview`, genau einen bestätigten `guest-apply` und genau
+   einen `result=unchanged`-Post-Apply-Preview,
+3. geschützte Evidenzübergabe und vollständigen Cleanup von Job, Secrets,
+   kurzlebigem Datenbanklogin und allen temporären IAM-Bindungen,
+4. inerte Einladungsplanung und create-only Wrapperlink,
+5. Mail-Preview und create-only Rendering sowie
+6. ausschließlich den Sender-Preview mit dem Ergebnis `READY_TO_SEND`,
+   `mail_sent=false` und einem Mailfingerprint.
+
+Der Lauf führt ein crash-atomar veröffentlichtes, create-only und monoton
+fortgeschriebenes owner-only Journal. Es bindet Fingerprints, Evidenz und die
+UIDs seiner kurzlebigen Ressourcen, enthält aber keine Passwörter, API-Keys
+oder Linktokens. Ein create-only
+Cluster-Lock verhindert konkurrierende Nutzung der festen Operator-Ressourcen.
+Mit denselben Eingaben und Bestätigungen kann `--resume` nach einem sicheren
+Abbruch am ersten unvollständigen Schritt fortsetzen. Es gibt keinen blinden
+Apply-Retry: Bei unbekanntem Account- oder Datenbank-COMMIT-Ausgang erfolgt
+zuerst der vorgeschriebene vollständige Readback; Teilzustände sowie unbekannte
+Einladungs- oder SMTP-Ausgänge bleiben `NO-GO`.
+Unvollständige lokale Datenbankzugangsverzeichnisse werden noch vor ihrer
+Veröffentlichung automatisch entfernt. Ein bereits im Journal vorhandenes
+`READY_TO_SEND` wird beim Resume erneut per Sender-Preview geprüft und nur bei
+unverändertem Mailfingerprint bestätigt. Ein lokaler Takeover wird nur für
+denselben Journal-Holder und einen nachweislich beendeten Prozess automatisch
+ersetzt; fremde oder unlesbare Lockzustände bleiben `NO-GO`.
+
+Für den kurzlebigen Cloud-SQL-Login verankert das geschützte
+Zugangsverzeichnis vor dem API-Aufruf einen create-only Intent und danach die
+exakt zielgebundene asynchrone `CREATE_USER`-Operation. Die Gastphase beginnt
+erst nach deren terminalem Readback. `CREATE_USER` setzt zugleich die einzige
+freigegebene Datenbankrolle; ein nachgelagertes `UPDATE_USER` ist nicht Teil
+des Online-Vertrags. Fehlt nach einem lokalen Abbruch die
+Operation-ID und ist der Login zunächst noch nicht sichtbar, bleiben
+Zugangsverzeichnis und Cluster-Lock erhalten; ein späteres Resume darf den
+Zustand nicht anhand eines einmaligen `absent` als bereinigt einstufen.
+
+Sinkt die Restlaufzeit des exakt eigenen IAM-Locks unter 15 Minuten oder ist
+der gebundene Operator-Release abgelaufen, führt `--resume` ausschließlich eine
+ownership-geprüfte Restbereinigung durch. Das Ergebnis lautet
+`CLEANUP_COMPLETED_RESUME_REQUIRED`, `mail_sent=false` und `ready=false`.
+Account-, Gast-, Einladungs-, Rendering- und Mailphasen bleiben in diesem Modus
+gesperrt. Ein aktiver Release kann anschließend mit einem frischen Lock
+fortgesetzt werden; ein abgelaufener Release benötigt vorher eine neue
+Freigabe.
+
+Bei Resume läuft zuerst nur der minimale Ziel- und Ownership-Preflight. Der
+vollständige Vorwärts-Preflight für Quellstand, Image und Bucket folgt erst nach
+dem Lock-Readback und ausschließlich bei ausreichender IAM-Restlaufzeit. Damit
+kann ein Forward-Gate die erforderliche Restbereinigung nicht blockieren.
+
+`READY_TO_SEND` ist eine harte Grenze. Der Orchestrator besitzt keinen
+SMTP-Apply-Pfad, und ein Resume überschreitet diese Grenze nicht. Erst die
+danach separat eingeholte persönliche Einmalfreigabe für exakt den angezeigten
+Mailfingerprint autorisiert den oben dokumentierten
+`SEND_PRE_GEMATIK_GUEST_WELCOME_EMAIL`-Befehl. Die Einladung ist bis dahin
+inert; ihre 48 Stunden beginnen unverändert erst nach bestätigter SMTP-Annahme.
+
+Mit gesundem Zielkontext und bereits freigegebenem Image ist für den
+automatisierten Prepare-Lauf eine typische Zielspanne von vier bis acht Minuten
+vorgesehen. Sie ist kein SLO und rechtfertigt weder übersprungene Evidenz noch
+unvollständigen Cleanup. Die detaillierten Befehle und Sicherheitsgrenzen des
+Orchestrators stehen im
+[`migration-operator`-Runbook](../../deploy/migration-operator/README.md).
+
 Vor der ersten echten Einladung wird eine Nachricht mit ausschließlich
 synthetischem Link an ein kontrolliertes Testpostfach gesendet. In dessen
 zugestellten Headern werden mindestens `SPF=pass` und ein ausgerichtetes
