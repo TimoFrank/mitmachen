@@ -15,6 +15,12 @@ RUN npm ci --omit=dev --ignore-scripts \
       /opt/yarn-v1.22.22
 
 COPY api/ ./api/
+COPY config/pre-gematik/email/pre-gematik-password-reset.html ./config/pre-gematik/email/pre-gematik-password-reset.html
+COPY config/pre-gematik/email/pre-gematik-password-reset.txt ./config/pre-gematik/email/pre-gematik-password-reset.txt
+COPY config/pre-gematik/email/assets/versorgungs-kompass-mark-on-dark.png ./config/pre-gematik/email/assets/versorgungs-kompass-mark-on-dark.png
+COPY config/pre-gematik/email/assets/stakeholder-mark-on-dark.png ./config/pre-gematik/email/assets/stakeholder-mark-on-dark.png
+COPY config/pre-gematik/email/assets/hospitation-mark-on-dark.png ./config/pre-gematik/email/assets/hospitation-mark-on-dark.png
+COPY config/pre-gematik/email/assets/formate-mark-on-dark.png ./config/pre-gematik/email/assets/formate-mark-on-dark.png
 COPY frontend/data/activity-model.js ./frontend/data/activity-model.js
 COPY frontend/data/sector-registry.js ./frontend/data/sector-registry.js
 

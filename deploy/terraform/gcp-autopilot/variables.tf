@@ -151,6 +151,20 @@ variable "DB_PASSWORD_SECRET_NAME" {
   default     = "vk-pre-gematik-postgres-password"
 }
 
+variable "PASSWORD_RESET_SMTP_PASSWORD_SECRET_NAME" {
+  description = "Dedicated Secret Manager secret ID for the branded password-reset SMTP password. Terraform creates no secret version and stores no password. The ID is reused as the namespace-local Kubernetes Secret name."
+  type        = string
+  default     = "vk-pre-gematik-password-reset-smtp-password"
+
+  validation {
+    condition = (
+      length(var.PASSWORD_RESET_SMTP_PASSWORD_SECRET_NAME) <= 63 &&
+      can(regex("^[a-z0-9]([-a-z0-9]*[a-z0-9])?$", var.PASSWORD_RESET_SMTP_PASSWORD_SECRET_NAME))
+    )
+    error_message = "PASSWORD_RESET_SMTP_PASSWORD_SECRET_NAME must be a valid lower-case Kubernetes Secret name with at most 63 characters."
+  }
+}
+
 variable "IAP_OAUTH_BOOTSTRAP_SECRET_NAME" {
   description = "Existing Secret Manager secret whose latest version is a JSON object with client_id and client_secret."
   type        = string

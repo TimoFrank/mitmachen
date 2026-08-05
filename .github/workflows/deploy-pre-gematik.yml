@@ -351,6 +351,7 @@ jobs:
       DB_NAME: ${{ vars.DB_NAME }}
       DB_USER: ${{ vars.DB_USER }}
       DB_PASSWORD_SECRET_NAME: ${{ vars.DB_PASSWORD_SECRET_NAME }}
+      PASSWORD_RESET_SMTP_PASSWORD_SECRET_NAME: ${{ vars.PASSWORD_RESET_SMTP_PASSWORD_SECRET_NAME }}
       IAP_OAUTH_BOOTSTRAP_SECRET_NAME: ${{ vars.IAP_OAUTH_BOOTSTRAP_SECRET_NAME }}
       PROFILE_IMAGE_BUCKET: ${{ vars.PROFILE_IMAGE_BUCKET }}
       CONTACT_IMAGE_BUCKET: ${{ vars.CONTACT_IMAGE_BUCKET }}
@@ -389,7 +390,7 @@ jobs:
             GCP_PROJECT_ID GCP_PROJECT_NUMBER GCP_REGION GKE_CLUSTER_NAME GKE_LOCATION
             WIF_PROVIDER DEPLOYER_SERVICE_ACCOUNT GAR_REPOSITORY
             API_BASE_URL FRONTEND_BASE_URL FRONTEND_BUCKET
-            DB_NAME DB_USER DB_PASSWORD_SECRET_NAME
+            DB_NAME DB_USER DB_PASSWORD_SECRET_NAME PASSWORD_RESET_SMTP_PASSWORD_SECRET_NAME
             IAP_OAUTH_BOOTSTRAP_SECRET_NAME
             PROFILE_IMAGE_BUCKET CONTACT_IMAGE_BUCKET
             CONTACT_NOTE_ATTACHMENT_BUCKET STAKEHOLDER_LOGO_BUCKET PASSWORD_INVITATION_BUCKET
@@ -453,6 +454,17 @@ jobs:
           fi
           if [[ ! "$IAP_OAUTH_BOOTSTRAP_SECRET_NAME" =~ ^[A-Za-z0-9_-]{1,255}$ ]]; then
             echo "IAP_OAUTH_BOOTSTRAP_SECRET_NAME is not a valid Secret Manager secret ID." >&2
+            exit 1
+          fi
+          if [[ ! "$PASSWORD_RESET_SMTP_PASSWORD_SECRET_NAME" =~ ^[a-z0-9]([-a-z0-9]*[a-z0-9])?$ ]] || \
+             (( ${#PASSWORD_RESET_SMTP_PASSWORD_SECRET_NAME} > 63 )); then
+            echo "PASSWORD_RESET_SMTP_PASSWORD_SECRET_NAME must be a lower-case Secret Manager ID that is also a valid Kubernetes Secret name." >&2
+            exit 1
+          fi
+          if [[ "$PASSWORD_RESET_SMTP_PASSWORD_SECRET_NAME" == "$DB_PASSWORD_SECRET_NAME" ]] || \
+             [[ "$PASSWORD_RESET_SMTP_PASSWORD_SECRET_NAME" == "$IAP_OAUTH_BOOTSTRAP_SECRET_NAME" ]] || \
+             [[ "$PASSWORD_RESET_SMTP_PASSWORD_SECRET_NAME" == "$IAP_OAUTH_CLIENT_CREDENTIALS_SECRET_NAME" ]]; then
+            echo "The password-reset SMTP password must use its own dedicated secret identity." >&2
             exit 1
           fi
           if [[ "$IAP_IDENTITY_MODE" != "iam" && "$IAP_IDENTITY_MODE" != "external" ]]; then
@@ -1897,6 +1909,9 @@ jobs:
               --set-string config.iapExternalAccessExpiresAt="$runtime_external_access_expires_at" \
               --set passwordResetBroker.enabled="$password_reset_broker_enabled" \
               --set-string passwordResetBroker.invitationBucketName="$PASSWORD_INVITATION_BUCKET" \
+              --set passwordResetBroker.email.enabled="$password_reset_broker_enabled" \
+              --set-string passwordResetBroker.email.secretName="$PASSWORD_RESET_SMTP_PASSWORD_SECRET_NAME" \
+              --set-string passwordResetBroker.email.secretKey=password \
               --set-string config.hospitationImportOwnerProfileId="$HOSPITATION_IMPORT_OWNER_PROFILE_ID" \
               --set-string frontend.backendConfig.iap.oauthClientCredentialsSecretName="$IAP_OAUTH_CLIENT_CREDENTIALS_SECRET_NAME" \
               --set-string frontend.publicEntry.image.repository="$PUBLIC_IMAGE_REPOSITORY" \
@@ -3359,6 +3374,7 @@ jobs:
           auth_proxy_service_name="${HELM_RELEASE}-frontend-auth-proxy"
           password_reset_deployment_name="${HELM_RELEASE}-password-reset"
           password_reset_service_name="${HELM_RELEASE}-password-reset"
+          password_reset_secret_provider_class_name="${HELM_RELEASE}-password-reset-smtp"
 
           kubectl --namespace "$K8S_NAMESPACE" rollout status \
             "deployment/${deployment_name}" \
@@ -3378,7 +3394,9 @@ jobs:
               --timeout=10m
             kubectl --namespace "$K8S_NAMESPACE" get deployment "$password_reset_deployment_name" \
               --output=json | jq --exit-status \
-              --arg expected_ksa "versorgungs-kompass-password-reset" '
+              --arg expected_ksa "versorgungs-kompass-password-reset" \
+              --arg expected_smtp_secret "$PASSWORD_RESET_SMTP_PASSWORD_SECRET_NAME" \
+              --arg expected_smtp_key "password" '
                 .spec.template.spec.serviceAccountName == $expected_ksa and
                 .spec.template.spec.automountServiceAccountToken == false and
                 ((.spec.template.spec.volumes // []) | length) == 0 and
@@ -3392,13 +3410,63 @@ jobs:
                   "NODE_ENV",
                   "PASSWORD_RESET_ALLOWED_ORIGIN",
                   "PASSWORD_RESET_BROKER_ENABLED",
+                  "PASSWORD_RESET_SMTP_PASSWORD",
                   "PASSWORD_INVITATION_BUCKET",
                   "PORT"
-                ] | sort)
+                ] | sort) and
+                ([.spec.template.spec.containers[0].env[]
+                  | select(.name == "PASSWORD_RESET_SMTP_PASSWORD")] == [{
+                    name: "PASSWORD_RESET_SMTP_PASSWORD",
+                    valueFrom: {
+                      secretKeyRef: {
+                        name: $expected_smtp_secret,
+                        key: $expected_smtp_key
+                      }
+                    }
+                  }])
+              ' >/dev/null
+
+            secret_provider_class_state="$(kubectl --namespace "$K8S_NAMESPACE" get secretproviderclass \
+              "$password_reset_secret_provider_class_name" --output=json)"
+            if ! jq --exit-status \
+              --arg expected_resource "projects/${GCP_PROJECT_ID}/secrets/${PASSWORD_RESET_SMTP_PASSWORD_SECRET_NAME}/versions/latest" '
+                .spec.provider == "gke" and
+                (.spec.parameters.secrets | contains($expected_resource)) and
+                (.spec.parameters.secrets | contains("path: \"smtp-password\""))
+              ' <<< "$secret_provider_class_state" >/dev/null; then
+              echo "The password-reset SecretProviderClass does not reference the exact dedicated SMTP Secret Manager resource." >&2
+              exit 1
+            fi
+
+            secret_sync_state="$(kubectl --namespace "$K8S_NAMESPACE" get secretsync \
+              "$PASSWORD_RESET_SMTP_PASSWORD_SECRET_NAME" --output=json)"
+            if ! jq --exit-status \
+              --arg expected_ksa "versorgungs-kompass-password-reset" \
+              --arg expected_provider "$password_reset_secret_provider_class_name" '
+                .spec.serviceAccountName == $expected_ksa and
+                .spec.secretProviderClassName == $expected_provider and
+                .spec.secretObject.type == "Opaque" and
+                .spec.secretObject.data == [{sourcePath: "smtp-password", targetKey: "password"}]
+              ' <<< "$secret_sync_state" >/dev/null; then
+              echo "The password-reset SecretSync is not pinned to the broker identity and SMTP password key." >&2
+              exit 1
+            fi
+
+            kubectl --namespace "$K8S_NAMESPACE" get secret "$PASSWORD_RESET_SMTP_PASSWORD_SECRET_NAME" \
+              --output=json | jq --exit-status '
+                .type == "Opaque" and
+                ((.data | keys) == ["password"]) and
+                ((.data.password | type) == "string") and
+                ((.data.password | length) > 0)
               ' >/dev/null
           else
             if kubectl --namespace "$K8S_NAMESPACE" get deployment "$password_reset_deployment_name" >/dev/null 2>&1; then
               echo "The password-reset broker must not be deployed outside external identity mode." >&2
+              exit 1
+            fi
+            if kubectl --namespace "$K8S_NAMESPACE" get secretproviderclass "$password_reset_secret_provider_class_name" >/dev/null 2>&1 || \
+               kubectl --namespace "$K8S_NAMESPACE" get secretsync "$PASSWORD_RESET_SMTP_PASSWORD_SECRET_NAME" >/dev/null 2>&1; then
+              echo "Password-reset SMTP Secret Sync resources must not remain active outside external identity mode." >&2
               exit 1
             fi
           fi

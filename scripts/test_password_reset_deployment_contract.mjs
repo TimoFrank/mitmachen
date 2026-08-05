@@ -6,45 +6,77 @@ const root = new URL("../", import.meta.url);
 const read = (relativePath) => readFile(new URL(relativePath, root), "utf8");
 
 const [
+  dockerignore,
+  dockerfile,
+  server,
   deployment,
   service,
   serviceAccount,
   backendConfig,
   ingress,
   networkPolicy,
+  secretSync,
   values,
   valuesGcp,
   valuesSchema,
   variables,
+  secretsTerraform,
   identities,
   locals,
   armor,
   storage,
   outputs,
+  terraformExample,
+  environmentExample,
   workflow,
   deploymentGuide
 ] = await Promise.all([
+  read(".dockerignore"),
+  read("api/Dockerfile"),
+  read("api/password-reset-server.mjs"),
   read("deploy/helm/versorgungs-kompass/templates/password-reset-broker-deployment.yaml"),
   read("deploy/helm/versorgungs-kompass/templates/password-reset-broker-service.yaml"),
   read("deploy/helm/versorgungs-kompass/templates/password-reset-broker-serviceaccount.yaml"),
   read("deploy/helm/versorgungs-kompass/templates/password-reset-broker-backendconfig.yaml"),
   read("deploy/helm/versorgungs-kompass/templates/ingress.yaml"),
   read("deploy/helm/versorgungs-kompass/templates/networkpolicy.yaml"),
+  read("deploy/helm/versorgungs-kompass/templates/secretsync.yaml"),
   read("deploy/helm/versorgungs-kompass/values.yaml"),
   read("deploy/helm/versorgungs-kompass/values-gcp-autopilot.yaml"),
   read("deploy/helm/versorgungs-kompass/values.schema.json"),
   read("deploy/terraform/gcp-autopilot/variables.tf"),
+  read("deploy/terraform/gcp-autopilot/secrets.tf"),
   read("deploy/terraform/gcp-autopilot/identities.tf"),
   read("deploy/terraform/gcp-autopilot/locals.tf"),
   read("deploy/terraform/gcp-autopilot/password-reset-broker.tf"),
   read("deploy/terraform/gcp-autopilot/storage.tf"),
   read("deploy/terraform/gcp-autopilot/outputs.tf"),
+  read("deploy/terraform/gcp-autopilot/terraform.tfvars.example"),
+  read("config/pre-gematik/variables.env.example"),
   read(".github/workflows/deploy-pre-gematik.yml"),
   read("dokumentation/betrieb-und-deployment/DEPLOYMENT_GCP_AUTOPILOT.md")
 ]);
 
+const resetImagePaths = [
+  "config/pre-gematik/email/pre-gematik-password-reset.html",
+  "config/pre-gematik/email/pre-gematik-password-reset.txt",
+  "config/pre-gematik/email/assets/versorgungs-kompass-mark-on-dark.png",
+  "config/pre-gematik/email/assets/stakeholder-mark-on-dark.png",
+  "config/pre-gematik/email/assets/hospitation-mark-on-dark.png",
+  "config/pre-gematik/email/assets/formate-mark-on-dark.png"
+];
+for (const imagePath of resetImagePaths) {
+  const escapedImagePath = imagePath.replaceAll(".", "\\.");
+  assert.match(dockerfile, new RegExp(`COPY ${escapedImagePath}`, "u"));
+  assert.match(dockerignore, new RegExp(`^!${escapedImagePath}$`, "mu"));
+}
+assert.doesNotMatch(dockerignore, /^!config\/pre-gematik\/email\/\*\*$/mu);
+
+assert.match(server, /const SHUTDOWN_TIMEOUT_MS = 25_000;/u);
+
 assert.match(deployment, /command:\s*\n\s*- node\s*\n\s*- api\/password-reset-server\.mjs/u);
 assert.match(deployment, /automountServiceAccountToken:/u);
+assert.match(deployment, /terminationGracePeriodSeconds: \{\{ \.Values\.terminationGracePeriodSeconds \}\}/u);
 assert.match(deployment, /config\.iapIdentityMode must be external/u);
 assert.match(deployment, /config\.allowedOrigin must be the canonical HTTPS ingress origin/u);
 for (const requiredEnvironment of [
@@ -53,14 +85,25 @@ for (const requiredEnvironment of [
   "IAP_GCIP_PROJECT_ID",
   "IAP_GCIP_TENANT_ID",
   "IAP_EXTERNAL_AUTH_API_KEY",
-  "PASSWORD_INVITATION_BUCKET"
+  "PASSWORD_INVITATION_BUCKET",
+  "PASSWORD_RESET_SMTP_PASSWORD"
 ]) {
   assert.match(deployment, new RegExp(`name: ${requiredEnvironment}`, "u"));
 }
+assert.match(deployment, /passwordResetBroker\.email\.enabled must be true when passwordResetBroker\.enabled is true/u);
+assert.match(
+  deployment,
+  /name: PASSWORD_RESET_SMTP_PASSWORD\s+valueFrom:\s+secretKeyRef:\s+name: \{\{ required "passwordResetBroker\.email\.secretName is required[^"]*" \.Values\.passwordResetBroker\.email\.secretName \| quote \}\}\s+key: \{\{ required "passwordResetBroker\.email\.secretKey is required[^"]*" \.Values\.passwordResetBroker\.email\.secretKey \| quote \}\}/u
+);
+assert.equal(
+  [...deployment.matchAll(/secretKeyRef:/gu)].length,
+  1,
+  "Der Broker darf genau das dedizierte SMTP-Passwort-Secret referenzieren."
+);
 assert.doesNotMatch(
   deployment,
-  /envFrom|secretKeyRef|DB_PASSWORD|DB_HOST|database|cloud-sql|storage|volumeMounts|\bvolumes:/iu,
-  "Der Broker-Pod darf keine API-ConfigMap, Secrets, Datenbank-, Storage- oder Cloud-SQL-Anbindung erben."
+  /envFrom|DB_PASSWORD|DB_HOST|database|cloud-sql|storage|volumeMounts|\bvolumes:/iu,
+  "Der Broker-Pod darf keine API-ConfigMap, Datenbank-, Storage- oder Cloud-SQL-Anbindung erben."
 );
 
 assert.match(service, /cloud\.google\.com\/neg/u);
@@ -86,20 +129,70 @@ const brokerNetworkPolicy = networkPolicy.match(
 assert.ok(brokerNetworkPolicy, "Die eigene Broker-NetworkPolicy fehlt.");
 assert.match(brokerNetworkPolicy, /port: 53/u);
 assert.match(brokerNetworkPolicy, /port: 443/u);
+assert.match(brokerNetworkPolicy, /protocol: TCP\s+port: 465/u);
 assert.match(brokerNetworkPolicy, /metadataServer/u);
+assert.deepEqual(
+  [...brokerNetworkPolicy.matchAll(/port:\s*([0-9]+)/gu)]
+    .map((match) => Number(match[1]))
+    .sort((left, right) => left - right),
+  [53, 53, 80, 443, 465, 987, 988, 8080],
+  "Der Broker-Egress darf neben DNS, HTTPS und Metadata Server ausschließlich SMTPS auf TCP 465 öffnen."
+);
+assert.doesNotMatch(brokerNetworkPolicy, /port:\s*(?:25|587|2525)/u);
 assert.doesNotMatch(
   brokerNetworkPolicy,
   /port:\s*(?:5432|3307)|cidr:\s*(?:10\.0\.0\.0\/8|172\.16\.0\.0\/12|192\.168\.0\.0\/16)/u,
   "Der Broker darf keinen privaten Datenbank-Egress besitzen."
 );
+const apiNetworkPolicy = networkPolicy.slice(0, networkPolicy.indexOf("{{- if .Values.passwordResetBroker.enabled }}"));
+assert.doesNotMatch(
+  apiNetworkPolicy,
+  /port:\s*465/u,
+  "Der allgemeine API-Pod darf keinen SMTP-Egress erhalten."
+);
 
 assert.match(values, /passwordResetBroker:\s*\n\s*enabled: false/u);
+assert.match(values, /terminationGracePeriodSeconds: 30/u);
 assert.match(values, /passwordResetBroker:[\s\S]*invitationBucketName: ""/u);
+assert.match(values, /passwordResetBroker:[\s\S]*?email:\s*\n\s*enabled: false\s*\n\s*secretName: ""\s*\n\s*secretKey: "password"/u);
 assert.match(valuesGcp, /passwordResetBroker:[\s\S]*enabled: false[\s\S]*invitationBucketName: ""[\s\S]*securityPolicyName: vk-pre-gematik-password-reset/u);
+assert.match(valuesGcp, /passwordResetBroker:[\s\S]*?email:\s*\n\s*enabled: false\s*\n\s*secretName: vk-pre-gematik-password-reset-smtp-password\s*\n\s*secretKey: password/u);
 assert.match(values, /passwordResetBroker:[\s\S]*?backendConfig:[\s\S]*?timeoutSec: 45/u);
 assert.match(valuesGcp, /passwordResetBroker:[\s\S]*?backendConfig:[\s\S]*?timeoutSec: 45/u);
 assert.match(valuesSchema, /"timeoutSec"[\s\S]*?"const": 45/u);
 assert.match(valuesSchema, /"invitationBucketName"[\s\S]*"pattern": "\^\$\|\^\[a-z0-9\]/u);
+assert.match(valuesSchema, /"email": \{[\s\S]*?"additionalProperties": false[\s\S]*?"required": \[[\s\S]*?"enabled"[\s\S]*?"secretName"[\s\S]*?"secretKey"[\s\S]*?\]/u);
+assert.match(valuesSchema, /"email": \{[\s\S]*?"enabled": \{\s*"const": true/u);
+
+assert.match(secretSync, /kind: SecretProviderClass[\s\S]*passwordResetBrokerSecretProviderClassName/u);
+assert.match(
+  secretSync,
+  /secrets\/\{\{ required "passwordResetBroker\.email\.secretName is required" \.Values\.passwordResetBroker\.email\.secretName \}\}\/versions/u
+);
+assert.match(secretSync, /path: "smtp-password"/u);
+assert.match(secretSync, /kind: SecretSync[\s\S]*serviceAccountName: \{\{ include "versorgungs-kompass\.passwordResetBrokerServiceAccountName" \. \}\}/u);
+assert.match(secretSync, /targetKey: \{\{ required "passwordResetBroker\.email\.secretKey is required"/u);
+
+assert.match(variables, /variable "PASSWORD_RESET_SMTP_PASSWORD_SECRET_NAME"/u);
+assert.match(variables, /default\s*=\s*"vk-pre-gematik-password-reset-smtp-password"/u);
+assert.match(variables, /length\(var\.PASSWORD_RESET_SMTP_PASSWORD_SECRET_NAME\) <= 63/u);
+assert.match(secretsTerraform, /resource "google_secret_manager_secret" "password_reset_smtp_password"/u);
+assert.match(secretsTerraform, /secret_id\s*=\s*var\.PASSWORD_RESET_SMTP_PASSWORD_SECRET_NAME/u);
+assert.doesNotMatch(
+  secretsTerraform,
+  /google_secret_manager_secret_version/u,
+  "Terraform darf keine SMTP-Passwortversion in den State schreiben."
+);
+const smtpSecretBinding = secretsTerraform.match(
+  /resource "google_secret_manager_secret_iam_member" "password_reset_smtp_password_workload" \{[\s\S]*?\n\}/u
+)?.[0];
+assert.ok(smtpSecretBinding, "Die secret-spezifische SMTP-Zugriffsbindung fehlt.");
+assert.match(smtpSecretBinding, /secret_id\s*=\s*google_secret_manager_secret\.password_reset_smtp_password\.secret_id/u);
+assert.match(smtpSecretBinding, /role\s*=\s*"roles\/secretmanager\.secretAccessor"/u);
+assert.match(smtpSecretBinding, /member\s*=\s*local\.gke_password_reset_workload_principal/u);
+assert.doesNotMatch(smtpSecretBinding, /deployer|gke_api_workload_principal/u);
+assert.match(terraformExample, /PASSWORD_RESET_SMTP_PASSWORD_SECRET_NAME\s*=\s*"vk-pre-gematik-password-reset-smtp-password"/u);
+assert.match(environmentExample, /PASSWORD_RESET_SMTP_PASSWORD_SECRET_NAME=vk-pre-gematik-password-reset-smtp-password/u);
 
 const roleBlock = identities.match(
   /resource "google_project_iam_custom_role" "password_reset_broker" \{[\s\S]*?\n\}/u
@@ -356,9 +449,20 @@ assert.match(armor, /enforce_on_key\s*=\s*"IP"/u);
 assert.match(armor, /action\s*=\s*"deny\(404\)"/u);
 
 assert.match(workflow, /password_reset_broker_enabled="false"[\s\S]*IAP_IDENTITY_MODE" == "external"[\s\S]*password_reset_broker_enabled="true"/u);
+assert.match(workflow, /PASSWORD_RESET_SMTP_PASSWORD_SECRET_NAME:\s*\$\{\{ vars\.PASSWORD_RESET_SMTP_PASSWORD_SECRET_NAME \}\}/u);
+assert.match(workflow, /PASSWORD_RESET_SMTP_PASSWORD_SECRET_NAME must be a lower-case Secret Manager ID that is also a valid Kubernetes Secret name/u);
+assert.match(workflow, /The password-reset SMTP password must use its own dedicated secret identity/u);
 assert.match(workflow, /--set passwordResetBroker\.enabled="\$password_reset_broker_enabled"/u);
 assert.match(workflow, /PASSWORD_INVITATION_BUCKET:\s*\$\{\{ vars\.PASSWORD_INVITATION_BUCKET \}\}/u);
 assert.match(workflow, /--set-string passwordResetBroker\.invitationBucketName="\$PASSWORD_INVITATION_BUCKET"/u);
+assert.match(workflow, /--set passwordResetBroker\.email\.enabled="\$password_reset_broker_enabled"/u);
+assert.match(workflow, /--set-string passwordResetBroker\.email\.secretName="\$PASSWORD_RESET_SMTP_PASSWORD_SECRET_NAME"/u);
+assert.match(workflow, /--set-string passwordResetBroker\.email\.secretKey=password/u);
+assert.match(workflow, /get secretproviderclass[\s\S]*password_reset_secret_provider_class_name/u);
+assert.match(workflow, /projects\/\$\{GCP_PROJECT_ID\}\/secrets\/\$\{PASSWORD_RESET_SMTP_PASSWORD_SECRET_NAME\}\/versions\/latest/u);
+assert.match(workflow, /get secretsync[\s\S]*PASSWORD_RESET_SMTP_PASSWORD_SECRET_NAME/u);
+assert.match(workflow, /\.spec\.serviceAccountName == \$expected_ksa/u);
+assert.match(workflow, /get secret "\$PASSWORD_RESET_SMTP_PASSWORD_SECRET_NAME"[\s\S]*\(\(\.data \| keys\) == \["password"\]\)/u);
 assert.match(workflow, /softDeletePolicy\.retentionDurationSeconds[\s\S]*== "0"/u);
 assert.match(workflow, /password_reset_service_name="\$\{HELM_RELEASE\}-password-reset"/u);
 assert.match(workflow, /resolve_backend_for_service "\$password_reset_service_name"/u);
@@ -376,5 +480,12 @@ assert.doesNotMatch(
   /password_reset/u,
   "Der absichtlich IAP-freie Broker darf nie Teil des IAP-Reconcile-Arrays werden."
 );
+assert.match(deploymentGuide, /w01abca0\.kasserver\.com:465/u);
+assert.match(deploymentGuide, /zugang@versorgungs-kompass\.de/u);
+assert.match(deploymentGuide, /PASSWORD_RESET_SMTP_PASSWORD_SECRET_NAME/u);
+assert.match(deploymentGuide, /Nur die Passwort-Reset-Workload-Identity erhält `roles\/secretmanager\.secretAccessor` auf genau diesem Secret/u);
+assert.match(deploymentGuide, /PASSWORD_RESET_SMTP_PASSWORD` wird erst beim Start eines neuen Broker-Pods/u);
+assert.match(deploymentGuide, /rollout restart deployment\/versorgungs-kompass-password-reset/u);
+assert.match(deploymentGuide, /rollout status deployment\/versorgungs-kompass-password-reset --timeout=10m/u);
 
 console.log("Password-reset deployment contract checks passed.");

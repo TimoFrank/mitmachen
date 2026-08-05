@@ -259,11 +259,15 @@ Sie enthält keine Selbstregistrierung, keine anonyme Anmeldung und kein
 Account-Linking. Die Oberfläche ruft ausschließlich den gleichursprünglichen,
 minimal privilegierten Broker über den exakten Pfad
 `POST /api/auth/password-reset` auf. Der Broker läuft in einem separaten
-Deployment ohne Datenbank-, Cloud-SQL- oder Secret-Manager-Zugriff. Seine
+Deployment ohne Datenbank- oder Cloud-SQL-Zugriff. Seine
 Workload Identity besitzt neben `firebaseauth.users.get` und
 `firebaseauth.users.sendEmail` ausschließlich Storage Get und Delete für den
 bedingten Objektprefix `active/` des privaten Einladungs-Buckets. List, Create,
-Update und Restore bleiben verboten. Er versendet nur für genau einen aktiven,
+Update und Restore bleiben verboten. Zusätzlich darf sie nur die aktive
+Version des dedizierten SMTP-Passwort-Secrets lesen. Der Broker versendet die
+versionierte #Mitmachen-Mail per SMTPS ausschließlich über
+`w01abca0.kasserver.com:465` als `zugang@versorgungs-kompass.de`; seine
+NetworkPolicy öffnet dafür nur TCP 465. Er versendet nur für genau einen aktiven,
 verifizierten Passwort-only-Account einen Self-Service-Reset-Link; die
 Continue-URL ist serverseitig bytegenau auf
 `https://versorgungs-kompass.de/start` festgelegt.
@@ -326,17 +330,20 @@ Gates:
    `https://steam-capsule-341212.firebaseapp.com/__/auth/handler` bleibt nur
    während des Piloten als inaktiver Rollback-Eintrag registriert; Login-
    Konfiguration und Abnahmen referenzieren stets den kanonischen Redirect.
-5. Einladungs- und administrative Recovery-Links werden vom gebrandeten Custom
-   Handler auf der Passwortsetzseite verarbeitet. Self-Service-Reset-Links
-   verwenden bis zur Aufhebung der Provider-Sperre den oben gepinnten
-   Firebase-Standard-Action-Handler. Unabhängig vom Handler ist die vom Broker
-   gesetzte `continue_url` jedes Self-Service-Reset-Links bytegenau
+5. Einladungs-, administrative Recovery- und Self-Service-Reset-Links werden
+   vom gebrandeten Custom Handler auf der Passwortsetzseite verarbeitet. Für
+   den Self-Service-Reset akzeptiert der Broker ausschließlich den vom Provider
+   frisch zurückgegebenen, vollständig validierten OOB-Link und projiziert
+   dessen `mode`, `oobCode`, `apiKey`, `continueUrl` und `lang` auf den
+   kanonischen Custom Handler. Die vom Broker gesetzte `continue_url` jedes
+   Self-Service-Reset-Links ist bytegenau
    `https://versorgungs-kompass.de/start` und nicht browsersteuerbar.
 6. Der öffentliche Reset-Broker ist nur unter dem exakten kanonischen
    `POST /api/auth/password-reset` erreichbar. Sein BackendService hat IAP
    bewusst deaktiviert, Access-Logging deaktiviert, eine eigene
-   Cloud-Armor-Rate-Limit-Policy und keine Datenbank- oder Secret-Credentials.
-   Er erhält nur den privaten Bucketnamen sowie die GKE Workload Identity. Die
+   Cloud-Armor-Rate-Limit-Policy und keine Datenbank-Credentials. Er erhält nur
+   den privaten Bucketnamen, das dedizierte SMTP-Passwort über einen exakten
+   Kubernetes-`secretKeyRef` sowie die GKE Workload Identity. Die
    bedingte Storage-Rolle erlaubt ausschließlich `storage.objects.get` und
    `storage.objects.delete` unter `active/`; List, Create, Update und Restore
    bleiben verboten. Das Helm-Schema pinnt den Backendtimeout bytegenau auf
@@ -1173,16 +1180,17 @@ nicht durch spontane Konto-, IAM- oder Binding-Erweiterungen repariert.
   Passwortkonto nutzbare Adressen dieselbe neutrale UI-Antwort.
 - [ ] Der Broker ist nur per exaktem kanonischem
   `POST /api/auth/password-reset` erreichbar; sein Backend ist IAP-frei,
-  logfrei, Cloud-Armor-rate-limitiert und erhält keine Datenbank- oder
-  Secret-Credentials. Bucketname und GKE Workload Identity sind gepinnt; unter
+  logfrei, Cloud-Armor-rate-limitiert und erhält keine Datenbank-Credentials.
+  Bucketname, das einzelne synchronisierte SMTP-Passwort-Secret und GKE
+  Workload Identity sind gepinnt; unter
   `active/` sind ausschließlich Storage Get und Delete erlaubt, niemals List,
   Create, Update oder Restore.
 - [ ] Die eigene Passwortsetzseite wird unter
   `https://versorgungs-kompass.de/konto/passwort-festlegen` ausgeliefert. Der
   48-Stunden-Wrapperlink bleibt mit seinem Token ausschließlich im Fragment;
-  der Self-Service-Reset verwendet bis zur Aufhebung der Provider-Sperre den
-  gepinnten Firebase-Action-Handler. Jeder vom Broker ausgelöste frische Reset
-  trägt unabhängig davon exakt
+  der Self-Service-Reset projiziert ausschließlich den validierten frischen
+  Provider-OOB-Link auf denselben kanonischen Custom Handler. Jeder vom Broker
+  ausgelöste frische Reset trägt exakt
   `continueUrl=https://versorgungs-kompass.de/start`.
 - [ ] Ein ungültiger, abgelaufener oder für eine nicht vorprovisionierte
   Adresse erzeugter Link legt weder Identity-Platform-Nutzer noch Profil,

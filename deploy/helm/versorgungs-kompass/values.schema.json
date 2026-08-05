@@ -57,6 +57,7 @@
         "replicaCount",
         "port",
         "invitationBucketName",
+        "email",
         "podAnnotations",
         "serviceAccount",
         "service",
@@ -78,6 +79,30 @@
           "type": "string",
           "maxLength": 63,
           "pattern": "^$|^[a-z0-9][a-z0-9-]{1,61}[a-z0-9]$"
+        },
+        "email": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "enabled",
+            "secretName",
+            "secretKey"
+          ],
+          "properties": {
+            "enabled": {
+              "type": "boolean"
+            },
+            "secretName": {
+              "type": "string",
+              "maxLength": 63,
+              "pattern": "^$|^[a-z0-9]([-a-z0-9]*[a-z0-9])?$"
+            },
+            "secretKey": {
+              "type": "string",
+              "maxLength": 253,
+              "pattern": "^[A-Za-z0-9._-]+$"
+            }
+          }
         },
         "podAnnotations": {
           "type": "object",
@@ -221,6 +246,19 @@
             "properties": {
               "invitationBucketName": {
                 "minLength": 3
+              },
+              "email": {
+                "properties": {
+                  "enabled": {
+                    "const": true
+                  },
+                  "secretName": {
+                    "minLength": 1
+                  },
+                  "secretKey": {
+                    "minLength": 1
+                  }
+                }
               },
               "backendConfig": {
                 "properties": {

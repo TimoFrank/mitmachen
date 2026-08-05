@@ -14,6 +14,20 @@ backups
 *.log
 
 config
+!config/
+config/*
+!config/pre-gematik/
+config/pre-gematik/*
+!config/pre-gematik/email/
+config/pre-gematik/email/*
+!config/pre-gematik/email/pre-gematik-password-reset.html
+!config/pre-gematik/email/pre-gematik-password-reset.txt
+!config/pre-gematik/email/assets/
+config/pre-gematik/email/assets/*
+!config/pre-gematik/email/assets/versorgungs-kompass-mark-on-dark.png
+!config/pre-gematik/email/assets/stakeholder-mark-on-dark.png
+!config/pre-gematik/email/assets/hospitation-mark-on-dark.png
+!config/pre-gematik/email/assets/formate-mark-on-dark.png
 deploy
 docs
 dokumentation

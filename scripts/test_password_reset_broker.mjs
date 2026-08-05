@@ -19,6 +19,7 @@ import {
 } from "../api/password-reset-broker.mjs";
 import {
   createPasswordResetHttpHandler,
+  createPasswordResetServer,
   passwordResetServerConfiguration
 } from "../api/password-reset-server.mjs";
 
@@ -34,6 +35,11 @@ const TEST_NOW = Date.parse("2026-08-04T11:00:00.000Z");
 const TEST_OOB_CODE = "syntheticPasswordActionCode1234567890";
 const TEST_RAW_ACTION_URL = `https://${TEST_PROJECT_ID}.firebaseapp.com/__/auth/action?mode=resetPassword&oobCode=${TEST_OOB_CODE}&apiKey=${TEST_API_KEY}&continueUrl=${encodeURIComponent(TEST_CONTINUE_URL)}`;
 const TEST_ACTION_URL = `https://versorgungs-kompass.de/konto/passwort-festlegen?mode=resetPassword&oobCode=${TEST_OOB_CODE}&apiKey=${TEST_API_KEY}&continueUrl=${encodeURIComponent(TEST_CONTINUE_URL)}&lang=de`;
+const TEST_SMTP_PASSWORD = "synthetic-smtp-password";
+
+async function rejectUnexpectedPasswordResetEmail() {
+  throw new Error("Für diesen Test darf keine Reset-Mail versendet werden.");
+}
 
 function activeInvitation(overrides = {}) {
   return {
@@ -191,16 +197,10 @@ const identityClient = createIdentityPlatformPasswordResetClient({
         headers: { "content-type": "application/json" }
       });
     }
-    if (JSON.parse(options.body).returnOobLink === true) {
-      return new Response(JSON.stringify({
-        email: TEST_EMAIL,
-        oobLink: TEST_RAW_ACTION_URL
-      }), {
-        status: 200,
-        headers: { "content-type": "application/json" }
-      });
-    }
-    return new Response(JSON.stringify({ email: TEST_EMAIL }), {
+    return new Response(JSON.stringify({
+      email: TEST_EMAIL,
+      oobLink: TEST_RAW_ACTION_URL
+    }), {
       status: 200,
       headers: { "content-type": "application/json" }
     });
@@ -227,11 +227,10 @@ for (const invalidContinueUrl of [
 }
 
 assert.deepEqual(await identityClient.lookupByEmail(TEST_EMAIL), implicitPasswordUser());
-assert.equal(await identityClient.sendPasswordReset(TEST_EMAIL, "198.51.100.42"), true);
 assert.equal(await identityClient.generatePasswordResetActionUrl(TEST_EMAIL), TEST_ACTION_URL);
-assert.equal(identityRequests.length, 3);
+assert.equal(identityRequests.length, 2);
 
-const [lookupRequest, sendRequest, generateRequest] = identityRequests;
+const [lookupRequest, generateRequest] = identityRequests;
 for (const request of identityRequests) {
   const parsedUrl = new URL(request.url);
   assert.equal(parsedUrl.origin, "https://identitytoolkit.googleapis.com");
@@ -249,19 +248,6 @@ assert.equal(
   `/v1/projects/${TEST_PROJECT_ID}/accounts:lookup`
 );
 assert.deepEqual(lookupRequest.body, { email: [TEST_EMAIL] });
-assert.equal(
-  new URL(sendRequest.url).pathname,
-  `/v1/projects/${TEST_PROJECT_ID}/accounts:sendOobCode`
-);
-assert.deepEqual(sendRequest.body, {
-  requestType: "PASSWORD_RESET",
-  email: TEST_EMAIL,
-  userIp: "198.51.100.42",
-  continueUrl: TEST_CONTINUE_URL,
-  canHandleCodeInApp: false,
-  returnOobLink: false,
-  clientType: "CLIENT_TYPE_WEB"
-});
 assert.equal(
   new URL(generateRequest.url).pathname,
   `/v1/projects/${TEST_PROJECT_ID}/accounts:sendOobCode`
@@ -312,11 +298,6 @@ assert.equal(
   await privateLookupClient.lookupByEmail("unknown@example.invalid"),
   null,
   "Ein unbekanntes Konto muss intern als neutraler Lookup-Miss behandelt werden."
-);
-assert.equal(
-  await privateLookupClient.sendPasswordReset(TEST_EMAIL, "198.51.100.42"),
-  false,
-  "Account-private sendOob-Fehler dürfen keine Kontoexistenz offenlegen."
 );
 assert.equal(
   await privateLookupClient.generatePasswordResetActionUrl(TEST_EMAIL),
@@ -465,7 +446,7 @@ assert.equal(rateLimiter.allow("other@example.invalid", "198.51.100.42"), false)
 nowMs += 60_000;
 assert.equal(rateLimiter.allow(TEST_EMAIL, "198.51.100.42"), true);
 
-const brokerCalls = { lookup: [], send: [] };
+const brokerCalls = { lookup: [], generate: [], send: [] };
 const brokerIdentityClient = {
   async lookupByEmail(email) {
     brokerCalls.lookup.push(email);
@@ -479,13 +460,16 @@ const brokerIdentityClient = {
     }
     return implicitPasswordUser({ email });
   },
-  async sendPasswordReset(email, clientIp) {
-    brokerCalls.send.push({ email, clientIp });
-    return true;
+  async generatePasswordResetActionUrl(email) {
+    brokerCalls.generate.push(email);
+    return TEST_ACTION_URL;
   }
 };
 const broker = createPasswordResetBroker({
   identityClient: brokerIdentityClient,
+  async sendPasswordResetEmail(message) {
+    brokerCalls.send.push(message);
+  },
   minimumResponseMs: 0
 });
 
@@ -514,7 +498,8 @@ for (const result of [eligibleResult, unknownResult, googleResult, invalidResult
   );
 }
 assert.deepEqual(brokerCalls.lookup, [TEST_EMAIL, "unknown@example.invalid", "google@example.invalid"]);
-assert.deepEqual(brokerCalls.send, [{ email: TEST_EMAIL, clientIp: "198.51.100.42" }]);
+assert.deepEqual(brokerCalls.generate, [TEST_EMAIL]);
+assert.deepEqual(brokerCalls.send, [{ recipient: TEST_EMAIL, actionUrl: TEST_ACTION_URL }]);
 
 const invitationSequence = [];
 const invitationBroker = createPasswordResetBroker({
@@ -523,15 +508,13 @@ const invitationBroker = createPasswordResetBroker({
       invitationSequence.push("identity-lookup");
       return explicitPasswordUser({ email });
     },
-    async sendPasswordReset() {
-      throw new Error("Der normale Reset-Versand darf beim Einlösen nicht laufen.");
-    },
     async generatePasswordResetActionUrl(email) {
       invitationSequence.push("oob-mint");
       assert.equal(email, TEST_EMAIL);
       return TEST_ACTION_URL;
     }
   },
+  sendPasswordResetEmail: rejectUnexpectedPasswordResetEmail,
   invitationStore: {
     async getActive(objectName) {
       invitationSequence.push("invitation-get");
@@ -570,13 +553,11 @@ const durationInvitationBroker = createPasswordResetBroker({
     async lookupByEmail() {
       return explicitPasswordUser();
     },
-    async sendPasswordReset() {
-      return true;
-    },
     async generatePasswordResetActionUrl() {
       return TEST_ACTION_URL;
     }
   },
+  sendPasswordResetEmail: rejectUnexpectedPasswordResetEmail,
   invitationStore: {
     async getActive() {
       return { generation: "47", value: activeInvitation() };
@@ -614,14 +595,12 @@ const racedInvitationBroker = createPasswordResetBroker({
     async lookupByEmail() {
       return explicitPasswordUser();
     },
-    async sendPasswordReset() {
-      return true;
-    },
     async generatePasswordResetActionUrl() {
       racedMintCalls += 1;
       return TEST_ACTION_URL;
     }
   },
+  sendPasswordResetEmail: rejectUnexpectedPasswordResetEmail,
   invitationStore: {
     async getActive() {
       return { generation: "43", value: activeInvitation() };
@@ -657,13 +636,11 @@ const expiredInvitationBroker = createPasswordResetBroker({
       expiredIdentityLookups += 1;
       return explicitPasswordUser();
     },
-    async sendPasswordReset() {
-      return true;
-    },
     async generatePasswordResetActionUrl() {
       return TEST_ACTION_URL;
     }
   },
+  sendPasswordResetEmail: rejectUnexpectedPasswordResetEmail,
   invitationStore: {
     async getActive() {
       return { generation: "44", value: activeInvitation() };
@@ -691,13 +668,11 @@ const wrongIdentityInvitationBroker = createPasswordResetBroker({
     async lookupByEmail() {
       return explicitPasswordUser({ localId: "different-password-user" });
     },
-    async sendPasswordReset() {
-      return true;
-    },
     async generatePasswordResetActionUrl() {
       throw new Error("Ein UID-Mismatch darf keinen OOB-Code prägen.");
     }
   },
+  sendPasswordResetEmail: rejectUnexpectedPasswordResetEmail,
   invitationStore: {
     async getActive() {
       return { generation: "45", value: activeInvitation() };
@@ -725,14 +700,12 @@ const mintFailureBroker = createPasswordResetBroker({
     async lookupByEmail() {
       return explicitPasswordUser();
     },
-    async sendPasswordReset() {
-      return true;
-    },
     async generatePasswordResetActionUrl() {
       mintFailureSequence.push("oob-mint-failed");
       throw new Error(`private Identity failure for ${TEST_EMAIL}`);
     }
   },
+  sendPasswordResetEmail: rejectUnexpectedPasswordResetEmail,
   invitationStore: {
     async getActive() {
       return { generation: "46", value: activeInvitation() };
@@ -770,11 +743,14 @@ const deliveryFailureBroker = createPasswordResetBroker({
     async lookupByEmail(email) {
       return implicitPasswordUser({ email });
     },
-    async sendPasswordReset() {
-      deliveryStartedResolve();
-      await deliveryRelease;
-      throw new Error(`private delivery failure for ${TEST_EMAIL}`);
+    async generatePasswordResetActionUrl() {
+      return TEST_ACTION_URL;
     }
+  },
+  async sendPasswordResetEmail() {
+    deliveryStartedResolve();
+    await deliveryRelease;
+    throw new Error(`private delivery failure for ${TEST_EMAIL}`);
   },
   async onDeliveryError(error) {
     deliveryErrors.push(error);
@@ -802,10 +778,11 @@ const rateLimitedBroker = createPasswordResetBroker({
       rateLimitedBrokerCalls.push(email);
       return explicitPasswordUser({ email });
     },
-    async sendPasswordReset() {
-      throw new Error("Ein rate-limitierter Request darf nicht senden.");
+    async generatePasswordResetActionUrl() {
+      throw new Error("Ein rate-limitierter Request darf keinen OOB-Link prägen.");
     }
   },
+  sendPasswordResetEmail: rejectUnexpectedPasswordResetEmail,
   rateLimiter: { allow: () => false },
   minimumResponseMs: 0
 });
@@ -820,10 +797,11 @@ const infrastructureBroker = createPasswordResetBroker({
     async lookupByEmail() {
       throw new Error(`private failure for ${TEST_EMAIL}`);
     },
-    async sendPasswordReset() {
-      return true;
+    async generatePasswordResetActionUrl() {
+      return TEST_ACTION_URL;
     }
   },
+  sendPasswordResetEmail: rejectUnexpectedPasswordResetEmail,
   minimumResponseMs: 0
 });
 await assert.rejects(
@@ -835,7 +813,7 @@ await assert.rejects(
   )
 );
 
-const validServerConfiguration = passwordResetServerConfiguration({
+const validServerEnvironment = Object.freeze({
   NODE_ENV: "production",
   PORT: "8087",
   PASSWORD_RESET_BROKER_ENABLED: "1",
@@ -843,8 +821,10 @@ const validServerConfiguration = passwordResetServerConfiguration({
   IAP_GCIP_PROJECT_ID: TEST_PROJECT_ID,
   IAP_GCIP_TENANT_ID: "",
   IAP_EXTERNAL_AUTH_API_KEY: TEST_API_KEY,
-  PASSWORD_INVITATION_BUCKET: TEST_INVITATION_BUCKET
+  PASSWORD_INVITATION_BUCKET: TEST_INVITATION_BUCKET,
+  PASSWORD_RESET_SMTP_PASSWORD: TEST_SMTP_PASSWORD
 });
+const validServerConfiguration = passwordResetServerConfiguration(validServerEnvironment);
 assert.deepEqual(validServerConfiguration, {
   production: true,
   port: 8087,
@@ -856,6 +836,19 @@ assert.deepEqual(validServerConfiguration, {
   allowedHost: "versorgungs-kompass.de",
   continueUrl: TEST_CONTINUE_URL
 });
+assert.equal(
+  JSON.stringify(validServerConfiguration).includes(TEST_SMTP_PASSWORD),
+  false,
+  "Das SMTP-Passwort darf nicht in die lesbare Serverkonfiguration gelangen."
+);
+const wiredPasswordResetServer = createPasswordResetServer({
+  env: validServerEnvironment,
+  accessTokenProvider: async () => "synthetic-access-token",
+  minimumResponseMs: 0
+});
+assert.deepEqual(wiredPasswordResetServer.configuration, validServerConfiguration);
+assert.equal(wiredPasswordResetServer.server.listening, false);
+assert.equal(typeof wiredPasswordResetServer.broker.request, "function");
 for (const invalidEnvironment of [
   {
     PASSWORD_RESET_BROKER_ENABLED: "0",
@@ -871,6 +864,11 @@ for (const invalidEnvironment of [
     IAP_GCIP_PROJECT_ID: TEST_PROJECT_ID,
     IAP_GCIP_TENANT_ID: "tenant-a",
     IAP_EXTERNAL_AUTH_API_KEY: TEST_API_KEY
+  },
+  {
+    PASSWORD_RESET_BROKER_ENABLED: "1",
+    PASSWORD_RESET_ALLOWED_ORIGIN: "https://versorgungs-kompass.de",
+    PASSWORD_RESET_SMTP_PASSWORD: ""
   }
 ]) {
   assert.throws(
@@ -880,6 +878,7 @@ for (const invalidEnvironment of [
       IAP_GCIP_TENANT_ID: "",
       IAP_EXTERNAL_AUTH_API_KEY: TEST_API_KEY,
       PASSWORD_INVITATION_BUCKET: TEST_INVITATION_BUCKET,
+      PASSWORD_RESET_SMTP_PASSWORD: TEST_SMTP_PASSWORD,
       ...invalidEnvironment
     })
   );

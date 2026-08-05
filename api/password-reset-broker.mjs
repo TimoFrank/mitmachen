@@ -637,30 +637,6 @@ export function createIdentityPlatformPasswordResetClient({
         throw infrastructureError(error);
       }
     },
-    async sendPasswordReset(email, userIp) {
-      try {
-        const payload = await post("/accounts:sendOobCode", {
-          requestType: "PASSWORD_RESET",
-          email,
-          userIp,
-          continueUrl: resetContinueUrl,
-          canHandleCodeInApp: false,
-          returnOobLink: false,
-          clientType: "CLIENT_TYPE_WEB",
-          ...(tenantId ? { tenantId } : {})
-        });
-        if (
-          payload.oobLink !== undefined
-          || normalizePasswordResetEmail(payload.email) !== email
-        ) {
-          throw infrastructureError();
-        }
-        return true;
-      } catch (error) {
-        if (error instanceof IdentityPlatformRequestError && error.accountPrivate) return false;
-        throw infrastructureError(error);
-      }
-    },
     async generatePasswordResetActionUrl(email) {
       try {
         const payload = await post("/accounts:sendOobCode", {
@@ -758,6 +734,7 @@ export function trustedPasswordResetClientIp(request, { production = false } = {
 
 export function createPasswordResetBroker({
   identityClient,
+  sendPasswordResetEmail,
   invitationStore = null,
   isEligibleUser = async () => true,
   projectId = "",
@@ -772,7 +749,8 @@ export function createPasswordResetBroker({
   if (
     !identityClient
     || typeof identityClient.lookupByEmail !== "function"
-    || typeof identityClient.sendPasswordReset !== "function"
+    || typeof identityClient.generatePasswordResetActionUrl !== "function"
+    || typeof sendPasswordResetEmail !== "function"
     || typeof isEligibleUser !== "function"
     || typeof rateLimiter?.allow !== "function"
     || typeof onDeliveryError !== "function"
@@ -785,7 +763,6 @@ export function createPasswordResetBroker({
     && (
       typeof invitationStore?.getActive !== "function"
       || typeof invitationStore?.deleteActive !== "function"
-      || typeof identityClient.generatePasswordResetActionUrl !== "function"
       || !/^[a-z][a-z0-9-]{4,28}[a-z0-9]$/u.test(String(projectId || ""))
       || (tenantId && !/^[A-Za-z0-9_-]{1,128}$/u.test(tenantId))
       || canonicalHttpsStartUrl(continueUrl) !== continueUrl
@@ -796,9 +773,14 @@ export function createPasswordResetBroker({
 
   const pendingDeliveries = new Set();
 
-  function schedulePasswordReset(email, clientIp) {
+  function schedulePasswordReset(email) {
     const delivery = Promise.resolve()
-      .then(() => identityClient.sendPasswordReset(email, clientIp))
+      .then(async () => {
+        const actionUrl = await identityClient.generatePasswordResetActionUrl(email);
+        if (!actionUrl) return false;
+        await sendPasswordResetEmail({ recipient: email, actionUrl });
+        return true;
+      })
       .catch(async (cause) => {
         try {
           await onDeliveryError(infrastructureError(cause));
@@ -857,7 +839,7 @@ export function createPasswordResetBroker({
         if (!user || !(await isEligibleUser(user))) {
           return PASSWORD_RESET_ACCEPTED_RESPONSE;
         }
-        schedulePasswordReset(email, clientIp);
+        schedulePasswordReset(email);
         return PASSWORD_RESET_ACCEPTED_RESPONSE;
       } catch (cause) {
         if (cause instanceof PasswordInvitationInvalidError) throw cause;

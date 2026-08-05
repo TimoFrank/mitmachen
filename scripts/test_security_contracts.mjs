@@ -422,7 +422,28 @@ for (const [group, dependencies] of Object.entries({
   }
 }
 const apiPackageJson = JSON.parse(read("api/package.json"));
-assert.deepEqual(Object.keys(apiPackageJson.dependencies || {}), ["pg"], "Das API-Image darf nur erforderliche Runtime-Abhaengigkeiten installieren.");
+const apiPackageLockJson = JSON.parse(read("api/package-lock.json"));
+const expectedApiDependencies = {
+  nodemailer: "9.0.4",
+  pg: "8.21.0"
+};
+assert.deepEqual(
+  apiPackageJson.dependencies || {},
+  expectedApiDependencies,
+  "Das API-Image darf nur die exakt gepinnten Postgres- und SMTP-Laufzeitabhaengigkeiten installieren."
+);
+for (const [name, version] of Object.entries(expectedApiDependencies)) {
+  assert.equal(
+    apiPackageLockJson.packages[`node_modules/${name}`]?.version,
+    version,
+    `${name} muss im API-Lockfile exakt gepinnt sein.`
+  );
+  assert.match(
+    apiPackageLockJson.packages[`node_modules/${name}`]?.integrity || "",
+    /^sha512-/u,
+    `${name} benoetigt im API-Lockfile eine Registry-Integritaetspruefsumme.`
+  );
+}
 const apiDockerfile = read("api/Dockerfile");
 assert.match(apiDockerfile, /rm -rf[\s\S]*\/usr\/local\/lib\/node_modules\/npm/, "Die unnoetige globale npm-Toolchain darf nicht im API-Runtime-Image verbleiben.");
 

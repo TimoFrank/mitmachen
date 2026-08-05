@@ -13,9 +13,14 @@ import {
   createPasswordResetBroker,
   trustedPasswordResetClientIp
 } from "./password-reset-broker.mjs";
+import {
+  createPasswordResetEmailSender,
+  validatePasswordResetSmtpPassword
+} from "./password-reset-email.mjs";
 
 const DEFAULT_PORT = 8080;
 const BODY_LIMIT_BYTES = 1024;
+const SHUTDOWN_TIMEOUT_MS = 25_000;
 
 function plainObject(value) {
   return Boolean(value) && typeof value === "object" && !Array.isArray(value);
@@ -56,6 +61,7 @@ export function passwordResetServerConfiguration(env = process.env) {
   const tenantId = String(env.IAP_GCIP_TENANT_ID || "").trim();
   const apiKey = String(env.IAP_EXTERNAL_AUTH_API_KEY || "").trim();
   const invitationBucketName = String(env.PASSWORD_INVITATION_BUCKET || "").trim();
+  validatePasswordResetSmtpPassword(env.PASSWORD_RESET_SMTP_PASSWORD);
   if (!/^[a-z][a-z0-9-]{4,28}[a-z0-9]$/u.test(projectId)) {
     throw new Error("IAP_GCIP_PROJECT_ID ist ungültig.");
   }
@@ -225,6 +231,7 @@ export function createPasswordResetServer({
   env = process.env,
   fetchImpl = globalThis.fetch,
   accessTokenProvider,
+  sendPasswordResetEmail,
   minimumResponseMs = 750
 } = {}) {
   const configuration = passwordResetServerConfiguration(env);
@@ -243,8 +250,15 @@ export function createPasswordResetServer({
     fetchImpl,
     accessTokenProvider: resolvedAccessTokenProvider
   });
+  const smtpPassword = env.PASSWORD_RESET_SMTP_PASSWORD;
+  validatePasswordResetSmtpPassword(smtpPassword);
+  const resolvedSendPasswordResetEmail = sendPasswordResetEmail
+    || createPasswordResetEmailSender({
+      smtpPassword
+    });
   const broker = createPasswordResetBroker({
     identityClient,
+    sendPasswordResetEmail: resolvedSendPasswordResetEmail,
     invitationStore,
     projectId: configuration.projectId,
     tenantId: configuration.tenantId,
@@ -299,7 +313,7 @@ if (invoked) {
     setTimeout(() => {
       server.closeAllConnections?.();
       process.exit(1);
-    }, 10_000).unref();
+    }, SHUTDOWN_TIMEOUT_MS).unref();
   };
   process.on("SIGTERM", () => shutdown("SIGTERM"));
   process.on("SIGINT", () => shutdown("SIGINT"));
