@@ -241,7 +241,11 @@ function createPreflightCommandRunner({
   gkeEndpoint = "gke.example.invalid",
   gkeCa = "synthetic-cluster-ca",
   kubeEndpoint = `https://${gkeEndpoint}`,
-  kubeCa = gkeCa,
+  kubeCa = "",
+  kubeCaFile = "",
+  kubeInsecure = "",
+  kubeTlsServerName = "",
+  kubeProxy = "",
   bucketOverrides = {}
 } = {}) {
   return async (command, argumentsList) => {
@@ -295,7 +299,10 @@ function createPreflightCommandRunner({
       );
     }
     if (command === "kubectl" && argumentsList[0] === "config" && argumentsList[1] === "view") {
-      return success(`${kubeEndpoint}\n${kubeCa}\nfalse\n`);
+      return success(
+        `${kubeEndpoint}\n${kubeCa}\n${kubeCaFile}\n${kubeInsecure}\n`
+        + `${kubeTlsServerName}\n${kubeProxy}\nEND\n`
+      );
     }
     if (command === "kubectl" && argumentsList[0] === "get" && argumentsList[1] === "namespace") {
       return success(JSON.stringify({ metadata: { name: baseEnvironment.K8S_NAMESPACE } }));
@@ -342,8 +349,12 @@ function createPreflightCommandRunner({
 }
 
 for (const [change, pattern] of [
-  [{ kubeEndpoint: "https://different-gke.example.invalid" }, /Endpoint oder Cluster-CA/u],
-  [{ kubeCa: "different-cluster-ca" }, /Endpoint oder Cluster-CA/u],
+  [{ kubeEndpoint: "https://different-gke.example.invalid" }, /DNS-Endpunkt oder TLS/u],
+  [{ kubeCa: "synthetic-cluster-ca" }, /DNS-Endpunkt oder TLS/u],
+  [{ kubeCaFile: "/protected/cluster-ca.pem" }, /DNS-Endpunkt oder TLS/u],
+  [{ kubeInsecure: "true" }, /DNS-Endpunkt oder TLS/u],
+  [{ kubeTlsServerName: "different-gke.example.invalid" }, /DNS-Endpunkt oder TLS/u],
+  [{ kubeProxy: "https://proxy.example.invalid" }, /DNS-Endpunkt oder TLS/u],
   [{ bucketOverrides: { projectNumber: "999999999999" } }, /Einladungs-Bucket/u],
   [{
     bucketOverrides: {
