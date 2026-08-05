@@ -181,21 +181,31 @@ export function createPasswordResetHttpHandler({ configuration, broker }) {
       }
       assertBrowserRequest(request, configuration);
       const body = await readRequestBody(request);
-      const bodyKeys = Object.keys(body);
+      const bodyKeys = Object.keys(body).sort();
       const emailRequest = bodyKeys.length === 1 && typeof body.email === "string";
       const invitationRequest = bodyKeys.length === 1 && typeof body.invitationToken === "string";
-      if (!emailRequest && !invitationRequest) {
+      const invitationFinalizeRequest = (
+        bodyKeys.length === 2
+        && bodyKeys[0] === "finalize"
+        && bodyKeys[1] === "invitationToken"
+        && body.finalize === true
+        && typeof body.invitationToken === "string"
+      );
+      if (!emailRequest && !invitationRequest && !invitationFinalizeRequest) {
         return sendJson(response, 400, { error: "Ungültige Anfrage." }, configuration.production);
       }
       const result = await broker.request({
         ...(emailRequest
           ? { email: body.email }
-          : { invitationToken: body.invitationToken }),
+          : {
+              invitationToken: body.invitationToken,
+              ...(invitationFinalizeRequest ? { finalize: true } : {})
+            }),
         clientIp: trustedPasswordResetClientIp(request, {
           production: configuration.production
         })
       });
-      return sendJson(response, invitationRequest ? 200 : 202, result, configuration.production);
+      return sendJson(response, emailRequest ? 202 : 200, result, configuration.production);
     } catch (error) {
       const status = error instanceof PasswordInvitationInvalidError
         ? 400
@@ -208,7 +218,10 @@ export function createPasswordResetHttpHandler({ configuration, broker }) {
           severity: "ERROR",
           event: "password_reset_broker_error",
           status,
-          errorClass: error?.constructor?.name || "Error"
+          errorClass: error?.constructor?.name || "Error",
+          ...(error instanceof PasswordResetInfrastructureError && error.stage
+            ? { stage: error.stage }
+            : {})
         }));
       }
       return sendJson(
@@ -261,6 +274,7 @@ export function createPasswordResetServer({
     sendPasswordResetEmail: resolvedSendPasswordResetEmail,
     invitationStore,
     projectId: configuration.projectId,
+    apiKey: configuration.apiKey,
     tenantId: configuration.tenantId,
     continueUrl: configuration.continueUrl,
     onDeliveryError(error) {

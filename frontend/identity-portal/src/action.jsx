@@ -24,13 +24,15 @@ import {
   validatePassword
 } from "./action-url.js";
 import {
+  finalizePasswordInvitation,
+  isTemporaryPasswordActionError,
   parsePasswordInvitationUrl,
-  redeemPasswordInvitation
+  redeemPasswordInvitation,
+  TemporaryPasswordInvitationError
 } from "./password-invitation.js";
 import { InlineNotice, PortalShell } from "./shell.jsx";
 
 const root = createRoot(document.getElementById("root"));
-const initialActionHref = window.location.href;
 const COMPASS_BRANDS = Object.freeze([
   { label: "Versorgung", logoSrc: versorgungMarkUrl },
   { label: "Stakeholder", logoSrc: stakeholderMarkUrl },
@@ -87,9 +89,10 @@ function ResetPasswordForm({ email, invitation = false, onSubmit, preview }) {
     setError("");
     try {
       await onSubmit(password);
-    } catch {
-      setError(
-        "Das Passwort konnte nicht gespeichert werden. Der Link ist möglicherweise abgelaufen."
+    } catch (submitError) {
+      setError(isTemporaryPasswordActionError(submitError)
+        ? "Es gibt gerade eine technische Störung. Bitte versuche es erneut."
+        : "Das Passwort konnte nicht gespeichert werden. Der Link ist ungültig oder abgelaufen."
       );
       setBusy(false);
     }
@@ -185,7 +188,7 @@ function PasswordActionApp({
   config,
   invitationPreview = false,
   preview = false,
-  actionHref = initialActionHref
+  takeActionHref = null
 }) {
   const [state, setState] = useState({
     status: "loading",
@@ -205,7 +208,12 @@ function PasswordActionApp({
 
     let active = true;
     (async () => {
+      let parsedAction = null;
       try {
+        const actionHref = takeActionHref?.();
+        if (typeof actionHref !== "string" || actionHref.length === 0) {
+          throw new Error("Die Passwortaktion fehlt.");
+        }
         if (new URL(actionHref).hash) {
           const invitation = parsePasswordInvitationUrl(actionHref);
           if (active) {
@@ -218,12 +226,20 @@ function PasswordActionApp({
           }
           return;
         }
-        const action = parseActionUrl(actionHref, config);
-        const email = await verifyPasswordResetCode(auth, action.oobCode);
-        if (active) setState({ status: "ready", action, email, invitationToken: null });
-      } catch {
+        parsedAction = parseActionUrl(actionHref, config);
+        const email = await verifyPasswordResetCode(auth, parsedAction.oobCode);
         if (active) {
-          setState({ status: "error", action: null, email: "", invitationToken: null });
+          setState({ status: "ready", action: parsedAction, email, invitationToken: null });
+        }
+      } catch (error) {
+        if (active) {
+          const temporary = Boolean(parsedAction) && isTemporaryPasswordActionError(error);
+          setState({
+            status: temporary ? "temporary-error" : "error",
+            action: temporary ? parsedAction : null,
+            email: "",
+            invitationToken: null
+          });
         }
       }
     })();
@@ -231,26 +247,92 @@ function PasswordActionApp({
     return () => {
       active = false;
     };
-  }, [actionHref, auth, config, preview]);
+  }, [auth, config, preview, takeActionHref]);
+
+  async function retryInitialVerification() {
+    const action = state.status === "temporary-error" ? state.action : null;
+    if (!action) return;
+    setState((current) => ({ ...current, status: "loading" }));
+    try {
+      const email = await verifyPasswordResetCode(auth, action.oobCode);
+      setState({ status: "ready", action, email, invitationToken: null });
+    } catch (error) {
+      const temporary = isTemporaryPasswordActionError(error);
+      setState({
+        status: temporary ? "temporary-error" : "error",
+        action: temporary ? action : null,
+        email: "",
+        invitationToken: null
+      });
+    }
+  }
 
   async function resetPassword(password) {
     if (!preview) {
       let action = state.action;
-      if (!action && state.invitationToken) {
-        const redeemed = await redeemPasswordInvitation(state.invitationToken);
-        action = parseActionUrl(redeemed.actionUrl, config);
+      const invitationToken = state.invitationToken;
+      if (!action && invitationToken) {
+        const redeemed = await redeemPasswordInvitation(invitationToken);
+        if (redeemed.completed) {
+          setState((current) => ({
+            ...current,
+            status: "completed",
+            action: null,
+            email: "",
+            invitationToken: null
+          }));
+          return;
+        }
+        try {
+          action = parseActionUrl(redeemed.actionUrl, config);
+        } catch {
+          throw new TemporaryPasswordInvitationError();
+        }
         setState((current) => ({
           ...current,
-          action,
-          invitationToken: null
+          action
         }));
         const email = await verifyPasswordResetCode(auth, action.oobCode);
         setState((current) => ({ ...current, email }));
       }
       if (!action) throw new Error("Die Passwortaktion fehlt.");
-      await confirmPasswordReset(auth, action.oobCode, password);
+      try {
+        await confirmPasswordReset(auth, action.oobCode, password);
+      } catch (confirmError) {
+        if (invitationToken) {
+          try {
+            const result = await finalizePasswordInvitation(invitationToken);
+            if (result.finalized) {
+              setState((current) => ({
+                ...current,
+                status: "completed",
+                action: null,
+                email: "",
+                invitationToken: null
+              }));
+              return;
+            }
+          } catch {
+            // Preserve the original confirmation failure when finalization is inconclusive.
+          }
+        }
+        throw confirmError;
+      }
+      if (invitationToken) {
+        try {
+          await finalizePasswordInvitation(invitationToken);
+        } catch {
+          // The password is already set. A later retry can reconcile the issued invitation.
+        }
+      }
     }
-    setState((current) => ({ ...current, status: "success" }));
+    setState((current) => ({
+      ...current,
+      status: "success",
+      action: null,
+      email: "",
+      invitationToken: null
+    }));
   }
 
   let content;
@@ -275,6 +357,25 @@ function PasswordActionApp({
         Fordere über die Anmeldung einen neuen Link an.
       </InlineNotice>
     );
+  } else if (state.status === "temporary-error") {
+    content = (
+      <InlineNotice
+        tone="error"
+        title="Der Link konnte gerade nicht geprüft werden."
+        action={
+          <button
+            className="button button--secondary"
+            type="button"
+            onClick={retryInitialVerification}
+          >
+            Erneut versuchen
+          </button>
+        }
+      >
+        Es gibt gerade eine technische Störung. Der Link wurde nicht als
+        ungültig bewertet.
+      </InlineNotice>
+    );
   } else if (state.status === "success") {
     content = (
       <InlineNotice
@@ -283,7 +384,7 @@ function PasswordActionApp({
         action={
           <a
             className="button button--primary"
-            href={state.action.continueUrl || "/start"}
+            href={state.action?.continueUrl || "/start"}
             rel="noreferrer"
           >
             Jetzt anmelden
@@ -291,6 +392,22 @@ function PasswordActionApp({
         }
       >
         Dein Passwort wurde gespeichert. Du kannst dich jetzt sicher anmelden.
+      </InlineNotice>
+    );
+  } else if (state.status === "completed") {
+    content = (
+      <InlineNotice
+        tone="success"
+        title="Das Passwort wurde bereits geändert."
+        action={
+          <a className="button button--primary" href="/start">
+            Zur Anmeldung
+          </a>
+        }
+      >
+        Der Einladungslink ist abgeschlossen. Melde dich mit deinem aktuellen
+        Passwort an. Falls das nicht klappt, fordere über die Anmeldung einen
+        neuen Link an.
       </InlineNotice>
     );
   } else {
@@ -331,14 +448,22 @@ function start() {
     return;
   }
 
+  let pendingActionHref = window.location.href;
+
   // Remove the one-time bearer code before any validation or remote request,
   // including every malformed-link and configuration error path.
   history.replaceState({}, "", window.location.pathname);
 
+  const takeActionHref = () => {
+    const actionHref = pendingActionHref;
+    pendingActionHref = "";
+    return actionHref;
+  };
+
   try {
     assertProductionConfig(config);
     assertSafeFirebaseDefaults();
-    root.render(<PasswordActionApp config={config} actionHref={initialActionHref} />);
+    root.render(<PasswordActionApp config={config} takeActionHref={takeActionHref} />);
   } catch {
     root.render(
       <PortalShell

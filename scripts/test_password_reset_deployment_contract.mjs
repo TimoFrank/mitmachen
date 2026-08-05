@@ -29,7 +29,9 @@ const [
   terraformExample,
   environmentExample,
   workflow,
-  deploymentGuide
+  deploymentGuide,
+  pilotGuide,
+  portalReadme
 ] = await Promise.all([
   read(".dockerignore"),
   read("api/Dockerfile"),
@@ -54,7 +56,9 @@ const [
   read("deploy/terraform/gcp-autopilot/terraform.tfvars.example"),
   read("config/pre-gematik/variables.env.example"),
   read(".github/workflows/deploy-pre-gematik.yml"),
-  read("dokumentation/betrieb-und-deployment/DEPLOYMENT_GCP_AUTOPILOT.md")
+  read("dokumentation/betrieb-und-deployment/DEPLOYMENT_GCP_AUTOPILOT.md"),
+  read("dokumentation/betrieb-und-deployment/PRE_GEMATIK_EXTERNAL_IDENTITIES_PILOT.md"),
+  read("frontend/identity-portal/README.md")
 ]);
 
 const resetImagePaths = [
@@ -217,10 +221,23 @@ const storagePermissions = [...storageRoleBlock.matchAll(/"(storage\.[^"]+)"/gu)
   .map((match) => match[1])
   .sort();
 assert.deepEqual(storagePermissions, [
-  "storage.objects.delete",
-  "storage.objects.get"
+  "storage.objects.get",
+  "storage.objects.update"
 ]);
-assert.doesNotMatch(storageRoleBlock, /storage\.objects\.(?:create|list|update)/u);
+assert.doesNotMatch(storageRoleBlock, /storage\.objects\.(?:create|delete|list|restore)/u);
+assert.match(
+  deployment,
+  /versorgungs-kompass\.de\/password-invitation-protocol:\s*"cas-v2"/u
+);
+
+for (const documentation of [deploymentGuide, pilotGuide, portalReadme]) {
+  assert.match(documentation, /generationen- und\s+metagenerationengepinnt/iu);
+  assert.match(documentation, /`active`[^\n]*`minting`[^\n]*`issued`[^\n]*`consumed`[^\n]*`uncertain`/u);
+  assert.match(documentation, /AES-256-GCM/u);
+  assert.match(documentation, /Custom Metadata/u);
+  assert.match(documentation, /\{\s*`?invitationToken`?\s*,\s*`?finalize`?\s*:\s*`?true`?\s*\}/u);
+  assert.match(documentation, /PASSWORD_RESET/u);
+}
 
 const operatorStorageRoleBlock = identities.match(
   /resource "google_project_iam_custom_role" "password_invitation_operator_storage" \{[\s\S]*?\n\}/u
@@ -446,6 +463,14 @@ assert.match(armor, /request\.path == '\/api\/auth\/password-reset'/u);
 assert.match(armor, /request\.method == 'POST'/u);
 assert.match(armor, /IDENTITY_PLATFORM_AUTHORIZED_HOSTNAME/u);
 assert.match(armor, /enforce_on_key\s*=\s*"IP"/u);
+assert.match(
+  armor,
+  /rate_limit_threshold\s*\{\s*count\s*=\s*30\s*interval_sec\s*=\s*300\s*\}/u
+);
+assert.match(
+  armor,
+  /ban_threshold\s*\{\s*count\s*=\s*120\s*interval_sec\s*=\s*3600\s*\}/u
+);
 assert.match(armor, /action\s*=\s*"deny\(404\)"/u);
 
 assert.match(workflow, /password_reset_broker_enabled="false"[\s\S]*IAP_IDENTITY_MODE" == "external"[\s\S]*password_reset_broker_enabled="true"/u);
@@ -458,6 +483,27 @@ assert.match(workflow, /--set-string passwordResetBroker\.invitationBucketName="
 assert.match(workflow, /--set passwordResetBroker\.email\.enabled="\$password_reset_broker_enabled"/u);
 assert.match(workflow, /--set-string passwordResetBroker\.email\.secretName="\$PASSWORD_RESET_SMTP_PASSWORD_SECRET_NAME"/u);
 assert.match(workflow, /--set-string passwordResetBroker\.email\.secretKey=password/u);
+assert.match(
+  workflow,
+  /password-invitation-protocol[\s\S]*!= "cas-v2"[\s\S]*scale deployment[\s\S]*--replicas=0[\s\S]*old_password_reset_pod_count[\s\S]*length/u
+);
+assert.match(
+  workflow,
+  /iam roles describe[\s\S]*preGematikPasswordInvitationBroker[\s\S]*storage\.objects\.get[\s\S]*storage\.objects\.update[\s\S]*without delete before the CAS-v2 rollout/u
+);
+const passwordInvitationRoleGateIndex = workflow.indexOf(
+  'password_invitation_role="$(gcloud iam roles describe'
+);
+const legacyPasswordResetScaleIndex = workflow.indexOf(
+  'kubectl --namespace "$K8S_NAMESPACE" scale deployment',
+  passwordInvitationRoleGateIndex
+);
+assert.ok(passwordInvitationRoleGateIndex >= 0, "Das IAM-Rollengate muss vorhanden sein.");
+assert.ok(legacyPasswordResetScaleIndex >= 0, "Die Legacy-Abschaltung muss vorhanden sein.");
+assert.ok(
+  passwordInvitationRoleGateIndex < legacyPasswordResetScaleIndex,
+  "Die IAM-Rolle muss geprüft werden, bevor ein Legacy-Broker herunterfährt."
+);
 assert.match(workflow, /get secretproviderclass[\s\S]*password_reset_secret_provider_class_name/u);
 assert.match(workflow, /projects\/\$\{GCP_PROJECT_ID\}\/secrets\/\$\{PASSWORD_RESET_SMTP_PASSWORD_SECRET_NAME\}\/versions\/latest/u);
 assert.match(workflow, /get secretsync[\s\S]*PASSWORD_RESET_SMTP_PASSWORD_SECRET_NAME/u);

@@ -2440,6 +2440,55 @@ jobs:
             fi
           fi
 
+          if [[ "$IAP_IDENTITY_MODE" == "external" ]]; then
+            password_invitation_role="$(gcloud iam roles describe \
+              preGematikPasswordInvitationBroker \
+              --project "$GCP_PROJECT_ID" \
+              --format=json)"
+            if ! jq --exit-status '
+              (.includedPermissions | sort) == [
+                "storage.objects.get",
+                "storage.objects.update"
+              ] and
+              (.deleted // false) == false
+            ' <<< "$password_invitation_role" >/dev/null; then
+              echo "The password-invitation broker role must be migrated to exact get/update rights without delete before the CAS-v2 rollout." >&2
+              exit 1
+            fi
+
+            password_reset_deployment_name="${HELM_RELEASE}-password-reset"
+            existing_password_reset_deployment="$(kubectl --namespace "$K8S_NAMESPACE" get deployment \
+              "$password_reset_deployment_name" \
+              --ignore-not-found \
+              --output=json)"
+            if [[ -n "$existing_password_reset_deployment" ]]; then
+              existing_invitation_protocol="$(jq --raw-output \
+                '.spec.template.metadata.annotations["versorgungs-kompass.de/password-invitation-protocol"] // ""' \
+                <<< "$existing_password_reset_deployment")"
+              if [[ "$existing_invitation_protocol" != "cas-v2" ]]; then
+                kubectl --namespace "$K8S_NAMESPACE" scale deployment \
+                  "$password_reset_deployment_name" \
+                  --replicas=0
+                old_password_reset_pods_present=1
+                for attempt in {1..90}; do
+                  old_password_reset_pod_count="$(kubectl --namespace "$K8S_NAMESPACE" get pods \
+                    --selector=app.kubernetes.io/component=password-reset-broker \
+                    --output=json \
+                    | jq --exit-status '.items | length')"
+                  if [[ "$old_password_reset_pod_count" == "0" ]]; then
+                    old_password_reset_pods_present=0
+                    break
+                  fi
+                  sleep 2
+                done
+                if [[ "$old_password_reset_pods_present" != "0" ]]; then
+                  echo "The legacy password-reset broker did not stop before the invitation protocol migration." >&2
+                  exit 1
+                fi
+              fi
+            fi
+          fi
+
           current_iap_audience="$(kubectl --namespace "$K8S_NAMESPACE" get configmap "${HELM_RELEASE}-api" \
             --output jsonpath='{.data.IAP_JWT_AUDIENCE}' 2>/dev/null || true)"
           if [[ ! "$current_iap_audience" =~ ^/projects/[0-9]+/global/backendServices/[0-9]+$ ]]; then
