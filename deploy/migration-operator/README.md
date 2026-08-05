@@ -101,6 +101,37 @@ Das Ergebnis wird als `sha256:<64-hex>` in die geschützte Operator-Env-Datei
 Abnahmeprotokoll festgehalten. Das Image wird nie über einen beweglichen Tag
 ausgeführt.
 
+### Wiederverwendbarer Online-Onboarding-Release
+
+Ein unverändertes Operator-Image muss nicht für jede neue Person erneut gebaut
+und hochgeladen werden. Für den beschleunigten Online-Neunutzerweg wird ein
+bereits geprüftes Image als zeitlich begrenzter Operator-Release freigegeben.
+Die aufgelöste, owner-only Release-Datei wird aus
+[`online-onboarding-operator-release.example.json`](../../config/pre-gematik/online-onboarding-operator-release.example.json)
+außerhalb des Git-Worktrees erstellt und bindet exakt:
+
+- den geprüften Quellcommit,
+- die regionale Image-Referenz mit unveränderlichem `@sha256`-Digest,
+- den aus genau diesem Image gelesenen Cloud-SQL-Auth-Proxy-Pin,
+- den privaten Einladungs-Bucket,
+- das Ende der Operator-Freigabe und
+- die unveränderte Pilotfrist.
+
+Der Release darf für mehrere vollständig neue Gäste wiederverwendet werden,
+solange Quellvertrag, Digest und Proxy-Pin unverändert sind, seine Freigabe
+nicht abgelaufen oder widerrufen wurde und keine neuere Sicherheitsentscheidung
+einen Neubau verlangt. Jeder einzelne Lauf prüft trotzdem Projekt, Region,
+Quellstand, Image-Digest, Proxy-Pin und das frische Online-Backup-/PITR-Gate.
+Die Wiederverwendung ersetzt weder diese Prüfungen noch die kurzlebigen IAM- und
+Datenbankidentitäten. Ein Tag ohne Digest, ein abgelaufener Release oder ein
+nicht zum Quellstand passendes Image ist `NO-GO`.
+
+Das Image enthält keine Nutzer-, Einladungs- oder Zugangsdaten. Seine
+Aufbewahrung und gezielte Entfernung werden deshalb releasebezogen entschieden,
+nicht nach jedem einzelnen Nutzerlauf. Spätestens nach Ablösung, Ablauf der
+Freigabe und Ende der vereinbarten Nachweisfrist wird exakt der nicht mehr
+benötigte Digest entfernt.
+
 ## 2. Kurzlebige Identität und IAM bereitstellen
 
 Vor jedem schreibenden Befehl Projekt, Cluster, Region und Namespace read-only
@@ -358,6 +389,148 @@ Operator exponiert `--create-profile-and-prebind` ausschließlich bei explizitem
 `GUEST_ACCESS_CREATE_PROFILE_AND_PREBIND=true` und gleichzeitig deaktiviertem
 Anzeigename-Reconcile. `--revoke` bleibt nicht exponiert.
 
+### Resumierbarer Prepare-Lauf bis `READY_TO_SEND`
+
+Der lokale Orchestrator
+[`orchestrate_pre_gematik_online_onboarding.mjs`](../../scripts/orchestrate_pre_gematik_online_onboarding.mjs)
+fasst die freigegebenen Einzelwerkzeuge zu einem technischen Lauf zusammen. Er
+ist ausschließlich für einen vollständig neuen Gast vorgesehen und hart auf
+`GUEST_ACCESS_CREATE_PROFILE_AND_PREBIND=true` sowie
+`GUEST_ACCESS_RECONCILE_PROFILE_DISPLAY_NAME_AND_PREBIND=false` begrenzt. Er
+besitzt keinen Pfad für Bestandsprofile, Anzeigename-Reconcile, Remap, Widerruf,
+`admin`, `standard` oder einen wartungsgebundenen Fallback.
+
+Die Anwendung bleibt während des gesamten Laufs erreichbar: Es gibt keinen
+App-Lock, keine Downtime, und der Orchestrator skaliert oder sperrt weder
+Frontend noch API. Er setzt kein `PRE_IMPORT_BACKUP_ID` und verwendet
+stattdessen ausschließlich das oben
+beschriebene Online-Gate. Bei abweichendem Modus, Teilzustand oder fehlendem
+Recovery-Nachweis stoppt er fail-closed.
+
+Alle personenbezogenen Eingaben, aufgelösten Konfigurationen, Journale,
+Evidenzen, Links und Mailartefakte liegen in einem bereits vorhandenen
+Verzeichnis mit Modus `0700` außerhalb des Git-Worktrees. Dateien sind
+owner-only mit Modus `0600`; Symlinks und zusätzliche oder widersprüchliche
+Konfigurationsschlüssel werden abgewiesen. Die phasenminimale Umgebung wird aus
+[`online-onboarding.env.example`](../../config/pre-gematik/online-onboarding.env.example)
+aufgelöst. Der Identity-Platform-Readback-Key bleibt in einer getrennten
+owner-only Env-Datei, die SMTP-Zugangsdaten in der bereits dokumentierten
+owner-only JSON-Datei.
+
+Ein read-only Planlauf erzeugt den über Account-, Gastzugriffs-, Ziel- und
+Operator-Release-Fingerprint gebundenen Bestätigungswert:
+
+```bash
+node scripts/orchestrate_pre_gematik_online_onboarding.mjs \
+  --account-input /ABSOLUT/GESCHUETZT/identity-platform-account.json \
+  --guest-access-input /ABSOLUT/GESCHUETZT/guest-access.json \
+  --operator-release /ABSOLUT/GESCHUETZT/online-onboarding-operator-release.json \
+  --operator-environment /ABSOLUT/GESCHUETZT/online-onboarding.env \
+  --identity-readback-environment /ABSOLUT/GESCHUETZT/identity-platform-readback.env \
+  --smtp-config /ABSOLUT/GESCHUETZT/smtp.json \
+  --run-directory /ABSOLUT/GESCHUETZT/ONBOARDING-RUN
+```
+
+Nach fachlicher Prüfung führt genau ein bestätigter Apply-Befehl ohne weitere
+manuelle Kubernetes-Zwischenschritte bis zur versandbereiten Mail:
+
+```bash
+node scripts/orchestrate_pre_gematik_online_onboarding.mjs \
+  --account-input /ABSOLUT/GESCHUETZT/identity-platform-account.json \
+  --guest-access-input /ABSOLUT/GESCHUETZT/guest-access.json \
+  --operator-release /ABSOLUT/GESCHUETZT/online-onboarding-operator-release.json \
+  --operator-environment /ABSOLUT/GESCHUETZT/online-onboarding.env \
+  --identity-readback-environment /ABSOLUT/GESCHUETZT/identity-platform-readback.env \
+  --smtp-config /ABSOLUT/GESCHUETZT/smtp.json \
+  --run-directory /ABSOLUT/GESCHUETZT/ONBOARDING-RUN \
+  --apply \
+  --confirm-environment pre-gematik \
+  --confirm-project PROJEKT \
+  --confirm-operation PREPARE_PRE_GEMATIK_ONLINE_GUEST \
+  --confirm-fingerprint sha256:FINGERPRINT-AUS-PLAN
+```
+
+Der Lauf automatisiert in dieser festen Reihenfolge:
+
+1. die beiden identischen create-only Account-Previews und genau einen
+   bestätigten Account-Apply; der dabei technisch erzeugte native Reset-Link
+   wird direkt nach dem exakten Account-Readback gelöscht und bleibt vom
+   Mailpfad ausgeschlossen,
+2. die create-only Vorbereitung genau eines kurzlebigen
+   `vk_access_operator_*`-Logins und der sechs dokumentierten temporären
+   Projektrollen,
+3. genau einen Online-`guest-preview`, genau einen mit dessen Operation und
+   Fingerprints bestätigten `guest-apply` und genau einen unveränderten
+   Post-Apply-Preview,
+4. die automatische geschützte Evidenzübergabe einschließlich Bestätigung,
+5. den vollständigen und read-only bestätigten Job-, Secret-, Datenbanklogin-
+   und IAM-Cleanup,
+6. Einladungs-Preview und create-only Vorbereitung des weiterhin inerten
+   Wrapperlinks,
+7. Mail-Preview, create-only Rendering und Sender-Preview sowie
+8. den Endzustand `READY_TO_SEND` mit `mail_sent=false` und genau einem
+   `mail_fingerprint`.
+
+Das owner-only Journal wird crash-atomar, create-only und monoton
+fortgeschrieben: Ein vollständig synchronisierter Zwischenstand wird erst
+danach ohne Überschreiben als finaler Hashketten-Eintrag veröffentlicht. Es bindet
+Eingaben, Release, Phasenevidenz und die UIDs der kurzlebigen Ressourcen, aber
+keine Passwörter, API-Keys oder Linktokens. Ein verteilter create-only Lock
+verhindert parallele Nutzung der festen Operator-Ressourcen. Mit denselben
+Eingaben, Bestätigungen und zusätzlichem `--resume` darf der Lauf nach einem
+sicheren Abbruch am ersten noch nicht abgeschlossenen Schritt fortgesetzt
+werden. Ein Resume wiederholt keinen Apply blind: Bei unbekanntem Account- oder
+COMMIT-Ausgang folgt zuerst der jeweils vorgeschriebene exakte Readback;
+Teilzustände und unbekannte Einladungs- oder SMTP-Ausgänge bleiben blockiert.
+Unvollständige lokale Datenbankzugangsverzeichnisse werden vor ihrer
+Veröffentlichung entfernt. Auch ein bereits protokolliertes `READY_TO_SEND`
+wird beim Resume durch einen neuen Sender-Preview gegen den gespeicherten
+Mailfingerprint geprüft. Ein vollständig lesbarer lokaler Takeover eines
+nachweislich beendeten Prozesses wird automatisch und ohne lockfreies Fenster
+fortgeführt; fremde oder unlesbare Lockdateien bleiben fail-closed.
+
+Die Anlage des kurzlebigen Cloud-SQL-Logins wird als asynchrone
+`CREATE_USER`-Operation ausgeführt. Vor dem API-Aufruf entsteht im geschützten
+Zugangsverzeichnis ein create-only Intent; die exakt auf Projekt, Instanz und
+Loginfingerprint geprüfte Operation-ID wird unmittelbar danach ebenfalls
+create-only verankert. Die einzige freigegebene Datenbankrolle wird atomar in
+dieser Operation gesetzt; ein nachgelagerter `UPDATE_USER`-/`assign-roles`-Aufruf
+ist ausgeschlossen. Erst ein terminaler Operations-Readback erlaubt die
+weitere Gastphase. Ist der serverseitige Create-Ausgang nach einem lokalen
+Abbruch noch unbekannt, bleiben Zugangsverzeichnis und Cluster-Lock erhalten.
+Ein Resume wartet die gespeicherte Operation ab beziehungsweise löscht einen
+später sichtbar gewordenen Login; ein einmaliges `absent` ohne Operation-ID ist
+kein ausreichender Cleanup-Nachweis.
+
+Besitzt ein exakt zum Journal gehörender Cluster-Lock weniger als 15 Minuten
+IAM-Restlaufzeit oder ist der gebundene Operator-Release inzwischen
+abgelaufen, wechselt ein bestätigtes `--resume` automatisch in den Zustand
+`CLEANUP_COMPLETED_RESUME_REQUIRED`. In diesem Modus werden ausschließlich
+Job, Secrets, temporäre IAM-Bindungen und der Cloud-SQL-Login bereinigt. Es
+starten weder Account-, Gast-, Einladungs-, Rendering- noch Mailphasen. Bei
+noch aktivem Release kann danach ein weiterer identischer Resume einen frischen
+Lock anlegen; bei abgelaufenem Release ist zuerst eine neue fachliche
+Release-Freigabe erforderlich.
+
+Jeder Resume beginnt dafür mit dem minimalen Ziel- und Ownership-Preflight.
+Erst nach dem Lock-Readback und nur bei ausreichendem Zeitfenster folgt der
+vollständige Vorwärts-Preflight für Quellstand, Image und Bucket. Diese Reihenfolge
+verhindert, dass ein für neue Fachphasen relevantes Gate die notwendige
+Restbereinigung blockiert.
+
+Der Orchestrator kann niemals selbst versenden und `--resume` überschreitet
+`READY_TO_SEND` nicht. Erst eine davon getrennte, persönliche Bestätigung des
+angezeigten Mail-Fingerprints autorisiert den unveränderten
+[`send_pre_gematik_guest_welcome_email.mjs`](../../scripts/send_pre_gematik_guest_welcome_email.mjs)-Apply.
+Die 48-Stunden-Laufzeit beginnt weiterhin erst mit der bestätigten
+SMTP-Annahme.
+
+Bei gesundem Zielkontext und bereits freigegebenem, lokal beziehungsweise auf
+dem GKE-Knoten verfügbarem Image ist für den Prepare-Lauf eine typische
+Zielspanne von vier bis acht Minuten vorgesehen. Sie ist kein Grund, Gates,
+Evidenz oder Cleanup zu überspringen und keine Garantie bei Image-Pull,
+Infrastrukturfehlern oder notwendiger Reconciliation.
+
 ## 5. Geschützte Evidenzübergabe
 
 Der Operator schreibt `status.json` und das owner-only Phasenlog. Danach hält
@@ -413,7 +586,8 @@ Nach erfolgreicher Abnahme, spätestens nach 24 Stunden:
 5. im normalen Phasencleanup
    `networkpolicy/vk-pre-gematik-migration-operator` und
    `serviceaccount/vk-pre-gematik-migration-operator` löschen,
-6. den Operator-Image-Digest nach der vereinbarten Nachweisfrist gezielt aus der
+6. den wiederverwendbaren Operator-Image-Digest erst nach Ablösung oder Ablauf
+   seiner Release-Freigabe und der vereinbarten Nachweisfrist gezielt aus der
    Registry entfernen; nie ein anderes Image über einen Tag-Selektor löschen,
 7. geschützte Credential-Dateien vernichten und Abnahmenachweise gemäß der
    dokumentierten Aufbewahrung geschützt behalten.

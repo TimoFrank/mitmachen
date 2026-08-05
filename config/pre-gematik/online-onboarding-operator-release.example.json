@@ -1,0 +1,9 @@
+{
+  "version": 1,
+  "source_commit": "REPLACE_WITH_EXACT_40_HEX_SOURCE_COMMIT",
+  "image": "europe-west3-docker.pkg.dev/example-pre-gematik-project/versorgungs-kompass-pre-gematik/vk-access-operator@sha256:REPLACE_WITH_EXACT_64_HEX_IMAGE_DIGEST",
+  "cloud_sql_proxy_sha256": "sha256:REPLACE_WITH_EXACT_64_HEX_PROXY_DIGEST",
+  "approved_until": "2026-09-30T16:00:00Z",
+  "invitation_bucket": "example-pre-gematik-project-vk-pre-gematik-invitations",
+  "pilot_end": "2026-09-30T16:00:00Z"
+}
