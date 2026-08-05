@@ -1901,21 +1901,31 @@ export class CommandOnlineOnboardingRuntime {
     const kubeTargetTemplate =
       '{.clusters[0].cluster.server}{"\\n"}'
       + '{.clusters[0].cluster.certificate-authority-data}{"\\n"}'
-      + '{.clusters[0].cluster.insecure-skip-tls-verify}{"\\n"}';
+      + '{.clusters[0].cluster.certificate-authority}{"\\n"}'
+      + '{.clusters[0].cluster.insecure-skip-tls-verify}{"\\n"}'
+      + '{.clusters[0].cluster.tls-server-name}{"\\n"}'
+      + '{.clusters[0].cluster.proxy-url}{"\\n"}'
+      + '{"END\\n"}';
     const kubeTarget = (await this.kubectl([
       "config", "view", "--minify", "--raw",
       "-o", `jsonpath=${kubeTargetTemplate}`
-    ], { label: "Kubernetes-Endpoint-und-CA-Readback" })).stdout.trimEnd().split("\n");
+    ], { label: "Kubernetes-DNS-und-TLS-Readback" })).stdout.trimEnd().split("\n");
     const expectedKubernetesServer = gkeDnsEndpoint.startsWith("https://")
       ? gkeDnsEndpoint
       : `https://${gkeDnsEndpoint}`;
     if (
-      kubeTarget.length < 2
+      kubeTarget.length !== 7
+      || kubeTarget[6] !== "END"
       || kubeTarget[0] !== expectedKubernetesServer
-      || kubeTarget[1] !== cluster.masterAuth.clusterCaCertificate
-      || kubeTarget[2] === "true"
+      || kubeTarget[1] !== ""
+      || kubeTarget[2] !== ""
+      || !["", "false"].includes(kubeTarget[3])
+      || kubeTarget[4] !== ""
+      || kubeTarget[5] !== ""
     ) {
-      throw new OnlineOnboardingError("Kubernetes-API-Endpoint oder Cluster-CA weicht vom GKE-Readback ab.");
+      throw new OnlineOnboardingError(
+        "Kubernetes-DNS-Endpunkt oder TLS-Vertrauenskonfiguration weicht vom GKE-Readback ab."
+      );
     }
     const namespace = parseJsonOutput((await this.kubectl([
       "get", "namespace", baseEnvironment.K8S_NAMESPACE, "-o", "json"
