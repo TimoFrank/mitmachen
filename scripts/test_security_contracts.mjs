@@ -583,6 +583,24 @@ assert.doesNotMatch(valuesSource, /tag:\s*latest\b/i, "Produktionsimages duerfen
 
 const deployWorkflowSource = read(".github/workflows/deploy-pre-gematik.yml");
 const targetReadinessSource = read(".github/workflows/target-readiness.yml");
+for (const workflowPath of [
+  ".github/workflows/deploy-pages.yml",
+  ".github/workflows/deploy-pre-gematik.yml",
+  ".github/workflows/hotfix-release.yml",
+  ".github/workflows/publish-release.yml",
+  ".github/workflows/repo-check.yml",
+  ".github/workflows/target-readiness.yml",
+  ".github/workflows/weekly-release.yml"
+]) {
+  const installStep = read(workflowPath).match(
+    /      - name: Install dependencies\n[\s\S]*?(?=\n      - name: )/u
+  )?.[0] || "";
+  assert.match(
+    installStep,
+    /^\s+npm ci --prefix api$/mu,
+    `${workflowPath} muss die gepinnten API-Laufzeitabhaengigkeiten vor Root-Pruefungen installieren.`
+  );
+}
 const jenkinsSource = read("deploy/jenkins/Jenkinsfile.gematik");
 const targetValuesSource = read("deploy/helm/versorgungs-kompass/values-target-gematik.yaml");
 const targetSourceVerifier = read("scripts/verify_target_release_source.mjs");

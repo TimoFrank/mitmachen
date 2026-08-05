@@ -233,6 +233,7 @@ jobs:
       - name: Install dependencies
         run: |
           npm ci
+          npm ci --prefix api
           npm ci --prefix frontend/identity-portal
 
       - name: Install Chromium
