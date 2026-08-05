@@ -20,8 +20,6 @@
 
 ## Vier Kompasse
 
-**#Mitmachen** verbindet vier gleichrangige Kompasse.
-
 <table>
   <tr>
     <td width="50%" align="center">
@@ -51,9 +49,7 @@
   <img src="dokumentation/assets/readme/mitmachen-kompass-collage-v3.png" alt="Aktuelle Anwendungscollage mit Versorgungs-Kompass, Stakeholder-Kompass, Hospitations-Kompass und Format-Kompass" width="100%" />
 </p>
 
-<p align="center"><sub>Vier Kompasse, eine gemeinsame Anwendung. Sämtliche dargestellten Personen, Organisationen und Fachdaten sind fiktiv.</sub></p>
-
-**#Mitmachen** verbindet Versorgungs-Kompass, Stakeholder-Kompass, Hospitations-Kompass und Format-Kompass in einer gemeinsamen Anwendung. So werden Versorgungs-Perspektiven sichtbar.
+<p align="center"><sub>Sämtliche dargestellten Personen, Organisationen und Fachdaten sind fiktiv.</sub></p>
 
 ## Funktionsumfang
 
@@ -64,24 +60,25 @@
 
 ## Zugänge und aktueller Stand
 
-Der #Mitmachen Versorgungs-Kompass ist eine interne Anwendung. Gesundheits-, Patienten-
-und identifizierende Daten sind für den Piloten ausgeschlossen.
+Der #Mitmachen Versorgungs-Kompass ist eine interne Anwendung.
 
 | Zugang | Status | Inhalt |
 | --- | --- | --- |
-| [GitHub-Pages-Demo](https://timofrank.github.io/mitmachen/) | Demo | Fiktive Beispieldaten, öffentlich verfügbar |
-| [GKE-Demo](https://versorgungs-kompass.de/) | Geschützte Pre-Integration | Persönlicher GCP-/IAP-Referenzpfad; nicht der gematik-Zielbetrieb |
-| gematik-PoC | Legacy-RC.5 | Providerneutraler OIDC-Release-Candidate als historische Übergabeevidenz |
+| [GitHub Pages](https://timofrank.github.io/mitmachen/) | Demo | Fiktive Beispieldaten, öffentlich verfügbar |
+| [GKE-Cluster](https://versorgungs-kompass.de/) | Pre-Integration | Geschützte Referenzumgebung, nicht Zielbetrieb |
+| gematik-PoC | RC.5 | Providerneutraler OIDC-Release-Candidate als Übergabe |
 
 GitHub Pages veröffentlicht die öffentliche Demo. Die GKE-Pre-Integration läuft
-getrennt unter versorgungs-kompass.de. RC.5 ist mit dem unveränderlichen Remote-Tag
+getrennt unter versorgungs-kompass.de. 
+
+RC.5 ist mit dem unveränderlichen Remote-Tag
 `poc-v0.1.0-rc.5` auf Commit
 `2e54916d626eccc90e7572b5bac958aafd54fd92` festgehalten. Die Software Factory baut das providerneutrale
 OIDC-Frontend und das API-Image neu. Der freigegebene Datenstand wird weiterhin
 getrennt aus der geschützten Anwendung übernommen und ist kein Buildartefakt.
+
 Herkunft und Freeze-Regeln stehen in der
-[RC.5-Übergabenotiz](dokumentation/betrieb-und-deployment/UEBERGABE_RC5_SOFTWARE_FACTORY.md);
-Umfang und benötigte Ressourcen beschreibt der
+[RC.5-Übergabenotiz](dokumentation/betrieb-und-deployment/UEBERGABE_RC5_SOFTWARE_FACTORY.md). Umfang und benötigte Ressourcen beschreibt der
 [PoC-Durchstich](dokumentation/betrieb-und-deployment/POC_GEMATIK_DURCHSTICH.md).
 
 Die geschützte GCP-Anwendung nutzt ausschließlich PostgreSQL in Cloud SQL als Datenbank und private GCS-Buckets als Objektspeicher.
@@ -117,22 +114,17 @@ Gematik-Target: vX.Y.Z -> target       -> dist/target/ + OIDC-Image -> Software 
 ```
 
 Neue Releases verwenden genau einen vollständigen, signierten Quelltag
-`vX.Y.Z`. Alle `0.x`-Versionen sind bei GitHub „Release Candidates“; ein Hotfix
-erhöht den Patchstand. Profil, Authentisierung und
+`vX.Y.Z`. Alle `0.x`-Versionen sind bei GitHub „Release Candidates“. Profil, Authentisierung und
 Artefaktdigests bleiben kanalbezogen. Gleiche Version bedeutet gleiche Quelle,
-nicht baugleiche Artefakte. Weitere Änderungen auf `main` oder in lokalen
-Arbeitsständen verändern einen getaggten Stand nicht.
+nicht baugleiche Artefakte. Änderungen auf `main` verändern einen getaggten Stand nicht.
 
 Wochenreleases werden freitags über
 [GitHub Releases](https://github.com/TimoFrank/mitmachen/releases)
-bereitgestellt, sofern seit dem letzten Stand Änderungen vorliegen. Hotfixes
-können unter der Woche als Patch folgen. Die Automatisierung besitzt einen
-schreibfreien Planmodus und bleibt bis zur Signaturabnahme doppelt gesperrt:
-Weder der Freitagsplan noch die eigentliche Veröffentlichung sind derzeit
-freigegeben. Ablauf, Versionsregeln, Artefakte und Benachrichtigung beschreibt der
+bereitgestellt, sofern seit dem letzten Stand Änderungen vorliegen. Die Automatisierung besitzt einen
+schreibfreien Planmodus und bleibt bis zur Signaturabnahme gesperrt Ablauf, Versionsregeln, Artefakte und Benachrichtigung beschreibt der
 [Produkt-Release-Prozess](dokumentation/betrieb-und-deployment/PRODUKT_RELEASE_PROZESS.md).
 
-Das [GitLab-/Software-Factory-Übergaberunbook](dokumentation/betrieb-und-deployment/GITLAB_SOFTWARE_FACTORY_UEBERGABE.md) ist der aktuelle Einstieg für die institutionelle Quellübernahme. Die [RC.5-Übergabenotiz](dokumentation/betrieb-und-deployment/UEBERGABE_RC5_SOFTWARE_FACTORY.md) bleibt unveränderte historische Evidenz. Der technische Ablauf des PoC steht im [Deployment-Runbook](dokumentation/betrieb-und-deployment/DEPLOYMENT_GEMATIK_K8S.md). Ausführbare Artefakte sind unter [`deploy/`](deploy/README.md) beschrieben. Weitere Referenzen: [Security](SECURITY.md), [Dokumentationsindex](dokumentation/README.md) und [Mitwirken](CONTRIBUTING.md).
+Das [GitLab-/Software-Factory-Übergaberunbook](dokumentation/betrieb-und-deployment/GITLAB_SOFTWARE_FACTORY_UEBERGABE.md) ist der aktuelle Einstieg für die Übergabe. Die [RC.5-Übergabenotiz](dokumentation/betrieb-und-deployment/UEBERGABE_RC5_SOFTWARE_FACTORY.md) bleibt unveränderte historische Evidenz. Der technische Ablauf des PoC steht im [Deployment-Runbook](dokumentation/betrieb-und-deployment/DEPLOYMENT_GEMATIK_K8S.md). Ausführbare Artefakte sind unter [`deploy/`](deploy/README.md) beschrieben. Weitere Referenzen: [Security](SECURITY.md), [Dokumentationsindex](dokumentation/README.md) und [Mitwirken](CONTRIBUTING.md).
 
 Der Quellcode und die technische Dokumentation stehen unter der [Apache License 2.0](LICENSE). Für Daten und externe Inhalte gelten die Hinweise im [Data Notice](dokumentation/rechtliches/DATA_NOTICE.md).
 
