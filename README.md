@@ -53,22 +53,19 @@
 
 <p align="center"><sub>Vier Kompasse, eine gemeinsame Anwendung. Sämtliche dargestellten Personen, Organisationen und Fachdaten sind fiktiv.</sub></p>
 
-**#Mitmachen** verbindet Versorgungs-Kompass, Stakeholder-Kompass, Hospitations-Kompass und Format-Kompass in einer gemeinsamen Anwendung. So werden regionale Perspektiven sichtbar, Erfahrungen nachvollziehbar und Erkenntnisse für die gemeinsame Arbeit nutzbar.
+**#Mitmachen** verbindet Versorgungs-Kompass, Stakeholder-Kompass, Hospitations-Kompass und Format-Kompass in einer gemeinsamen Anwendung. So werden Versorgungs-Perspektiven sichtbar.
 
 ## Funktionsumfang
 
-- **Versorgung sehen:** Karte und Filter zeigen regionale Schwerpunkte, Lücken und Kontakte.
-- **Beziehungen verstehen:** Kontakte, Organisationen und Stakeholder bleiben mit ihrem fachlichen Kontext verbunden.
-- **Gemeinsam arbeiten:** Profile, Teams, Zuständigkeiten und Aktivitäten machen Beiträge nachvollziehbar.
-- **Hospitationen begleiten:** Termine, Kalender und Fragebogen führen von der Vorbereitung bis zur Dokumentation.
+- **Versorgung sehen:** Karte und Filter zeigen regionale Schwerpunkte und Kontakte.
+- **Hospitationen begleiten:** Termine - von Vorbereitung bis Dokumentation.
 - **Wissen aufbauen:** Beobachtungen werden zu Mustern, Hypothesen und Evidenz verdichtet.
-- **Nächste Schritte gestalten:** Dashboards, Roundtables und Fachgespräche unterstützen die gemeinsame Arbeit.
+- **Austausch planen:** Formate unterstützen die Zusammenarbeit mit der Versorgung.
 
 ## Zugänge und aktueller Stand
 
-Der Zielpfad ist eine interne Anwendung für gematik-Mitarbeitende. Er ist keine
-TI-Anwendung und besitzt keinen TI-Zulassungskontext. Gesundheits-, Patienten-
-und identifizierende Falldaten sind für diesen Nutzungspiloten ausgeschlossen.
+Der #Mitmachen Versorgungs-Kompass ist eine interne Anwendung. Gesundheits-, Patienten-
+und identifizierende Daten sind für den Piloten ausgeschlossen.
 
 | Zugang | Status | Inhalt |
 | --- | --- | --- |
@@ -77,13 +74,9 @@ und identifizierende Falldaten sind für diesen Nutzungspiloten ausgeschlossen.
 | gematik-PoC | Legacy-RC.5 | Providerneutraler OIDC-Release-Candidate als historische Übergabeevidenz |
 
 GitHub Pages veröffentlicht die öffentliche Demo. Die GKE-Pre-Integration läuft
-getrennt unter versorgungs-kompass.de; die bisherige Adresse
-mitmachen.timo-frank.de bleibt als HTTPS-Weiterleitung erhalten. Der
-historische RC.5 ist mit dem unveränderlichen Remote-Tag
+getrennt unter versorgungs-kompass.de. RC.5 ist mit dem unveränderlichen Remote-Tag
 `poc-v0.1.0-rc.5` auf Commit
-`2e54916d626eccc90e7572b5bac958aafd54fd92` festgehalten. Dieser Legacy-Tag
-wird nicht umbenannt oder nachsigniert. Die IAP-Artefakte der GKE-Pre-Integration
-werden nicht umgetaggt; die Software Factory baut das providerneutrale
+`2e54916d626eccc90e7572b5bac958aafd54fd92` festgehalten. Die Software Factory baut das providerneutrale
 OIDC-Frontend und das API-Image neu. Der freigegebene Datenstand wird weiterhin
 getrennt aus der geschützten Anwendung übernommen und ist kein Buildartefakt.
 Herkunft und Freeze-Regeln stehen in der
@@ -91,7 +84,7 @@ Herkunft und Freeze-Regeln stehen in der
 Umfang und benötigte Ressourcen beschreibt der
 [PoC-Durchstich](dokumentation/betrieb-und-deployment/POC_GEMATIK_DURCHSTICH.md).
 
-Die geschützte GCP-Anwendung nutzt ausschließlich PostgreSQL in Cloud SQL als Datenbank und private GCS-Buckets als Objektspeicher. Supabase-Laufzeitcode, Schemaquellen und Migrationswerkzeuge gehören nicht mehr zum aktuellen Repository. Das Inventarisieren, Sperren und Löschen eventuell noch vorhandener Supabase-Projekte, Edge Functions, Schlüssel oder Sicherungen ist ein separater, protokollierter Betriebsvorgang; das Entfernen aus Git nimmt diese Provider-Ressourcen nicht automatisch außer Betrieb.
+Die geschützte GCP-Anwendung nutzt ausschließlich PostgreSQL in Cloud SQL als Datenbank und private GCS-Buckets als Objektspeicher.
 
 ## Repository
 
