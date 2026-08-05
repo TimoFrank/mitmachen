@@ -17,6 +17,8 @@ import {
   WELCOME_EMAIL_SENDER_EMAIL,
   WELCOME_EMAIL_SENDER_NAME,
   WELCOME_EMAIL_SUBJECT,
+  WELCOME_EMAIL_TEMPLATE_ID,
+  containsHiddenEmailContent,
   executeWelcomeEmailRendering,
   loadProtectedBrandedSetPasswordLink,
   parseWelcomeEmailArguments,
@@ -104,6 +106,8 @@ for (const [name, value] of Object.entries(rendered)) {
   assert.ok(value.trim().length > 0, `${name} darf nicht leer sein.`);
 }
 assert.equal(rendered.subject.trim(), WELCOME_EMAIL_SUBJECT);
+assert.equal(containsHiddenEmailContent(htmlTemplate), false);
+assert.equal(containsHiddenEmailContent(rendered.html), false);
 assert.match(rendered.text, /Ein zusätzliches Google-Konto ist nicht erforderlich/u);
 assert.match(rendered.text, /innerhalb von 48 Stunden vollständig ein/u);
 assert.match(rendered.text, /versorgungs-kompass\.de\/start/u);
@@ -160,8 +164,14 @@ assert.match(
   rendered.eml,
   /Reply-To: <zugang@versorgungs-kompass\.de>/u
 );
+assert.match(rendered.eml, /^From: #Mitmachen <zugang@versorgungs-kompass\.de>$/mu);
+assert.match(
+  rendered.eml,
+  /^Subject: #Mitmachen: Dein Testzugang zum Versorgungs-Kompass$/mu
+);
+assert.doesNotMatch(rendered.eml, /=\?UTF-8\?[BQ]\?/iu);
 assert.match(rendered.eml, /To: <guest@example\.invalid>/u);
-assert.match(rendered.eml, /pre-gematik-guest-welcome-v4/u);
+assert.match(rendered.eml, new RegExp(WELCOME_EMAIL_TEMPLATE_ID, "u"));
 assert.ok(
   rendered.eml.split("\r\n").every((line) => Buffer.byteLength(line, "utf8") <= 998),
   "EML-Zeilen muessen das SMTP-Limit einhalten."
@@ -172,8 +182,8 @@ assert.notEqual(
   welcomeEmailRenderingFingerprint({
     ...rendered,
     eml: rendered.eml.replace(
-      "pre-gematik-guest-welcome-v4",
-      "pre-gematik-guest-welcome-v4-test"
+      WELCOME_EMAIL_TEMPLATE_ID,
+      `${WELCOME_EMAIL_TEMPLATE_ID}-test`
     )
   }),
   fingerprint,
@@ -220,6 +230,25 @@ await safeRejection(
   }),
   /Signets|aktive Inhalte/u
 );
+for (const hiddenMarkup of [
+  '<div style="display:none;opacity:0">Verborgener Inhalt</div>',
+  "<div hidden>Verborgener Inhalt</div>",
+  '<div style="position:absolute;left:-9999px">Verborgener Inhalt</div>',
+  "<div>Verborgener Inhalt\u200d</div>"
+]) {
+  await safeRejection(
+    () => renderGuestWelcomeEmail({
+      document,
+      actionUrl,
+      senderName: WELCOME_EMAIL_SENDER_NAME,
+      senderEmail: WELCOME_EMAIL_SENDER_EMAIL,
+      pilotEnd: EXPECTED_PILOT_END,
+      textTemplate,
+      htmlTemplate: htmlTemplate.replace("</body>", `${hiddenMarkup}</body>`)
+    }),
+    /verborgene Inhalte/u
+  );
+}
 for (const activeMarkup of [
   '<svg onload="alert(1)"></svg>',
   '<div style="background-image:url(data:text/plain,unsafe)">Unsicher</div>',
