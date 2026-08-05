@@ -298,12 +298,15 @@ vorbereitet wird. Das Broker-Backend verwendet ein 45-Sekunden-Timeout mit
 Reserve oberhalb der internen Einzelbudgets; der Browser wartet 50 Sekunden.
 
 Die einmalige Umstellung vom bisherigen Delete-Vertrag auf `cas-v2` darf nicht
-als überlappendes Rolling Update erfolgen: Der Deployment-Workflow skaliert
-zuerst jedes Broker-Deployment ohne die Protokollannotation
+als überlappendes Rolling Update erfolgen: Die wirksame Brokerrolle muss zuerst
+exakt nur Storage Get und Update enthalten; Delete bleibt verboten. Die
+Rollenprüfung erfolgt vor dem Scale-down des Legacy-Brokers. Erst nach diesem
+erfolgreichen Gate skaliert der Deployment-Workflow jedes Broker-Deployment
+ohne die Protokollannotation
 `versorgungs-kompass.de/password-invitation-protocol=cas-v2` auf null und
-bestätigt die Abwesenheit aller alten Pods. Danach muss die wirksame Brokerrolle
-exakt nur Storage Get und Update enthalten; Delete bleibt verboten. Erst dann
-startet der neue Broker. Ein fehlgeschlagenes Gate hält den Broker bewusst
+bestätigt die Abwesenheit aller alten Pods. Danach startet ausschließlich der
+neue Broker. Ein fehlgeschlagenes Rollengate lässt den Legacy-Broker unberührt;
+nach erfolgreichem Gate hält der Workflow ihn bis zum neuen Rollout bewusst
 fail-closed offline, damit alter Delete-Code und neue CAS-Logik niemals
 gleichzeitig dieselbe generationenstabile Einladung verarbeiten.
 

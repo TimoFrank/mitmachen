@@ -95,10 +95,11 @@ resource "google_project_iam_member" "deployer_public_backend_cutover" {
 resource "google_project_iam_custom_role" "deployment_resource_verifier" {
   role_id     = "preGematikDeploymentVerifier"
   title       = "Pre-gematik deployment resource verifier"
-  description = "Read only Cloud SQL and bucket metadata needed to prove that a deployment targets the approved project and hardened storage resources."
+  description = "Read only Cloud SQL, custom IAM role, and bucket metadata needed to prove that a deployment targets the approved project and hardened resources."
   stage       = "GA"
   permissions = [
     "cloudsql.instances.get",
+    "iam.roles.get",
     "storage.buckets.get",
   ]
 }
