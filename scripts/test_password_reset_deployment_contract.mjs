@@ -198,6 +198,31 @@ assert.doesNotMatch(smtpSecretBinding, /deployer|gke_api_workload_principal/u);
 assert.match(terraformExample, /PASSWORD_RESET_SMTP_PASSWORD_SECRET_NAME\s*=\s*"vk-pre-gematik-password-reset-smtp-password"/u);
 assert.match(environmentExample, /PASSWORD_RESET_SMTP_PASSWORD_SECRET_NAME=vk-pre-gematik-password-reset-smtp-password/u);
 
+const deploymentVerifierRoleBlock = identities.match(
+  /resource "google_project_iam_custom_role" "deployment_resource_verifier" \{[\s\S]*?\n\}/u
+)?.[0];
+assert.ok(deploymentVerifierRoleBlock, "Die getrennte Read-only-Rolle für Deployment-Preflights fehlt.");
+const deploymentVerifierPermissions = [...deploymentVerifierRoleBlock.matchAll(
+  /"((?:cloudsql|iam|storage)\.[^"]+)"/gu
+)]
+  .map((match) => match[1])
+  .sort();
+assert.deepEqual(deploymentVerifierPermissions, [
+  "cloudsql.instances.get",
+  "iam.roles.get",
+  "storage.buckets.get"
+]);
+assert.doesNotMatch(deploymentVerifierRoleBlock, /iam\.roles\.(?:create|delete|list|update)/u);
+const deploymentVerifierBinding = identities.match(
+  /resource "google_project_iam_member" "deployer_deployment_resource_verifier" \{[\s\S]*?\n\}/u
+)?.[0];
+assert.ok(deploymentVerifierBinding, "Die Deployer-Bindung an die Deployment-Verifier-Rolle fehlt.");
+assert.match(
+  deploymentVerifierBinding,
+  /role\s*=\s*google_project_iam_custom_role\.deployment_resource_verifier\.name/u
+);
+assert.match(deploymentVerifierBinding, /member\s*=\s*"serviceAccount:\$\{google_service_account\.deployer\.email\}"/u);
+
 const roleBlock = identities.match(
   /resource "google_project_iam_custom_role" "password_reset_broker" \{[\s\S]*?\n\}/u
 )?.[0];
@@ -237,6 +262,13 @@ for (const documentation of [deploymentGuide, pilotGuide, portalReadme]) {
   assert.match(documentation, /Custom Metadata/u);
   assert.match(documentation, /\{\s*`?invitationToken`?\s*,\s*`?finalize`?\s*:\s*`?true`?\s*\}/u);
   assert.match(documentation, /PASSWORD_RESET/u);
+}
+for (const documentation of [deploymentGuide, pilotGuide]) {
+  assert.match(
+    documentation,
+    /Die\s+Rollenprüfung erfolgt vor dem Scale-down\s+des Legacy-Brokers\./u,
+    "Die Betriebsdokumentation muss die Rollenprüfung vor dem Legacy-Scale-down festschreiben."
+  );
 }
 
 const operatorStorageRoleBlock = identities.match(

@@ -536,8 +536,8 @@ const contentChecks = [
   },
   {
     file: "deploy/terraform/gcp-autopilot/identities.tf",
-    patterns: [/assertion\.environment/, /attribute_condition\s*=\s*[^\n]*assertion\.ref/, /roles\/iam\.workloadIdentityUser/, /roles\/cloudsql\.client/, /workload_cloudsql_client[\s\S]*depends_on\s*=\s*\[google_container_cluster\.autopilot\]/, /iap\.webServices\.getIamPolicy/, /iap\.webServices\.setIamPolicy/, /compute\.urlMaps\.get/, /preGematikPublicBackendCutover[\s\S]*compute\.backendServices\.update[\s\S]*compute\.healthChecks\.useReadOnly/, /preGematikDeploymentVerifier/, /cloudsql\.instances\.get/, /storage\.buckets\.get/, /preGematikPasswordInvitationBroker/, /storage\.objects\.get/, /storage\.objects\.update/],
-    reason: "Workload Identity ist auf Repository, Environment und Git-Ref begrenzt; Cloud-SQL-, Bucket-, Einladungsobjekt-, URL-Map-, Public-Cutover- und granulare IAP-Policy-Rechte sind explizit."
+    patterns: [/assertion\.environment/, /attribute_condition\s*=\s*[^\n]*assertion\.ref/, /roles\/iam\.workloadIdentityUser/, /roles\/cloudsql\.client/, /workload_cloudsql_client[\s\S]*depends_on\s*=\s*\[google_container_cluster\.autopilot\]/, /iap\.webServices\.getIamPolicy/, /iap\.webServices\.setIamPolicy/, /compute\.urlMaps\.get/, /preGematikPublicBackendCutover[\s\S]*compute\.backendServices\.update[\s\S]*compute\.healthChecks\.useReadOnly/, /preGematikDeploymentVerifier/, /cloudsql\.instances\.get/, /iam\.roles\.get/, /storage\.buckets\.get/, /preGematikPasswordInvitationBroker/, /storage\.objects\.get/, /storage\.objects\.update/],
+    reason: "Workload Identity ist auf Repository, Environment und Git-Ref begrenzt; Cloud-SQL-, IAM-Rollen-, Bucket-, Einladungsobjekt-, URL-Map-, Public-Cutover- und granulare IAP-Policy-Rechte sind explizit."
   },
   {
     file: "deploy/terraform/gcp-autopilot/identity-platform.tf",

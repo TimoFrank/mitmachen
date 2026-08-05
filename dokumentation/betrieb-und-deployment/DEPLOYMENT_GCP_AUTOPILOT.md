@@ -100,16 +100,18 @@ Portal-API-Key und prüft den exakten `oobCode` read-only auf die gebundene
 E-Mail und `requestType=PASSWORD_RESET`, bevor er `issued` veröffentlicht.
 
 Die erstmalige Migration vom löschenden Broker auf dieses `cas-v2`-Protokoll
-ist ausdrücklich kein Rolling Update. Der Deployment-Workflow skaliert ein
-vorhandenes Broker-Deployment ohne die Pod-Annotation
-`versorgungs-kompass.de/password-invitation-protocol=cas-v2` zuerst auf null
-und wartet, bis kein alter Broker-Pod mehr existiert. Erst danach akzeptiert er
-die Infrastrukturrolle, wenn sie exakt nur `storage.objects.get` und
-`storage.objects.update` enthält und insbesondere kein Delete-Recht mehr
-besitzt. Bei einem fehlgeschlagenen Gate bleibt der Passwort-Broker
-fail-closed nicht verfügbar; erst der anschließende Helm-Lauf startet
-ausschließlich `cas-v2`-Pods. Spätere Releases desselben Protokolls dürfen
-wieder normal rollen.
+ist ausdrücklich kein Rolling Update. Der Deployment-Workflow akzeptiert die
+Infrastrukturrolle zuerst nur dann, wenn sie exakt
+`storage.objects.get` und `storage.objects.update` enthält und insbesondere
+kein Delete-Recht mehr besitzt. Die Rollenprüfung erfolgt vor dem Scale-down
+des Legacy-Brokers. Erst danach skaliert der Workflow ein vorhandenes
+Broker-Deployment ohne die Pod-Annotation
+`versorgungs-kompass.de/password-invitation-protocol=cas-v2` auf null und
+wartet, bis kein alter Broker-Pod mehr existiert. Bei einem fehlgeschlagenen
+Gate bleibt der Legacy-Broker unberührt; nach erfolgreichem Gate hält ihn der
+Workflow bis zum anschließenden Helm-Lauf fail-closed offline. Der Helm-Lauf
+startet ausschließlich `cas-v2`-Pods. Spätere Releases desselben Protokolls
+dürfen wieder normal rollen.
 
 Da jede vollständige Einladung genau einen Redeem- und einen Finalize-POST
 benötigt, erlaubt Cloud Armor pro Quell-IP 30 Requests in 300 Sekunden und
@@ -141,13 +143,14 @@ Infrastruktur-Administrator beim kontrollierten Ersetzen der Policy bereits vor
 dem abschließenden Readback selbst aussperrt.
 
 Der GitHub-Deployer erhält keine direkten GCS-Objektrechte auf diesem Bucket.
-Die für Deployment-Preflights erforderlichen Bucket-Metadaten liest er
-ausschließlich über die getrennte, projektweite Verifier-Rolle. Als
-Deployment-Autorität für Cluster-Workloads bleibt CI/CD Teil der vertrauten
-Systemgrenze: Eine kompromittierte Release-Identität könnte indirekt eine
-Workload unter der Broker-Identität starten. Deshalb bleiben WIF-Branch- und
-Environment-Gates, Review, digest-gepinnte Images sowie die Prüfung der
-ausgelieferten Workload verbindlich.
+Die für Deployment-Preflights erforderlichen Cloud-SQL-, Bucket- und
+Custom-Role-Metadaten liest er ausschließlich über die getrennte, projektweite
+Verifier-Rolle. Diese Rolle darf einzelne Custom Roles lesen, aber weder Rollen
+auflisten noch verändern. Als Deployment-Autorität für Cluster-Workloads bleibt
+CI/CD Teil der vertrauten Systemgrenze: Eine kompromittierte Release-Identität
+könnte indirekt eine Workload unter der Broker-Identität starten. Deshalb
+bleiben WIF-Branch- und Environment-Gates, Review, digest-gepinnte Images sowie
+die Prüfung der ausgelieferten Workload verbindlich.
 
 Die API verbindet sich im Pod mit `127.0.0.1:5432` zum Cloud SQL Auth Proxy. Deshalb ist der lokale PostgreSQL-TLS-Modus `disable`; der Proxy authentifiziert sich per Workload Identity und baut die verschlüsselte private Verbindung zur Cloud-SQL-Instanz auf. Eine direkte unverschlüsselte Netzwerkverbindung der API zur Datenbank ist nicht vorgesehen.
 
@@ -608,7 +611,7 @@ Der aufrufende Workflow kann die Rechte nicht über die im wiederverwendbaren Wo
 ### Infrastruktur
 
 - [ ] Terraform-Plan wurde geprüft und in das richtige GCP-Projekt angewendet.
-- [ ] Die ausgerollten Deployer-Rollen enthalten `compute.urlMaps.get` sowie die separaten Cutover-Berechtigungen `compute.backendServices.update` und `compute.healthChecks.useReadOnly`; der Public-Entry-Cutover wurde nicht vor diesem Terraform-Update gestartet.
+- [ ] Die ausgerollten Deployer-Rollen enthalten `compute.urlMaps.get`, das reine Custom-Role-Leserecht `iam.roles.get` sowie die separaten Cutover-Berechtigungen `compute.backendServices.update` und `compute.healthChecks.useReadOnly`; der Public-Entry-Cutover und die Broker-Rollenprüfung wurden nicht vor diesem Terraform-Update gestartet.
 - [ ] Falls `BILLING_ACCOUNT_ID` gesetzt ist, existiert das projektbezogene Warnbudget; allen Beteiligten ist bekannt, dass es kein Ausgabenlimit ist.
 - [ ] GKE nutzt Autopilot, private Nodes und ausschließlich den extern erreichbaren DNS-Control-Plane-Endpunkt.
 - [ ] Artifact Registry, Cloud SQL, Secret Manager und alle privaten Buckets liegen in der vorgesehenen Region.
@@ -633,14 +636,14 @@ Der aufrufende Workflow kann die Rechte nicht über die im wiederverwendbaren Wo
 - [ ] Für Datenbank- und SMTP-Passwortrotation sind die getrennten anschließenden API- beziehungsweise Passwort-Reset-Rollouts dokumentiert und getestet.
 - [ ] Der API-Workload-Principal darf nur das benötigte Secret, Cloud SQL und die drei Daten-Buckets verwenden.
 - [ ] Der Passwort-Broker darf im Einladungs-Bucket ausschließlich `active/`-Objekte lesen und generationen- sowie metagenerationengepinnt aktualisieren; List-, Create-, Delete-, Restore- und DB-Rechte fehlen. In Secret Manager darf er ausschließlich die aktive Version des dedizierten Reset-SMTP-Secrets lesen.
-- [ ] Vor der einmaligen `cas-v2`-Migration wurden alle alten Broker-Pods auf null skaliert und als abwesend bestätigt; erst danach wurde die exakte Get-/Update-Rolle ohne Delete ausgerollt und der neue Broker gestartet.
+- [ ] Vor der einmaligen `cas-v2`-Migration wurde die exakte Get-/Update-Rolle ohne Delete ausgerollt und vom Deployer gelesen; erst danach wurden alle alten Broker-Pods auf null skaliert, als abwesend bestätigt und ausschließlich neue `cas-v2`-Pods gestartet.
 - [ ] Ausschließlich die namentlich bestätigten `PASSWORD_INVITATION_OPERATOR_MEMBERS` dürfen unter `prepared/` und `active/` anlegen, lesen und löschen; List-, Update- und Restore-Rechte fehlen.
 - [ ] Ausschließlich die namentlich bestätigten `PASSWORD_INVITATION_POLICY_ADMIN_MEMBERS` dürfen den Einladungs-Bucket und seine IAM-Policy lesen beziehungsweise die Policy ersetzen; direkte Einladungsobjektrechte fehlen und die mittelbare Policy-Eskalationsmacht ist als vertrauenswürdige Infrastruktur-Autorität geprüft. Eine Einpersonen-Überschneidung mit den Operator-Membern ist ausdrücklich dokumentiert und als kombinierte Berechtigung bewertet.
 - [ ] Der Einladungs-Bucket erzwingt UBLA und Public Access Prevention und besitzt weder Versionierung noch Retention oder Soft Delete.
 - [ ] Der getrennte Frontend-Workload-Principal darf nur das statische Artefakt aus dem Frontend-Bucket lesen.
 - [ ] Die Public-Entry-KSA besitzt keine Cloud-IAM-Bindung; der Public-Pod hat `egress: []` und verwendet ausschließlich das digest-gepinnte Zehn-Dateien-Image.
 - [ ] Die Auth-Helper-KSA besitzt keine Cloud-IAM-Bindung, kein Token und keine Secrets; ihre NetworkPolicy erlaubt ausgehend nur DNS und HTTPS und nginx schreibt keine Zugriffslogs.
-- [ ] Der GitHub-Deployer darf Registry, Frontend-Bucket, Cluster-Deployment und nur lesend Backend-Service/Projektmetadaten verwenden; direkte GCS-Rechte auf Einladungsobjekte fehlen und die transitive Cluster-Autorität ist als CI/CD-Trust-Boundary geprüft.
+- [ ] Der GitHub-Deployer darf Registry, Frontend-Bucket, Cluster-Deployment und nur lesend Backend-Service-, Projekt- sowie einzelne Custom-Role-Metadaten verwenden; Rollenauflistung, Rollenänderungen und direkte GCS-Rechte auf Einladungsobjekte fehlen, die transitive Cluster-Autorität ist als CI/CD-Trust-Boundary geprüft.
 
 ### Anwendung
 
