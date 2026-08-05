@@ -8,6 +8,7 @@
     "node": ">=22"
   },
   "dependencies": {
+    "nodemailer": "9.0.4",
     "pg": "8.21.0"
   }
 }

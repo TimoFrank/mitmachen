@@ -56,7 +56,9 @@ jobs:
           cache: npm
 
       - name: Install dependencies
-        run: npm ci
+        run: |
+          npm ci
+          npm ci --prefix api
 
       - name: Check target release contracts
         run: npm run check:target-release

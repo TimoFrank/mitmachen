@@ -58,14 +58,20 @@ GitHub Actions
 
 `dist/pages/` gehört ausschließlich zum GitHub-Pages-Pfad und wird von dieser Pre-Integration weder gelesen noch verändert. Eine versionierte `docs/`-Publish-Kopie existiert nicht mehr.
 
-Weder ein Service-Account-JSON-Key noch Datenbankpasswort oder OAuth-Credentials liegen in GitHub. GKE Secret Sync liest das Passwort mit der API-Workload-Identity direkt aus Secret Manager und erzeugt das vom Deployment referenzierte Kubernetes Secret. Der Deploy-Workflow liest den getrennten OAuth-Bootstrap ausschließlich aus Secret Manager und materialisiert ihn ohne Inhaltsausgabe. Eine getrennte Frontend-Workload-Identity darf ausschließlich das statische Zielartefakt aus dem privaten Frontend-Bucket lesen. Der öffentliche Einstieg nutzt dagegen eine eigene Kubernetes Service Account ohne Cloud-IAM-Bindung und eine NetworkPolicy ohne Egress. Der zusätzliche Auth-Helper-Proxy besitzt ebenfalls eine eigene tokenlose Kubernetes Service Account ohne Cloud-IAM-Bindung oder Secretzugriff; seine NetworkPolicy erlaubt ausgehend nur DNS und HTTPS zum festen, TLS-verifizierten Upstream.
+Weder ein Service-Account-JSON-Key noch Datenbank-, SMTP- oder OAuth-Credentials liegen in GitHub. GKE Secret Sync liest das Datenbankpasswort mit der API-Workload-Identity direkt aus Secret Manager und erzeugt das vom API-Deployment referenzierte Kubernetes Secret. Eine zweite, getrennte SecretProviderClass synchronisiert ausschließlich das Passwort des gebrandeten Reset-Versands unter der Passwort-Reset-Workload-Identity. Der Deploy-Workflow liest den getrennten OAuth-Bootstrap ausschließlich aus Secret Manager und materialisiert ihn ohne Inhaltsausgabe. Eine getrennte Frontend-Workload-Identity darf ausschließlich das statische Zielartefakt aus dem privaten Frontend-Bucket lesen. Der öffentliche Einstieg nutzt dagegen eine eigene Kubernetes Service Account ohne Cloud-IAM-Bindung und eine NetworkPolicy ohne Egress. Der zusätzliche Auth-Helper-Proxy besitzt ebenfalls eine eigene tokenlose Kubernetes Service Account ohne Cloud-IAM-Bindung oder Secretzugriff; seine NetworkPolicy erlaubt ausgehend nur DNS und HTTPS zum festen, TLS-verifizierten Upstream.
 
-Im externen Identitätsmodus läuft zusätzlich der isolierte Passwort-Broker. Für
+Im externen Identitätsmodus läuft zusätzlich der isolierte Passwort-Broker. Er
+versendet die versionierte #Mitmachen-Reset-Mail ausschließlich per SMTPS an
+`w01abca0.kasserver.com:465` und verwendet fest
+`zugang@versorgungs-kompass.de` als SMTP- und Absenderidentität. Frei
+konfigurierbar ist nur die Referenz auf das dedizierte Passwort-Secret; die
+NetworkPolicy ergänzt für diesen Pod ausschließlich TCP 465. Für
 48-Stunden-Ersteinladungen darf seine Workload Identity im eigenen privaten
 Einladungs-Bucket ausschließlich ein anhand des geheimen Tokens bestimmtes
 `active/`-Objekt lesen und bedingt löschen. Sie darf keine Objekte auflisten,
 anlegen, verändern oder wiederherstellen und besitzt weiterhin keinen
-Datenbank- oder Secret-Zugriff. Der Bucket verwendet UBLA und erzwungene Public
+Datenbankzugriff und außer dem einen SMTP-Passwort-Secret keinen weiteren
+Secret-Zugriff. Der Bucket verwendet UBLA und erzwungene Public
 Access Prevention; Versionierung, Retention und Soft Delete sind für die
 atomare Einmalverwendung deaktiviert. Der Ablauf wird im Broker selbst geprüft,
 nicht durch den verzögerten Lifecycle-Cleanup.
@@ -361,14 +367,15 @@ Der Workflow hält während und nach dem Cutover drei getrennte Google Managed C
 4. Die OAuth-Audience bleibt bewusst `External / Testing`. Der am 24. Juli 2026 geprüfte Stand ist `1 / 100` eingetragene Testnutzer. Eine IAP-Gruppenmitgliedschaft allein reicht für diesen Pilotvertrag nicht: Dieser Release lässt ausschließlich Personen zu, deren stabile Google-Subject-Bindung auf ein aktives Profil bereits vorliegt. Eine neue Bindung benötigt einen separaten, requestfreien und erneut geprüften Admin-Prozess und ist kein Teil dieses Login-Deployments. E-Mail-Adressen dienen nicht als Berechtigungsschlüssel. Google dokumentiert für den Publishing-Status `Testing` höchstens 100 Testnutzer; diese Konfiguration ist ein Testprovisorium und keine Vorlage für Ziel-SSO oder Ziel-Support: <https://support.google.com/cloud/answer/15549945>.
 5. Einen dedizierten Web-OAuth-Client anlegen und anschließend die Redirect URI `https://iap.googleapis.com/v1/oauth/clientIds/CLIENT_ID:handleRedirect` eintragen. Client-ID und Client-Secret weder in Git, Terraform-State noch GitHub speichern.
 6. Client-ID und Client-Secret liegen als JSON-Objekt mit den beiden nicht leeren String-Feldern `client_id` und `client_secret` in der aktiven Version des bereits angelegten Secret-Manager-Secrets `vk-pre-gematik-iap-oauth-bootstrap`. Der GitHub-Deployer erhält `roles/secretmanager.secretAccessor` nur auf diesem Secret. Der Workflow liest die Version ohne Log-Ausgabe, erstellt oder aktualisiert daraus das Kubernetes Secret `versorgungs-kompass-iap-oauth` mit exakt diesen beiden Keys und löscht seine restriktiv berechtigten Temporärdateien anschließend. Credential-Werte liegen weder in GitHub-Variablen noch in Terraform-State.
-7. Einen starken, nur für diese Umgebung genutzten PostgreSQL-Wert erzeugen.
-8. Das idempotente Zwischenschema aus `deploy/postgres/pre-gematik/schema.sql` einmal mit `ON_ERROR_STOP` über eine kontrollierte PostgreSQL-16-Administrationsverbindung anwenden.
-9. `runtime-role.sql` anwenden und danach `grants.sql` mit der verpflichtenden Variable `runtime_role=vk_app_runtime` ausführen. Damit liegen die Laufzeitrechte ausschließlich auf der festen `NOLOGIN`-Rolle; `PUBLIC` darf im Schema `public` keine Objekte erstellen.
-10. Den Cloud-SQL-`BUILT_IN`-User aus `DB_USER` über die Admin-API mit `databaseRoles=[vk_app_runtime]` anlegen. Bei einer vorhandenen Rolle mit `gcloud sql users assign-roles "$DB_USER" --type=BUILT_IN --database-roles=vk_app_runtime --revoke-existing-roles` die Rollenliste auf genau diesen Wert abgleichen; dadurch wird insbesondere eine frühere Cloud-SQL-Administrationsrolle entfernt. Passwort und Request-Body nur aus restriktiv berechtigten Temporärdateien lesen, denselben Passwortwert als Secret-Manager-Version unter `DB_PASSWORD_SECRET_NAME` speichern und die Rollenmitgliedschaft vor dem Deployment abfragen. Die genauen Befehle und Grenzen stehen in `deploy/postgres/pre-gematik/README.md`.
-11. Den lokalen Vertragscheck ausführen; er wendet Schema und Laufzeitrolle in einem temporären PostgreSQL-16-Container zweimal an, verbindet sich über ein separates Login-Mitglied, prüft effektive Laufzeit- und fehlende DDL-Rechte und führt einen relationalen Smoke-Test über alle Tabellen aus.
-12. Erst danach den vorgesehenen Ausgangsbestand anlegen; der Repository-Seed ist nur eine Testvorlage und wird nicht automatisch ausgeführt. Eine Datenübernahme aus Cloud SQL/GCS bleibt ein separater Adminvorgang, kein Teil dieses Infrastruktur-Deployments. Der [abgeschlossene Providerwechsel](SUPABASE_CLOUD_SQL_MIGRATION.md) dient nur als historische Herkunfts- und Prüfreferenz.
+7. Terraform erstellt unter `PASSWORD_RESET_SMTP_PASSWORD_SECRET_NAME` ausschließlich den leeren Secret-Container. Ein Owner hinterlegt das starke, nur für `zugang@versorgungs-kompass.de` auf `w01abca0.kasserver.com:465` verwendete SMTP-Passwort danach als aktive Secret-Manager-Version außerhalb von Terraform. Nur die Passwort-Reset-Workload-Identity erhält `roles/secretmanager.secretAccessor` auf genau diesem Secret; der GitHub-Deployer und die API-Workload-Identity erhalten keinen Zugriff.
+8. Einen starken, nur für diese Umgebung genutzten PostgreSQL-Wert erzeugen.
+9. Das idempotente Zwischenschema aus `deploy/postgres/pre-gematik/schema.sql` einmal mit `ON_ERROR_STOP` über eine kontrollierte PostgreSQL-16-Administrationsverbindung anwenden.
+10. `runtime-role.sql` anwenden und danach `grants.sql` mit der verpflichtenden Variable `runtime_role=vk_app_runtime` ausführen. Damit liegen die Laufzeitrechte ausschließlich auf der festen `NOLOGIN`-Rolle; `PUBLIC` darf im Schema `public` keine Objekte erstellen.
+11. Den Cloud-SQL-`BUILT_IN`-User aus `DB_USER` über die Admin-API mit `databaseRoles=[vk_app_runtime]` anlegen. Bei einer vorhandenen Rolle mit `gcloud sql users assign-roles "$DB_USER" --type=BUILT_IN --database-roles=vk_app_runtime --revoke-existing-roles` die Rollenliste auf genau diesen Wert abgleichen; dadurch wird insbesondere eine frühere Cloud-SQL-Administrationsrolle entfernt. Passwort und Request-Body nur aus restriktiv berechtigten Temporärdateien lesen, denselben Passwortwert als Secret-Manager-Version unter `DB_PASSWORD_SECRET_NAME` speichern und die Rollenmitgliedschaft vor dem Deployment abfragen. Die genauen Befehle und Grenzen stehen in `deploy/postgres/pre-gematik/README.md`.
+12. Den lokalen Vertragscheck ausführen; er wendet Schema und Laufzeitrolle in einem temporären PostgreSQL-16-Container zweimal an, verbindet sich über ein separates Login-Mitglied, prüft effektive Laufzeit- und fehlende DDL-Rechte und führt einen relationalen Smoke-Test über alle Tabellen aus.
+13. Erst danach den vorgesehenen Ausgangsbestand anlegen; der Repository-Seed ist nur eine Testvorlage und wird nicht automatisch ausgeführt. Eine Datenübernahme aus Cloud SQL/GCS bleibt ein separater Adminvorgang, kein Teil dieses Infrastruktur-Deployments. Der [abgeschlossene Providerwechsel](SUPABASE_CLOUD_SQL_MIGRATION.md) dient nur als historische Herkunfts- und Prüfreferenz.
 
-Terraform erstellt für die Datenbank bewusst nur das Secret-Objekt, nicht dessen geheime Version, die `NOLOGIN`-Laufzeitrolle oder den eingeschränkten Datenbank-Login. Diese Schritte sind vor dem ersten vollständigen Deployment Pflicht. GKE Secret Sync materialisiert danach das Datenbank-Kubernetes-Secret mit demselben Namen und dem Key `password`. Das separate IAP-OAuth-Bootstrap-Secret existiert bereits außerhalb dieses Terraform-Roots; Terraform verwaltet daran nur die secret-spezifische Leseberechtigung des Deployers.
+Terraform erstellt für Datenbank und Reset-SMTP bewusst nur die beiden getrennten Secret-Objekte, nie deren geheime Versionen. Die `NOLOGIN`-Laufzeitrolle und der eingeschränkte Datenbank-Login bleiben ebenfalls außerhalb von Terraform. Diese Schritte sind vor dem ersten vollständigen Deployment Pflicht. GKE Secret Sync materialisiert danach zwei voneinander getrennte Kubernetes Secrets mit jeweils genau dem Key `password`: eines unter der API- und eines unter der Passwort-Reset-Workload-Identity. Das separate IAP-OAuth-Bootstrap-Secret existiert bereits außerhalb dieses Terraform-Roots; Terraform verwaltet daran nur die secret-spezifische Leseberechtigung des Deployers.
 
 Bei einer Passwortrotation aktualisiert GKE Secret Sync zwar das Kubernetes Secret, `DB_PASSWORD` wird von der API aber nur beim Pod-Start als Umgebungsvariable gelesen. Nachdem Cloud-SQL-Nutzer und Secret-Manager-Version konsistent aktualisiert wurden, ist deshalb ein kontrollierter Neustart erforderlich:
 
@@ -376,6 +383,21 @@ Bei einer Passwortrotation aktualisiert GKE Secret Sync zwar das Kubernetes Secr
 kubectl -n pre-gematik rollout restart deployment/versorgungs-kompass-api
 kubectl -n pre-gematik rollout status deployment/versorgungs-kompass-api --timeout=10m
 ```
+
+Dasselbe Laufzeitprinzip gilt getrennt für eine Rotation des SMTP-Passworts:
+GKE Secret Sync aktualisiert den Key `password` im Kubernetes Secret, aber
+`PASSWORD_RESET_SMTP_PASSWORD` wird erst beim Start eines neuen Broker-Pods aus
+dem Secret übernommen. Nach dem Anlegen und Prüfen der neuen aktiven
+Secret-Manager-Version ist deshalb der Helm-generierte Brokername kontrolliert
+neu zu starten und der vollständige Rollout abzuwarten:
+
+```bash
+kubectl -n pre-gematik rollout restart deployment/versorgungs-kompass-password-reset
+kubectl -n pre-gematik rollout status deployment/versorgungs-kompass-password-reset --timeout=10m
+```
+
+Ein aktualisiertes Kubernetes Secret ohne diesen erfolgreichen Pod-Rollout ist
+kein Nachweis, dass der Reset-Versand bereits das neue SMTP-Passwort verwendet.
 
 ## Phase 4: GitHub Environment einrichten
 
@@ -408,6 +430,7 @@ Die Namen stehen in `config/pre-gematik/variables.env.example`. Werte aus Terraf
 | `DB_NAME` | Terraform-Output `DB_NAME` |
 | `DB_USER` | Terraform-Output `DB_USER` |
 | `DB_PASSWORD_SECRET_NAME` | Terraform-Output `DB_PASSWORD_SECRET_NAME` |
+| `PASSWORD_RESET_SMTP_PASSWORD_SECRET_NAME` | Terraform-Eingabe gleichen Namens; nicht geheimer, identischer Secret-Manager- und Kubernetes-Secret-Name |
 | `IAP_OAUTH_BOOTSTRAP_SECRET_NAME` | Terraform-Output `IAP_OAUTH_BOOTSTRAP_SECRET_NAME`; enthält nur den Secret-Namen |
 | `PROFILE_IMAGE_BUCKET` | Terraform-Output `PROFILE_IMAGE_BUCKET` |
 | `CONTACT_IMAGE_BUCKET` | Terraform-Output `CONTACT_IMAGE_BUCKET` |
@@ -563,11 +586,11 @@ Der aufrufende Workflow kann die Rechte nicht über die im wiederverwendbaren Wo
 - [ ] `pre-gematik` verlangt Freigabe und beschränkt Deployment-Branches.
 - [ ] OAuth steht weiterhin auf `External / Testing`; jeder aktive Tester ist einzeln in OAuth, privater Gruppe und geschütztem Voll-Soll-Roster enthalten.
 - [ ] Die private Gruppe ist nur per Einladung zugänglich; Tester besitzen ausschließlich die Rolle `Member`.
-- [ ] Secret Manager enthält mindestens eine aktive Passwortversion.
+- [ ] Secret Manager enthält für Datenbank und Reset-SMTP jeweils mindestens eine aktive Passwortversion; beide Secrets sind verschieden.
 - [ ] `vk-pre-gematik-iap-oauth-bootstrap` enthält gültiges JSON mit nicht leeren `client_id`- und `client_secret`-Strings; der Deployer darf nur dieses Bootstrap-Secret lesen.
-- [ ] Für Passwortrotation ist der anschließende API-Rollout dokumentiert und getestet.
+- [ ] Für Datenbank- und SMTP-Passwortrotation sind die getrennten anschließenden API- beziehungsweise Passwort-Reset-Rollouts dokumentiert und getestet.
 - [ ] Der API-Workload-Principal darf nur das benötigte Secret, Cloud SQL und die drei Daten-Buckets verwenden.
-- [ ] Der Passwort-Broker darf im Einladungs-Bucket ausschließlich `active/`-Objekte lesen und löschen; List-, Create-, Update-, Restore-, DB- und Secret-Rechte fehlen.
+- [ ] Der Passwort-Broker darf im Einladungs-Bucket ausschließlich `active/`-Objekte lesen und löschen; List-, Create-, Update-, Restore- und DB-Rechte fehlen. In Secret Manager darf er ausschließlich die aktive Version des dedizierten Reset-SMTP-Secrets lesen.
 - [ ] Ausschließlich die namentlich bestätigten `PASSWORD_INVITATION_OPERATOR_MEMBERS` dürfen unter `prepared/` und `active/` anlegen, lesen und löschen; List-, Update- und Restore-Rechte fehlen.
 - [ ] Ausschließlich die namentlich bestätigten `PASSWORD_INVITATION_POLICY_ADMIN_MEMBERS` dürfen den Einladungs-Bucket und seine IAM-Policy lesen beziehungsweise die Policy ersetzen; direkte Einladungsobjektrechte fehlen und die mittelbare Policy-Eskalationsmacht ist als vertrauenswürdige Infrastruktur-Autorität geprüft. Eine Einpersonen-Überschneidung mit den Operator-Membern ist ausdrücklich dokumentiert und als kombinierte Berechtigung bewertet.
 - [ ] Der Einladungs-Bucket erzwingt UBLA und Public Access Prevention und besitzt weder Versionierung noch Retention oder Soft Delete.
@@ -581,7 +604,7 @@ Der aufrufende Workflow kann die Rechte nicht über die im wiederverwendbaren Wo
 - [ ] Validate-only-Workflow ist grün.
 - [ ] API-Image-Digest und Git-Revision stehen in der Workflow-Zusammenfassung.
 - [ ] Helm Release `versorgungs-kompass` ist im Namespace `pre-gematik` deployed.
-- [ ] Das Datenbank-Kubernetes-Secret wurde von GKE Secret Sync angelegt; das getrennte OAuth-Kubernetes-Secret wurde vom Workflow ohne Inhaltsausgabe materialisiert und auf exakt zwei Keys geprüft.
+- [ ] Datenbank- und Reset-SMTP-Kubernetes-Secrets wurden von zwei getrennten GKE Secret-Sync-Ressourcen unter ihrer jeweiligen Workload Identity angelegt; beide besitzen ausschließlich den Key `password`. Das getrennte OAuth-Kubernetes-Secret wurde vom Workflow ohne Inhaltsausgabe materialisiert und auf exakt zwei Keys geprüft.
 - [ ] Der Datenbank-Smoke `SELECT 1` über den Cloud SQL Auth Proxy ist grün.
 - [ ] Der Datenbank-Vertragscheck bestätigt alle 30 Pre-Integration-Tabellen und deren Leserecht für den App-Nutzer; ein unvollständiges Schema bricht das Deployment ab.
 - [ ] `IAP_JWT_AUDIENCE` entspricht dem tatsächlichen GKE Backend Service.

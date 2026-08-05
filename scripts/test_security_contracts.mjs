@@ -422,7 +422,28 @@ for (const [group, dependencies] of Object.entries({
   }
 }
 const apiPackageJson = JSON.parse(read("api/package.json"));
-assert.deepEqual(Object.keys(apiPackageJson.dependencies || {}), ["pg"], "Das API-Image darf nur erforderliche Runtime-Abhaengigkeiten installieren.");
+const apiPackageLockJson = JSON.parse(read("api/package-lock.json"));
+const expectedApiDependencies = {
+  nodemailer: "9.0.4",
+  pg: "8.21.0"
+};
+assert.deepEqual(
+  apiPackageJson.dependencies || {},
+  expectedApiDependencies,
+  "Das API-Image darf nur die exakt gepinnten Postgres- und SMTP-Laufzeitabhaengigkeiten installieren."
+);
+for (const [name, version] of Object.entries(expectedApiDependencies)) {
+  assert.equal(
+    apiPackageLockJson.packages[`node_modules/${name}`]?.version,
+    version,
+    `${name} muss im API-Lockfile exakt gepinnt sein.`
+  );
+  assert.match(
+    apiPackageLockJson.packages[`node_modules/${name}`]?.integrity || "",
+    /^sha512-/u,
+    `${name} benoetigt im API-Lockfile eine Registry-Integritaetspruefsumme.`
+  );
+}
 const apiDockerfile = read("api/Dockerfile");
 assert.match(apiDockerfile, /rm -rf[\s\S]*\/usr\/local\/lib\/node_modules\/npm/, "Die unnoetige globale npm-Toolchain darf nicht im API-Runtime-Image verbleiben.");
 
@@ -562,6 +583,24 @@ assert.doesNotMatch(valuesSource, /tag:\s*latest\b/i, "Produktionsimages duerfen
 
 const deployWorkflowSource = read(".github/workflows/deploy-pre-gematik.yml");
 const targetReadinessSource = read(".github/workflows/target-readiness.yml");
+for (const workflowPath of [
+  ".github/workflows/deploy-pages.yml",
+  ".github/workflows/deploy-pre-gematik.yml",
+  ".github/workflows/hotfix-release.yml",
+  ".github/workflows/publish-release.yml",
+  ".github/workflows/repo-check.yml",
+  ".github/workflows/target-readiness.yml",
+  ".github/workflows/weekly-release.yml"
+]) {
+  const installStep = read(workflowPath).match(
+    /      - name: Install dependencies\n[\s\S]*?(?=\n      - name: )/u
+  )?.[0] || "";
+  assert.match(
+    installStep,
+    /^\s+npm ci --prefix api$/mu,
+    `${workflowPath} muss die gepinnten API-Laufzeitabhaengigkeiten vor Root-Pruefungen installieren.`
+  );
+}
 const jenkinsSource = read("deploy/jenkins/Jenkinsfile.gematik");
 const targetValuesSource = read("deploy/helm/versorgungs-kompass/values-target-gematik.yaml");
 const targetSourceVerifier = read("scripts/verify_target_release_source.mjs");

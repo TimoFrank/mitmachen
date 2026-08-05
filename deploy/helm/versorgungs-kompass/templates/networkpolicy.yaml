@@ -94,6 +94,9 @@ spec:
     - ports:
         - protocol: TCP
           port: 443
+    - ports:
+        - protocol: TCP
+          port: 465
     - to:
         - ipBlock:
             cidr: {{ .Values.networkPolicy.metadataServer.dataplaneV2Ip | quote }}

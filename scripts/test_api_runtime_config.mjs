@@ -153,8 +153,13 @@ const dockerignore = readFileSync(new URL(".dockerignore", projectRoot), "utf8")
 const apiPackage = JSON.parse(readFileSync(new URL("api/package.json", projectRoot), "utf8"));
 assert.deepEqual(
   Object.keys(apiPackage.dependencies || {}),
-  ["pg"],
+  ["nodemailer", "pg"],
   "Das API-Image darf keine unnoetigen Browser-, PDF- oder Office-Abhaengigkeiten installieren."
+);
+assert.equal(
+  apiPackage.dependencies.nodemailer,
+  "9.0.4",
+  "Der gehaertete SMTP-Client fuer Reset-Mails muss exakt gepinnt sein."
 );
 assert.equal(apiPackage.dependencies.pg, "8.21.0", "Die API-Laufzeitabhaengigkeit muss exakt gepinnt sein.");
 assert.match(dockerfile, /COPY api\/package\.json api\/package-lock\.json \.\//);

@@ -8,6 +8,7 @@ const requiredFiles = [
   ".dockerignore",
   "api/Dockerfile",
   "api/password-reset-broker.mjs",
+  "api/password-reset-email.mjs",
   "api/password-reset-server.mjs",
   "api/server.mjs",
   "scripts/test_api_postgres_contracts.mjs",
@@ -26,6 +27,13 @@ const requiredFiles = [
   "frontend/identity-portal/src/action.jsx",
   "frontend/identity-portal/src/password-invitation.js",
   "frontend/identity-portal/src/password-reset.js",
+  "config/pre-gematik/variables.env.example",
+  "config/pre-gematik/email/pre-gematik-password-reset.html",
+  "config/pre-gematik/email/pre-gematik-password-reset.txt",
+  "config/pre-gematik/email/assets/versorgungs-kompass-mark-on-dark.png",
+  "config/pre-gematik/email/assets/stakeholder-mark-on-dark.png",
+  "config/pre-gematik/email/assets/hospitation-mark-on-dark.png",
+  "config/pre-gematik/email/assets/formate-mark-on-dark.png",
   "dokumentation/betrieb-und-deployment/DEPLOYMENT_GCP_AUTOPILOT.md",
   "deploy/postgres/pre-gematik/README.md",
   "deploy/postgres/pre-gematik/schema.sql",
@@ -79,6 +87,7 @@ const requiredFiles = [
   "deploy/terraform/gcp-autopilot/sql.tf",
   "deploy/terraform/gcp-autopilot/storage.tf",
   "deploy/terraform/gcp-autopilot/terraform.tfvars.example",
+  "deploy/terraform/gcp-autopilot/variables.tf",
   "deploy/terraform/gcp-autopilot/versions.tf"
 ];
 
@@ -93,6 +102,8 @@ const contentChecks = [
       /helm upgrade\s+--install|helm upgrade --install/,
       /FRONTEND_BUCKET/,
       /PASSWORD_INVITATION_BUCKET/,
+      /PASSWORD_RESET_SMTP_PASSWORD_SECRET_NAME:\s*\$\{\{ vars\.PASSWORD_RESET_SMTP_PASSWORD_SECRET_NAME \}\}/,
+      /PASSWORD_RESET_SMTP_PASSWORD_SECRET_NAME must be a lower-case Secret Manager ID that is also a valid Kubernetes Secret name/,
       /iapJwtAudience/,
       /IAP_OAUTH_BOOTSTRAP_SECRET_NAME/,
       /IAP_OAUTH_CLIENT_CREDENTIALS_SECRET_NAME/,
@@ -194,6 +205,11 @@ const contentChecks = [
       /dist\/target\/data\/runtime-config\.js/,
       /steps\.build\.outputs\.digest/,
       /image\.digest/,
+      /passwordResetBroker\.email\.enabled="\$password_reset_broker_enabled"/,
+      /passwordResetBroker\.email\.secretName="\$PASSWORD_RESET_SMTP_PASSWORD_SECRET_NAME"/,
+      /get secretproviderclass[\s\S]*password_reset_secret_provider_class_name/,
+      /get secretsync[\s\S]*PASSWORD_RESET_SMTP_PASSWORD_SECRET_NAME/,
+      /\(\(\.data \| keys\) == \["password"\]\)/,
       /release_uri="gs:\/\/\$\{FRONTEND_BUCKET\}\/releases\/\$\{FRONTEND_RELEASE_ID\}"/
     ],
     reason: "GitHub Actions nutzt Environment, schluesselloses WIF, DNS-Endpunkt, den zweistufigen IAP-Rollout, explizite Teams-/WhatsApp-Crawler-Smokes und den vollstaendigen DB-Vertragscheck."
@@ -218,8 +234,19 @@ const contentChecks = [
   },
   {
     file: "api/Dockerfile",
-    patterns: [/^FROM\s+node:[^\s]+@sha256:[a-f0-9]{64}/m, /USER node/, /EXPOSE 8080/, /frontend\/data\/activity-model\.js/],
-    reason: "API-Image nutzt eine feste Basis-Image-Pruefsumme und ist auf Port 8080 sowie Non-Root-Betrieb vorbereitet."
+    patterns: [
+      /^FROM\s+node:[^\s]+@sha256:[a-f0-9]{64}/m,
+      /USER node/,
+      /EXPOSE 8080/,
+      /frontend\/data\/activity-model\.js/,
+      /config\/pre-gematik\/email\/pre-gematik-password-reset\.html/,
+      /config\/pre-gematik\/email\/pre-gematik-password-reset\.txt/,
+      /config\/pre-gematik\/email\/assets\/versorgungs-kompass-mark-on-dark\.png/,
+      /config\/pre-gematik\/email\/assets\/stakeholder-mark-on-dark\.png/,
+      /config\/pre-gematik\/email\/assets\/hospitation-mark-on-dark\.png/,
+      /config\/pre-gematik\/email\/assets\/formate-mark-on-dark\.png/
+    ],
+    reason: "API-Image nutzt eine feste Basis-Image-Pruefsumme, laeuft Non-Root und enthaelt exakt die versionierten Reset-Mailvorlagen samt vier Markenassets."
   },
   {
     file: "api/server.mjs",
@@ -483,7 +510,7 @@ const contentChecks = [
   },
   {
     file: "deploy/helm/versorgungs-kompass/values.yaml",
-    patterns: [/sync:[\s\S]*runAsNonRoot:\s*true[\s\S]*runAsUser:\s*1000[\s\S]*nginx:/],
+    patterns: [/sync:[\s\S]*runAsNonRoot:\s*true[\s\S]*runAsUser:\s*1000[\s\S]*nginx:/, /terminationGracePeriodSeconds:\s*30/],
     reason: "Der Google-CLI-Sync laeuft als registrierter cloudsdk-Nutzer und bleibt Non-Root."
   },
   {
@@ -528,6 +555,7 @@ const contentChecks = [
   {
     file: "api/password-reset-server.mjs",
     patterns: [
+      /const SHUTDOWN_TIMEOUT_MS = 25_000;/,
       /PASSWORD_RESET_BROKER_PATH/,
       /request\.method !== "POST"/,
       /request\.url !== PASSWORD_RESET_BROKER_PATH/,
@@ -543,10 +571,26 @@ const contentChecks = [
     patterns: [
       /PASSWORD_INVITATION_BUCKET/,
       /passwordResetBroker\.invitationBucketName/,
+      /passwordResetBroker\.email\.enabled must be true/,
+      /PASSWORD_RESET_SMTP_PASSWORD/,
+      /secretKeyRef:[\s\S]*passwordResetBroker\.email\.secretName[\s\S]*passwordResetBroker\.email\.secretKey/,
+      /terminationGracePeriodSeconds:\s*\{\{ \.Values\.terminationGracePeriodSeconds \}\}/,
       /automountServiceAccountToken:\s*\{\{ \.Values\.passwordResetBroker\.serviceAccount\.automountServiceAccountToken \}\}/,
       /toYaml \.Values\.securityContext/
     ],
-    reason: "Der gehaertete Broker erhaelt nur den Namen des privaten Einladungs-Buckets und kurzlebige Workload-Credentials."
+    reason: "Der gehaertete Broker erhaelt neben Bucketname und Workload Identity ausschließlich das dedizierte SMTP-Passwort per exaktem Secret-Key-Verweis."
+  },
+  {
+    file: "deploy/helm/versorgungs-kompass/templates/secretsync.yaml",
+    patterns: [
+      /passwordResetBrokerSecretProviderClassName/,
+      /passwordResetBroker\.email\.secretName/,
+      /path: "smtp-password"/,
+      /passwordResetBrokerServiceAccountName/,
+      /sourcePath: "smtp-password"/,
+      /passwordResetBroker\.email\.secretKey/
+    ],
+    reason: "Eine eigene GKE SecretProviderClass und SecretSync materialisieren nur das SMTP-Passwort unter der Passwort-Reset-Workload-Identity."
   },
   {
     file: "deploy/helm/versorgungs-kompass/templates/password-reset-broker-backendconfig.yaml",
@@ -595,16 +639,21 @@ const contentChecks = [
   },
   {
     file: "deploy/terraform/gcp-autopilot/secrets.tf",
-    patterns: [/google_secret_manager_secret/, /replication/, /database_password_workload[\s\S]*depends_on\s*=\s*\[google_container_cluster\.autopilot\]/, /iap_oauth_bootstrap_deployer/, /secret_id\s*=\s*var\.IAP_OAUTH_BOOTSTRAP_SECRET_NAME/, /roles\/secretmanager\.secretAccessor/],
-    reason: "Secret Manager stellt nur den Datenbank-Secret-Container und secret-spezifische OAuth-Leserechte bereit; Werte bleiben ausserhalb des Terraform-State."
+    patterns: [/google_secret_manager_secret/, /replication/, /database_password_workload[\s\S]*depends_on\s*=\s*\[google_container_cluster\.autopilot\]/, /password_reset_smtp_password/, /PASSWORD_RESET_SMTP_PASSWORD_SECRET_NAME/, /password_reset_smtp_password_workload[\s\S]*local\.gke_password_reset_workload_principal[\s\S]*depends_on\s*=\s*\[google_container_cluster\.autopilot\]/, /iap_oauth_bootstrap_deployer/, /secret_id\s*=\s*var\.IAP_OAUTH_BOOTSTRAP_SECRET_NAME/, /roles\/secretmanager\.secretAccessor/],
+    reason: "Secret Manager stellt getrennte leere Datenbank- und SMTP-Secret-Container mit workload-spezifischen Leserechten bereit; Werte bleiben ausserhalb des Terraform-State."
+  },
+  {
+    file: "deploy/terraform/gcp-autopilot/variables.tf",
+    patterns: [/variable "PASSWORD_RESET_SMTP_PASSWORD_SECRET_NAME"/, /vk-pre-gematik-password-reset-smtp-password/, /length\(var\.PASSWORD_RESET_SMTP_PASSWORD_SECRET_NAME\) <= 63/],
+    reason: "Der SMTP-Secret-Name ist als nicht geheimer, Secret-Manager- und Kubernetes-kompatibler Infrastrukturwert begrenzt."
   }
 ];
 
 const forbiddenChecks = [
   {
     files: ["deploy/helm/versorgungs-kompass/templates/password-reset-broker-deployment.yaml"],
-    patterns: [/envFrom/, /secretKeyRef/, /DB_PASSWORD/, /cloud-sql/i, /\bvolumes?:/],
-    reason: "Der oeffentliche Broker darf keine API-Konfiguration, Secrets, Datenbank-, Cloud-SQL- oder Volume-Anbindung erben; nur der Bucketname wird als nicht geheimer Wert gesetzt."
+    patterns: [/envFrom/, /DB_PASSWORD/, /cloud-sql/i, /\bvolumes?:/],
+    reason: "Der oeffentliche Broker darf keine API-Konfiguration, Datenbank-, Cloud-SQL- oder Volume-Anbindung erben; nur Bucketname und das dedizierte SMTP-Passwort werden gesetzt."
   },
   {
     files: ["deploy/helm/versorgungs-kompass/templates/frontend-public-deployment.yaml"],
@@ -656,6 +705,7 @@ const requiredEnvironment = [
   "DB_NAME",
   "DB_USER",
   "DB_PASSWORD_SECRET_NAME",
+  "PASSWORD_RESET_SMTP_PASSWORD_SECRET_NAME",
   "IAP_OAUTH_BOOTSTRAP_SECRET_NAME",
   "PROFILE_IMAGE_BUCKET",
   "CONTACT_IMAGE_BUCKET",
@@ -699,6 +749,54 @@ for (const check of contentChecks) {
   } else {
     ok(check.reason);
   }
+}
+
+const networkPolicySource = source("deploy/helm/versorgungs-kompass/templates/networkpolicy.yaml");
+const passwordResetPolicyStart = networkPolicySource.indexOf("{{- if .Values.passwordResetBroker.enabled }}");
+const passwordResetPolicyEnd = networkPolicySource.indexOf(
+  "{{- if .Values.frontend.enabled }}",
+  passwordResetPolicyStart
+);
+const apiNetworkPolicySource = passwordResetPolicyStart > 0
+  ? networkPolicySource.slice(0, passwordResetPolicyStart)
+  : "";
+const passwordResetNetworkPolicySource = passwordResetPolicyStart >= 0
+  && passwordResetPolicyEnd > passwordResetPolicyStart
+  ? networkPolicySource.slice(passwordResetPolicyStart, passwordResetPolicyEnd)
+  : "";
+if (!passwordResetNetworkPolicySource) {
+  fail("Die eigene Passwort-Reset-NetworkPolicy konnte nicht abgegrenzt werden.");
+} else if (!/protocol: TCP\s+port: 465/u.test(passwordResetNetworkPolicySource)) {
+  fail("Die Passwort-Reset-NetworkPolicy muss SMTPS exakt auf TCP 465 erlauben.");
+} else if (/port:\s*(?:25|587|2525)/u.test(passwordResetNetworkPolicySource)) {
+  fail("Die Passwort-Reset-NetworkPolicy darf keine alternativen SMTP-Ports erlauben.");
+} else if (/port:\s*465/u.test(apiNetworkPolicySource)) {
+  fail("Die allgemeine API-NetworkPolicy darf keinen SMTP-Egress erhalten.");
+} else {
+  ok("Nur die Passwort-Reset-NetworkPolicy ergaenzt den festen SMTPS-Port TCP 465.");
+}
+
+const passwordResetDeploymentSource = source(
+  "deploy/helm/versorgungs-kompass/templates/password-reset-broker-deployment.yaml"
+);
+if ([...passwordResetDeploymentSource.matchAll(/secretKeyRef:/gu)].length !== 1) {
+  fail("Der Passwort-Reset-Broker muss genau einen Secret-Key-Verweis fuer das SMTP-Passwort besitzen.");
+} else {
+  ok("Der Passwort-Reset-Broker referenziert genau das eine SMTP-Passwort-Secret.");
+}
+
+const secretsTerraformSource = source("deploy/terraform/gcp-autopilot/secrets.tf");
+const smtpSecretIamSource = secretsTerraformSource.match(
+  /resource "google_secret_manager_secret_iam_member" "password_reset_smtp_password_workload" \{[\s\S]*?\n\}/u
+)?.[0] || "";
+if (!smtpSecretIamSource) {
+  fail("Die secret-spezifische SMTP-IAM-Bindung fehlt.");
+} else if (!/member\s*=\s*local\.gke_password_reset_workload_principal/u.test(smtpSecretIamSource)) {
+  fail("Das SMTP-Passwort-Secret muss ausschließlich an die Passwort-Reset-Workload-Identity gebunden sein.");
+} else if (/deployer|gke_api_workload_principal/u.test(smtpSecretIamSource)) {
+  fail("Deployer und API-Workload duerfen die SMTP-Secret-Bindung nicht erben.");
+} else {
+  ok("Das SMTP-Passwort-Secret ist nur an die dedizierte Passwort-Reset-Workload-Identity gebunden.");
 }
 
 const identitiesTerraform = source("deploy/terraform/gcp-autopilot/identities.tf");
@@ -834,6 +932,27 @@ if (strictEnvironment) {
     ) {
       fail("IAP_GCIP_PROJECT_ID muss exakt GCP_PROJECT_ID entsprechen.");
     }
+  }
+
+  const passwordResetSmtpSecretName = process.env.PASSWORD_RESET_SMTP_PASSWORD_SECRET_NAME?.trim();
+  if (
+    passwordResetSmtpSecretName
+    && /^[a-z0-9](?:[-a-z0-9]*[a-z0-9])?$/.test(passwordResetSmtpSecretName)
+    && passwordResetSmtpSecretName.length <= 63
+  ) {
+    ok("PASSWORD_RESET_SMTP_PASSWORD_SECRET_NAME ist Secret-Manager- und Kubernetes-kompatibel.");
+  } else {
+    fail("PASSWORD_RESET_SMTP_PASSWORD_SECRET_NAME ist kein gueltiger gemeinsamer Secret-Name.");
+  }
+  if (
+    passwordResetSmtpSecretName
+    && [
+      process.env.DB_PASSWORD_SECRET_NAME?.trim(),
+      process.env.IAP_OAUTH_BOOTSTRAP_SECRET_NAME?.trim(),
+      process.env.IAP_OAUTH_CLIENT_CREDENTIALS_SECRET_NAME?.trim()
+    ].includes(passwordResetSmtpSecretName)
+  ) {
+    fail("Das SMTP-Passwort muss eine eigene Secret-Identitaet verwenden.");
   }
 
   const apiBaseUrl = process.env.API_BASE_URL?.trim();

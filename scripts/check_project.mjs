@@ -2,6 +2,7 @@ import { execFileSync } from "node:child_process";
 
 const syntaxFiles = [
   "api/password-reset-broker.mjs",
+  "api/password-reset-email.mjs",
   "api/password-reset-server.mjs",
   "api/security-policy.mjs",
   "api/test-access-enrollment.mjs",
@@ -97,6 +98,7 @@ const syntaxFiles = [
   "scripts/test_api_test_access.mjs",
   "scripts/test_api_runtime_config.mjs",
   "scripts/test_password_reset_broker.mjs",
+  "scripts/test_password_reset_email.mjs",
   "scripts/test_api_validation.mjs",
   "scripts/test_auth_avatar_contract.mjs",
   "scripts/test_avatar_render_stability.mjs",
@@ -183,6 +185,7 @@ const auditCommands = [
   ["node", ["scripts/test_api_test_access.mjs"]],
   ["node", ["scripts/test_api_runtime_config.mjs"]],
   ["node", ["scripts/test_password_reset_broker.mjs"]],
+  ["node", ["scripts/test_password_reset_email.mjs"]],
   ["node", ["scripts/test_password_reset_deployment_contract.mjs"]],
   ["node", ["scripts/test_pre_gematik_postgres_schema.mjs"]],
   ["node", ["scripts/test_pre_gematik_iap_workflow.mjs"]],

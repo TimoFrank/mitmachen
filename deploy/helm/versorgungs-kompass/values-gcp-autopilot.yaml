@@ -38,6 +38,10 @@ passwordResetBroker:
   replicaCount: 2
   port: 8080
   invitationBucketName: ""
+  email:
+    enabled: false
+    secretName: vk-pre-gematik-password-reset-smtp-password
+    secretKey: password
   podAnnotations: {}
   serviceAccount:
     create: true

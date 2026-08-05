@@ -19,6 +19,7 @@ GITHUB_ENVIRONMENT = "pre-gematik"
 DB_NAME                 = "versorgungs_kompass"
 DB_USER                 = "vk_app"
 DB_PASSWORD_SECRET_NAME = "vk-pre-gematik-postgres-password"
+PASSWORD_RESET_SMTP_PASSWORD_SECRET_NAME = "vk-pre-gematik-password-reset-smtp-password"
 IAP_OAUTH_BOOTSTRAP_SECRET_NAME = "vk-pre-gematik-iap-oauth-bootstrap"
 
 # The personal, temporary pilot intentionally uses one zone to limit cost.
