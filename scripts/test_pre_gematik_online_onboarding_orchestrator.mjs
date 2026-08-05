@@ -1661,6 +1661,130 @@ for (const protectedValue of [
   }
 }
 
+function syntheticAccessOperatorUser(login, additions = {}) {
+  return {
+    kind: "sql#user",
+    name: login,
+    host: "",
+    instance: baseEnvironment.cloudSqlInstance,
+    project: projectId,
+    ...additions
+  };
+}
+
+async function writeSyntheticAccessOperatorDirectory(
+  runtime,
+  runDirectory,
+  login,
+  { intent = false, operation = false } = {}
+) {
+  const directory = path.join(runDirectory, "access-operator-001");
+  await fs.mkdir(directory, { mode: 0o700 });
+  await fs.writeFile(
+    path.join(directory, "test-access-operator-name.txt"),
+    `${login}\n`,
+    { mode: 0o600 }
+  );
+  const marker = {
+    version: 1,
+    project_id: projectId,
+    instance: baseEnvironment.cloudSqlInstance,
+    login_fingerprint: runtime.accessOperatorLoginFingerprint(login)
+  };
+  if (intent) {
+    await runtime.writeAccessOperatorMarker(
+      directory,
+      "cloud-sql-user-create-intent.json",
+      marker
+    );
+  }
+  if (operation) {
+    await runtime.writeAccessOperatorMarker(
+      directory,
+      "cloud-sql-user-create-operation.json",
+      { ...marker, operation_id: "operation-create-user-001" }
+    );
+  }
+  return directory;
+}
+
+{
+  const login = "vk_access_operator_20260805_cccccccccc";
+  const calls = [];
+  const runtime = new CommandOnlineOnboardingRuntime({
+    baseEnvironment,
+    operatorRelease,
+    repository: "/synthetic/repository",
+    fingerprint
+  });
+  runtime.gcloud = async (argumentsList) => {
+    calls.push(argumentsList);
+    return Object.freeze({
+      stdout: `${JSON.stringify([{
+        kind: "sql#user",
+        name: login,
+        host: "",
+        instance: baseEnvironment.cloudSqlInstance,
+        project: projectId
+      }])}\n`,
+      stderr: "",
+      exitCode: 0
+    });
+  };
+  assert.equal((await runtime.listCloudSqlUser(login)).length, 1);
+  assert.equal(calls[0].includes(`--filter=name=${login}`), true);
+  assert.equal(calls[0].some((argument) => argument.includes("type=BUILT_IN")), false);
+  runtime.gcloud = async () => Object.freeze({
+    stdout: `${JSON.stringify([{
+      kind: "sql#user",
+      name: login,
+      host: "",
+      instance: baseEnvironment.cloudSqlInstance,
+      project: projectId,
+      type: "BUILT_IN"
+    }])}\n`,
+    stderr: "",
+    exitCode: 0
+  });
+  assert.equal((await runtime.listCloudSqlUser(login)).length, 1);
+  runtime.gcloud = async () => Object.freeze({
+    stdout: `${JSON.stringify([{
+      kind: "sql#user",
+      name: login,
+      host: "",
+      instance: baseEnvironment.cloudSqlInstance,
+      project: projectId
+    }, {
+      kind: "sql#user",
+      name: login,
+      host: "",
+      instance: baseEnvironment.cloudSqlInstance,
+      project: projectId
+    }])}\n`,
+    stderr: "",
+    exitCode: 0
+  });
+  await safeRejection(() => runtime.listCloudSqlUser(login), /nicht eindeutig/u);
+  runtime.gcloud = async () => Object.freeze({
+    stdout: "{",
+    stderr: "",
+    exitCode: 0
+  });
+  await safeRejection(() => runtime.listCloudSqlUser(login), /kein gueltiges JSON/u);
+  runtime.gcloud = async () => Object.freeze({
+    stdout: `${JSON.stringify([{
+      kind: "sql#user",
+      name: login,
+      host: "",
+      instance: baseEnvironment.cloudSqlInstance,
+      project: "different-project-123"
+    }])}\n`,
+    stderr: "",
+    exitCode: 0
+  });
+  await safeRejection(() => runtime.listCloudSqlUser(login), /nicht eindeutig/u);
+}
+
 {
   const runDirectory = await fs.mkdtemp(path.join(os.tmpdir(), "vk-online-onboarding-sql-op-"));
   await fs.chmod(runDirectory, 0o700);
@@ -1689,7 +1813,13 @@ for (const protectedValue of [
       );
     };
     runtime.listCloudSqlUser = async () => userPresent
-      ? [{ name: login, type: "BUILT_IN", databaseRoles: ["vk_access_enrollment_admin"] }]
+      ? [{
+        kind: "sql#user",
+        name: login,
+        host: "",
+        instance: baseEnvironment.cloudSqlInstance,
+        project: projectId
+      }]
       : [];
     runtime.gcloud = async (argumentsList) => {
       cloudCalls.push(argumentsList);
@@ -1718,6 +1848,21 @@ for (const protectedValue of [
             targetProject: projectId,
             targetId: baseEnvironment.cloudSqlInstance,
             status: "DONE"
+          })}\n`,
+          stderr: "",
+          exitCode: 0
+        });
+      }
+      if (argumentsList[1] === "users" && argumentsList[2] === "describe") {
+        return Object.freeze({
+          stdout: `${JSON.stringify({
+            kind: "sql#user",
+            name: login,
+            host: "",
+            instance: baseEnvironment.cloudSqlInstance,
+            project: projectId,
+            iamStatus: "IAM_STATUS_UNSPECIFIED",
+            databaseRoles: ["vk_access_enrollment_admin"]
           })}\n`,
           stderr: "",
           exitCode: 0
@@ -1754,6 +1899,46 @@ for (const protectedValue of [
       false,
       "Die freigegebene Datenbankrolle muss atomar mit CREATE_USER gesetzt werden."
     );
+    assert.equal(
+      cloudCalls.some((call) => call[1] === "users" && call[2] === "describe"),
+      true,
+      "Die Datenbankrolle muss ueber den Cloud-SQL-Detailvertrag nachgewiesen werden."
+    );
+    const exactUser = {
+      kind: "sql#user",
+      name: login,
+      host: "",
+      instance: baseEnvironment.cloudSqlInstance,
+      project: projectId,
+      iamStatus: "IAM_STATUS_UNSPECIFIED",
+      databaseRoles: ["vk_access_enrollment_admin"]
+    };
+    assert.equal(runtime.accessOperatorCloudSqlUserMatchesContract(exactUser, login), true);
+    assert.equal(
+      runtime.accessOperatorCloudSqlUserMatchesContract(
+        { ...exactUser, type: "BUILT_IN" },
+        login
+      ),
+      true
+    );
+    const userWithoutIamStatus = structuredClone(exactUser);
+    delete userWithoutIamStatus.iamStatus;
+    assert.equal(
+      runtime.accessOperatorCloudSqlUserMatchesContract(userWithoutIamStatus, login),
+      true
+    );
+    for (const mutate of [
+      (user) => { user.type = "CLOUD_IAM_USER"; },
+      (user) => { user.type = null; },
+      (user) => { user.databaseRoles.push("cloudsqlsuperuser"); },
+      (user) => { user.databaseRoles = []; },
+      (user) => { user.project = "different-project-123"; },
+      (user) => { user.iamStatus = "ACTIVE"; }
+    ]) {
+      const changedUser = structuredClone(exactUser);
+      mutate(changedUser);
+      assert.equal(runtime.accessOperatorCloudSqlUserMatchesContract(changedUser, login), false);
+    }
     await runtime.deleteAccessOperatorDirectory(access.directory);
     assert.equal(userPresent, false);
     assert.deepEqual(await fs.readdir(runDirectory), []);
@@ -1789,11 +1974,32 @@ for (const protectedValue of [
       );
     };
     runtime.listCloudSqlUser = async () => userPresent
-      ? [{ name: login, type: "BUILT_IN", databaseRoles: ["vk_access_enrollment_admin"] }]
+      ? [{
+        kind: "sql#user",
+        name: login,
+        host: "",
+        instance: baseEnvironment.cloudSqlInstance,
+        project: projectId
+      }]
       : [];
     runtime.gcloud = async (argumentsList) => {
       if (argumentsList[1] === "users" && argumentsList[2] === "create") {
         throw new OnlineOnboardingError("synthetic unknown create", 1, "COMMAND_FAILED");
+      }
+      if (argumentsList[1] === "users" && argumentsList[2] === "describe") {
+        return Object.freeze({
+          stdout: `${JSON.stringify({
+            kind: "sql#user",
+            name: login,
+            host: "",
+            instance: baseEnvironment.cloudSqlInstance,
+            project: projectId,
+            iamStatus: "IAM_STATUS_UNSPECIFIED",
+            databaseRoles: ["vk_access_enrollment_admin"]
+          })}\n`,
+          stderr: "",
+          exitCode: 0
+        });
       }
       if (argumentsList[1] === "users" && argumentsList[2] === "delete") {
         userPresent = false;
@@ -1813,6 +2019,189 @@ for (const protectedValue of [
     userPresent = true;
     await runtime.deleteAccessOperatorDirectory(directory);
     assert.deepEqual(await fs.readdir(runDirectory), []);
+  } finally {
+    await fs.rm(runDirectory, { recursive: true, force: true });
+  }
+}
+
+{
+  const runDirectory = await fs.mkdtemp(path.join(os.tmpdir(), "vk-online-onboarding-sql-collision-"));
+  await fs.chmod(runDirectory, 0o700);
+  const login = "vk_access_operator_20260805_dddddddddd";
+  const cloudCalls = [];
+  try {
+    const runtime = new CommandOnlineOnboardingRuntime({
+      baseEnvironment,
+      operatorRelease,
+      repository: "/synthetic/repository",
+      runDirectory,
+      fingerprint
+    });
+    runtime.nodeScript = async (_script, argumentsList) => {
+      const outputDirectory = argumentsList[argumentsList.indexOf("--output-directory") + 1];
+      await fs.writeFile(
+        path.join(outputDirectory, "test-access-operator-create-user-flags.json"),
+        "{}\n",
+        { mode: 0o600 }
+      );
+      await fs.writeFile(
+        path.join(outputDirectory, "test-access-operator-name.txt"),
+        `${login}\n`,
+        { mode: 0o600 }
+      );
+    };
+    runtime.listCloudSqlUser = async () => [syntheticAccessOperatorUser(login)];
+    runtime.gcloud = async (argumentsList) => {
+      cloudCalls.push(argumentsList);
+      throw new Error(`Unerwarteter Cloud-SQL-Befehl: ${argumentsList.join(" ")}`);
+    };
+    await safeRejection(
+      () => runtime.createAccessOperator(),
+      /create-only Access-Operator-Login existiert bereits/u
+    );
+    const [directory] = await runtime.listAccessOperatorDirectories();
+    assert.ok(directory);
+    await safeRejection(
+      () => runtime.deleteAccessOperatorDirectory(directory),
+      /vorbestehende Cloud-SQL-Login besitzt keinen Create-Intent/u
+    );
+    assert.equal(
+      cloudCalls.some((call) => call[1] === "users" && call[2] === "delete"),
+      false
+    );
+    assert.deepEqual(await runtime.listAccessOperatorDirectories(), [directory]);
+  } finally {
+    await fs.rm(runDirectory, { recursive: true, force: true });
+  }
+}
+
+{
+  const runDirectory = await fs.mkdtemp(path.join(os.tmpdir(), "vk-online-onboarding-sql-failed-"));
+  await fs.chmod(runDirectory, 0o700);
+  const login = "vk_access_operator_20260805_eeeeeeeeee";
+  let userPresent = true;
+  let deleteCalled = false;
+  try {
+    const runtime = new CommandOnlineOnboardingRuntime({
+      baseEnvironment,
+      operatorRelease,
+      repository: "/synthetic/repository",
+      runDirectory,
+      fingerprint
+    });
+    const directory = await writeSyntheticAccessOperatorDirectory(
+      runtime,
+      runDirectory,
+      login,
+      { intent: true, operation: true }
+    );
+    runtime.waitForCloudSqlCreateOperation = async () => Object.freeze({
+      name: "operation-create-user-001",
+      status: "DONE",
+      failed: true
+    });
+    runtime.listCloudSqlUser = async () => userPresent
+      ? [syntheticAccessOperatorUser(login)]
+      : [];
+    runtime.describeCloudSqlUser = async () => {
+      throw new Error("Eine fehlgeschlagene Create-Operation darf keinen User beschreiben.");
+    };
+    runtime.gcloud = async (argumentsList) => {
+      if (argumentsList[1] === "users" && argumentsList[2] === "delete") {
+        deleteCalled = true;
+      }
+      return Object.freeze({ stdout: "", stderr: "", exitCode: 0 });
+    };
+    await safeRejection(
+      () => runtime.deleteAccessOperatorDirectory(directory),
+      /fehlgeschlagene Cloud-SQL-Create-Operation darf keinen vorhandenen Login entfernen/u
+    );
+    assert.equal(deleteCalled, false);
+    assert.deepEqual(await runtime.listAccessOperatorDirectories(), [directory]);
+    userPresent = false;
+    await runtime.deleteAccessOperatorDirectory(directory);
+    assert.equal(deleteCalled, false);
+    assert.deepEqual(await runtime.listAccessOperatorDirectories(), []);
+  } finally {
+    await fs.rm(runDirectory, { recursive: true, force: true });
+  }
+}
+
+{
+  const runDirectory = await fs.mkdtemp(path.join(os.tmpdir(), "vk-online-onboarding-sql-role-"));
+  await fs.chmod(runDirectory, 0o700);
+  const login = "vk_access_operator_20260805_ffffffffff";
+  let deleteCalled = false;
+  try {
+    const runtime = new CommandOnlineOnboardingRuntime({
+      baseEnvironment,
+      operatorRelease,
+      repository: "/synthetic/repository",
+      runDirectory,
+      fingerprint
+    });
+    const directory = await writeSyntheticAccessOperatorDirectory(
+      runtime,
+      runDirectory,
+      login,
+      { intent: true }
+    );
+    runtime.listCloudSqlUser = async () => [syntheticAccessOperatorUser(login)];
+    runtime.describeCloudSqlUser = async () => syntheticAccessOperatorUser(login, {
+      databaseRoles: ["vk_access_enrollment_admin", "cloudsqlsuperuser"]
+    });
+    runtime.gcloud = async (argumentsList) => {
+      if (argumentsList[1] === "users" && argumentsList[2] === "delete") {
+        deleteCalled = true;
+      }
+      return Object.freeze({ stdout: "", stderr: "", exitCode: 0 });
+    };
+    await safeRejection(
+      () => runtime.deleteAccessOperatorDirectory(directory),
+      /nicht exakt ziel- und rollengebunden/u
+    );
+    assert.equal(deleteCalled, false);
+    assert.deepEqual(await runtime.listAccessOperatorDirectories(), [directory]);
+  } finally {
+    await fs.rm(runDirectory, { recursive: true, force: true });
+  }
+}
+
+{
+  const runDirectory = await fs.mkdtemp(path.join(os.tmpdir(), "vk-online-onboarding-sql-delete-"));
+  await fs.chmod(runDirectory, 0o700);
+  const login = "vk_access_operator_20260805_1212121212";
+  let deleteCalled = false;
+  try {
+    const runtime = new CommandOnlineOnboardingRuntime({
+      baseEnvironment,
+      operatorRelease,
+      repository: "/synthetic/repository",
+      runDirectory,
+      fingerprint
+    });
+    const directory = await writeSyntheticAccessOperatorDirectory(
+      runtime,
+      runDirectory,
+      login,
+      { intent: true }
+    );
+    runtime.listCloudSqlUser = async () => [syntheticAccessOperatorUser(login)];
+    runtime.describeCloudSqlUser = async () => syntheticAccessOperatorUser(login, {
+      databaseRoles: ["vk_access_enrollment_admin"]
+    });
+    runtime.gcloud = async (argumentsList) => {
+      if (argumentsList[1] === "users" && argumentsList[2] === "delete") {
+        deleteCalled = true;
+      }
+      return Object.freeze({ stdout: "", stderr: "", exitCode: 0 });
+    };
+    await safeRejection(
+      () => runtime.deleteAccessOperatorDirectory(directory),
+      /nicht vollstaendig entfernt/u
+    );
+    assert.equal(deleteCalled, true);
+    assert.deepEqual(await runtime.listAccessOperatorDirectories(), [directory]);
   } finally {
     await fs.rm(runDirectory, { recursive: true, force: true });
   }
