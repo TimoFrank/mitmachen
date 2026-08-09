@@ -78,19 +78,33 @@ Stand: 2026-08-09.
   Release Notes und Versionsprojektionen. Sie stößt die bestehenden
   Pflichtchecks auf dem exakten Draft-Head an, wartet aber nicht auf sie und
   darf weder mergen, taggen, veröffentlichen noch deployen.
-- Review, Merge, signierter Tag, Pages und GitHub Prerelease bleiben getrennte
-  manuelle Freigaben. Dafür benötigt der Freitagsplan weder Publish-Schalter
-  noch ein `release-signing`-Environment. Die vorhandene umfassende
-  Publish-Automatisierung ist eine optionale spätere Ausbaustufe.
+- Review und Merge bleiben die bewusste manuelle Freigabe. Direkt nach dem
+  Merge eines gültigen Release-PR startet die aktive Publish-Automatisierung
+  für dessen exakten `main`-Commit: vollständige Release-QA, signierter Tag,
+  unabhängige Tagprüfung, Pages-Deployment und unveränderliches GitHub
+  Prerelease.
+- Der Post-Merge-Trigger verlangt beide erfolgreichen Pflichtchecks auf dem
+  exakten Release-PR-Head und denselben Dateistand im Merge-Commit; ein
+  Admin-Bypass oder abweichender Merge-Inhalt bleibt gesperrt.
+- Die Veröffentlichung ist fail-closed an
+  `PRODUCT_RELEASE_PUBLISH_ENABLED`, das geschützte `release-signing`-Environment,
+  Release-Immutability, das `v*`-Tag-Ruleset und den strikten Branchschutz mit
+  den tatsächlichen Pflichtchecks `Minimal repository check` und
+  `Target-Readiness` gebunden. Der Freitagsplan selbst erhält keinen Zugriff
+  auf Signierschlüssel oder Governance-Token.
+- Der manuelle Workflow `Release signing readiness` prüft Schlüssel,
+  Passphrase und externe Governance vor der ersten Veröffentlichung ohne
+  Checkout, Tag, Release oder Deployment. `Target-Readiness` ist für jeden PR
+  gegen `main` präsent und nicht mehr pfadgefiltert.
 - Private GKE- und Target-Deployments werden vom Produkt-Release nicht
   ausgelöst. GKE bleibt ein manuell freigegebener IAP-Referenzkanal. Solange der
   Workflow keinen eigenen Produkt-Tag-Eingang besitzt, darf ein Lauf nur dann
   einem Release Candidate zugeordnet werden, wenn sein Workflow-SHA exakt dem
   Zielcommit des signierten Tags entspricht.
 - Die Pages-Demo ist an den Produkt-Release-Trigger gebunden; gewöhnliche
-  `main`-Pushes deployen keinen beweglichen Zwischenstand mehr. Bis zur
-  manuellen Veröffentlichung bleibt der zuletzt verifizierte Pages-Stand
-  deshalb bewusst unverändert.
+  `main`-Pushes deployen keinen beweglichen Zwischenstand mehr. Pages wird erst
+  nach unabhängig verifiziertem signiertem Tag aus dessen exaktem Commit
+  automatisch gebaut, deployed und geprüft.
 - Unabhängig vom Freitagsplan bleibt die erste stabile Version `v1.0.0` eine
   ausdrückliche Folgeentscheidung: Erst ein erfolgreiches, verifiziertes
   Target-Deployment darf deren GitHub-Stable-Release freigeben. Quellübergabe

@@ -10,7 +10,11 @@ Version 0.23 stärkt den sicheren Einstieg in den Versorgungs-Kompass und macht 
 
 ### Einfachen Freitags-Releaseplan einführen (#241)
 
-Der Freitagslauf erstellt nur bei tatsächlichen Änderungen einen Draft-PR für die nächste Minor-Version. Changelog, Release Notes und Versionsstände werden gemeinsam vorbereitet; Merge, signierter Tag und Deployments bleiben bewusste Freigaben.
+Der Freitagslauf erstellt nur bei tatsächlichen Änderungen einen Draft-PR für die nächste Minor-Version. Changelog, Release Notes und Versionsstände werden gemeinsam vorbereitet; der Maintainer-Merge bleibt die bewusste Freigabe.
+
+### Signierte Releases nach dem Merge automatisch veröffentlichen
+
+Direkt nach dem bewusst freigegebenen Merge startet die geschützte Veröffentlichungskette. Sie signiert den unveränderlichen Produkt-Tag, prüft ihn unabhängig, deployed GitHub Pages aus genau diesem Commit und veröffentlicht erst danach das unveränderliche GitHub-Prerelease. Privates GKE und gematik-Target werden nicht ausgelöst.
 
 ### PDF.js-Sicherheitslücke schließen (#242)
 

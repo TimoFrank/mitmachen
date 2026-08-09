@@ -18,7 +18,7 @@ praktische Checkliste zum ausführlichen
 Es gibt keine neuen `poc-*`-, `gematik-*`- oder `rc.N`-Tags. Muss ein Kandidat
 korrigiert werden, entsteht eine Patch-Version statt eines verschobenen Tags.
 
-## Freitag: automatisch vorbereiten, manuell freigeben
+## Freitag: automatisch vorbereiten, bewusst mergen
 
 Der GitHub-Workflow **Prepare weekly release** läuft freitags um 09:17 Uhr
 (`Europe/Berlin`).
@@ -30,30 +30,42 @@ Der GitHub-Workflow **Prepare weekly release** läuft freitags um 09:17 Uhr
    einen **Draft-PR**.
 3. Der Maintainer prüft Leitthema, Notes und Pflichtchecks und mergt den PR
    bewusst nach `main`.
-4. Erst danach werden der Tag signiert und das GitHub-Prerelease manuell
-   veröffentlicht. Der Freitagsworkflow selbst darf weder mergen noch taggen,
-   veröffentlichen oder deployen.
+4. Dieser Merge ist die Freigabe: Direkt danach startet automatisch die
+   geschützte Kette aus signiertem Tag, unabhängiger Tagprüfung,
+   Pages-Deployment und unveränderlichem GitHub-Prerelease. Der
+   Freitagsworkflow selbst mergt weiterhin nicht.
 
 Ein manueller Start desselben Workflows ist jederzeit möglich. Dabei kann ein
 Leitthema vorgegeben werden; ohne Eingabe wird es aus den Änderungen abgeleitet.
 
 ## Veröffentlichung
 
-Die irreversible Veröffentlichung bleibt ein eigener Vorgang auf einem
-sauberen Checkout des gemergten `main`-Commits:
+Die Veröffentlichung startet nur nach dem bewussten Merge eines gültigen
+Release-PR und bleibt an dessen exakten `main`-Merge-Commit gebunden:
 
-1. vollständige Release-QA und Pages-Build ausführen,
-2. den annotierten `vX.Y.Z`-Tag mit dem bei GitHub registrierten Schlüssel
-   signieren und mit `git verify-tag vX.Y.Z` prüfen,
-3. ausschließlich diesen neuen Tag pushen,
-4. Pages aus genau Tag und Commit bauen, deployen und prüfen,
-5. den GitHub Release aus den eingecheckten Notes als Prerelease und nicht als
-   `Latest` veröffentlichen.
+1. Die Kette bestätigt Release-Immutability, das `v*`-Tag-Ruleset und den
+   strikten Branchschutz mit `Minimal repository check` und
+   `Target-Readiness`.
+2. Sie führt die vollständige Release-QA aus, signiert genau einen annotierten
+   `vX.Y.Z`-Tag und pusht ihn ohne Force-Option.
+3. Ein separater Job ohne privaten Schlüssel prüft Signer, Tagobjekt,
+   Zielcommit, `git verify-tag` und den GitHub-Verifikationsstatus.
+4. Pages wird aus genau Tag und Commit gebaut, deployed und öffentlich geprüft.
+5. Erst danach wird der GitHub Release aus den eingecheckten Notes als
+   unveränderliches Prerelease und nicht als `Latest` veröffentlicht.
 
-Die vorhandene umfassende Publish-Automatisierung kann später separat aktiviert
-werden. Für die Freitagsplanung sind weder ein `release-signing`-Environment
-noch zusätzliche Cloud-Rollen erforderlich. GitHub Packages wird für diesen
-Release-Kanal nicht benötigt.
+Die Publish-Automatisierung ist aktiv und wird durch den fail-closed
+Kill-Switch `PRODUCT_RELEASE_PUBLISH_ENABLED` sowie das geschützte
+`release-signing`-Environment begrenzt. Die reine Freitagsplanung erhält keinen
+Zugriff auf Signierschlüssel oder Governance-Token. Ein abgebrochener Lauf wird
+nur für denselben exakten Commit und Tag wiederaufgenommen; es wird keine
+weitere Version berechnet. GitHub Packages wird für diesen Release-Kanal nicht
+benötigt.
+
+Vor der ersten Publikation und nach Änderungen an Schlüssel oder Governance-
+Token muss **Release signing readiness** auf `main` erfolgreich sein. Dieser
+manuelle Prüflauf signiert ausschließlich eine temporäre Probe und erzeugt
+weder Tag noch Release oder Deployment.
 
 ## Privates GKE-Prerelease
 

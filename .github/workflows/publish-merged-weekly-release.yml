@@ -1,0 +1,204 @@
+name: Publish merged weekly release
+
+run-name: >-
+  Publish merged weekly release from PR #${{ github.event.pull_request.number }}
+
+on:
+  pull_request:
+    types:
+      - closed
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+concurrency:
+  group: product-release-${{ github.repository }}
+  cancel-in-progress: false
+
+jobs:
+  validate-merged-release:
+    name: Bind merged release PR to exact main commit
+    if: >-
+      github.event.pull_request.merged == true &&
+      github.event.pull_request.base.ref == 'main' &&
+      github.event.pull_request.head.repo.full_name == github.repository &&
+      github.event.pull_request.user.login == 'github-actions[bot]' &&
+      startsWith(github.event.pull_request.head.ref, 'timo/release-v')
+    runs-on: ubuntu-latest
+    permissions:
+      checks: read
+      contents: read
+    outputs:
+      commit_sha: ${{ steps.contract.outputs.commit_sha }}
+      notes_path: ${{ steps.contract.outputs.notes_path }}
+      ready: ${{ steps.contract.outputs.ready }}
+      tag: ${{ steps.contract.outputs.tag }}
+      title: ${{ steps.contract.outputs.title }}
+
+    steps:
+      - name: Checkout exact merge commit without persisted credentials
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.event.pull_request.merge_commit_sha }}
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Set up Node.js
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
+        with:
+          node-version: 22
+
+      - name: Resolve latest published product release
+        id: published
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          latest_tag="$(gh release list \
+            --repo "$GITHUB_REPOSITORY" \
+            --limit 100 \
+            --json tagName,publishedAt,isDraft \
+            | jq --raw-output '
+                [ .[]
+                  | select(.isDraft == false)
+                  | select(.tagName | test("^v[0-9]+\\.[0-9]+\\.[0-9]+$")) ]
+                | sort_by(.publishedAt)
+                | last
+                | .tagName // ""
+              ')"
+          echo "tag=${latest_tag}" >> "$GITHUB_OUTPUT"
+
+      - name: Verify required checks on exact release PR head
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          set -euo pipefail
+          [[ "$PR_HEAD_SHA" =~ ^[0-9a-f]{40}$ ]]
+          checks_file="${RUNNER_TEMP}/release-pr-check-runs.json"
+          gh api \
+            "repos/${GITHUB_REPOSITORY}/commits/${PR_HEAD_SHA}/check-runs?per_page=100" \
+            > "$checks_file"
+          jq --exit-status --arg sha "$PR_HEAD_SHA" '
+            def latest_actions_check($name):
+              [ .check_runs[]
+                | select(.name == $name)
+                | select(.app.slug == "github-actions") ]
+              | sort_by(.id)
+              | last;
+            (latest_actions_check("Minimal repository check")
+              | .head_sha == $sha
+                and .status == "completed"
+                and .conclusion == "success")
+            and
+            (latest_actions_check("Target-Readiness")
+              | .head_sha == $sha
+                and .status == "completed"
+                and .conclusion == "success")
+          ' "$checks_file" >/dev/null
+
+      - name: Reconstruct pending weekly release without mutations
+        id: release
+        env:
+          RELEASED_TAG: ${{ steps.published.outputs.tag }}
+        run: node scripts/prepare_weekly_release.mjs --dry-run --release-type weekly
+
+      - name: Verify exact merged release contract
+        id: contract
+        shell: bash
+        env:
+          BASE_REF: ${{ github.event.pull_request.base.ref }}
+          EVENT_MERGED: ${{ github.event.pull_request.merged }}
+          HEAD_REF: ${{ github.event.pull_request.head.ref }}
+          HEAD_REPOSITORY: ${{ github.event.pull_request.head.repo.full_name }}
+          PR_AUTHOR: ${{ github.event.pull_request.user.login }}
+          PR_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          MERGE_SHA: ${{ github.event.pull_request.merge_commit_sha }}
+          MODE: ${{ steps.release.outputs.mode }}
+          NOTES_PATH: ${{ steps.release.outputs.notes_path }}
+          PLANNING_HEAD: ${{ steps.release.outputs.planning_head }}
+          PR_TITLE: ${{ github.event.pull_request.title }}
+          RELEASE_SHA: ${{ steps.release.outputs.target_sha }}
+          RELEASE_TAG: ${{ steps.release.outputs.tag }}
+          RELEASE_TITLE: ${{ steps.release.outputs.title }}
+          RELEASE_TYPE: ${{ steps.release.outputs.release_type }}
+          SHOULD_RELEASE: ${{ steps.release.outputs.should_release }}
+        run: |
+          set -euo pipefail
+          [[ "$EVENT_MERGED" == "true" ]]
+          [[ "$BASE_REF" == "main" ]]
+          [[ "$HEAD_REPOSITORY" == "$GITHUB_REPOSITORY" ]]
+          [[ "$PR_AUTHOR" == "github-actions[bot]" ]]
+          [[ "$HEAD_REF" =~ ^timo/release-v[0-9]+\.[0-9]+\.[0-9]+$ ]]
+          [[ "$MERGE_SHA" =~ ^[0-9a-f]{40}$ ]]
+          [[ "$PR_HEAD_SHA" =~ ^[0-9a-f]{40}$ ]]
+          [[ "$PR_NUMBER" =~ ^[0-9]+$ ]]
+          [[ "$(git rev-parse HEAD)" == "$MERGE_SHA" ]]
+
+          git fetch --no-tags origin main:refs/remotes/origin/main
+          git fetch --no-tags origin \
+            "refs/pull/${PR_NUMBER}/head:refs/remotes/origin/release-pr-head"
+          git merge-base --is-ancestor "$MERGE_SHA" refs/remotes/origin/main
+          [[ "$(git rev-parse refs/remotes/origin/release-pr-head)" == "$PR_HEAD_SHA" ]]
+          git diff --quiet "$PR_HEAD_SHA" "$MERGE_SHA" --
+
+          [[ "$MODE" == "resume" ]]
+          [[ "$SHOULD_RELEASE" == "true" ]]
+          [[ "$RELEASE_TYPE" == "weekly" ]]
+          [[ "$PLANNING_HEAD" == "$MERGE_SHA" ]]
+          [[ "$RELEASE_SHA" == "$MERGE_SHA" || "$RELEASE_SHA" == "$PR_HEAD_SHA" ]]
+          [[ "$HEAD_REF" == "timo/release-${RELEASE_TAG}" ]]
+          [[ "$PR_TITLE" == "$RELEASE_TITLE" ]]
+          [[ "$NOTES_PATH" == "dokumentation/release-notes/${RELEASE_TAG}.md" ]]
+          [[ "$(jq --raw-output .productVersion config/release.json)" == "${RELEASE_TAG#v}" ]]
+          test -s "$NOTES_PATH"
+
+          node scripts/verify_product_release.mjs \
+            --release-type weekly \
+            --tag "$RELEASE_TAG" \
+            --commit-sha "$MERGE_SHA" \
+            --release-title "$RELEASE_TITLE" \
+            --notes-path "$NOTES_PATH"
+
+          echo "ready=true" >> "$GITHUB_OUTPUT"
+          echo "commit_sha=${MERGE_SHA}" >> "$GITHUB_OUTPUT"
+          echo "notes_path=${NOTES_PATH}" >> "$GITHUB_OUTPUT"
+          echo "tag=${RELEASE_TAG}" >> "$GITHUB_OUTPUT"
+          echo "title=${RELEASE_TITLE}" >> "$GITHUB_OUTPUT"
+
+      - name: Summarize bound publication
+        shell: bash
+        env:
+          RELEASE_SHA: ${{ steps.contract.outputs.commit_sha }}
+          RELEASE_TAG: ${{ steps.contract.outputs.tag }}
+        run: |
+          {
+            echo "## Merged weekly release"
+            echo
+            echo "- Tag candidate: \`${RELEASE_TAG}\`"
+            echo "- Exact merge commit: \`${RELEASE_SHA}\`"
+            echo "- Next: signed tag, independent verification, Pages and immutable GitHub prerelease"
+            echo "- Private GKE or target deployment: not triggered"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+  publish-release:
+    name: Sign, deploy Pages and publish prerelease
+    needs: validate-merged-release
+    if: needs.validate-merged-release.outputs.ready == 'true'
+    permissions:
+      actions: write
+      contents: write
+    uses: ./.github/workflows/publish-release.yml
+    with:
+      caller_holds_release_lock: true
+      publish: true
+      release_type: weekly
+      tag: ${{ needs.validate-merged-release.outputs.tag }}
+      title: ${{ needs.validate-merged-release.outputs.title }}
+      commit_sha: ${{ needs.validate-merged-release.outputs.commit_sha }}
+      notes_path: ${{ needs.validate-merged-release.outputs.notes_path }}
