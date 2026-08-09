@@ -236,8 +236,8 @@ jobs:
           npm ci --prefix api
           npm ci --prefix frontend/identity-portal
 
-      - name: Install Chromium
-        run: npx playwright install --with-deps chromium
+      - name: Install Playwright browsers
+        run: npx playwright install --with-deps chromium firefox webkit
 
       - name: Run complete release QA before tag creation
         run: |

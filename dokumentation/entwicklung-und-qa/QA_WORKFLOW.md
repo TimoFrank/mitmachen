@@ -157,6 +157,11 @@ Pflicht:
 npm run qa:full
 ```
 
+Die vollständige Playwright-Matrix läuft in der fest vorgegebenen Zeitzone
+`Europe/Berlin`. Release-Runner installieren dafür Chromium, Firefox und WebKit,
+bevor die Vollprüfung beginnt; ein nur teilweise vorhandener Browser-Satz ist
+kein zulässiger Release-Nachweis.
+
 Bei sichtbaren UI-Änderungen zusätzlich die relevanten Punkte aus `../produkt-und-design/VISUAL_QA_CHECKLIST.md` abgleichen. Bei GitHub-Pages-Aufträgen vorher `npm run build:pages` ausführen und `dist/pages/` mitprüfen; das Artefakt bleibt unversioniert.
 
 Wenn Deploymenttrennung, Auth, Data-Service oder API-Grenze betroffen sind, müssen beide Buildprofile getrennt geprüft werden. Das Pages-Artefakt darf nur synthetische Demo-Quellen und den allowlist-geprüften öffentlichen Bundestags-Snapshot enthalten. Das Target-Artefakt muss mit `dataMode: "api"`, `requireApiGateway: true` und `authMode: "oidc"` beziehungsweise im GKE-Vorbereitungspfad `"iap"` gebaut werden. Ein API-, Session- oder Gatewayfehler muss fachliche Funktionen sperren; er darf keinen Demo-, Supabase- oder LocalStorage-Datenpfad aktivieren.
