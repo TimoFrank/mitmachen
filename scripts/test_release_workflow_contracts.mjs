@@ -31,34 +31,50 @@ const weekly = read(".github/workflows/weekly-release.yml");
 const hotfix = read(".github/workflows/hotfix-release.yml");
 const publish = read(".github/workflows/publish-release.yml");
 const pages = read(".github/workflows/deploy-pages.yml");
+const preGematik = read(".github/workflows/deploy-pre-gematik.yml");
 const tagVerifier = read("scripts/verify_release_tag.mjs");
 
 requirePattern(weekly, /schedule:[\s\S]*cron:\s*"17 9 \* \* 5"[\s\S]*timezone:\s*Europe\/Berlin/u,
   "Weekly muss freitags in der vereinbarten Zeitzone geplant bleiben.");
-requirePattern(weekly, /github\.event_name == 'schedule' && ' \(scheduled publish\)'/u,
-  "Der Run-Name muss einen tatsaechlich publizierenden Schedule-Lauf korrekt benennen.");
-requirePattern(weekly, /SCHEDULE_ENABLED:\s*\$\{\{\s*vars\.WEEKLY_RELEASE_SCHEDULE_ENABLED\s*\}\}/u,
-  "Das bestehende Schedule-Gate fehlt.");
-requirePattern(weekly, /PUBLISH_ENABLED:\s*\$\{\{\s*vars\.PRODUCT_RELEASE_PUBLISH_ENABLED\s*\}\}/u,
-  "Das unabhaengige Publish-Gate fehlt.");
-requirePattern(weekly, /SCHEDULE_ENABLED:-\}" != "true"[\s\S]*PUBLISH_ENABLED:-\}" != "true"/u,
-  "Der geplante Lauf muss beide Schalter fail-closed und in Reihenfolge pruefen.");
-requirePattern(weekly, /workflow_dispatch:[\s\S]*publish:[\s\S]*default:\s*false[\s\S]*type:\s*boolean/u,
-  "Ein manueller Weekly-Lauf muss standardmaessig read-only planen.");
+requirePattern(weekly, /github\.event_name == 'schedule' && ' \(Friday\)'/u,
+  "Der Run-Name muss den geplanten Freitagslauf als Planung kennzeichnen.");
+requirePattern(weekly, /workflow_dispatch:[\s\S]*theme:[\s\S]*required:\s*false[\s\S]*default:\s*""[\s\S]*type:\s*string/u,
+  "Ein manueller Weekly-Lauf darf optional ein Leitthema vorgeben.");
 requirePattern(weekly, /--dry-run --release-type weekly/u,
   "Der Weekly-Plan muss den expliziten Release-Typ read-only verwenden.");
 requirePattern(weekly, /--release-type weekly/u,
   "Die Weekly-Vorbereitung muss ihren Release-Typ explizit setzen.");
 forbidPattern(weekly, /RELEASE_BUMP|\bpatch\b/u,
   "Der Weekly-Workflow darf keinen Hotfix-/Patch-Pfad mehr enthalten.");
+forbidPattern(weekly, /PRODUCT_RELEASE_PUBLISH_ENABLED|WEEKLY_RELEASE_SCHEDULE_ENABLED/u,
+  "Der reversible Draft-Plan braucht keinen externen Publish- oder Schedule-Schalter.");
 
-const weeklyPlan = section(weekly, "  plan-release:", "  signing-readiness:");
+const weeklyPlan = section(weekly, "  plan-release:", "  prepare-release-pr:");
 requirePattern(weeklyPlan, /permissions:\s*\n\s+contents:\s*read/u,
   "Der Weekly-Plan braucht ein read-only Token.");
 requirePattern(weeklyPlan, /persist-credentials:\s*false/u,
   "Der Weekly-Plan darf keine Git-Schreibcredentials behalten.");
 forbidPattern(weeklyPlan, /contents:\s*write|pull-requests:\s*write|environment:\s*\n\s+name:\s*release-signing|secrets\./u,
   "Der Weekly-Plan darf weder Schreibrecht noch Signing-Secrets erhalten.");
+const weeklyPrepare = weekly.slice(weekly.indexOf("  prepare-release-pr:"));
+requirePattern(weeklyPrepare, /needs:\s*plan-release[\s\S]*should_release == 'true'[\s\S]*mode == 'prepare'/u,
+  "Nur ein tatsaechlich neuer Wochenstand darf einen Release-PR vorbereiten.");
+requirePattern(weeklyPrepare, /ref:\s*\$\{\{\s*needs\.plan-release\.outputs\.planning_head\s*\}\}[\s\S]*persist-credentials:\s*false/u,
+  "Der Draft-PR muss exakt den schreibfrei geplanten Main-Commit verwenden.");
+requirePattern(weeklyPrepare, /EXPECTED_BASELINE_TAG[\s\S]*latest_tag[\s\S]*rerun planning/u,
+  "Eine zwischen Planung und Vorbereitung geaenderte Release-Basis muss abbrechen.");
+requirePattern(weeklyPrepare, /git ls-remote origin refs\/heads\/main[\s\S]*main changed[\s\S]*rerun planning/u,
+  "Auch ein weitergelaufenes main muss die Draft-Vorbereitung abbrechen.");
+requirePattern(weeklyPrepare, /draft:\s*true/u,
+  "Der Freitagslauf darf nur einen Draft-PR erzeugen.");
+requirePattern(weeklyPrepare, /actions:\s*write[\s\S]*for workflow in repo-check\.yml target-readiness\.yml[\s\S]*gh workflow run[\s\S]*--ref "\$PR_BRANCH"/u,
+  "Der per Standardtoken erzeugte Draft muss die bestehenden Pflichtchecks auf seinem Branch anstossen.");
+forbidPattern(weeklyPrepare, /gh run watch|gh pr checks/u,
+  "Der Planer darf nicht auf Checks warten oder daraus eine Merge-Entscheidung ableiten.");
+requirePattern(weeklyPrepare, /branch:\s*timo\/release-\$\{\{\s*steps\.release\.outputs\.tag\s*\}\}/u,
+  "Weekly-Release-Branches muessen der repositoryweiten timo/-Konvention folgen.");
+forbidPattern(weekly, /signing-readiness:|environment:\s*\n\s+name:\s*release-signing|gh pr merge|pulls\/\$\{PR_NUMBER\}\/merge|uses:\s*\.\/\.github\/workflows\/publish-release\.yml|git tag|gh release create|deploy-pre-gematik/u,
+  "Der Freitagslauf darf weder mergen, signieren, publizieren noch deployen.");
 
 forbidPattern(hotfix, /\bschedule:/u, "Hotfixes duerfen keinen Zeitplan haben.");
 requirePattern(hotfix, /workflow_dispatch:[\s\S]*publish:[\s\S]*default:\s*false[\s\S]*type:\s*boolean/u,
@@ -91,7 +107,7 @@ requirePattern(hotfixPlan, /persist-credentials:\s*false/u,
 forbidPattern(hotfixPlan, /contents:\s*write|pull-requests:\s*write|environment:\s*\n\s+name:\s*release-signing|secrets\./u,
   "Der Hotfix-Plan darf weder Schreibrecht noch Signing-Secrets erhalten.");
 
-for (const [workflow, label] of [[weekly, "Weekly"], [hotfix, "Hotfix"]]) {
+for (const [workflow, label] of [[hotfix, "Hotfix"]]) {
   assert.equal((workflow.match(/published-release-metadata-json/gu) || []).length, 2,
     `${label}: Die publizierte Baseline muss vor Planung und erneut vor Prepare kryptographisch geprueft werden.`);
   requirePattern(workflow, /\.policy\.legacyTags \| index\(\$tag\) != null/u,
@@ -141,8 +157,6 @@ for (const [workflow, label] of [[weekly, "Weekly"], [hotfix, "Hotfix"]]) {
   forbidPattern(prepare, /RELEASE_GOVERNANCE_READ_TOKEN|secrets\.RELEASE_GOVERNANCE_READ_TOKEN/u,
     `${label}: Der Governance-Token darf niemals in den Repository-Code ausfuehrenden Prepare-Job gelangen.`);
 }
-requirePattern(weekly, /branch:\s*timo\/release-\$\{\{\s*steps\.release\.outputs\.tag\s*\}\}/u,
-  "Weekly-Release-Branches muessen der repositoryweiten timo/-Konvention folgen.");
 requirePattern(hotfix, /branch:\s*timo\/hotfix-\$\{\{\s*steps\.release\.outputs\.tag\s*\}\}/u,
   "Hotfix-Branches muessen der repositoryweiten timo/-Konvention folgen.");
 for (const [workflow, label] of [[weekly, "Weekly"], [hotfix, "Hotfix"]]) {
@@ -171,10 +185,12 @@ requirePattern(publish, /PRODUCT_RELEASE_PUBLISH_ENABLED/u,
   "Der Publish-Workflow muss seinen Kill-Switch selbst erneut pruefen.");
 requirePattern(publish, /caller_holds_release_lock:[\s\S]*required:\s*true[\s\S]*inputs\.caller_holds_release_lock[\s\S]*product-release-reusable[\s\S]*product-release-/u,
   "Direkter Publish muss den repo-globalen Weekly-/Hotfix-Lock teilen, ohne den wiederverwendbaren Aufruf zu deadlocken.");
-for (const [workflow, label] of [[weekly, "Weekly"], [hotfix, "Hotfix"]]) {
+for (const [workflow, label] of [[hotfix, "Hotfix"]]) {
   requirePattern(workflow, /uses:\s*\.\/\.github\/workflows\/publish-release\.yml[\s\S]*caller_holds_release_lock:\s*true/u,
     `${label}: Der wiederverwendbare Publish-Aufruf muss seinen bereits gehaltenen repo-globalen Lock deklarieren.`);
 }
+forbidPattern(weekly, /uses:\s*\.\/\.github\/workflows\/publish-release\.yml/u,
+  "Der Freitagsplan darf den manuellen Publish-Workflow nicht aufrufen.");
 requirePattern(publish, /git show refs\/remotes\/origin\/main:config\/release\.json[\s\S]*semver_is_greater[\s\S]*releases\?per_page=100/u,
   "Publish muss aktuelle Main-Projektion und bereits publizierte hoehere Versionen als Downgrade-Sperre pruefen.");
 assert.equal((publish.match(/repos\/\$\{GITHUB_REPOSITORY\}\/immutable-releases/gu) || []).length, 2,
@@ -312,6 +328,10 @@ assert.ok((publish.match(/PUBLISH_ENABLED:\s*\$\{\{\s*vars\.PRODUCT_RELEASE_PUBL
 forbidPattern(publish, /--clobber/u, "Resume darf Release-Assets nicht still ersetzen.");
 forbidPattern(publish, /deploy-pre-gematik|target-readiness|poc-v/iu,
   "Ein Produkt-Release darf weder privates GKE noch den Zielpfad triggern.");
+requirePattern(preGematik, /workflow_dispatch:[\s\S]*image_tag:[\s\S]*validate_only:[\s\S]*default:\s*true/u,
+  "Das private GKE bleibt ein bewusst manueller, standardmaessig nur validierender Kanal.");
+forbidPattern(preGematik, /\bschedule:/u,
+  "Das private GKE darf nicht allein durch den Freitagszeitplan deployen.");
 
 requirePattern(pages, /workflow_dispatch:[\s\S]*release_tag:/u,
   "Pages braucht einen expliziten Eingang fuer den verifizierten Produkt-Tag.");

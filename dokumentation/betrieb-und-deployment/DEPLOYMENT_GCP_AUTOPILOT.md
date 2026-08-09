@@ -556,6 +556,27 @@ In GitHub unter `Actions -> Deploy pre-gematik (GKE Autopilot) -> Run workflow` 
 
 Die Validierung führt Repository-Checks, Helm-Lint und -Render, Ziel-Frontend-Erzeugung sowie echten Containerstart mit Health Check aus. Sie fordert weder Environment-Freigabe noch GCP-Credentials an.
 
+### Zuordnung zu einem Produkt-Prerelease
+
+Ein privates GKE-Deployment ist optional und bleibt eine bewusste manuelle
+Freigabe nach einem veröffentlichten `0.x` Release Candidate. Der aktuelle
+Workflow wird wegen der Environment-Regel auf `main` gestartet; `image_tag`
+benennt nur das Containerimage und wählt keinen Git-Quellstand aus.
+
+Damit ein Lauf als Deployment von `vX.Y.Z` protokolliert werden darf, müssen
+vor dem Lauf der Zielcommit des signierten Tags und der aktuelle `main`-SHA
+bytegenau übereinstimmen. Zuerst wird mit `validate_only=true`, anschließend
+bei erfolgreicher Prüfung mit `validate_only=false` und `image_tag=vX.Y.Z`
+ausgeführt. Workflow-SHA, Tag-Zielcommit, API-Image-Digest und
+Frontend-Inhaltsdigest werden gemeinsam notiert. Ist `main` bereits
+weitergelaufen, ist der Lauf kein Deployment dieses Release Candidates.
+
+Diese Zuordnung macht GKE nicht zum gematik-Zielbetrieb: GKE bleibt der
+IAP-/GCP-Referenzkanal. Der gematik-Kandidat verwendet denselben Quelltag, wird
+aber im OIDC-Zielprofil der Software Factory frisch gebaut. Eine künftig harte
+Tagauswahl im GKE-Workflow ist ein eigener kleiner Folgeauftrag und keine
+Voraussetzung für die einfache Release-Planung.
+
 ### Domain-Cutover zu versorgungs-kompass.de
 
 Der Domainwechsel ist für diese Umgebung abgeschlossen. Vor jedem weiteren echten Public-Entry-Cutover müssen DNS und alle vier verwendeten Zertifikatsnamen bereits erreichbar sein; der Workflow öffnet den Einstieg nicht ohne erfolgreichen externen Boundary-Test.

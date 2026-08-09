@@ -16,11 +16,11 @@ Ein Teil dieser Einstellungen liegt außerhalb des Git-Repositories. Der technis
 - Administrator-Bypass für den Zielbetriebsprozess deaktivieren oder als dokumentierten Break-glass-Prozess mit Nachkontrolle behandeln.
 
 Der Weekly-Release-Prozess erzeugt weiterhin einen Pull Request und darf diese
-Grenze nicht durch einen direkten Bot-Push umgehen. Die redaktionelle Freigabe
-ist in der Ein-Personen-Phase ausgesetzt: Der Automations-PR benötigt keine
-zustimmende Review, wird aber erst nach dem erforderlichen Check auf seinem
-exakten Head-Commit automatisch gemergt. Ändert sich `main` währenddessen,
-bricht der Lauf ab und muss den Release neu planen.
+Grenze nicht durch einen direkten Bot-Push umgehen. Der Zeitplan öffnet oder
+aktualisiert ausschließlich einen Draft-PR und stößt die Pflichtchecks auf
+dessen exaktem Head an. Review und Merge bleiben eine bewusste
+Maintainer-Entscheidung; der Workflow aktiviert weder Auto-Merge noch einen
+direkten Merge.
 
 Neue Produkt-Releases verwenden genau einen signierten, annotierten Git-Tag im
 Schema `vX.Y.Z`. Alle `0.x`-Versionen werden bei GitHub als Prerelease und nicht als
@@ -57,11 +57,14 @@ Die frühere [persönliche Pilotentscheidung](PRE_GEMATIK_ECHTDATEN_PILOT_ENTSCH
 - Negativprüfungen gegen Browser-SDK, Projekt-URLs, Schlüssel, direkte Provider-Datenpfade und unsichere Fallbacks bleiben Teil der Repository-Gates.
 - Das Löschen von Git-Dateien ist kein Nachweis für die Abschaltung externer Ressourcen. Projekte, Datenbank, Storage, Edge Functions, Auth-Nutzer und -Sessions, Schlüssel, Webhooks, DNS-Verweise und Sicherungen werden in einem separaten, freigegebenen Betriebsvorgang inventarisiert, gesperrt beziehungsweise gelöscht und protokolliert.
 
-## 4. Geplantes GitHub Environment `release-signing`
+## 4. Optionale Publish-Automatisierung mit `release-signing`
 
-Das Workflow-Environment wird erst bei der abschließenden Signaturabnahme
-provisioniert und aktiviert. Bis dahin bleibt jede Veröffentlichung über
-`PRODUCT_RELEASE_PUBLISH_ENABLED` gesperrt.
+Das Workflow-Environment ist für die regelmäßige Draft-Planung nicht
+erforderlich. Es wird nur benötigt, wenn die vorhandene umfassende
+Publish-Automatisierung später bewusst aktiviert werden soll. Bis dahin bleibt
+diese optionale Veröffentlichung über `PRODUCT_RELEASE_PUBLISH_ENABLED`
+gesperrt; ein Maintainer kann den geprüften Release stattdessen in einem
+getrennten manuellen Vorgang signieren und veröffentlichen.
 
 Auch die übrigen Einstellungen außerhalb des Repositories werden unmittelbar
 vor der Aktivierung erneut fail-closed geprüft. Am 4. August 2026 ist die
@@ -112,12 +115,12 @@ Checks sind.
   erforderlichen Checks. Der Actions-Standardtoken reicht für den
   Immutability-Endpunkt nicht aus; ein fehlender oder abgelaufener
   Governance-Token stoppt den Lauf vor jeder irreversiblen Mutation. Erst
-  danach werden Signatur-Dry-Run, Publish-Schalter und zuletzt der Freitagsplan
-  freigegeben.
-- Damit der Freitagslauf ohne manuelle Unterbrechung arbeiten kann, erhält das
-  Environment nach erfolgreicher Abnahme keine Required Reviewer. Änderungen
-  an Environment, Trust Anchor oder Schlüsseln bleiben ein gesonderter,
-  protokollierter Betriebsvorgang.
+  danach werden Signatur-Dry-Run und Publish-Schalter für die optionale
+  Publish-Automatisierung freigegeben. Der Draft-Plan bleibt davon unabhängig.
+- Falls die vollautomatische Veröffentlichung später reaktiviert wird, erhält
+  das Environment erst nach erfolgreicher Abnahme seine dafür nötige
+  Konfiguration. Änderungen an Environment, Trust Anchor oder Schlüsseln
+  bleiben ein gesonderter, protokollierter Betriebsvorgang.
 
 ## 5. Release Candidate und gematik-Zielpfad
 

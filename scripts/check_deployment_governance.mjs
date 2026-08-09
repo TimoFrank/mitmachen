@@ -294,70 +294,58 @@ forbidPattern(weeklyFile, weekly, /git\s+push[^\n]*(?:HEAD:main|origin\s+main)|g
 requirePattern(
   weeklyFile,
   weekly,
-  /release-gate:[\s\S]*?outputs:[\s\S]*?may_plan:\s*\$\{\{\s*steps\.gate\.outputs\.may_plan\s*\}\}[\s\S]*?may_publish:\s*\$\{\{\s*steps\.gate\.outputs\.may_publish\s*\}\}/,
-  "Das Weekly-Gate muss Planung und Veröffentlichung getrennt entscheiden."
+  /schedule:[\s\S]*?cron:\s*"17 9 \* \* 5"[\s\S]*?timezone:\s*Europe\/Berlin/,
+  "Weekly Release muss freitags in der vereinbarten Zeitzone planen."
 );
 requirePattern(
   weeklyFile,
   weekly,
-  /EVENT_NAME:\s*\$\{\{\s*github\.event_name\s*\}\}/,
-  "Das Schedule-Gate muss den tatsaechlichen GitHub-Ausloeser auswerten."
+  /workflow_dispatch:[\s\S]*?theme:[\s\S]*?required:\s*false[\s\S]*?type:\s*string/,
+  "Der manuelle Weekly-Plan darf optional ein Leitthema erhalten."
 );
 requirePattern(
   weeklyFile,
   weekly,
-  /PUBLISH_ENABLED:\s*\$\{\{\s*vars\.PRODUCT_RELEASE_PUBLISH_ENABLED\s*\}\}/,
-  "Der geplante Weekly Release muss den globalen Publish-Schalter auswerten."
+  /plan-release:[\s\S]*?permissions:\s*\n\s+contents:\s*read[\s\S]*?persist-credentials:\s*false[\s\S]*?prepare_weekly_release\.mjs\s+--dry-run\s+--release-type\s+weekly[\s\S]*?prepare-release-pr:/,
+  "Der Weekly-Plan muss den Releasebedarf ohne Schreibzugriff ermitteln."
+);
+const weeklyPlanSection = weekly.match(/\n  plan-release:[\s\S]*?\n  prepare-release-pr:/)?.[0] || "";
+forbidPattern(weeklyFile, weeklyPlanSection, /contents:\s*write|pull-requests:\s*write|release-signing|secrets\./, "Der schreibfreie Weekly-Plan darf weder Schreibrechte noch Secrets erhalten.");
+requirePattern(
+  weeklyFile,
+  weekly,
+  /prepare-release-pr:[\s\S]*?needs:\s*plan-release[\s\S]*?should_release == 'true'[\s\S]*?mode == 'prepare'/,
+  "Nur ein tatsaechlich neuer Wochenstand darf einen Draft-PR vorbereiten."
 );
 requirePattern(
   weeklyFile,
   weekly,
-  /SCHEDULE_ENABLED:\s*\$\{\{\s*vars\.WEEKLY_RELEASE_SCHEDULE_ENABLED\s*\}\}/,
-  "Der geplante Weekly Release muss die explizite Freigabevariable auswerten."
+  /ref:\s*\$\{\{\s*needs\.plan-release\.outputs\.planning_head\s*\}\}[\s\S]*?persist-credentials:\s*false/,
+  "Die Vorbereitung muss exakt den zuvor schreibfrei geplanten Commit auschecken."
 );
 requirePattern(
   weeklyFile,
   weekly,
-  /if \[\[ "\$EVENT_NAME" == "schedule" \]\]; then[\s\S]*?SCHEDULE_ENABLED:-[^\n]*!= "true"[\s\S]*?may_plan=false[\s\S]*?PUBLISH_ENABLED:-[^\n]*!= "true"[\s\S]*?may_plan=false/,
-  "Der Schedule-Lauf muss bei jedem fehlenden Freigabeschalter fail-closed enden."
+  /EXPECTED_BASELINE_TAG:[\s\S]*?latest_tag[\s\S]*?rerun planning/,
+  "Eine geaenderte veröffentlichte Basis muss vor dem Draft-PR abbrechen."
 );
+requirePattern(weeklyFile, weekly, /git ls-remote origin refs\/heads\/main[\s\S]*?main changed[\s\S]*?rerun planning/, "Ein weitergelaufenes main muss die Draft-Vorbereitung abbrechen.");
 requirePattern(
   weeklyFile,
   weekly,
-  /publish:[\s\S]*?required:\s*true[\s\S]*?default:\s*false[\s\S]*?type:\s*boolean/,
-  "Ein manueller Weekly-Lauf muss standardmaessig ein schreibfreier Plan sein."
+  /pull-requests:\s*write[\s\S]*?branch:\s*timo\/release-\$\{\{\s*steps\.release\.outputs\.tag\s*\}\}/,
+  "Weekly Release muss einen reviewbaren PR auf einem timo/-Branch erzeugen."
 );
+requirePattern(weeklyFile, weekly, /draft:\s*true/, "Weekly Release darf ausschließlich einen Draft-PR erzeugen.");
 requirePattern(
   weeklyFile,
   weekly,
-  /plan-release:[\s\S]*?persist-credentials:\s*false[\s\S]*?prepare_weekly_release\.mjs\s+--dry-run\s+--release-type\s+weekly[\s\S]*?signing-readiness:/,
-  "Der Weekly-Plan muss ohne persistierte Zugangsdaten und ohne Mutation laufen."
+  /actions:\s*write[\s\S]*?for workflow in repo-check\.yml target-readiness\.yml; do[\s\S]*?gh workflow run "\$workflow"[\s\S]*?--ref "\$PR_BRANCH"/,
+  "Der Draft-PR muss die zwei bestehenden Pflichtworkflows auf seinem Branch anstossen."
 );
-const weeklyPlanSection = weekly.match(/\n  plan-release:[\s\S]*?\n  signing-readiness:/)?.[0] || "";
-forbidPattern(weeklyFile, weeklyPlanSection, /release-signing|RELEASE_TAG_GPG_PRIVATE_KEY|RELEASE_TAG_GPG_PASSPHRASE/, "Der schreibfreie Weekly-Plan darf weder Signing-Environment noch private Signing-Secrets referenzieren.");
-const weeklyReadinessSection = weekly.match(/\n  signing-readiness:[\s\S]*?\n  prepare-release:/)?.[0] || "";
-requirePattern(weeklyFile, weeklyReadinessSection, /environment:[\s\S]*?name:\s*release-signing/, "Publishing muss die isolierte Signing-Bereitschaft vor dem Merge pruefen.");
-requirePattern(weeklyFile, weeklyReadinessSection, /RELEASE_TAG_GPG_PRIVATE_KEY:[^\n]*secrets\.RELEASE_TAG_GPG_PRIVATE_KEY/, "Die Signing-Bereitschaft muss den privaten Subkey aus dem Environment lesen.");
-requirePattern(weeklyFile, weeklyReadinessSection, /RELEASE_TAG_GPG_PASSPHRASE:[^\n]*secrets\.RELEASE_TAG_GPG_PASSPHRASE/, "Die Signing-Bereitschaft muss die Passphrase getrennt aus dem Environment lesen.");
-forbidPattern(weeklyFile, weeklyReadinessSection, /actions\/checkout|actions\/setup-node|npm\s+(?:ci|install)|scripts\//, "Der Signing-Bereitschaftsjob darf keinen Repository-Code ausfuehren.");
-requirePattern(
-  weeklyFile,
-  weekly,
-  /prepare-release:[\s\S]*?needs:[\s\S]*?-\s+signing-readiness[\s\S]*?if:\s*needs\.release-gate\.outputs\.may_publish\s*==\s*'true'/,
-  "Die Release-Vorbereitung darf erst nach Publish-Gate und Signing-Bereitschaft starten."
-);
-requirePattern(weeklyFile, weekly, /pull-requests:\s*write/, "Der vorbereitende Weekly-Release-Prozess muss einen reviewbaren Pull Request erzeugen koennen.");
-requirePattern(
-  weeklyFile,
-  weekly,
-  /for workflow in repo-check\.yml target-readiness\.yml; do[\s\S]*?known_run_ids[\s\S]*?gh workflow run "\$workflow"[\s\S]*?headSha == \$sha[\s\S]*?index\(\$id\)\) == null[\s\S]*?gh run watch/,
-  "Weekly Release muss beide erforderlichen Checks korreliert auf dem exakten Kandidatencommit starten."
-);
-requirePattern(weeklyFile, weekly, /gh\s+pr\s+checks[\s\S]*?--required[\s\S]*?--watch[\s\S]*?autoMergeRequest/, "Weekly Release muss alle erforderlichen Checks abwarten und vorhandenes Auto-Merge ausschliessen.");
-requirePattern(weeklyFile, weekly, /merge_payload=.*[\s\S]*?\{sha:\s*\$sha,\s*merge_method:\s*"squash"[\s\S]*?gh\s+api[\s\S]*?--method\s+PUT[\s\S]*?pulls\/\$\{PR_NUMBER\}\/merge/, "Weekly Release muss den geprueften Head atomar per REST-Squash binden.");
 requirePattern(weeklyFile, weekly, /add-paths:\s*\|[\s\S]*?config\/release\.json/, "Die zentrale Produktversion muss Bestandteil des Weekly-Release-PR sein.");
 requirePattern(weeklyFile, weekly, /add-paths:[\s\S]*deploy\/helm\/versorgungs-kompass\/Chart\.yaml[\s\S]*deploy\/helm\/versorgungs-kompass\/values\.yaml/, "Weekly Release muss die Helm-Versionsprojektion vollständig committen.");
-requirePattern(weeklyFile, weekly, /uses:\s*\.\/\.github\/workflows\/publish-release\.yml[\s\S]*?release_type:\s*weekly/, "Weekly Release muss den gemeinsamen Publish-Vertrag mit Typ weekly verwenden.");
+forbidPattern(weeklyFile, weekly, /PRODUCT_RELEASE_PUBLISH_ENABLED|WEEKLY_RELEASE_SCHEDULE_ENABLED|release-signing|gh\s+run\s+watch|gh\s+pr\s+checks|gh\s+pr\s+merge|pulls\/\$\{PR_NUMBER\}\/merge|publish-release\.yml|git\s+tag|gh\s+release\s+create|deploy-pre-gematik/, "Weekly Release darf weder auf Checks warten noch mergen, signieren, publizieren oder deployen.");
 
 const hotfixFile = ".github/workflows/hotfix-release.yml";
 const hotfix = read(hotfixFile);
