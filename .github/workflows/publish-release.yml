@@ -1213,13 +1213,13 @@ jobs:
           jq --exit-status \
             --arg tag "$RELEASE_TAG" \
             --arg repository "$GITHUB_REPOSITORY" \
-            --arg sha "$RELEASE_SHA" '
+            --arg tag_object_sha "$EXPECTED_TAG_OBJECT" '
               .verificationResult.statement.predicate.tag == $tag
               and .verificationResult.statement.predicate.repository == $repository
               and any(
                 .verificationResult.statement.subject[]?;
                 .uri == ("pkg:github/" + $repository + "@" + $tag)
-                and .digest.sha1 == $sha
+                and .digest.sha1 == $tag_object_sha
               )
             ' "$readiness_attestation" >/dev/null
           verify_remote_tag after-attestation
@@ -1240,6 +1240,7 @@ jobs:
       - name: Re-download and verify immutable published assets
         shell: bash
         env:
+          EXPECTED_TAG_OBJECT: ${{ needs.verify-signed-tag.outputs.tag_object_sha }}
           GH_TOKEN: ${{ github.token }}
           RELEASE_SHA: ${{ inputs.commit_sha }}
           RELEASE_TAG: ${{ inputs.tag }}
@@ -1264,13 +1265,13 @@ jobs:
           jq --exit-status \
             --arg tag "$RELEASE_TAG" \
             --arg repository "$GITHUB_REPOSITORY" \
-            --arg sha "$RELEASE_SHA" '
+            --arg tag_object_sha "$EXPECTED_TAG_OBJECT" '
               .verificationResult.statement.predicate.tag == $tag
               and .verificationResult.statement.predicate.repository == $repository
               and any(
                 .verificationResult.statement.subject[]?;
                 .uri == ("pkg:github/" + $repository + "@" + $tag)
-                and .digest.sha1 == $sha
+                and .digest.sha1 == $tag_object_sha
               )
             ' "${attestation_dir}/release.json" >/dev/null
           for asset_name in \

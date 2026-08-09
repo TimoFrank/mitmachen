@@ -96,6 +96,18 @@ Stand: 2026-08-09.
   Passphrase und externe Governance vor der ersten Veröffentlichung ohne
   Checkout, Tag, Release oder Deployment. `Target-Readiness` ist für jeden PR
   gegen `main` präsent und nicht mehr pfadgefiltert.
+- `v0.23.0` ist als signierter, annotierter Tag mit Tagobjekt
+  `063f31ebe6021a6c2f101199480c19e8bba7b33f` auf dem Zielcommit
+  `b007afab5b1e4296bddb919d8f4ac174092ce885` veröffentlicht. Das unveränderliche
+  GitHub-Prerelease enthält genau `build-manifest.json`, `SHA256SUMS` und
+  `versorgungs-kompass-v0.23.0-pages.zip`; der Pages-Lauf `31336724875` liefert
+  dieselbe Produktversion und denselben Commit aus.
+- Der erste Publikationslauf `31336153677` schloss Tag, unabhängige
+  Signaturprüfung, Pages und die unveränderliche Veröffentlichung erfolgreich
+  ab, meldete danach aber einen falschen Vergleich im Release-Nachweis: GitHub
+  attestiert bei annotierten Tags das Tagobjekt, nicht dessen Zielcommit. Der
+  Workflow prüft beide Identitäten nun getrennt und verbindet sie über den
+  signierten Tag-Verifier.
 - Private GKE- und Target-Deployments werden vom Produkt-Release nicht
   ausgelöst. GKE bleibt ein manuell freigegebener IAP-Referenzkanal. Solange der
   Workflow keinen eigenen Produkt-Tag-Eingang besitzt, darf ein Lauf nur dann

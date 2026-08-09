@@ -113,6 +113,10 @@ npm run check:deployment-governance
 Die Tests decken zentrale Version, No-change-Skip, Wochen-/Hotfix-Projektion,
 Build-Manifest, SBOM, Helm- und OCI-Metadaten, deterministische
 Pflichtartefakte, signierte Tagobjekte und den statischen Workflowvertrag ab.
+GitHubs unveränderlicher Release-Nachweis bindet bei einem annotierten Tag das
+Tagobjekt als `sha1`-Subject. Die getrennte Signaturprüfung weist nach, dass
+dieses Tagobjekt auf den exakten Release-Commit zeigt; beide Objektkennungen
+dürfen im Nachweis nicht gleichgesetzt werden.
 Vor Aktivierung eines echten Releases folgen außerdem ein
 Planlauf ohne Schreibzugriff, ein isolierter Signaturtest ohne Push und der
 vollständige kontrollierte Dry-Run. Ein Pages-Nachweis ersetzt weder privaten
