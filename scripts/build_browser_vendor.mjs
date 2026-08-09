@@ -31,13 +31,13 @@ const assets = [
   },
   {
     package: "pdfjs-dist",
-    version: "6.1.200",
+    version: "6.2.108",
     source: "node_modules/pdfjs-dist/build/pdf.min.mjs",
     target: "frontend/vendor/pdfjs/pdf.min.mjs"
   },
   {
     package: "pdfjs-dist",
-    version: "6.1.200",
+    version: "6.2.108",
     source: "node_modules/pdfjs-dist/build/pdf.worker.min.mjs",
     target: "frontend/vendor/pdfjs/pdf.worker.min.mjs"
   },
