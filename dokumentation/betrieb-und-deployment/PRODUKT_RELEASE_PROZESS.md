@@ -8,9 +8,12 @@ Releases des Versorgungs-Kompass. Die maschinenlesbare Quelle steht in
 `v0.23.0`; vorhandene Tags bleiben historische Evidenz.
 
 Die praktische Vier-Schritte-Anleitung steht in der
-[Release-Kurzanleitung](RELEASE_KURZANLEITUNG.md). Der aktuelle einfache
-Betriebsmodus automatisiert nur die reversible Vorbereitung eines Draft-PR;
-Merge, Tag, Veröffentlichung und Deployments bleiben bewusst getrennt.
+[Release-Kurzanleitung](RELEASE_KURZANLEITUNG.md). Der aktuelle Betriebsmodus
+automatisiert die reversible Vorbereitung eines Draft-PR. Review und Merge
+bleiben die bewusste Freigabe durch den Maintainer; unmittelbar danach läuft
+die geschützte Kette aus signiertem Tag, unabhängiger Tagprüfung,
+Pages-Deployment und unveränderlichem GitHub-Prerelease automatisch. Privates
+GKE und gematik-Zielpfad bleiben davon getrennt.
 
 Die einzige neue Quellversionskennung ist ein signierter, annotierter Git-Tag
 im Format `vX.Y.Z`. „Release Candidate“ ist für alle `0.x`-Versionen der Status
@@ -64,6 +67,9 @@ Der geplante Lauf startet freitags um 09:17 Uhr in der Zeitzone
 - Der Workflow `Prepare weekly release` bereitet ausschließlich einen
   Draft-PR vor. Er mergt nicht, erzeugt keinen Tag, veröffentlicht keinen
   GitHub Release und startet kein Deployment.
+- Der bewusste Merge eines gültigen, vom Planer erzeugten Release-PR startet
+  anschließend automatisch die geschützte Veröffentlichungskette für genau
+  diesen Merge-Commit.
 - Ohne Änderungen seit dem letzten veröffentlichten Quelltag entsteht kein
   Release-PR, Versionssprung, Tag oder GitHub Release.
 - Mit Änderungen wird die Minor-Version erhöht. Ein Patchstand wird dabei
@@ -105,9 +111,11 @@ protokolliert:
 
 Ein grünes „Verified“ bei GitHub kann lediglich die Signatur des Zielcommits
 bezeichnen und ersetzt die Prüfung des Tagobjekts nicht. Git-Tags und Releases
-sind unveränderlich. Container- oder Helm-Artefakte erhalten zusätzlich ihre
-eigenen Digests und, sobald im jeweiligen Kanal vorgesehen, eine
-Artefaktsignatur; die Git-Tag-Signatur ersetzt diese nicht.
+sind unveränderlich. Das aktive Tag-Ruleset für `v*` verbietet Aktualisierung
+und Löschung; die Release-Immutability schützt zusätzlich den veröffentlichten
+GitHub Release. Container- oder Helm-Artefakte erhalten zusätzlich ihre eigenen
+Digests und, sobald im jeweiligen Kanal vorgesehen, eine Artefaktsignatur; die
+Git-Tag-Signatur ersetzt diese nicht.
 
 ## Zielablauf für Produkt-Releases
 
@@ -122,13 +130,19 @@ Artefaktsignatur; die Git-Tag-Signatur ersetzt diese nicht.
    angestoßen.
 4. Der Maintainer prüft Leitthema, Notes und Checks und integriert den PR
    bewusst nach `main`.
-5. Auf dem nachgewiesenen Merge-Commit wird in einem getrennten manuellen
-   Vorgang genau ein signierter, annotierter `vX.Y.Z`-Tag erzeugt und
-   verifiziert.
-6. Die Pages-Demo wird manuell aus genau diesem Tag gebaut, geprüft, deployed und per
-   HTTP gegen Commit und Profil verifiziert.
-7. Erst danach wird der GitHub Release manuell aus den eingecheckten Notes
-   veröffentlicht: vor `1.0.0` als Prerelease, danach als Stable Release.
+5. Dieses Merge-Ereignis startet automatisch die geschützte
+   Veröffentlichungskette. Sie bestätigt zuerst Release-Immutability, das
+   `v*`-Tag-Ruleset und den strikten Branchschutz mit `Minimal repository check`
+   und `Target-Readiness` und erzeugt dann auf dem nachgewiesenen Merge-Commit
+   genau einen signierten, annotierten `vX.Y.Z`-Tag.
+6. Ein getrennter Job ohne privaten Schlüssel prüft Tagobjekt, Zielcommit,
+   Fingerprint, `git verify-tag` und den GitHub-Verifikationsstatus. Erst danach
+   wird die Pages-Demo aus genau diesem Tag gebaut, deployed und per HTTP gegen
+   Commit und Profil verifiziert.
+7. Erst nach erfolgreicher Pages-Prüfung veröffentlicht die Kette den GitHub
+   Release aus den eingecheckten Notes. Vor `1.0.0` ist er ein unveränderliches
+   Prerelease und nicht `Latest`; die Stable-Freigabe bleibt dem gesonderten
+   Zielbetriebsprozess vorbehalten.
 
 Ein Produkt-Release löst weder das Deployment auf das private GKE noch einen
 Build im gematik-Zielpfad aus. Diese Kanäle haben eigene Freigaben und
@@ -247,20 +261,20 @@ Release-Branch aktualisieren, den Draft öffnen und die vorhandenen
 Pflichtworkflows für dessen exakten Head anstoßen. Er wartet nicht auf Checks
 und leitet daraus weder Merge noch Veröffentlichung ab.
 
-Die folgenden Vorgänge bleiben manuell und voneinander getrennt:
+Manuell und voneinander getrennt bleiben:
 
 - Review und Merge des Release-PR,
-- Signatur und Push des unveränderlichen Tags,
-- Pages-Build und GitHub Release,
 - Deployment desselben Tags auf das private GKE,
 - Auswahl und Übergabe eines Tags für den gematik-Zielpfad.
 
-Damit benötigt die regelmäßige Planung weder ein `release-signing`-Environment
-noch Cloud-, IAM- oder Datenbankänderungen. Die vorhandene umfassende
-Publish-Automatisierung bleibt eine optionale spätere Ausbaustufe und wird vom
-Freitagsworkflow nicht aufgerufen. Unabhängig vom verwendeten Werkzeug gelten
-für eine tatsächliche Veröffentlichung weiterhin die vollständige QA, die
-Tag-Signaturprüfung, unveränderliche Releases und der Branchschutz.
+Nach dem manuellen Merge übernimmt die aktive Publish-Automatisierung
+Signatur und Push des unveränderlichen Tags, seine unabhängige Prüfung, den
+Pages-Build samt Deployment und anschließend das GitHub-Prerelease. Die
+regelmäßige Draft-Planung selbst benötigt weiterhin weder Zugriff auf das
+`release-signing`-Environment noch Cloud-, IAM- oder Datenbankrollen. Die
+Veröffentlichung bleibt am Kill-Switch, an vollständiger QA, striktem
+Branchschutz, Tag-Signaturprüfung, `v*`-Ruleset und Release-Immutability
+fail-closed gebunden.
 
 ## Benachrichtigung
 

@@ -347,6 +347,23 @@ requirePattern(weeklyFile, weekly, /add-paths:\s*\|[\s\S]*?config\/release\.json
 requirePattern(weeklyFile, weekly, /add-paths:[\s\S]*deploy\/helm\/versorgungs-kompass\/Chart\.yaml[\s\S]*deploy\/helm\/versorgungs-kompass\/values\.yaml/, "Weekly Release muss die Helm-Versionsprojektion vollständig committen.");
 forbidPattern(weeklyFile, weekly, /PRODUCT_RELEASE_PUBLISH_ENABLED|WEEKLY_RELEASE_SCHEDULE_ENABLED|release-signing|gh\s+run\s+watch|gh\s+pr\s+checks|gh\s+pr\s+merge|pulls\/\$\{PR_NUMBER\}\/merge|publish-release\.yml|git\s+tag|gh\s+release\s+create|deploy-pre-gematik/, "Weekly Release darf weder auf Checks warten noch mergen, signieren, publizieren oder deployen.");
 
+const mergedWeeklyFile = ".github/workflows/publish-merged-weekly-release.yml";
+const mergedWeekly = read(mergedWeeklyFile);
+requirePattern(mergedWeeklyFile, mergedWeekly, /pull_request:[\s\S]*?types:[\s\S]*?- closed[\s\S]*?branches:[\s\S]*?- main/, "Post-Merge-Publishing muss ausschließlich auf geschlossene PRs gegen main reagieren.");
+forbidPattern(mergedWeeklyFile, mergedWeekly, /pull_request_target/, "Post-Merge-Publishing darf keinen privilegierten pull_request_target-Kontext verwenden.");
+requirePattern(mergedWeeklyFile, mergedWeekly, /github\.event\.pull_request\.merged == true[\s\S]*?head\.repo\.full_name == github\.repository[\s\S]*?user\.login == 'github-actions\[bot\]'[\s\S]*?startsWith\(github\.event\.pull_request\.head\.ref, 'timo\/release-v'\)/, "Nur gemergte, vom Freitagslauf erzeugte Same-Repository-Release-PRs duerfen die Publikation anstossen.");
+requirePattern(mergedWeeklyFile, mergedWeekly, /checks:\s*read[\s\S]*?commits\/\$\{PR_HEAD_SHA\}\/check-runs[\s\S]*?Minimal repository check[\s\S]*?Target-Readiness[\s\S]*?\.conclusion == "success"/, "Beide Pflichtchecks muessen auf dem exakten Release-PR-Head erfolgreich sein.");
+requirePattern(mergedWeeklyFile, mergedWeekly, /ref:\s*\$\{\{\s*github\.event\.pull_request\.merge_commit_sha\s*\}\}[\s\S]*?persist-credentials:\s*false[\s\S]*?prepare_weekly_release\.mjs --dry-run --release-type weekly/, "Der Post-Merge-Plan muss den exakten Merge-Commit read-only rekonstruieren.");
+requirePattern(mergedWeeklyFile, mergedWeekly, /prepare_weekly_release\.mjs --dry-run --release-type weekly[\s\S]*?refs\/pull\/\$\{PR_NUMBER\}\/head[\s\S]*?git diff --quiet "\$PR_HEAD_SHA" "\$MERGE_SHA"[\s\S]*?\[\[ "\$MODE" == "resume" \]\][\s\S]*?\[\[ "\$PLANNING_HEAD" == "\$MERGE_SHA" \]\][\s\S]*?\[\[ "\$RELEASE_SHA" == "\$MERGE_SHA" \|\| "\$RELEASE_SHA" == "\$PR_HEAD_SHA" \]\]/, "PR-Head und Merge-Commit muessen denselben freigegebenen Inhalt tragen und den exakten Resume-Vertrag erfuellen.");
+requirePattern(mergedWeeklyFile, mergedWeekly, /uses:\s*\.\/\.github\/workflows\/publish-release\.yml[\s\S]*?caller_holds_release_lock:\s*true[\s\S]*?publish:\s*true[\s\S]*?release_type:\s*weekly/, "Der Post-Merge-Ausloeser muss den gemeinsamen Publish-Vertrag verwenden.");
+forbidPattern(mergedWeeklyFile, mergedWeekly, /git\s+tag|gh\s+release\s+(?:create|edit)|deploy-pre-gematik\.yml|gh\s+workflow\s+run\s+deploy-pages\.yml/, "Der Post-Merge-Ausloeser darf Tag, Release, Pages oder private Deployments nicht selbst mutieren.");
+
+const signingReadinessFile = ".github/workflows/release-signing-readiness.yml";
+const signingReadiness = read(signingReadinessFile);
+requirePattern(signingReadinessFile, signingReadiness, /workflow_dispatch:[\s\S]*?permissions:\s*\n\s+contents:\s*read[\s\S]*?environment:[\s\S]*?name:\s*release-signing/, "Signing-Readiness muss manuell, read-only und im geschuetzten Environment laufen.");
+forbidPattern(signingReadinessFile, signingReadiness, /actions\/checkout|actions\/setup-node|npm\s|node\s+scripts\/|git\s+(?:tag|push)|gh\s+release|gh\s+workflow\s+run/, "Signing-Readiness darf keinen Repository-Code oder externe Mutationen ausfuehren.");
+requirePattern(signingReadinessFile, signingReadiness, /Immutable product release tags[\s\S]*?branches\/main\/protection[\s\S]*?required_status_checks\.strict == true[\s\S]*?Target-Readiness[\s\S]*?immutable-releases[\s\S]*?--detach-sign[\s\S]*?VALIDSIG/, "Signing-Readiness muss Governance, Subkey und Passphrase ohne Publikation beweisen.");
+
 const hotfixFile = ".github/workflows/hotfix-release.yml";
 const hotfix = read(hotfixFile);
 forbidPattern(hotfixFile, hotfix, /^\s*schedule:\s*$/m, "Hotfixes duerfen keinen Zeitplan besitzen.");
@@ -384,6 +401,7 @@ const publishRelease = read(publishReleaseFile);
 requirePattern(publishReleaseFile, publishRelease, /\^v\(\[0-9\]\+\)\\\.\(\[0-9\]\+\)\\\.\(\[0-9\]\+\)\$/, "Produkt-Releases muessen streng als vX.Y.Z validiert sein.");
 requirePattern(publishReleaseFile, publishRelease, /major[^\n]*==\s*"0"|"\$major"\s*==\s*"0"/, "Die Automatisierung muss Releases ab v1.0.0 dem gesonderten Target-Gate ueberlassen.");
 requirePattern(publishReleaseFile, publishRelease, /environment:[\s\S]*?name:\s*release-signing/, "Der private Signierschluessel darf nur im Environment release-signing verwendet werden.");
+requirePattern(publishReleaseFile, publishRelease, /Reconfirm release governance before tag mutation[\s\S]*?Immutable product release tags[\s\S]*?branches\/main\/protection[\s\S]*?required_status_checks\.strict == true[\s\S]*?enforce_admins\.enabled == true[\s\S]*?Minimal repository check[\s\S]*?Target-Readiness[\s\S]*?immutable-releases[\s\S]*?has\("bypass_actors"\)[\s\S]*?refs\/tags\/v\*[\s\S]*?\["deletion", "update"\]/, "Vor jeder Tag-Mutation muessen Branchschutz ohne Admin-Bypass, Pflichtchecks, Release-Immutability und das bypass-freie v*-Tag-Ruleset gelten.");
 requirePattern(publishReleaseFile, publishRelease, /git\s+tag\s+--sign[\s\S]*?--local-user/, "Produkt-Releases benoetigen einen annotierten, mit dem exakten Subkey signierten Tag.");
 forbidPattern(publishReleaseFile, publishRelease, /git\s+(?:tag|push)[^\n]*--force/, "Release-Tags duerfen nie erzwungen ersetzt werden.");
 requirePattern(publishReleaseFile, publishRelease, /verify-signed-tag:[\s\S]*?permissions:[\s\S]*?contents:\s*read[\s\S]*?verify_release_tag\.mjs/, "Ein separater Job ohne Schreibrecht muss den Remote-Tag pruefen.");
@@ -411,6 +429,7 @@ const packageConfig = readJson(packageFile);
 const packageScripts = packageConfig?.scripts || {};
 const targetReadinessFile = ".github/workflows/target-readiness.yml";
 const targetReadiness = read(targetReadinessFile);
+forbidPattern(targetReadinessFile, targetReadiness, /\n\s+paths:\s*\n/, "Der verpflichtende Target-Readiness-Check darf keine PR-Pfadfilter besitzen.");
 const targetValuesFile = "deploy/helm/versorgungs-kompass/values-target-gematik.yaml";
 const targetValues = read(targetValuesFile);
 const targetSourceVerifierFile = "scripts/verify_target_release_source.mjs";

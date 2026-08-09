@@ -28,10 +28,13 @@ function section(source, start, end) {
 }
 
 const weekly = read(".github/workflows/weekly-release.yml");
+const mergedWeekly = read(".github/workflows/publish-merged-weekly-release.yml");
+const signingReadiness = read(".github/workflows/release-signing-readiness.yml");
 const hotfix = read(".github/workflows/hotfix-release.yml");
 const publish = read(".github/workflows/publish-release.yml");
 const pages = read(".github/workflows/deploy-pages.yml");
 const preGematik = read(".github/workflows/deploy-pre-gematik.yml");
+const targetReadinessWorkflow = read(".github/workflows/target-readiness.yml");
 const tagVerifier = read("scripts/verify_release_tag.mjs");
 
 for (const [workflow, label] of [[publish, "Publish"], [hotfix, "Hotfix"]]) {
@@ -80,6 +83,43 @@ requirePattern(weeklyPrepare, /branch:\s*timo\/release-\$\{\{\s*steps\.release\.
   "Weekly-Release-Branches muessen der repositoryweiten timo/-Konvention folgen.");
 forbidPattern(weekly, /signing-readiness:|environment:\s*\n\s+name:\s*release-signing|gh pr merge|pulls\/\$\{PR_NUMBER\}\/merge|uses:\s*\.\/\.github\/workflows\/publish-release\.yml|git tag|gh release create|deploy-pre-gematik/u,
   "Der Freitagslauf darf weder mergen, signieren, publizieren noch deployen.");
+
+requirePattern(mergedWeekly, /pull_request:[\s\S]*types:[\s\S]*- closed[\s\S]*branches:[\s\S]*- main/u,
+  "Die Publikation darf erst auf das geschlossene Release-PR gegen main reagieren.");
+forbidPattern(mergedWeekly, /pull_request_target/u,
+  "Der Post-Merge-Ausloeser darf keinen privilegierten pull_request_target-Kontext verwenden.");
+requirePattern(mergedWeekly, /github\.event\.pull_request\.merged == true[\s\S]*base\.ref == 'main'[\s\S]*head\.repo\.full_name == github\.repository[\s\S]*user\.login == 'github-actions\[bot\]'[\s\S]*startsWith\(github\.event\.pull_request\.head\.ref, 'timo\/release-v'\)/u,
+  "Nur ein tatsaechlich gemergter, vom Freitagslauf erzeugter Same-Repository-Release-PR darf die Publikation anstossen.");
+const mergedValidation = section(mergedWeekly, "  validate-merged-release:", "  publish-release:");
+requirePattern(mergedValidation, /checks:\s*read[\s\S]*ref:\s*\$\{\{\s*github\.event\.pull_request\.merge_commit_sha\s*\}\}[\s\S]*fetch-depth:\s*0[\s\S]*persist-credentials:\s*false/u,
+  "Der Post-Merge-Plan muss exakt den Merge-Commit ohne persistierte Schreibcredentials auschecken.");
+requirePattern(mergedValidation, /commits\/\$\{PR_HEAD_SHA\}\/check-runs[\s\S]*latest_actions_check\("Minimal repository check"\)[\s\S]*latest_actions_check\("Target-Readiness"\)[\s\S]*\.conclusion == "success"/u,
+  "Beide Pflichtchecks muessen auf dem exakten Release-PR-Head erfolgreich sein.");
+requirePattern(mergedValidation, /prepare_weekly_release\.mjs --dry-run --release-type weekly[\s\S]*refs\/pull\/\$\{PR_NUMBER\}\/head[\s\S]*git diff --quiet "\$PR_HEAD_SHA" "\$MERGE_SHA"[\s\S]*\[\[ "\$MODE" == "resume" \]\][\s\S]*\[\[ "\$SHOULD_RELEASE" == "true" \]\][\s\S]*\[\[ "\$PLANNING_HEAD" == "\$MERGE_SHA" \]\][\s\S]*\[\[ "\$RELEASE_SHA" == "\$MERGE_SHA" \|\| "\$RELEASE_SHA" == "\$PR_HEAD_SHA" \]\]/u,
+  "PR-Head und Merge-Commit muessen denselben freigegebenen Inhalt tragen und den exakten Resume-Vertrag erfuellen.");
+requirePattern(mergedValidation, /\[\[ "\$HEAD_REPOSITORY" == "\$GITHUB_REPOSITORY" \]\][\s\S]*\[\[ "\$PR_AUTHOR" == "github-actions\[bot\]" \]\][\s\S]*\[\[ "\$HEAD_REF" =~ \^timo\/release-v/u,
+  "Release-Branch, Bot-Autor und Quell-Repository muessen vor der Publikation fail-closed uebereinstimmen.");
+requirePattern(mergedValidation, /\[\[ "\$PR_TITLE" == "\$RELEASE_TITLE" \]\][\s\S]*verify_product_release\.mjs/u,
+  "Branch, Repository, PR-Titel und Produktvertrag muessen vor der Publikation fail-closed uebereinstimmen.");
+forbidPattern(mergedValidation, /contents:\s*write|actions:\s*write|environment:\s*\n\s+name:\s*release-signing|secrets\./u,
+  "Die Post-Merge-Validierung muss read-only und ohne Signing-Secrets bleiben.");
+requirePattern(mergedWeekly, /publish-release:[\s\S]*needs:\s*validate-merged-release[\s\S]*ready == 'true'[\s\S]*actions:\s*write[\s\S]*contents:\s*write[\s\S]*uses:\s*\.\/\.github\/workflows\/publish-release\.yml[\s\S]*caller_holds_release_lock:\s*true[\s\S]*publish:\s*true[\s\S]*release_type:\s*weekly/u,
+  "Nur der validierte Merge darf den gemeinsamen Publish-Vertrag mit expliziter Freigabe aufrufen.");
+forbidPattern(mergedWeekly, /git\s+tag|gh\s+release\s+(?:create|edit)|deploy-pre-gematik\.yml|gh\s+workflow\s+run\s+deploy-pages\.yml/u,
+  "Der Orchestrator darf Signatur, Release und Deployments nicht am gemeinsamen Publish-Vertrag vorbei ausfuehren.");
+
+requirePattern(signingReadiness, /workflow_dispatch:/u,
+  "Die isolierte Signing-Bereitschaft muss bewusst manuell startbar sein.");
+requirePattern(signingReadiness, /permissions:\s*\n\s+contents:\s*read[\s\S]*environment:\s*\n\s+name:\s*release-signing/u,
+  "Der Readiness-Lauf braucht ausschließlich Leserecht und das geschuetzte Signing-Environment.");
+forbidPattern(signingReadiness, /actions\/checkout|actions\/setup-node|npm\s|node\s+scripts\/|git\s+(?:tag|push)|gh\s+release|gh\s+workflow\s+run|secrets\.[A-Z_]+[\s\S]*GITHUB_OUTPUT/u,
+  "Der Readiness-Lauf darf weder Repository-Code ausfuehren noch Tags, Releases oder Deployments mutieren.");
+requirePattern(signingReadiness, /Immutable product release tags[\s\S]*branches\/main\/protection[\s\S]*required_status_checks\.strict == true[\s\S]*Minimal repository check[\s\S]*Target-Readiness[\s\S]*immutable-releases[\s\S]*refs\/tags\/v\*/u,
+  "Der Readiness-Lauf muss den vollstaendigen externen Governance-Vertrag pruefen.");
+requirePattern(signingReadiness, /RELEASE_TAG_GPG_PASSPHRASE:[\s\S]*RELEASE_TAG_GPG_PRIVATE_KEY:[\s\S]*with-subkey-fingerprint[\s\S]*subkeys != 1 \|\| signing_subkeys != 1[\s\S]*--detach-sign[\s\S]*VALIDSIG/u,
+  "Der Readiness-Lauf muss den einzigen operativen Ed25519-Subkey samt Passphrase kryptographisch beweisen.");
+forbidPattern(targetReadinessWorkflow, /\n\s+paths:\s*\n/u,
+  "Der verpflichtende Target-Readiness-Check darf durch Pfadfilter nicht dauerhaft auf Expected stehen.");
 
 forbidPattern(hotfix, /\bschedule:/u, "Hotfixes duerfen keinen Zeitplan haben.");
 requirePattern(hotfix, /workflow_dispatch:[\s\S]*publish:[\s\S]*default:\s*false[\s\S]*type:\s*boolean/u,
@@ -132,7 +172,7 @@ for (const [workflow, label] of [[hotfix, "Hotfix"]]) {
     `${label}: Der Readiness-Probe muss den privaten Subkey tatsaechlich validieren.`);
   requirePattern(readiness, /with-subkey-fingerprint[\s\S]*--detach-sign[\s\S]*VALIDSIG/u,
     `${label}: Public/Private Signing-Subkey und Passphrase muessen kryptographisch bewiesen werden.`);
-  requirePattern(readiness, /tolower\(\$12\) ~ \/s\/[\s\S]*count != 1[\s\S]*subkeys != 1 \|\| signing_subkeys != 1/u,
+  requirePattern(readiness, /tolower\(\$12\) ~ \/s\/[\s\S]*subkeys != 1 \|\| signing_subkeys != 1[\s\S]*subkeys != 1 \|\| signing_subkeys != 1/u,
     `${label}: Genau ein oeffentlicher und genau ein operativer privater Signing-Subkey sind erlaubt.`);
   requirePattern(readiness, /expected_identity[\s\S]*RELEASE_TAG_SIGNER_NAME[\s\S]*RELEASE_TAG_SIGNER_EMAIL/u,
     `${label}: Die konfigurierte Signer-Identitaet muss zum Schluessel gehoeren.`);
@@ -150,7 +190,7 @@ for (const [workflow, label] of [[hotfix, "Hotfix"]]) {
     `${label}: Alle Required Checks muessen fuer den exakten PR-Head erfolgreich sein.`);
   requirePattern(workflow, /for workflow in repo-check\.yml target-readiness\.yml[\s\S]*known_run_ids[\s\S]*headSha == \$sha[\s\S]*index\(\$id\)\) == null[\s\S]*gh run watch/u,
     `${label}: Beide Pflichtworkflows muessen explizit auf dem exakten Release-Head erfolgreich laufen.`);
-  requirePattern(workflow, /branches\/main\/protection[\s\S]*required_status_checks\.strict == true[\s\S]*Minimal repository check[\s\S]*PoC-\/Target-Readiness/u,
+  requirePattern(workflow, /branches\/main\/protection[\s\S]*required_status_checks\.strict == true[\s\S]*enforce_admins\.enabled == true[\s\S]*Minimal repository check[\s\S]*Target-Readiness/u,
     `${label}: Automatischer Merge bleibt bis zu strengem und vollstaendig provisioniertem Branchschutz gesperrt.`);
   requirePattern(workflow, /autoMergeRequest[\s\S]*--disable-auto[\s\S]*autoMergeRequest == null[\s\S]*pulls\/\$\{PR_NUMBER\}\/merge/u,
     `${label}: Auto-Merge-Restzustaende muessen entfernt und der Merge unmittelbar fail-closed ausgefuehrt werden.`);
@@ -201,16 +241,16 @@ requirePattern(publish, /git show refs\/remotes\/origin\/main:config\/release\.j
 assert.equal((publish.match(/repos\/\$\{GITHUB_REPOSITORY\}\/immutable-releases/gu) || []).length, 2,
   "Immutable Releases muessen unmittelbar vor Tag und erneut vor GitHub-Publikation aktiviert sein.");
 assert.equal((publish.match(/RELEASE_GOVERNANCE_READ_TOKEN:\s*\$\{\{\s*secrets\.RELEASE_GOVERNANCE_READ_TOKEN\s*\}\}/gu) || []).length, 2,
-  "Der eng begrenzte Administration-read Governance-Token darf nur fuer die beiden Immutability-Preflights injiziert werden.");
-requirePattern(publish, /GH_TOKEN="\$RELEASE_GOVERNANCE_READ_TOKEN"[\s\S]*gh api "repos\/\$\{GITHUB_REPOSITORY\}\/immutable-releases"[\s\S]*\.enabled == true/u,
-  "Der Governance-Token darf nur den read-only Immutability-Status fail-closed lesen.");
+  "Der eng begrenzte Administration-read Governance-Token darf nur fuer die beiden Governance-Preflights injiziert werden.");
+requirePattern(publish, /GH_TOKEN="\$RELEASE_GOVERNANCE_READ_TOKEN"[\s\S]*branches\/main\/protection[\s\S]*immutable-releases[\s\S]*rulesets\?includes_parents=false&targets=tag/u,
+  "Der Governance-Token muss Branchschutz, Release-Immutability und Tag-Ruleset fail-closed lesen.");
 const tagGovernanceStep = section(
   publish,
-  "      - name: Reconfirm immutable releases before tag mutation",
+  "      - name: Reconfirm release governance before tag mutation",
   "      - name: Create and push signed annotated tag"
 );
-requirePattern(tagGovernanceStep, /RELEASE_GOVERNANCE_READ_TOKEN[\s\S]*immutable-releases[\s\S]*\.enabled == true/u,
-  "Der Governance-Token muss in einem eigenen read-only Schritt unmittelbar vor der Tag-Mutation bleiben.");
+requirePattern(tagGovernanceStep, /RELEASE_TAG_RULESET_NAME:\s*Immutable product release tags[\s\S]*branches\/main\/protection[\s\S]*required_status_checks\.strict == true[\s\S]*enforce_admins\.enabled == true[\s\S]*Minimal repository check[\s\S]*Target-Readiness[\s\S]*immutable-releases[\s\S]*\.enabled == true[\s\S]*has\("bypass_actors"\)[\s\S]*refs\/tags\/v\*[\s\S]*\["deletion", "update"\]/u,
+  "Branchschutz ohne Admin-Bypass, beide Pflichtchecks, Immutability und das bypass-freie v*-Ruleset muessen unmittelbar vor der Tag-Mutation gelten.");
 const tagMutationStep = section(
   publish,
   "      - name: Create and push signed annotated tag",
@@ -220,11 +260,11 @@ forbidPattern(tagMutationStep, /RELEASE_GOVERNANCE_READ_TOKEN/u,
   "Tag-Signatur und Push duerfen den Governance-Token nicht erben.");
 const publicationGovernanceStep = section(
   publish,
-  "      - name: Reconfirm immutable releases immediately before publication",
+  "      - name: Reconfirm release governance immediately before publication",
   "      - name: Publish verified prerelease draft"
 );
-requirePattern(publicationGovernanceStep, /RELEASE_GOVERNANCE_READ_TOKEN[\s\S]*immutable-releases[\s\S]*\.enabled == true/u,
-  "Der Governance-Token muss in einem eigenen read-only Schritt unmittelbar vor der Publikation bleiben.");
+requirePattern(publicationGovernanceStep, /RELEASE_GOVERNANCE_READ_TOKEN[\s\S]*branches\/main\/protection[\s\S]*required_status_checks\.strict == true[\s\S]*enforce_admins\.enabled == true[\s\S]*Minimal repository check[\s\S]*Target-Readiness[\s\S]*immutable-releases[\s\S]*\.enabled == true[\s\S]*rulesets\/\$\{ruleset_id\}/u,
+  "Die vollstaendige Release-Governance muss unmittelbar vor der Publikation erneut gelten.");
 const publicationMutationStep = section(
   publish,
   "      - name: Publish verified prerelease draft",
@@ -245,7 +285,7 @@ requirePattern(publish, /RELEASE_TAG_GPG_PASSPHRASE:\s*\$\{\{\s*secrets\.RELEASE
   "Die Passphrase muss getrennt und nur im Signierschritt injiziert werden.");
 requirePattern(publish, /with-subkey-fingerprint[\s\S]*RELEASE_TAG_GPG_FINGERPRINT must identify the only dedicated Ed25519 signing subkey/u,
   "Der konfigurierte Fingerprint muss explizit zum dedizierten Signing-Subkey gehoeren.");
-requirePattern(publish, /capabilities ~ \/c\/[\s\S]*capabilities !~ \/s\/[\s\S]*tolower\(\$12\) ~ \/s\/[\s\S]*\$4 == "22"[\s\S]*\$17\) == "ed25519"[\s\S]*count != 1/u,
+requirePattern(publish, /capabilities ~ \/c\/[\s\S]*capabilities !~ \/s\/[\s\S]*tolower\(\$12\) ~ \/s\/[\s\S]*\$4 == "22"[\s\S]*\$17\) == "ed25519"[\s\S]*subkeys != 1 \|\| signing_subkeys != 1/u,
   "Primary Key muss cert-only sein; der dedizierte Signing-Subkey muss Ed25519 verwenden.");
 requirePattern(publish, /\$15 == "#"[\s\S]*primary private key must stay offline/iu,
   "Das Signing-Environment darf keinen nutzbaren Primary Private Key enthalten.");
@@ -331,7 +371,7 @@ requirePattern(publish, /completed_assets[\s\S]*"\$completed_assets" == "\$expec
 assert.ok((publish.match(/PUBLISH_ENABLED:\s*\$\{\{\s*vars\.PRODUCT_RELEASE_PUBLISH_ENABLED\s*\}\}/gu) || []).length >= 4,
   "Der Kill-Switch muss vor Merge, Tag, Pages und GitHub-Publikation erneut gelten.");
 forbidPattern(publish, /--clobber/u, "Resume darf Release-Assets nicht still ersetzen.");
-forbidPattern(publish, /deploy-pre-gematik|target-readiness|poc-v/iu,
+forbidPattern(publish, /deploy-pre-gematik|gh\s+workflow\s+run\s+target-readiness|poc-v/iu,
   "Ein Produkt-Release darf weder privates GKE noch den Zielpfad triggern.");
 requirePattern(preGematik, /workflow_dispatch:[\s\S]*image_tag:[\s\S]*validate_only:[\s\S]*default:\s*true/u,
   "Das private GKE bleibt ein bewusst manueller, standardmaessig nur validierender Kanal.");

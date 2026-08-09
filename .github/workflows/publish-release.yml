@@ -391,17 +391,18 @@ jobs:
           }
           signing_subkey="$(awk -F: '
                 $1 == "sub" {
+                  subkeys++
                   signing = tolower($12) ~ /s/
+                  if (signing) signing_subkeys++
                   valid = signing && $4 == "22" && tolower($17) == "ed25519"
                   next
                 }
                 $1 == "fpr" && signing {
-                  count++
                   if (valid) print toupper($10)
                   signing = 0
                   valid = 0
                 }
-                END { if (count != 1) exit 1 }
+                END { if (subkeys != 1 || signing_subkeys != 1) exit 1 }
               ' <<<"$public_listing")"
           [[ "$signing_subkey" == "$expected_fingerprint" ]] || {
             echo "RELEASE_TAG_GPG_FINGERPRINT must identify the only dedicated Ed25519 signing subkey." >&2
@@ -432,17 +433,60 @@ jobs:
             echo "exists=false" >> "$GITHUB_OUTPUT"
           fi
 
-      - name: Reconfirm immutable releases before tag mutation
-        if: steps.remote-tag.outputs.exists == 'false'
+      - name: Reconfirm release governance before tag mutation
         shell: bash
         env:
           RELEASE_GOVERNANCE_READ_TOKEN: ${{ secrets.RELEASE_GOVERNANCE_READ_TOKEN }}
+          RELEASE_TAG_RULESET_NAME: Immutable product release tags
         run: |
           set -euo pipefail
           test -n "$RELEASE_GOVERNANCE_READ_TOKEN"
+          protection_file="${RUNNER_TEMP}/main-protection-before-tag.json"
+          rulesets_file="${RUNNER_TEMP}/tag-rulesets-before-tag.json"
+          ruleset_file="${RUNNER_TEMP}/tag-ruleset-before-tag.json"
+
+          GH_TOKEN="$RELEASE_GOVERNANCE_READ_TOKEN" \
+            gh api "repos/${GITHUB_REPOSITORY}/branches/main/protection" \
+            > "$protection_file"
+          jq --exit-status '
+            .required_status_checks.strict == true
+            and .enforce_admins.enabled == true
+            and (
+              [.required_status_checks.contexts[]?, .required_status_checks.checks[]?.context]
+              | unique
+              | (index("Minimal repository check") != null)
+                and (index("Target-Readiness") != null)
+            )
+          ' "$protection_file" >/dev/null
+
           GH_TOKEN="$RELEASE_GOVERNANCE_READ_TOKEN" \
             gh api "repos/${GITHUB_REPOSITORY}/immutable-releases" \
             | jq --exit-status '.enabled == true' >/dev/null
+
+          GH_TOKEN="$RELEASE_GOVERNANCE_READ_TOKEN" \
+            gh api "repos/${GITHUB_REPOSITORY}/rulesets?includes_parents=false&targets=tag&per_page=100" \
+            > "$rulesets_file"
+          ruleset_id="$(jq --raw-output --arg name "$RELEASE_TAG_RULESET_NAME" '
+            [ .[]
+              | select(.name == $name)
+              | select(.target == "tag")
+              | select(.enforcement == "active") ]
+            | if length == 1 then .[0].id else empty end
+          ' "$rulesets_file")"
+          [[ "$ruleset_id" =~ ^[0-9]+$ ]]
+          GH_TOKEN="$RELEASE_GOVERNANCE_READ_TOKEN" \
+            gh api "repos/${GITHUB_REPOSITORY}/rulesets/${ruleset_id}?includes_parents=false" \
+            > "$ruleset_file"
+          jq --exit-status --arg name "$RELEASE_TAG_RULESET_NAME" '
+            .name == $name
+            and .target == "tag"
+            and .enforcement == "active"
+            and has("bypass_actors")
+            and (.bypass_actors | length == 0)
+            and .conditions.ref_name.include == ["refs/tags/v*"]
+            and ((.conditions.ref_name.exclude // []) | length == 0)
+            and ([.rules[].type] | sort) == ["deletion", "update"]
+          ' "$ruleset_file" >/dev/null
 
       - name: Create and push signed annotated tag
         if: steps.remote-tag.outputs.exists == 'false'
@@ -1017,16 +1061,60 @@ jobs:
             --tag "$RELEASE_TAG" \
             --commit-sha "$RELEASE_SHA"
 
-      - name: Reconfirm immutable releases immediately before publication
+      - name: Reconfirm release governance immediately before publication
         shell: bash
         env:
           RELEASE_GOVERNANCE_READ_TOKEN: ${{ secrets.RELEASE_GOVERNANCE_READ_TOKEN }}
+          RELEASE_TAG_RULESET_NAME: Immutable product release tags
         run: |
           set -euo pipefail
           test -n "$RELEASE_GOVERNANCE_READ_TOKEN"
+          protection_file="${RUNNER_TEMP}/main-protection-before-publication.json"
+          rulesets_file="${RUNNER_TEMP}/tag-rulesets-before-publication.json"
+          ruleset_file="${RUNNER_TEMP}/tag-ruleset-before-publication.json"
+
+          GH_TOKEN="$RELEASE_GOVERNANCE_READ_TOKEN" \
+            gh api "repos/${GITHUB_REPOSITORY}/branches/main/protection" \
+            > "$protection_file"
+          jq --exit-status '
+            .required_status_checks.strict == true
+            and .enforce_admins.enabled == true
+            and (
+              [.required_status_checks.contexts[]?, .required_status_checks.checks[]?.context]
+              | unique
+              | (index("Minimal repository check") != null)
+                and (index("Target-Readiness") != null)
+            )
+          ' "$protection_file" >/dev/null
+
           GH_TOKEN="$RELEASE_GOVERNANCE_READ_TOKEN" \
             gh api "repos/${GITHUB_REPOSITORY}/immutable-releases" \
             | jq --exit-status '.enabled == true' >/dev/null
+
+          GH_TOKEN="$RELEASE_GOVERNANCE_READ_TOKEN" \
+            gh api "repos/${GITHUB_REPOSITORY}/rulesets?includes_parents=false&targets=tag&per_page=100" \
+            > "$rulesets_file"
+          ruleset_id="$(jq --raw-output --arg name "$RELEASE_TAG_RULESET_NAME" '
+            [ .[]
+              | select(.name == $name)
+              | select(.target == "tag")
+              | select(.enforcement == "active") ]
+            | if length == 1 then .[0].id else empty end
+          ' "$rulesets_file")"
+          [[ "$ruleset_id" =~ ^[0-9]+$ ]]
+          GH_TOKEN="$RELEASE_GOVERNANCE_READ_TOKEN" \
+            gh api "repos/${GITHUB_REPOSITORY}/rulesets/${ruleset_id}?includes_parents=false" \
+            > "$ruleset_file"
+          jq --exit-status --arg name "$RELEASE_TAG_RULESET_NAME" '
+            .name == $name
+            and .target == "tag"
+            and .enforcement == "active"
+            and has("bypass_actors")
+            and (.bypass_actors | length == 0)
+            and .conditions.ref_name.include == ["refs/tags/v*"]
+            and ((.conditions.ref_name.exclude // []) | length == 0)
+            and ([.rules[].type] | sort) == ["deletion", "update"]
+          ' "$ruleset_file" >/dev/null
 
       - name: Publish verified prerelease draft
         id: publish

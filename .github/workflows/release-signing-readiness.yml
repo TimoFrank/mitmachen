@@ -1,0 +1,181 @@
+name: Release signing readiness
+
+run-name: Validate release-signing without publication
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release-signing-readiness-${{ github.repository }}
+  cancel-in-progress: false
+
+jobs:
+  release-signing-readiness:
+    name: Prove isolated signing and governance readiness
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    environment:
+      name: release-signing
+    env:
+      GNUPGHOME: /tmp/release-signing-readiness-gnupg
+      RELEASE_TAG_GPG_FINGERPRINT: ${{ vars.RELEASE_TAG_GPG_FINGERPRINT }}
+      RELEASE_TAG_GPG_PUBLIC_KEY: ${{ vars.RELEASE_TAG_GPG_PUBLIC_KEY }}
+      RELEASE_TAG_SIGNER_EMAIL: ${{ vars.RELEASE_TAG_SIGNER_EMAIL }}
+      RELEASE_TAG_SIGNER_NAME: ${{ vars.RELEASE_TAG_SIGNER_NAME }}
+
+    steps:
+      - name: Validate release governance without repository code
+        shell: bash
+        env:
+          RELEASE_GOVERNANCE_READ_TOKEN: ${{ secrets.RELEASE_GOVERNANCE_READ_TOKEN }}
+          RELEASE_TAG_RULESET_NAME: Immutable product release tags
+        run: |
+          set -euo pipefail
+          test -n "$RELEASE_GOVERNANCE_READ_TOKEN"
+          protection_file="${RUNNER_TEMP}/main-protection.json"
+          rulesets_file="${RUNNER_TEMP}/tag-rulesets.json"
+          ruleset_file="${RUNNER_TEMP}/tag-ruleset.json"
+
+          GH_TOKEN="$RELEASE_GOVERNANCE_READ_TOKEN" \
+            gh api "repos/${GITHUB_REPOSITORY}/branches/main/protection" \
+            > "$protection_file"
+          jq --exit-status '
+            .required_status_checks.strict == true
+            and .enforce_admins.enabled == true
+            and (
+              [.required_status_checks.contexts[]?, .required_status_checks.checks[]?.context]
+              | unique
+              | (index("Minimal repository check") != null)
+                and (index("Target-Readiness") != null)
+            )
+          ' "$protection_file" >/dev/null
+
+          GH_TOKEN="$RELEASE_GOVERNANCE_READ_TOKEN" \
+            gh api "repos/${GITHUB_REPOSITORY}/immutable-releases" \
+            | jq --exit-status '.enabled == true' >/dev/null
+
+          GH_TOKEN="$RELEASE_GOVERNANCE_READ_TOKEN" \
+            gh api "repos/${GITHUB_REPOSITORY}/rulesets?includes_parents=false&targets=tag&per_page=100" \
+            > "$rulesets_file"
+          ruleset_id="$(jq --raw-output --arg name "$RELEASE_TAG_RULESET_NAME" '
+            [ .[]
+              | select(.name == $name)
+              | select(.target == "tag")
+              | select(.enforcement == "active") ]
+            | if length == 1 then .[0].id else empty end
+          ' "$rulesets_file")"
+          [[ "$ruleset_id" =~ ^[0-9]+$ ]]
+          GH_TOKEN="$RELEASE_GOVERNANCE_READ_TOKEN" \
+            gh api "repos/${GITHUB_REPOSITORY}/rulesets/${ruleset_id}?includes_parents=false" \
+            > "$ruleset_file"
+          jq --exit-status --arg name "$RELEASE_TAG_RULESET_NAME" '
+            .name == $name
+            and .target == "tag"
+            and .enforcement == "active"
+            and has("bypass_actors")
+            and (.bypass_actors | length == 0)
+            and .conditions.ref_name.include == ["refs/tags/v*"]
+            and ((.conditions.ref_name.exclude // []) | length == 0)
+            and ([.rules[].type] | sort) == ["deletion", "update"]
+          ' "$ruleset_file" >/dev/null
+
+      - name: Prove dedicated signing subkey, identity and passphrase
+        shell: bash
+        env:
+          RELEASE_TAG_GPG_PASSPHRASE: ${{ secrets.RELEASE_TAG_GPG_PASSPHRASE }}
+          RELEASE_TAG_GPG_PRIVATE_KEY: ${{ secrets.RELEASE_TAG_GPG_PRIVATE_KEY }}
+        run: |
+          set -euo pipefail
+          umask 077
+          [[ "$RELEASE_TAG_GPG_FINGERPRINT" =~ ^[0-9A-Fa-f]{40,64}$ ]]
+          [[ -n "$RELEASE_TAG_SIGNER_NAME" && "$RELEASE_TAG_SIGNER_NAME" != *$'\n'* ]]
+          [[ "$RELEASE_TAG_SIGNER_EMAIL" =~ ^[^[:space:]@]+@[^[:space:]@]+$ ]]
+          test -n "$RELEASE_TAG_GPG_PUBLIC_KEY"
+          test -n "$RELEASE_TAG_GPG_PRIVATE_KEY"
+          test -n "$RELEASE_TAG_GPG_PASSPHRASE"
+
+          mkdir -p "$GNUPGHOME"
+          chmod 700 "$GNUPGHOME"
+          printf '%s' "$RELEASE_TAG_GPG_PUBLIC_KEY" | gpg --batch --import
+          printf '%s' "$RELEASE_TAG_GPG_PRIVATE_KEY" | gpg --batch --import
+          expected_fingerprint="$(printf '%s' "$RELEASE_TAG_GPG_FINGERPRINT" | tr '[:lower:]' '[:upper:]')"
+
+          public_listing="$(gpg --batch --with-colons --with-subkey-fingerprint --list-keys)"
+          primary_contract="$(awk -F: '
+              $1 == "pub" {
+                count++
+                capabilities = $12
+                if (capabilities ~ /c/ && capabilities !~ /s/) valid++
+              }
+              END { if (count == 1 && valid == 1) print "valid" }
+            ' <<<"$public_listing")"
+          [[ "$primary_contract" == "valid" ]]
+
+          public_signing_subkey="$(awk -F: '
+                $1 == "sub" {
+                  subkeys++
+                  signing = tolower($12) ~ /s/
+                  if (signing) signing_subkeys++
+                  valid = signing && $4 == "22" && tolower($17) == "ed25519"
+                  next
+                }
+                $1 == "fpr" && signing {
+                  if (valid) print toupper($10)
+                  signing = 0
+                  valid = 0
+                }
+                END { if (subkeys != 1 || signing_subkeys != 1) exit 1 }
+              ' <<<"$public_listing")"
+          [[ "$public_signing_subkey" == "$expected_fingerprint" ]]
+
+          secret_listing="$(gpg --batch --with-colons --with-subkey-fingerprint --list-secret-keys)"
+          [[ "$(awk -F: '$1 == "sec" { count++; if ($15 == "#") offline++ } END { print count ":" offline }' <<<"$secret_listing")" == "1:1" ]]
+          secret_signing_subkey="$(awk -F: '
+                $1 == "ssb" {
+                  subkeys++
+                  signing = tolower($12) ~ /s/
+                  if (signing) signing_subkeys++
+                  valid = signing && $4 == "22" && tolower($17) == "ed25519" && $15 != "#"
+                  next
+                }
+                $1 == "fpr" && signing {
+                  if (valid) print toupper($10)
+                  signing = 0
+                  valid = 0
+                }
+                END { if (subkeys != 1 || signing_subkeys != 1) exit 1 }
+              ' <<<"$secret_listing")"
+          [[ "$secret_signing_subkey" == "$expected_fingerprint" ]]
+
+          expected_identity="${RELEASE_TAG_SIGNER_NAME} <${RELEASE_TAG_SIGNER_EMAIL}>"
+          identity_listing="$(gpg --batch --list-keys "$expected_fingerprint")"
+          grep --fixed-strings --quiet "$expected_identity" <<<"$identity_listing"
+
+          probe_payload="${RUNNER_TEMP}/release-signing-readiness.txt"
+          probe_signature="${RUNNER_TEMP}/release-signing-readiness.sig"
+          printf '%s\n' 'release-signing readiness probe' > "$probe_payload"
+          exec 3<<<"$RELEASE_TAG_GPG_PASSPHRASE"
+          gpg --batch --no-tty --pinentry-mode loopback --passphrase-fd 3 \
+            --local-user "${expected_fingerprint}!" \
+            --output "$probe_signature" \
+            --detach-sign "$probe_payload"
+          exec 3<&-
+          verification="$(gpg --batch --status-fd 1 --verify "$probe_signature" "$probe_payload" 2>/dev/null)"
+          actual_fingerprint="$(sed -n 's/^\[GNUPG:\] VALIDSIG \([0-9A-Fa-f]*\) .*/\1/p' <<<"$verification" \
+            | tr '[:lower:]' '[:upper:]')"
+          [[ "$actual_fingerprint" == "$expected_fingerprint" ]]
+
+      - name: Summarize non-mutating readiness proof
+        shell: bash
+        run: |
+          {
+            echo "## Release-signing readiness"
+            echo
+            echo "- Governance: verified"
+            echo "- Dedicated signing subkey, identity and passphrase: verified"
+            echo "- Tag, release and deployment: not created"
+          } >> "$GITHUB_STEP_SUMMARY"

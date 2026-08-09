@@ -234,5 +234,6 @@ jobs:
             echo "- Pull request: ${PULL_REQUEST_URL}"
             echo "- Draft commit: \`${RELEASE_HEAD}\`"
             echo "- Merge: manual after required checks"
-            echo "- Tag, GitHub Release and deployments: manual after merge"
+            echo "- After merge: signing, Pages and GitHub prerelease start automatically"
+            echo "- Private GKE or target deployment: not triggered"
           } >> "$GITHUB_STEP_SUMMARY"

@@ -222,11 +222,12 @@ jobs:
             gh api "repos/${GITHUB_REPOSITORY}/branches/main/protection")"
           jq --exit-status '
             (.required_status_checks.strict == true)
+            and (.enforce_admins.enabled == true)
             and (
               [.required_status_checks.contexts[]?, .required_status_checks.checks[]?.context]
               | unique
               | (index("Minimal repository check") != null)
-                and (index("PoC-/Target-Readiness") != null)
+                and (index("Target-Readiness") != null)
             )
           ' <<<"$protection" >/dev/null
           echo "ready=true" >> "$GITHUB_OUTPUT"
@@ -265,17 +266,18 @@ jobs:
 
           public_signing_subkey="$(awk -F: '
                 $1 == "sub" {
+                  subkeys++
                   signing = tolower($12) ~ /s/
+                  if (signing) signing_subkeys++
                   valid = signing && $4 == "22" && tolower($17) == "ed25519"
                   next
                 }
                 $1 == "fpr" && signing {
-                  count++
                   if (valid) print toupper($10)
                   signing = 0
                   valid = 0
                 }
-                END { if (count != 1) exit 1 }
+                END { if (subkeys != 1 || signing_subkeys != 1) exit 1 }
               ' <<<"$public_listing")"
           [[ "$public_signing_subkey" == "$expected_fingerprint" ]]
 

@@ -1,18 +1,18 @@
 # Repository-Governance vor PoC und späterem Regelbetrieb
 
-Stand: 4. August 2026
+Stand: 9. August 2026
 
 Ein Teil dieser Einstellungen liegt außerhalb des Git-Repositories. Der technische Basisschutz ist aktiv. Für den aktuellen Gematik-PoC werden ein sauberer, unveränderlicher RC und die vereinbarten Prüfungen benötigt. Weitere Organisationsregeln werden erst bei einem späteren Ausbau festgelegt.
 
 ## 1. Default Branch `main`
 
 - Pull Request vor Merge verpflichtend.
-- Pull Requests, der erforderliche Check `Minimal repository check`, aufgelöste Review-Kommentare sowie das Verbot von Force Push und Branch-Löschung sind aktiv.
+- Pull Requests, der strikte Abgleich mit dem aktuellen `main`, die erforderlichen Checks `Minimal repository check` und `Target-Readiness`, aufgelöste Review-Kommentare sowie das Verbot von Force Push und Branch-Löschung sind aktiv.
 - Solange nur ein Maintainer vorhanden ist, sind formal null externe Freigaben erforderlich; vor Pilotbetrieb mindestens eine bestätigte Review festlegen.
 - Für Deployment-/Security-Pfade nach Aktivierung von CODEOWNERS eine Code-Owner-Review verlangen.
 - Eigene Freigabe des letzten Pushers ausschließen, sobald ein zweiter bestätigter Reviewer zur Verfügung steht und der GitHub-Tarif dies unterstützt.
 - Offene Review-Kommentare müssen vor Merge aufgelöst sein.
-- `Zielbetriebs-Check` vor Pilotbetrieb als erforderlichen Check aufnehmen oder ohne Pfadfilter immer bereitstellen; derzeit ist er ein zusätzlicher, pfadbezogener Nachweis.
+- Die tatsächlichen Check-Kontexte heißen `Minimal repository check` und `Target-Readiness`; abweichende historische Bezeichnungen sind kein gültiger Branchschutz-Nachweis.
 - Administrator-Bypass für den Zielbetriebsprozess deaktivieren oder als dokumentierten Break-glass-Prozess mit Nachkontrolle behandeln.
 
 Der Weekly-Release-Prozess erzeugt weiterhin einen Pull Request und darf diese
@@ -20,15 +20,19 @@ Grenze nicht durch einen direkten Bot-Push umgehen. Der Zeitplan öffnet oder
 aktualisiert ausschließlich einen Draft-PR und stößt die Pflichtchecks auf
 dessen exaktem Head an. Review und Merge bleiben eine bewusste
 Maintainer-Entscheidung; der Workflow aktiviert weder Auto-Merge noch einen
-direkten Merge.
+direkten Merge. Erst der erfolgreiche, bewusste Merge eines vom Release-Planer
+erzeugten Release-PR startet die getrennte Veröffentlichungskette.
 
 Neue Produkt-Releases verwenden genau einen signierten, annotierten Git-Tag im
 Schema `vX.Y.Z`. Alle `0.x`-Versionen werden bei GitHub als Prerelease und nicht als
-`Latest` veröffentlicht. Nach dem Merge werden Tagobjekt und Zielcommit
-verifiziert; anschließend wird das öffentliche Pages-Demo-Artefakt aus exakt
-dieser Revision gebaut, deployed und geprüft. Patch-Releases können manuell
-angestoßen werden; Wochen ohne Änderungen erzeugen keinen Release. GitHub
-benachrichtigt die Release-Abonnenten erst nach der Veröffentlichung.
+`Latest` veröffentlicht. Direkt nach dem Merge erzeugt die geschützte
+Veröffentlichungskette den signierten Tag, verifiziert Tagobjekt, Signer und
+Zielcommit unabhängig und veröffentlicht anschließend das öffentliche
+Pages-Demo-Artefakt aus exakt dieser Revision. Erst nach erfolgreicher
+Pages-Prüfung wird das unveränderliche GitHub-Prerelease veröffentlicht.
+Patch-Releases können manuell angestoßen werden; Wochen ohne Änderungen
+erzeugen keinen Release. GitHub benachrichtigt die Release-Abonnenten erst nach
+der Veröffentlichung.
 Produkt-Releases lösen niemals automatisch einen privaten GKE- oder
 Zielbetrieb-Deploy aus.
 
@@ -57,22 +61,19 @@ Die frühere [persönliche Pilotentscheidung](PRE_GEMATIK_ECHTDATEN_PILOT_ENTSCH
 - Negativprüfungen gegen Browser-SDK, Projekt-URLs, Schlüssel, direkte Provider-Datenpfade und unsichere Fallbacks bleiben Teil der Repository-Gates.
 - Das Löschen von Git-Dateien ist kein Nachweis für die Abschaltung externer Ressourcen. Projekte, Datenbank, Storage, Edge Functions, Auth-Nutzer und -Sessions, Schlüssel, Webhooks, DNS-Verweise und Sicherungen werden in einem separaten, freigegebenen Betriebsvorgang inventarisiert, gesperrt beziehungsweise gelöscht und protokolliert.
 
-## 4. Optionale Publish-Automatisierung mit `release-signing`
+## 4. Aktive Publish-Automatisierung mit `release-signing`
 
 Das Workflow-Environment ist für die regelmäßige Draft-Planung nicht
-erforderlich. Es wird nur benötigt, wenn die vorhandene umfassende
-Publish-Automatisierung später bewusst aktiviert werden soll. Bis dahin bleibt
-diese optionale Veröffentlichung über `PRODUCT_RELEASE_PUBLISH_ENABLED`
-gesperrt; ein Maintainer kann den geprüften Release stattdessen in einem
-getrennten manuellen Vorgang signieren und veröffentlichen.
+erforderlich. Es schützt die aktive Veröffentlichungskette, die nach dem
+bewussten Merge eines gültigen Weekly-Release-PR automatisch startet. Der
+Schalter `PRODUCT_RELEASE_PUBLISH_ENABLED` bleibt ein fail-closed Kill-Switch:
+Nur der exakte Wert `true` erlaubt eine irreversible Mutation.
 
-Auch die übrigen Einstellungen außerhalb des Repositories werden unmittelbar
-vor der Aktivierung erneut fail-closed geprüft. Am 4. August 2026 ist die
-Release-Immutability aktiviert; der Branchschutz von `main` ist jedoch noch
-nicht strikt und verlangt nur `Minimal repository check`. Ein
-veröffentlichender Lauf bleibt deshalb gesperrt, bis `strict=true` gilt und
-sowohl `Minimal repository check` als auch `PoC-/Target-Readiness` erforderliche
-Checks sind.
+Die Release-Immutability, ein strikter Branchschutz von `main` mit den
+erforderlichen Checks `Minimal repository check` und `Target-Readiness` sowie
+das Tag-Ruleset für `v*` sind verbindliche aktive Gates. Jeder
+veröffentlichende Lauf weist sie unmittelbar vor der ersten irreversiblen
+Mutation erneut fail-closed nach.
 
 - Deployment-Branch ist ausschließlich `main`.
 - Der private OpenPGP-Signiersubkey liegt nur im Environment-Secret
@@ -85,7 +86,7 @@ Checks sind.
   ablaufender Fine-grained PAT für genau dieses Repository mit ausschließlich
   `Administration: read`. Der Workflow verwendet ihn nur, um die aktive
   Release-Immutability unmittelbar vor Tag-Erzeugung und Veröffentlichung sowie
-  den strikten Branchschutz vor dem Release-PR read-only nachzuweisen. Er
+  den strikten Branchschutz vor der Tag-Mutation read-only nachzuweisen. Er
   ersetzt weder `GITHUB_TOKEN` für Inhaltsänderungen noch den Signierschlüssel
   und wird nach einem dokumentierten Zeitplan rotiert.
 - Erwarteter Fingerprint, öffentlicher Schlüssel, Signer-Name und verifizierte
@@ -104,22 +105,34 @@ Checks sind.
   und Veröffentlichung geprüft. Keiner dieser Schritte führt npm oder ein
   Repository-Skript aus, und die nachfolgenden Mutationsschritte erben den
   Governance-Token nicht.
+- Vor der ersten Veröffentlichung und nach jeder Änderung an Schlüssel,
+  Passphrase oder Governance-Token wird der manuelle Workflow `Release signing
+  readiness` auf `main` ausgeführt. Er besitzt nur Leserecht, führt keinen
+  Checkout und keinen Repository-Code aus und beweist mit einer temporären
+  Detached-Signatur die vollständige Bereitschaft, ohne Tag, Release oder
+  Deployment zu erzeugen.
 - Ein separater Job ohne privaten Schlüssel prüft Tagobjekt, Zielcommit,
   Fingerprint, `git verify-tag` und den GitHub-Verifikationsstatus, bevor Pages
   gebaut oder ein Release veröffentlicht werden darf.
+- Der Post-Merge-Trigger akzeptiert ausschließlich einen tatsächlich gemergten,
+  repositoryeigenen Release-PR des Release-Planers mit Branch und Version im
+  Schema `timo/release-vX.Y.Z`. Er führt keinen Code aus einem ungemergten
+  PR-Head aus, verlangt beide erfolgreichen Pflichtchecks auf dessen exaktem
+  SHA und bindet die Veröffentlichung an den nachgewiesenen `main`-Merge-Commit.
+  Weicht der gemergte Dateistand vom geprüften PR-Head ab, stoppt die Kette
+  unabhängig vom verwendeten Merge-Verfahren.
 - Ein Tag-Ruleset für `v*` verbietet nach der kontrollierten Erzeugung jede
   Aktualisierung und Löschung. Die vorhandene Release-Immutability bleibt
   zusätzlich aktiv.
-- Vor dem ersten veröffentlichenden Lauf bestätigt ein read-only API-Nachweis
-  erneut die aktive Release-Immutability, den strikten Branchschutz und beide
+- Vor jedem veröffentlichenden Lauf bestätigt ein read-only API-Nachweis erneut
+  die aktive Release-Immutability, den strikten Branchschutz und beide
   erforderlichen Checks. Der Actions-Standardtoken reicht für den
   Immutability-Endpunkt nicht aus; ein fehlender oder abgelaufener
-  Governance-Token stoppt den Lauf vor jeder irreversiblen Mutation. Erst
-  danach werden Signatur-Dry-Run und Publish-Schalter für die optionale
-  Publish-Automatisierung freigegeben. Der Draft-Plan bleibt davon unabhängig.
-- Falls die vollautomatische Veröffentlichung später reaktiviert wird, erhält
-  das Environment erst nach erfolgreicher Abnahme seine dafür nötige
-  Konfiguration. Änderungen an Environment, Trust Anchor oder Schlüsseln
+  Governance-Token stoppt den Lauf vor jeder irreversiblen Mutation. Der
+  Draft-Plan bleibt davon unabhängig.
+- `Target-Readiness` läuft für jeden Pull Request gegen `main`; ein Pfadfilter
+  darf den erforderlichen Check nicht im offenen Zustand `Expected` belassen.
+- Änderungen am Environment, Trust Anchor, Kill-Switch oder an Schlüsseln
   bleiben ein gesonderter, protokollierter Betriebsvorgang.
 
 ## 5. Release Candidate und gematik-Zielpfad
