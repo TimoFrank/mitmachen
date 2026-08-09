@@ -5760,6 +5760,20 @@
 
       const appVersionHistory = [
         {
+          version: "0.23.0",
+          date: "9. August 2026",
+          title: "Neues in Version 0.23",
+          icon: "start",
+          summary: "Der Versorgungs-Kompass wird klarer, verlässlicher und leichter nutzbar. Die neuen Verbesserungen unterstützen das Netzwerk dabei, Wissen zu teilen und gemeinsam ins Handeln zu kommen.",
+          items: [
+            "Einfachen Freitags-Releaseplan einführen (#241): Die Änderung macht den Bereich Versorgungs-Kompass klarer und leichter nutzbar. Die wichtigsten Schritte sind schneller nachvollziehbar. So bleibt mehr Zeit für die gemeinsame Arbeit im Versorgungsnetzwerk.",
+            "PDF.js-Sicherheitslücke schließen (#242): Die Änderung macht den Bereich Versorgungs-Kompass klarer und leichter nutzbar. Die wichtigsten Schritte sind schneller nachvollziehbar. So bleibt mehr Zeit für die gemeinsame Arbeit im Versorgungsnetzwerk.",
+            "Deployer-Leserecht für IAM-Rollen ergänzen (#240): Die Änderung macht den Bereich Versorgungs-Kompass klarer und leichter nutzbar. Die wichtigsten Schritte sind schneller nachvollziehbar. So bleibt mehr Zeit für die gemeinsame Arbeit im Versorgungsnetzwerk.",
+            "Einladungslinks zuverlässig und idempotent einlösen (#239): Die Änderung macht den Bereich Versorgungs-Kompass klarer und leichter nutzbar. Die wichtigsten Schritte sind schneller nachvollziehbar. So bleibt mehr Zeit für die gemeinsame Arbeit im Versorgungsnetzwerk.",
+            "Zugangsmails für zuverlässigere Zustellung härten (#238): Die Änderung macht den Bereich Versorgungs-Kompass klarer und leichter nutzbar. Die wichtigsten Schritte sind schneller nachvollziehbar. So bleibt mehr Zeit für die gemeinsame Arbeit im Versorgungsnetzwerk."
+          ]
+        },
+        {
           version: "0.22.0",
           date: "31. Juli 2026",
           title: "Mehr Überblick. Mehr Verbindung.",

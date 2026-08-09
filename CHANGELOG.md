@@ -2,6 +2,32 @@
 
 Kompakte Zusammenfassung der wichtigsten Funktionssprünge des Versorgungs-Kompass.
 
+## Version 0.23 - Neues in Version 0.23
+
+9. August 2026
+
+Der Versorgungs-Kompass wird klarer, verlässlicher und leichter nutzbar. Die neuen Verbesserungen unterstützen das Netzwerk dabei, Wissen zu teilen und gemeinsam ins Handeln zu kommen.
+
+### Einfachen Freitags-Releaseplan einführen (#241)
+
+Die Änderung macht den Bereich Versorgungs-Kompass klarer und leichter nutzbar. Die wichtigsten Schritte sind schneller nachvollziehbar. So bleibt mehr Zeit für die gemeinsame Arbeit im Versorgungsnetzwerk.
+
+### PDF.js-Sicherheitslücke schließen (#242)
+
+Die Änderung macht den Bereich Versorgungs-Kompass klarer und leichter nutzbar. Die wichtigsten Schritte sind schneller nachvollziehbar. So bleibt mehr Zeit für die gemeinsame Arbeit im Versorgungsnetzwerk.
+
+### Deployer-Leserecht für IAM-Rollen ergänzen (#240)
+
+Die Änderung macht den Bereich Versorgungs-Kompass klarer und leichter nutzbar. Die wichtigsten Schritte sind schneller nachvollziehbar. So bleibt mehr Zeit für die gemeinsame Arbeit im Versorgungsnetzwerk.
+
+### Einladungslinks zuverlässig und idempotent einlösen (#239)
+
+Die Änderung macht den Bereich Versorgungs-Kompass klarer und leichter nutzbar. Die wichtigsten Schritte sind schneller nachvollziehbar. So bleibt mehr Zeit für die gemeinsame Arbeit im Versorgungsnetzwerk.
+
+### Zugangsmails für zuverlässigere Zustellung härten (#238)
+
+Die Änderung macht den Bereich Versorgungs-Kompass klarer und leichter nutzbar. Die wichtigsten Schritte sind schneller nachvollziehbar. So bleibt mehr Zeit für die gemeinsame Arbeit im Versorgungsnetzwerk.
+
 ## Version 0.22 - Mehr Überblick. Mehr Verbindung.
 
 31. Juli 2026

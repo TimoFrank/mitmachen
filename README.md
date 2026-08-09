@@ -133,7 +133,7 @@ Der Quellcode und die technische Dokumentation stehen unter der [Apache License 
 
 ## Aktueller Release
 
-- Version: [v0.22.0](https://github.com/TimoFrank/mitmachen/releases/tag/v0.22.0)
-- Stand: 31. Juli 2026
-- Kurznotiz: Mehr Überblick. Mehr Verbindung.
+- Version: [v0.23.0](https://github.com/TimoFrank/mitmachen/releases/tag/v0.23.0)
+- Stand: 9. August 2026
+- Kurznotiz: Neues in Version 0.23
 - Demo-Kanal: [GitHub Pages](https://timofrank.github.io/mitmachen/)
