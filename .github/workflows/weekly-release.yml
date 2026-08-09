@@ -1,7 +1,7 @@
-name: Weekly product release
+name: Prepare weekly release
 
 run-name: >-
-  Weekly release${{ github.event_name == 'schedule' && ' (scheduled publish)' || inputs.publish && ' (publish)' || ' (plan)' }}
+  Weekly release plan${{ github.event_name == 'schedule' && ' (Friday)' || ' (manual)' }}
 
 on:
   schedule:
@@ -9,11 +9,11 @@ on:
       timezone: Europe/Berlin
   workflow_dispatch:
     inputs:
-      publish:
-        description: Release-PR integrieren und den geprueften Kandidaten veroeffentlichen
-        required: true
-        default: false
-        type: boolean
+      theme:
+        description: Optionales Leitthema; leer bedeutet automatische Ableitung
+        required: false
+        default: ""
+        type: string
 
 permissions:
   contents: read
@@ -23,73 +23,17 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  release-gate:
-    name: Check weekly release gates
-    runs-on: ubuntu-latest
-    permissions:
-      contents: read
-    outputs:
-      may_plan: ${{ steps.gate.outputs.may_plan }}
-      may_publish: ${{ steps.gate.outputs.may_publish }}
-
-    steps:
-      - name: Evaluate schedule and publish permission
-        id: gate
-        shell: bash
-        env:
-          EVENT_NAME: ${{ github.event_name }}
-          PUBLISH_ENABLED: ${{ vars.PRODUCT_RELEASE_PUBLISH_ENABLED }}
-          PUBLISH_REQUESTED: ${{ github.event_name == 'schedule' || inputs.publish }}
-          SCHEDULE_ENABLED: ${{ vars.WEEKLY_RELEASE_SCHEDULE_ENABLED }}
-        run: |
-          set -euo pipefail
-
-          may_plan=true
-          may_publish=false
-          reason="plan only"
-
-          if [[ "$EVENT_NAME" == "schedule" ]]; then
-            if [[ "${SCHEDULE_ENABLED:-}" != "true" ]]; then
-              may_plan=false
-              reason="WEEKLY_RELEASE_SCHEDULE_ENABLED is not exactly true"
-            elif [[ "${PUBLISH_ENABLED:-}" != "true" ]]; then
-              may_plan=false
-              reason="PRODUCT_RELEASE_PUBLISH_ENABLED is not exactly true"
-            else
-              may_publish=true
-              reason="both scheduled release gates are enabled"
-            fi
-          elif [[ "$PUBLISH_REQUESTED" == "true" ]]; then
-            if [[ "${PUBLISH_ENABLED:-}" == "true" ]]; then
-              may_publish=true
-              reason="manual publication explicitly requested and enabled"
-            else
-              reason="manual publication requested but PRODUCT_RELEASE_PUBLISH_ENABLED is not exactly true"
-            fi
-          fi
-
-          echo "may_plan=${may_plan}" >> "$GITHUB_OUTPUT"
-          echo "may_publish=${may_publish}" >> "$GITHUB_OUTPUT"
-
-          {
-            echo "## Weekly release gate"
-            echo
-            echo "- Trigger: \`${EVENT_NAME}\`"
-            echo "- Plan: \`${may_plan}\`"
-            echo "- Publish: \`${may_publish}\`"
-            echo "- Reason: ${reason}"
-            echo "- Release type: \`weekly\`"
-          } >> "$GITHUB_STEP_SUMMARY"
-
   plan-release:
-    name: Plan weekly release without mutations
-    needs: release-gate
-    if: needs.release-gate.outputs.may_plan == 'true'
+    name: Check whether a weekly release is needed
     runs-on: ubuntu-latest
     permissions:
       contents: read
     outputs:
+      baseline_tag: ${{ steps.published.outputs.tag }}
+      mode: ${{ steps.release.outputs.mode }}
+      planning_head: ${{ steps.release.outputs.planning_head }}
       should_release: ${{ steps.release.outputs.should_release }}
+      tag: ${{ steps.release.outputs.tag }}
 
     steps:
       - name: Checkout main without persisted credentials
@@ -99,7 +43,12 @@ jobs:
           fetch-depth: 0
           persist-credentials: false
 
-      - name: Resolve latest published product release including prereleases
+      - name: Set up Node.js
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: 22
+
+      - name: Resolve latest published product release
         id: published
         shell: bash
         env:
@@ -120,261 +69,62 @@ jobs:
               ')"
           echo "tag=${latest_tag}" >> "$GITHUB_OUTPUT"
 
-      - name: Verify selected published baseline chain of trust
-        shell: bash
-        env:
-          GH_TOKEN: ${{ github.token }}
-          GNUPGHOME: ${{ runner.temp }}/published-baseline-gnupg
-          RELEASED_TAG: ${{ steps.published.outputs.tag }}
-          RELEASE_TAG_GPG_FINGERPRINT: ${{ vars.RELEASE_TAG_GPG_FINGERPRINT }}
-          RELEASE_TAG_GPG_PUBLIC_KEY: ${{ vars.RELEASE_TAG_GPG_PUBLIC_KEY }}
-        run: |
-          set -euo pipefail
-          [[ -n "$RELEASED_TAG" ]] || exit 0
-          metadata="$(gh release view "$RELEASED_TAG" \
-            --repo "$GITHUB_REPOSITORY" \
-            --json tagName,name,isDraft,isPrerelease,isImmutable)"
-          [[ "$(jq --raw-output .tagName <<<"$metadata")" == "$RELEASED_TAG" ]]
-          [[ "$(jq --raw-output .isDraft <<<"$metadata")" == "false" ]]
-          [[ "$(jq --raw-output .isImmutable <<<"$metadata")" == "true" ]]
-
-          if jq --exit-status --arg tag "$RELEASED_TAG" \
-            '.policy.legacyTags | index($tag) != null' config/release.json >/dev/null; then
-            echo "Legacy baseline ${RELEASED_TAG} is explicitly allowlisted by release policy."
-            exit 0
-          fi
-
-          [[ "$RELEASED_TAG" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]
-          [[ "$(jq --raw-output .isPrerelease <<<"$metadata")" == "true" ]]
-          is_latest="$(gh release list \
-            --repo "$GITHUB_REPOSITORY" \
-            --limit 1000 \
-            --json tagName,isLatest \
-            | jq --raw-output --arg tag "$RELEASED_TAG" '.[] | select(.tagName == $tag) | .isLatest')"
-          [[ "$is_latest" == "false" ]]
-          metadata_file="${RUNNER_TEMP}/published-baseline-release-metadata.json"
-          jq --argjson is_latest "$is_latest" '. + {isLatest: $is_latest}' \
-            <<<"$metadata" > "$metadata_file"
-
-          umask 077
-          [[ "$RELEASE_TAG_GPG_FINGERPRINT" =~ ^[0-9A-Fa-f]{40,64}$ ]]
-          test -n "$RELEASE_TAG_GPG_PUBLIC_KEY"
-          mkdir -p "$GNUPGHOME"
-          chmod 700 "$GNUPGHOME"
-          printf '%s' "$RELEASE_TAG_GPG_PUBLIC_KEY" | gpg --batch --import
-          remote_object="$(git ls-remote --refs --tags origin "refs/tags/${RELEASED_TAG}" | awk '{print $1}')"
-          [[ "$remote_object" =~ ^[0-9a-f]{40}$ ]]
-          git fetch --no-tags origin "refs/tags/${RELEASED_TAG}:refs/tags/${RELEASED_TAG}"
-          [[ "$(git rev-parse "refs/tags/${RELEASED_TAG}")" == "$remote_object" ]]
-          release_sha="$(git rev-parse "${RELEASED_TAG}^{}")"
-          expected_title="$(jq --raw-output .name <<<"$metadata")"
-          test -n "$expected_title"
-          github_verification_file="${RUNNER_TEMP}/published-baseline-github-verification.json"
-          gh api -H 'Accept: application/vnd.github+json' \
-            "repos/${GITHUB_REPOSITORY}/git/tags/${remote_object}" > "$github_verification_file"
-          node scripts/verify_release_tag.mjs \
-            --tag "$RELEASED_TAG" \
-            --commit-sha "$release_sha" \
-            --fingerprint "$RELEASE_TAG_GPG_FINGERPRINT" \
-            --expected-title "$expected_title" \
-            --remote-tag-object-sha "$remote_object" \
-            --github-verification-json "$github_verification_file" \
-            --published-release-metadata-json "$metadata_file"
-
-      - name: Preview weekly release
+      - name: Preview weekly release without mutations
         id: release
         env:
           RELEASED_TAG: ${{ steps.published.outputs.tag }}
+          THEME: ${{ inputs.theme }}
         run: node scripts/prepare_weekly_release.mjs --dry-run --release-type weekly
 
-      - name: Summarize non-mutating plan
+      - name: Summarize weekly plan
+        shell: bash
+        env:
+          MODE: ${{ steps.release.outputs.mode }}
+          REASON: ${{ steps.release.outputs.reason }}
+          RELEASE_TAG: ${{ steps.release.outputs.tag }}
+          SHOULD_RELEASE: ${{ steps.release.outputs.should_release }}
         run: |
           {
             echo "## Weekly release plan"
             echo
-            echo "- Mode: read-only"
-            echo "- Release type: \`weekly\`"
-            echo "- Pull request, tag, deployment and GitHub Release: not created"
-            echo "- Signing environment and private key: not accessed"
+            echo "- Mode: \`${MODE}\`"
+            echo "- Reason: \`${REASON}\`"
+            echo "- Release required: \`${SHOULD_RELEASE}\`"
+            if [[ -n "$RELEASE_TAG" ]]; then
+              echo "- Candidate: \`${RELEASE_TAG}\`"
+            fi
+            echo "- Tag, GitHub Release and deployment: not created"
           } >> "$GITHUB_STEP_SUMMARY"
 
-  signing-readiness:
-    name: Validate isolated release-signing readiness
-    needs:
-      - release-gate
-      - plan-release
-    if: needs.release-gate.outputs.may_publish == 'true' && needs.plan-release.outputs.should_release == 'true'
-    runs-on: ubuntu-latest
-    permissions:
-      contents: read
-    outputs:
-      governance_ready: ${{ steps.governance.outputs.ready }}
-    environment:
-      name: release-signing
-    env:
-      GNUPGHOME: ${{ runner.temp }}/release-signing-readiness-gnupg
-      RELEASE_TAG_GPG_FINGERPRINT: ${{ vars.RELEASE_TAG_GPG_FINGERPRINT }}
-      RELEASE_TAG_GPG_PUBLIC_KEY: ${{ vars.RELEASE_TAG_GPG_PUBLIC_KEY }}
-      RELEASE_TAG_SIGNER_EMAIL: ${{ vars.RELEASE_TAG_SIGNER_EMAIL }}
-      RELEASE_TAG_SIGNER_NAME: ${{ vars.RELEASE_TAG_SIGNER_NAME }}
-
-    steps:
-      - name: Validate strict release governance without repository code
-        id: governance
-        shell: bash
-        env:
-          RELEASE_GOVERNANCE_READ_TOKEN: ${{ secrets.RELEASE_GOVERNANCE_READ_TOKEN }}
-        run: |
-          set -euo pipefail
-          test -n "$RELEASE_GOVERNANCE_READ_TOKEN"
-          protection="$(GH_TOKEN="$RELEASE_GOVERNANCE_READ_TOKEN" \
-            gh api "repos/${GITHUB_REPOSITORY}/branches/main/protection")"
-          jq --exit-status '
-            (.required_status_checks.strict == true)
-            and (
-              [.required_status_checks.contexts[]?, .required_status_checks.checks[]?.context]
-              | unique
-              | (index("Minimal repository check") != null)
-                and (index("PoC-/Target-Readiness") != null)
-            )
-          ' <<<"$protection" >/dev/null
-          echo "ready=true" >> "$GITHUB_OUTPUT"
-
-      - name: Prove dedicated signing subkey and identity before merge
-        shell: bash
-        env:
-          RELEASE_TAG_GPG_PASSPHRASE: ${{ secrets.RELEASE_TAG_GPG_PASSPHRASE }}
-          RELEASE_TAG_GPG_PRIVATE_KEY: ${{ secrets.RELEASE_TAG_GPG_PRIVATE_KEY }}
-        run: |
-          set -euo pipefail
-          umask 077
-          [[ "$RELEASE_TAG_GPG_FINGERPRINT" =~ ^[0-9A-Fa-f]{40,64}$ ]]
-          [[ -n "$RELEASE_TAG_SIGNER_NAME" && "$RELEASE_TAG_SIGNER_NAME" != *$'\n'* ]]
-          [[ "$RELEASE_TAG_SIGNER_EMAIL" =~ ^[^[:space:]@]+@[^[:space:]@]+$ ]]
-          test -n "$RELEASE_TAG_GPG_PUBLIC_KEY"
-          test -n "$RELEASE_TAG_GPG_PRIVATE_KEY"
-          test -n "$RELEASE_TAG_GPG_PASSPHRASE"
-
-          mkdir -p "$GNUPGHOME"
-          chmod 700 "$GNUPGHOME"
-          printf '%s' "$RELEASE_TAG_GPG_PUBLIC_KEY" | gpg --batch --import
-          printf '%s' "$RELEASE_TAG_GPG_PRIVATE_KEY" | gpg --batch --import
-          expected_fingerprint="$(printf '%s' "$RELEASE_TAG_GPG_FINGERPRINT" | tr '[:lower:]' '[:upper:]')"
-
-          public_listing="$(gpg --batch --with-colons --with-subkey-fingerprint --list-keys)"
-          primary_contract="$(awk -F: '
-              $1 == "pub" {
-                count++
-                capabilities = $12
-                if (capabilities ~ /c/ && capabilities !~ /s/) valid++
-              }
-              END { if (count == 1 && valid == 1) print "valid" }
-            ' <<<"$public_listing")"
-          [[ "$primary_contract" == "valid" ]]
-
-          public_signing_subkey="$(awk -F: '
-                $1 == "sub" {
-                  signing = tolower($12) ~ /s/
-                  valid = signing && $4 == "22" && tolower($17) == "ed25519"
-                  next
-                }
-                $1 == "fpr" && signing {
-                  count++
-                  if (valid) print toupper($10)
-                  signing = 0
-                  valid = 0
-                }
-                END { if (count != 1) exit 1 }
-              ' <<<"$public_listing")"
-          [[ "$public_signing_subkey" == "$expected_fingerprint" ]]
-
-          secret_listing="$(gpg --batch --with-colons --with-subkey-fingerprint --list-secret-keys)"
-          [[ "$(awk -F: '$1 == "sec" { count++; if ($15 == "#") offline++ } END { print count ":" offline }' <<<"$secret_listing")" == "1:1" ]]
-          secret_signing_subkey="$(awk -F: '
-                $1 == "ssb" {
-                  subkeys++
-                  signing = tolower($12) ~ /s/
-                  if (signing) signing_subkeys++
-                  valid = signing && $4 == "22" && tolower($17) == "ed25519" && $15 != "#"
-                  next
-                }
-                $1 == "fpr" && signing {
-                  if (valid) print toupper($10)
-                  signing = 0
-                  valid = 0
-                }
-                END { if (subkeys != 1 || signing_subkeys != 1) exit 1 }
-              ' <<<"$secret_listing")"
-          [[ "$secret_signing_subkey" == "$expected_fingerprint" ]]
-
-          expected_identity="${RELEASE_TAG_SIGNER_NAME} <${RELEASE_TAG_SIGNER_EMAIL}>"
-          identity_listing="$(gpg --batch --list-keys "$expected_fingerprint")"
-          grep --fixed-strings --quiet "$expected_identity" <<<"$identity_listing"
-
-          probe_payload="${RUNNER_TEMP}/release-signing-readiness.txt"
-          probe_signature="${RUNNER_TEMP}/release-signing-readiness.sig"
-          printf '%s\n' 'release-signing readiness probe' > "$probe_payload"
-          exec 3<<<"$RELEASE_TAG_GPG_PASSPHRASE"
-          gpg --batch --no-tty --pinentry-mode loopback --passphrase-fd 3 \
-            --local-user "${expected_fingerprint}!" \
-            --output "$probe_signature" \
-            --detach-sign "$probe_payload"
-          exec 3<&-
-          verification="$(gpg --batch --status-fd 1 --verify "$probe_signature" "$probe_payload" 2>/dev/null)"
-          actual_fingerprint="$(sed -n 's/^\[GNUPG:\] VALIDSIG \([0-9A-Fa-f]*\) .*/\1/p' <<<"$verification" \
-            | tr '[:lower:]' '[:upper:]')"
-          [[ "$actual_fingerprint" == "$expected_fingerprint" ]]
-
-  prepare-release:
-    name: Prepare and merge weekly release
-    needs:
-      - release-gate
-      - plan-release
-      - signing-readiness
-    if: >-
-      always() &&
-      needs.release-gate.outputs.may_publish == 'true' &&
-      needs.plan-release.outputs.should_release == 'true' &&
-      needs.signing-readiness.result == 'success' &&
-      needs.signing-readiness.outputs.governance_ready == 'true'
+  prepare-release-pr:
+    name: Prepare draft release pull request
+    needs: plan-release
+    if: needs.plan-release.outputs.should_release == 'true' && needs.plan-release.outputs.mode == 'prepare'
     runs-on: ubuntu-latest
     permissions:
       actions: write
       contents: write
       pull-requests: write
-    outputs:
-      should_release: ${{ steps.release.outputs.should_release }}
-      release_type: ${{ steps.release.outputs.release_type }}
-      tag: ${{ steps.release.outputs.tag }}
-      title: ${{ steps.release.outputs.title }}
-      version: ${{ steps.release.outputs.version }}
-      notes_path: ${{ steps.release.outputs.notes_path }}
-      release_sha: ${{ steps.release-sha.outputs.release_sha }}
 
     steps:
-      - name: Checkout main
+      - name: Checkout exact planning commit without persisted credentials
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          ref: main
+          ref: ${{ needs.plan-release.outputs.planning_head }}
           fetch-depth: 0
           persist-credentials: false
 
-      - name: Setup Node
+      - name: Set up Node.js
         uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
           node-version: 22
-          cache: npm
 
-      - name: Install dependencies
-        run: |
-          npm ci
-          npm ci --prefix api
-          npm ci --prefix frontend/identity-portal
-
-      - name: Resolve latest published product release including prereleases
+      - name: Reconfirm published baseline
         id: published
         shell: bash
         env:
+          EXPECTED_BASELINE_TAG: ${{ needs.plan-release.outputs.baseline_tag }}
+          EXPECTED_HEAD: ${{ needs.plan-release.outputs.planning_head }}
           GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
@@ -390,98 +140,37 @@ jobs:
                 | last
                 | .tagName // ""
               ')"
-          echo "tag=${latest_tag}" >> "$GITHUB_OUTPUT"
-
-      - name: Reverify selected published baseline before preparation
-        shell: bash
-        env:
-          GH_TOKEN: ${{ github.token }}
-          GNUPGHOME: ${{ runner.temp }}/published-baseline-gnupg
-          RELEASED_TAG: ${{ steps.published.outputs.tag }}
-          RELEASE_TAG_GPG_FINGERPRINT: ${{ vars.RELEASE_TAG_GPG_FINGERPRINT }}
-          RELEASE_TAG_GPG_PUBLIC_KEY: ${{ vars.RELEASE_TAG_GPG_PUBLIC_KEY }}
-        run: |
-          set -euo pipefail
-          [[ -n "$RELEASED_TAG" ]] || exit 0
-          metadata="$(gh release view "$RELEASED_TAG" \
-            --repo "$GITHUB_REPOSITORY" \
-            --json tagName,name,isDraft,isPrerelease,isImmutable)"
-          [[ "$(jq --raw-output .tagName <<<"$metadata")" == "$RELEASED_TAG" ]]
-          [[ "$(jq --raw-output .isDraft <<<"$metadata")" == "false" ]]
-          [[ "$(jq --raw-output .isImmutable <<<"$metadata")" == "true" ]]
-          if jq --exit-status --arg tag "$RELEASED_TAG" \
-            '.policy.legacyTags | index($tag) != null' config/release.json >/dev/null; then
-            exit 0
+          if [[ "$latest_tag" != "$EXPECTED_BASELINE_TAG" ]]; then
+            echo "Published baseline changed from ${EXPECTED_BASELINE_TAG} to ${latest_tag}; rerun planning." >&2
+            exit 1
           fi
-          [[ "$RELEASED_TAG" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]
-          [[ "$(jq --raw-output .isPrerelease <<<"$metadata")" == "true" ]]
-          is_latest="$(gh release list --repo "$GITHUB_REPOSITORY" --limit 1000 --json tagName,isLatest \
-            | jq --raw-output --arg tag "$RELEASED_TAG" '.[] | select(.tagName == $tag) | .isLatest')"
-          [[ "$is_latest" == "false" ]]
-          metadata_file="${RUNNER_TEMP}/published-baseline-release-metadata.json"
-          jq --argjson is_latest "$is_latest" '. + {isLatest: $is_latest}' \
-            <<<"$metadata" > "$metadata_file"
-          umask 077
-          [[ "$RELEASE_TAG_GPG_FINGERPRINT" =~ ^[0-9A-Fa-f]{40,64}$ ]]
-          test -n "$RELEASE_TAG_GPG_PUBLIC_KEY"
-          mkdir -p "$GNUPGHOME"
-          chmod 700 "$GNUPGHOME"
-          printf '%s' "$RELEASE_TAG_GPG_PUBLIC_KEY" | gpg --batch --import
-          remote_object="$(git ls-remote --refs --tags origin "refs/tags/${RELEASED_TAG}" | awk '{print $1}')"
-          [[ "$remote_object" =~ ^[0-9a-f]{40}$ ]]
-          git fetch --no-tags origin "refs/tags/${RELEASED_TAG}:refs/tags/${RELEASED_TAG}"
-          [[ "$(git rev-parse "refs/tags/${RELEASED_TAG}")" == "$remote_object" ]]
-          release_sha="$(git rev-parse "${RELEASED_TAG}^{}")"
-          expected_title="$(jq --raw-output .name <<<"$metadata")"
-          test -n "$expected_title"
-          github_verification_file="${RUNNER_TEMP}/published-baseline-github-verification.json"
-          gh api -H 'Accept: application/vnd.github+json' \
-            "repos/${GITHUB_REPOSITORY}/git/tags/${remote_object}" > "$github_verification_file"
-          node scripts/verify_release_tag.mjs \
-            --tag "$RELEASED_TAG" \
-            --commit-sha "$release_sha" \
-            --fingerprint "$RELEASE_TAG_GPG_FINGERPRINT" \
-            --expected-title "$expected_title" \
-            --remote-tag-object-sha "$remote_object" \
-            --github-verification-json "$github_verification_file" \
-            --published-release-metadata-json "$metadata_file"
+          current_main="$(git ls-remote origin refs/heads/main | awk '{print $1}')"
+          if [[ "$current_main" != "$EXPECTED_HEAD" ]]; then
+            echo "main changed from ${EXPECTED_HEAD} to ${current_main}; rerun planning." >&2
+            exit 1
+          fi
+          echo "tag=${latest_tag}" >> "$GITHUB_OUTPUT"
 
       - name: Prepare weekly release files
         id: release
         env:
           RELEASED_TAG: ${{ steps.published.outputs.tag }}
+          THEME: ${{ inputs.theme }}
         run: node scripts/prepare_weekly_release.mjs --release-type weekly
 
-      - name: Verify weekly candidate metadata
-        if: steps.release.outputs.should_release == 'true'
+      - name: Verify exact planned candidate and change scope
         shell: bash
         env:
-          GITHUB_LATEST: ${{ steps.release.outputs.github_latest }}
-          GITHUB_PRERELEASE: ${{ steps.release.outputs.github_prerelease }}
-          RELEASE_TYPE: ${{ steps.release.outputs.release_type }}
+          EXPECTED_HEAD: ${{ needs.plan-release.outputs.planning_head }}
+          EXPECTED_TAG: ${{ needs.plan-release.outputs.tag }}
+          MODE: ${{ steps.release.outputs.mode }}
+          PLANNING_HEAD: ${{ steps.release.outputs.planning_head }}
+          RELEASE_TAG: ${{ steps.release.outputs.tag }}
         run: |
           set -euo pipefail
-          [[ "$RELEASE_TYPE" == "weekly" ]]
-          [[ "$GITHUB_PRERELEASE" == "true" ]]
-          [[ "$GITHUB_LATEST" == "false" ]]
-
-      - name: Run repository checks
-        if: steps.release.outputs.should_release == 'true' && steps.release.outputs.mode == 'prepare'
-        run: npm run check
-
-      - name: Install Chromium
-        if: steps.release.outputs.should_release == 'true' && steps.release.outputs.mode == 'prepare'
-        run: npx playwright install --with-deps chromium
-
-      - name: Run release browser tests
-        if: steps.release.outputs.should_release == 'true' && steps.release.outputs.mode == 'prepare'
-        run: npm run test:visual
-
-      - name: Verify weekly release change scope
-        if: steps.release.outputs.should_release == 'true' && steps.release.outputs.mode == 'prepare'
-        shell: bash
-        run: |
-          set -euo pipefail
+          [[ "$MODE" == "prepare" ]]
+          [[ "$PLANNING_HEAD" == "$EXPECTED_HEAD" ]]
+          [[ "$RELEASE_TAG" == "$EXPECTED_TAG" ]]
           git diff --exit-code -- \
             . \
             ':!config/release.json' \
@@ -493,17 +182,7 @@ jobs:
             ':!dokumentation/release-notes/*.md'
           test -s "${{ steps.release.outputs.notes_path }}"
 
-      - name: Preserve generated release notes
-        if: steps.release.outputs.should_release == 'true'
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
-        with:
-          name: product-release-notes-${{ steps.release.outputs.tag }}
-          path: ${{ steps.release.outputs.notes_path }}
-          if-no-files-found: error
-          retention-days: 90
-
-      - name: Create weekly release pull request
-        if: steps.release.outputs.should_release == 'true' && steps.release.outputs.mode == 'prepare'
+      - name: Create or update draft release pull request
         id: pull-request
         uses: peter-evans/create-pull-request@5f6978faf089d4d20b00c7766989d076bb2fc7f1 # v8
         with:
@@ -511,7 +190,7 @@ jobs:
           base: main
           branch: timo/release-${{ steps.release.outputs.tag }}
           delete-branch: true
-          draft: false
+          draft: true
           sign-commits: true
           commit-message: Wochenrelease ${{ steps.release.outputs.tag }} vorbereiten
           title: ${{ steps.release.outputs.title }}
@@ -525,190 +204,35 @@ jobs:
             frontend/app/versorgungs-kompass.js
             dokumentation/release-notes/*.md
 
-      - name: Run required workflows on exact release candidate
-        if: steps.release.outputs.should_release == 'true' && steps.release.outputs.mode == 'prepare'
+      - name: Start required checks on exact draft head
         shell: bash
         env:
-          GH_TOKEN: ${{ github.token }}
           EXPECTED_HEAD: ${{ steps.pull-request.outputs.pull-request-head-sha }}
+          GH_TOKEN: ${{ github.token }}
           PR_BRANCH: ${{ steps.pull-request.outputs.pull-request-branch }}
         run: |
           set -euo pipefail
           test -n "$EXPECTED_HEAD"
           test -n "$PR_BRANCH"
-
           for workflow in repo-check.yml target-readiness.yml; do
-            known_run_ids="$(gh run list \
-              --repo "$GITHUB_REPOSITORY" \
-              --workflow "$workflow" \
-              --branch "$PR_BRANCH" \
-              --event workflow_dispatch \
-              --limit 100 \
-              --json databaseId \
-              --jq '[.[].databaseId]')"
             gh workflow run "$workflow" \
               --repo "$GITHUB_REPOSITORY" \
               --ref "$PR_BRANCH"
-
-            run_id=""
-            for attempt in $(seq 1 60); do
-              run_id="$(gh run list \
-                --repo "$GITHUB_REPOSITORY" \
-                --workflow "$workflow" \
-                --branch "$PR_BRANCH" \
-                --event workflow_dispatch \
-                --limit 100 \
-                --json databaseId,headSha,createdAt \
-                | jq --raw-output \
-                  --arg sha "$EXPECTED_HEAD" \
-                  --argjson known "$known_run_ids" '
-                    [.[]
-                      | select(.headSha == $sha)
-                      | select((.databaseId as $id | $known | index($id)) == null)]
-                    | sort_by(.createdAt)
-                    | last
-                    | .databaseId // empty
-                  ')"
-              if [[ -n "$run_id" ]]; then
-                break
-              fi
-              sleep 10
-            done
-            test -n "$run_id"
-            gh run watch "$run_id" \
-              --repo "$GITHUB_REPOSITORY" \
-              --exit-status \
-              --interval 10
           done
 
-      - name: Wait for every required check on the exact release head
-        if: steps.release.outputs.should_release == 'true' && steps.release.outputs.mode == 'prepare'
+      - name: Summarize prepared draft
         shell: bash
         env:
-          GH_TOKEN: ${{ github.token }}
-          EXPECTED_HEAD: ${{ steps.pull-request.outputs.pull-request-head-sha }}
-          PR_NUMBER: ${{ steps.pull-request.outputs.pull-request-number }}
-        run: |
-          set -euo pipefail
-          [[ "$(gh pr view "$PR_NUMBER" --repo "$GITHUB_REPOSITORY" --json headRefOid --jq .headRefOid)" == "$EXPECTED_HEAD" ]]
-          gh pr checks "$PR_NUMBER" \
-            --repo "$GITHUB_REPOSITORY" \
-            --required \
-            --watch \
-            --fail-fast \
-            --interval 10
-          required_checks="$(gh pr checks "$PR_NUMBER" \
-            --repo "$GITHUB_REPOSITORY" \
-            --required \
-            --json bucket,name,state)"
-          jq --exit-status 'length > 0 and all(.[]; .bucket == "pass")' <<<"$required_checks" >/dev/null
-          [[ "$(gh pr view "$PR_NUMBER" --repo "$GITHUB_REPOSITORY" --json headRefOid --jq .headRefOid)" == "$EXPECTED_HEAD" ]]
-
-          if [[ "$(gh pr view "$PR_NUMBER" --repo "$GITHUB_REPOSITORY" --json autoMergeRequest --jq '.autoMergeRequest != null')" == "true" ]]; then
-            gh pr merge "$PR_NUMBER" --repo "$GITHUB_REPOSITORY" --disable-auto
-          fi
-          [[ "$(gh pr view "$PR_NUMBER" --repo "$GITHUB_REPOSITORY" --json autoMergeRequest --jq '.autoMergeRequest == null')" == "true" ]]
-
-      - name: Merge checked weekly release pull request
-        if: steps.release.outputs.should_release == 'true' && steps.release.outputs.mode == 'prepare'
-        id: merge
-        shell: bash
-        env:
-          GH_TOKEN: ${{ github.token }}
-          EXPECTED_BASE: ${{ steps.release.outputs.planning_head }}
-          EXPECTED_HEAD: ${{ steps.pull-request.outputs.pull-request-head-sha }}
-          PR_NUMBER: ${{ steps.pull-request.outputs.pull-request-number }}
-          PUBLISH_ENABLED: ${{ vars.PRODUCT_RELEASE_PUBLISH_ENABLED }}
-        run: |
-          set -euo pipefail
-          [[ "${PUBLISH_ENABLED:-}" == "true" ]]
-          test -n "$PR_NUMBER"
-          test -n "$EXPECTED_HEAD"
-
-          remote_main="$(git ls-remote origin refs/heads/main | awk '{print $1}')"
-          if [[ "$remote_main" != "$EXPECTED_BASE" ]]; then
-            echo "main changed from ${EXPECTED_BASE} to ${remote_main}; regenerate the release." >&2
-            exit 1
-          fi
-
-          pr_metadata="$(gh pr view "$PR_NUMBER" \
-            --repo "$GITHUB_REPOSITORY" \
-            --json autoMergeRequest,body,headRefOid,title)"
-          actual_head="$(jq --raw-output .headRefOid <<<"$pr_metadata")"
-          if [[ "$actual_head" != "$EXPECTED_HEAD" ]]; then
-            echo "Release pull request changed from ${EXPECTED_HEAD} to ${actual_head}." >&2
-            exit 1
-          fi
-          [[ "$(jq --raw-output '.autoMergeRequest == null' <<<"$pr_metadata")" == "true" ]]
-
-          merge_payload="$(jq --null-input \
-            --arg sha "$EXPECTED_HEAD" \
-            --arg title "$(jq --raw-output .title <<<"$pr_metadata") (#${PR_NUMBER})" \
-            --arg message "$(jq --raw-output .body <<<"$pr_metadata")" \
-            '{sha: $sha, merge_method: "squash", commit_title: $title, commit_message: $message}')"
-          merge_response="$(gh api \
-            --method PUT \
-            "repos/${GITHUB_REPOSITORY}/pulls/${PR_NUMBER}/merge" \
-            --input - <<<"$merge_payload")"
-          [[ "$(jq --raw-output .merged <<<"$merge_response")" == "true" ]]
-          merge_sha="$(jq --raw-output '.sha // empty' <<<"$merge_response")"
-          test -n "$merge_sha"
-          echo "merge_sha=${merge_sha}" >> "$GITHUB_OUTPUT"
-
-      - name: Select immutable weekly release commit
-        if: steps.release.outputs.should_release == 'true'
-        id: release-sha
-        shell: bash
-        env:
-          MERGE_SHA: ${{ steps.merge.outputs.merge_sha }}
-          MODE: ${{ steps.release.outputs.mode }}
-          RESUME_SHA: ${{ steps.release.outputs.target_sha }}
-        run: |
-          set -euo pipefail
-          if [[ "$MODE" == "resume" ]]; then
-            release_sha="$RESUME_SHA"
-          else
-            release_sha="$MERGE_SHA"
-          fi
-          [[ "$release_sha" =~ ^[0-9a-f]{40}$ ]]
-          git fetch origin main --no-tags
-          git merge-base --is-ancestor "$release_sha" origin/main
-          echo "release_sha=${release_sha}" >> "$GITHUB_OUTPUT"
-
-      - name: Summarize weekly release preparation
-        if: always()
-        shell: bash
-        env:
-          RELEASE_SHA: ${{ steps.release-sha.outputs.release_sha }}
+          PULL_REQUEST_URL: ${{ steps.pull-request.outputs.pull-request-url }}
+          RELEASE_HEAD: ${{ steps.pull-request.outputs.pull-request-head-sha }}
           RELEASE_TAG: ${{ steps.release.outputs.tag }}
-          SHOULD_RELEASE: ${{ steps.release.outputs.should_release }}
         run: |
           {
-            echo "## Weekly release preparation"
+            echo "## Draft release pull request"
             echo
-            if [[ "$SHOULD_RELEASE" == "true" ]]; then
-              echo "- Candidate: \`${RELEASE_TAG}\`"
-              echo "- Commit: \`${RELEASE_SHA}\`"
-            else
-              echo "- No release: no changes since the latest published product release"
-            fi
+            echo "- Candidate: \`${RELEASE_TAG}\`"
+            echo "- Pull request: ${PULL_REQUEST_URL}"
+            echo "- Draft commit: \`${RELEASE_HEAD}\`"
+            echo "- Merge: manual after required checks"
+            echo "- Tag, GitHub Release and deployments: manual after merge"
           } >> "$GITHUB_STEP_SUMMARY"
-
-  publish-release:
-    name: Sign, verify and publish weekly release
-    needs:
-      - release-gate
-      - prepare-release
-    if: needs.release-gate.outputs.may_publish == 'true' && needs.prepare-release.outputs.should_release == 'true'
-    permissions:
-      actions: write
-      contents: write
-    uses: ./.github/workflows/publish-release.yml
-    with:
-      caller_holds_release_lock: true
-      publish: true
-      release_type: weekly
-      tag: ${{ needs.prepare-release.outputs.tag }}
-      title: ${{ needs.prepare-release.outputs.title }}
-      commit_sha: ${{ needs.prepare-release.outputs.release_sha }}
-      notes_path: ${{ needs.prepare-release.outputs.notes_path }}

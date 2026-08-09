@@ -1,6 +1,6 @@
 # Current State
 
-Stand: 2026-08-04.
+Stand: 2026-08-09.
 
 ## Aktiver Arbeitsmodus
 
@@ -73,31 +73,26 @@ Stand: 2026-08-04.
   Registry-Push; die spätere Cosign-Attestation bindet zusätzlich den exakten
   Image-Digest. `not-run` ist nur lokale Vorprüfung. Ohne vollständige
   Build-/Digestbindung gibt es kein Target-Deployment.
-- Die Release-Automatisierung trennt Wochenrelease und manuellen Hotfix, plant
-  standardmäßig ohne Schreibzugriff, überspringt unveränderte Wochen und prüft
-  Version, Dokumentprojektion, signierten Tag, Prerelease-Status sowie die drei
-  öffentlichen Pflichtartefakte fail-closed. Ein Release Candidate wird erst
-  nach verifiziertem Tag und geprüftem Pages-Deployment veröffentlicht; private
-  GKE- und Target-Deployments werden dabei nicht ausgelöst.
-- Der Betrieb bleibt bis zur Signaturabnahme gesperrt. Der geplante
-  Freitagslauf startet nur mit `WEEKLY_RELEASE_SCHEDULE_ENABLED=true` und
-  `PRODUCT_RELEASE_PUBLISH_ENABLED=true`; manuelle Läufe bleiben ohne explizite
-  Publish-Option schreibfreie Planläufe. Das Environment `release-signing` mit
-  privatem dediziertem OpenPGP-Signiersubkey, Passphrase und eng begrenztem
-  read-only Governance-Token, die öffentlichen
-  Repository-Trust-Anchor-Variablen sowie das Tag-Ruleset werden erst im
-  abschließenden Signatur-/Dry-Run-Schritt provisioniert. Die
-  Release-Immutability ist bereits aktiv;
-  der derzeit noch nicht strikte `main`-Branchschutz und der noch nicht als
-  erforderlich konfigurierte Check `PoC-/Target-Readiness` verhindern bewusst
-  die Freigabe vor Schritt 6.
+- Die einfache Release-Automatisierung überspringt unveränderte Wochen und
+  öffnet freitags nur einen Draft-PR mit Minor-Version, Leitthema, Changelog,
+  Release Notes und Versionsprojektionen. Sie stößt die bestehenden
+  Pflichtchecks auf dem exakten Draft-Head an, wartet aber nicht auf sie und
+  darf weder mergen, taggen, veröffentlichen noch deployen.
+- Review, Merge, signierter Tag, Pages und GitHub Prerelease bleiben getrennte
+  manuelle Freigaben. Dafür benötigt der Freitagsplan weder Publish-Schalter
+  noch ein `release-signing`-Environment. Die vorhandene umfassende
+  Publish-Automatisierung ist eine optionale spätere Ausbaustufe.
+- Private GKE- und Target-Deployments werden vom Produkt-Release nicht
+  ausgelöst. GKE bleibt ein manuell freigegebener IAP-Referenzkanal. Solange der
+  Workflow keinen eigenen Produkt-Tag-Eingang besitzt, darf ein Lauf nur dann
+  einem Release Candidate zugeordnet werden, wenn sein Workflow-SHA exakt dem
+  Zielcommit des signierten Tags entspricht.
 - Die Pages-Demo ist an den Produkt-Release-Trigger gebunden; gewöhnliche
   `main`-Pushes deployen keinen beweglichen Zwischenstand mehr. Bis zur
-  Freigabe in Schritt 6 bleibt der zuletzt verifizierte Pages-Stand deshalb
-  bewusst unverändert.
-- Unabhängig von der Freitagsfreigabe bleibt die erste stabile Version
-  `v1.0.0` eine ausdrückliche Folgeentscheidung in Schritt 6: Erst ein
-  erfolgreiches, verifiziertes
+  manuellen Veröffentlichung bleibt der zuletzt verifizierte Pages-Stand
+  deshalb bewusst unverändert.
+- Unabhängig vom Freitagsplan bleibt die erste stabile Version `v1.0.0` eine
+  ausdrückliche Folgeentscheidung: Erst ein erfolgreiches, verifiziertes
   Target-Deployment darf deren GitHub-Stable-Release freigeben. Quellübergabe
   oder Prerelease-Build allein reichen nicht aus.
 - Der freigegebene PoC-Datenstand wird separat aus der geschützten Anwendung übernommen. Während des Piloten ist die gematik-Kopie der gemeinsame bearbeitbare Bestand; eine automatische Synchronisation mit `mitmachen.timo-frank.de`, lokalen Varianten oder GitHub Pages existiert nicht.

@@ -120,8 +120,11 @@ nicht baugleiche Artefakte. Änderungen auf `main` verändern einen getaggten St
 
 Wochenreleases werden freitags über
 [GitHub Releases](https://github.com/TimoFrank/mitmachen/releases)
-bereitgestellt, sofern seit dem letzten Stand Änderungen vorliegen. Die Automatisierung besitzt einen
-schreibfreien Planmodus und bleibt bis zur Signaturabnahme gesperrt Ablauf, Versionsregeln, Artefakte und Benachrichtigung beschreibt der
+vorbereitet, sofern seit dem letzten Stand Änderungen vorliegen. Der Zeitplan
+öffnet nur einen Draft-PR; Merge, signierter Tag, Veröffentlichung und
+Deployments bleiben getrennte manuelle Freigaben. Den kurzen Ablauf beschreibt
+die [Release-Kurzanleitung](dokumentation/betrieb-und-deployment/RELEASE_KURZANLEITUNG.md),
+alle Versionsregeln und Nachweise der
 [Produkt-Release-Prozess](dokumentation/betrieb-und-deployment/PRODUKT_RELEASE_PROZESS.md).
 
 Das [GitLab-/Software-Factory-Übergaberunbook](dokumentation/betrieb-und-deployment/GITLAB_SOFTWARE_FACTORY_UEBERGABE.md) ist der aktuelle Einstieg für die Übergabe. Die [RC.5-Übergabenotiz](dokumentation/betrieb-und-deployment/UEBERGABE_RC5_SOFTWARE_FACTORY.md) bleibt unveränderte historische Evidenz. Der technische Ablauf des PoC steht im [Deployment-Runbook](dokumentation/betrieb-und-deployment/DEPLOYMENT_GEMATIK_K8S.md). Ausführbare Artefakte sind unter [`deploy/`](deploy/README.md) beschrieben. Weitere Referenzen: [Security](SECURITY.md), [Dokumentationsindex](dokumentation/README.md) und [Mitwirken](CONTRIBUTING.md).

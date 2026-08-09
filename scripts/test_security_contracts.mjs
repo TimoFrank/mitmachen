@@ -589,8 +589,7 @@ for (const workflowPath of [
   ".github/workflows/hotfix-release.yml",
   ".github/workflows/publish-release.yml",
   ".github/workflows/repo-check.yml",
-  ".github/workflows/target-readiness.yml",
-  ".github/workflows/weekly-release.yml"
+  ".github/workflows/target-readiness.yml"
 ]) {
   const installStep = read(workflowPath).match(
     /      - name: Install dependencies\n[\s\S]*?(?=\n      - name: )/u

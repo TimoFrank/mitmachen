@@ -6,6 +6,7 @@ Die Dokumentation ist nach Zweck gegliedert. Führende Frontend-Quellen liegen u
 
 - [GitLab-/Software-Factory-Übergabe](betrieb-und-deployment/GITLAB_SOFTWARE_FACTORY_UEBERGABE.md): aktueller Vertrag für signiertes Quellpaket, unabhängige Prüfung, einmaligen Import und Single-Writer-Cutover
 - [RC.5-Freeze und Übergabe an die Software Factory](betrieb-und-deployment/UEBERGABE_RC5_SOFTWARE_FACTORY.md): historische GKE-Herkunft, festgelegter Legacy-Tag, Buildtrennung, Verantwortungen und offene Nachweise
+- [Release-Kurzanleitung](betrieb-und-deployment/RELEASE_KURZANLEITUNG.md): einfacher Freitags-, GKE- und gematik-Ablauf
 - [Produkt-Release-Prozess](betrieb-und-deployment/PRODUKT_RELEASE_PROZESS.md): zentrale Version, Release-Candidate-Status, Changelog-Modell, Signaturen und drei Auslieferungskanäle
 - [PoC-Durchstich](betrieb-und-deployment/POC_GEMATIK_DURCHSTICH.md): Zweck, aktueller Stand, Ressourcen, Lieferumfang und Erfolgskriterien
 - [Deployment auf Kubernetes](betrieb-und-deployment/DEPLOYMENT_GEMATIK_K8S.md): Build, Konfiguration, Bereitstellung und Smoke-Prüfung
@@ -39,7 +40,8 @@ Die Dokumentation ist nach Zweck gegliedert. Führende Frontend-Quellen liegen u
 - [QA-Ablauf](entwicklung-und-qa/QA_WORKFLOW.md)
 - [Hospitations-Staging und kontrollierte Übernahme](betrieb-und-deployment/HOSPITATION_STAGING_WORKFLOW.md)
 - [Generierte Buildausgaben](betrieb-und-deployment/BUILD_ARTEFAKTE.md): lokale und in CI erzeugte, nicht versionierte Artefakte
-- [Automatische Produkt-Releases](betrieb-und-deployment/PRODUKT_RELEASE_PROZESS.md)
+- [Release-Kurzanleitung](betrieb-und-deployment/RELEASE_KURZANLEITUNG.md)
+- [Produkt-Release-Prozess](betrieb-und-deployment/PRODUKT_RELEASE_PROZESS.md)
 - [Versionierte Release Notes](release-notes/): dauerhaft veröffentlichte Texte je Produktversion
 - [Mitwirken](../CONTRIBUTING.md)
 - [Änderungshistorie](../CHANGELOG.md)

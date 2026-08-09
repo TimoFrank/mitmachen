@@ -1,11 +1,16 @@
 # Produkt-Release-Prozess
 
-Stand: 4. August 2026
+Stand: 9. August 2026
 
 Dieses Runbook ist der führende Vertrag für Produktversionen und GitHub
 Releases des Versorgungs-Kompass. Die maschinenlesbare Quelle steht in
 [`config/release.json`](../../config/release.json). Der Vertrag gilt ab
 `v0.23.0`; vorhandene Tags bleiben historische Evidenz.
+
+Die praktische Vier-Schritte-Anleitung steht in der
+[Release-Kurzanleitung](RELEASE_KURZANLEITUNG.md). Der aktuelle einfache
+Betriebsmodus automatisiert nur die reversible Vorbereitung eines Draft-PR;
+Merge, Tag, Veröffentlichung und Deployments bleiben bewusst getrennt.
 
 Die einzige neue Quellversionskennung ist ein signierter, annotierter Git-Tag
 im Format `vX.Y.Z`. „Release Candidate“ ist für alle `0.x`-Versionen der Status
@@ -56,6 +61,9 @@ Notes und Changelog, nicht im technischen Tag.
 Der geplante Lauf startet freitags um 09:17 Uhr in der Zeitzone
 `Europe/Berlin`.
 
+- Der Workflow `Prepare weekly release` bereitet ausschließlich einen
+  Draft-PR vor. Er mergt nicht, erzeugt keinen Tag, veröffentlicht keinen
+  GitHub Release und startet kein Deployment.
 - Ohne Änderungen seit dem letzten veröffentlichten Quelltag entsteht kein
   Release-PR, Versionssprung, Tag oder GitHub Release.
 - Mit Änderungen wird die Minor-Version erhöht. Ein Patchstand wird dabei
@@ -108,16 +116,18 @@ Artefaktsignatur; die Git-Tag-Signatur ersetzt diese nicht.
    erfolgreich ohne Schreibzugriff.
 2. Der Generator berechnet genau eine neue Version und erstellt die zum Anlass
    passenden Release-Unterlagen.
-3. Ein Release-PR aktualisiert zentrale Produktversion, Helm-Projektion,
+3. Ein Draft-Release-PR aktualisiert zentrale Produktversion, Helm-Projektion,
    Changelog, Release Notes und – nur beim Wochenrelease – In-App-Historie.
-   Repository- und Browserprüfungen laufen auf seinem exakten Head-Commit.
-4. Der geprüfte PR wird nach `main` integriert. Eine Änderung von `main`
-   zwischen Planung und Merge bricht den Lauf fail-closed ab.
-5. Auf dem nachgewiesenen Merge-Commit wird genau ein signierter, annotierter
-   `vX.Y.Z`-Tag erzeugt und verifiziert.
-6. Die Pages-Demo wird aus genau diesem Tag gebaut, geprüft, deployed und per
+   Die vorhandenen Pflichtprüfungen werden für seinen exakten Head-Commit
+   angestoßen.
+4. Der Maintainer prüft Leitthema, Notes und Checks und integriert den PR
+   bewusst nach `main`.
+5. Auf dem nachgewiesenen Merge-Commit wird in einem getrennten manuellen
+   Vorgang genau ein signierter, annotierter `vX.Y.Z`-Tag erzeugt und
+   verifiziert.
+6. Die Pages-Demo wird manuell aus genau diesem Tag gebaut, geprüft, deployed und per
    HTTP gegen Commit und Profil verifiziert.
-7. Erst danach wird der GitHub Release aus den eingecheckten Notes
+7. Erst danach wird der GitHub Release manuell aus den eingecheckten Notes
    veröffentlicht: vor `1.0.0` als Prerelease, danach als Stable Release.
 
 Ein Produkt-Release löst weder das Deployment auf das private GKE noch einen
@@ -228,41 +238,29 @@ keinen operativen `poc-v…-rc.N`-Tag. Historische Builds bleiben über ihren
 damaligen Quellstand nachvollziehbar, werden aber nicht in die neue
 GitLab-Pipeline übernommen oder nachträglich verändert.
 
-## Temporäre Freitags-Sperre
+## Einfacher Betriebsmodus
 
-Die Automatisierung bildet diesen Vertrag technisch ab, wird aber erst nach dem
-abschließenden Signatur- und Dry-Run-Nachweis aktiviert. Zwei unabhängige
-Schalter sichern die Übergangsphase fail-closed:
+Der Freitagsplan ist ohne externe Freigabeschalter aktivierbar, weil seine
+einzige Repository-Mutation ein Draft-PR auf `timo/release-vX.Y.Z` ist. Der
+Planjob selbst besitzt nur Leserechte. Der anschließende Job darf den
+Release-Branch aktualisieren, den Draft öffnen und die vorhandenen
+Pflichtworkflows für dessen exakten Head anstoßen. Er wartet nicht auf Checks
+und leitet daraus weder Merge noch Veröffentlichung ab.
 
-- Der geplante Freitagslauf startet nur, wenn
-  `WEEKLY_RELEASE_SCHEDULE_ENABLED=true` **und**
-  `PRODUCT_RELEASE_PUBLISH_ENABLED=true` gesetzt sind. Solange einer der beiden
-  Schalter fehlt oder einen anderen Wert hat, endet der Schedule-Lauf ohne
-  Planung oder Mutation.
-- Ein manueller Lauf bleibt unabhängig davon möglich, startet aber ohne die
-  ausdrücklich gewählte Publish-Option immer nur im schreibfreien Planmodus.
+Die folgenden Vorgänge bleiben manuell und voneinander getrennt:
 
-Ein manueller Start verwendet standardmäßig den schreibfreien Planmodus. Er
-liest weder den privaten Signierschlüssel noch verändert er Branches, Tags,
-Releases oder Deployments. Vor der Aktivierung werden im gesonderten
-`release-signing`-Environment der private dedizierte OpenPGP-Signiersubkey und
-seine Passphrase sowie ein ablaufender, auf dieses Repository und
-`Administration: read` begrenzter Governance-Token provisioniert. Dieser Token
-prüft ausschließlich Release-Immutability und Branchschutz per read-only API.
-Der Branchschutz läuft in einem Job ohne Checkout; die beiden
-Immutability-Abfragen liegen jeweils in einem eigenen Schritt ohne npm oder
-Repository-Skript unmittelbar vor Tag und Veröffentlichung. Die eigentlichen
-Mutationsschritte erhalten den Token nicht. Fehlende oder ungültige
-Berechtigung blockiert vor Release-PR, Tag und Veröffentlichung.
-Öffentlicher Schlüssel, erwarteter
-Subkey-Fingerprint und Signer-Identität werden getrennt als nicht geheime
-Repository-Variablen hinterlegt. Danach folgen ein
-lokaler Signaturtest ohne Push, ein vollständiger kontrollierter Dry-Run und ein
-Tag-Ruleset gegen Aktualisierung und Löschung. Zusätzlich müssen die
-Release-Immutability sowie der strikte `main`-Branchschutz mit den erforderlichen
-Checks `Minimal repository check` und `PoC-/Target-Readiness` per read-only
-API-Nachweis bestätigt sein. Erst anschließend werden zuerst der
-Publish-Schalter und zuletzt der Freitagsplan freigegeben.
+- Review und Merge des Release-PR,
+- Signatur und Push des unveränderlichen Tags,
+- Pages-Build und GitHub Release,
+- Deployment desselben Tags auf das private GKE,
+- Auswahl und Übergabe eines Tags für den gematik-Zielpfad.
+
+Damit benötigt die regelmäßige Planung weder ein `release-signing`-Environment
+noch Cloud-, IAM- oder Datenbankänderungen. Die vorhandene umfassende
+Publish-Automatisierung bleibt eine optionale spätere Ausbaustufe und wird vom
+Freitagsworkflow nicht aufgerufen. Unabhängig vom verwendeten Werkzeug gelten
+für eine tatsächliche Veröffentlichung weiterhin die vollständige QA, die
+Tag-Signaturprüfung, unveränderliche Releases und der Branchschutz.
 
 ## Benachrichtigung
 
