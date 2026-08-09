@@ -287,6 +287,17 @@ forbidPattern(publicationMutationStep, /RELEASE_GOVERNANCE_READ_TOKEN/u,
   "Release-Publikation und Repository-Verifier duerfen den Governance-Token nicht erben.");
 requirePattern(publicationMutationStep, /git fetch --no-tags origin main:refs\/remotes\/origin\/main[\s\S]*git merge-base --is-ancestor "\$RELEASE_SHA"[\s\S]*git show refs\/remotes\/origin\/main:config\/release\.json[\s\S]*semver_is_greater[\s\S]*releases\?per_page=100[\s\S]*select\(\.draft == false\)[\s\S]*verify_remote_tag before-publication[\s\S]*gh release edit/u,
   "Unmittelbar vor der Publikation muessen aktuelle Main-Version und alle bereits publizierten hoeheren SemVer erneut fail-closed geprueft werden.");
+requirePattern(publicationMutationStep, /--arg tag_object_sha "\$EXPECTED_TAG_OBJECT"[\s\S]*\.digest\.sha1 == \$tag_object_sha/u,
+  "Die erste Release-Attestierung muss das annotierte Tagobjekt und nicht den aufgeloesten Commit als Subject pruefen.");
+const publishedAssetVerificationStep = section(
+  publish,
+  "      - name: Re-download and verify immutable published assets",
+  "      - name: Summarize published prerelease"
+);
+requirePattern(publishedAssetVerificationStep, /EXPECTED_TAG_OBJECT:\s*\$\{\{\s*needs\.verify-signed-tag\.outputs\.tag_object_sha\s*\}\}[\s\S]*--arg tag_object_sha "\$EXPECTED_TAG_OBJECT"[\s\S]*\.digest\.sha1 == \$tag_object_sha/u,
+  "Auch der erneute Download muss GitHubs Release-Subject gegen dasselbe annotierte Tagobjekt pruefen.");
+forbidPattern(publish, /\.digest\.sha1 == \$sha/u,
+  "GitHubs immutable Release-Attestierung darf das annotierte Tagobjekt nicht mit dessen Zielcommit verwechseln.");
 requirePattern(publish, /\[\[ "\$major" == "0" \]\]/u,
   "Releases ab v1.0.0 muessen bis zum separaten Ziel-Gate blockiert bleiben.");
 assert.equal((publish.match(/--release-title "\$RELEASE_TITLE"/gu) || []).length, 2,
@@ -364,8 +375,10 @@ requirePattern(publish, /attestation_ready=false[\s\S]*for attempt in \$\(seq 1 
   "Immutability und Release-Attestierung muessen begrenzt bis zur Bereitschaft gepollt werden.");
 requirePattern(publish, /published-release-attestations[\s\S]*gh release verify "\$RELEASE_TAG"[\s\S]*for asset_name[\s\S]*gh release verify-asset/u,
   "Release und alle erneut heruntergeladenen Pflichtassets brauchen GitHubs kryptographischen Attestierungsnachweis.");
-requirePattern(publish, /predicate\.tag == \$tag[\s\S]*predicate\.repository == \$repository[\s\S]*pkg:github\/[\s\S]*digest\.sha1 == \$sha/u,
-  "Die Release-Attestierung muss Tag, Repository und exakten Release-Commit binden.");
+assert.equal((publish.match(/--arg tag_object_sha "\$EXPECTED_TAG_OBJECT"/gu) || []).length, 2,
+  "Bereitschaft und erneuter Download muessen dasselbe annotierte Tagobjekt attestieren.");
+requirePattern(publish, /predicate\.tag == \$tag[\s\S]*predicate\.repository == \$repository[\s\S]*pkg:github\/[\s\S]*digest\.sha1 == \$tag_object_sha/u,
+  "Die Release-Attestierung muss Tag, Repository und annotiertes Tagobjekt binden; der Tag-Verifier bindet dieses getrennt an den Zielcommit.");
 assert.ok((publish.match(/verify_release_tag\.mjs[\s\S]{0,500}--remote-tag-object-sha/gu) || []).length >= 3,
   "Das Remote-Tagobjekt muss vor Draft, vor Publikation und nach Attestierungsbereitschaft erneut geprueft werden.");
 const publicationJob = section(publish, "  publish-github-release:", "      - name: Summarize published prerelease");
