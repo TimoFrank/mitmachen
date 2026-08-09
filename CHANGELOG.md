@@ -2,6 +2,32 @@
 
 Kompakte Zusammenfassung der wichtigsten Funktionssprünge des Versorgungs-Kompass.
 
+## Version 0.23 - Sicherer Zugang. Verlässliche Releases.
+
+9. August 2026
+
+Version 0.23 stärkt den sicheren Einstieg in den Versorgungs-Kompass und macht Releases nachvollziehbarer. Einladungslinks und Zugangsmails wurden robuster gestaltet; Sicherheitsupdates und Betriebsprüfungen sind klarer in den Freigabeprozess eingebunden.
+
+### Einfachen Freitags-Releaseplan einführen (#241)
+
+Der Freitagslauf erstellt nur bei tatsächlichen Änderungen einen Draft-PR für die nächste Minor-Version. Changelog, Release Notes und Versionsstände werden gemeinsam vorbereitet; Merge, signierter Tag und Deployments bleiben bewusste Freigaben.
+
+### PDF.js-Sicherheitslücke schließen (#242)
+
+PDF.js wurde auf die gepatchte Version 6.2.108 aktualisiert. Browsermodul, Worker und Prüfsummen wurden gemeinsam erneuert; die bekannte Sicherheitslücke in der PDF-Verarbeitung ist damit geschlossen.
+
+### Deployer-Leserecht für IAM-Rollen ergänzen (#240)
+
+Nach Anwendung des vorbereiteten Terraform-Stands kann der GKE-Deploymentpfad die benötigte IAM-Rolle vor dem Rollout read-only prüfen. Fehlende Leserechte werden dadurch früh sichtbar, ohne dem Deployer Rollenänderungen oder Zugriff auf Einladungsobjekte zu erlauben.
+
+### Einladungslinks zuverlässig und idempotent einlösen (#239)
+
+Einladungslinks werden erst nach bestätigter Passwortänderung abgeschlossen. Wiederholte Aufrufe verwenden denselben geprüften Link; technische Störungen und dauerhaft ungültige Links werden klar getrennt behandelt.
+
+### Zugangsmails für zuverlässigere Zustellung härten (#238)
+
+Einladungs- und Passwort-Reset-Mails verzichten auf versteckte Inhalte und bekannte Spam-Signale. Versionierte Vorlagen und strengere Prüfungen machen Versand und Nachweis belastbarer; die tatsächliche Zustellung bleibt vom empfangenden Provider abhängig.
+
 ## Version 0.22 - Mehr Überblick. Mehr Verbindung.
 
 31. Juli 2026
