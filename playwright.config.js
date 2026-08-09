@@ -16,6 +16,7 @@ export default defineConfig({
   reporter: [["list"], ["html", { open: "never" }]],
   use: {
     baseURL,
+    timezoneId: "Europe/Berlin",
     trace: "on-first-retry",
     screenshot: "only-on-failure"
   },

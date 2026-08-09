@@ -36,11 +36,24 @@ const pages = read(".github/workflows/deploy-pages.yml");
 const preGematik = read(".github/workflows/deploy-pre-gematik.yml");
 const targetReadinessWorkflow = read(".github/workflows/target-readiness.yml");
 const tagVerifier = read("scripts/verify_release_tag.mjs");
+const playwrightConfig = read("playwright.config.js");
 
 for (const [workflow, label] of [[publish, "Publish"], [hotfix, "Hotfix"]]) {
   forbidPattern(workflow, /^    env:\n(?:^      .*\n)*^      GNUPGHOME:.*\$\{\{\s*runner\.temp\s*\}\}/gmu,
     `${label}: runner.temp ist im jobweiten env-Kontext unzulaessig.`);
 }
+
+const playwrightGlobalUse = section(playwrightConfig, "  use: {", "  projects: [");
+requirePattern(playwrightGlobalUse, /baseURL,[\s\S]*timezoneId:\s*"Europe\/Berlin"/u,
+  "Die Browsermatrix muss Datums- und Zeiterwartungen unabhaengig von der Runner-Zeitzone pruefen.");
+const publishPreflightRuntime = section(publish, "  preflight-release:", "  sign-tag:");
+requirePattern(publishPreflightRuntime,
+  /npx playwright install --with-deps chromium firefox webkit[\s\S]*npm run qa:full/u,
+  "Publish: Chromium, Firefox und WebKit muessen vor der vollstaendigen Release-QA installiert sein.");
+const hotfixPrepareRuntime = section(hotfix, "  prepare-release:", "  publish-release:");
+requirePattern(hotfixPrepareRuntime,
+  /npx playwright install --with-deps chromium firefox webkit[\s\S]*npm run test:visual/u,
+  "Hotfix: Chromium, Firefox und WebKit muessen vor der vollstaendigen Browsermatrix installiert sein.");
 
 requirePattern(weekly, /schedule:[\s\S]*cron:\s*"17 9 \* \* 5"[\s\S]*timezone:\s*Europe\/Berlin/u,
   "Weekly muss freitags in der vereinbarten Zeitzone geplant bleiben.");

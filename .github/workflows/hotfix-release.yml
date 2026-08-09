@@ -466,9 +466,9 @@ jobs:
         if: steps.release.outputs.should_release == 'true' && steps.release.outputs.mode == 'prepare'
         run: npm run check
 
-      - name: Install Chromium
+      - name: Install Playwright browsers
         if: steps.release.outputs.should_release == 'true' && steps.release.outputs.mode == 'prepare'
-        run: npx playwright install --with-deps chromium
+        run: npx playwright install --with-deps chromium firefox webkit
 
       - name: Run release browser tests
         if: steps.release.outputs.should_release == 'true' && steps.release.outputs.mode == 'prepare'
