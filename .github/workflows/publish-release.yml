@@ -311,7 +311,7 @@ jobs:
     environment:
       name: release-signing
     env:
-      GNUPGHOME: ${{ runner.temp }}/release-tag-gnupg
+      GNUPGHOME: /tmp/release-tag-gnupg
       RELEASE_TAG_GPG_FINGERPRINT: ${{ vars.RELEASE_TAG_GPG_FINGERPRINT }}
       RELEASE_TAG_GPG_PUBLIC_KEY: ${{ vars.RELEASE_TAG_GPG_PUBLIC_KEY }}
       RELEASE_TAG_SIGNER_EMAIL: ${{ vars.RELEASE_TAG_SIGNER_EMAIL }}
@@ -561,7 +561,7 @@ jobs:
     permissions:
       contents: read
     env:
-      GNUPGHOME: ${{ runner.temp }}/release-tag-public-gnupg
+      GNUPGHOME: /tmp/release-tag-public-gnupg
       RELEASE_TAG_GPG_FINGERPRINT: ${{ vars.RELEASE_TAG_GPG_FINGERPRINT }}
       RELEASE_TAG_GPG_PUBLIC_KEY: ${{ vars.RELEASE_TAG_GPG_PUBLIC_KEY }}
     outputs:
@@ -784,7 +784,7 @@ jobs:
       actions: read
       contents: write
     env:
-      GNUPGHOME: ${{ runner.temp }}/release-publication-tag-gnupg
+      GNUPGHOME: /tmp/release-publication-tag-gnupg
       RELEASE_TAG_GPG_FINGERPRINT: ${{ vars.RELEASE_TAG_GPG_FINGERPRINT }}
       RELEASE_TAG_GPG_PUBLIC_KEY: ${{ vars.RELEASE_TAG_GPG_PUBLIC_KEY }}
     outputs:
