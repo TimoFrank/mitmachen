@@ -5762,15 +5762,15 @@
         {
           version: "0.23.0",
           date: "9. August 2026",
-          title: "Neues in Version 0.23",
+          title: "Sicherer Zugang. Verlässliche Releases.",
           icon: "start",
-          summary: "Der Versorgungs-Kompass wird klarer, verlässlicher und leichter nutzbar. Die neuen Verbesserungen unterstützen das Netzwerk dabei, Wissen zu teilen und gemeinsam ins Handeln zu kommen.",
+          summary: "Version 0.23 stärkt den sicheren Einstieg in den Versorgungs-Kompass und macht Releases nachvollziehbarer. Einladungslinks und Zugangsmails wurden robuster gestaltet; Sicherheitsupdates und Betriebsprüfungen sind klarer in den Freigabeprozess eingebunden.",
           items: [
-            "Einfachen Freitags-Releaseplan einführen (#241): Die Änderung macht den Bereich Versorgungs-Kompass klarer und leichter nutzbar. Die wichtigsten Schritte sind schneller nachvollziehbar. So bleibt mehr Zeit für die gemeinsame Arbeit im Versorgungsnetzwerk.",
-            "PDF.js-Sicherheitslücke schließen (#242): Die Änderung macht den Bereich Versorgungs-Kompass klarer und leichter nutzbar. Die wichtigsten Schritte sind schneller nachvollziehbar. So bleibt mehr Zeit für die gemeinsame Arbeit im Versorgungsnetzwerk.",
-            "Deployer-Leserecht für IAM-Rollen ergänzen (#240): Die Änderung macht den Bereich Versorgungs-Kompass klarer und leichter nutzbar. Die wichtigsten Schritte sind schneller nachvollziehbar. So bleibt mehr Zeit für die gemeinsame Arbeit im Versorgungsnetzwerk.",
-            "Einladungslinks zuverlässig und idempotent einlösen (#239): Die Änderung macht den Bereich Versorgungs-Kompass klarer und leichter nutzbar. Die wichtigsten Schritte sind schneller nachvollziehbar. So bleibt mehr Zeit für die gemeinsame Arbeit im Versorgungsnetzwerk.",
-            "Zugangsmails für zuverlässigere Zustellung härten (#238): Die Änderung macht den Bereich Versorgungs-Kompass klarer und leichter nutzbar. Die wichtigsten Schritte sind schneller nachvollziehbar. So bleibt mehr Zeit für die gemeinsame Arbeit im Versorgungsnetzwerk."
+            "Releases nachvollziehbar vorbereiten (#241): Neue Versionen werden nur bei tatsächlichen Änderungen vorbereitet und erst nach bewusster Prüfung freigegeben. Ohne Änderungen gibt es keinen Versionssprung.",
+            "PDF-Verarbeitung sicher aktualisieren (#242): Die technische Grundlage des PDF-Textimports wurde aktualisiert und eine bekannte Sicherheitslücke geschlossen.",
+            "Betriebsprüfung vor GKE-Rollouts stärken (#240): Fehlende Leserechte können vor künftigen Rollouts früher erkannt werden. Der dafür vorbereitete Infrastrukturstand muss vor dem ersten Einsatz noch angewendet werden.",
+            "Einladungen zuverlässig abschließen (#239): Einladungen werden erst nach bestätigter Passwortänderung abgeschlossen. Wiederholte Aufrufe führen zuverlässig zum bereits geprüften Link.",
+            "Zugangsmails klarer und robuster versenden (#238): Einladungs- und Passwort-Reset-Mails verzichten auf versteckte Inhalte und bekannte Spam-Signale. Die tatsächliche Zustellung bleibt vom empfangenden Anbieter abhängig."
           ]
         },
         {
