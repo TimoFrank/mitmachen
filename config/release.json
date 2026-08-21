@@ -1,7 +1,7 @@
 {
   "$schema": "./release.schema.json",
   "schemaVersion": 2,
-  "productVersion": "0.23.0",
+  "productVersion": "0.24.0",
   "baselineVersion": "0.20.0",
   "baselineRef": "fac533f154355a00e8bc1bb78112ec476ae68fef",
   "defaultBump": "minor",
