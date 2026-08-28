@@ -63,30 +63,30 @@
         },
         {
             "name": "christian-riesen/base32",
-            "version": "1.6.1",
+            "version": "2.0.1",
             "source": {
-                "type": "git",
                 "url": "https://github.com/ChristianRiesen/base32.git",
-                "reference": "03082b946c111eb6ab41a98626fee33360c5232c"
+                "type": "git",
+                "reference": "be07b4a4a2d6056975934d71e111c64e7d8babf9"
             },
             "dist": {
+                "url": "https://api.github.com/repos/ChristianRiesen/base32/zipball/be07b4a4a2d6056975934d71e111c64e7d8babf9",
                 "type": "zip",
-                "url": "https://api.github.com/repos/ChristianRiesen/base32/zipball/03082b946c111eb6ab41a98626fee33360c5232c",
-                "reference": "03082b946c111eb6ab41a98626fee33360c5232c",
-                "shasum": ""
+                "shasum": "",
+                "reference": "be07b4a4a2d6056975934d71e111c64e7d8babf9"
             },
             "require": {
-                "php": "^7.2 || ^8.0"
+                "php": "^8.1"
             },
             "require-dev": {
-                "friendsofphp/php-cs-fixer": "^2.17",
-                "phpstan/phpstan": "^0.12",
-                "phpunit/phpunit": "^8.5.13 || ^9.5"
+                "friendsofphp/php-cs-fixer": "^3.64",
+                "phpstan/phpstan": "^2.0",
+                "phpunit/phpunit": "^10.5"
             },
             "type": "library",
             "extra": {
                 "branch-alias": {
-                    "dev-master": "1.x-dev"
+                    "dev-master": "2.x-dev"
                 }
             },
             "autoload": {
@@ -116,9 +116,9 @@
             ],
             "support": {
                 "issues": "https://github.com/ChristianRiesen/base32/issues",
-                "source": "https://github.com/ChristianRiesen/base32/tree/1.6.1"
+                "source": "https://github.com/ChristianRiesen/base32/tree/2.0.1"
             },
-            "time": "2026-07-11T19:29:43+00:00"
+            "time": "2026-07-11T21:00:30+00:00"
         },
         {
             "name": "composer/pcre",
@@ -5954,44 +5954,44 @@
         },
         {
             "name": "typo3/cms-core",
-            "version": "v13.4.33",
+            "version": "v13.4.34",
             "source": {
-                "type": "git",
                 "url": "https://github.com/TYPO3-CMS/core.git",
-                "reference": "258c4e12b9cb7563f04bfbf57d4da0179e9a615f"
+                "type": "git",
+                "reference": "863a6dbf654ce97182bfd9ed71de00327bb1c7d1"
             },
             "dist": {
+                "url": "https://api.github.com/repos/TYPO3-CMS/core/zipball/863a6dbf654ce97182bfd9ed71de00327bb1c7d1",
                 "type": "zip",
-                "url": "https://api.github.com/repos/TYPO3-CMS/core/zipball/258c4e12b9cb7563f04bfbf57d4da0179e9a615f",
-                "reference": "258c4e12b9cb7563f04bfbf57d4da0179e9a615f",
-                "shasum": ""
+                "shasum": "",
+                "reference": "863a6dbf654ce97182bfd9ed71de00327bb1c7d1"
             },
             "require": {
-                "bacon/bacon-qr-code": "^3.0",
-                "christian-riesen/base32": "^1.6",
-                "composer-runtime-api": "^2.1",
-                "doctrine/annotations": "^2.0.2",
-                "doctrine/dbal": "~4.4.3",
-                "doctrine/event-manager": "^2.0.1",
-                "doctrine/lexer": "^3.0.1",
-                "egulias/email-validator": "^4.0",
-                "enshrined/svg-sanitize": "~0.22",
+                "php": "^8.2",
+                "ext-pdo": "*",
                 "ext-dom": "*",
                 "ext-intl": "*",
                 "ext-json": "*",
                 "ext-libxml": "*",
                 "ext-mbstring": "*",
                 "ext-pcre": "*",
-                "ext-pdo": "*",
                 "ext-session": "*",
                 "ext-tokenizer": "*",
                 "ext-xml": "*",
+                "composer-runtime-api": "^2.1",
+                "bacon/bacon-qr-code": "^3.0",
+                "christian-riesen/base32": "^2.0",
+                "doctrine/annotations": "^2.0.2",
+                "doctrine/dbal": "~4.4.3",
+                "doctrine/event-manager": "^2.0.1",
+                "doctrine/lexer": "^3.0.1",
+                "egulias/email-validator": "^4.0",
+                "enshrined/svg-sanitize": "~0.22",
                 "firebase/php-jwt": "^6.10.2 || ^7.0.2",
-                "guzzlehttp/guzzle": "^7.12.1",
+                "guzzlehttp/guzzle": "^7.15.2",
                 "guzzlehttp/psr7": "^2.10.2",
                 "lolli42/finediff": "^1.1.1",
                 "masterminds/html5": "^2.10.0",
-                "php": "^8.2",
                 "psr/container": "^2.0",
                 "psr/event-dispatcher": "^1.0",
                 "psr/http-client": "^1.0.3",
@@ -6097,21 +6097,21 @@
                 "issues": "https://forge.typo3.org",
                 "source": "https://github.com/typo3/typo3"
             },
-            "time": "2026-07-14T12:21:38+00:00"
+            "time": "2026-08-11T07:17:22+00:00"
         },
         {
             "name": "typo3/cms-extbase",
-            "version": "v13.4.33",
+            "version": "v13.4.34",
             "source": {
-                "type": "git",
                 "url": "https://github.com/TYPO3-CMS/extbase.git",
-                "reference": "bdcdefc35baf269b63ea7329218ec3819a9d08e1"
+                "type": "git",
+                "reference": "565335fa9b53b7f60f887a64942b7aa5b9b7302b"
             },
             "dist": {
+                "url": "https://api.github.com/repos/TYPO3-CMS/extbase/zipball/565335fa9b53b7f60f887a64942b7aa5b9b7302b",
                 "type": "zip",
-                "url": "https://api.github.com/repos/TYPO3-CMS/extbase/zipball/bdcdefc35baf269b63ea7329218ec3819a9d08e1",
-                "reference": "bdcdefc35baf269b63ea7329218ec3819a9d08e1",
-                "shasum": ""
+                "shasum": "",
+                "reference": "565335fa9b53b7f60f887a64942b7aa5b9b7302b"
             },
             "require": {
                 "doctrine/instantiator": "^1.5 || ^2.0",
@@ -6119,8 +6119,8 @@
                 "phpdocumentor/type-resolver": "^1.8.2",
                 "symfony/dependency-injection": "^7.4",
                 "symfony/property-access": "^7.4",
-                "symfony/property-info": "^7.4",
-                "typo3/cms-core": "13.4.33"
+                "symfony/property-info": "^7.4.15",
+                "typo3/cms-core": "13.4.34"
             },
             "conflict": {
                 "typo3/cms": "*"
@@ -6167,7 +6167,7 @@
                 "issues": "https://forge.typo3.org",
                 "source": "https://github.com/typo3/typo3"
             },
-            "time": "2026-07-14T12:21:38+00:00"
+            "time": "2026-08-11T07:17:22+00:00"
         },
         {
             "name": "typo3/html-sanitizer",

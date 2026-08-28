@@ -5761,7 +5761,7 @@
       const appVersionHistory = [
         {
           version: "0.24.0",
-          date: "21. August 2026",
+          date: "28. August 2026",
           title: "Neues in Version 0.24",
           icon: "start",
           summary: "Der Versorgungs-Kompass wird klarer, verlässlicher und leichter nutzbar. Die neuen Verbesserungen unterstützen das Netzwerk dabei, Wissen zu teilen und gemeinsam ins Handeln zu kommen.",

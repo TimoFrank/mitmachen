@@ -4,7 +4,7 @@ Kompakte Zusammenfassung der wichtigsten Funktionssprünge des Versorgungs-Kompa
 
 ## Version 0.24 - Neues in Version 0.24
 
-21. August 2026
+28. August 2026
 
 Der Versorgungs-Kompass wird klarer, verlässlicher und leichter nutzbar. Die neuen Verbesserungen unterstützen das Netzwerk dabei, Wissen zu teilen und gemeinsam ins Handeln zu kommen.
 
