@@ -1226,49 +1226,32 @@
         },
         {
             "name": "in2code/powermail",
-            "version": "13.1.0",
+            "version": "13.2.1",
             "source": {
-                "type": "git",
                 "url": "https://github.com/in2code-de/powermail.git",
-                "reference": "668da24c441bfc86655e04168411dc270106bbb4"
+                "type": "git",
+                "reference": "4a16eb3c5fed6eac50eca2eb4610dcfe30cd82ac"
             },
             "dist": {
+                "url": "https://api.github.com/repos/in2code-de/powermail/zipball/4a16eb3c5fed6eac50eca2eb4610dcfe30cd82ac",
                 "type": "zip",
-                "url": "https://api.github.com/repos/in2code-de/powermail/zipball/668da24c441bfc86655e04168411dc270106bbb4",
-                "reference": "668da24c441bfc86655e04168411dc270106bbb4",
-                "shasum": ""
+                "shasum": "",
+                "reference": "4a16eb3c5fed6eac50eca2eb4610dcfe30cd82ac"
             },
             "require": {
-                "ext-curl": "*",
-                "ext-fileinfo": "*",
-                "ext-gd": "*",
-                "ext-json": "*",
                 "php": "^8.2",
+                "typo3/cms-core": "^13.4",
+                "ext-json": "*",
+                "ext-gd": "*",
+                "ext-fileinfo": "*",
+                "ext-curl": "*",
                 "phpoffice/phpspreadsheet": "^5.0",
-                "symfony/rate-limiter": "^7.2",
-                "typo3/cms-core": "^13.4"
+                "symfony/rate-limiter": "^7.2"
             },
             "replace": {
                 "typo3-ter/powermail": "self.version"
             },
             "require-dev": {
-                "behat/behat": "^3.8",
-                "behat/mink-selenium2-driver": "^1.5",
-                "drevops/behat-screenshot": "^1.1",
-                "friends-of-behat/mink-browserkit-driver": "^1.5",
-                "friends-of-behat/mink-extension": "^2.5",
-                "friendsofphp/php-cs-fixer": "^3.10",
-                "helmich/typo3-typoscript-lint": "^3.1",
-                "mikey179/vfsstream": "^1.6",
-                "phpmd/phpmd": "^2.8",
-                "phpstan/phpstan": "^2.1",
-                "se/selenium-server-standalone": "^3.141",
-                "squizlabs/php_codesniffer": "^3.5",
-                "symfony/config": "^7.1",
-                "typo3/cms-adminpanel": "^13.4",
-                "typo3/cms-belog": "^13.4",
-                "typo3/cms-beuser": "^13.4",
-                "typo3/cms-dashboard": "^13.4",
                 "typo3/cms-extbase": "^13.4",
                 "typo3/cms-extensionmanager": "^13.4",
                 "typo3/cms-felogin": "^13.4",
@@ -1277,14 +1260,31 @@
                 "typo3/cms-frontend": "^13.4",
                 "typo3/cms-info": "^13.4",
                 "typo3/cms-install": "^13.4",
-                "typo3/cms-lowlevel": "^13.4",
                 "typo3/cms-recordlist": "^13.4",
                 "typo3/cms-rte-ckeditor": "^13.4",
                 "typo3/cms-scheduler": "^13.4",
                 "typo3/cms-setup": "^13.4",
                 "typo3/cms-t3editor": "^13.4",
                 "typo3/cms-tstemplate": "^13.4",
-                "typo3/testing-framework": "^8.0"
+                "typo3/cms-lowlevel": "^13.4",
+                "helmich/typo3-typoscript-lint": "^3.1",
+                "mikey179/vfsstream": "^1.6",
+                "friendsofphp/php-cs-fixer": "^3.10",
+                "squizlabs/php_codesniffer": "^3.5",
+                "phpmd/phpmd": "^2.8",
+                "behat/behat": "^3.8",
+                "se/selenium-server-standalone": "^3.141",
+                "symfony/config": "^7.1",
+                "friends-of-behat/mink-extension": "^2.5",
+                "behat/mink-selenium2-driver": "^1.5",
+                "typo3/cms-adminpanel": "^13.4",
+                "typo3/cms-belog": "^13.4",
+                "typo3/cms-beuser": "^13.4",
+                "typo3/cms-dashboard": "^13.4",
+                "friends-of-behat/mink-browserkit-driver": "^1.5",
+                "drevops/behat-screenshot": "^1.1",
+                "typo3/testing-framework": "^8.0",
+                "phpstan/phpstan": "^2.1"
             },
             "type": "typo3-cms-extension",
             "extra": {
@@ -1328,15 +1328,15 @@
             "homepage": "https://github.com/einpraegsam/powermail",
             "keywords": [
                 "form",
+                "typo3",
                 "mailform",
-                "spamprevention",
-                "typo3"
+                "spamprevention"
             ],
             "support": {
                 "issues": "https://github.com/in2code-de/powermail/issues",
-                "source": "https://github.com/in2code-de/powermail/tree/13.1.0"
+                "source": "https://github.com/in2code-de/powermail/tree/13.2.1"
             },
-            "time": "2026-03-14T13:18:04+00:00"
+            "time": "2026-08-25T06:58:05+00:00"
         },
         {
             "name": "lolli42/finediff",
