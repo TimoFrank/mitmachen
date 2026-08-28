@@ -2,6 +2,16 @@
 
 Kompakte Zusammenfassung der wichtigsten Funktionssprünge des Versorgungs-Kompass.
 
+## Version 0.24 - Neues in Version 0.24
+
+28. August 2026
+
+Der Versorgungs-Kompass wird klarer, verlässlicher und leichter nutzbar. Die neuen Verbesserungen unterstützen das Netzwerk dabei, Wissen zu teilen und gemeinsam ins Handeln zu kommen.
+
+### Verbesserungen für Versorgungs-Kompass
+
+Der Bereich Versorgungs-Kompass wurde weiterentwickelt. Die Änderung erleichtert die tägliche Arbeit mit dem Versorgungs-Kompass. Wichtige Informationen und Funktionen sind dadurch schneller erreichbar.
+
 ## Version 0.23 - Sicherer Zugang. Verlässliche Releases.
 
 9. August 2026

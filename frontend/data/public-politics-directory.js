@@ -15,7 +15,7 @@ window.VERSORGUNGS_COMPASS_PUBLIC_POLITICS_DIRECTORY = Object.freeze({
   "membership": "Ordentliche Mitglieder",
   "sourceUrl": "https://www.bundestag.de/ausschuesse/gesundheit/",
   "constituencySourceUrl": "https://www.bundestag.de/abgeordnete/wahlkreise/",
-  "fetchedAt": "2026-07-30T16:29:35.917Z",
+  "fetchedAt": "2026-08-28T16:51:24.934Z",
   "memberCount": 38,
   "stale": false,
   "members": [

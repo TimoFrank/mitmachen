@@ -5760,6 +5760,16 @@
 
       const appVersionHistory = [
         {
+          version: "0.24.0",
+          date: "28. August 2026",
+          title: "Neues in Version 0.24",
+          icon: "start",
+          summary: "Der Versorgungs-Kompass wird klarer, verlässlicher und leichter nutzbar. Die neuen Verbesserungen unterstützen das Netzwerk dabei, Wissen zu teilen und gemeinsam ins Handeln zu kommen.",
+          items: [
+            "Verbesserungen für Versorgungs-Kompass: Der Bereich Versorgungs-Kompass wurde weiterentwickelt. Die Änderung erleichtert die tägliche Arbeit mit dem Versorgungs-Kompass. Wichtige Informationen und Funktionen sind dadurch schneller erreichbar."
+          ]
+        },
+        {
           version: "0.23.0",
           date: "9. August 2026",
           title: "Sicherer Zugang. Verlässliche Releases.",
