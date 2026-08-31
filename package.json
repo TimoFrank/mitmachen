@@ -135,7 +135,7 @@
   },
   "devDependencies": {
     "@playwright/test": "1.62.1",
-    "esbuild": "0.28.1"
+    "esbuild": "0.28.2"
   },
   "dependencies": {
     "leaflet": "1.9.4",
