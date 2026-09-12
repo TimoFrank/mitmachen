@@ -158,7 +158,7 @@ assert.deepEqual(
 );
 assert.equal(
   apiPackage.dependencies.nodemailer,
-  "10.0.8",
+  "10.0.9",
   "Der gehaertete SMTP-Client fuer Reset-Mails muss exakt gepinnt sein."
 );
 assert.equal(apiPackage.dependencies.pg, "8.21.0", "Die API-Laufzeitabhaengigkeit muss exakt gepinnt sein.");
