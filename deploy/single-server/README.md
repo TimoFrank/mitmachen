@@ -2,23 +2,23 @@
 
 ## Zweck und Status
 
-Dieses Verzeichnis beschreibt einen bewusst kleinen Uebergangsbetrieb fuer
+Dieses Verzeichnis beschreibt einen bewusst kleinen Übergangsbetrieb für
 ein bis vier namentlich zugelassene Nutzer auf einem Linux-VPS mit 4 GiB RAM.
 Der Stack besteht aus Caddy, OAuth2 Proxy, statischem Frontend, Node-API und
 PostgreSQL. Datenbank, Objektdaten und lokale Backup-Staging-Dateien liegen
-ausserhalb des Git-Checkouts unter `STATE_DIR`; das verschluesselte Backup liegt
+außerhalb des Git-Checkouts unter `STATE_DIR`; das verschlüsselte Backup liegt
 in einem getrennten S3-kompatiblen Objektspeicher.
 
-Die Dateien sind eine Betriebsgrundlage, kein automatisch ausgefuehrtes
+Die Dateien sind eine Betriebsgrundlage, kein automatisch ausgeführtes
 Deployment. Insbesondere werden dadurch keine Server bestellt, keine DNS- oder
-Google-Einstellungen geaendert und keine GCP-Ressourcen abgeschaltet. Ein
-produktiver Cutover bleibt eine ausdrueckliche Betreiberentscheidung.
+Google-Einstellungen geändert und keine GCP-Ressourcen abgeschaltet. Ein
+produktiver Cutover bleibt eine ausdrückliche Betreiberentscheidung.
 
 Stand 11. September 2026 ist der kontrollierte Datenbank-Migrationsweg lokal
-vorbereitet, aber es wurde noch **kein echter Live-Dump exportiert, uebertragen
+vorbereitet, aber es wurde noch **kein echter Live-Dump exportiert, übertragen
 oder auf einem Einzelserver importiert**. Der aktuelle Read-only-Livebefund zu
 den vier privaten Datenbuckets ist weiter unten als Momentaufnahme dokumentiert;
-auch er ersetzt nicht die erneute Cutover-Pruefung.
+auch er ersetzt nicht die erneute Cutover-Prüfung.
 
 Die produktiven Serverpfade sind aus Schutz vor versehentlicher Umberechtigung
 kritischer Hostverzeichnisse fest vorgegeben:
@@ -28,50 +28,50 @@ kritischer Hostverzeichnisse fest vorgegeben:
 - Secrets: `/etc/versorgungs-kompass/secrets`
 - Betriebsdaten: `/var/lib/versorgungs-kompass`
 
-Bei einem anderen Checkout-Pfad muessen die fuenf Vorlagen unter `systemd/` vor
+Bei einem anderen Checkout-Pfad müssen die fünf Vorlagen unter `systemd/` vor
 der Installation konsistent angepasst werden. `CONFIG_DIR` und `STATE_DIR`
-bleiben auch dann unveraendert; der Live-Preflight lehnt andere Werte ab.
+bleiben auch dann unverändert; der Live-Preflight lehnt andere Werte ab.
 
 ## Architektur und Grenzen
 
-Der oeffentliche Verkehr erreicht ausschliesslich Caddy auf Port 80 oder 443.
-Caddy stellt Zertifikate automatisch aus und gibt geschuetzte Pfade an OAuth2
+Der öffentliche Verkehr erreicht ausschließlich Caddy auf Port 80 oder 443.
+Caddy stellt Zertifikate automatisch aus und gibt geschützte Pfade an OAuth2
 Proxy. Nach erfolgreicher Google-Anmeldung liefert der interne Caddy entweder
-das Frontend oder die API aus. Die API erreicht PostgreSQL nur ueber einen
+das Frontend oder die API aus. Die API erreicht PostgreSQL nur über einen
 Unix-Socket; PostgreSQL besitzt weder einen Host-Port noch ein Containernetz.
 
-Die Grenze besteht aus zwei voneinander unabhaengigen Pruefungen:
+Die Grenze besteht aus zwei voneinander unabhängigen Prüfungen:
 
 1. OAuth2 Proxy akzeptiert nur Adressen aus `allowed-emails`.
 2. Die API akzeptiert nur eine aktive Google-Subject-Bindung zu einem aktiven
    Profil in PostgreSQL.
 
 Eine E-Mail-Adresse in der Gateway-Allowlist erzeugt noch keine
-Datenbankbindung. Bestehende IAP-Bindungen duerfen nicht ungeprueft als
-Google-OIDC-Bindungen behandelt werden; Issuer und Subject muessen vor dem
+Datenbankbindung. Bestehende IAP-Bindungen dürfen nicht ungeprüft als
+Google-OIDC-Bindungen behandelt werden; Issuer und Subject müssen vor dem
 Cutover separat und personenbezogen abgeglichen werden.
 
 Der Stack setzt enge Container-Rechte, nur lesbare Dateisysteme, CPU-/RAM- und
 Prozessgrenzen sowie gepinnte Fremd-Images ein. Trotzdem gelten folgende
-bewusste Einschraenkungen:
+bewusste Einschränkungen:
 
-- Ein einzelner VPS ist ein gemeinsamer Ausfallbereich ohne Hochverfuegbarkeit.
+- Ein einzelner VPS ist ein gemeinsamer Ausfallbereich ohne Hochverfügbarkeit.
 - Docker und die systemd-Units laufen root-basiert. Zugriff auf den
   Docker-Socket entspricht praktisch Root-Zugriff.
 - Es gibt keinen vorgeschalteten Cloud-WAF- oder DDoS-Schutz.
-- Caddy-Request-Logs und API-Request-Logs sind aus Datenschutzgruenden
+- Caddy-Request-Logs und API-Request-Logs sind aus Datenschutzgründen
   deaktiviert. Das reduziert zugleich die forensische Detailtiefe.
 - Ausgehende Verbindungen werden nach Containernetzen getrennt, aber **nicht
   nach Ziel-Domains freigelistet**. Caddy, OAuth2 Proxy, API und das
-  Backup-Werkzeug koennen ueber ihre nicht-internen Netze grundsaetzlich andere
+  Backup-Werkzeug können über ihre nicht-internen Netze grundsaetzlich andere
   Internetziele erreichen. Eine Domain-Allowlist ist wegen dynamischer
-  Google-, ACME-, CDN- und S3-Ziele in diesem Uebergangsbetrieb nicht umgesetzt.
-- Lokale Daten sind nur so gut gegen physischen Zugriff geschuetzt wie die
-  Datentraeger-Verschluesselung und das Zugriffskonzept des VPS-Anbieters.
-- Der Restore-Test prueft Daten und Tabellenmengen in einer getrennten
+  Google-, ACME-, CDN- und S3-Ziele in diesem Übergangsbetrieb nicht umgesetzt.
+- Lokale Daten sind nur so gut gegen physischen Zugriff geschützt wie die
+  Datenträger-Verschlüsselung und das Zugriffskonzept des VPS-Anbieters.
+- Der Restore-Test prüft Daten und Tabellenmengen in einer getrennten
   PostgreSQL-Instanz. Die Umschaltung eines Restores in den Live-Pfad ist
   absichtlich nicht automatisiert.
-- Datei-Uploads sind deaktiviert. Bereits migrierte Objekte koennen aus dem
+- Datei-Uploads sind deaktiviert. Bereits migrierte Objekte können aus dem
   lokalen Objektspeicher gelesen werden, neue Upload-Flows sind nicht Teil
   dieses Betriebsmodus.
 
@@ -79,30 +79,30 @@ bewusste Einschraenkungen:
 
 Empfohlen sind mindestens zwei vCPU, 4 GiB RAM und 40 GiB SSD auf einer
 gepflegten Linux-LTS-Version. Vor jedem Deployment verlangt der Preflight
-mindestens 5 GiB freien Platz unter `STATE_DIR`. Zusaetzlich werden benoetigt:
+mindestens 5 GiB freien Platz unter `STATE_DIR`. Zusätzlich werden benötigt:
 
-- feste oeffentliche IPv4-Adresse; IPv6 nur, wenn es vollstaendig konfiguriert
+- feste öffentliche IPv4-Adresse; IPv6 nur, wenn es vollständig konfiguriert
   und genauso gefiltert ist,
 - aktuelle Docker Engine mit Compose-Plugin,
 - Git, Node.js/npm, curl, OpenSSL und `flock` aus `util-linux`,
-- ein integrierter, unveraenderter `main`-Checkout,
+- ein integrierter, unveränderter `main`-Checkout,
 - ein Google-OAuth-Webclient,
-- ein separates S3-kompatibles Backup-Ziel mit eigenem Zugriffsschluessel,
-- serverseitige Datentraeger-Verschluesselung beim VPS-Anbieter, soweit
-  verfuegbar,
-- eine zweite, getestete Administrator-Zugangsmoeglichkeit beim Anbieter, etwa
+- ein separates S3-kompatibles Backup-Ziel mit eigenem Zugriffsschlüssel,
+- serverseitige Datenträger-Verschlüsselung beim VPS-Anbieter, soweit
+  verfügbar,
+- eine zweite, getestete Administrator-Zugangsmöglichkeit beim Anbieter, etwa
   eine Rescue-Konsole.
 
 Die Backups sollten in einer anderen Ausfallzone oder bei einem anderen
-Anbieter liegen. Der Backup-Schluessel benoetigt nur den vorgesehenen
-Bucket/Praefix. Bucket-Versionierung oder Object Lock schuetzen zusaetzlich vor
-versehentlichem oder kompromittiertem Loeschen.
+Anbieter liegen. Der Backup-Schlüssel benötigt nur den vorgesehenen
+Bucket/Präfix. Bucket-Versionierung oder Object Lock schützen zusätzlich vor
+versehentlichem oder kompromittiertem Löschen.
 
 ## 1. Host und Firewall vorbereiten
 
-Zuerst Docker gemaess der offiziellen Anleitung fuer die verwendete
-Distribution installieren. Keine ungeprueften Convenience-Skripte aus einer
-Shell-Pipeline ausfuehren. Danach Docker fuer den Boot aktivieren und einen
+Zuerst Docker gemäß der offiziellen Anleitung für die verwendete
+Distribution installieren. Keine ungeprüften Convenience-Skripte aus einer
+Shell-Pipeline ausführen. Danach Docker für den Boot aktivieren und einen
 Reboot-Test einplanen.
 
 Die Firewall wird sowohl beim VPS-Anbieter als auch auf dem Host gesetzt. Der
@@ -110,14 +110,14 @@ Sollzustand ist:
 
 | Richtung | Freigabe | Quelle | Zweck |
 | --- | --- | --- | --- |
-| eingehend | TCP 22 | genau ein vertrauenswuerdiges Admin-CIDR | SSH |
+| eingehend | TCP 22 | genau ein vertrauenswürdiges Admin-CIDR | SSH |
 | eingehend | TCP 80 | Internet | ACME und HTTPS-Weiterleitung |
 | eingehend | TCP 443 | Internet | HTTPS |
 | eingehend | UDP 443 | Internet | HTTP/3; kann entfallen, wenn bewusst deaktiviert |
 | eingehend | alles andere | keine | blockieren |
 | ausgehend | erforderlich | Internet | Google OIDC/JWKS, ACME, S3; bei Updates Git/Registry/npm |
 
-Beispiel fuer Ubuntu mit UFW; `<ADMIN-CIDR>` muss vor dem Aktivieren ersetzt
+Beispiel für Ubuntu mit UFW; `<ADMIN-CIDR>` muss vor dem Aktivieren ersetzt
 werden:
 
 ```bash
@@ -132,19 +132,19 @@ sudo ufw enable
 
 Die bestehende SSH-Sitzung offen halten und parallel eine zweite Anmeldung
 testen, bevor allgemeine SSH-Regeln entfernt werden. Provider-Firewall und UFW
-muessen denselben Sollzustand besitzen. Docker kann Host-Firewallregeln je nach
-Distribution ueber eigene nftables-/iptables-Regeln beeinflussen. Deshalb von
-einem externen Netz pruefen, dass ausschliesslich 22 vom Admin-CIDR sowie 80 und
-443 erreichbar sind. Die internen Ports 4180, 8080 und 5432 duerfen nie am Host
+müssen denselben Sollzustand besitzen. Docker kann Host-Firewallregeln je nach
+Distribution über eigene nftables-/iptables-Regeln beeinflussen. Deshalb von
+einem externen Netz prüfen, dass ausschließlich 22 vom Admin-CIDR sowie 80 und
+443 erreichbar sind. Die internen Ports 4180, 8080 und 5432 dürfen nie am Host
 lauschen.
 
 ## 2. DNS und Google OAuth vorbereiten
 
 Den DNS-TTL mindestens einen Tag vor dem geplanten Cutover reduzieren. Vor dem
 Cutover zeigt die produktive Domain weiterhin auf den alten Dienst. Einen
-`AAAA`-Record nur setzen, wenn der neue Host ueber funktionierendes und
-gefiltertes IPv6 verfuegt; ein alter oder falscher `AAAA`-Record kann einen Teil
-der Nutzer am neuen Server vorbeifuehren.
+`AAAA`-Record nur setzen, wenn der neue Host über funktionierendes und
+gefiltertes IPv6 verfügt; ein alter oder falscher `AAAA`-Record kann einen Teil
+der Nutzer am neuen Server vorbeiführen.
 
 In Google Auth Platform:
 
@@ -153,24 +153,24 @@ In Google Auth Platform:
 2. Unter Credentials einen OAuth-Client vom Typ **Web application** anlegen.
 3. Als autorisierten Redirect exakt
    `https://versorgungs-kompass.de/oauth2/callback` eintragen. Schema, Host,
-   Gross-/Kleinschreibung und abschliessender Pfad muessen exakt passen.
+   Groß-/Kleinschreibung und abschließender Pfad müssen exakt passen.
 4. Bei Status **Testing** jede der ein bis vier Personen als Testnutzer
    aufnehmen. Google kann Testautorisierungen nach sieben Tagen ablaufen lassen;
-   fuer zwei bis drei Monate ist daher entweder wiederholte Anmeldung bewusst
+   für zwei bis drei Monate ist daher entweder wiederholte Anmeldung bewusst
    zu akzeptieren oder der passende Produktionsstatus samt den aktuell
-   verlangten Branding-/Datenschutzangaben zu klaeren.
+   verlangten Branding-/Datenschutzangaben zu klären.
 5. Client-ID in die Environment-Datei und Client-Secret ohne Zeilenumbruch in
-   die geschuetzte Secret-Datei uebernehmen.
+   die geschützte Secret-Datei übernehmen.
 
-Aktuelle Primaerquellen:
+Aktuelle Primärquellen:
 
-- [Google OAuth 2.0 fuer Webserver-Anwendungen](https://developers.google.com/identity/protocols/oauth2/web-server)
+- [Google OAuth 2.0 für Webserver-Anwendungen](https://developers.google.com/identity/protocols/oauth2/web-server)
 - [Google OAuth-Richtlinien](https://developers.google.com/identity/protocols/oauth2/policies)
 - [Test- und Produktionsstatus](https://support.google.com/cloud/answer/15549945?hl=en)
 
-Der Google-Client ist kein Ersatz fuer die lokale E-Mail-Allowlist und die
+Der Google-Client ist kein Ersatz für die lokale E-Mail-Allowlist und die
 aktive Datenbankbindung. Eine verpflichtende Mehrfaktor-Authentisierung wird
-durch diesen Stack selbst nicht erzwungen; sie haengt von den verwendeten
+durch diesen Stack selbst nicht erzwungen; sie hängt von den verwendeten
 Google-Konten und deren Richtlinien ab.
 
 ## 3. Checkout, Environment und Secrets anlegen
@@ -193,44 +193,44 @@ sudo install -d -m 0700 -o 70 -g 70 \
   /var/lib/versorgungs-kompass-migration
 ```
 
-`MIGRATION_DIR` muss ein kanonischer absoluter Pfad ausserhalb von Git-Checkout,
+`MIGRATION_DIR` muss ein kanonischer absoluter Pfad außerhalb von Git-Checkout,
 `STATE_DIR` und `CONFIG_DIR` sein. `prepare-host.sh` legt ihn absichtlich nicht
-an. Die voreingestellte Dump-Grenze betraegt 5 GiB und darf hoechstens auf
+an. Die voreingestellte Dump-Grenze beträgt 5 GiB und darf höchstens auf
 10 GiB angehoben werden.
 
-Anschliessend legt die Host-Vorbereitung Betriebsverzeichnisse sowie zufaellige
-lokale Datenbank-, Cookie- und restic-Passwoerter und den separaten HMAC-
-Schluessel fuer kurzlebige Identity-Bootstrap-Claims an:
+Anschließend legt die Host-Vorbereitung Betriebsverzeichnisse sowie zufällige
+lokale Datenbank-, Cookie- und restic-Passwörter und den separaten HMAC-
+Schlüssel für kurzlebige Identity-Bootstrap-Claims an:
 
 ```bash
 sudo /opt/versorgungs-kompass/current/deploy/single-server/prepare-host.sh \
   /etc/versorgungs-kompass/single-server.env
 ```
 
-Die Vorbereitung bricht vor jeder Rechteaenderung ab, wenn einer der festen
+Die Vorbereitung bricht vor jeder Rechteänderung ab, wenn einer der festen
 Eltern-, Daten-, Unter- oder Secret-Pfade ein Symlink, ein nichtkanonischer Pfad
 oder ein unerwarteter Dateityp ist. Solche Abweichungen werden nicht automatisch
-repariert, sondern muessen zuerst als Host-Incident geklaert werden.
+repariert, sondern müssen zuerst als Host-Incident geklärt werden.
 
-Danach genau die gemeldeten Dateien manuell befuellen und ohne
+Danach genau die gemeldeten Dateien manuell befüllen und ohne
 Zwischenablage im Checkout installieren:
 
-- `google-oauth-client-secret`: genau eine Zeile ohne abschliessenden
+- `google-oauth-client-secret`: genau eine Zeile ohne abschließenden
   Zeilenumbruch,
 - `allowed-emails`: eine bis vier kleingeschriebene Adressen, genau eine pro
   Zeile, keine Leerzeilen,
 - `restic-repository`: S3-Ziel in der Form `s3:https://...`, ohne
   Zeilenumbruch,
-- `restic-aws-credentials`: eigenes `[default]`-Profil mit eingeschraenktem
+- `restic-aws-credentials`: eigenes `[default]`-Profil mit eingeschränktem
   Access Key und Secret Key.
 
 Die Laufzeit-Secrets sind absichtlich nicht pauschal `root:root`: File-basierte
 Compose-Secrets werden auf einem Linux-Host nicht auf die Container-UID
-umgeschrieben. Deshalb gehoeren Datenbank- und restic-Dateien numerisch
-`70:70`; die drei OAuth2-Proxy-Dateien gehoeren `65532:65532`. Alle besitzen
-Modus `0600`, sind regulaere Dateien ohne Symlink und liegen in dem
-`root:root`/`0700` geschuetzten `CONFIG_DIR`. Docker bindet nur die jeweils
-benoetigte Datei read-only in den passenden Container. Beispiel:
+umgeschrieben. Deshalb gehören Datenbank- und restic-Dateien numerisch
+`70:70`; die drei OAuth2-Proxy-Dateien gehören `65532:65532`. Alle besitzen
+Modus `0600`, sind reguläre Dateien ohne Symlink und liegen in dem
+`root:root`/`0700` geschützten `CONFIG_DIR`. Docker bindet nur die jeweils
+benötigte Datei read-only in den passenden Container. Beispiel:
 
 ```bash
 sudo install -m 0600 -o 65532 -g 65532 /geschuetzt/google-oauth-client-secret \
@@ -243,17 +243,17 @@ sudo install -m 0600 -o 70 -g 70 /geschuetzt/restic-aws-credentials \
   /etc/versorgungs-kompass/secrets/restic-aws-credentials
 ```
 
-Die Quelldateien danach gezielt entfernen. Das abschliessende Preflight prueft
+Die Quelldateien danach gezielt entfernen. Das abschließende Preflight prüft
 Form, exakte UID/GID, Rechte, Verzeichnisse, freien Speicher, Compose sowie die
 Lesezugriffe der realen Container-UIDs und die OAuth2-Proxy-Konfiguration. Es
-verlangt zusaetzlich den in Abschnitt 5 beschriebenen aktuellen Recovery-
-Escrow-Nachweis und wird deshalb erst nach dessen echtem Abruf-Test ausgefuehrt.
+verlangt zusätzlich den in Abschnitt 5 beschriebenen aktuellen Recovery-
+Escrow-Nachweis und wird deshalb erst nach dessen echtem Abruf-Test ausgeführt.
 
-## 4. Bestehende Daten vor dem Cutover klaeren
+## 4. Bestehende Daten vor dem Cutover klären
 
 Die Single-Server-Skripte initialisieren zuerst eine **neue, leere**
 PostgreSQL-16-Datenbank mit dem versionierten Schema, den Loginrollen und den
-engen Laufzeitrechten. Fuer die anschliessende reine Datenuebernahme gibt es
+engen Laufzeitrechten. Für die anschließende reine Datenübernahme gibt es
 jetzt den abgesicherten Pfad unter
 [`migration/`](migration/README.md). Er importiert weder Schema noch Rollen,
 ACLs, Funktionen oder Extensions und ist kein allgemeiner Restore-Mechanismus.
@@ -265,46 +265,46 @@ Anwendungsbuckets jeweils **null Objekte**:
 
 - Profilbilder,
 - Kontaktbilder,
-- Kontakt-Notizanhaenge,
+- Kontakt-Notizanhänge,
 - Stakeholder-Logos.
 
 Das ist nur eine Momentaufnahme. Unmittelbar vor dem Datenbankexport und erneut
-vor dem Cutover muessen die **vier exakten, aktuell deployten Bucket-Namen** aus
-der geschuetzten Laufzeitkonfiguration beziehungsweise den Terraform-Outputs
+vor dem Cutover müssen die **vier exakten, aktuell deployten Bucket-Namen** aus
+der geschützten Laufzeitkonfiguration beziehungsweise den Terraform-Outputs
 ermittelt und read-only inventarisiert werden. Je Bucket werden Name, Zeitpunkt,
 erfolgreiche Leseberechtigung und Objektzahl protokolliert. Ein Objekt, ein
 abweichender Bucket-Name, eine fehlende Leseberechtigung oder ein nicht
-vollstaendig bestimmbarer Bestand stoppt den Cutover.
+vollständig bestimmbarer Bestand stoppt den Cutover.
 
 Es gibt in diesem Paket bewusst **keinen GCS-Importer**. Auch
-`LEGACY_PROFILE_IMAGE_BUCKET` kopiert keine Dateien. Zusaetzlich zur direkten
-Bucket-Inventur muss das Datenbankmanifest fuer `contact_images`,
+`LEGACY_PROFILE_IMAGE_BUCKET` kopiert keine Dateien. Zusätzlich zur direkten
+Bucket-Inventur muss das Datenbankmanifest für `contact_images`,
 `contact_note_attachments`, `profile_images` und `stakeholder_logos` jeweils
-null Referenzen ausweisen. Direkte Bucket-Zaehlung und Datenbankreferenzen sind
-zwei getrennte Gates. Die alten Buckets bleiben waehrend des Rollback-Fensters
-unveraendert erhalten.
+null Referenzen ausweisen. Direkte Bucket-Zählung und Datenbankreferenzen sind
+zwei getrennte Gates. Die alten Buckets bleiben während des Rollback-Fensters
+unverändert erhalten.
 
 ### Exportpaket auf der schreibgesperrten Quelle
 
-Die vollstaendigen, kopierbaren Exportbefehle stehen in
-[`migration/README.md`](migration/README.md). Sie duerfen nur in einer
-freigegebenen Quellumgebung mit PostgreSQL-16-Clientwerkzeugen ausgefuehrt
+Die vollständigen, kopierbaren Exportbefehle stehen in
+[`migration/README.md`](migration/README.md). Sie dürfen nur in einer
+freigegebenen Quellumgebung mit PostgreSQL-16-Clientwerkzeugen ausgeführt
 werden. Zuvor friert der versionierte GKE-Operator nach Preview und exakter
-Bestaetigung das gebundene API-Deployment ein; ein Frozen-Readback muss null
-Replikas und null API-Pods nachweisen. Ein separat geschuetzter globaler
-Writer-Nachweis attestiert zusaetzlich, dass weder andere Namespaces noch
+Bestätigung das gebundene API-Deployment ein; ein Frozen-Readback muss null
+Replikas und null API-Pods nachweisen. Ein separat geschützter globaler
+Writer-Nachweis attestiert zusätzlich, dass weder andere Namespaces noch
 externe Clients in die gebundene Cloud-SQL-Instanz schreiben. Der
-Export-Wrapper verlangt diesen Nachweis, prueft den GKE-Freeze unmittelbar vor
+Export-Wrapper verlangt diesen Nachweis, prüft den GKE-Freeze unmittelbar vor
 und nach dem Export erneut und bricht bei jeder Abweichung ab. Die Quelle bleibt
-bis zum ausdruecklichen Unfreeze schreibgesperrt.
+bis zum ausdrücklichen Unfreeze schreibgesperrt.
 
-Die tatsaechlich deployte Quellrevision wird als Herkunftsnachweis erfasst.
-Davon getrennt muss die fuer den Einzelserver vorgesehene Zielrevision exakt dem
-Ziel-Checkout entsprechen; Quell- und Zielrevision duerfen und werden im
-Regelfall voneinander abweichen. Beide Werte muessen ausserhalb des Pakets am
+Die tatsächlich deployte Quellrevision wird als Herkunftsnachweis erfasst.
+Davon getrennt muss die für den Einzelserver vorgesehene Zielrevision exakt dem
+Ziel-Checkout entsprechen; Quell- und Zielrevision dürfen und werden im
+Regelfall voneinander abweichen. Beide Werte müssen außerhalb des Pakets am
 jeweiligen System nachgewiesen werden.
 
-Der Export erzeugt ausserhalb von Git, `STATE_DIR` und `CONFIG_DIR` genau diese
+Der Export erzeugt außerhalb von Git, `STATE_DIR` und `CONFIG_DIR` genau diese
 sechs Dateien:
 
 ```text
@@ -318,46 +318,46 @@ SHA256SUMS
 
 Dabei gilt:
 
-1. `database.dump` ist ein PostgreSQL-Custom-Dump mit `--data-only` fuer das
+1. `database.dump` ist ein PostgreSQL-Custom-Dump mit `--data-only` für das
    Schema `public`; der TOC darf nur `TABLE DATA` und `SEQUENCE SET` enthalten.
 2. `migration-metadata.tsv` bindet Datenbankname, Formatversion,
    PostgreSQL-Hauptversion 16, die deployte Quellrevision als Provenienz, die
    vom Import erzwungene Zielrevision, Cloud-SQL-Ziel, GKE-Freeze,
    Namespace-Inventur, globalen Writer-Nachweis und den einen exportierten
    PostgreSQL-Snapshot.
-3. `row-counts.tsv` enthaelt jede `public`-Anwendungstabelle genau einmal,
+3. `row-counts.tsv` enthält jede `public`-Anwendungstabelle genau einmal,
    sortiert und mit der Zeilenzahl aus der weiterhin schreibgesperrten Quelle.
-4. `storage-reference-counts.tsv` enthaelt die vier oben genannten
+4. `storage-reference-counts.tsv` enthält die vier oben genannten
    Objektreferenztypen mit jeweils null.
 5. `SHA256SUMS` bindet Dump, TOC und die drei Manifeste an ihre SHA-256-Werte.
-   Der Zielwrapper bildet zusaetzlich den SHA-256-Fingerprint dieser
-   `SHA256SUMS`-Datei fuer die menschliche Importbestaetigung.
+   Der Zielwrapper bildet zusätzlich den SHA-256-Fingerprint dieser
+   `SHA256SUMS`-Datei für die menschliche Importbestätigung.
 
-TOC, beide Zaehlmanifeste, Metadaten und Checksummen werden vor der Uebertragung
-ueber einen getrennten Lesepfad geprueft. Die Quellverbindung nutzt die im
+TOC, beide Zählmanifeste, Metadaten und Checksummen werden vor der Übertragung
+über einen getrennten Lesepfad geprüft. Die Quellverbindung nutzt die im
 Migrations-Runbook beschriebenen owner-only libpq-Service- und Passwortdateien;
 das Passwort erscheint weder in einem Prozessargument noch in einer
-Environment-Variable. Das Paket wird verschluesselt zum Zielhost uebertragen,
+Environment-Variable. Das Paket wird verschlüsselt zum Zielhost übertragen,
 ohne DSN oder Secrets in Shell-Historie, Git oder Logs zu schreiben. Auf dem
-Ziel gehoeren Verzeichnis und Dateien UID/GID `70:70`;
+Ziel gehören Verzeichnis und Dateien UID/GID `70:70`;
 das Verzeichnis hat Modus `0700`, jede Datei `0600`. Weitere, versteckte oder
-verlinkte Dateien sind unzulaessig.
+verlinkte Dateien sind unzulässig.
 
 ### Zweistufiger Import auf dem Ziel
 
-Vor dem Import muessen PostgreSQL und API bereits laufen und die vom Bootstrap
+Vor dem Import müssen PostgreSQL und API bereits laufen und die vom Bootstrap
 angelegte Zieldatenbank muss in **jeder** Anwendungstabelle leer sein. Der erste
-Aufruf prueft Paket, Dateirechte, Groessengrenze, alle SHA-256-Werte,
+Aufruf prüft Paket, Dateirechte, Größengrenze, alle SHA-256-Werte,
 Metadatenrevision und Verzeichnisinventar read-only. Sein Exitcode `2` ist in
-diesem Fall beabsichtigt; er gibt den paketgebundenen Bestaetigungstext aus:
+diesem Fall beabsichtigt; er gibt den paketgebundenen Bestätigungstext aus:
 
 ```bash
 sudo /opt/versorgungs-kompass/current/deploy/single-server/migration/import-database.sh \
   /etc/versorgungs-kompass/single-server.env
 ```
 
-Nach unabhaengiger Sichtpruefung wird exakt dieser Text als zweites Argument
-wiederholt; `<64-HEX-FINGERPRINT>` wird nicht frei gewaehlt:
+Nach unabhängiger Sichtprüfung wird exakt dieser Text als zweites Argument
+wiederholt; `<64-HEX-FINGERPRINT>` wird nicht frei gewählt:
 
 ```bash
 sudo /opt/versorgungs-kompass/current/deploy/single-server/migration/import-database.sh \
@@ -365,35 +365,35 @@ sudo /opt/versorgungs-kompass/current/deploy/single-server/migration/import-data
   'IMPORT versorgungs_kompass PACKAGE <64-HEX-FINGERPRINT>'
 ```
 
-Der Wrapper stoppt erst nach der exakten Bestaetigung die API. Der
+Der Wrapper stoppt erst nach der exakten Bestätigung die API. Der
 `database-import`-Service besitzt kein Netzwerk und sieht das Paket nur
 read-only. Im Container werden Dump und TOC nochmals verglichen, Ziel- und
-Quelltabelleninventar abgeglichen und die vollstaendig leere Zieldatenbank
-geprueft. Erst dann importiert `pg_restore` Daten und Sequenzstaende in einer
-Transaktion. Nach dem Import muessen alle Tabellen- und
-Objektreferenzzaehlungen bytegenau zu den Manifesten passen. Danach startet der
-Wrapper die API und verlangt `healthy`. Bei jedem Import- oder Prueffehler bleibt
-die API absichtlich gestoppt, sobald der Wrapper sie fuer den bestaetigten
-Import angehalten hat; nicht ungeprueft neu starten. Nach einem harten Abbruch
+Quelltabelleninventar abgeglichen und die vollständig leere Zieldatenbank
+geprüft. Erst dann importiert `pg_restore` Daten und Sequenzstände in einer
+Transaktion. Nach dem Import müssen alle Tabellen- und
+Objektreferenzzählungen bytegenau zu den Manifesten passen. Danach startet der
+Wrapper die API und verlangt `healthy`. Bei jedem Import- oder Prüffehler bleibt
+die API absichtlich gestoppt, sobald der Wrapper sie für den bestätigten
+Import angehalten hat; nicht ungeprüft neu starten. Nach einem harten Abbruch
 und vorhandenem `.database-import-recovery-required`-Marker zuerst jede offene
-Backup-Recovery abschliessen und dann den paketgebundenen Readback ausfuehren:
+Backup-Recovery abschließen und dann den paketgebundenen Readback ausführen:
 
 ```bash
 sudo /opt/versorgungs-kompass/current/deploy/single-server/migration/import-database.sh \
   /etc/versorgungs-kompass/single-server.env RECOVER
 ```
 
-Nur ein nachweislich vollstaendig importierter oder atomar leer gebliebener
+Nur ein nachweislich vollständig importierter oder atomar leer gebliebener
 Zustand gibt API und Marker wieder frei. Ein Fehler im ersten read-only
-Paketlauf veraendert dagegen weder API noch Datenbank.
+Paketlauf verändert dagegen weder API noch Datenbank.
 
-### Identity-Bindungen fachlich pruefen
+### Identity-Bindungen fachlich prüfen
 
-Der Datenimport uebernimmt `profiles` und `identity_bindings` unveraendert. Er
+Der Datenimport übernimmt `profiles` und `identity_bindings` unverändert. Er
 schreibt insbesondere keinen IAP-Issuer in Google OIDC um und ordnet keine
-E-Mail-Adresse automatisch einem Subject zu. Deshalb werden vor dem Oeffnen fuer
-jede der ein bis vier Personen geschuetzt und ohne Ablage in allgemeinen Logs
-mindestens folgende Werte gelesen und gegengeprueft:
+E-Mail-Adresse automatisch einem Subject zu. Deshalb werden vor dem Öffnen für
+jede der ein bis vier Personen geschützt und ohne Ablage in allgemeinen Logs
+mindestens folgende Werte gelesen und gegengeprüft:
 
 ```sql
 select p.email, p.active, p.role,
@@ -404,43 +404,43 @@ select p.email, p.active, p.role,
 ```
 
 Erwartet werden genau das freigegebene aktive Profil, die richtige Rolle und
-der richtige Scope sowie genau die kontrollierte aktive Bindung. Fuer diesen
+der richtige Scope sowie genau die kontrollierte aktive Bindung. Für diesen
 Stack muss der Issuer `https://accounts.google.com` und das Subject der
-geprueften Google-Identitaet entsprechen. Eine alte IAP-Bindung, ein fehlendes
+geprüften Google-Identität entsprechen. Eine alte IAP-Bindung, ein fehlendes
 Subject oder ein Mehrfachtreffer bleibt fail-closed; der Dump oder seine
-Manifeste werden dafuer nicht nachtraeglich editiert.
+Manifeste werden dafür nicht nachträglich editiert.
 
-### Google-Identitaet sicher erfassen und Profil binden
+### Google-Identität sicher erfassen und Profil binden
 
-Die betreffende Adresse wird zunaechst als einzige beziehungsweise naechste
+Die betreffende Adresse wird zunächst als einzige beziehungsweise nächste
 Adresse in `allowed-emails` aufgenommen und OAuth2 Proxy kontrolliert neu
-erzeugt. Die Person oeffnet zuerst im selben Browser den geschuetzten Einstieg
-und schliesst dort den Google-Login ab:
+erzeugt. Die Person öffnet zuerst im selben Browser den geschützten Einstieg
+und schließt dort den Google-Login ab:
 
 ```text
 https://versorgungs-kompass.de/start
 ```
 
 Erst mit der dadurch vorhandenen OAuth-Session wird im selben Browser der
-Claim-Pfad geoeffnet:
+Claim-Pfad geöffnet:
 
 ```text
 https://versorgungs-kompass.de/api/identity/bootstrap-claim
 ```
 
-Der Pfad liegt hinter OAuth2 Proxy und prueft das von diesem gesetzte Google-
+Der Pfad liegt hinter OAuth2 Proxy und prüft das von diesem gesetzte Google-
 ID-Token nochmals in der API. Er liefert mit `Cache-Control: no-store` nur ein
-15 Minuten gueltiges, serverseitig HMAC-signiertes `bootstrapClaim`-Artefakt
+15 Minuten gültiges, serverseitig HMAC-signiertes `bootstrapClaim`-Artefakt
 samt Ablaufzeit. Subject und verifizierte E-Mail sind in diesem Artefakt
-kryptografisch aneinander gebunden; die Provisionierung uebernimmt sie niemals
-aus getrennt editierbaren Feldern. Das Artefakt wird nur ueber den geschuetzten
-Administrationsweg auf den Zielhost uebertragen, nicht in Ticket, Chat, Git
+kryptografisch aneinander gebunden; die Provisionierung übernimmt sie niemals
+aus getrennt editierbaren Feldern. Das Artefakt wird nur über den geschützten
+Administrationsweg auf den Zielhost übertragen, nicht in Ticket, Chat, Git
 oder ein allgemeines Log kopiert.
 
-Auf dem Zielhost wird fuer genau eine Person direkt im geschuetzten
-`CONFIG_DIR` folgende Datei angelegt. `bootstrapClaim` ist der vollstaendige,
-unveraenderte String aus der Browserantwort. Die Profil-E-Mail muss exakt der
-signierten Adresse entsprechen. Bei einem migrierten Profil muessen auch alle
+Auf dem Zielhost wird für genau eine Person direkt im geschützten
+`CONFIG_DIR` folgende Datei angelegt. `bootstrapClaim` ist der vollständige,
+unveränderte String aus der Browserantwort. Die Profil-E-Mail muss exakt der
+signierten Adresse entsprechen. Bei einem migrierten Profil müssen auch alle
 anderen Profilfelder bytegenau zum vorhandenen Datensatz passen; bei einem
 dokumentierten leeren Neustart wird das Profil neu angelegt:
 
@@ -471,11 +471,11 @@ sudo /opt/versorgungs-kompass/current/deploy/single-server/identity/provision.sh
 ```
 
 Der erste Lauf ist immer ein Rollback-Preview, zeigt nur die geplanten Aktionen
-und endet absichtlich mit Exitcode `2`. Er legt eine zufaellige, hoechstens
-15 Minuten gueltige und an Eingabe plus Datenbankzustand gebundene
-Bestaetigung in zwei owner-only Dateien ab. Weder die Bestaetigung noch stabile
+und endet absichtlich mit Exitcode `2`. Er legt eine zufällige, höchstens
+15 Minuten gültige und an Eingabe plus Datenbankzustand gebundene
+Bestätigung in zwei owner-only Dateien ab. Weder die Bestätigung noch stabile
 personenbezogen ableitbare Fingerprints erscheinen in Prozessargumenten,
-Shell-History oder Ausgabe. Nach unabhaengiger Sichtpruefung folgt nur das
+Shell-History oder Ausgabe. Nach unabhängiger Sichtprüfung folgt nur das
 literale Wort `APPLY`:
 
 ```bash
@@ -484,19 +484,19 @@ sudo /opt/versorgungs-kompass/current/deploy/single-server/identity/provision.sh
 ```
 
 Der Apply-Lauf liest den Zustand erneut unter Transaktionssperre, verifiziert
-Claim und Bestaetigung und legt hoechstens das exakt beschriebene Profil sowie
-die aktive Google-Bindung mit dem ausdruecklich bestaetigten Scope an. Eine
+Claim und Bestätigung und legt höchstens das exakt beschriebene Profil sowie
+die aktive Google-Bindung mit dem ausdrücklich bestätigten Scope an. Eine
 vorhandene aktive IAP-Bindung desselben Zielprofils wird nur bei identischem
 Scope auf der neuen Ziel-Datenbank explizit deaktiviert; die alte GKE-
-Quelldatenbank bleibt unveraendert. Andere Issuer, Kollisionen, abweichende
-Profilfelder oder Scopes sowie ein zwischenzeitlich geaenderter Zustand brechen
+Quelldatenbank bleibt unverändert. Andere Issuer, Kollisionen, abweichende
+Profilfelder oder Scopes sowie ein zwischenzeitlich geänderter Zustand brechen
 fail-closed ab. Nach Commit werden Profil, aktive Google-Bindung und jede
-inaktive Altbindung vollstaendig zurueckgelesen. Bei Erfolg entfernt der
-Wrapper Eingabe, Bestaetigung und deren kurzlebigen Schluessel automatisch.
+inaktive Altbindung vollständig zurückgelesen. Bei Erfolg entfernt der
+Wrapper Eingabe, Bestätigung und deren kurzlebigen Schlüssel automatisch.
 
-Wird ein Preview abgebrochen oder laeuft seine Bestaetigung ab, werden die
-beiden Bestaetigungsdateien vor einem neuen Preview gezielt entfernt; die
-Eingabedatei bleibt fuer die kontrollierte Korrektur erhalten:
+Wird ein Preview abgebrochen oder läuft seine Bestätigung ab, werden die
+beiden Bestätigungsdateien vor einem neuen Preview gezielt entfernt; die
+Eingabedatei bleibt für die kontrollierte Korrektur erhalten:
 
 ```bash
 sudo unlink \
@@ -504,30 +504,30 @@ sudo unlink \
   /etc/versorgungs-kompass/secrets/identity-approval-token
 ```
 
-Fuer zwei bis drei weitere Testnutzer wird derselbe Vorgang einzeln wiederholt.
-Eine Rollen- oder Scope-Entscheidung bleibt fachlich; fuer den verantwortlichen
-Operator ist `admin`, fuer reine Sichtpruefung `viewer` und fuer begrenzte
-Pflege `editor` vorgesehen. Fuer uneingeschraenkten Zugang gilt
+Für zwei bis drei weitere Testnutzer wird derselbe Vorgang einzeln wiederholt.
+Eine Rollen- oder Scope-Entscheidung bleibt fachlich; für den verantwortlichen
+Operator ist `admin`, für reine Sichtprüfung `viewer` und für begrenzte
+Pflege `editor` vorgesehen. Für uneingeschränkten Zugang gilt
 `accessScope=standard` mit `scopeRef=null`; ein bestehender begrenzter Zugang
 muss stattdessen bytegenau als `accessScope=test_only` samt vorhandener
-`scopeRef` uebernommen werden. Der Operator verweigert inaktive oder
+`scopeRef` übernommen werden. Der Operator verweigert inaktive oder
 abweichende bestehende Profilbindungen und darf weder einen Scope implizit
-erweitern noch eine bestehende Google-Bindung automatisch umhaengen.
+erweitern noch eine bestehende Google-Bindung automatisch umhängen.
 
 Nach dem Import folgen `status.sh`, fachliche Lese-Smokes, ein neues
 Einzelserver-Backup und der isolierte Restore-Test. Das Migrationspaket bleibt
-bis zum protokollierten Abschluss geschuetzt erhalten. **Keiner dieser echten
-Export-, Uebertragungs- oder Importschritte wurde mit Live-Daten bereits
-ausgefuehrt.**
+bis zum protokollierten Abschluss geschützt erhalten. **Keiner dieser echten
+Export-, Übertragungs- oder Importschritte wurde mit Live-Daten bereits
+ausgeführt.**
 
-Wenn fuer die wenigen Testnutzer stattdessen bewusst ein leerer Neustart
+Wenn für die wenigen Testnutzer stattdessen bewusst ein leerer Neustart
 vereinbart wird, muss diese Entscheidung ebenso dokumentiert werden. Profile
-und Google-OIDC-Bindungen entstehen dann ueber den gleichen Preview-/Apply-/
+und Google-OIDC-Bindungen entstehen dann über den gleichen Preview-/Apply-/
 Readback-Vorgang; eine E-Mail-Allowlist allein reicht nicht.
 
 ## 5. Erstes Deployment und Backup-Gate
 
-Das verschluesselte Offsite-Repository kann bereits vor dem DNS-Cutover
+Das verschlüsselte Offsite-Repository kann bereits vor dem DNS-Cutover
 initialisiert werden. Dieser Schritt startet keinen dauerhaften App-Dienst:
 
 ```bash
@@ -539,20 +539,20 @@ sudo env CONFIRM_BACKUP_REPOSITORY_INIT=INIT_VERSORGUNGS_KOMPASS_BACKUP \
 `init-backup.sh` verweigert die Initialisierung eines bereits bestehenden
 Repositories.
 
-Das zufaellig erzeugte `restic-password`, `restic-repository` und die
-`restic-aws-credentials` werden danach gemeinsam verschluesselt in einem
-Passwortmanager oder einem anderen zugriffsgeschuetzten Off-host-Escrow
-hinterlegt. Das Escrow darf weder Git, derselbe VPS/Datentraeger noch das mit
-diesem Passwort verschluesselte restic-Repository selbst sein. Mindestens ein
-vom VPS unabhaengiger Recovery-Zugang wird getestet. Ohne das restic-Passwort
+Das zufällig erzeugte `restic-password`, `restic-repository` und die
+`restic-aws-credentials` werden danach gemeinsam verschlüsselt in einem
+Passwortmanager oder einem anderen zugriffsgeschützten Off-host-Escrow
+hinterlegt. Das Escrow darf weder Git, derselbe VPS/Datenträger noch das mit
+diesem Passwort verschlüsselte restic-Repository selbst sein. Mindestens ein
+vom VPS unabhängiger Recovery-Zugang wird getestet. Ohne das restic-Passwort
 ist das Offsite-Backup bei einem VPS-Verlust dauerhaft unlesbar.
 
 Vor dem Cutover werden die drei Dateien **frisch aus diesem Escrow** in ein
-neues temporaeres Verzeichnis abgerufen, nicht aus `CONFIG_DIR` kopiert. Das
+neues temporäres Verzeichnis abgerufen, nicht aus `CONFIG_DIR` kopiert. Das
 Verzeichnis ist `root:root`/`0700`, die drei Dateien sind `70:70`/`0600` und
 enthalten sonst nichts. Der folgende Gate-Lauf vergleicht sie bytegenau mit
-dem aktiven Setup, prueft mit der abgerufenen Kopie den echten Repository-
-Zugriff und erzeugt erst danach einen secretfreien, 31 Tage gueltigen
+dem aktiven Setup, prüft mit der abgerufenen Kopie den echten Repository-
+Zugriff und erzeugt erst danach einen secretfreien, 31 Tage gültigen
 Fingerabdruck-Nachweis:
 
 ```bash
@@ -561,26 +561,26 @@ sudo /opt/versorgungs-kompass/current/deploy/single-server/backup/verify-recover
   /root/vk-recovery-copy-test
 ```
 
-Das Abrufverzeichnis wird nach der Pruefung gezielt entfernt und nicht als
+Das Abrufverzeichnis wird nach der Prüfung gezielt entfernt und nicht als
 zweite lokale Kopie behalten. Der Nachweis unter
-`/etc/versorgungs-kompass/secrets/recovery-escrow-attestation.json` enthaelt
-nur Zeitpunkt und SHA-256-Fingerprints, gehoert `root:root` und besitzt Modus
-`0600`. Er muss nach jeder Rotation und spaetestens nach 31 Tagen durch einen
+`/etc/versorgungs-kompass/secrets/recovery-escrow-attestation.json` enthält
+nur Zeitpunkt und SHA-256-Fingerprints, gehört `root:root` und besitzt Modus
+`0600`. Er muss nach jeder Rotation und spätestens nach 31 Tagen durch einen
 neuen echten Abruf-Test erneuert werden. Erst danach ist das Live-Preflight
-zulaessig:
+zulässig:
 
 ```bash
 sudo /opt/versorgungs-kompass/current/deploy/single-server/preflight.sh \
   /etc/versorgungs-kompass/single-server.env
 ```
 
-Das eigentliche Deployment installiert keine systemd-Units und aendert DNS
+Das eigentliche Deployment installiert keine systemd-Units und ändert DNS
 nicht. Es baut aus dem exakten Checkout, startet den Stack und verlangt alle
-fuenf Dauer-Dienste zweimal nacheinander im Zustand `running` beziehungsweise –
-bei vorhandenem Healthcheck – `healthy`. Danach prueft es ueber eine lokale
-DNS-Uebersteuerung nach `127.0.0.1` nachweislich den neuen Zielstack samt
-gueltigem Zertifikat und anonymer API-Ablehnung sowie zusaetzlich den
-kanonischen oeffentlichen Einstieg:
+fünf Dauer-Dienste zweimal nacheinander im Zustand `running` beziehungsweise –
+bei vorhandenem Healthcheck – `healthy`. Danach prüft es über eine lokale
+DNS-Übersteuerung nach `127.0.0.1` nachweislich den neuen Zielstack samt
+gültigem Zertifikat und anonymer API-Ablehnung sowie zusätzlich den
+kanonischen öffentlichen Einstieg:
 
 ```bash
 sudo /opt/versorgungs-kompass/current/deploy/single-server/deploy.sh \
@@ -590,17 +590,17 @@ sudo /opt/versorgungs-kompass/current/deploy/single-server/deploy.sh \
 Caddy kann das Zertifikat erst ausstellen, wenn DNS auf diesen Host zeigt und
 Port 80/443 erreichbar ist. `deploy.sh` darf deshalb beim ersten Mal erst nach
 der DNS-Umschaltung im angekuendigten Schreibstopp als erfolgreicher
-Live-Nachweis gewertet werden. Die lokale DNS-Uebersteuerung verhindert, dass
-ein noch gecachter alter GCP-Endpunkt faelschlich als neuer Zielstack bestaetigt
-wird. Vor dem Aufruf muessen der neue `A`-/`AAAA`-Wert auf dem Host und
+Live-Nachweis gewertet werden. Die lokale DNS-Übersteuerung verhindert, dass
+ein noch gecachter alter GCP-Endpunkt fälschlich als neuer Zielstack bestätigt
+wird. Vor dem Aufruf müssen der neue `A`-/`AAAA`-Wert auf dem Host und
 mindestens einem externen Resolver sichtbar sein.
 
 Bis Daten-, Identity-, Backup- und Restore-Gate abgeschlossen sind, bleibt die
-Gateway-Allowlist auf den verantwortlichen Operator beschraenkt und es werden
+Gateway-Allowlist auf den verantwortlichen Operator beschränkt und es werden
 keine fachlichen Schreibzugriffe freigegeben. Wenn der bisherige Datenstand
 fortgesetzt werden soll, folgt direkt nach dem erfolgreichen Deployment der
 zweistufige Import aus Abschnitt 4. Erst nach erfolgreichem Import,
-Identity-Pruefung und `status.sh` werden Backup und Restore-Test ausgefuehrt:
+Identity-Prüfung und `status.sh` werden Backup und Restore-Test ausgeführt:
 
 ```bash
 sudo /opt/versorgungs-kompass/current/deploy/single-server/backup.sh \
@@ -612,14 +612,14 @@ sudo /opt/versorgungs-kompass/current/deploy/single-server/restore-test.sh \
   '<vollstaendige-64-stellige-snapshot_id-aus-dem-Inventar>'
 ```
 
-Bei einem dokumentierten leeren Neustart entfaellt nur der Datenimport, nicht
-die Anlage und Pruefung der Identity-Bindungen. Backup und Restore-Test muessen
-in beiden Faellen erfolgreich sein, bevor weitere Nutzer zugelassen oder
-produktive Schreibzugriffe eroeffnet werden.
+Bei einem dokumentierten leeren Neustart entfällt nur der Datenimport, nicht
+die Anlage und Prüfung der Identity-Bindungen. Backup und Restore-Test müssen
+in beiden Fällen erfolgreich sein, bevor weitere Nutzer zugelassen oder
+produktive Schreibzugriffe eröffnet werden.
 
-## 6. systemd fuer Boot und regelmaessiges Backup
+## 6. systemd für Boot und regelmäßiges Backup
 
-Die Unit startet beim Boot nur bereits gebaute Images. Sie fuehrt weder
+Die Unit startet beim Boot nur bereits gebaute Images. Sie führt weder
 `git pull` noch Build oder Deployment aus. Erst nach einem erfolgreichen ersten
 Deployment installieren:
 
@@ -645,7 +645,7 @@ sudo systemctl enable --now versorgungs-kompass-backup.timer
 sudo systemctl enable --now versorgungs-kompass-backup-check.timer
 ```
 
-Danach einen echten Reboot in einem Wartungsfenster pruefen. Erwartet werden
+Danach einen echten Reboot in einem Wartungsfenster prüfen. Erwartet werden
 ein aktiver Stack, beide aktiven Timer und ein erfolgreicher Statuslauf:
 
 ```bash
@@ -658,111 +658,111 @@ sudo /opt/versorgungs-kompass/current/deploy/single-server/status.sh \
 ```
 
 Der Timer startet um 00:15, 06:15, 12:15 und 18:15 Uhr Serverzeit, jeweils mit
-bis zu 15 Minuten Zufallsverzoegerung. Verpasste Laeufe werden nach dem Boot
+bis zu 15 Minuten Zufallsverzögerung. Verpasste Läufe werden nach dem Boot
 nachgeholt. Er startet einen bewusst gestoppten Anwendungsstack nicht heimlich,
-sondern schlaegt in diesem Zustand sichtbar fehl. Jeder Lauf stoppt die API fuer
+sondern schlägt in diesem Zustand sichtbar fehl. Jeder Lauf stoppt die API für
 das kurze gemeinsame Snapshot-Fenster von Datenbank und lokalem Objektspeicher;
 Anmeldung und Seitenabruf bleiben erreichbar, schreibende und lesende API-
-Aufrufe koennen in dieser Zeit jedoch voruebergehend fehlschlagen. Die API wird
+Aufrufe können in dieser Zeit jedoch vorübergehend fehlschlagen. Die API wird
 nach dem Offsite-Snapshot wieder gestartet und auf stabilen Health-Status
-geprueft. Backup, Deployment, Import, Identity-Provisionierung sowie der
+geprüft. Backup, Deployment, Import, Identity-Provisionierung sowie der
 systemd-Start/-Stopp teilen eine hostweite, dateideskriptorbasierte `flock`-
 Wartungssperre und laufen deshalb nicht gegeneinander. Kernel und systemd geben
 sie auch nach Prozessabbruch oder Reboot automatisch frei. Die persistente
 Datei `.maintenance.lock` ist nur Diagnosemetadatum und niemals selbst ein
-Beleg fuer eine noch gehaltene Sperre.
+Beleg für eine noch gehaltene Sperre.
 
-Der zweite Timer fuehrt sonntags um 03:45 Uhr Serverzeit mit bis zu 30 Minuten
-Zufallsverzoegerung einen vollstaendigen `restic check` aus. Dieser laengere
-Integritaetscheck laeuft damit regulaer woechentlich und nicht bei jeder
-sechsstuendlichen Sicherung. Ein ausdruecklicher Backup-Lauf mit
-`RESTIC_PRUNE=1` fuehrt ihn ebenfalls direkt nach dem Prune aus.
+Der zweite Timer führt sonntags um 03:45 Uhr Serverzeit mit bis zu 30 Minuten
+Zufallsverzögerung einen vollständigen `restic check` aus. Dieser längere
+Integritätscheck läuft damit regulär wöchentlich und nicht bei jeder
+sechsstuendlichen Sicherung. Ein ausdrücklicher Backup-Lauf mit
+`RESTIC_PRUNE=1` führt ihn ebenfalls direkt nach dem Prune aus.
 
 ## 7. Cutover
 
 Der Cutover findet in einem angekuendigten Schreibstopp statt. Das erste
 Deployment ist technisch immer `closed`; die API erlaubt dann Lesezugriffe,
 weist aber jede als schreibend klassifizierte Route mit 503 ab. Auch ein
-erfolgreiches Deployment oeffnet den Zielwriter nicht:
+erfolgreiches Deployment öffnet den Zielwriter nicht:
 
 1. Finalen GCP-Backup-/PITR-Punkt sowie die exakt deployte Quellrevision sichern.
-2. Die geschuetzte GKE-Zielkonfiguration read-only pruefen, den
+2. Die geschützte GKE-Zielkonfiguration read-only prüfen, den
    `gke-writer-freeze.mjs`-Preview kontrollieren und dessen exakte
-   `FREEZE:`-Bestaetigung anwenden. Der anschliessende Frozen-Readback muss null
+   `FREEZE:`-Bestätigung anwenden. Der anschließende Frozen-Readback muss null
    Replikas, null API-Pods und null fremde Writer-Kandidaten im konfigurierten
    Namespace ausweisen.
 3. Andere Namespaces und externe Cloud-SQL-Clients separat inventarisieren und
    den aktuellen, an Projekt, Cloud-SQL-Instanz, Freeze-State, Binding und
    Namespace-Inventur gebundenen globalen Writer-Nachweis erstellen. Erst diese
    Kombination ist der angekuendigte Schreibstopp.
-4. Alle vier exakten privaten Bucket-Namen read-only inventarisieren und fuer
-   jeden erneut null Objekte bestaetigen. Jede Abweichung stoppt.
+4. Alle vier exakten privaten Bucket-Namen read-only inventarisieren und für
+   jeden erneut null Objekte bestätigen. Jede Abweichung stoppt.
 5. Unter fortbestehendem Schreibstopp das sechsteilige Datenbankpaket mit allen
-   fuenf Argumenten gemaess Migrations-Runbook erzeugen. Der Wrapper fuehrt vor
+   fünf Argumenten gemäß Migrations-Runbook erzeugen. Der Wrapper führt vor
    und nach dem gemeinsamen PostgreSQL-Snapshot einen eigenen Frozen-Readback
-   aus. TOC, Metadaten, Tabellen- und Objektreferenzzaehlungen sowie SHA-256-Werte
-   getrennt pruefen und das Paket verschluesselt nach `MIGRATION_DIR`
-   uebertragen. Alternativ den bewusst leeren Neustart dokumentieren.
-6. Nach dem Export den Frozen-Readback nochmals explizit ausfuehren. Nur wenn die
-   alte Quelle fuer den dokumentierten Rollback wieder laufen soll, die exakten
+   aus. TOC, Metadaten, Tabellen- und Objektreferenzzählungen sowie SHA-256-Werte
+   getrennt prüfen und das Paket verschlüsselt nach `MIGRATION_DIR`
+   übertragen. Alternativ den bewusst leeren Neustart dokumentieren.
+6. Nach dem Export den Frozen-Readback nochmals explizit ausführen. Nur wenn die
+   alte Quelle für den dokumentierten Rollback wieder laufen soll, die exakten
    `UNFREEZE:`- und danach `CLOSE:`-Vorschauen anwenden, den Running-Readback
-   pruefen und den archivierten Abschlusszustand protokollieren.
+   prüfen und den archivierten Abschlusszustand protokollieren.
 7. Das bereits initialisierte Offsite-Backup-Ziel und die auf den Operator
-   beschraenkte Gateway-Allowlist kontrollieren. `API_CUTOVER_MODE=closed`,
-   OAuth-Redirect und Operator nochmals gegen den kanonischen Host pruefen.
-8. DNS-`A` und nur bei vollstaendig vorbereitetem IPv6 auch `AAAA` auf den VPS
+   beschränkte Gateway-Allowlist kontrollieren. `API_CUTOVER_MODE=closed`,
+   OAuth-Redirect und Operator nochmals gegen den kanonischen Host prüfen.
+8. DNS-`A` und nur bei vollständig vorbereitetem IPv6 auch `AAAA` auf den VPS
    umstellen.
 9. Neue DNS-Antworten auf dem Host und extern nachweisen, `deploy.sh` mit dem
-   zweiten Argument `closed` ausfuehren und auf das Zertifikat warten. Der
-   interne Readback muss Revision und `cutoverMode=closed` bestaetigen.
+   zweiten Argument `closed` ausführen und auf das Zertifikat warten. Der
+   interne Readback muss Revision und `cutoverMode=closed` bestätigen.
 10. Bei Datenfortsetzung zuerst den read-only Paketlauf und danach den exakt
-    bestaetigten `database-import` ausfuehren. Ein Fehler laesst die API gestoppt;
-    nach einem harten Abbruch ausschliesslich mit `RECOVER` fortsetzen.
-11. Automatischen Count-Abgleich bestaetigen und Profile, Rollen, Scopes,
-    Google-Issuer und Subjects fuer alle erwarteten Personen fachlich pruefen.
+    bestätigten `database-import` ausführen. Ein Fehler laesst die API gestoppt;
+    nach einem harten Abbruch ausschließlich mit `RECOVER` fortsetzen.
+11. Automatischen Count-Abgleich bestätigen und Profile, Rollen, Scopes,
+    Google-Issuer und Subjects für alle erwarteten Personen fachlich prüfen.
 12. Auf dem neuen Server `status.sh`, Backup, Snapshot-Inventar und Restore-Test
-    mit der bewusst ausgewaehlten vollen Snapshot-ID erfolgreich ausfuehren.
+    mit der bewusst ausgewählten vollen Snapshot-ID erfolgreich ausführen.
 13. Mit dem Operator Anmeldung, Rollen-/Scope-Grenze und eine harmlose
-    Leseoperation pruefen. Eine nicht zugelassene Adresse muss vor der App
-    stoppen. Alle freigegebenen Allowlist-Adressen muessen genau eine aktive
+    Leseoperation prüfen. Eine nicht zugelassene Adresse muss vor der App
+    stoppen. Alle freigegebenen Allowlist-Adressen müssen genau eine aktive
     Google-Bindung besitzen; alte IAP-Bindungen bleiben inaktiv.
-14. Die nachfolgend beschriebene frische Open-Gate-Datei aus den tatsaechlich
-    geprueften Nachweisen erstellen. Der Schalter wiederholt lokal Import- und
+14. Die nachfolgend beschriebene frische Open-Gate-Datei aus den tatsächlich
+    geprüften Nachweisen erstellen. Der Schalter wiederholt lokal Import- und
     Identity-Readback, bindet den erfolgreichen Restore-Test und verbraucht die
     Gate-Datei atomar. Zuerst die read-only Vorschau, dann nur deren exakten
-    Bestaetigungstext als viertes Argument anwenden.
+    Bestätigungstext als viertes Argument anwenden.
 15. Erst nach einem erfolgreichen Prozess-Readback `cutoverMode=open` weitere
     zugelassene Personen aufnehmen und deren Login sowie Datenbankbindung
-    einzeln pruefen. Zeitpunkt, DNS-Werte, Quell- und Ziel-Commit,
-    Paketfingerprint, Backup-Snapshot, Bucket-Inventur und Pruefergebnis
+    einzeln prüfen. Zeitpunkt, DNS-Werte, Quell- und Ziel-Commit,
+    Paketfingerprint, Backup-Snapshot, Bucket-Inventur und Prüfergebnis
     protokollieren.
 
 Nie gleichzeitig auf alter und neuer Datenbank schreiben. GKE, Cloud SQL, GCS,
-alte Secrets und Images waehrend des vereinbarten Rollback-Fensters nicht
-loeschen oder veraendern.
+alte Secrets und Images während des vereinbarten Rollback-Fensters nicht
+löschen oder verändern.
 
-### Schreibzugriffe nach den Gates kontrolliert oeffnen
+### Schreibzugriffe nach den Gates kontrolliert öffnen
 
-Die Vorlage `cutover-open-gates.conf.example` wird ausserhalb von Git als
+Die Vorlage `cutover-open-gates.conf.example` wird außerhalb von Git als
 `/etc/versorgungs-kompass/secrets/cutover-open-gates.conf` mit Eigentum
-`root:root` und Modus `0600` angelegt. Sie enthaelt in der vorgegebenen
+`root:root` und Modus `0600` angelegt. Sie enthält in der vorgegebenen
 Reihenfolge den aktuellen Zielcommit, den SHA-256 des Migrationsmanifests und
 des GKE-Freeze, die volle Snapshot-ID, den SHA-256 des erfolgreichen
 `RESULT.txt`, den nur als Hash gespeicherten Identity-Readback sowie die Hashes
-der geschuetzten Bucket- und DNS-Inventur. `approvedAt` darf beim Lauf hoechstens
+der geschützten Bucket- und DNS-Inventur. `approvedAt` darf beim Lauf höchstens
 30 Minuten alt sein. Kein Nachweiswert wird geraten oder aus der Vorlage
-uebernommen.
+übernommen.
 
 Der Identity-Hash wird ohne Ausgabe der personenbezogenen Zeilen aus demselben
 sortierten read-only SQL-Ergebnis ermittelt, das der Schalter erneut gegen die
-Allowlist prueft:
+Allowlist prüft:
 
 ```bash
 sudo /opt/versorgungs-kompass/current/deploy/single-server/cutover-identity-audit.sh \
   /etc/versorgungs-kompass/single-server.env
 ```
 
-Die Open-Gate-Datei selbst enthaelt nur Hashes und technische Kennungen.
+Die Open-Gate-Datei selbst enthält nur Hashes und technische Kennungen.
 Danach:
 
 ```bash
@@ -778,14 +778,14 @@ sudo /opt/versorgungs-kompass/current/deploy/single-server/set-cutover-mode.sh \
   'SET API CUTOVER MODE open FOR <EXAKTER-COMMIT-AUS-DER-VORSCHAU>'
 ```
 
-Der Moduswechsel haelt dieselbe globale Wartungssperre wie Backup, Import,
+Der Moduswechsel hält dieselbe globale Wartungssperre wie Backup, Import,
 Deployment und Identity-Provisionierung. Vor der API-Umschaltung schreibt er
-einen fsync-gesicherten Recovery-Marker. Beim ersten Oeffnen werden der
-unveraenderliche Initialnachweis und die revisionsgebundene Open-Autorisierung
+einen fsync-gesicherten Recovery-Marker. Beim ersten Öffnen werden der
+unveränderliche Initialnachweis und die revisionsgebundene Open-Autorisierung
 durable geschrieben, bevor die API erstmals offen startet. Nach
 API-Provenienz-, Readiness- und Mode-Readback werden Recovery-Marker und
 einmalige Gate-Datei entfernt. Bleibt der Marker nach Abbruch oder Reboot
-liegen, wird nicht erneut geoeffnet, sondern ausschliesslich nach einem
+liegen, wird nicht erneut geöffnet, sondern ausschließlich nach einem
 nachgewiesenen API-Stopp fail-closed wiederhergestellt:
 
 ```bash
@@ -793,29 +793,29 @@ sudo /opt/versorgungs-kompass/current/deploy/single-server/set-cutover-mode.sh \
   recover-closed /etc/versorgungs-kompass/single-server.env
 ```
 
-Nach dem ersten erfolgreichen Oeffnen existieren zwei getrennte Nachweise. Die
-unveraenderliche `.initial-cutover-attestation` belegt dauerhaft den
-vollstaendigen GCP-zu-VPS-Cutover. Die aktuelle `.cutover-open-attestation`
+Nach dem ersten erfolgreichen Öffnen existieren zwei getrennte Nachweise. Die
+unveränderliche `.initial-cutover-attestation` belegt dauerhaft den
+vollständigen GCP-zu-VPS-Cutover. Die aktuelle `.cutover-open-attestation`
 autorisiert dagegen immer nur den exakt laufenden Commit als Writer. Beim
-kontrollierten Schliessen wird nur die aktuelle Open-Autorisierung entfernt und
+kontrollierten Schließen wird nur die aktuelle Open-Autorisierung entfernt und
 eine `.cutover-closed-attestation` mit bisheriger Revision, Initialnachweis und
-Persistenzvertrag geschrieben. Ein manuelles Aendern der Environment-Datei auf
+Persistenzvertrag geschrieben. Ein manuelles Ändern der Environment-Datei auf
 `open` reicht deshalb nie zum Start.
 
 ### Reine Code-Aktualisierung ohne neuen GCP-Export
 
-Die Vorlage `code-reopen-gates.conf.example` ist nur fuer Releases zulaessig,
-deren persistenzberuehrende Dateien gegenueber dem beim Schliessen
-festgehaltenen Stand bytegleich sind. Der Hash umfasst den vollstaendigen
-API-Buildkontext samt Abhaengigkeiten und Containerdefinition, die in der API
+Die Vorlage `code-reopen-gates.conf.example` ist nur für Releases zulässig,
+deren persistenzberührende Dateien gegenüber dem beim Schließen
+festgehaltenen Stand bytegleich sind. Der Hash umfasst den vollständigen
+API-Buildkontext samt Abhängigkeiten und Containerdefinition, die in der API
 verwendeten Datenmodelle, die Compose-Laufzeit, SQL-Schema, Migrationen, Grants
-und PostgreSQL-Bootstrap. Eine Aenderung an einem dieser Bestandteile stoppt den
+und PostgreSQL-Bootstrap. Eine Änderung an einem dieser Bestandteile stoppt den
 leichten Update-Pfad.
 
-Zuerst den bisherigen Writer mit Vorschau und exakter Bestaetigung auf
-`closed` setzen. Dann die integrierte Zielrevision auschecken und ausschliesslich
+Zuerst den bisherigen Writer mit Vorschau und exakter Bestätigung auf
+`closed` setzen. Dann die integrierte Zielrevision auschecken und ausschließlich
 geschlossen deployen. Auf dieser Zielrevision ein frisches Einzelserver-Backup
-und einen erfolgreichen Restore-Test der vollstaendigen Snapshot-ID ausfuehren.
+und einen erfolgreichen Restore-Test der vollständigen Snapshot-ID ausführen.
 Das erfolgreiche Closed-Deployment erzeugt automatisch eine an Zielrevision
 und Persistenzvertrag gebundene `.closed-deployment-attestation`. Danach
 Identity-Hash sowie SHA-256 der initialen Attestation, der Closed-Attestation,
@@ -828,10 +828,10 @@ node /opt/versorgungs-kompass/current/deploy/single-server/hash-persistence-cont
 
 Alle Werte werden in der exakten Reihenfolge der Vorlage unter
 `/etc/versorgungs-kompass/secrets/code-reopen-gates.conf` mit `root:root` und
-Modus `0600` eingetragen. `approvedAt` darf hoechstens 30 Minuten alt sein; der
+Modus `0600` eingetragen. `approvedAt` darf höchstens 30 Minuten alt sein; der
 Restore-Test muss nach Close und geschlossenem Deployment liegen und darf bei
-der Freigabe hoechstens sechs Stunden alt sein. Erst danach Vorschau und exakte
-Bestaetigung ausfuehren:
+der Freigabe höchstens sechs Stunden alt sein. Erst danach Vorschau und exakte
+Bestätigung ausführen:
 
 ```bash
 sudo /opt/versorgungs-kompass/current/deploy/single-server/deploy.sh \
@@ -850,13 +850,13 @@ sudo /opt/versorgungs-kompass/current/deploy/single-server/set-cutover-mode.sh \
 ```
 
 Der Reopen-Schalter bindet Initial-, Closed- und Closed-Deployment-Attestation,
-unveraenderten Persistenzvertrag, Zielrevision, frisches Zielbackup,
+unveränderten Persistenzvertrag, Zielrevision, frisches Zielbackup,
 Restore-Ergebnis und Identity-Readback. Die neue revisionsgebundene
 Open-Attestation liegt vor dem API-Start durable vor; erst nach erneutem
 Prozess-Readback werden Recovery-Marker und einmalige Gate-Datei entfernt.
-Schema-, API-, Grant-, Identity- oder Datenformat-Aenderungen benoetigen einen
+Schema-, API-, Grant-, Identity- oder Datenformat-Änderungen benötigen einen
 separat geplanten Migrationslauf und sind in diesem leichten Pfad absichtlich
-nicht freigabefaehig.
+nicht freigabefähig.
 
 ## 8. Rollback
 
@@ -864,44 +864,44 @@ Bei fehlendem TLS, fehlerhafter Anmeldung, falscher Identity-Zuordnung,
 abweichenden Tabellen-/Objektmengen oder instabilen Diensten bleibt der neue
 Stack geschlossen.
 
-Fuer einen Infrastruktur-Rollback:
+Für einen Infrastruktur-Rollback:
 
 1. Schreibzugriffe auf dem neuen Server sofort stoppen.
 2. Einen letzten, gekennzeichneten Backup-Snapshot des neuen Zustands erzeugen,
-   sofern das ohne weitere Datenveraenderung moeglich ist.
-3. DNS auf den vorher dokumentierten GCP-Endpunkt zurueckstellen und den alten
-   Dienst kontrolliert oeffnen.
-4. Login, API-Grenze und Datenstand des alten Dienstes pruefen.
-5. Daten, die waehrend eines Teil-Cutovers nur auf einer Seite entstanden sind,
-   nicht automatisch zusammenfuehren. Sie werden getrennt inventarisiert und
+   sofern das ohne weitere Datenveränderung möglich ist.
+3. DNS auf den vorher dokumentierten GCP-Endpunkt zurückstellen und den alten
+   Dienst kontrolliert öffnen.
+4. Login, API-Grenze und Datenstand des alten Dienstes prüfen.
+5. Daten, die während eines Teil-Cutovers nur auf einer Seite entstanden sind,
+   nicht automatisch zusammenführen. Sie werden getrennt inventarisiert und
    fachlich entschieden.
 
-Fuer einen reinen Code-Rollback auf demselben Server zuerst kontrolliert
-schliessen, den vorher dokumentierten integrierten Commit auschecken, geschlossen
+Für einen reinen Code-Rollback auf demselben Server zuerst kontrolliert
+schließen, den vorher dokumentierten integrierten Commit auschecken, geschlossen
 deployen und den oben beschriebenen Code-Reopen-Gate-Lauf mit frischem
-Backup/Restore ausfuehren. Das ist nur moeglich, wenn der Persistenzvertrag
+Backup/Restore ausführen. Das ist nur möglich, wenn der Persistenzvertrag
 bytegleich bleibt. Ein Code-Rollback ersetzt keinen Datenbank-Restore.
 
 ## 9. Backup, Restore und Aufbewahrung
 
-Jeder Backup-Lauf stoppt unter der gemeinsamen Wartungssperre zunaechst die API.
+Jeder Backup-Lauf stoppt unter der gemeinsamen Wartungssperre zunächst die API.
 Er erstellt PostgreSQL-Custom-Dump und Tabellenmengen aus exakt demselben
 exportierten Datenbank-Snapshot und sichert danach bei weiterhin gestoppter API
-nur dieses operationsgebundene Dump-Verzeichnis zusammen mit dem unveraenderten
-Objektspeicher. Damit koennen Datenbankreferenz und Datei nicht waehrend des
-Backups auseinanderlaufen. Sobald der unveraenderliche Offsite-Snapshot fertig
+nur dieses operationsgebundene Dump-Verzeichnis zusammen mit dem unveränderten
+Objektspeicher. Damit können Datenbankreferenz und Datei nicht während des
+Backups auseinanderlaufen. Sobald der unveränderliche Offsite-Snapshot fertig
 ist, startet die API wieder; Retention und optionale Wartung laufen danach ohne
-Anwendungsunterbrechung weiter. Drei lokale Generationen ueberbruecken einen
-kurzen Offsite-Ausfall. restic sichert beides verschluesselt offsite. Die
-Aufbewahrung betraegt 14 Tages-, acht Wochen- und sechs Monatspunkte.
+Anwendungsunterbrechung weiter. Drei lokale Generationen überbrücken einen
+kurzen Offsite-Ausfall. restic sichert beides verschlüsselt offsite. Die
+Aufbewahrung beträgt 14 Tages-, acht Wochen- und sechs Monatspunkte.
 
-Der vollstaendige `restic check` laeuft regulaer ueber den woechentlichen
-Backup-Check-Timer und zusaetzlich nach einem ausdruecklichen Prune, nicht bei
+Der vollständige `restic check` läuft regulär über den wöchentlichen
+Backup-Check-Timer und zusätzlich nach einem ausdrücklichen Prune, nicht bei
 jeder Sicherung. Ein abgelaufener Recovery-Escrow-Nachweis laesst den Lauf erst
 nach dem aktuellen Backup sichtbar fehlschlagen, damit das Governance-Gate nie
 die eigentliche Sicherung verhindert.
 
-Manueller Backup-Lauf und Logpruefung:
+Manueller Backup-Lauf und Logprüfung:
 
 ```bash
 sudo systemctl start versorgungs-kompass-backup.service
@@ -909,7 +909,7 @@ sudo journalctl -u versorgungs-kompass-backup.service --since today
 ```
 
 Ein speicherbereinigender `prune` ist bewusst kein Standardlauf. Nur nach einem
-frischen erfolgreichen Backup und Restore-Test ausfuehren:
+frischen erfolgreichen Backup und Restore-Test ausführen:
 
 ```bash
 sudo env RESTIC_PRUNE=1 \
@@ -918,11 +918,11 @@ sudo env RESTIC_PRUNE=1 \
 ```
 
 Vor jedem Restore-Test zuerst das fail-closed gefilterte Snapshot-Inventar
-anzeigen. Die erste Spalte enthaelt die volle 64-stellige `snapshot_id`; nur
+anzeigen. Die erste Spalte enthält die volle 64-stellige `snapshot_id`; nur
 eine bewusst anhand von UTC-Zeitpunkt, Quellrevision, Produktversion und
-Operation ausgewaehlte ID wird als zweites Argument uebernommen. `latest` und
-gekuerzte IDs sind nicht zulaessig. Mindestens monatlich sowie vor und nach
-groesseren Updates:
+Operation ausgewählte ID wird als zweites Argument übernommen. `latest` und
+gekürzte IDs sind nicht zulässig. Mindestens monatlich sowie vor und nach
+größeren Updates:
 
 ```bash
 sudo /opt/versorgungs-kompass/current/deploy/single-server/backup/list-snapshots.sh \
@@ -932,13 +932,13 @@ sudo /opt/versorgungs-kompass/current/deploy/single-server/restore-test.sh \
   '<vollstaendige-64-stellige-snapshot_id-aus-dem-Inventar>'
 ```
 
-Der Test schreibt ausschliesslich nach
-`STATE_DIR/restore-tests/<UTC-Zeitpunkt>` und veraendert die Live-Daten nicht.
-Das Verzeichnis samt `RESULT.txt` erst nach protokollierter Pruefung entfernen.
+Der Test schreibt ausschließlich nach
+`STATE_DIR/restore-tests/<UTC-Zeitpunkt>` und verändert die Live-Daten nicht.
+Das Verzeichnis samt `RESULT.txt` erst nach protokollierter Prüfung entfernen.
 
 ### Recovery nach einem abgebrochenen Backup oder Repository-Zugriff
 
-Recovery-Marker niemals manuell loeschen. Nach einem harten Abbruch zuerst den
+Recovery-Marker niemals manuell löschen. Nach einem harten Abbruch zuerst den
 API-Marker behandeln; der Aufruf ist auch dann sicher, wenn kein API-Marker
 vorhanden ist:
 
@@ -948,22 +948,22 @@ sudo /opt/versorgungs-kompass/current/deploy/single-server/backup/recover-api-af
 ```
 
 Danach bei vorhandenem `.backup-repository-recovery-required`-Marker die
-operationsgebundene Repository-Recovery ausfuehren:
+operationsgebundene Repository-Recovery ausführen:
 
 ```bash
 sudo /opt/versorgungs-kompass/current/deploy/single-server/backup/recover-repository-after-backup.sh \
   /etc/versorgungs-kompass/single-server.env
 ```
 
-Sie entfernt ausschliesslich exakt zum Marker gehoerende Einmal-Container und
-unvollstaendige Kandidaten, fuehrt ein normales `restic unlock` sowie einen
+Sie entfernt ausschließlich exakt zum Marker gehörende Einmal-Container und
+unvollständige Kandidaten, führt ein normales `restic unlock` sowie einen
 Repository-Check aus und entfernt den Marker erst nach Erfolg. Ein frischer
 Restic-Lock aus einem bereits beendeten Einmal-Container kann wegen dessen
 abweichendem Hostnamen noch bis zur Restic-Stale-Zeit als fremd gelten. Dann
-Marker und Repository unveraendert lassen, sicherstellen, dass wirklich kein
+Marker und Repository unverändert lassen, sicherstellen, dass wirklich kein
 anderer Restic-Client mehr arbeitet, nach Ablauf der Stale-Zeit denselben
-Recovery-Befehl erneut ausfuehren. Niemals `restic unlock --remove-all` oder
-eine manuelle Lock-Loeschung verwenden, solange ein anderer Client moeglich
+Recovery-Befehl erneut ausführen. Niemals `restic unlock --remove-all` oder
+eine manuelle Lock-Löschung verwenden, solange ein anderer Client möglich
 ist.
 
 Erst wenn API- und Repository-Marker erfolgreich entfernt wurden, folgen
@@ -982,59 +982,59 @@ Backup-Reihenfolge mit dem in Abschnitt 4 beschriebenen zweiten Argument
 Importmarker absichtlich blockiert.
 
 Im Desasterfall zuerst auf einem Ersatzhost mit denselben gepinnten Quellen und
-der frisch aus dem unabhaengigen Escrow abgerufenen Kopie der benoetigten
-Secrets einen Restore-Test ausfuehren. Repository-Ziel, restic-Passwort und
-Recovery-Credential muessen dabei ohne den verlorenen VPS verfuegbar sein. Den defekten
-`STATE_DIR` nie ueberschreiben. Erst wenn Dump-Hashes, Tabellenmengen, Objekte,
-Rollen und Identity-Bindungen stimmen, wird ein ausgewaehlter Restore in einen
-**neuen** Live-Datenpfad uebernommen. Fuer diese Promotion gibt es absichtlich
+der frisch aus dem unabhängigen Escrow abgerufenen Kopie der benötigten
+Secrets einen Restore-Test ausführen. Repository-Ziel, restic-Passwort und
+Recovery-Credential müssen dabei ohne den verlorenen VPS verfügbar sein. Den defekten
+`STATE_DIR` nie überschreiben. Erst wenn Dump-Hashes, Tabellenmengen, Objekte,
+Rollen und Identity-Bindungen stimmen, wird ein ausgewählter Restore in einen
+**neuen** Live-Datenpfad übernommen. Für diese Promotion gibt es absichtlich
 keinen pauschalen Befehl: PostgreSQL-Loginrollen und Laufzeit-Grants sind nicht
-Teil eines normalen `pg_dump` und muessen auf dem Ersatzhost aus dem exakten
-Schema-/Grant-Stand neu hergestellt und geprueft werden. Der Pfadwechsel ist
-eine protokollierte Incident-Entscheidung mit Vier-Augen-Pruefung.
+Teil eines normalen `pg_dump` und müssen auf dem Ersatzhost aus dem exakten
+Schema-/Grant-Stand neu hergestellt und geprüft werden. Der Pfadwechsel ist
+eine protokollierte Incident-Entscheidung mit Vier-Augen-Prüfung.
 
 ## 10. Updates
 
-Updates nie automatisch aus dem Internet einspielen. Fuer Anwendung und Images:
+Updates nie automatisch aus dem Internet einspielen. Für Anwendung und Images:
 
-1. erfolgreiches Backup und aktuellen Restore-Test bestaetigen,
+1. erfolgreiches Backup und aktuellen Restore-Test bestätigen,
 2. vorherigen Commit-SHA und laufende Image-IDs protokollieren,
-3. nur einen geprueften, integrierten `origin/main`-Stand auschecken,
-4. Release-Hinweise und Datenbankkompatibilitaet pruefen,
+3. nur einen geprüften, integrierten `origin/main`-Stand auschecken,
+4. Release-Hinweise und Datenbankkompatibilität prüfen,
 5. den bisherigen Writer mit `set-cutover-mode.sh closed` samt Vorschau und
-   exakter Bestaetigung schliessen,
+   exakter Bestätigung schließen,
 6. die Zielrevision mit `deploy.sh ... closed` ausliefern und auf dieser
    Revision ein frisches Backup samt Restore-Test erzeugen,
 7. nur bei bytegleichem Persistenzvertrag das frische Code-Reopen-Gate erstellen
-   und mit `set-cutover-mode.sh reopen-code` samt exakter Bestaetigung oeffnen,
-8. `status.sh`, einen Login und eine harmlose Leseoperation pruefen,
+   und mit `set-cutover-mode.sh reopen-code` samt exakter Bestätigung öffnen,
+8. `status.sh`, einen Login und eine harmlose Leseoperation prüfen,
 9. alte Images erst nach Ablauf des Rollback-Fensters gezielt bereinigen.
 
 Sobald der Persistenzvertrag abweicht, bleibt die API geschlossen. Schema-,
-Backend-, Rollen-, Identity- oder Datenformat-Aenderungen werden nicht als
-Routineupdate behandelt, sondern benoetigen einen eigenen geprueften
+Backend-, Rollen-, Identity- oder Datenformat-Änderungen werden nicht als
+Routineupdate behandelt, sondern benötigen einen eigenen geprüften
 Migrationsauftrag.
 
-Sicherheitsupdates des Betriebssystems regelmaessig in einem Wartungsfenster
-installieren. Nach Kernel-/Docker-Reboot muessen Stack, Timer, Firewall,
-freier Speicher und der letzte Backup-Lauf erneut geprueft werden.
+Sicherheitsupdates des Betriebssystems regelmäßig in einem Wartungsfenster
+installieren. Nach Kernel-/Docker-Reboot müssen Stack, Timer, Firewall,
+freier Speicher und der letzte Backup-Lauf erneut geprüft werden.
 
-## 11. Monitoring und Stoerungserkennung
+## 11. Monitoring und Störungserkennung
 
-Taeglich beziehungsweise alarmgestuetzt pruefen:
+Täglich beziehungsweise alarmgestützt prüfen:
 
 - `systemctl status versorgungs-kompass.service`,
-- `status.sh` fuer oeffentliche Startseite, Login-Redirect und anonyme
+- `status.sh` für öffentliche Startseite, Login-Redirect und anonyme
   API-Ablehnung,
 - `systemctl status versorgungs-kompass-backup.timer` und Alter des letzten
   erfolgreichen Backup-Logs,
 - `systemctl status versorgungs-kompass-backup-check.timer` und Alter des
   letzten erfolgreichen Repository-Checks,
-- freien Platz und Inodes fuer `/var/lib/versorgungs-kompass`,
+- freien Platz und Inodes für `/var/lib/versorgungs-kompass`,
 - VPS-CPU, RAM, Swap, Load und unerwartete Reboots,
 - Zertifikatsablauf und DNS-`A`/`AAAA` von einem externen Netz.
 
-Nuetzliche lokale Logs:
+Nützliche lokale Logs:
 
 ```bash
 sudo journalctl -u versorgungs-kompass.service --since today
@@ -1046,19 +1046,19 @@ sudo docker compose \
   -f /opt/versorgungs-kompass/current/deploy/single-server/compose.yaml ps
 ```
 
-Ein externer Verfuegbarkeitsmonitor kann `/` auf HTTP 200 pruefen. Keine
-persoenlichen Login-Cookies oder Tokens in einen Drittmonitor uebernehmen. Ein
-200 auf `/` beweist nur die oeffentliche Startseite; mindestens ein eigener
+Ein externer Verfügbarkeitsmonitor kann `/` auf HTTP 200 prüfen. Keine
+persönlichen Login-Cookies oder Tokens in einen Drittmonitor übernehmen. Ein
+200 auf `/` beweist nur die öffentliche Startseite; mindestens ein eigener
 alarmierter `status.sh`-Lauf bleibt erforderlich. Die mitgelieferten Units
-konfigurieren noch keinen E-Mail-/Pager-Empfaenger. Der Betreiber muss
-systemd-Fehler und VPS-Schwellwerte im gewaehlten Monitoringdienst aktiv auf
+konfigurieren noch keinen E-Mail-/Pager-Empfänger. Der Betreiber muss
+systemd-Fehler und VPS-Schwellwerte im gewählten Monitoringdienst aktiv auf
 eine erreichbare Person routen.
 
 ## 12. Nutzer sofort sperren
 
 Eine Sperre muss Gateway **und** Datenbank abdecken. Zuerst in einer Root-Shell
 die globale Wartungssperre erwerben und erst danach die Datenbankverbindung ohne
-Ausgabe des Passworts oeffnen:
+Ausgabe des Passworts öffnen:
 
 ```bash
 sudo -i
@@ -1070,7 +1070,7 @@ single_server_compose exec postgres sh -c \
   'PGPASSWORD="$(cat /run/secrets/db-owner-password)" exec psql --no-psqlrc -U vk_owner -d versorgungs_kompass'
 ```
 
-In `psql` erst genau den erwarteten Datensatz pruefen:
+In `psql` erst genau den erwarteten Datensatz prüfen:
 
 ```sql
 \set ON_ERROR_STOP on
@@ -1089,7 +1089,7 @@ select b.issuer, b.subject, b.profile_id, b.active
 ```
 
 Nur bei eindeutigem Treffer fortfahren, sonst `rollback;` und den Vorgang
-klaeren:
+klären:
 
 ```sql
 update public.identity_bindings b
@@ -1125,21 +1125,21 @@ sudo /opt/versorgungs-kompass/current/deploy/single-server/status.sh \
 Das inaktive Profil sperrt die API auch bei einem noch vorhandenen
 Gateway-Cookie. Falls auch jede bestehende Frontend-Sitzung sofort enden muss,
 das OAuth-Cookie-Secret kontrolliert neu erzeugen und OAuth2 Proxy erneut
-erstellen; dadurch werden **alle** Nutzer abgemeldet. Anschliessend negativen
+erstellen; dadurch werden **alle** Nutzer abgemeldet. Anschließend negativen
 Zugriff der gesperrten und positiven Zugriff mindestens einer verbleibenden
-Person pruefen. Soll die letzte zugelassene Person gesperrt werden, den gesamten
+Person prüfen. Soll die letzte zugelassene Person gesperrt werden, den gesamten
 Stack stoppen; `allowed-emails` akzeptiert absichtlich keine leere Liste.
 Bei einem Fehler vor `single_server_release_maintenance_lock` die Root-Shell
-nicht fuer andere Arbeiten weiterverwenden: Die gehaltene Sperre blockiert
-absichtlich konkurrierende Betriebsaktionen, bis der Vorgang geklaert oder die
+nicht für andere Arbeiten weiterverwenden: Die gehaltene Sperre blockiert
+absichtlich konkurrierende Betriebsaktionen, bis der Vorgang geklärt oder die
 Shell beendet wird.
 
-## 13. Ende des Uebergangsbetriebs
+## 13. Ende des Übergangsbetriebs
 
 Vor Abschaltung Schreibzugriffe stoppen, finales Backup erzeugen, Restore-Test
-erfolgreich pruefen und die fachliche Aufbewahrung festlegen. Erst danach DNS
-und OAuth-Client kontrolliert stilllegen. VPS, Datentraeger, S3-Snapshots,
-Google-Credentials und alte GCP-Ressourcen sind getrennte Loeschobjekte und
+erfolgreich prüfen und die fachliche Aufbewahrung festlegen. Erst danach DNS
+und OAuth-Client kontrolliert stilllegen. VPS, Datenträger, S3-Snapshots,
+Google-Credentials und alte GCP-Ressourcen sind getrennte Löschobjekte und
 werden nur nach eigener dokumentierter Freigabe entfernt. Das Ende des
 Single-Server-Betriebs autorisiert insbesondere keine automatische
-GCP-Loeschung.
+GCP-Löschung.
