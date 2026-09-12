@@ -66,10 +66,15 @@ Der #Mitmachen Versorgungs-Kompass ist eine interne Anwendung.
 | --- | --- | --- |
 | [GitHub Pages](https://timofrank.github.io/mitmachen/) | Demo | Fiktive Beispieldaten, öffentlich verfügbar |
 | [GKE-Cluster](https://versorgungs-kompass.de/) | Pre-Integration | Geschützte Referenzumgebung, nicht Zielbetrieb |
+| Kostenbegrenzter Einzelserver | Vorbereitet, noch nicht deployed | Geplanter befristeter Nachfolger des persönlichen GKE-Betriebs |
 | gematik-PoC | RC.5 | Providerneutraler OIDC-Release-Candidate als Übergabe |
 
 GitHub Pages veröffentlicht die öffentliche Demo. Die GKE-Pre-Integration läuft
-getrennt unter versorgungs-kompass.de. 
+getrennt unter versorgungs-kompass.de. Für die zwei- bis dreimonatige
+Übergangsphase ist zusätzlich ein kleiner OIDC-Einzelserver für ein bis vier
+namentlich freigegebene Personen vorbereitet. Er ist lokal geprüft, aber noch
+nicht bestellt, mit Daten befüllt, per DNS aktiviert oder live verifiziert. Das
+[Einzelserver-Runbook](deploy/single-server/README.md) hält diese Gates getrennt.
 
 RC.5 ist mit dem unveränderlichen Remote-Tag
 `poc-v0.1.0-rc.5` auf Commit
@@ -97,6 +102,7 @@ deploy/
   helm/                   Kubernetes-Ressourcen
   jenkins/                Referenzpipeline für die Software Factory
   postgres/               PostgreSQL-Schema, Rollen und Datenbank-Runbooks
+  single-server/          Befristeter kostenbegrenzter Eigenbetrieb
   terraform/              GCP-Pre-Integrationsinfrastruktur
 dokumentation/            Produkt-, Architektur-, Deployment- und QA-Unterlagen
 frontend/                 führende Browser-Quellen
@@ -110,6 +116,7 @@ tests/                    Browser- und Integrationsprüfungen
 ```text
 Pages-Demo:     vX.Y.Z -> pages-demo   -> dist/pages/  -> GitHub Pages
 Privates GKE:   vX.Y.Z -> pre-gematik -> dist/target/ + IAP-Image
+Einzelserver:   main     -> target       -> dist/target/ + OIDC-Image
 Gematik-Target: vX.Y.Z -> target       -> dist/target/ + OIDC-Image -> Software Factory/GitLab
 ```
 

@@ -191,6 +191,95 @@ function assertIapLogoutContract() {
   assert.equal(signedOutRedirect, "", "Die explizite Abmeldeseite darf die API-IAP-Sitzung nicht sofort erneut bootstrappen.");
 }
 
+function assertOidcGatewayContract() {
+  const appUrl = new URL("https://versorgungs-kompass.example/start?view=team#profile");
+  const redirects = [];
+  const window = {
+    VERSORGUNGS_COMPASS_CONFIG: {
+      dataMode: "api",
+      authMode: "oidc",
+      authGateway: "oauth2-proxy",
+      apiBaseUrl: appUrl.origin
+    },
+    location: {
+      href: appUrl.href,
+      origin: appUrl.origin,
+      pathname: appUrl.pathname,
+      search: appUrl.search,
+      hash: appUrl.hash,
+      replace(value) {
+        redirects.push(String(value));
+      }
+    },
+    localStorage: createStorage(),
+    sessionStorage: createStorage(),
+    history: { replaceState() {} }
+  };
+  const sandbox = { URL, URLSearchParams, console, window };
+  vm.runInNewContext(readFileSync(new URL("frontend/login/auth-config.js", projectRoot), "utf8"), sandbox, {
+    filename: "auth-config-oidc.js"
+  });
+  vm.runInNewContext(readFileSync(new URL("frontend/login/auth-guard.js", projectRoot), "utf8"), sandbox, {
+    filename: "auth-guard-oidc.js"
+  });
+
+  assert.equal(window.VKAuth.buildLogoutUrl(), "/oauth2/sign_out?rd=%2F");
+  assert.equal(window.VKAuth.reauthenticateSession(), true);
+  assert.equal(redirects.length, 1);
+  const redirectUrl = new URL(redirects[0], appUrl.origin);
+  assert.equal(redirectUrl.origin, appUrl.origin);
+  assert.equal(redirectUrl.pathname, "/oauth2/start");
+  assert.equal(redirectUrl.searchParams.get("rd"), "/start?view=team#profile");
+  assert.equal(window.VKAuth.reauthenticateIapSession(), true, "Der bisherige Methodenname bleibt kompatibel.");
+  assert.equal(redirects.length, 1, "Pro Seitenaufruf darf nur eine erneute Anmeldung beginnen.");
+}
+
+function assertGenericOidcContract() {
+  const appUrl = new URL("https://target.example/start");
+  const redirects = [];
+  const window = {
+    VERSORGUNGS_COMPASS_CONFIG: {
+      dataMode: "api",
+      authMode: "oidc",
+      authGateway: "generic",
+      apiBaseUrl: appUrl.origin
+    },
+    location: {
+      href: appUrl.href,
+      origin: appUrl.origin,
+      pathname: appUrl.pathname,
+      search: "",
+      hash: "",
+      replace(value) { redirects.push(String(value)); }
+    },
+    localStorage: createStorage(),
+    sessionStorage: createStorage(),
+    history: { replaceState() {} }
+  };
+  vm.runInNewContext(readFileSync(new URL("frontend/login/auth-config.js", projectRoot), "utf8"), {
+    URL, URLSearchParams, console, window
+  });
+  vm.runInNewContext(readFileSync(new URL("frontend/login/auth-guard.js", projectRoot), "utf8"), {
+    URL, URLSearchParams, console, window
+  });
+  assert.notEqual(window.VKAuth.buildLogoutUrl(), "/oauth2/sign_out?rd=%2F");
+  assert.equal(window.VKAuth.reauthenticateSession(), false,
+    "Providerneutrales OIDC darf keinen nicht vereinbarten oauth2-proxy-Pfad aufrufen.");
+  assert.deepEqual(redirects, []);
+}
+
+function assertAccessFailureRedirectContract() {
+  const source = readFileSync(new URL("frontend/app/versorgungs-kompass.js", projectRoot), "utf8");
+  const start = source.indexOf("        const redirectForAccessFailure = (error) => {");
+  const end = source.indexOf("        const reconcileLateSettings = () => {", start);
+  assert.ok(start >= 0 && end > start, "Access-Failure-Redirect muss auffindbar bleiben.");
+  const redirect = source.slice(start, end);
+  const reauth = redirect.indexOf("window.VKAuth.reauthenticateSession?.()");
+  const fallback = redirect.indexOf("window.location.replace(window.VKAuth.buildLoginUrl())");
+  assert.ok(reauth >= 0 && fallback > reauth,
+    "Reauth muss den Redirect vollstaendig uebernehmen; lokale Login-URL ist nur der false-Fallback.");
+}
+
 function assertLoginReturnUrlContract() {
   const source = readFileSync(new URL("frontend/login/auth-login.js", projectRoot), "utf8");
   const start = source.indexOf("  function isAllowedAppReturnPath(");
@@ -384,7 +473,10 @@ async function assertApiAvatarContract() {
 
 assertIapSubjectContract();
 assertIapLogoutContract();
+assertOidcGatewayContract();
+assertGenericOidcContract();
+assertAccessFailureRedirectContract();
 assertLoginReturnUrlContract();
 await assertApiAvatarContract();
 
-console.log("Auth/Avatar Contract Test OK: IAP-Logout, Bootstrap-Cleanup, Avatar-Upload und Profil-Allowlist sind abgesichert.");
+console.log("Auth/Avatar Contract Test OK: IAP-/OIDC-Logout, Reauth, Avatar-Upload und Profil-Allowlist sind abgesichert.");

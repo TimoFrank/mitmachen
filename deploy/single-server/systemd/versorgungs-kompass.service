@@ -1,0 +1,28 @@
+[Unit]
+Description=Versorgungs-Kompass Einzelserver
+Documentation=file:/opt/versorgungs-kompass/current/deploy/single-server/README.md
+Wants=network-online.target
+After=network-online.target docker.service
+Requires=docker.service
+ConditionPathIsDirectory=/opt/versorgungs-kompass/current/deploy/single-server
+ConditionPathIsRegular=/etc/versorgungs-kompass/single-server.env
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+User=root
+Group=root
+UMask=0077
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectHome=true
+ProtectSystem=full
+TimeoutStartSec=5min
+TimeoutStopSec=120
+ExecStart=/opt/versorgungs-kompass/current/deploy/single-server/service-control.sh start /etc/versorgungs-kompass/single-server.env
+ExecStartPost=/opt/versorgungs-kompass/current/deploy/single-server/status.sh /etc/versorgungs-kompass/single-server.env
+ExecStop=/opt/versorgungs-kompass/current/deploy/single-server/service-control.sh stop /etc/versorgungs-kompass/single-server.env
+ExecStopPost=/opt/versorgungs-kompass/current/deploy/single-server/service-control.sh stop /etc/versorgungs-kompass/single-server.env
+
+[Install]
+WantedBy=multi-user.target

@@ -1,6 +1,6 @@
 (function () {
   const config = window.VK_AUTH_CONFIG || {};
-  let iapReauthenticationStarted = false;
+  let reauthenticationStarted = false;
 
   function runtimeConfig() {
     return window.VERSORGUNGS_COMPASS_CONFIG || {};
@@ -49,6 +49,9 @@
 
   function buildLogoutUrl() {
     const runtime = runtimeConfig();
+    if (runtime.authMode === "oidc" && runtime.authGateway === "oauth2-proxy") {
+      return "/oauth2/sign_out?rd=%2F";
+    }
     if (runtime.authMode !== "iap") return buildLoginUrl() + "#signed-out";
     if (runtime.iapIdentityMode === "external") {
       const logoutUrl = new URL(window.location.href);
@@ -103,13 +106,22 @@
     return true;
   }
 
-  function reauthenticateIapSession() {
+  function reauthenticateSession() {
     const runtime = runtimeConfig();
-    if (runtime.authMode !== "iap" || runtime.dataMode !== "api") return false;
+    if (!["iap", "oidc"].includes(runtime.authMode) || runtime.dataMode !== "api") return false;
+    if (runtime.authMode === "oidc" && runtime.authGateway === "oauth2-proxy") {
+      if (reauthenticationStarted) return true;
+      reauthenticationStarted = true;
+      const startUrl = new URL("/oauth2/start", window.location.origin);
+      startUrl.searchParams.set("rd", currentPathFromLogin());
+      window.location.replace(startUrl.pathname + startUrl.search);
+      return true;
+    }
+    if (runtime.authMode === "oidc") return false;
     const apiBaseUrl = String(runtime.apiBaseUrl || "").replace(/\/+$/, "");
     if (!/^https:\/\//i.test(apiBaseUrl)) return false;
-    if (iapReauthenticationStarted) return true;
-    iapReauthenticationStarted = true;
+    if (reauthenticationStarted) return true;
+    reauthenticationStarted = true;
 
     const storageKey = iapBootstrapStorageKey();
     try {
@@ -132,7 +144,8 @@
     clearAuthenticated,
     buildLoginUrl,
     buildLogoutUrl,
-    reauthenticateIapSession,
+    reauthenticateSession,
+    reauthenticateIapSession: reauthenticateSession,
     getDefaultUrl: function () {
       return config.defaultPath || "./" + (config.defaultFile || "versorgungs-kompass.html");
     }

@@ -3,15 +3,11 @@ import { readFileSync } from "node:fs";
 import vm from "node:vm";
 
 const source = readFileSync(new URL("../api/server.mjs", import.meta.url), "utf8");
+const objectStorageSource = readFileSync(new URL("../api/object-storage.mjs", import.meta.url), "utf8");
 const targetSchema = readFileSync(new URL("../deploy/postgres/pre-gematik/schema.sql", import.meta.url), "utf8");
 const targetMigration = readFileSync(
   new URL("../deploy/postgres/pre-gematik/migrations/202607200003_restrict_stakeholder_logo_urls.sql", import.meta.url),
   "utf8"
-);
-const storageReaderSource = betweenSource(
-  source,
-  "async function boundedStorageResponseBuffer(",
-  "async function loadProfiles("
 );
 const stakeholderImportSource = betweenSource(
   source,
@@ -128,10 +124,10 @@ for (const sql of [targetSchema, targetMigration]) {
 }
 assert.match(targetMigration, /update public\.stakeholder_organizations[\s\S]+set logo_url = null/u,
   "Die Zielmigration muss externe Altlasten vor Aktivierung des Constraints entfernen.");
-assert.match(storageReaderSource, /fields", "name,size,contentType,generation"/u);
-assert.match(storageReaderSource, /mediaUrl\.searchParams\.set\("generation", generation\)/u);
-assert.match(storageReaderSource, /total > maximumBytes/u);
-assert.match(source, /readStorageObject\(STAKEHOLDER_LOGO_BUCKET, objectName, \{[\s\S]{0,240}maxBytes: 2 \* 1024 \* 1024/u,
+assert.match(objectStorageSource, /fields", "name,size,contentType,generation"/u);
+assert.match(objectStorageSource, /mediaUrl\.searchParams\.set\("generation", generation\)/u);
+assert.match(objectStorageSource, /total > maximumBytes/u);
+assert.match(source, /readStorageObject\(OBJECT_STORAGE_AREAS\.STAKEHOLDER_LOGOS, STAKEHOLDER_LOGO_BUCKET, objectName, \{[\s\S]{0,240}maxBytes: 2 \* 1024 \* 1024/u,
   "Die Logo-Route muss Metadaten und Groesse vor dem generation-gepinnten Download pruefen.");
 assert.match(stakeholderImportSource, /preserveExistingLogo === true/u,
   "Ein Import ohne explizite Logo-Spalte muss das vorhandene geschützte Logo markieren.");

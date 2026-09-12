@@ -1,0 +1,28 @@
+# Diese Vorlage niemals direkt verwenden. In ein neues Verzeichnis ausserhalb
+# des Repositorys kopieren, Zielwerte per Readback belegen und Verzeichnis/Datei
+# auf 0700/0600 setzen. Die Statusdatei darf vor dem ersten Freeze nicht bestehen.
+FORMAT_VERSION=1
+GCP_PROJECT_ID=example-pre-gematik-project
+GKE_CLUSTER_NAME=versorgungs-kompass-pre-gematik
+GKE_LOCATION=europe-west3
+GKE_CLUSTER_CA_SHA256=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+KUBECONFIG_PATH=/absolute/protected/gke-writer-freeze/kubeconfig
+KUBE_CONTEXT=gke_example-pre-gematik-project_europe-west3_versorgungs-kompass-pre-gematik
+KUBE_API_SERVER=https://gke.example.invalid
+K8S_NAMESPACE=pre-gematik
+K8S_NAMESPACE_UID=11111111-1111-4111-8111-111111111111
+API_DEPLOYMENT=versorgungs-kompass-api
+API_DEPLOYMENT_UID=22222222-2222-4222-8222-222222222222
+API_CONTAINER=api
+API_POD_SELECTOR=app.kubernetes.io/component=api,app.kubernetes.io/instance=versorgungs-kompass,app.kubernetes.io/name=versorgungs-kompass
+# Jeden anderen Root-Controller im Namespace erst nach einem separaten Readback
+# als ohne DB-/Cloud-SQL-Zugriff attestieren und hier kanonisch sortiert nennen.
+# Bei keinem weiteren Controller exakt "none" setzen. Pods ohne attestierte
+# Owner-Kette werden immer abgelehnt. Externe DB-Clients und andere Namespaces
+# bleiben ausserhalb dieses Nachweises und brauchen ein eigenes Cutover-Gate.
+ALLOWED_NON_DB_CONTROLLERS=Deployment/versorgungs-kompass-auth-proxy,Deployment/versorgungs-kompass-frontend,Deployment/versorgungs-kompass-public
+API_IMAGE=europe-west3-docker.pkg.dev/example-pre-gematik-project/versorgungs-kompass/api@sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb
+API_IMAGE_ID=containerd://sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb
+ORIGINAL_REPLICAS=2
+STATE_FILE=/absolute/protected/gke-writer-freeze/cutover-state.json
+READBACK_TIMEOUT_SECONDS=180

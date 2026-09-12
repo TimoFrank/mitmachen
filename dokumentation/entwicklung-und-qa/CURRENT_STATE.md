@@ -1,6 +1,6 @@
 # Current State
 
-Stand: 2026-08-09.
+Stand: 2026-09-11.
 
 ## Aktiver Arbeitsmodus
 
@@ -16,6 +16,24 @@ Stand: 2026-08-09.
 - Fokussierte UI-/Flow-Änderung: `npm run check` plus gezielter Playwright-Test mit `-g`.
 - Größere Änderung oder Push-/Deploy-Auftrag: `npm run qa:full`.
 - Vollständige Regeln stehen in `QA_WORKFLOW.md`.
+
+## Kostenbegrenzter Übergangsbetrieb
+
+- Unter `deploy/single-server/` liegt die lokal geprüfte Betriebsgrundlage für
+  einen befristeten Einzelserver mit Caddy, Google OIDC, statischem Frontend,
+  Node-API, PostgreSQL über Unix-Socket und privatem Dateisystemspeicher.
+- Dauerhaft laufen fünf Container. Datei-Uploads bleiben in diesem Modus
+  deaktiviert; Datenbank-Dumps und verschlüsselte Offsite-Backups laufen
+  sequenziell als Wartungscontainer.
+- Der Datenbankimport ist ein bestätigungspflichtiger, checksum- und
+  mengengeprüfter Adminvorgang. Der aktuelle read-only GCP-Check fand in den
+  vier privaten Datenbuckets keine Objekte; dieser Befund muss unmittelbar vor
+  dem Cutover erneut bestätigt werden und ersetzt keinen Datenbankexport.
+- Es wurde noch kein Server bestellt, keine produktive Datenbank exportiert,
+  kein DNS umgestellt und keine GCP-Ressource abgeschaltet. Der Einzelserver ist
+  deshalb **vorbereitet und lokal geprüft**, nicht deployed oder live
+  verifiziert. Das operative Gate steht im
+  [Einzelserver-Runbook](../../deploy/single-server/README.md).
 
 ## Release Candidate und parallele Entwicklung
 

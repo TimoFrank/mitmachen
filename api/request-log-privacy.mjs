@@ -25,6 +25,7 @@ const STATIC_API_PATHS = new Set([
   "/api/hospitation-slots",
   "/api/hospitation-unmet-needs",
   "/api/hospitations",
+  "/api/identity/bootstrap-claim",
   "/api/notifications",
   "/api/notifications/read",
   "/api/notifications/summary",

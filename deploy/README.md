@@ -1,6 +1,7 @@
 # Deployment-Artefakte
 
-Dieser Ordner enthält die ausführbaren Artefakte für Pre-Integration und Gematik-PoC.
+Dieser Ordner enthält die ausführbaren Artefakte für Pre-Integration,
+kostenbegrenzten Übergangsbetrieb und Gematik-PoC.
 
 | Zweck | Führender Pfad |
 | --- | --- |
@@ -11,6 +12,7 @@ Dieser Ordner enthält die ausführbaren Artefakte für Pre-Integration und Gema
 | PoC-Datenbank | [`postgres/poc-gematik/`](postgres/poc-gematik/) |
 | GCP-Pre-Integration | [`terraform/gcp-autopilot/`](terraform/gcp-autopilot/) |
 | Pre-Integrationsdatenbank | [`postgres/pre-gematik/`](postgres/pre-gematik/) |
+| Befristeter Einzelserver | [`single-server/`](single-server/) |
 | Datenmigrationswerkzeug | [`migration-operator/`](migration-operator/) |
 | TYPO3-#Mitmachen-Connector | [`typo3/mitmachen_connector/`](typo3/mitmachen_connector/) |
 

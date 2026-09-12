@@ -90,7 +90,9 @@
     });
     const payload = await response.json().catch(() => ({}));
     if (!response.ok) {
-      if (response.status === 401) window.VKAuth?.reauthenticateIapSession?.();
+      if (response.status === 401) {
+        (window.VKAuth?.reauthenticateSession || window.VKAuth?.reauthenticateIapSession)?.();
+      }
       const error = new Error(messageForStatus(response.status));
       error.status = response.status;
       throw error;

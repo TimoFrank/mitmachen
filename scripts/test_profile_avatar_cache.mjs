@@ -33,6 +33,11 @@ const sandbox = {
   URL,
   crypto,
   PROFILE_IMAGE_BUCKET: "profile-images-test",
+  PROFILE_AVATAR_CONTENT_TYPES: ["image/jpeg", "image/png", "image/webp"],
+  OBJECT_STORAGE_AREAS: { PROFILE_IMAGES: "profile-images" },
+  storageEnabled() {
+    return true;
+  },
   state,
   async authorizeRequest() {
     state.authCalls += 1;

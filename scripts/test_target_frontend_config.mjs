@@ -66,6 +66,7 @@ try {
   let source = fs.readFileSync(configPath, "utf8");
   assert.match(source, /dataMode:\s*"api"/);
   assert.match(source, /authMode:\s*"iap"/);
+  assert.match(source, /authGateway:\s*"generic"/);
   assert.match(source, /iapIdentityMode:\s*"iam"/);
   assert.match(source, /iapExternalLoginPageUri:\s*""/);
   assert.match(source, /iapExternalAuthApiKey:\s*""/);
@@ -111,8 +112,23 @@ try {
   });
   source = fs.readFileSync(configPath, "utf8");
   assert.match(source, /authMode:\s*"oidc"/);
+  assert.match(source, /authGateway:\s*"generic"/);
   assert.match(source, /iapIdentityMode:\s*"iam"/);
   assert.equal((source.match(/apiCredentials:/g) || []).length, 1, "apiCredentials muss idempotent bleiben");
+
+  execFileSync(process.execPath, [
+    prepareScript,
+    configPath,
+    "https://api.pre-gematik.example",
+    "api",
+    "oidc",
+    "iam",
+    "",
+    "",
+    "oauth2-proxy"
+  ], { cwd: root, stdio: "pipe" });
+  source = fs.readFileSync(configPath, "utf8");
+  assert.match(source, /authGateway:\s*"oauth2-proxy"/);
 
   execFileSync(process.execPath, [auditScript, "--production-config", configPath], {
     cwd: root,

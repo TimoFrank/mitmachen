@@ -857,7 +857,8 @@ NODE
     "$AUTH_MODE" \
     "$iap_identity_mode" \
     "$iap_external_login_page_uri" \
-    "$iap_external_auth_api_key"
+    "$iap_external_auth_api_key" \
+    "${AUTH_GATEWAY:-generic}"
 
   unset iap_identity_mode iap_external_login_page_uri iap_external_auth_api_key
 
