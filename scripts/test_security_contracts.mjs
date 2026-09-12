@@ -4,6 +4,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import {
+  WRITE_CLASSES,
   assertApiCutoverPermission,
   assertOidcJwtClaims,
   assertSensitiveQueryPermission,
@@ -49,6 +50,16 @@ assert.throws(
 );
 assert.doesNotThrow(() => assertApiCutoverPermission("closed", policyForRequest("GET", "/api/contacts")));
 assert.doesNotThrow(() => assertApiCutoverPermission("closed", policyForRequest("GET", "/api/export")));
+assert.equal(
+  policyForRequest("GET", "/api/export")?.writeClass,
+  WRITE_CLASSES.RESTRICTED,
+  "Der Admin-Export muss trotz Cutover-Lesefreigabe fuer begrenzte Testzugaenge gesperrt bleiben."
+);
+assert.equal(
+  policyForRequest("GET", "/api/ops/summary")?.writeClass,
+  WRITE_CLASSES.RESTRICTED,
+  "Betriebsdaten muessen trotz Cutover-Lesefreigabe fuer begrenzte Testzugaenge gesperrt bleiben."
+);
 for (const [method, pathname] of [
   ["POST", "/api/connectors/typo3/mitmachen-registrations"],
   ["POST", "/api/auth/external-enrollment"],

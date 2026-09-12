@@ -16,8 +16,15 @@ export const WRITE_CLASSES = Object.freeze({
   RESTRICTED: "restricted"
 });
 
-function route(methods, pattern, role, id, writeClass = WRITE_CLASSES.RESTRICTED) {
-  return Object.freeze({ methods: new Set(methods), pattern, role, id, writeClass });
+function route(
+  methods,
+  pattern,
+  role,
+  id,
+  writeClass = WRITE_CLASSES.RESTRICTED,
+  allowWhenCutoverClosed = false
+) {
+  return Object.freeze({ methods: new Set(methods), pattern, role, id, writeClass, allowWhenCutoverClosed });
 }
 
 // Jede produktive API-Route muss hier explizit eingetragen sein. Neue Routen sind
@@ -43,8 +50,15 @@ export const ROUTE_POLICIES = Object.freeze([
     WRITE_CLASSES.RESTRICTED
   ),
   route(["GET"], /^\/api\/session$/, "viewer", "session.read", WRITE_CLASSES.READ),
-  route(["GET"], /^\/api\/ops\/(?:summary|checks)$/, "admin", "operations.read", WRITE_CLASSES.READ),
-  route(["GET"], /^\/api\/export$/, "admin", "data.export", WRITE_CLASSES.READ),
+  route(
+    ["GET"],
+    /^\/api\/ops\/(?:summary|checks)$/,
+    "admin",
+    "operations.read",
+    WRITE_CLASSES.RESTRICTED,
+    true
+  ),
+  route(["GET"], /^\/api\/export$/, "admin", "data.export", WRITE_CLASSES.RESTRICTED, true),
   route(["GET"], /^\/api\/politics\/health-committee$/, "viewer", "politics.health-committee.read", WRITE_CLASSES.READ),
 
   route(["GET"], /^\/api\/(?:contacts|contact-content-search|contact-notes|contact-note-attachments|organizations|organization-primary-systems|expert-groups|expert-contacts|expert-organizations|expert-entity-links|stakeholder-types|stakeholder-organizations|stakeholder-people|profiles|saved-views|user-settings|hospitation-slots|hospitations|hospitation-observations|roadmap-items|hospitation-roadmap-assessments|hospitation-unmet-needs|formats|activities|notifications|notifications\/summary)$/, "viewer", "collection.read", WRITE_CLASSES.READ),
@@ -106,7 +120,11 @@ export function validateApiCutoverMode(env = {}) {
 }
 
 export function assertApiCutoverPermission(cutoverMode, policy) {
-  if (cutoverMode !== "closed" || policy?.writeClass === WRITE_CLASSES.READ) return;
+  if (
+    cutoverMode !== "closed"
+    || policy?.writeClass === WRITE_CLASSES.READ
+    || policy?.allowWhenCutoverClosed === true
+  ) return;
   const error = new Error("Schreibzugriffe sind waehrend des kontrollierten Cutovers gesperrt.");
   error.status = 503;
   error.retryAfter = 60;
