@@ -47,7 +47,14 @@
       "package": "mammoth",
       "version": "1.12.0",
       "path": "frontend/vendor/mammoth/mammoth.browser.min.js",
-      "sha256": "5d4c0e7c9165d70b78f789c5274a2c7846d9e1c06ec19b69afa6ef45f789a3b9"
+      "sha256": "cc5a15f3f25fbf69c0133be32154d18e9e98a54a1e559f2760e542914f098e1a",
+      "bundledPackages": {
+        "@xmldom/xmldom": "0.8.15"
+      },
+      "build": {
+        "package": "esbuild",
+        "version": "0.28.1"
+      }
     },
     {
       "package": "pdfjs-dist",
