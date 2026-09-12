@@ -6961,8 +6961,8 @@ test("Mein Profil: Changelog ist als Profil-Reiter erreichbar", async ({ page },
   await expect(page.locator("#profile-tab-changelog")).toBeVisible();
   const latestRelease = page.locator("#about-version-list .about-version").first();
   await expect(latestRelease).toBeVisible();
-  await expect(latestRelease.locator(".about-version__badge")).toHaveText("0.23");
-  await expect(latestRelease.locator("summary")).toContainText("Sicherer Zugang. Verlässliche Releases.");
+  await expect(latestRelease.locator(".about-version__badge")).toHaveText("0.24");
+  await expect(latestRelease.locator("summary")).toContainText("Neues in Version 0.24");
   await latestRelease.locator("summary").click();
   await expect(latestRelease.locator(".about-version__body")).toContainText("Was sich für Anwender geändert hat");
 
