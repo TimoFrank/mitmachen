@@ -424,7 +424,7 @@ for (const [group, dependencies] of Object.entries({
 const apiPackageJson = JSON.parse(read("api/package.json"));
 const apiPackageLockJson = JSON.parse(read("api/package-lock.json"));
 const expectedApiDependencies = {
-  nodemailer: "9.0.4",
+  nodemailer: "10.0.9",
   pg: "8.21.0"
 };
 assert.deepEqual(
