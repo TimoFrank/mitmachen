@@ -99,6 +99,7 @@
     "test:sector-model": "node scripts/test_care_sector_model.mjs",
     "generate:pre-gematik-seed": "node scripts/generate_pre_gematik_synthetic_seed.mjs",
     "build:browser-vendor": "node scripts/build_browser_vendor.mjs",
+    "check:browser-vendor": "node scripts/build_browser_vendor.mjs --check",
     "test:api-validation": "node scripts/test_api_validation.mjs",
     "test:auth-avatar-contract": "node scripts/test_auth_avatar_contract.mjs",
     "test:avatar-render-stability": "node scripts/test_avatar_render_stability.mjs",
@@ -143,5 +144,10 @@
     "pdfjs-dist": "6.2.108",
     "pg": "8.21.0",
     "xlsx-js-style": "1.2.0"
+  },
+  "overrides": {
+    "mammoth": {
+      "@xmldom/xmldom": "0.8.15"
+    }
   }
 }
