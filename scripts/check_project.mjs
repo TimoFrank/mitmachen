@@ -27,6 +27,7 @@ const syntaxFiles = [
   "scripts/audit_public_assets.mjs",
   "scripts/audit_target_assets.mjs",
   "scripts/audit_stakeholder_fields.mjs",
+  "scripts/build_browser_vendor.mjs",
   "scripts/check_gcp_autopilot_readiness.mjs",
   "scripts/check_pre_gematik_migration_gcp.mjs",
   "scripts/check_deployment_governance.mjs",
@@ -141,6 +142,7 @@ const syntaxFiles = [
 ];
 
 const auditCommands = [
+  ["node", ["scripts/build_browser_vendor.mjs", "--check"]],
   ["node", ["scripts/generate_module_brand_assets.mjs", "--check"]],
   ["node", ["scripts/audit_public_assets.mjs"]],
   ["node", ["scripts/audit_api_gateway.mjs"]],
