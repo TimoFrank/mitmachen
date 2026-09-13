@@ -2337,6 +2337,11 @@ test("Hospitation: Fragebogen-Modul rendern", async ({ page }, testInfo) => {
   const observationPlaceholder = await observationTextarea.getAttribute("placeholder");
   expect(observationPlaceholder).not.toContain(";");
   await observationTextarea.fill("MFA ruft wegen fehlender KIM-Adresse zurück und dokumentiert die Antwort parallel im PVS.");
+  const questionnaireSource = questionnaireObservationStep.locator('select[name="questionnaireObservations[1][evidenceType]"]');
+  await expect(questionnaireSource).toHaveValue("");
+  await expect(questionnaireSource).not.toHaveAttribute("required", "");
+  await expect(questionnaireSource.locator('option[value="source_bound"]')).toHaveText("Beobachtungsunterlage");
+  await questionnaireSource.selectOption({ label: "berichtet" });
   await expect(questionnaireObservationStep.locator('select[name="questionnaireObservations[1][processPhase]"]')).toHaveCount(0);
   await expect(questionnaireObservationStep.locator('select[name="questionnaireObservations[1][problemType]"]')).toHaveCount(0);
   await expect(questionnaireObservationStep.locator('select[name="questionnaireObservations[1][impact]"]')).toHaveCount(0);
@@ -2363,15 +2368,15 @@ test("Hospitation: Fragebogen-Modul rendern", async ({ page }, testInfo) => {
   await completeQuestionnaireStep(questionnaireObservationStep);
   await expect(questionnaireCodingStep).toHaveAttribute("open", "");
   await expect(questionnaireCodingStep.locator("[data-questionnaire-observation-coding-title]")).toHaveText("Codierung: Telefonische Rückfrage");
-  await expect(questionnaireCodingStep.locator('select[name="questionnaireObservations[1][processPhase]"] option[value="Befund / Dokumentation"]')).toHaveCount(1);
-  await expect(questionnaireCodingStep.locator('select[name="questionnaireObservations[1][problemType]"] option[value="positives Muster / Best Practice"]')).toHaveCount(1);
-  await expect(questionnaireCodingStep.locator('select[name="questionnaireObservations[1][impact]"] option[value="Patient:innen müssen selbst vermitteln"]')).toHaveCount(1);
-  await expect(questionnaireCodingStep.locator('select[name="questionnaireObservations[1][observationType]"] option[value="Kontextwissen"]')).toHaveCount(1);
+  await expect(questionnaireCodingStep.locator('select[name="questionnaireObservations[1][processPhase]"] option[value="Übergang"]')).toHaveCount(1);
+  await expect(questionnaireCodingStep.locator('select[name="questionnaireObservations[1][problemType]"] option[value="Information fehlt"]')).toHaveText("Fehlende Information");
+  await expect(questionnaireCodingStep.locator('select[name="questionnaireObservations[1][impact]"] option[value="Zusätzliche Arbeit"]')).toHaveCount(1);
+  await expect(questionnaireCodingStep.locator('select[name="questionnaireObservations[1][observationType]"] option[value="Kontext"]')).toHaveCount(1);
   await expect(questionnaireCodingStep.locator('select[name="questionnaireObservations[1][relevance]"] option[value="5"]')).toHaveCount(1);
-  await questionnaireCodingStep.locator('select[name="questionnaireObservations[1][processPhase]"]').selectOption("Befund / Dokumentation");
-  await questionnaireCodingStep.locator('select[name="questionnaireObservations[1][problemType]"]').selectOption("Rückfrage");
-  await questionnaireCodingStep.locator('select[name="questionnaireObservations[1][impact]"]').selectOption("Arbeitsfluss wird unterbrochen");
-  await questionnaireCodingStep.locator('select[name="questionnaireObservations[1][observationType]"]').selectOption("Reibung / Problem");
+  await questionnaireCodingStep.locator('select[name="questionnaireObservations[1][processPhase]"]').selectOption("Übergang");
+  await questionnaireCodingStep.locator('select[name="questionnaireObservations[1][problemType]"]').selectOption({ label: "Fehlende Information" });
+  await questionnaireCodingStep.locator('select[name="questionnaireObservations[1][impact]"]').selectOption("Zusätzliche Arbeit");
+  await questionnaireCodingStep.locator('select[name="questionnaireObservations[1][observationType]"]').selectOption("Hindernis");
   await questionnaireCodingStep.locator('select[name="questionnaireObservations[1][relevance]"]').selectOption("5");
   await completeQuestionnaireStep(questionnaireCodingStep);
   await expect(questionnaireMaterialStep).toHaveAttribute("open", "");
@@ -2447,10 +2452,11 @@ test("Hospitation: Fragebogen-Modul rendern", async ({ page }, testInfo) => {
   await expect(questionnaireDrawerObservation).not.toContainText("Produktbezug");
   await expect(questionnaireDrawerObservation).not.toContainText("Zitate und Bilder");
   await expect(questionnaireDrawerObservation.locator('[data-repeatable-field="observed"]')).toContainText("MFA ruft wegen fehlender KIM-Adresse zurück");
-  await expect(questionnaireDrawerObservation.locator('[data-repeatable-field="processPhase"]')).toHaveValue("Befund / Dokumentation");
-  await expect(questionnaireDrawerObservation.locator('[data-repeatable-field="problemType"]')).toHaveValue("Rückfrage");
-  await expect(questionnaireDrawerObservation.locator('[data-repeatable-field="impact"]')).toHaveValue("Arbeitsfluss wird unterbrochen");
-  await expect(questionnaireDrawerObservation.locator('[data-repeatable-field="observationType"]')).toHaveValue("Reibung / Problem");
+  await expect(questionnaireDrawerObservation.locator('[data-repeatable-field="evidenceType"]')).toHaveValue("reported");
+  await expect(questionnaireDrawerObservation.locator('[data-repeatable-field="processPhase"]')).toHaveValue("Übergang");
+  await expect(questionnaireDrawerObservation.locator('[data-repeatable-field="problemType"]')).toHaveValue("Information fehlt");
+  await expect(questionnaireDrawerObservation.locator('[data-repeatable-field="impact"]')).toHaveValue("Zusätzliche Arbeit");
+  await expect(questionnaireDrawerObservation.locator('[data-repeatable-field="observationType"]')).toHaveValue("Hindernis");
   await expect(questionnaireDrawerObservation.locator('[data-repeatable-field="relevanceScore"]')).toHaveValue("5");
   await expect(questionnaireDrawerObservation.locator('[data-repeatable-field="affectedProducts"]')).toHaveValue("ePA für alle");
   await expect(questionnaireDrawerObservation.locator("[data-repeatable-product-editor]")).toHaveCount(0);
@@ -2620,6 +2626,39 @@ test("Hospitationen: geschützte synthetische Backend-Fixture ist observation-fi
   await expect(first.locator('[data-repeatable-field="careRelevance"]')).toHaveCount(0);
   await expect(first.locator('[data-repeatable-field="nextUse"]')).toHaveCount(0);
   await expect(drawer).not.toContainText("Roadmap-Bewertung");
+
+  const readSavedObservation = () => page.evaluate(async () => {
+    const hospitations = await window.dataService.getHospitations({ includeArchived: true });
+    const hospitation = hospitations.find((item) => item.id === "demo-hospitation-medikationsabgleich-entlassung");
+    const documentation = typeof hospitation?.documentationOutcome === "string"
+      ? JSON.parse(hospitation.documentationOutcome)
+      : hospitation?.documentation || {};
+    return documentation.observations?.find((item) => item.id === "demo-observation-med-1");
+  });
+  const original = await readSavedObservation();
+  expect(original?.evidenceType).toBe("synthetic_source_based");
+  const revisedTitle = "Drei Medikationsstände vor dem Folgetermin";
+  await first.locator('[data-repeatable-field="title"]').fill(revisedTitle);
+  await first.locator('[data-repeatable-field="title"]').press("Tab");
+  await expect.poll(readSavedObservation).toMatchObject({
+    title: revisedTitle,
+    evidenceType: "synthetic_source_based",
+    sourceType: original.sourceType,
+    sourceReference: original.sourceReference,
+    uncertainty: original.uncertainty,
+    processPhase: original.processPhase,
+    problemType: original.problemType,
+    impact: original.impact
+  });
+  await drawer.locator("#hospitation-editor-close").click();
+  await expect(drawer).not.toHaveClass(/is-open/);
+  await row.locator(".hospitation-row__head").click();
+  await drawer.getByRole("tab", { name: "Beobachten" }).click();
+  await expect(first.locator('[data-repeatable-field="title"]')).toHaveValue(revisedTitle);
+  await expect(first.locator('[data-repeatable-field="evidenceType"]')).toHaveValue("synthetic_source_based");
+  await expect(first.locator('[data-repeatable-field="sourceReference"]')).toContainText(original.sourceReference);
+  await expect(first.locator('[data-repeatable-field="processPhase"]')).toHaveValue(original.processPhase);
+  await expect(first.locator('[data-repeatable-field="problemType"]')).toHaveValue(original.problemType);
 });
 
 test("Sidebar: Aktiver Bereich startet offen und beim Modulwechsel bleibt nur ein Bereich offen", async ({ page }, testInfo) => {
@@ -6226,14 +6265,10 @@ test("Hospitationen: Dokumentationsdrawer mit Reitern", async ({ page }, testInf
   await observationCards.nth(0).locator('[data-repeatable-field="toolsAndDocuments"]').fill("PVS, Entlassbrief, Medikationsplan");
   await observationCards.nth(0).locator('[data-repeatable-field="immediateConsequence"]').fill("Die Liste bleibt bis zur ärztlichen Klärung offen.");
   await observationCards.nth(0).locator('[data-repeatable-field="sourceReference"]').fill("Anonymisierte Hospitationsnotiz");
-  await observationCards.nth(0).locator('[data-repeatable-field="processPhase"]').selectOption({ label: "Anmeldung / Aufnahme" });
-  await observationCards.nth(0).locator('[data-repeatable-field="problemType"]').selectOption({ label: "fehlende Information" });
+  await observationCards.nth(0).locator('[data-repeatable-field="processPhase"]').selectOption({ label: "Aufnahme" });
+  await observationCards.nth(0).locator('[data-repeatable-field="problemType"]').selectOption({ label: "Fehlende Information" });
   await expect(observationCards.nth(0).locator('[data-repeatable-field="affectedProducts"]')).toHaveCount(1);
-  await observationCards.nth(0).locator('[data-repeatable-field="evidenceType"]').evaluate((input) => {
-    input.value = "directly_observed";
-    input.dispatchEvent(new Event("input", { bubbles: true }));
-    input.dispatchEvent(new Event("change", { bubbles: true }));
-  });
+  await observationCards.nth(0).locator('[data-repeatable-field="evidenceType"]').selectOption("directly_observed");
   await expect(observationCards.nth(0).locator('[data-repeatable-field="evidenceType"]')).toHaveValue("directly_observed");
   await expect(observationCards.nth(0).locator('[data-repeatable-field="nextUse"]')).toHaveCount(0);
   await expect(observationCards.nth(0).locator('[data-repeatable-field="careRelevance"]')).toHaveCount(0);
@@ -6243,17 +6278,17 @@ test("Hospitationen: Dokumentationsdrawer mit Reitern", async ({ page }, testInf
   await expect(observationCards).toHaveCount(initialObservationCount + 1);
   await observationCards.nth(initialObservationCount).locator('[data-repeatable-field="title"]').fill("Rückfrage ohne Zuständigkeit");
   await observationCards.nth(initialObservationCount).locator('[data-repeatable-field="observed"]').fill("Eine Rückfrage bleibt offen, weil keine Rolle eindeutig zuständig ist.");
-  await observationCards.nth(initialObservationCount).locator('[data-repeatable-field="processPhase"]').selectOption({ label: "Kommunikation mit anderen Einrichtungen" });
-  await observationCards.nth(initialObservationCount).locator('[data-repeatable-field="problemType"]').selectOption({ label: "Rollenunklarheit" });
-  await expect(observationCards.nth(initialObservationCount).locator('[data-repeatable-field="evidenceType"]')).toHaveValue("directly_observed");
+  await observationCards.nth(initialObservationCount).locator('[data-repeatable-field="processPhase"]').selectOption({ label: "Übergang" });
+  await observationCards.nth(initialObservationCount).locator('[data-repeatable-field="problemType"]').selectOption({ label: "Unklare Abstimmung" });
+  await expect(observationCards.nth(initialObservationCount).locator('[data-repeatable-field="evidenceType"]')).toHaveValue("");
   await addObservationButton.scrollIntoViewIfNeeded();
   await addObservationButton.click();
   await expect(observationCards).toHaveCount(initialObservationCount + 2);
   await observationCards.nth(initialObservationCount + 1).locator('[data-repeatable-field="title"]').fill("Formular als Medienbruch");
   await observationCards.nth(initialObservationCount + 1).locator('[data-repeatable-field="observed"]').fill("Ein Papierformular wird eingescannt und anschließend manuell übertragen.");
-  await observationCards.nth(initialObservationCount + 1).locator('[data-repeatable-field="processPhase"]').selectOption({ label: "Befund / Dokumentation" });
-  await observationCards.nth(initialObservationCount + 1).locator('[data-repeatable-field="problemType"]').selectOption({ label: "Medienbruch" });
-  await expect(observationCards.nth(initialObservationCount + 1).locator('[data-repeatable-field="evidenceType"]')).toHaveValue("directly_observed");
+  await observationCards.nth(initialObservationCount + 1).locator('[data-repeatable-field="processPhase"]').selectOption({ label: "Versorgung" });
+  await observationCards.nth(initialObservationCount + 1).locator('[data-repeatable-field="problemType"]').selectOption({ label: "Doppelte Dokumentation" });
+  await expect(observationCards.nth(initialObservationCount + 1).locator('[data-repeatable-field="evidenceType"]')).toHaveValue("");
   await expect(observationDetails.locator('[data-repeatable-summary-title]').first()).toContainText("Aufnahme ohne Überblick");
   const quoteDetails = observationDetails.locator(".detail-info-card").filter({ hasText: "Optionale Stimmen" });
   await expect(observationDetails).toBeVisible();
@@ -6325,6 +6360,20 @@ test("Hospitationen: Dokumentationsdrawer mit Reitern", async ({ page }, testInf
   }
   await expect(documentationRow).not.toContainText("Dokumentationsnotiz aus dem Visualtest");
   await expect(documentationRow).not.toContainText("Ø");
+  const newlySavedObservations = await page.evaluate(async () => {
+    const hospitations = await window.dataService.getHospitations({ includeArchived: true });
+    return hospitations.flatMap((hospitation) => {
+      const documentation = typeof hospitation.documentationOutcome === "string"
+        ? JSON.parse(hospitation.documentationOutcome)
+        : hospitation.documentation || {};
+      return documentation.observations || [];
+    }).filter((observation) => ["Rückfrage ohne Zuständigkeit", "Formular als Medienbruch"].includes(observation.title))
+      .map(({ title, evidenceType, processPhase, problemType }) => ({ title, evidenceType, processPhase, problemType }));
+  });
+  expect(newlySavedObservations).toEqual([
+    { title: "Rückfrage ohne Zuständigkeit", evidenceType: "", processPhase: "Übergang", problemType: "Abstimmung unklar" },
+    { title: "Formular als Medienbruch", evidenceType: "", processPhase: "Versorgung", problemType: "Doppelte Dokumentation" }
+  ]);
 
   if (!testInfo.project.name.includes("mobile")) {
     const freetextArchiveRow = page.locator(".hospitation-row", { hasText: "Demo-Kontakt 01" }).first();

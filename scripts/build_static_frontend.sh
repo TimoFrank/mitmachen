@@ -874,6 +874,31 @@ fi
 
 if [ "$PROFILE" = "pages" ]; then
   build_pages
+
+  # Lokale Demo-Iterationen können denselben Git-Stand haben. Der Inhalt der
+  # gebauten Dateien bestimmt deshalb die Cache-Version beider App-Einstiege.
+  # So lädt eine neue HTML-Struktur keine alte JS-/CSS-Datei aus dem Cache.
+  node - "$STAGE_DIR" <<'NODE'
+const crypto = require("node:crypto");
+const fs = require("node:fs");
+const path = require("node:path");
+
+const root = process.argv[2];
+for (const documentName of ["versorgungs-kompass.html", "index.html"]) {
+  const documentPath = path.join(root, documentName);
+  const html = fs.readFileSync(documentPath, "utf8");
+  const versioned = html.replace(
+    /(\b(?:src|href)=["'])(\.\/[^"'?#]+?\.(?:css|m?js))(["'])/gi,
+    (match, prefix, assetPath, suffix) => {
+      if (assetPath.endsWith("versorgungs-kompass-no-script.css")) return match;
+      const content = fs.readFileSync(path.join(root, assetPath));
+      const version = crypto.createHash("sha256").update(content).digest("hex");
+      return `${prefix}${assetPath}?v=${version}${suffix}`;
+    }
+  );
+  fs.writeFileSync(documentPath, versioned);
+}
+NODE
 else
   build_target
 

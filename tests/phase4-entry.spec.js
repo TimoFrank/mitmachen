@@ -143,9 +143,9 @@ test("Phase 4: #Mitmachen führt in vier Module und Pages über die gemeinsame S
   await expect(page.locator('[data-view-tab="stakeholders"][data-stakeholder-type-route]')).toHaveCount(4);
   await expect(page.locator('[data-view-tab="hospitations"]')).toHaveCount(1);
   await expect(page.locator('[data-view-tab="formats"]')).toHaveCount(1);
-  await expect(page.locator('script[src="./data/demo-data.js"]')).toHaveCount(1);
-  await expect(page.locator('script[src="./data/demo-api.js"]')).toHaveCount(1);
-  await expect(page.locator('script[src="./data/data-service.js"]')).toHaveCount(1);
+  await expect(page.locator('script[src^="./data/demo-data.js?v="]')).toHaveCount(1);
+  await expect(page.locator('script[src^="./data/demo-api.js?v="]')).toHaveCount(1);
+  await expect(page.locator('script[src^="./data/data-service.js?v="]')).toHaveCount(1);
   await expect(page.locator('script[src*="auth-"]')).toHaveCount(0);
   const removedEntryResponse = await request.get("/dist/pages/mitmachen/index.html");
   expect(removedEntryResponse.status()).toBe(404);

@@ -39,7 +39,8 @@ const expectedMigrationFiles = Object.freeze([
   "202607270002_add_contact_relationship_basis_and_ehc_consent.sql",
   "202607280001_add_format_participation_workflow.sql",
   "202607300001_add_network_registration_intake.sql",
-  "202607310001_restrict_activity_event_runtime_grants.sql"
+  "202607310001_restrict_activity_event_runtime_grants.sql",
+  "202609120001_hospitation_evidence_types.sql"
 ]);
 const migrationFiles = readdirSync(migrationsUrl)
   .filter((fileName) => /^\d+_[a-z0-9_]+\.sql$/u.test(fileName))
@@ -62,14 +63,20 @@ function replaceSchemaFragmentExactlyOnce(source, pattern, replacement, descript
 }
 
 // Reconstruct the exact capabilities that existed immediately before the
-// ten versioned migrations. Keeping this derived from today's full schema
+// versioned migrations. Keeping this derived from today's full schema
 // makes the upgrade smoke exercise all current tables while deliberately
-// removing only the ten capabilities supplied by those migrations.
+// removing only the capabilities supplied by those migrations.
 let legacyUpgradeSchemaSql = replaceSchemaFragmentExactlyOnce(
   schemaSql,
   /  if new\.updated_at is not distinct from old\.updated_at then\n    new\.updated_at := now\(\);\n  end if;/u,
   "  new.updated_at := now();",
   "alte Touch-Trigger-Semantik"
+);
+legacyUpgradeSchemaSql = replaceSchemaFragmentExactlyOnce(
+  legacyUpgradeSchemaSql,
+  /  evidence_type text not null default ''\n    check \(evidence_type in \('', 'directly_observed', 'source_bound', 'synthetic_source_based', 'reported', 'interpreted'\)\),/u,
+  "  evidence_type text not null default 'interpreted'\n    check (evidence_type in ('directly_observed', 'reported', 'interpreted')),",
+  "Quellenarten vor Migration 011"
 );
 legacyUpgradeSchemaSql = replaceSchemaFragmentExactlyOnce(
   legacyUpgradeSchemaSql,
@@ -927,6 +934,26 @@ async function databaseSmoke(pool) {
         '{"synthetic":true}'::jsonb, 'pre-gematik-admin', 'pre-gematik-admin'
       )
     `);
+    for (const evidenceType of ["", "directly_observed", "source_bound", "synthetic_source_based", "reported", "interpreted"]) {
+      const result = await client.query(`
+        insert into hospitation_observations (id, hospitation_id, title, evidence_type)
+        values ($1, 'hospitation-contract', 'Fiktiver Quellenvertrag', $2)
+        returning evidence_type
+      `, [`evidence-contract-${evidenceType || "open"}`, evidenceType]);
+      assert.equal(result.rows[0].evidence_type, evidenceType, "Alle Quellenarten müssen unverändert speicherbar sein.");
+    }
+    const unspecifiedEvidence = await client.query(`
+      insert into hospitation_observations (id, hospitation_id, title)
+      values ('evidence-contract-default', 'hospitation-contract', 'Fiktive offene Quellenart')
+      returning evidence_type
+    `);
+    assert.equal(unspecifiedEvidence.rows[0].evidence_type, "", "Eine fehlende Quellenart darf keine Interpretation vortäuschen.");
+    await client.query("savepoint invalid_observation_evidence");
+    await assert.rejects(client.query(`
+      update hospitation_observations set evidence_type = 'unsupported'
+      where id = 'evidence-contract-default'
+    `), (error) => error?.code === "23514", "Unbekannte Quellenarten müssen zurückgewiesen werden.");
+    await client.query("rollback to savepoint invalid_observation_evidence");
     await client.query(`
       update hospitation_observations
          set status = 'archived', archived_at = now(), archived_by = 'pre-gematik-admin', updated_by = 'pre-gematik-admin'
@@ -2318,9 +2345,9 @@ async function assertVersionedMigrationUpgrade(connectionString, containerName) 
     const dataAfterSecondPass = await migrationUpgradeDataSnapshot(upgradePool);
     const secondSemantics = await migrationUpgradeSemanticSnapshot(upgradePool);
     assert.deepEqual(dataAfterSecondPass, dataBeforeSecondPass,
-      "Der zweite Lauf aller zehn Migrationen darf einschliesslich xmin keine Daten erneut veraendern.");
+      "Der zweite Lauf aller Migrationen darf einschliesslich xmin keine Daten erneut veraendern.");
     assert.deepEqual(secondSemantics, firstSemantics,
-      "Der zweite Lauf aller zehn Migrationen muss denselben logischen Tabellen-, Constraint-, Trigger- und Rechtezustand ergeben.");
+      "Der zweite Lauf aller Migrationen muss denselben logischen Tabellen-, Constraint-, Trigger- und Rechtezustand ergeben.");
 
     const secondExplicitTimestamp = new Date("2003-04-05T06:07:08.901Z");
     const secondExplicit = await upgradePool.query(`
@@ -2790,7 +2817,7 @@ try {
     await databaseSmoke(pool);
     console.log("Externe Test-DB verwendet: runtime-role.sql und grants.sql wurden statisch, aber nicht mit temporären Rollen ausgeführt.");
   }
-  console.log("PostgreSQL 16 contract OK: Vollschema und zehn Upgrade-Migrationen zweifach/idempotent; Legacy-Logo-Bereinigung, Identity-/Allowlist-Grenzen, TYPO3-Intake, getrennte NOLOGIN-Identity-Administration, explicit updated_at, Hospitationstag, Zweckachsen, Formatbeteiligungs-Workflow, append-only Activity-Rechte, Laufzeitrolle und relationaler Smoke-Test erfolgreich.");
+  console.log("PostgreSQL 16 contract OK: Vollschema und alle Upgrade-Migrationen zweifach/idempotent; Quellenarten, Legacy-Logo-Bereinigung, Identity-/Allowlist-Grenzen, TYPO3-Intake, getrennte NOLOGIN-Identity-Administration, explicit updated_at, Hospitationstag, Zweckachsen, Formatbeteiligungs-Workflow, append-only Activity-Rechte, Laufzeitrolle und relationaler Smoke-Test erfolgreich.");
 } finally {
   if (pool) await pool.end().catch(() => {});
   if (containerName) {
