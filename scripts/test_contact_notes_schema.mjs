@@ -39,7 +39,7 @@ assert.match(api, /function assertNoteOwner[\s\S]{0,500}?request\.currentProfile
 assert.match(api, /async function createContactNote[\s\S]{0,600}?await visibleContactRow/);
 assert.match(api, /async function searchContactContent[\s\S]*websearch_to_tsquery\('german', \$1\)/);
 assert.match(api, /ATTACHMENT_UPLOAD_MODE === "disabled"/);
-assert.match(api, /saveStorageObject\(CONTACT_NOTE_ATTACHMENT_BUCKET/);
+assert.match(api, /saveStorageObject\([\s\S]{0,120}?OBJECT_STORAGE_AREAS\.CONTACT_NOTE_ATTACHMENTS,[\s\S]{0,80}?CONTACT_NOTE_ATTACHMENT_BUCKET/);
 assert.match(securityPolicy, /contact-notes\|contact-note-attachments\)[^\n]*"editor", "contact-note\.write"/);
 assert.match(securityPolicy, /"editor", "contact-note\.owned\.write"/);
 assert.match(securityPolicy, /"editor", "attachment\.owned\.delete"/);

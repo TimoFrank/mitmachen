@@ -16,8 +16,15 @@ export const WRITE_CLASSES = Object.freeze({
   RESTRICTED: "restricted"
 });
 
-function route(methods, pattern, role, id, writeClass = WRITE_CLASSES.RESTRICTED) {
-  return Object.freeze({ methods: new Set(methods), pattern, role, id, writeClass });
+function route(
+  methods,
+  pattern,
+  role,
+  id,
+  writeClass = WRITE_CLASSES.RESTRICTED,
+  allowWhenCutoverClosed = false
+) {
+  return Object.freeze({ methods: new Set(methods), pattern, role, id, writeClass, allowWhenCutoverClosed });
 }
 
 // Jede produktive API-Route muss hier explizit eingetragen sein. Neue Routen sind
@@ -25,6 +32,7 @@ function route(methods, pattern, role, id, writeClass = WRITE_CLASSES.RESTRICTED
 export const ROUTE_POLICIES = Object.freeze([
   route(["GET"], /^\/(?:api\/)?(?:healthz|readyz)$/, "public", "health", WRITE_CLASSES.READ),
   route(["GET"], /^\/api\/auth\/bootstrap$/, "public", "auth.bootstrap", WRITE_CLASSES.READ),
+  route(["GET"], /^\/api\/identity\/bootstrap-claim$/, "public", "identity.bootstrap-claim", WRITE_CLASSES.READ),
   route(
     ["POST"],
     /^\/api\/auth\/external-enrollment$/,
@@ -42,8 +50,15 @@ export const ROUTE_POLICIES = Object.freeze([
     WRITE_CLASSES.RESTRICTED
   ),
   route(["GET"], /^\/api\/session$/, "viewer", "session.read", WRITE_CLASSES.READ),
-  route(["GET"], /^\/api\/ops\/(?:summary|checks)$/, "admin", "operations.read"),
-  route(["GET"], /^\/api\/export$/, "admin", "data.export"),
+  route(
+    ["GET"],
+    /^\/api\/ops\/(?:summary|checks)$/,
+    "admin",
+    "operations.read",
+    WRITE_CLASSES.RESTRICTED,
+    true
+  ),
+  route(["GET"], /^\/api\/export$/, "admin", "data.export", WRITE_CLASSES.RESTRICTED, true),
   route(["GET"], /^\/api\/politics\/health-committee$/, "viewer", "politics.health-committee.read", WRITE_CLASSES.READ),
 
   route(["GET"], /^\/api\/(?:contacts|contact-content-search|contact-notes|contact-note-attachments|organizations|organization-primary-systems|expert-groups|expert-contacts|expert-organizations|expert-entity-links|stakeholder-types|stakeholder-organizations|stakeholder-people|profiles|saved-views|user-settings|hospitation-slots|hospitations|hospitation-observations|roadmap-items|hospitation-roadmap-assessments|hospitation-unmet-needs|formats|activities|notifications|notifications\/summary)$/, "viewer", "collection.read", WRITE_CLASSES.READ),
@@ -92,6 +107,28 @@ export function policyForRequest(method, pathname) {
     return Object.freeze({ role: "public", id: "cors.preflight", writeClass: WRITE_CLASSES.READ });
   }
   return ROUTE_POLICIES.find((item) => item.methods.has(normalizedMethod) && item.pattern.test(pathname)) || null;
+}
+
+export function validateApiCutoverMode(env = {}) {
+  const value = String(env.API_CUTOVER_MODE || "").trim().toLowerCase();
+  const required = env.API_CUTOVER_MODE_REQUIRED === "1";
+  if (!value && !required) return "open";
+  if (!new Set(["closed", "open"]).has(value)) {
+    throw new Error("API_CUTOVER_MODE muss fuer diesen Betrieb explizit closed oder open sein.");
+  }
+  return value;
+}
+
+export function assertApiCutoverPermission(cutoverMode, policy) {
+  if (
+    cutoverMode !== "closed"
+    || policy?.writeClass === WRITE_CLASSES.READ
+    || policy?.allowWhenCutoverClosed === true
+  ) return;
+  const error = new Error("Schreibzugriffe sind waehrend des kontrollierten Cutovers gesperrt.");
+  error.status = 503;
+  error.retryAfter = 60;
+  throw error;
 }
 
 export function roleRank(role = "") {
@@ -172,6 +209,35 @@ export function assertIapJwtClaims(payload, expectedAudience, options = {}) {
     throw error;
   }
   return Object.freeze({ exp, iat, nbf: nbf ?? null });
+}
+
+export function assertOidcJwtClaims(payload, expectedIssuer, expectedAudience, options = {}) {
+  const now = Number.isFinite(options.nowSeconds)
+    ? Number(options.nowSeconds)
+    : Math.floor(Date.now() / 1000);
+  const skew = 30;
+  const issuer = String(payload?.iss || "");
+  const googleIssuer = expectedIssuer === "https://accounts.google.com"
+    && (issuer === expectedIssuer || issuer === "accounts.google.com");
+  const issuerMatches = issuer === expectedIssuer || googleIssuer;
+  const audiences = Array.isArray(payload?.aud) ? payload.aud : [payload?.aud];
+  const audienceMatches = audiences.some((value) => value === expectedAudience);
+  const authorizedParty = payload?.azp == null ? "" : String(payload.azp);
+  const authorizedPartyMatches = (!authorizedParty || authorizedParty === expectedAudience)
+    && (audiences.length <= 1 || authorizedParty === expectedAudience);
+  const exp = Number(payload?.exp);
+  const nbf = payload?.nbf == null ? null : Number(payload.nbf);
+  const iat = payload?.iat == null ? null : Number(payload.iat);
+  const timeWindowValid = Number.isFinite(exp)
+    && exp >= now - skew
+    && (nbf == null || (Number.isFinite(nbf) && nbf <= now + skew))
+    && (iat == null || (Number.isFinite(iat) && iat <= now + skew));
+  if (!issuerMatches || !audienceMatches || !authorizedPartyMatches || !timeWindowValid) {
+    const error = new Error("OIDC-Token-Claims oder Zeitfenster sind ungueltig.");
+    error.status = 401;
+    throw error;
+  }
+  return Object.freeze({ issuer: expectedIssuer, exp, nbf, iat });
 }
 
 function canonicalUtcTimestamp(value, label) {

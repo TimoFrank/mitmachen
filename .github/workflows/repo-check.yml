@@ -40,6 +40,9 @@ jobs:
       - name: Run minimal checks
         run: npm run check
 
+      - name: Run single-server contracts
+        run: npm run check:single-server
+
       - name: Install Chromium
         run: npx playwright install --with-deps chromium
 

@@ -51,3 +51,8 @@ cf48b1018f1d96fdba387e8324e6b92fcf361e95:docs/data/supabase-config.js:generic-ap
 # Acceptance gate: confirm that the former password is not reused elsewhere; rotate it if reuse cannot be excluded.
 aebc80ba2a4405ce4d7a7f7a4c494a1a4c2f7bd2:auth-config.js:generic-api-key:7
 b5348a57fb768e07bc3414cc0f3da769db632d55:docs/auth-config.js:generic-api-key:7
+
+# Reviewed 2026-09-13: historical literal PKCS#8 marker used only to validate an
+# operator-provided external signing key. It contains no private key material;
+# current source constructs the marker without a scanner-shaped literal.
+dd62c6cd7232511900abfd349cc747c5c83b4ed2:deploy/single-server/migration/capture-initial-open-writer-evidence.sh:private-key:672

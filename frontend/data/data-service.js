@@ -78,7 +78,9 @@
         if (controller.signal.aborted) throw error;
       }
       if (!response.ok) {
-        if (response.status === 401) window.VKAuth?.reauthenticateIapSession?.();
+        if (response.status === 401) {
+          (window.VKAuth?.reauthenticateSession || window.VKAuth?.reauthenticateIapSession)?.();
+        }
         const requestError = new Error(payload.error || `API-Anfrage fehlgeschlagen (${response.status}).`);
         requestError.status = response.status;
         requestError.code = payload.code || `API_HTTP_${response.status}`;
@@ -1572,6 +1574,9 @@
             credentials: CONFIG.apiCredentials || "same-origin"
           });
           if (!response.ok) {
+            if (response.status === 401) {
+              (window.VKAuth?.reauthenticateSession || window.VKAuth?.reauthenticateIapSession)?.();
+            }
             const payload = await response.json().catch(() => ({}));
             throw new Error(payload.error || `Datei konnte nicht geladen werden (${response.status}).`);
           }

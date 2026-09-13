@@ -1,5 +1,6 @@
 window.VERSORGUNGS_COMPASS_CONFIG = {
   dataMode: "api",
+  authGateway: "generic",
   iapIdentityMode: "iam",
   iapExternalLoginPageUri: "",
   iapExternalAuthApiKey: "",

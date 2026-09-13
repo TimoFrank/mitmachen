@@ -45246,6 +45246,7 @@
           }
           if (window.dataService?.isConfigured?.() && authFailed && window.VKAuth) {
             window.VKAuth.clearAuthenticated();
+            if (window.VKAuth.reauthenticateSession?.()) return true;
             window.location.replace(window.VKAuth.buildLoginUrl());
             return true;
           }

@@ -131,6 +131,7 @@ assert.equal(validateIdentityConfiguration(iapRuntimeEnvironment).mode, "iap");
 const standardEditor = { role: "editor", access_scope: "standard", scope_ref: null };
 const testViewer = { role: "viewer", access_scope: "test_only", scope_ref: "cohort-a" };
 const testEditor = { role: "editor", access_scope: "test_only", scope_ref: "cohort-a" };
+const testAdmin = { role: "admin", access_scope: "test_only", scope_ref: "cohort-a" };
 const invalidTestEditor = { role: "editor", access_scope: "test_only", scope_ref: "" };
 
 assert.equal(accessScopeForProfile(standardEditor), "standard");
@@ -155,6 +156,11 @@ for (const writeClass of [WRITE_CLASSES.RESTRICTED]) {
     (error) => error.status === 403
   );
 }
+assert.throws(
+  () => assertAccessScopePermission(testAdmin, policyForRequest("GET", "/api/export")),
+  (error) => error.status === 403,
+  "Ein begrenzter Testzugang darf auch mit Adminrolle keinen Voll-Export abrufen."
+);
 assert.throws(
   () => assertAccessScopePermission(invalidTestEditor, { writeClass: WRITE_CLASSES.READ }),
   (error) => error.status === 403,

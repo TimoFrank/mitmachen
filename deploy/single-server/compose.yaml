@@ -1,0 +1,521 @@
+name: versorgungs-kompass-single-server
+
+services:
+  caddy:
+    image: versorgungs-kompass-caddy:${SOURCE_REVISION:?SOURCE_REVISION fehlt}
+    build:
+      context: ../..
+      dockerfile: deploy/single-server/caddy/Dockerfile
+      args:
+        PRODUCT_VERSION: ${PRODUCT_VERSION:?PRODUCT_VERSION fehlt}
+        SOURCE_REVISION: ${SOURCE_REVISION:?SOURCE_REVISION fehlt}
+        SOURCE_URL: ${SOURCE_URL:?SOURCE_URL fehlt}
+    restart: unless-stopped
+    user: "1000:1000"
+    read_only: true
+    cap_drop: [ALL]
+    cap_add: [NET_BIND_SERVICE]
+    security_opt:
+      - no-new-privileges:true
+    pids_limit: 100
+    cpus: 0.50
+    mem_limit: 96m
+    environment:
+      APP_SITE_ADDRESS: ${APP_SITE_ADDRESS:?APP_SITE_ADDRESS fehlt}
+      APP_HOST: ${APP_HOST:?APP_HOST fehlt}
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+    volumes:
+      - ${STATE_DIR:?STATE_DIR fehlt}/caddy-data:/data
+      - ${STATE_DIR:?STATE_DIR fehlt}/caddy-config:/config
+    tmpfs:
+      - /tmp:size=32m,mode=1777
+    networks:
+      edge:
+        ipv4_address: ${CADDY_EDGE_IP:-172.31.78.2}
+      application: {}
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - >-
+          wget -q -O /dev/null http://127.0.0.1:8080/internal-healthz
+          && wget -q -O /dev/null http://oauth2-proxy:4180/ping
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+    logging: &bounded_logging
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  oauth2-proxy:
+    image: quay.io/oauth2-proxy/oauth2-proxy:v7.15.4@sha256:b1b2021fe8f4004573e8d690dec6c7bb29cc44364572cf8510a05bf3a0ae2ded
+    restart: unless-stopped
+    read_only: true
+    cap_drop: [ALL]
+    security_opt:
+      - no-new-privileges:true
+    pids_limit: 100
+    cpus: 0.50
+    mem_limit: 96m
+    command: ["--config=/etc/oauth2-proxy.cfg"]
+    environment:
+      OAUTH2_PROXY_CLIENT_ID: ${GOOGLE_OAUTH_CLIENT_ID:?GOOGLE_OAUTH_CLIENT_ID fehlt}
+      OAUTH2_PROXY_REDIRECT_URL: ${APP_ORIGIN:?APP_ORIGIN fehlt}/oauth2/callback
+      OAUTH2_PROXY_WHITELIST_DOMAINS: ${APP_HOST:?APP_HOST fehlt}
+      OAUTH2_PROXY_TRUSTED_PROXY_IPS: ${CADDY_EDGE_IP:-172.31.78.2}/32
+    volumes:
+      - ./oauth2-proxy.cfg:/etc/oauth2-proxy.cfg:ro
+      - ${CONFIG_DIR:?CONFIG_DIR fehlt}/google-oauth-client-secret:/run/secrets/google-oauth-client-secret:ro
+      - ${CONFIG_DIR:?CONFIG_DIR fehlt}/oauth2-cookie-secret:/run/secrets/oauth2-cookie-secret:ro
+      - ${CONFIG_DIR:?CONFIG_DIR fehlt}/allowed-emails:/run/secrets/allowed-emails:ro
+    tmpfs:
+      - /tmp:size=16m,mode=1777
+    networks:
+      edge:
+        ipv4_address: ${OAUTH2_PROXY_EDGE_IP:-172.31.78.3}
+    logging: *bounded_logging
+
+  frontend:
+    image: versorgungs-kompass-frontend:${SOURCE_REVISION:?SOURCE_REVISION fehlt}
+    build:
+      context: ../..
+      dockerfile: deploy/single-server/frontend/Dockerfile
+      args:
+        PRODUCT_VERSION: ${PRODUCT_VERSION:?PRODUCT_VERSION fehlt}
+        SOURCE_REVISION: ${SOURCE_REVISION:?SOURCE_REVISION fehlt}
+        SOURCE_URL: ${SOURCE_URL:?SOURCE_URL fehlt}
+    restart: unless-stopped
+    read_only: true
+    cap_drop: [ALL]
+    security_opt:
+      - no-new-privileges:true
+    pids_limit: 100
+    cpus: 0.25
+    mem_limit: 96m
+    tmpfs:
+      - /tmp:size=32m,mode=1777
+      - /var/cache/nginx:size=32m,mode=0755,uid=101,gid=101
+    networks:
+      - application
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1:8080/start"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+    logging: *bounded_logging
+
+  api:
+    image: versorgungs-kompass-api:${SOURCE_REVISION:?SOURCE_REVISION fehlt}
+    build:
+      context: ../..
+      dockerfile: api/Dockerfile
+      args:
+        PRODUCT_VERSION: ${PRODUCT_VERSION:?PRODUCT_VERSION fehlt}
+        SOURCE_REVISION: ${SOURCE_REVISION:?SOURCE_REVISION fehlt}
+        SOURCE_URL: ${SOURCE_URL:?SOURCE_URL fehlt}
+    # Die API wird absichtlich nur durch den fail-closed systemd-/Betriebspfad
+    # gestartet. Docker darf einen alten offenen Writer nach Reboot nicht vor
+    # Marker-, Attestation-, Revisions- und Mode-Readback selbst hochfahren.
+    restart: "no"
+    user: "70:70"
+    read_only: true
+    cap_drop: [ALL]
+    security_opt:
+      - no-new-privileges:true
+    pids_limit: 200
+    cpus: 1.00
+    mem_limit: 512m
+    stop_grace_period: 40s
+    environment:
+      NODE_ENV: production
+      PORT: "8080"
+      K_SERVICE: versorgungs-kompass-single-server
+      K_REVISION: ${SOURCE_REVISION:?SOURCE_REVISION fehlt}
+      K_CONFIGURATION: single-server
+      ALLOWED_ORIGIN: ${APP_ORIGIN:?APP_ORIGIN fehlt}
+      API_AUTH_MODE: oidc
+      OIDC_ISSUER: https://accounts.google.com
+      OIDC_AUDIENCE: ${GOOGLE_OAUTH_CLIENT_ID:?GOOGLE_OAUTH_CLIENT_ID fehlt}
+      OIDC_JWKS_URL: https://www.googleapis.com/oauth2/v3/certs
+      OIDC_EMAIL_CLAIM: email
+      OIDC_SUBJECT_CLAIM: sub
+      OIDC_IDENTITY_BOOTSTRAP_CLAIM_ENABLED: "1"
+      OIDC_IDENTITY_BOOTSTRAP_HMAC_FILE: /run/secrets/identity-bootstrap-hmac
+      API_CUTOVER_MODE_REQUIRED: "1"
+      API_CUTOVER_MODE: ${API_CUTOVER_MODE:?API_CUTOVER_MODE fehlt}
+      API_WRITER_FENCE_DIRECTORY: /run/versorgungs-kompass-control
+      DB_HOST: /run/postgresql
+      DB_PORT: "5432"
+      DB_NAME: versorgungs_kompass
+      DB_USER: vk_app
+      DB_PASSWORD_FILE: /run/secrets/db-app-password
+      DB_POOL_MAX: "4"
+      DB_SSL_MODE: disable
+      OBJECT_STORAGE_DRIVER: filesystem
+      OBJECT_STORAGE_ROOT: /var/lib/versorgungs-kompass/object-storage
+      PROFILE_IMAGE_BUCKET: ${LEGACY_PROFILE_IMAGE_BUCKET:-}
+      IMAGE_UPLOAD_MODE: disabled
+      ATTACHMENT_UPLOAD_MODE: disabled
+      API_LOG_REQUESTS: "0"
+      RATE_LIMIT_READS_PER_MINUTE: "240"
+      RATE_LIMIT_WRITES_PER_MINUTE: "60"
+    volumes:
+      - ${STATE_DIR:?STATE_DIR fehlt}/postgres-socket:/run/postgresql:ro
+      - ${STATE_DIR:?STATE_DIR fehlt}/api-control:/run/versorgungs-kompass-control:ro
+      - ${STATE_DIR:?STATE_DIR fehlt}/object-storage:/var/lib/versorgungs-kompass/object-storage
+      - ${CONFIG_DIR:?CONFIG_DIR fehlt}/db-app-password:/run/secrets/db-app-password:ro
+      - ${CONFIG_DIR:?CONFIG_DIR fehlt}/identity-bootstrap-hmac:/run/secrets/identity-bootstrap-hmac:ro
+    tmpfs:
+      - /tmp:size=64m,mode=1777
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - application
+      - outbound
+    healthcheck:
+      test:
+        - CMD
+        - node
+        - -e
+        - "fetch('http://127.0.0.1:8080/api/readyz').then(async r=>{const j=await r.json();if(!r.ok||j.cutoverMode!==process.env.API_CUTOVER_MODE)process.exit(1)}).catch(()=>process.exit(1))"
+      interval: 30s
+      timeout: 8s
+      retries: 3
+      start_period: 30s
+    logging: *bounded_logging
+
+  postgres:
+    image: postgres:16.15-alpine3.24@sha256:cf78e76683b9ca8c5733cbbdce6c9262b45b6767934dd0a95e671f9a0fc20685
+    restart: unless-stopped
+    user: "70:70"
+    read_only: true
+    network_mode: none
+    cap_drop: [ALL]
+    security_opt:
+      - no-new-privileges:true
+    pids_limit: 200
+    cpus: 1.00
+    mem_limit: 768m
+    shm_size: 128m
+    stop_grace_period: 1m
+    environment:
+      POSTGRES_USER: vk_owner
+      POSTGRES_DB: versorgungs_kompass
+      POSTGRES_PASSWORD_FILE: /run/secrets/db-owner-password
+      POSTGRES_INITDB_ARGS: --auth-local=scram-sha-256 --auth-host=scram-sha-256
+      VK_APP_PASSWORD_FILE: /run/secrets/db-app-password
+    command:
+      - postgres
+      - -c
+      - listen_addresses=
+      - -c
+      - unix_socket_directories=/var/run/postgresql
+      - -c
+      - unix_socket_permissions=0700
+      - -c
+      - password_encryption=scram-sha-256
+      - -c
+      - shared_buffers=128MB
+      - -c
+      - max_connections=30
+      - -c
+      - log_connections=off
+      - -c
+      - log_disconnections=off
+    volumes:
+      - ${STATE_DIR:?STATE_DIR fehlt}/postgres-data:/var/lib/postgresql/data
+      - ${STATE_DIR:?STATE_DIR fehlt}/postgres-socket:/var/run/postgresql
+      - ./postgres/10-bootstrap.sh:/docker-entrypoint-initdb.d/10-bootstrap.sh:ro
+      - ../postgres/pre-gematik/schema.sql:/opt/versorgungs-kompass/schema.sql:ro
+      - ../postgres/pre-gematik/runtime-role.sql:/opt/versorgungs-kompass/runtime-role.sql:ro
+      - ../postgres/pre-gematik/grants.sql:/opt/versorgungs-kompass/grants.sql:ro
+      - ${CONFIG_DIR:?CONFIG_DIR fehlt}/db-owner-password:/run/secrets/db-owner-password:ro
+      - ${CONFIG_DIR:?CONFIG_DIR fehlt}/db-app-password:/run/secrets/db-app-password:ro
+    tmpfs:
+      - /tmp:size=64m,mode=1777
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -h /var/run/postgresql -U vk_owner -d versorgungs_kompass"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 20s
+    logging: *bounded_logging
+
+  database-dump:
+    image: postgres:16.15-alpine3.24@sha256:cf78e76683b9ca8c5733cbbdce6c9262b45b6767934dd0a95e671f9a0fc20685
+    profiles: [maintenance]
+    user: "70:70"
+    read_only: true
+    network_mode: none
+    cap_drop: [ALL]
+    security_opt:
+      - no-new-privileges:true
+    pids_limit: 100
+    cpus: 1.00
+    mem_limit: 384m
+    environment:
+      PGHOST: /run/postgresql
+      PGDATABASE: versorgungs_kompass
+      PGUSER: vk_owner
+      PGPASSWORD_FILE: /run/secrets/db-owner-password
+      SOURCE_REVISION: ${SOURCE_REVISION:?SOURCE_REVISION fehlt}
+      PRODUCT_VERSION: ${PRODUCT_VERSION:?PRODUCT_VERSION fehlt}
+      BACKUP_OPERATION_ID: ${BACKUP_OPERATION_ID:-}
+    volumes:
+      - ${STATE_DIR:?STATE_DIR fehlt}/postgres-socket:/run/postgresql:ro
+      - ${STATE_DIR:?STATE_DIR fehlt}/backup-staging:/backup
+      - ./backup/postgres-dump.sh:/usr/local/bin/postgres-dump:ro
+      - ${CONFIG_DIR:?CONFIG_DIR fehlt}/db-owner-password:/run/secrets/db-owner-password:ro
+    tmpfs:
+      - /tmp:size=64m,mode=1777
+    entrypoint: ["/bin/sh", "/usr/local/bin/postgres-dump"]
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  database-import:
+    image: postgres:16.15-alpine3.24@sha256:cf78e76683b9ca8c5733cbbdce6c9262b45b6767934dd0a95e671f9a0fc20685
+    profiles: [migration]
+    user: "70:70"
+    read_only: true
+    network_mode: none
+    cap_drop: [ALL]
+    security_opt:
+      - no-new-privileges:true
+    pids_limit: 100
+    cpus: 1.00
+    mem_limit: 384m
+    environment:
+      PGHOST: /run/postgresql
+      PGDATABASE: versorgungs_kompass
+      PGUSER: vk_owner
+      PGPASSWORD_FILE: /run/secrets/db-owner-password
+      MIGRATION_CONFIRMATION: ${MIGRATION_CONFIRMATION:-}
+      MIGRATION_PACKAGE_SHA256: ${MIGRATION_PACKAGE_SHA256:-}
+      MIGRATION_MODE: ${MIGRATION_MODE:-apply}
+      MIGRATION_MAX_DUMP_BYTES: ${MIGRATION_MAX_DUMP_BYTES:-5368709120}
+      TARGET_SOURCE_REVISION: ${SOURCE_REVISION:?SOURCE_REVISION fehlt}
+    volumes:
+      - ${STATE_DIR:?STATE_DIR fehlt}/postgres-socket:/run/postgresql:ro
+      - ${MIGRATION_DIR:-/tmp/versorgungs-kompass-migration-not-configured}:/migration:ro
+      - ./migration/container-import.sh:/usr/local/bin/database-import:ro
+      - ${CONFIG_DIR:?CONFIG_DIR fehlt}/db-owner-password:/run/secrets/db-owner-password:ro
+    tmpfs:
+      - /tmp:size=64m,mode=0700,uid=70,gid=70
+    entrypoint: ["/bin/sh", "/usr/local/bin/database-import"]
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  restic-backup:
+    image: restic/restic:0.18.1@sha256:39d9072fb5651c80d75c7a811612eb60b4c06b32ffe87c2e9f3c7222e1797e76
+    profiles: [maintenance]
+    user: "70:70"
+    read_only: true
+    cap_drop: [ALL]
+    security_opt:
+      - no-new-privileges:true
+    pids_limit: 100
+    cpus: 1.00
+    mem_limit: 384m
+    environment:
+      RESTIC_REPOSITORY_FILE: /run/secrets/restic-repository
+      RESTIC_PASSWORD_FILE: /run/secrets/restic-password
+      AWS_SHARED_CREDENTIALS_FILE: /run/secrets/restic-aws-credentials
+      RESTIC_CACHE_DIR: /tmp/restic-cache
+    volumes:
+      - ${STATE_DIR:?STATE_DIR fehlt}/backup-staging:/source/database:ro
+      - ${STATE_DIR:?STATE_DIR fehlt}/object-storage:/source/object-storage:ro
+      - ./backup/restic-backup.sh:/usr/local/bin/restic-backup:ro
+      - ${CONFIG_DIR:?CONFIG_DIR fehlt}/restic-repository:/run/secrets/restic-repository:ro
+      - ${CONFIG_DIR:?CONFIG_DIR fehlt}/restic-password:/run/secrets/restic-password:ro
+      - ${CONFIG_DIR:?CONFIG_DIR fehlt}/restic-aws-credentials:/run/secrets/restic-aws-credentials:ro
+    tmpfs:
+      - /tmp:size=64m,mode=1777
+    networks:
+      - outbound
+    entrypoint: ["/bin/sh", "/usr/local/bin/restic-backup"]
+    depends_on:
+      database-dump:
+        condition: service_completed_successfully
+
+  restic-maintenance:
+    image: restic/restic:0.18.1@sha256:39d9072fb5651c80d75c7a811612eb60b4c06b32ffe87c2e9f3c7222e1797e76
+    profiles: [maintenance]
+    user: "70:70"
+    read_only: true
+    cap_drop: [ALL]
+    security_opt:
+      - no-new-privileges:true
+    pids_limit: 100
+    cpus: 1.00
+    mem_limit: 384m
+    environment:
+      RESTIC_REPOSITORY_FILE: /run/secrets/restic-repository
+      RESTIC_PASSWORD_FILE: /run/secrets/restic-password
+      AWS_SHARED_CREDENTIALS_FILE: /run/secrets/restic-aws-credentials
+      RESTIC_CACHE_DIR: /tmp/restic-cache
+    volumes:
+      - ./backup/restic-maintenance.sh:/usr/local/bin/restic-maintenance:ro
+      - ${CONFIG_DIR:?CONFIG_DIR fehlt}/restic-repository:/run/secrets/restic-repository:ro
+      - ${CONFIG_DIR:?CONFIG_DIR fehlt}/restic-password:/run/secrets/restic-password:ro
+      - ${CONFIG_DIR:?CONFIG_DIR fehlt}/restic-aws-credentials:/run/secrets/restic-aws-credentials:ro
+    tmpfs:
+      - /tmp:size=64m,mode=1777
+    networks:
+      - outbound
+    entrypoint: ["/bin/sh", "/usr/local/bin/restic-maintenance"]
+
+  restic-restore:
+    image: restic/restic:0.18.1@sha256:39d9072fb5651c80d75c7a811612eb60b4c06b32ffe87c2e9f3c7222e1797e76
+    profiles: [restore-test]
+    user: "70:70"
+    read_only: true
+    cap_drop: [ALL]
+    security_opt:
+      - no-new-privileges:true
+    pids_limit: 100
+    cpus: 1.00
+    mem_limit: 384m
+    environment:
+      RESTIC_REPOSITORY_FILE: /run/secrets/restic-repository
+      RESTIC_PASSWORD_FILE: /run/secrets/restic-password
+      AWS_SHARED_CREDENTIALS_FILE: /run/secrets/restic-aws-credentials
+      RESTIC_CACHE_DIR: /tmp/restic-cache
+      RESTORE_SNAPSHOT_ID: ${RESTORE_SNAPSHOT_ID:-}
+      EXPECTED_SOURCE_REVISION: ${SOURCE_REVISION:?SOURCE_REVISION fehlt}
+      EXPECTED_PRODUCT_VERSION: ${PRODUCT_VERSION:?PRODUCT_VERSION fehlt}
+    volumes:
+      - ${RESTORE_TEST_DIR:-/tmp/versorgungs-kompass-restore-not-configured}/restored:/restore
+      - ./backup/restic-restore.sh:/usr/local/bin/restic-restore:ro
+      - ${CONFIG_DIR:?CONFIG_DIR fehlt}/restic-repository:/run/secrets/restic-repository:ro
+      - ${CONFIG_DIR:?CONFIG_DIR fehlt}/restic-password:/run/secrets/restic-password:ro
+      - ${CONFIG_DIR:?CONFIG_DIR fehlt}/restic-aws-credentials:/run/secrets/restic-aws-credentials:ro
+    tmpfs:
+      - /tmp:size=64m,mode=1777
+    networks:
+      - outbound
+    entrypoint: ["/bin/sh", "/usr/local/bin/restic-restore"]
+
+  database-restore-test:
+    image: postgres:16.15-alpine3.24@sha256:cf78e76683b9ca8c5733cbbdce6c9262b45b6767934dd0a95e671f9a0fc20685
+    profiles: [restore-test]
+    user: "70:70"
+    read_only: true
+    network_mode: none
+    cap_drop: [ALL]
+    security_opt:
+      - no-new-privileges:true
+    pids_limit: 200
+    cpus: 1.00
+    mem_limit: 768m
+    shm_size: 128m
+    environment:
+      PGDATA: /var/lib/postgresql/restore-data
+      POSTGRES_PASSWORD_FILE: /run/secrets/db-owner-password
+      VK_APP_PASSWORD_FILE: /run/secrets/db-app-password
+      EXPECTED_SOURCE_REVISION: ${SOURCE_REVISION:?SOURCE_REVISION fehlt}
+      EXPECTED_PRODUCT_VERSION: ${PRODUCT_VERSION:?PRODUCT_VERSION fehlt}
+      EXPECTED_BACKUP_OPERATION_ID: ${RESTORE_BACKUP_OPERATION_ID:-}
+    volumes:
+      - ${RESTORE_TEST_DIR:-/tmp/versorgungs-kompass-restore-not-configured}/restored:/restore:ro
+      - ${RESTORE_TEST_DIR:-/tmp/versorgungs-kompass-restore-not-configured}/postgres-data:/var/lib/postgresql/restore-data
+      - ./backup/postgres-restore-test.sh:/usr/local/bin/postgres-restore-test:ro
+      - ./postgres/10-bootstrap.sh:/usr/local/bin/single-server-database-bootstrap:ro
+      - ../postgres/pre-gematik/schema.sql:/opt/versorgungs-kompass/schema.sql:ro
+      - ../postgres/pre-gematik/runtime-role.sql:/opt/versorgungs-kompass/runtime-role.sql:ro
+      - ../postgres/pre-gematik/grants.sql:/opt/versorgungs-kompass/grants.sql:ro
+      - ${CONFIG_DIR:?CONFIG_DIR fehlt}/db-owner-password:/run/secrets/db-owner-password:ro
+      - ${CONFIG_DIR:?CONFIG_DIR fehlt}/db-app-password:/run/secrets/db-app-password:ro
+    tmpfs:
+      - /tmp:size=128m,mode=0700,uid=70,gid=70
+      - /var/run/postgresql:size=16m,mode=0700,uid=70,gid=70
+    entrypoint: ["/bin/sh", "/usr/local/bin/postgres-restore-test"]
+
+  object-storage-restore-test:
+    image: versorgungs-kompass-api:${SOURCE_REVISION:?SOURCE_REVISION fehlt}
+    profiles: [restore-test]
+    user: "70:70"
+    read_only: true
+    network_mode: none
+    cap_drop: [ALL]
+    security_opt:
+      - no-new-privileges:true
+    pids_limit: 100
+    cpus: 0.50
+    mem_limit: 384m
+    environment:
+      OBJECT_STORAGE_DRIVER: filesystem
+      OBJECT_STORAGE_ROOT: /var/lib/versorgungs-kompass/object-storage
+    volumes:
+      - ${RESTORE_TEST_DIR:-/tmp/versorgungs-kompass-restore-not-configured}/restored/source/object-storage:/var/lib/versorgungs-kompass/object-storage:ro
+    command: ["node", "api/verify-object-storage.mjs"]
+
+  identity-provision:
+    image: versorgungs-kompass-api:${SOURCE_REVISION:?SOURCE_REVISION fehlt}
+    profiles: [identity]
+    user: "70:70"
+    read_only: true
+    network_mode: none
+    cap_drop: [ALL]
+    security_opt:
+      - no-new-privileges:true
+    pids_limit: 100
+    cpus: 0.50
+    mem_limit: 256m
+    environment:
+      DB_HOST: /run/postgresql
+      DB_PORT: "5432"
+      DB_NAME: versorgungs_kompass
+      DB_USER: vk_owner
+      DB_PASSWORD_FILE: /run/secrets/db-owner-password
+      IDENTITY_BOOTSTRAP_HMAC_FILE: /run/secrets/identity-bootstrap-hmac
+      IDENTITY_APPROVAL_SECRET_FILE: /run/identity/approval-secret
+      IDENTITY_APPROVAL_TOKEN_FILE: /run/identity/approval-token
+      IDENTITY_PROVISION_MODE: ${IDENTITY_PROVISION_MODE:-preview}
+    volumes:
+      - ${STATE_DIR:?STATE_DIR fehlt}/postgres-socket:/run/postgresql:ro
+      - ${CONFIG_DIR:?CONFIG_DIR fehlt}/db-owner-password:/run/secrets/db-owner-password:ro
+      - ${CONFIG_DIR:?CONFIG_DIR fehlt}/identity-bootstrap-hmac:/run/secrets/identity-bootstrap-hmac:ro
+      - type: bind
+        source: ${IDENTITY_PROVISION_FILE:-/tmp/versorgungs-kompass-identity-not-configured}
+        target: /run/identity/provision.json
+        read_only: true
+        bind:
+          create_host_path: false
+      - type: bind
+        source: ${IDENTITY_APPROVAL_SECRET_HOST_FILE:-/tmp/versorgungs-kompass-identity-approval-secret-not-configured}
+        target: /run/identity/approval-secret
+        read_only: true
+        bind:
+          create_host_path: false
+      - type: bind
+        source: ${IDENTITY_APPROVAL_TOKEN_HOST_FILE:-/tmp/versorgungs-kompass-identity-approval-token-not-configured}
+        target: /run/identity/approval-token
+        bind:
+          create_host_path: false
+    tmpfs:
+      - /tmp:size=32m,mode=0700,uid=70,gid=70
+    command: ["node", "api/identity-provision.mjs"]
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+networks:
+  edge:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: ${EDGE_SUBNET:-172.31.78.0/28}
+  application:
+    driver: bridge
+    internal: true
+  outbound:
+    driver: bridge

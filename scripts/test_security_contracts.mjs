@@ -4,9 +4,13 @@ import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import {
+  WRITE_CLASSES,
+  assertApiCutoverPermission,
+  assertOidcJwtClaims,
   assertSensitiveQueryPermission,
   policyForRequest,
   roleRank,
+  validateApiCutoverMode,
   validateAllowedOriginConfiguration,
   validateIdentityConfiguration
 } from "../api/security-policy.mjs";
@@ -33,12 +37,51 @@ assert.equal(roleRank("editor"), 2);
 assert.equal(roleRank("admin"), 3);
 assert.equal(roleRank("unknown"), 0);
 
+assert.equal(validateApiCutoverMode({ API_CUTOVER_MODE: "closed", API_CUTOVER_MODE_REQUIRED: "1" }), "closed");
+assert.equal(validateApiCutoverMode({ API_CUTOVER_MODE: "open", API_CUTOVER_MODE_REQUIRED: "1" }), "open");
+assert.equal(validateApiCutoverMode({}), "open", "Andere Deployments behalten ohne Pflichtschalter ihr bisheriges Verhalten.");
+assert.throws(
+  () => validateApiCutoverMode({ API_CUTOVER_MODE_REQUIRED: "1" }),
+  /explizit closed oder open/u
+);
+assert.throws(
+  () => validateApiCutoverMode({ API_CUTOVER_MODE: "unexpected" }),
+  /explizit closed oder open/u
+);
+assert.doesNotThrow(() => assertApiCutoverPermission("closed", policyForRequest("GET", "/api/contacts")));
+assert.doesNotThrow(() => assertApiCutoverPermission("closed", policyForRequest("GET", "/api/export")));
+assert.equal(
+  policyForRequest("GET", "/api/export")?.writeClass,
+  WRITE_CLASSES.RESTRICTED,
+  "Der Admin-Export muss trotz Cutover-Lesefreigabe fuer begrenzte Testzugaenge gesperrt bleiben."
+);
+assert.equal(
+  policyForRequest("GET", "/api/ops/summary")?.writeClass,
+  WRITE_CLASSES.RESTRICTED,
+  "Betriebsdaten muessen trotz Cutover-Lesefreigabe fuer begrenzte Testzugaenge gesperrt bleiben."
+);
+for (const [method, pathname] of [
+  ["POST", "/api/connectors/typo3/mitmachen-registrations"],
+  ["POST", "/api/auth/external-enrollment"],
+  ["PATCH", "/api/profile"],
+  ["POST", "/api/contacts"],
+  ["DELETE", "/api/formats/format-1"]
+]) {
+  assert.throws(
+    () => assertApiCutoverPermission("closed", policyForRequest(method, pathname)),
+    (error) => error?.status === 503 && error?.retryAfter === 60,
+    `${method} ${pathname} muss im geschlossenen Cutover-Modus gesperrt sein.`
+  );
+}
+assert.doesNotThrow(() => assertApiCutoverPermission("open", policyForRequest("POST", "/api/contacts")));
+
 for (const [method, pathname, expectedRole, expectedId] of [
   ["GET", "/healthz", "public", "health"],
   ["GET", "/api/contacts", "viewer", "collection.read"],
   ["GET", "/api/activities/summary", "viewer", "activity.summary.read"],
   ["GET", "/api/politics/health-committee", "viewer", "politics.health-committee.read"],
   ["POST", "/api/connectors/typo3/mitmachen-registrations", "public", "connector.typo3.registration.create"],
+  ["GET", "/api/identity/bootstrap-claim", "public", "identity.bootstrap-claim"],
   ["POST", "/api/contacts", "editor", "test-object.create"],
   ["GET", "/api/export", "admin", "data.export"],
   ["POST", "/api/stakeholder-import", "admin", "bulk.import"],
@@ -60,6 +103,7 @@ assert.equal(policyForRequest("GET", "/api/unbekannt"), null, "Neue Routen muess
 
 for (const [method, pathname, expectedRole] of [
   ["GET", "/api/auth/bootstrap", "public"],
+  ["GET", "/api/identity/bootstrap-claim", "public"],
   ["GET", "/api/session", "viewer"],
   ["GET", "/api/ops/summary", "admin"],
   ["GET", "/api/ops/checks", "admin"],
@@ -123,6 +167,68 @@ const validOidc = {
   OIDC_JWKS_URL: "https://identity.example.test/.well-known/jwks.json"
 };
 assert.equal(validateIdentityConfiguration(validOidc).mode, "oidc");
+const oidcNow = 2_000_000_000;
+const validGoogleOidcClaims = {
+  iss: "https://accounts.google.com",
+  aud: "google-client.apps.googleusercontent.com",
+  exp: oidcNow + 300,
+  iat: oidcNow - 10
+};
+assert.equal(
+  assertOidcJwtClaims(
+    validGoogleOidcClaims,
+    "https://accounts.google.com",
+    "google-client.apps.googleusercontent.com",
+    { nowSeconds: oidcNow }
+  ).issuer,
+  "https://accounts.google.com"
+);
+assert.equal(
+  assertOidcJwtClaims(
+    { ...validGoogleOidcClaims, iss: "accounts.google.com" },
+    "https://accounts.google.com",
+    "google-client.apps.googleusercontent.com",
+    { nowSeconds: oidcNow }
+  ).issuer,
+  "https://accounts.google.com",
+  "Die beiden Google-Issuer-Formen muessen auf die konfigurierte Bindung kanonisiert werden."
+);
+assert.doesNotThrow(() => assertOidcJwtClaims(
+  { ...validGoogleOidcClaims, aud: ["google-client.apps.googleusercontent.com", "another-audience"], azp: "google-client.apps.googleusercontent.com" },
+  "https://accounts.google.com",
+  "google-client.apps.googleusercontent.com",
+  { nowSeconds: oidcNow }
+));
+assert.throws(() => assertOidcJwtClaims(
+  { ...validGoogleOidcClaims, aud: ["google-client.apps.googleusercontent.com", "another-audience"] },
+  "https://accounts.google.com",
+  "google-client.apps.googleusercontent.com",
+  { nowSeconds: oidcNow }
+), /OIDC-Token-Claims/);
+assert.throws(() => assertOidcJwtClaims(
+  { ...validGoogleOidcClaims, azp: "another-client.apps.googleusercontent.com" },
+  "https://accounts.google.com",
+  "google-client.apps.googleusercontent.com",
+  { nowSeconds: oidcNow }
+), /OIDC-Token-Claims/);
+assert.throws(() => assertOidcJwtClaims(
+  { ...validGoogleOidcClaims, iss: "https://evil.example" },
+  "https://accounts.google.com",
+  "google-client.apps.googleusercontent.com",
+  { nowSeconds: oidcNow }
+), /OIDC-Token-Claims/);
+assert.throws(() => assertOidcJwtClaims(
+  { ...validGoogleOidcClaims, exp: oidcNow - 31 },
+  "https://accounts.google.com",
+  "google-client.apps.googleusercontent.com",
+  { nowSeconds: oidcNow }
+), /OIDC-Token-Claims/);
+assert.throws(() => assertOidcJwtClaims(
+  { ...validGoogleOidcClaims, nbf: oidcNow + 31 },
+  "https://accounts.google.com",
+  "google-client.apps.googleusercontent.com",
+  { nowSeconds: oidcNow }
+), /OIDC-Token-Claims/);
 const validIap = {
   NODE_ENV: "production",
   API_AUTH_MODE: "iap",
@@ -195,8 +301,7 @@ for (const contract of [
   "if (API_AUTH_MODE !== \"iap\") return null;",
   "if (API_AUTH_MODE !== \"oidc\") return null;",
   "![\"ES256\", \"RS256\", \"PS256\"].includes(header.alg)",
-  "issuer !== OIDC_ISSUER || !jwtAudienceMatches(payload.aud, OIDC_AUDIENCE)",
-  "payload.nbf != null",
+  "assertOidcJwtClaims(payload, OIDC_ISSUER, OIDC_AUDIENCE)",
   "assertAllowedBrowserOrigin(request);",
   "enforceRequestRateLimit(request, url);",
   "REQUEST_BODY_LIMIT_BYTES",
@@ -221,7 +326,7 @@ for (const contract of [
   "and binding.active = true",
   "and p.active = true",
   "requireSingleActiveIdentityProfile(rows)",
-  "const issuer = String(payload.iss || \"\");"
+  "iss: verifiedClaims.issuer"
 ]) {
   assert.ok(apiSource.includes(contract), `Signierter Identity-Bindungsvertrag fehlt: ${contract}`);
 }

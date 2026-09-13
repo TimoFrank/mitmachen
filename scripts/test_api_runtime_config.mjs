@@ -12,7 +12,8 @@ assert.ok(configStart >= 0 && configEnd > configStart, "Postgres-Runtime-Konfigu
 const tlsFiles = new Map([
   ["/run/secrets/postgres/server-ca.pem", "TEST SERVER CA"],
   ["/run/secrets/postgres/client-cert.pem", "TEST CLIENT CERT"],
-  ["/run/secrets/postgres/client-key.pem", "TEST CLIENT KEY"]
+  ["/run/secrets/postgres/client-key.pem", "TEST CLIENT KEY"],
+  ["/run/secrets/postgres/password", "socket-secret"]
 ]);
 const sandbox = {
   URL,
@@ -114,6 +115,29 @@ assert.doesNotThrow(() => buildConfig({
   DB_SSL_MODE: "disable",
   DB_PASSWORD: "local-proxy-password"
 }), "Ein lokaler Cloud-SQL-Proxy ist die dokumentierte mTLS-Ausnahme.");
+const unixSocket = buildConfig({
+  NODE_ENV: "production",
+  DB_HOST: "/run/postgresql",
+  DB_NAME: "versorgungs_kompass",
+  DB_USER: "vk_app",
+  DB_PASSWORD_FILE: "/run/secrets/postgres/password"
+});
+assert.equal(unixSocket.host, "/run/postgresql");
+assert.equal(unixSocket.password, "socket-secret");
+assert.equal("ssl" in unixSocket, false, "Der lokale Unix-Socket benoetigt kein Transport-TLS.");
+assert.throws(() => buildConfig({
+  NODE_ENV: "production",
+  DB_HOST: "/run/postgresql",
+  DB_PASSWORD_FILE: "/run/secrets/postgres/password",
+  DB_SSL_MODE: "verify-full",
+  DB_SSL_CA: "TEST SERVER CA"
+}), /Unix-Socket/i, "Ein Unix-Socket darf nicht irrefuehrend mit TLS kombiniert werden.");
+assert.throws(() => buildConfig({
+  NODE_ENV: "production",
+  DB_HOST: "/run/postgresql",
+  DB_PASSWORD: "inline",
+  DB_PASSWORD_FILE: "/run/secrets/postgres/password"
+}), /nicht gleichzeitig/i, "Das Datenbankpasswort darf nur aus einer Quelle kommen.");
 assert.throws(() => buildConfig({
   NODE_ENV: "production",
   DB_HOST: "127.0.0.1",

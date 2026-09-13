@@ -1,0 +1,13 @@
+[Unit]
+Description=Versorgungs-Kompass Backup-Repository woechentlich pruefen
+Documentation=file:/opt/versorgungs-kompass/current/deploy/single-server/README.md
+
+[Timer]
+OnCalendar=Sun *-*-* 03:45:00
+RandomizedDelaySec=30m
+AccuracySec=1m
+Persistent=true
+Unit=versorgungs-kompass-backup-check.service
+
+[Install]
+WantedBy=timers.target

@@ -17,6 +17,15 @@ import {
 } from "./duplicate-identity.mjs";
 import { normalizedRequestLogPath } from "./request-log-privacy.mjs";
 import {
+  OBJECT_STORAGE_AREAS,
+  createObjectStorage
+} from "./object-storage.mjs";
+import { createIdentityBootstrapClaim } from "./identity-bootstrap-claim.mjs";
+import {
+  assertApiWriterFencePermission,
+  validateApiWriterFenceConfiguration
+} from "./cutover-writer-fence.mjs";
+import {
   HOSPITATION_IMPORT_CONFIRMATION,
   HOSPITATION_IMPORT_SCHEMA_VERSION,
   buildHospitationImportPlan,
@@ -28,16 +37,19 @@ import {
 import {
   accessScopeForProfile,
   accessScopeRefForProfile,
+  assertApiCutoverPermission,
   assertAccessScopePermission,
   assertIapExternalAccessWindow,
   assertIapExternalIdentityClaims,
   assertIapNativeIdentityClaims,
   assertIapJwtClaims,
+  assertOidcJwtClaims,
   assertSensitiveQueryPermission,
   policyForRequest,
   requireSingleActiveIdentityProfile,
   roleRank,
   sessionCapabilities,
+  validateApiCutoverMode,
   validateAllowedOriginConfiguration,
   validateIdentityConfiguration
 } from "./security-policy.mjs";
@@ -541,6 +553,7 @@ const PROFILE_IMAGE_BUCKET = process.env.PROFILE_IMAGE_BUCKET || "";
 const CONTACT_IMAGE_BUCKET = process.env.CONTACT_IMAGE_BUCKET || "";
 const CONTACT_NOTE_ATTACHMENT_BUCKET = process.env.CONTACT_NOTE_ATTACHMENT_BUCKET || "";
 const STAKEHOLDER_LOGO_BUCKET = process.env.STAKEHOLDER_LOGO_BUCKET || "";
+const PRIVATE_OBJECT_STORAGE = createObjectStorage({ env: process.env });
 const ATTACHMENT_UPLOAD_MODE = String(
   process.env.ATTACHMENT_UPLOAD_MODE || (process.env.NODE_ENV === "production" ? "disabled" : "text-only")
 ).toLowerCase();
@@ -555,6 +568,8 @@ if (!["disabled", "validated-original"].includes(IMAGE_UPLOAD_MODE) || (process.
 }
 const IDENTITY_CONFIGURATION = validateIdentityConfiguration(process.env);
 const API_AUTH_MODE = IDENTITY_CONFIGURATION.mode;
+const API_CUTOVER_MODE = validateApiCutoverMode(process.env);
+const API_WRITER_FENCE_DIRECTORY = validateApiWriterFenceConfiguration(process.env);
 const IAP_IDENTITY_MODE = IDENTITY_CONFIGURATION.iapIdentityMode;
 const API_AUTH_ALLOW_DEV_PROFILE = process.env.API_AUTH_ALLOW_DEV_PROFILE === "1";
 const API_AUTH_ALLOW_BEARER_DEV = process.env.API_AUTH_ALLOW_BEARER_DEV === "1";
@@ -565,6 +580,9 @@ const OIDC_AUDIENCE = process.env.OIDC_AUDIENCE || "";
 const OIDC_JWKS_URL = process.env.OIDC_JWKS_URL || "";
 const OIDC_EMAIL_CLAIM = process.env.OIDC_EMAIL_CLAIM || "email";
 const OIDC_SUBJECT_CLAIM = process.env.OIDC_SUBJECT_CLAIM || "sub";
+const OIDC_IDENTITY_BOOTSTRAP_CLAIM_ENABLED = process.env.OIDC_IDENTITY_BOOTSTRAP_CLAIM_ENABLED === "1";
+const OIDC_IDENTITY_BOOTSTRAP_HMAC_FILE = process.env.OIDC_IDENTITY_BOOTSTRAP_HMAC_FILE
+  || "/run/secrets/identity-bootstrap-hmac";
 const AUTH_EMAIL_HEADER = String(process.env.AUTH_EMAIL_HEADER || "x-auth-request-email").toLowerCase();
 const AUTH_SUBJECT_HEADER = String(process.env.AUTH_SUBJECT_HEADER || "x-auth-request-user").toLowerCase();
 const JWT_HEADER_MAX_BYTES = 4 * 1024;
@@ -2041,9 +2059,14 @@ function profileRowToClient(row = {}) {
   if (!row) return row;
   const { access_scope: _accessScope, scope_ref: _scopeRef, ...profile } = row;
   const avatar = String(profile.avatar_url || "");
+  const privateAvatarObjectName = profileAvatarObjectName(avatar, profile.id);
   return {
     ...profile,
-    avatar_url: avatar.startsWith("gs://") ? profileAvatarUrl(profile.id) : avatar
+    avatar_url: privateAvatarObjectName
+      ? profileAvatarUrl(profile.id)
+      : /^(?:gs|private):\/\//iu.test(avatar)
+        ? ""
+        : avatar
   };
 }
 
@@ -3501,10 +3524,6 @@ async function oidcPublicKeys() {
   return keys;
 }
 
-function jwtAudienceMatches(actual, expected) {
-  return (Array.isArray(actual) ? actual : [actual]).some((value) => value === expected);
-}
-
 function verifyJwtSignature(header, signedData, encodedSignature, publicKey) {
   const encoded = String(encodedSignature || "");
   const maximumEncodedCharacters = Math.ceil(JWT_SIGNATURE_MAX_BYTES * 4 / 3);
@@ -3633,21 +3652,7 @@ async function verifyOidcJwt(request) {
     error.status = 401;
     throw error;
   }
-  const now = Math.floor(Date.now() / 1000);
-  const skew = 30;
-  const issuer = String(payload.iss || "");
-  if (issuer !== OIDC_ISSUER || !jwtAudienceMatches(payload.aud, OIDC_AUDIENCE)) {
-    const error = new Error("OIDC-Issuer oder Audience passt nicht.");
-    error.status = 401;
-    throw error;
-  }
-  if (!Number.isFinite(Number(payload.exp)) || Number(payload.exp) < now - skew ||
-      (payload.nbf != null && Number(payload.nbf) > now + skew) ||
-      (payload.iat != null && Number(payload.iat) > now + skew)) {
-    const error = new Error("OIDC-Token-Zeitfenster ist ungueltig.");
-    error.status = 401;
-    throw error;
-  }
+  const verifiedClaims = assertOidcJwtClaims(payload, OIDC_ISSUER, OIDC_AUDIENCE);
   const email = String(payload[OIDC_EMAIL_CLAIM] || "").trim().toLowerCase();
   const subject = String(payload[OIDC_SUBJECT_CLAIM] || "").trim();
   if (!subject) {
@@ -3655,7 +3660,7 @@ async function verifyOidcJwt(request) {
     error.status = 401;
     throw error;
   }
-  request.oidcPayload = { ...payload, email, sub: subject };
+  request.oidcPayload = { ...payload, iss: verifiedClaims.issuer, email, sub: subject };
   return request.oidcPayload;
 }
 
@@ -3765,6 +3770,8 @@ async function authorizeRequest(request, url) {
     throw error;
   }
   request.routePolicy = policy;
+  assertApiCutoverPermission(API_CUTOVER_MODE, policy);
+  assertApiWriterFencePermission(API_WRITER_FENCE_DIRECTORY, policy);
   if (policy.role === "public") return;
   const profile = await resolveRequestProfile(request);
   request.currentProfile = profile;
@@ -4107,6 +4114,25 @@ function hasDatabaseSslOverrides(env) {
   return DB_SSL_OVERRIDE_ENV.some((name) => configuredEnvValue(env, [name]));
 }
 
+function databasePassword(env = process.env) {
+  const inlinePassword = configuredEnvValue(env, ["DB_PASSWORD", "PGPASSWORD"]);
+  const passwordFile = configuredEnvValue(env, ["DB_PASSWORD_FILE"]);
+  if (inlinePassword && passwordFile) {
+    throw new Error("Postgres-Passwort darf nicht gleichzeitig direkt und als Datei konfiguriert werden.");
+  }
+  if (!passwordFile) return inlinePassword;
+  let password;
+  try {
+    password = readFileSync(passwordFile, "utf8");
+  } catch (error) {
+    throw new Error("Postgres-Passwortdatei konnte nicht gelesen werden.", { cause: error });
+  }
+  if (!password || /[\r\n\u0000]/u.test(password)) {
+    throw new Error("Postgres-Passwortdatei muss genau ein nicht-leeres Secret ohne Zeilenumbruch enthalten.");
+  }
+  return password;
+}
+
 function normalizeDatabaseSslMode(env, hasTlsMaterial) {
   const configuredMode = configuredEnvValue(env, ["DB_SSL_MODE", "DB_SSL", "PGSSLMODE"])
     .trim()
@@ -4203,7 +4229,7 @@ function buildPostgresPoolConfig(env = process.env) {
     port: Number(env.DB_PORT || env.PGPORT || 5432),
     database: env.DB_NAME || env.PGDATABASE || DEFAULT_DB_NAME,
     user: env.DB_USER || env.PGUSER || DEFAULT_DB_USER,
-    password: env.DB_PASSWORD || env.PGPASSWORD || "",
+    password: databasePassword(env),
     ...runtimeOptions
   };
   const ssl = buildDatabaseSslConfig(env);
@@ -4221,6 +4247,13 @@ function validateProductionDatabaseTransport(config, env = process.env) {
   }
   const localProxy = ["127.0.0.1", "localhost", "::1"].includes(hostname);
   if (localProxy) return;
+  const localUnixSocket = hostname.startsWith("/");
+  if (localUnixSocket) {
+    if (config.ssl && config.ssl !== false) {
+      throw new Error("Postgres-TLS darf fuer einen lokalen Unix-Socket nicht aktiviert sein.");
+    }
+    return;
+  }
   if (config.connectionString) {
     try {
       const sslMode = new URL(config.connectionString).searchParams.get("sslmode");
@@ -5282,133 +5315,20 @@ async function replaceStoredContactOwners(request, contactId, oldOwnerIds = [], 
   }
 }
 
-function storageEnabled(bucket) {
-  return Boolean(bucket);
+function storageEnabled(area, bucket) {
+  return PRIVATE_OBJECT_STORAGE.enabled(area, bucket);
 }
 
-async function googleAccessToken() {
-  if (process.env.GOOGLE_OAUTH_ACCESS_TOKEN) return process.env.GOOGLE_OAUTH_ACCESS_TOKEN;
-  const response = await fetch("http://metadata.google.internal/computeMetadata/v1/instance/service-accounts/default/token", {
-    headers: { "metadata-flavor": "Google" },
-    signal: AbortSignal.timeout(OUTBOUND_FETCH_TIMEOUT_MS)
-  });
-  if (!response.ok) {
-    const error = new Error("Google-Access-Token fuer Cloud Storage konnte nicht gelesen werden.");
-    error.status = 500;
-    throw error;
-  }
-  const payload = await response.json();
-  return payload.access_token || "";
+async function saveStorageObject(area, bucket, objectName, buffer, contentType) {
+  return PRIVATE_OBJECT_STORAGE.save(area, bucket, objectName, buffer, contentType);
 }
 
-async function storageFetch(url, options = {}) {
-  const token = await googleAccessToken();
-  const response = await fetch(url, {
-    ...options,
-    signal: options.signal || AbortSignal.timeout(OUTBOUND_FETCH_TIMEOUT_MS),
-    headers: {
-      authorization: `Bearer ${token}`,
-      ...(options.headers || {})
-    }
-  });
-  if (!response.ok && response.status !== 404) {
-    const details = await response.text();
-    const error = new Error(`Cloud-Storage-Anfrage fehlgeschlagen (${response.status}).`);
-    error.status = response.status;
-    error.details = details;
-    throw error;
-  }
-  return response;
+async function deleteStorageObject(area, bucket, objectName) {
+  return PRIVATE_OBJECT_STORAGE.remove(area, bucket, objectName);
 }
 
-async function saveStorageObject(bucket, objectName, buffer, contentType) {
-  if (!storageEnabled(bucket)) {
-    const error = new Error("Cloud-Storage-Bucket ist nicht konfiguriert.");
-    error.status = 500;
-    throw error;
-  }
-  const url = `https://storage.googleapis.com/upload/storage/v1/b/${encodeURIComponent(bucket)}/o?uploadType=media&name=${encodeURIComponent(objectName)}`;
-  const response = await storageFetch(url, {
-    method: "POST",
-    headers: { "content-type": contentType },
-    body: buffer
-  });
-  return response.ok;
-}
-
-async function deleteStorageObject(bucket, objectName) {
-  if (!storageEnabled(bucket) || !objectName) return;
-  await storageFetch(`https://storage.googleapis.com/storage/v1/b/${encodeURIComponent(bucket)}/o/${encodeURIComponent(objectName)}`, {
-    method: "DELETE"
-  });
-}
-
-async function boundedStorageResponseBuffer(response, maximumBytes = 0) {
-  const declaredLength = Number(response.headers.get("content-length") || 0);
-  if (maximumBytes > 0 && declaredLength > maximumBytes) {
-    const error = new Error("Cloud-Storage-Objekt überschreitet die erlaubte Größe.");
-    error.status = 415;
-    throw error;
-  }
-  if (!maximumBytes || !response.body?.getReader) return Buffer.from(await response.arrayBuffer());
-  const chunks = [];
-  let total = 0;
-  const reader = response.body.getReader();
-  try {
-    while (true) {
-      const { done, value } = await reader.read();
-      if (done) break;
-      total += value.byteLength;
-      if (total > maximumBytes) {
-        await reader.cancel().catch(() => {});
-        const error = new Error("Cloud-Storage-Objekt überschreitet die erlaubte Größe.");
-        error.status = 415;
-        throw error;
-      }
-      chunks.push(Buffer.from(value));
-    }
-  } finally {
-    reader.releaseLock();
-  }
-  return Buffer.concat(chunks, total);
-}
-
-async function readStorageObject(bucket, objectName, { maxBytes = 0, allowedContentTypes = [] } = {}) {
-  const metadataUrl = new URL(`https://storage.googleapis.com/storage/v1/b/${encodeURIComponent(bucket)}/o/${encodeURIComponent(objectName)}`);
-  metadataUrl.searchParams.set("fields", "name,size,contentType,generation");
-  const metadata = await storageFetch(metadataUrl.toString());
-  if (metadata.status === 404) return null;
-  const meta = await metadata.json();
-  const size = Number(meta.size);
-  const contentType = String(meta.contentType || "application/octet-stream").toLowerCase().split(";", 1)[0].trim();
-  const generation = String(meta.generation || "");
-  if (
-    meta.name !== objectName
-    || !Number.isSafeInteger(size)
-    || size < 1
-    || (maxBytes > 0 && size > maxBytes)
-    || !/^[0-9]+$/.test(generation)
-    || (allowedContentTypes.length > 0 && !allowedContentTypes.includes(contentType))
-  ) {
-    const error = new Error("Cloud-Storage-Objektmetadaten sind nicht freigegeben.");
-    error.status = 415;
-    throw error;
-  }
-  const mediaUrl = new URL(`https://storage.googleapis.com/storage/v1/b/${encodeURIComponent(bucket)}/o/${encodeURIComponent(objectName)}`);
-  mediaUrl.searchParams.set("alt", "media");
-  mediaUrl.searchParams.set("generation", generation);
-  const media = await storageFetch(mediaUrl.toString());
-  if (media.status === 404) return null;
-  const buffer = await boundedStorageResponseBuffer(media, maxBytes);
-  if (buffer.length !== size) {
-    const error = new Error("Cloud-Storage-Objekt stimmt nicht mit seinen Metadaten überein.");
-    error.status = 415;
-    throw error;
-  }
-  return {
-    buffer,
-    contentType
-  };
+async function readStorageObject(area, bucket, objectName, options = {}) {
+  return PRIVATE_OBJECT_STORAGE.read(area, bucket, objectName, options);
 }
 
 async function loadProfiles(request) {
@@ -5439,12 +5359,17 @@ async function getCurrentProfile(request) {
 
 async function getSession(request) {
   const profile = await getCurrentProfile(request);
+  const verifiedIdentitySource = API_AUTH_MODE === "oidc"
+    ? request.oidcPayload?.email || request.oidcPayload?.sub || ""
+    : API_AUTH_MODE === "iap"
+      ? request.iapExternalIdentity?.email || request.iapPayload?.email || request.iapPayload?.sub || ""
+      : trustedHeaderEmail(request) || trustedHeaderSubject(request) || (API_AUTH_ALLOW_DEV_PROFILE ? "lokales Dev-Profil" : "");
   return {
     authMode: API_AUTH_MODE,
     authModeLabel: authModeLabel(),
     iapIdentityMode: IAP_IDENTITY_MODE,
     identityProvider: request.iapExternalIdentity?.provider || null,
-    identitySource: trustedHeaderEmail(request) || trustedHeaderSubject(request) || iapEmail(request) || iapSubject(request) || (API_AUTH_ALLOW_DEV_PROFILE ? "lokales Dev-Profil" : ""),
+    identitySource: verifiedIdentitySource,
     enforcement: "server-side",
     enforcementLabel: "Rollen werden in der API serverseitig geprueft.",
     accessScope: profile.accessScope,
@@ -5635,9 +5560,13 @@ function decodeCanonicalBase64(data, label) {
 }
 
 function profileAvatarObjectName(avatarUrl, profileId) {
-  const prefix = `gs://${PROFILE_IMAGE_BUCKET}/profile-images/${profileId}/`;
   const value = String(avatarUrl || "");
-  if (!PROFILE_IMAGE_BUCKET || !value.startsWith(prefix)) return "";
+  const prefixes = [
+    PROFILE_IMAGE_BUCKET ? `gs://${PROFILE_IMAGE_BUCKET}/profile-images/${profileId}/` : "",
+    `private://profile-images/${profileId}/`
+  ].filter(Boolean);
+  const prefix = prefixes.find((candidate) => value.startsWith(candidate));
+  if (!prefix) return "";
   const fileName = value.slice(prefix.length);
   if (!/^avatar(?:-[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12})?\.(?:jpe?g|png|webp)$/i.test(fileName)) return "";
   return `profile-images/${profileId}/${fileName}`;
@@ -5728,9 +5657,9 @@ function notModifiedProfileAvatar(response, entityTag, cacheControl) {
 async function deleteProfileAvatarObject(objectName) {
   if (!objectName) return;
   try {
-    await deleteStorageObject(PROFILE_IMAGE_BUCKET, objectName);
+    await deleteStorageObject(OBJECT_STORAGE_AREAS.PROFILE_IMAGES, PROFILE_IMAGE_BUCKET, objectName);
   } catch (error) {
-    console.warn("Ein nicht mehr referenziertes Profilfoto konnte nicht aus Cloud Storage entfernt werden.", error);
+    console.warn("Ein nicht mehr referenziertes Profilfoto konnte nicht aus dem privaten Object Storage entfernt werden.", error);
   }
 }
 
@@ -5745,8 +5674,8 @@ async function uploadCurrentProfileAvatar(request) {
     error.status = 401;
     throw error;
   }
-  if (!PROFILE_IMAGE_BUCKET) {
-    const error = new Error("PROFILE_IMAGE_BUCKET ist nicht konfiguriert.");
+  if (!storageEnabled(OBJECT_STORAGE_AREAS.PROFILE_IMAGES, PROFILE_IMAGE_BUCKET)) {
+    const error = new Error("Privater Profilbildspeicher ist nicht konfiguriert.");
     error.status = 500;
     throw error;
   }
@@ -5782,7 +5711,7 @@ async function uploadCurrentProfileAvatar(request) {
   }
   const extension = contentType === "image/png" ? "png" : contentType === "image/webp" ? "webp" : "jpg";
   const objectName = `profile-images/${userId}/avatar-${crypto.randomUUID()}.${extension}`;
-  await saveStorageObject(PROFILE_IMAGE_BUCKET, objectName, buffer, contentType);
+  await saveStorageObject(OBJECT_STORAGE_AREAS.PROFILE_IMAGES, PROFILE_IMAGE_BUCKET, objectName, buffer, contentType);
   const avatarUrl = profileAvatarUrl(userId);
   let updated;
   try {
@@ -5794,7 +5723,11 @@ async function uploadCurrentProfileAvatar(request) {
       method: "PATCH",
       headers: { prefer: "return=representation" },
       body: {
-        avatar_url: `gs://${PROFILE_IMAGE_BUCKET}/${objectName}`,
+        avatar_url: PRIVATE_OBJECT_STORAGE.reference(
+          OBJECT_STORAGE_AREAS.PROFILE_IMAGES,
+          PROFILE_IMAGE_BUCKET,
+          objectName
+        ),
         updated_at: new Date().toISOString()
       }
     });
@@ -5854,7 +5787,9 @@ async function removeCurrentProfileAvatar(request) {
 
 async function readProfileAvatar(request, response, profileId, url) {
   await authorizeRequest(request, new URL(`/api/profile-avatar/${encodeURIComponent(profileId)}`, "http://local"));
-  if (!PROFILE_IMAGE_BUCKET) return jsonResponse(response, 404, { error: "Profilbild-Bucket ist nicht konfiguriert." });
+  if (!storageEnabled(OBJECT_STORAGE_AREAS.PROFILE_IMAGES, PROFILE_IMAGE_BUCKET)) {
+    return jsonResponse(response, 404, { error: "Privater Profilbildspeicher ist nicht konfiguriert." });
+  }
   const profile = await rawProfileAvatarRow(request, profileId, { activeOnly: true });
   const objectName = profileAvatarObjectName(profile?.avatar_url, profileId);
   if (!objectName) return jsonResponse(response, 404, { error: "Profilbild nicht gefunden." });
@@ -5866,7 +5801,12 @@ async function readProfileAvatar(request, response, profileId, url) {
   if (entityTagMatches && objectIsVersioned) {
     return notModifiedProfileAvatar(response, entityTag, cacheControl);
   }
-  const object = await readStorageObject(PROFILE_IMAGE_BUCKET, objectName);
+  const object = await readStorageObject(
+    OBJECT_STORAGE_AREAS.PROFILE_IMAGES,
+    PROFILE_IMAGE_BUCKET,
+    objectName,
+    { maxBytes: 5 * 1024 * 1024, allowedContentTypes: PROFILE_AVATAR_CONTENT_TYPES }
+  );
   if (!object) return jsonResponse(response, 404, { error: "Profilbild nicht gefunden." });
   const metadata = profileAvatarMetadata(object.buffer);
   if (!metadata || metadata.width > 4096 || metadata.height > 4096) {
@@ -5888,11 +5828,25 @@ async function readProfileAvatar(request, response, profileId, url) {
   response.end(object.buffer);
 }
 
+function contactImageObjectName(value, contactId) {
+  const objectName = String(value || "");
+  const parts = objectName.split("/");
+  if (
+    parts.length !== 3
+    || parts[0] !== "contact-images"
+    || parts[1] !== String(contactId || "")
+    || !/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}\.(?:jpe?g|png|webp)$/iu.test(parts[2])
+  ) return "";
+  return objectName;
+}
+
 async function readContactImage(request, response, contactId) {
   await authorizeRequest(request, new URL(`/api/contact-images/${encodeURIComponent(contactId)}`, "http://local"));
-  if (!CONTACT_IMAGE_BUCKET) return jsonResponse(response, 404, { error: "Kontaktbild-Bucket ist nicht konfiguriert." });
+  if (!storageEnabled(OBJECT_STORAGE_AREAS.CONTACT_IMAGES, CONTACT_IMAGE_BUCKET)) {
+    return jsonResponse(response, 404, { error: "Privater Kontaktbildspeicher ist nicht konfiguriert." });
+  }
   const rows = await cloudSqlRest("contacts", request, new URLSearchParams({
-    select: "id,owner_id,image_storage_path,status,mitmachen_consent_status,ehc_consent_status",
+    select: "id,owner_id,image_storage_path,image_mime_type,image_file_size,image_width,image_height,status,mitmachen_consent_status,ehc_consent_status",
     id: `eq.${contactId}`,
     limit: "1"
   }));
@@ -5907,10 +5861,27 @@ async function readContactImage(request, response, contactId) {
     throw error;
   }
   if (!contact.image_storage_path) return jsonResponse(response, 404, { error: "Kontaktbild wurde nicht gefunden." });
-  const object = await readStorageObject(CONTACT_IMAGE_BUCKET, contact.image_storage_path);
+  const objectName = contactImageObjectName(contact.image_storage_path, contactId);
+  if (!objectName) {
+    return jsonResponse(response, 415, { error: "Kontaktbildpfad ist nicht freigegeben." });
+  }
+  const object = await readStorageObject(
+    OBJECT_STORAGE_AREAS.CONTACT_IMAGES,
+    CONTACT_IMAGE_BUCKET,
+    objectName,
+    { maxBytes: 5 * 1024 * 1024, allowedContentTypes: PROFILE_AVATAR_CONTENT_TYPES }
+  );
   if (!object) return jsonResponse(response, 404, { error: "Kontaktbild wurde nicht gefunden." });
   const metadata = profileAvatarMetadata(object.buffer);
-  if (!metadata || metadata.width > 4096 || metadata.height > 4096) {
+  if (
+    !metadata
+    || metadata.width > 4096
+    || metadata.height > 4096
+    || (contact.image_mime_type && metadata.contentType !== String(contact.image_mime_type).toLowerCase())
+    || (contact.image_file_size && object.buffer.length !== Number(contact.image_file_size))
+    || (contact.image_width && metadata.width !== Number(contact.image_width))
+    || (contact.image_height && metadata.height !== Number(contact.image_height))
+  ) {
     return jsonResponse(response, 415, { error: "Kontaktbildformat ist ungueltig." });
   }
   response.writeHead(200, {
@@ -6020,7 +5991,9 @@ function stakeholderLogoMetadata(object) {
 
 async function readStakeholderLogo(request, response, organizationId) {
   await authorizeRequest(request, new URL(`/api/stakeholder-logos/${encodeURIComponent(organizationId)}`, "http://local"));
-  if (!STAKEHOLDER_LOGO_BUCKET) return jsonResponse(response, 404, { error: "Stakeholder-Logo-Bucket ist nicht konfiguriert." });
+  if (!storageEnabled(OBJECT_STORAGE_AREAS.STAKEHOLDER_LOGOS, STAKEHOLDER_LOGO_BUCKET)) {
+    return jsonResponse(response, 404, { error: "Privater Stakeholder-Logospeicher ist nicht konfiguriert." });
+  }
   const rows = await cloudSqlRest("stakeholder_organizations", request, new URLSearchParams({
     select: "id,logo_url,status",
     id: `eq.${organizationId}`,
@@ -6032,7 +6005,7 @@ async function readStakeholderLogo(request, response, organizationId) {
   }
   const objectName = stakeholderLogoObjectName(organization.logo_url);
   if (!objectName) return jsonResponse(response, 404, { error: "Stakeholder-Logo wurde nicht gefunden." });
-  const object = await readStorageObject(STAKEHOLDER_LOGO_BUCKET, objectName, {
+  const object = await readStorageObject(OBJECT_STORAGE_AREAS.STAKEHOLDER_LOGOS, STAKEHOLDER_LOGO_BUCKET, objectName, {
     maxBytes: 2 * 1024 * 1024,
     allowedContentTypes: ["image/gif", "image/jpeg", "image/png", "image/svg+xml", "image/webp"]
   });
@@ -6086,7 +6059,9 @@ async function uploadContactImage(request, contactId) {
   if (IMAGE_UPLOAD_MODE === "disabled") {
     throw Object.assign(new Error("Kontaktbild-Uploads sind bis zur sicheren Re-Encoding-Abnahme deaktiviert."), { status: 503 });
   }
-  if (!CONTACT_IMAGE_BUCKET) throw Object.assign(new Error("CONTACT_IMAGE_BUCKET ist nicht konfiguriert."), { status: 500 });
+  if (!storageEnabled(OBJECT_STORAGE_AREAS.CONTACT_IMAGES, CONTACT_IMAGE_BUCKET)) {
+    throw Object.assign(new Error("Privater Kontaktbildspeicher ist nicht konfiguriert."), { status: 500 });
+  }
   const userId = userIdFromToken(request);
   if (!userId) throw Object.assign(new Error("User-ID konnte nicht aus dem Token gelesen werden."), { status: 401 });
   const body = await readValidatedJsonBody(request, CONTACT_IMAGE_UPLOAD_FIELDS, "Kontaktbild-Upload");
@@ -6103,9 +6078,15 @@ async function uploadContactImage(request, contactId) {
     throw validationError("Die Bildabmessungen stimmen nicht mit dem Dateiinhalt überein.");
   }
   const oldRow = await contactImageRow(request, contactId);
+  const oldObjectName = oldRow.image_storage_path
+    ? contactImageObjectName(oldRow.image_storage_path, contactId)
+    : "";
+  if (oldRow.image_storage_path && !oldObjectName) {
+    throw Object.assign(new Error("Bestehender Kontaktbildpfad ist nicht freigegeben."), { status: 415 });
+  }
   const extension = contentType === "image/png" ? "png" : contentType === "image/webp" ? "webp" : "jpg";
   const objectName = `contact-images/${contactId}/${crypto.randomUUID()}.${extension}`;
-  await saveStorageObject(CONTACT_IMAGE_BUCKET, objectName, buffer, contentType);
+  await saveStorageObject(OBJECT_STORAGE_AREAS.CONTACT_IMAGES, CONTACT_IMAGE_BUCKET, objectName, buffer, contentType);
   let updated;
   try {
     const rows = await cloudSqlRest("contacts", request, new URLSearchParams({ id: `eq.${contactId}`, select: CONTACT_FIELDS.join(",") }), {
@@ -6131,11 +6112,13 @@ async function uploadContactImage(request, contactId) {
     updated = rows?.[0];
     if (!updated) throw new Error("Kontaktbild wurde nicht gespeichert.");
   } catch (error) {
-    await deleteStorageObject(CONTACT_IMAGE_BUCKET, objectName);
+    await deleteStorageObject(OBJECT_STORAGE_AREAS.CONTACT_IMAGES, CONTACT_IMAGE_BUCKET, objectName);
     throw error;
   }
   await writeContactImageChange(request, contactId, oldRow.image_storage_path || oldRow.image_url, objectName, userId);
-  if (oldRow.image_storage_path && oldRow.image_storage_path !== objectName) await deleteStorageObject(CONTACT_IMAGE_BUCKET, oldRow.image_storage_path);
+  if (oldObjectName && oldObjectName !== objectName) {
+    await deleteStorageObject(OBJECT_STORAGE_AREAS.CONTACT_IMAGES, CONTACT_IMAGE_BUCKET, oldObjectName);
+  }
   const dto = (await decorateRowsWithStoredOwners(request, [updated]))[0];
   await notifyContactUpdated(request, dto, userId, { action: "update", changedFields: ["image_storage_path"] });
   return dto;
@@ -6145,6 +6128,12 @@ async function removeContactImage(request, contactId) {
   const userId = userIdFromToken(request);
   if (!userId) throw Object.assign(new Error("User-ID konnte nicht aus dem Token gelesen werden."), { status: 401 });
   const oldRow = await contactImageRow(request, contactId);
+  const oldObjectName = oldRow.image_storage_path
+    ? contactImageObjectName(oldRow.image_storage_path, contactId)
+    : "";
+  if (oldRow.image_storage_path && !oldObjectName) {
+    throw Object.assign(new Error("Bestehender Kontaktbildpfad ist nicht freigegeben."), { status: 415 });
+  }
   const rows = await cloudSqlRest("contacts", request, new URLSearchParams({ id: `eq.${contactId}`, select: CONTACT_FIELDS.join(",") }), {
     method: "PATCH",
     headers: { prefer: "return=representation" },
@@ -6168,7 +6157,9 @@ async function removeContactImage(request, contactId) {
   const updated = rows?.[0];
   if (!updated) throw Object.assign(new Error("Kontaktbild wurde nicht entfernt."), { status: 500 });
   await writeContactImageChange(request, contactId, oldRow.image_storage_path || oldRow.image_url, "", userId);
-  if (oldRow.image_storage_path) await deleteStorageObject(CONTACT_IMAGE_BUCKET, oldRow.image_storage_path);
+  if (oldObjectName) {
+    await deleteStorageObject(OBJECT_STORAGE_AREAS.CONTACT_IMAGES, CONTACT_IMAGE_BUCKET, oldObjectName);
+  }
   const dto = (await decorateRowsWithStoredOwners(request, [updated]))[0];
   await notifyContactUpdated(request, dto, userId, { action: "update", changedFields: ["image_storage_path"] });
   return dto;
@@ -6344,11 +6335,30 @@ function safeAttachmentName(value = "Datei") {
   return String(value || "Datei").replace(/[\u0000-\u001f\u007f/\\]/g, "_").trim().slice(0, 240) || "Datei";
 }
 
+function contactNoteAttachmentObjectName(attachment) {
+  const fileName = String(attachment?.file_name || "");
+  const expected = [
+    String(attachment?.contact_id || ""),
+    String(attachment?.note_id || ""),
+    String(attachment?.id || ""),
+    fileName
+  ];
+  if (
+    expected.slice(0, 3).some((part) => !part || /[\/\\\u0000-\u001f\u007f]/u.test(part))
+    || !fileName
+    || safeAttachmentName(fileName) !== fileName
+  ) return "";
+  const objectName = String(attachment?.storage_path || "");
+  return objectName === expected.join("/") ? objectName : "";
+}
+
 async function uploadContactNoteAttachment(request) {
   if (ATTACHMENT_UPLOAD_MODE === "disabled") {
     throw Object.assign(new Error("Dateianhaenge sind bis zur Abnahme einer Scan- und Quarantaene-Strecke deaktiviert."), { status: 503 });
   }
-  if (!CONTACT_NOTE_ATTACHMENT_BUCKET) throw Object.assign(new Error("CONTACT_NOTE_ATTACHMENT_BUCKET ist nicht konfiguriert."), { status: 500 });
+  if (!storageEnabled(OBJECT_STORAGE_AREAS.CONTACT_NOTE_ATTACHMENTS, CONTACT_NOTE_ATTACHMENT_BUCKET)) {
+    throw Object.assign(new Error("Privater Anhangspeicher ist nicht konfiguriert."), { status: 500 });
+  }
   const body = await readValidatedJsonBody(request, CONTACT_NOTE_ATTACHMENT_UPLOAD_FIELDS, "Notiz-Anhang");
   const contactId = String(body.contactId || "").trim();
   const noteId = String(body.noteId || "").trim();
@@ -6371,7 +6381,13 @@ async function uploadContactNoteAttachment(request) {
   extractedText = extractedText.slice(0, 200000);
   const attachmentId = crypto.randomUUID();
   const objectName = `${contactId}/${noteId}/${attachmentId}/${fileName}`;
-  await saveStorageObject(CONTACT_NOTE_ATTACHMENT_BUCKET, objectName, buffer, mimeType);
+  await saveStorageObject(
+    OBJECT_STORAGE_AREAS.CONTACT_NOTE_ATTACHMENTS,
+    CONTACT_NOTE_ATTACHMENT_BUCKET,
+    objectName,
+    buffer,
+    mimeType
+  );
   try {
     const rows = await cloudSqlRest("contact_note_attachments", request, new URLSearchParams(), {
       method: "POST",
@@ -6393,16 +6409,31 @@ async function uploadContactNoteAttachment(request) {
     });
     return contactNoteAttachmentToDto(rows?.[0]);
   } catch (error) {
-    await deleteStorageObject(CONTACT_NOTE_ATTACHMENT_BUCKET, objectName);
+    await deleteStorageObject(OBJECT_STORAGE_AREAS.CONTACT_NOTE_ATTACHMENTS, CONTACT_NOTE_ATTACHMENT_BUCKET, objectName);
     throw error;
   }
 }
 
 async function readContactNoteAttachment(request, response, attachmentId) {
   const attachment = await contactNoteAttachmentRow(request, attachmentId);
-  if (!CONTACT_NOTE_ATTACHMENT_BUCKET) return jsonResponse(response, 404, { error: "Anhang-Bucket ist nicht konfiguriert." });
-  const object = await readStorageObject(CONTACT_NOTE_ATTACHMENT_BUCKET, attachment.storage_path);
+  if (!storageEnabled(OBJECT_STORAGE_AREAS.CONTACT_NOTE_ATTACHMENTS, CONTACT_NOTE_ATTACHMENT_BUCKET)) {
+    return jsonResponse(response, 404, { error: "Privater Anhangspeicher ist nicht konfiguriert." });
+  }
+  const objectName = contactNoteAttachmentObjectName(attachment);
+  if (!objectName) return jsonResponse(response, 415, { error: "Anhangspfad ist nicht freigegeben." });
+  const object = await readStorageObject(
+    OBJECT_STORAGE_AREAS.CONTACT_NOTE_ATTACHMENTS,
+    CONTACT_NOTE_ATTACHMENT_BUCKET,
+    objectName,
+    {
+      maxBytes: 10 * 1024 * 1024,
+      allowedContentTypes: [String(attachment.mime_type || "").toLowerCase()]
+    }
+  );
   if (!object) return jsonResponse(response, 404, { error: "Anhang wurde nicht gefunden." });
+  if (Number(attachment.file_size) !== object.buffer.length) {
+    return jsonResponse(response, 415, { error: "Anhangsinhalt stimmt nicht mit dem Datensatz ueberein." });
+  }
   const fileName = safeAttachmentName(attachment.file_name).replace(/"/g, "'");
   response.writeHead(200, {
     "content-type": object.contentType || attachment.mime_type,
@@ -6420,9 +6451,17 @@ async function readContactNoteAttachment(request, response, attachmentId) {
 async function removeContactNoteAttachment(request, attachmentId) {
   const attachment = await contactNoteAttachmentRow(request, attachmentId);
   assertNoteOwner(request, attachment, "uploader_id");
-  if (!CONTACT_NOTE_ATTACHMENT_BUCKET) throw Object.assign(new Error("CONTACT_NOTE_ATTACHMENT_BUCKET ist nicht konfiguriert."), { status: 500 });
-  await deleteStorageObject(CONTACT_NOTE_ATTACHMENT_BUCKET, attachment.storage_path);
+  if (!storageEnabled(OBJECT_STORAGE_AREAS.CONTACT_NOTE_ATTACHMENTS, CONTACT_NOTE_ATTACHMENT_BUCKET)) {
+    throw Object.assign(new Error("Privater Anhangspeicher ist nicht konfiguriert."), { status: 500 });
+  }
+  const objectName = contactNoteAttachmentObjectName(attachment);
+  if (!objectName) throw Object.assign(new Error("Anhangspfad ist nicht freigegeben."), { status: 415 });
   await cloudSqlRest("contact_note_attachments", request, new URLSearchParams({ id: `eq.${attachmentId}` }), { method: "DELETE" });
+  await deleteStorageObject(
+    OBJECT_STORAGE_AREAS.CONTACT_NOTE_ATTACHMENTS,
+    CONTACT_NOTE_ATTACHMENT_BUCKET,
+    objectName
+  );
   return { ok: true };
 }
 
@@ -9865,10 +9904,14 @@ function runtimeMetadata() {
     iapExternalAccessExpiresAt: IDENTITY_CONFIGURATION.iapExternalAccessExpiresAt || null,
     authEmailHeader: AUTH_EMAIL_HEADER,
     authSubjectHeader: AUTH_SUBJECT_HEADER,
-    profileImageBucket: PROFILE_IMAGE_BUCKET || null,
-    contactImageBucket: CONTACT_IMAGE_BUCKET || null,
-    contactNoteAttachmentBucket: CONTACT_NOTE_ATTACHMENT_BUCKET || null,
-    stakeholderLogoBucket: STAKEHOLDER_LOGO_BUCKET || null
+    objectStorageDriver: PRIVATE_OBJECT_STORAGE.driver,
+    profileImageStorageConfigured: storageEnabled(OBJECT_STORAGE_AREAS.PROFILE_IMAGES, PROFILE_IMAGE_BUCKET),
+    contactImageStorageConfigured: storageEnabled(OBJECT_STORAGE_AREAS.CONTACT_IMAGES, CONTACT_IMAGE_BUCKET),
+    contactNoteAttachmentStorageConfigured: storageEnabled(
+      OBJECT_STORAGE_AREAS.CONTACT_NOTE_ATTACHMENTS,
+      CONTACT_NOTE_ATTACHMENT_BUCKET
+    ),
+    stakeholderLogoStorageConfigured: storageEnabled(OBJECT_STORAGE_AREAS.STAKEHOLDER_LOGOS, STAKEHOLDER_LOGO_BUCKET)
   };
 }
 
@@ -9955,7 +9998,7 @@ async function getOpsChecks() {
     : API_AUTH_MODE === "oidc"
       ? Boolean(OIDC_ISSUER && OIDC_AUDIENCE && OIDC_JWKS_URL)
       : false;
-  checks.push(opsCheck("kubernetes-api", "Kubernetes API", "ok", "API-Service antwortet.", runtimeMetadata()));
+  checks.push(opsCheck("application-api", "Anwendungs-API", "ok", "API-Service antwortet.", runtimeMetadata()));
   checks.push(opsCheck(
     "auth-boundary",
     "Gateway/SSO",
@@ -9980,18 +10023,28 @@ async function getOpsChecks() {
     dbError || `${counts.profiles || 0} Profile, ${counts.activeContacts || 0} aktive Kontakte, ${counts.activeOrganizations || 0} aktive Organisationen.`,
     counts
   ));
+  const storageAreasConfigured = [
+    storageEnabled(OBJECT_STORAGE_AREAS.PROFILE_IMAGES, PROFILE_IMAGE_BUCKET),
+    storageEnabled(OBJECT_STORAGE_AREAS.CONTACT_IMAGES, CONTACT_IMAGE_BUCKET),
+    storageEnabled(OBJECT_STORAGE_AREAS.CONTACT_NOTE_ATTACHMENTS, CONTACT_NOTE_ATTACHMENT_BUCKET),
+    storageEnabled(OBJECT_STORAGE_AREAS.STAKEHOLDER_LOGOS, STAKEHOLDER_LOGO_BUCKET)
+  ].every(Boolean);
+  const storageHealth = await PRIVATE_OBJECT_STORAGE.health();
+  const storageReady = storageAreasConfigured && storageHealth.ok;
   checks.push(opsCheck(
     "storage",
     "Object Storage",
-    [PROFILE_IMAGE_BUCKET, CONTACT_IMAGE_BUCKET, CONTACT_NOTE_ATTACHMENT_BUCKET, STAKEHOLDER_LOGO_BUCKET].every(Boolean) ? "ok" : "warn",
-    [PROFILE_IMAGE_BUCKET, CONTACT_IMAGE_BUCKET, CONTACT_NOTE_ATTACHMENT_BUCKET, STAKEHOLDER_LOGO_BUCKET].every(Boolean)
-      ? "Alle geschuetzten Storage-Buckets sind konfiguriert."
-      : "Mindestens ein geschuetzter Storage-Bucket fehlt.",
+    storageReady ? "ok" : "warn",
+    storageReady
+      ? `Privater Object Storage ist mit Treiber ${PRIVATE_OBJECT_STORAGE.driver} betriebsbereit.`
+      : "Privater Object Storage ist nicht vollstaendig konfiguriert oder nicht betriebsbereit.",
     {
-      profileImageBucket: PROFILE_IMAGE_BUCKET || null,
-      contactImageBucket: CONTACT_IMAGE_BUCKET || null,
-      contactNoteAttachmentBucket: CONTACT_NOTE_ATTACHMENT_BUCKET || null,
-      stakeholderLogoBucket: STAKEHOLDER_LOGO_BUCKET || null
+      driver: PRIVATE_OBJECT_STORAGE.driver,
+      areasConfigured: storageAreasConfigured,
+      writable: storageHealth.writable,
+      freeMiB: Number.isFinite(storageHealth.freeBytes)
+        ? Math.floor(storageHealth.freeBytes / 1024 / 1024)
+        : null
     }
   ));
   checks.push(opsCheck("migration-jobs", "Migrationsjobs", "info", "Nicht fuer den App-Betrieb erforderlich; optional fuer Migrationen, Seeds oder Wartung."));
@@ -10211,7 +10264,12 @@ async function patchContact(request, id) {
     return { ...row, _test_scope_ref: testOnlyScopeRef(request) };
   });
   if (oldRow.image_storage_path && Object.prototype.hasOwnProperty.call(dbPatch, "image_storage_path") && !dbPatch.image_storage_path) {
-    await deleteStorageObject(CONTACT_IMAGE_BUCKET, oldRow.image_storage_path);
+    const oldObjectName = contactImageObjectName(oldRow.image_storage_path, id);
+    if (oldObjectName) {
+      await deleteStorageObject(OBJECT_STORAGE_AREAS.CONTACT_IMAGES, CONTACT_IMAGE_BUCKET, oldObjectName);
+    } else {
+      console.warn("Ein nicht mehr referenzierter Kontaktbildpfad war nicht freigegeben und wurde nicht geloescht.");
+    }
   }
   const responseOwnerIds = hasOwnerPatch ? nextOwnerIds : effectiveOldOwnerIds;
   const dto = projectContactForRequest(
@@ -10314,7 +10372,7 @@ async function handle(request, response) {
     }
     await authorizeRequest(request, url);
     if (request.method === "GET" && ["/healthz", "/api/healthz"].includes(url.pathname)) {
-      return jsonResponse(response, 200, { ok: true });
+      return jsonResponse(response, 200, { ok: true, cutoverMode: API_CUTOVER_MODE });
     }
     if (request.method === "GET" && ["/readyz", "/api/readyz"].includes(url.pathname)) {
       if (IAP_IDENTITY_MODE === "external") {
@@ -10323,7 +10381,13 @@ async function handle(request, response) {
       await getPool().query("select 1");
       await getPool().query("select access_scope, scope_ref from public.identity_bindings limit 0");
       await getPool().query("select entity_type, entity_id, scope_ref from public.test_access_objects limit 0");
-      return jsonResponse(response, 200, { ok: true });
+      if (PRIVATE_OBJECT_STORAGE.driver === "filesystem") {
+        const storageHealth = await PRIVATE_OBJECT_STORAGE.health();
+        if (!storageHealth.ok) {
+          throw Object.assign(new Error("Privater Object Storage ist nicht betriebsbereit."), { status: 503 });
+        }
+      }
+      return jsonResponse(response, 200, { ok: true, cutoverMode: API_CUTOVER_MODE });
     }
     if (request.method === "POST" && url.pathname === TYPO3_REGISTRATION_CONNECTOR_PATH) {
       const result = await receiveTypo3Registration(
@@ -10345,6 +10409,29 @@ async function handle(request, response) {
         }
       }
       return redirectResponse(response, validatedIapBootstrapReturnUrl(url));
+    }
+    if (request.method === "GET" && url.pathname === "/api/identity/bootstrap-claim") {
+      if (!OIDC_IDENTITY_BOOTSTRAP_CLAIM_ENABLED || API_AUTH_MODE !== "oidc") {
+        return jsonResponse(response, 404, { error: "Not found" });
+      }
+      const payload = await verifyOidcJwt(request);
+      const email = String(payload?.email || "").trim().toLowerCase();
+      if (!email || payload?.email_verified !== true) {
+        const error = new Error("Die Google-Identitaet besitzt keine verifizierte E-Mail-Adresse.");
+        error.status = 401;
+        throw error;
+      }
+      const signedClaim = createIdentityBootstrapClaim({
+        issuer: String(payload.iss),
+        subject: String(payload.sub),
+        email,
+        emailVerified: true
+      }, String(readFileSync(OIDC_IDENTITY_BOOTSTRAP_HMAC_FILE, "utf8")));
+      return jsonResponse(response, 200, {
+        schemaVersion: 1,
+        bootstrapClaim: signedClaim.bootstrapClaim,
+        expiresAt: new Date(signedClaim.expiresAt * 1000).toISOString()
+      });
     }
     if (request.method === "POST" && url.pathname === "/api/auth/external-enrollment") {
       return jsonResponse(response, 202, await submitExternalIapEnrollment(request, {

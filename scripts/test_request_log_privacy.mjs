@@ -7,6 +7,7 @@ for (const [pathname, expected] of [
   ["/api/activities/summary", "/api/activities/summary"],
   ["/api/connectors/typo3/mitmachen-registrations", "/api/connectors/typo3/mitmachen-registrations"],
   ["/api/politics/health-committee", "/api/politics/health-committee"],
+  ["/api/identity/bootstrap-claim", "/api/identity/bootstrap-claim"],
   ["/api/auth/enrollment", "/api/:unmatched"],
   ["/api/profile-avatar/profile-secret-123", "/api/profile-avatar/:id"],
   ["/api/contact-images/contact-secret-123", "/api/contact-images/:id"],

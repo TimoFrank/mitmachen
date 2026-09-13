@@ -1,0 +1,25 @@
+[Unit]
+Description=Verschluesseltes Versorgungs-Kompass Offsite-Backup
+Documentation=file:/opt/versorgungs-kompass/current/deploy/single-server/README.md
+Wants=network-online.target
+After=network-online.target docker.service versorgungs-kompass.service
+Requires=docker.service
+Requisite=versorgungs-kompass.service
+ConditionPathIsDirectory=/opt/versorgungs-kompass/current/deploy/single-server
+ConditionPathIsRegular=/etc/versorgungs-kompass/single-server.env
+
+[Service]
+Type=oneshot
+User=root
+Group=root
+UMask=0077
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectHome=true
+ProtectSystem=full
+Nice=10
+IOSchedulingClass=idle
+TimeoutStartSec=2h
+TimeoutStopSec=5min
+ExecStart=/opt/versorgungs-kompass/current/deploy/single-server/backup.sh /etc/versorgungs-kompass/single-server.env
+ExecStopPost=/opt/versorgungs-kompass/current/deploy/single-server/backup/recover-api-after-backup.sh /etc/versorgungs-kompass/single-server.env

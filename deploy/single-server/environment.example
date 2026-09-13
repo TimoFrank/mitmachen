@@ -1,0 +1,31 @@
+# Diese Datei wird als /etc/versorgungs-kompass/single-server.env installiert.
+# Sie enthaelt keine Secrets. Dateimodus auf dem Server: 0600, Eigentum root.
+
+APP_HOST=versorgungs-kompass.de
+APP_ORIGIN=https://versorgungs-kompass.de
+APP_SITE_ADDRESS=versorgungs-kompass.de
+
+CONFIG_DIR=/etc/versorgungs-kompass/secrets
+STATE_DIR=/var/lib/versorgungs-kompass
+
+# Beim Erst-Cutover geschlossen lassen. Erst nach Import, Backup, Restore-Test
+# und Identity-Pruefung mit set-cutover-mode.sh kontrolliert auf open setzen.
+API_CUTOVER_MODE=closed
+
+GOOGLE_OAUTH_CLIENT_ID=REPLACE_WITH_WEB_CLIENT_ID.apps.googleusercontent.com
+
+# Vor dem ersten geschlossenen Deployment aus dem separat erzeugten
+# Ed25519-Public-Key berechnen; der private Schluessel bleibt ausschliesslich
+# in der GCP-Operatorumgebung.
+INITIAL_OPEN_SOURCE_WRITER_PUBLIC_KEY_SHA256=REPLACE_WITH_64_HEX_SHA256
+
+# Nur erforderlich, solange importierte profiles.avatar_url noch auf gs:// zeigt.
+LEGACY_PROFILE_IMAGE_BUCKET=
+
+# Einmaliger Importpfad, strikt ausserhalb von Git-Checkout, STATE_DIR und CONFIG_DIR.
+# Das Verzeichnis wird nicht durch prepare-host.sh angelegt.
+MIGRATION_DIR=/var/lib/versorgungs-kompass-migration
+MIGRATION_MAX_DUMP_BYTES=5368709120
+
+# Die kanonische Quell-URL wird in die Container-Metadaten geschrieben.
+SOURCE_URL=https://github.com/TimoFrank/mitmachen

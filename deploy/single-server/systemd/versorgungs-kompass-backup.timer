@@ -1,0 +1,13 @@
+[Unit]
+Description=Versorgungs-Kompass Backup alle sechs Stunden
+Documentation=file:/opt/versorgungs-kompass/current/deploy/single-server/README.md
+
+[Timer]
+OnCalendar=*-*-* 00,06,12,18:15:00
+RandomizedDelaySec=15m
+AccuracySec=1m
+Persistent=true
+Unit=versorgungs-kompass-backup.service
+
+[Install]
+WantedBy=timers.target

@@ -8,12 +8,14 @@ const [
   authMode = process.env.TARGET_AUTH_MODE || process.env.API_AUTH_MODE || "oidc",
   iapIdentityMode = process.env.IAP_IDENTITY_MODE || "iam",
   iapExternalLoginPageUri = process.env.IAP_EXTERNAL_LOGIN_PAGE_URI || "",
-  iapExternalAuthApiKey = process.env.IAP_EXTERNAL_AUTH_API_KEY || ""
+  iapExternalAuthApiKey = process.env.IAP_EXTERNAL_AUTH_API_KEY || "",
+  authGateway = process.env.AUTH_GATEWAY || "generic"
 ] = process.argv.slice(2);
 
 const allowedDataModes = new Set(["api"]);
 const allowedAuthModes = new Set(["iap", "oidc"]);
 const allowedIapIdentityModes = new Set(["iam", "external"]);
+const allowedAuthGateways = new Set(["generic", "oauth2-proxy"]);
 
 if (!configPath) {
   throw new Error("Pfad zur Ziel-Frontend-Konfiguration fehlt.");
@@ -33,6 +35,13 @@ if (!allowedAuthModes.has(authMode)) {
 
 if (!allowedIapIdentityModes.has(iapIdentityMode)) {
   throw new Error(`IAP_IDENTITY_MODE muss ${[...allowedIapIdentityModes].join(" oder ")} sein.`);
+}
+
+if (!allowedAuthGateways.has(authGateway)) {
+  throw new Error(`AUTH_GATEWAY muss ${[...allowedAuthGateways].join(" oder ")} sein.`);
+}
+if (authGateway === "oauth2-proxy" && authMode !== "oidc") {
+  throw new Error("AUTH_GATEWAY=oauth2-proxy setzt TARGET_AUTH_MODE/API_AUTH_MODE=oidc voraus.");
 }
 
 if (authMode !== "iap" && iapIdentityMode !== "iam") {
@@ -83,6 +92,7 @@ source = source.replace(/\n\s*supabaseAnonKey:\s*"[^"]*",?/g, "");
 source = source.replace(/\n\s*registrationEndpoint:\s*"[^"]*",?/g, "");
 source = upsertStringProperty(source, "dataMode", dataMode);
 source = upsertStringProperty(source, "authMode", authMode);
+source = upsertStringProperty(source, "authGateway", authGateway, "authMode");
 source = upsertStringProperty(source, "iapIdentityMode", iapIdentityMode, "authMode");
 source = upsertStringProperty(source, "iapExternalLoginPageUri", iapExternalLoginPageUri, "iapIdentityMode");
 source = upsertStringProperty(source, "iapExternalAuthApiKey", iapExternalAuthApiKey, "iapExternalLoginPageUri");
@@ -161,12 +171,14 @@ if (artifactRoot) {
 const result = fs.readFileSync(configPath, "utf8");
 const expectedDataMode = new RegExp(`dataMode:\\s*"${dataMode}"`);
 const expectedAuthMode = new RegExp(`authMode:\\s*"${authMode}"`);
+const expectedAuthGateway = new RegExp(`authGateway:\\s*"${authGateway}"`);
 const expectedIapIdentityMode = new RegExp(`iapIdentityMode:\\s*"${iapIdentityMode}"`);
 const expectedExternalLoginPageUri = new RegExp(`iapExternalLoginPageUri:\\s*"${iapExternalLoginPageUri.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}"`);
 const expectedExternalAuthApiKey = new RegExp(`iapExternalAuthApiKey:\\s*"${iapExternalAuthApiKey.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}"`);
 if (
   !expectedDataMode.test(result) ||
   !expectedAuthMode.test(result) ||
+  !expectedAuthGateway.test(result) ||
   !expectedIapIdentityMode.test(result) ||
   !expectedExternalLoginPageUri.test(result) ||
   !expectedExternalAuthApiKey.test(result) ||

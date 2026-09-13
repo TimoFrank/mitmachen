@@ -17,6 +17,10 @@ Die Dokumentation ist nach Zweck gegliedert. Führende Frontend-Quellen liegen u
 
 - [Identity-Platform-Übergang](betrieb-und-deployment/PRE_GEMATIK_EXTERNAL_IDENTITIES_PILOT.md): Google- und administrativ provisionierte Passwortkonten, Sicherheitsausnahme, Subject-Remap, Abnahme, Ablauf und IAM-Rollback
 
+## Kostenbegrenzter Übergangsbetrieb
+
+- [Einzelserver-Runbook](../deploy/single-server/README.md): kleiner OIDC-Stack für ein bis vier namentlich zugelassene Personen mit PostgreSQL, verschlüsseltem Offsite-Backup, Restore-Test sowie kontrolliertem GCP-Cutover und Rollback
+
 ## Produkt und Architektur
 
 - [Markenarchitektur](produkt-und-design/MARKENARCHITEKTUR.md)
@@ -61,6 +65,7 @@ Die Verzeichnisse enthalten zusätzliche Architektur-, Migrations-, Betriebs- un
 - **Lokale Entwicklung:** bewegliche Arbeitsstände und lokale Varianten
 - **GitHub Pages:** öffentliche Demo mit fiktiven CRM-/Fachdaten und kuratiertem Amtsträger-Verzeichnis aus `dist/pages/`
 - **`pre-gematik`:** getrennte GCP-Pre-Integration
+- **Kostenbegrenzter Einzelserver:** vorbereiteter, noch nicht live geschalteter befristeter Nachfolger des persönlichen GKE-Betriebs
 - **Gematik-PoC:** interner Durchstich aus einem unveränderlichen RC und `dist/target/`
 
 Die Buildprofile sind voneinander getrennt. Ein Pages-Artefakt wird nicht für den PoC verwendet.
