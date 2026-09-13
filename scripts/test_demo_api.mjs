@@ -1012,6 +1012,43 @@ assert.ok(!afterHospitationDelete.hospitationRoadmapAssessments.some((item) => (
 assert.ok(!afterHospitationDelete.hospitationUnmetNeeds.some((item) => (item.hospitationId || item.hospitation_id) === hospitationId), "Unmet Needs müssen lokal kaskadieren.");
 
 {
+  const observationRuntime = createRuntime();
+  vm.runInContext(fs.readFileSync("frontend/data/hospitation-model.js", "utf8"), observationRuntime.context);
+  const adapterStart = dataServiceSource.indexOf("  function hospitationObservationEvidenceType(");
+  const adapterEnd = dataServiceSource.indexOf("  function normalizeComparisonRole(", adapterStart);
+  assert.ok(adapterStart >= 0 && adapterEnd > adapterStart);
+  vm.runInContext(`function hospitationModel() { return window.VersorgungsCompassHospitationModel; }\n${dataServiceSource.slice(adapterStart, adapterEnd)}`, observationRuntime.context);
+  const toUi = observationRuntime.context.hospitationObservationDbToUi;
+  const observationFetch = observationRuntime.window.fetch;
+  const initial = observationRuntime.window.VersorgungsCompassDemoApi.snapshot().hospitationObservations[0];
+  assert.ok(initial.payload.immediateConsequence && initial.payload.uncertainty, "Die Regression benötigt vorhandene Payload-Texte.");
+  for (const patch of [
+    { immediateConsequence: "Fiktive aktualisierte Folge", uncertainty: "Fiktive aktualisierte Frage", relevanceReason: "Fiktive Begründung", nextStep: "Fiktiver Prüfschritt" },
+    { immediateConsequence: "", uncertainty: "", relevanceReason: "", nextStep: "" }
+  ]) {
+    const response = await observationFetch(`/api/hospitation-observations/${encodeURIComponent(initial.id)}`, {
+      method: "PATCH", headers: { "content-type": "application/json" }, body: JSON.stringify(patch)
+    });
+    assert.equal(response.status, 200);
+    const returned = toUi(await response.json());
+    const readResponse = await observationFetch("/api/hospitation-observations");
+    assert.equal(readResponse.status, 200);
+    const loaded = toUi((await readResponse.json()).items.find((row) => row.id === initial.id));
+    for (const [field, value] of Object.entries(patch)) {
+      assert.equal(returned[field], value, `${field}: Der Adapter darf aktuelle Demo-DTO-Werte nicht aus dem alten Payload zurücksetzen.`);
+      assert.equal(loaded[field], value, `${field}: Auch erneutes Laden muss die Änderung beziehungsweise das explizite Leeren erhalten.`);
+    }
+    for (const row of [returned, loaded]) {
+      assert.equal(row.originalEvidenceType, initial.originalEvidenceType);
+      assert.equal(row.sourceReference, initial.sourceReference);
+      assert.equal(row.evidenceType, "synthetic_source_based");
+    }
+  }
+  assert.equal(observationRuntime.originalFetchCalls.length, 0);
+  assert.deepEqual(observationRuntime.storageAccesses, []);
+}
+
+{
   const contextFields = ["situation", "situationContext", "situation_context", "context"];
   const contextValues = (value) => contextFields.map((field) => value[field] ?? null);
   const contextRuntime = createRuntime({

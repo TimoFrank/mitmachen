@@ -77,12 +77,12 @@ const fixture = {
             id: "observation-fixture-2",
             title: "Checkliste stabilisiert den Ablauf",
             situation: "Übergabe zwischen zwei MFA",
-            description: "Eine lokale Checkliste verhindert, dass Rückfragen vergessen werden.",
-            processPhase: "Nachbereitung",
-            problemType: "positives Muster / Best Practice",
-            impact: "Ablauf funktioniert gut",
-            observationType: "positives Beispiel",
-            evidenceType: "directly_observed",
+            description: "Übergabe zwischen zwei MFA\n\nEine lokale Checkliste verhindert, dass Rückfragen vergessen werden.",
+            processPhase: "Übergang",
+            problemType: "Kein Hindernis",
+            impact: "Nicht feststellbar",
+            observationType: "Gelungener Ablauf",
+            evidenceType: "",
             relevanceScore: 4,
             updatedAt: generatedAt
           }
@@ -361,18 +361,50 @@ const appointmentSnapshot = {
 };
 const appointmentDocx = exporter.createAppointmentDocx(appointmentSnapshot);
 const appointmentPdf = exporter.createAppointmentPdf(appointmentSnapshot);
+const edgeObservations = [
+  {
+    id: "observation-codebook-long",
+    title: "Lange Situationsbeschreibung mit nachvollziehbarer Quelle",
+    description: "Eine vorhandene Angabe wird in ein zweites Formular übertragen. Der beschriebene Ablauf bleibt im Zusammenhang erhalten; die Ursache der getrennten Formulare ist nicht geklärt. ".repeat(9),
+    processPhase: "Aufnahme",
+    problemType: "Übernahme nötig",
+    impact: "Zusätzliche Arbeit",
+    observationType: "Hindernis",
+    evidenceType: "source_bound",
+    sourceReference: "Synthetische Notiz für die Exportprüfung, Abschnitt zur Übernahme vorhandener Angaben mit zusätzlichem Kontext und einer bewusst längeren Quellenbeschreibung.",
+    immediateConsequence: "Für die fiktive aufnehmende Person entsteht ein zusätzlicher Eintrag in einem zweiten Formular.",
+    usageRecommendation: "Prozess prüfen",
+    relevanceScore: 3,
+    nextStep: "Die getrennte Erfassung im beschriebenen Ablauf klären."
+  },
+  { id: "observation-codebook-sparse", title: "Codierung und Quelle noch offen", description: "Eine fiktive Notiz ohne ergänzende Zuordnung." },
+  { id: "observation-codebook-synthetic", title: "Synthetischer Vergleichsfall", description: "Ein erfundener gelungener Ablauf dient ausschließlich dem Test.", observationType: "Gelungener Ablauf", evidenceType: "synthetic_source_based" },
+  { id: "observation-codebook-duplicate", title: "Vorhandene Angaben nochmals dokumentiert", description: "In diesem erfundenen Fall wird dieselbe bereits dokumentierte Anschrift erneut in ein Formular eingetragen.", processPhase: "Aufnahme", problemType: "Doppelte Dokumentation", impact: "Zusätzliche Arbeit", evidenceType: "synthetic_source_based" },
+  { id: "observation-codebook-information", title: "Fehlender Befund als aktueller Code", description: "In diesem erfundenen Fall liegt der benötigte Befund nicht vor.", processPhase: "Abklärung", problemType: "Information fehlt", evidenceType: "synthetic_source_based" }
+];
+const edgeAppointment = { ...dateOnlyAppointment, contactImage: null, documentation: { observations: edgeObservations } };
+const edgeSnapshot = { ...appointmentSnapshot, title: "Codebuch Grenzfälle", appointments: [edgeAppointment], hospitations: [edgeAppointment] };
+const edgeDocx = exporter.createAppointmentDocx(edgeSnapshot);
+const edgePdf = exporter.createAppointmentPdf(edgeSnapshot);
 const docxBytes = new Uint8Array(await docx.blob.arrayBuffer());
 const pdfBytes = new Uint8Array(await pdf.blob.arrayBuffer());
 const observationDocxBytes = new Uint8Array(await observationDocx.blob.arrayBuffer());
 const observationPdfBytes = new Uint8Array(await observationPdf.blob.arrayBuffer());
 const appointmentDocxBytes = new Uint8Array(await appointmentDocx.blob.arrayBuffer());
 const appointmentPdfBytes = new Uint8Array(await appointmentPdf.blob.arrayBuffer());
+const edgeDocxBytes = new Uint8Array(await edgeDocx.blob.arrayBuffer());
+const edgePdfBytes = new Uint8Array(await edgePdf.blob.arrayBuffer());
 const docxText = new TextDecoder().decode(docxBytes);
 const pdfText = new TextDecoder().decode(pdfBytes.slice(0, 64));
 const observationDocxText = new TextDecoder().decode(observationDocxBytes);
 const observationPdfText = new TextDecoder().decode(observationPdfBytes.slice(0, 64));
-const appointmentDocxText = new TextDecoder("latin1").decode(appointmentDocxBytes);
+const appointmentDocxText = new TextDecoder().decode(appointmentDocxBytes);
 const appointmentPdfText = new TextDecoder("latin1").decode(appointmentPdfBytes);
+const edgeDocxText = new TextDecoder().decode(edgeDocxBytes);
+function pdfVisibleText(bytes) {
+  const source = new TextDecoder("latin1").decode(bytes);
+  return [...source.matchAll(/<([0-9a-f]+)> Tj/gi)].map((match) => new TextDecoder("windows-1252").decode(Buffer.from(match[1], "hex"))).join(" ");
+}
 
 assert.equal(docx.snapshot.summary.appointments, 2);
 assert.equal(docx.snapshot.summary.hospitations, 1);
@@ -465,6 +497,94 @@ for (const documentKind of ["appointments", "observations", "appointment"]) {
   codingExports.push({ documentKind, docxBytes, pdfBytes });
 }
 
+for (const content of [docxText, observationDocxText, appointmentDocxText, pdfVisibleText(pdfBytes), pdfVisibleText(observationPdfBytes), pdfVisibleText(appointmentPdfBytes)]) {
+  for (const label of ["Prozessphase", "Problemtyp", "Auswirkung", "Beobachtungsart", "Quelle", "Quellenbezug", "Konkrete Folge", "Spätere Bewertung", "Nächste Nutzung"]) {
+    assert.ok(content.includes(label), `Export enthält die Bezeichnung ${label} nicht`);
+  }
+  assert.match(content, /Notiz A-01/, "Der Quellenbezug muss auch in kompakten Exporten erhalten bleiben");
+  assert.match(content, /Anmeldung \/ Aufnahme/, "Eine bisherige Codierung darf nicht automatisch umbenannt werden");
+  assert.match(content, /bisherige Codierung/, "Bisherige Werte müssen als solche erkennbar bleiben");
+  assert.match(content, /Gelungener Ablauf/);
+  assert.match(content, /Noch nicht angegeben/, "Eine fehlende Quelle muss offen bleiben");
+  assert.doesNotMatch(content, /Annahme/, "Eine fehlende Quelle darf nicht als Annahme eingestuft werden");
+  assert.doesNotMatch(content, /Versorgungsschritt|Auffälligkeit|Folgenart|Evidenzart|Evidenztyp|Nutzungsempfehlung|Situation \/ Kontext|Konkrete Beobachtung/, "Überholte Feldbezeichnungen dürfen nicht als aktuelle Labels erscheinen");
+  assert.equal((content.match(/Patientin wird am Empfang aufgenommen\./g) || []).length, 1, "Die bisherige Situation muss genau einmal im gemeinsamen Beobachtungstext erhalten bleiben");
+  assert.equal((content.match(/Übergabe zwischen zwei MFA/g) || []).length, 1, "Bereits im Beobachtungstext vorhandene Situationsangaben dürfen nicht doppelt erscheinen");
+  assert.match(content, /Der aktuelle Vorbefund liegt weder digital noch als Ausdruck vor\./, "Der ursprüngliche Beobachtungstext bleibt vollständig erhalten");
+  assert.ok(content.indexOf("Spätere Bewertung") < content.indexOf("Beobachtungsart"), "Die optionale Beobachtungsart gehört erst zur späteren Bewertung");
+}
+for (const content of [edgeDocxText, pdfVisibleText(edgePdfBytes)]) {
+  for (const value of ["Übernahme nötig", "Zusätzliche Arbeit", "Hindernis", "Beobachtungsunterlage", "synthetisches Beispiel", "Noch nicht angegeben", "Für die fiktive aufnehmende Person", "Doppelte Dokumentation", "Fehlende Information"]) assert.ok(content.includes(value), `Grenzfallexport enthält ${value} nicht`);
+  assert.ok(content.indexOf("Quellenbezug") < content.indexOf("Spätere Bewertung"), "Beschreibung und Quelle müssen vor der späteren Bewertung stehen");
+  assert.doesNotMatch(content, /Annahme/, "Auch ein unvollständiger Eintrag bleibt ohne erfundene Herkunft");
+}
+for (const content of [docxText, observationDocxText, appointmentDocxText, edgeDocxText]) {
+  const codingXml = content.match(/Codierung[\s\S]*?<w:tbl>[\s\S]*?<\/w:tbl>/)?.[0] || "";
+  assert.equal((codingXml.match(/<w:tc>/g) || []).length, 3, "Die primäre Codierung besteht aus genau drei nebeneinanderliegenden Zellen");
+  for (const label of ["Prozessphase", "Problemtyp", "Auswirkung"]) assert.ok(codingXml.includes(label));
+  assert.doesNotMatch(codingXml, /Beobachtungsart|Quelle|Einordnung|Nächste Nutzung|Relevanz/, "Herkunft und spätere Bewertung gehören nicht in die drei Codierungsfelder");
+}
+assert.match(edgeDocxText, /Übernahme nötig \(bisherige Codierung\)/, "Die breitere bisherige Übernahme-Codierung darf nicht als Doppelte Dokumentation exportiert werden");
+assert.doesNotMatch(edgeDocxText, /Doppelte Dokumentation \(bisherige Codierung\)/, "Die neue engere Kategorie ist kein historischer Code");
+assert.equal(appointmentDocx.snapshot.hospitations[0].documentation.observations[0].processPhase, "Anmeldung / Aufnahme");
+assert.equal(appointmentDocx.snapshot.hospitations[0].documentation.observations[1].evidenceType, "");
+
+// Eingebettete Dokumentation und rohe Export-Snapshots durchlaufen nicht
+// zwangsläufig die API-Konvertierung. Bekannte synthetische Herkunft muss
+// deshalb auch hier Vorrang vor einer veralteten Quellenangabe haben.
+const syntheticOrigins = [
+  { originalEvidenceType: "synthetic_source_based" },
+  { original_evidence_type: "synthetic_source_based" },
+  { payload: { originalEvidenceType: "synthetic_source_based" } },
+  { payload: { original_evidence_type: "synthetic_source_based" } }
+];
+const syntheticBase = {
+  id: "synthetic-source-regression",
+  title: "Fiktiver Ablauf mit bekannter Herkunft",
+  description: "Ein konstruierter Fall für die Herkunftsprüfung.",
+  processPhase: "Aufnahme",
+  problemType: "Übernahme nötig",
+  sourceReference: "Fiktive Demonstrationsunterlage, Szene 4"
+};
+let restoredSynthetic;
+for (const origin of syntheticOrigins) {
+  for (const evidenceType of ["", "directly_observed", "reported", "source_bound", "interpreted", "synthetic_source_based"]) {
+    const embedded = JSON.stringify({
+      kind: model.DOCUMENTATION_KIND,
+      observations: [{ ...syntheticBase, ...origin, evidenceType }]
+    });
+    const parsed = model.parseDocumentationOutcome(embedded);
+    restoredSynthetic = model.parseDocumentationOutcome(model.serializeDocumentationPayload(parsed)).observations[0];
+    for (const observation of [parsed.observations[0], restoredSynthetic]) {
+      assert.equal(observation.evidenceType, "synthetic_source_based", "Eingebettete Dokumentation darf bekannte synthetische Herkunft nicht als andere Quelle ausgeben");
+      assert.equal(observation.originalEvidenceType, "synthetic_source_based");
+      for (const field of ["description", "processPhase", "problemType", "sourceReference"]) {
+        assert.equal(observation[field], syntheticBase[field], `Die Herkunftskorrektur darf ${field} nicht verändern`);
+      }
+    }
+  }
+}
+const syntheticExportObservations = [
+  ...syntheticOrigins.map((origin, index) => ({ ...syntheticBase, ...origin, id: `raw-synthetic-${index}`, evidenceType: "reported" })),
+  { ...restoredSynthetic, id: "restored-synthetic" }
+];
+const syntheticExportItem = { ...dateOnlyAppointment, documentation: { observations: syntheticExportObservations } };
+const syntheticExportSnapshot = { ...fixture, appointments: [syntheticExportItem], hospitations: [syntheticExportItem] };
+for (const [createWord, createPdf] of [
+  [exporter.createDocx, exporter.createPdf],
+  [exporter.createObservationDocx, exporter.createObservationPdf],
+  [exporter.createAppointmentDocx, exporter.createAppointmentPdf]
+]) {
+  const word = createWord(syntheticExportSnapshot);
+  const pdf = createPdf(syntheticExportSnapshot);
+  const wordText = docxVisibleText(docxDocumentXml(new Uint8Array(await word.blob.arrayBuffer())));
+  const pdfText = pdfBodyTextRuns(new Uint8Array(await pdf.blob.arrayBuffer())).map((run) => run.text).join(" ");
+  for (const content of [wordText, pdfText]) {
+    assert.equal((content.match(/synthetisches Beispiel/g) || []).length, syntheticExportObservations.length, "Jede bekannte synthetische Beobachtung muss im Export entsprechend gekennzeichnet sein");
+    assert.doesNotMatch(content, /direkt beobachtet|berichtet|Annahme|Beobachtungsunterlage/, "Veraltete Quellenangaben dürfen bekannte synthetische Fälle nicht empirisch erscheinen lassen");
+  }
+}
+
 const outputIndex = process.argv.indexOf("--output-dir");
 if (outputIndex >= 0 && process.argv[outputIndex + 1]) {
   const outputDir = resolve(process.argv[outputIndex + 1]);
@@ -483,6 +603,8 @@ if (outputIndex >= 0 && process.argv[outputIndex + 1]) {
     await writeFile(resolve(outputDir, `codebuch-1-1-${exported.documentKind}.docx`), exported.docxBytes);
     await writeFile(resolve(outputDir, `codebuch-1-1-${exported.documentKind}.pdf`), exported.pdfBytes);
   }
+  await writeFile(resolve(outputDir, "hospitation-codebuch-grenzfaelle.docx"), edgeDocxBytes);
+  await writeFile(resolve(outputDir, "hospitation-codebuch-grenzfaelle.pdf"), edgePdfBytes);
 }
 
 console.log(`Hospitations-Export geprüft: ${docxBytes.length} Bytes DOCX, ${pdfBytes.length} Bytes PDF; Beobachtungs-Übersicht: ${observationDocxBytes.length} Bytes DOCX, ${observationPdfBytes.length} Bytes PDF; Einzeltermin: ${appointmentDocxBytes.length} Bytes DOCX, ${appointmentPdfBytes.length} Bytes PDF.`);

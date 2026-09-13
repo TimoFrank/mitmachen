@@ -11,7 +11,7 @@ async function openDemo(page, hash) {
 }
 
 test.describe("Hospitations-Usability-Fixes", () => {
-  test("Fragebogen validiert Kontext und Beobachtung und speichert Quelle und Codierung offen", async ({ page }, testInfo) => {
+  test("Fragebogen validiert Kontext und Beobachtung und lässt Codierung freiwillig", async ({ page }, testInfo) => {
     await openDemo(page, "#questionnaire");
     const isMobile = testInfo.project.name.includes("mobile");
     const context = page.locator('[data-questionnaire-step="1"]');
@@ -48,24 +48,92 @@ test.describe("Hospitations-Usability-Fixes", () => {
 
     await page.locator('input[name="questionnaireObservations[1][title]"]').fill("Rückfrage im Übergabeprozess");
     await page.locator('textarea[name="questionnaireObservations[1][observation]"]').fill("Die Pflegefachperson ruft wegen eines fehlenden Befunds zurück.");
-    const source = observation.locator('select[name="questionnaireObservations[1][evidenceType]"]');
-    await expect(source).toHaveValue("");
-    await expect(source).not.toHaveAttribute("required", "");
-    await expect(source.locator('option[value=""]')).toHaveText("Quelle offen");
+    await expect(observation.locator('select[name="questionnaireObservations[1][evidenceType]"]')).toHaveCount(0);
     await advanceStep(observation);
     await expect(coding).toHaveAttribute("open", "");
 
-    await expect(coding.locator("select")).toHaveCount(5);
-    await expect(coding.locator("select[required]")).toHaveCount(0);
-    await advanceStep(coding);
-    await expect(coding.locator("[data-questionnaire-step-validation]")).toHaveCount(0);
-    await expect(coding.locator(".questionnaire-select-shell.is-invalid")).toHaveCount(0);
-    for (const stepNumber of [4, 5, 6]) {
-      const step = page.locator(`[data-questionnaire-step="${stepNumber}"]`);
-      await expect(step).toHaveAttribute("open", "");
-      await advanceStep(step);
+    const codingField = (key) => coding.locator(`select[name="questionnaireObservations[1][${key}]"]`);
+    for (const key of ["processPhase", "problemType", "impact", "observationType", "evidenceType"]) {
+      await expect(codingField(key)).toHaveValue("");
+      await expect(codingField(key)).toHaveJSProperty("required", false);
     }
-    await expect(page.locator('[data-questionnaire-step="7"]')).toHaveAttribute("open", "");
+    await expect(coding.locator('select[name="questionnaireObservations[1][relevance]"]')).toHaveCount(0);
+    await expect(codingField("evidenceType").locator("option")).toHaveText([
+      "Quelle noch offen", "direkt beobachtet", "berichtet", "Beobachtungsunterlage", "Annahme", "synthetisches Beispiel"
+    ]);
+    const codingGuide = coding.locator("[data-hospitation-codebook-guide]");
+    const additionalCodingFields = coding.locator("[data-codebook-additional]");
+    await expect(codingGuide).not.toHaveAttribute("open", "");
+    await expect(codingGuide.locator(":scope > summary")).toHaveText("Codierung verstehen");
+    await expect(codingGuide.locator("[data-hospitation-journey]")).toBeHidden();
+    await expect(additionalCodingFields).not.toHaveAttribute("open", "");
+    await expect(additionalCodingFields.locator("textarea")).toHaveCount(3);
+    await expect(additionalCodingFields.locator("textarea").first()).toBeHidden();
+
+    await advanceStep(coding);
+    const material = page.locator('[data-questionnaire-step="4"]');
+    await expect(material).toHaveAttribute("open", "");
+    await expect(coding).not.toHaveAttribute("open", "");
+    await expect(coding.locator("[data-questionnaire-step-validation]")).toBeHidden();
+    await expect(coding.locator(".is-invalid")).toHaveCount(0);
+
+    if (isMobile) {
+      await mobileNavigation.locator("[data-questionnaire-step-previous]").click();
+    } else {
+      await coding.locator(":scope > summary").click();
+    }
+    await expect(coding).toHaveAttribute("open", "");
+    await codingField("processPhase").selectOption("Übergang");
+    await additionalCodingFields.locator(":scope > summary").click();
+    await codingField("observationType").selectOption("Hindernis");
+    await codingField("problemType").selectOption("Information fehlt");
+    await codingField("impact").selectOption("Zusätzliche Arbeit");
+    await codingField("evidenceType").selectOption("reported");
+    const sourceReference = coding.locator('textarea[name="questionnaireObservations[1][sourceReference]"]');
+    await sourceReference.fill("Fiktiver Testbericht der Pflegefachperson, 24.07.2026");
+    await expect(codingGuide.locator('[data-hospitation-journey] [aria-current="step"]')).toHaveCount(0);
+    await advanceStep(coding);
+    await expect(material).toHaveAttribute("open", "");
+    await expect(coding.locator(".is-invalid")).toHaveCount(0);
+    await expect(codingField("processPhase")).toHaveValue("Übergang");
+    await expect(codingField("problemType")).toHaveValue("Information fehlt");
+    await expect(codingField("impact")).toHaveValue("Zusätzliche Arbeit");
+    await expect(codingField("observationType")).toHaveValue("Hindernis");
+    await expect(codingField("evidenceType")).toHaveValue("reported");
+    await expect(sourceReference).toHaveValue("Fiktiver Testbericht der Pflegefachperson, 24.07.2026");
+  });
+
+  test("Fragebogen speichert eine vollständige Beobachtung mit offener Quelle und Codierung", async ({ page }, testInfo) => {
+    await openDemo(page, "#questionnaire");
+    const isMobile = testInfo.project.name.includes("mobile");
+    const mobileNavigation = page.locator("[data-questionnaire-mobile-navigation]");
+    const step = (number) => page.locator(`[data-questionnaire-step="${number}"]`);
+    const advanceStep = async (currentStep) => {
+      if (isMobile) await mobileNavigation.locator("[data-questionnaire-step-next]").click();
+      else await currentStep.getByRole("button", { name: "Schritt abschließen" }).click();
+    };
+    const title = "Rückfrage zunächst ohne Codierung";
+    const description = "Die Pflegefachperson ruft wegen eines fehlenden Befunds zurück.";
+
+    await page.locator("#questionnaire-date").fill("2026-07-24");
+    await page.locator("#questionnaire-organization").selectOption("demo-org-elbesozial");
+    await advanceStep(step(1));
+    await expect(step(2)).toHaveAttribute("open", "");
+    await page.locator('input[name="questionnaireObservations[1][title]"]').fill(title);
+    await page.locator('textarea[name="questionnaireObservations[1][observation]"]').fill(description);
+    await advanceStep(step(2));
+    await expect(step(3)).toHaveAttribute("open", "");
+    for (const field of ["evidenceType", "processPhase", "problemType", "impact", "observationType"]) {
+      const control = step(3).locator(`select[name="questionnaireObservations[1][${field}]"]`);
+      await expect(control).toHaveValue("");
+      await expect(control).not.toHaveAttribute("required", "");
+    }
+    await advanceStep(step(3));
+    for (const number of [4, 5, 6]) {
+      await expect(step(number)).toHaveAttribute("open", "");
+      await advanceStep(step(number));
+    }
+    await expect(step(7)).toHaveAttribute("open", "");
     if (isMobile) await mobileNavigation.locator("[data-questionnaire-step-next]").click();
     else await page.locator("[data-questionnaire-submit]").click();
     await expect(page.locator("[data-questionnaire-save-status]")).toContainText("In Termin übernommen");
@@ -73,8 +141,8 @@ test.describe("Hospitations-Usability-Fixes", () => {
     const drawer = page.locator("#hospitation-editor-drawer");
     await expect(drawer).toHaveClass(/is-open/);
     const saved = drawer.locator('[data-repeatable-card][data-repeatable-type="observation"]').first();
-    await expect(saved.locator('[data-repeatable-field="title"]')).toHaveValue("Rückfrage im Übergabeprozess");
-    await expect(saved.locator('[data-repeatable-field="observed"]')).toHaveValue("Die Pflegefachperson ruft wegen eines fehlenden Befunds zurück.");
+    await expect(saved.locator('[data-repeatable-field="title"]')).toHaveValue(title);
+    await expect(saved.locator('[data-repeatable-field="observed"]')).toHaveValue(description);
     for (const field of ["evidenceType", "processPhase", "problemType", "impact", "observationType", "relevanceScore"]) {
       await expect(saved.locator(`[data-repeatable-field="${field}"]`)).toHaveValue("");
     }
@@ -294,6 +362,7 @@ test.describe("Hospitations-Usability-Fixes", () => {
     await frameworkNavigation.click();
     await expect(page).toHaveURL(/#framework$/);
     const frameworkModel = page.getByRole("region", { name: "Von Beobachtung zum nächsten Schritt" });
-    await expect(frameworkModel.locator(".hospitation-dashboard-funnel-badge").first()).toHaveText("69");
+    await expect(frameworkModel.locator("[data-framework-count]")).toHaveText(["69", "0", "0", "0"]);
+    await expect(frameworkModel.locator('[data-framework-count="patterns"]')).toHaveAttribute("aria-label", "0 Vergleichshinweise");
   });
 });

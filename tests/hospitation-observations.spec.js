@@ -116,7 +116,7 @@ function codedObservationBackendFixture() {
     "Sonstiges"
   ];
   const codePairs = problemTypes.flatMap((problemType) =>
-    processPhases.map((processPhase) => ({ problemType, processPhase }))
+    processPhases.filter((processPhase) => processPhase !== "Sonstiges").map((processPhase) => ({ problemType, processPhase }))
   );
   let sequence = 0;
   const observation = (pair, hospitationId) => {
@@ -136,6 +136,7 @@ function codedObservationBackendFixture() {
       impact: "Zeitaufwand",
       observationType: "Reibung / Problem",
       evidenceType: "directly_observed",
+      sourceReference: `Vertragsnotiz ${sequence}`,
       relevanceScore: 4,
       usageRecommendation: "weiter validieren",
       involvedRoles: ["Synthetische Rolle"],
@@ -172,7 +173,7 @@ function codedObservationBackendFixture() {
   return fixture;
 }
 
-test("camelCase-API-Codierung erzeugt 17 echte Muster, aber keine erfundenen Folgestufen", async ({ page }) => {
+test("camelCase-API-Codierung erhält 17 Vergleichsgruppen ohne erfundene Folgestufen", async ({ page }) => {
   await gotoAuthenticated(page, "/frontend/app/versorgungs-kompass.html#hospitations:patterns", {
     role: "admin",
     backendFixture: codedObservationBackendFixture()
@@ -1041,7 +1042,7 @@ test("Kurzfassung und eine breite Beobachtung ersetzen die Situationbox, Codes u
   await expect(drawer.locator(".observation-detail-card--source .observation-source-meta dt")).toHaveText(["Datum", "Ort", "Owner"]);
   await expect(drawer.locator(".observation-detail-card--source [data-observation-field], .observation-detail-card--source [data-observation-edit-field]")).toHaveCount(0);
   await expect(drawer.locator(".observation-detail-card--coding [data-observation-edit-field]")).toHaveCount(0);
-  await expect(drawer.locator(".observation-detail-copy-block")).toHaveCount(1);
+  await expect(drawer.locator('.observation-detail-copy-block[data-observation-field="description"]')).toHaveCount(1);
   await expect(drawer.locator(".observation-detail-copy-block .observation-detail-field__head [data-observation-edit-field]")).toHaveCount(1);
   await expect(drawer.locator("[data-observation-edit-field]")).toHaveCount(2);
   await expect(drawer.locator('[data-observation-edit-field="title"]')).toHaveAttribute("aria-label", "Kurzfassung bearbeiten");
