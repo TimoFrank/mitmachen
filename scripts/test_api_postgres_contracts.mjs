@@ -181,10 +181,183 @@ function plain(value) {
   );
   const result = await syncHospitationObservations({}, "hospitation-1");
   assert.deepEqual(plain(result.items), [{ id: "observation-keep", hospitation_id: "hospitation-1" }]);
-  assert.equal(calls[0].params.on_conflict, "id");
-  assert.deepEqual(plain(calls[0].options.conflictMatchFields), ["hospitation_id"]);
-  assert.equal(calls[1].params.id, 'not.in.("observation-keep")');
-  assert.ok(calls.every((call) => call.options.transaction === transaction), "Upsert, Archivierung und Rücklesen müssen dieselbe Transaktion verwenden.");
+  assert.equal(calls[0].params.hospitation_id, "eq.hospitation-1");
+  assert.equal(calls[0].params.select, "id,payload");
+  assert.equal(calls[1].params.on_conflict, "id");
+  assert.deepEqual(plain(calls[1].options.conflictMatchFields), ["hospitation_id"]);
+  assert.equal(calls[2].params.id, 'not.in.("observation-keep")');
+  assert.ok(calls.every((call) => call.options.transaction === transaction), "Herkunftsprüfung, Upsert, Archivierung und Rücklesen müssen dieselbe Transaktion verwenden.");
+}
+
+{
+  const declarations = [
+    sourceBetween("function hospitationObservationEvidenceType(", "function hospitationSlotToDb("),
+    sourceBetween("async function syncHospitationObservations(", "async function listRoadmapItems(")
+  ].join("\n");
+  for (const suppliedOrigin of [undefined, "", "reported"]) {
+    const transaction = {};
+    const calls = [];
+    const original = {
+      id: "observation-synthetic", hospitation_id: "hospitation-1",
+      evidence_type: "interpreted", status: "active",
+      payload: { originalEvidenceType: "synthetic_source_based", sourceReference: "Fiktive Demo-Unterlage" }
+    };
+    const stored = new Map([[original.id, original]]);
+    const observations = [{
+      id: original.id, title: "Bearbeiteter Testfall", description: "Fiktive Beschreibung",
+      evidenceType: "directly_observed",
+      ...(suppliedOrigin === undefined ? {} : { originalEvidenceType: suppliedOrigin })
+    }, {
+      id: "observation-new", title: "Neuer Testfall", description: "Fiktive Beschreibung", evidenceType: "reported"
+    }];
+    const { syncHospitationObservations } = evaluate(declarations, {
+      URLSearchParams,
+      HOSPITATION_OBSERVATION_FIELDS: ["id", "hospitation_id", "evidence_type", "payload"],
+      readValidatedJsonBody: async () => ({ observations }),
+      userIdFromToken: () => "profile-1",
+      generatedId: () => "generated-observation",
+      splitList: (value) => Array.isArray(value) ? value : [],
+      validationError: (message) => new Error(message),
+      recordActivityEventInternal: async () => {},
+      withDomainTransaction: async (work) => work(transaction),
+      cloudSqlRest: async (_table, _request, params, options = {}) => {
+        calls.push({ params: Object.fromEntries(params), options });
+        if (options.method === "POST") {
+          for (const row of options.body) stored.set(row.id, { ...stored.get(row.id), ...plain(row) });
+          return options.body.map((row) => stored.get(row.id));
+        }
+        if (options.method === "PATCH") return [];
+        return [...stored.values()].filter((row) => `eq.${row.hospitation_id}` === params.get("hospitation_id"));
+      }
+    }, ["syncHospitationObservations"]);
+    const result = await syncHospitationObservations({}, "hospitation-1");
+    const saved = stored.get(original.id);
+    assert.equal(saved.payload.originalEvidenceType, "synthetic_source_based", "Sync muss gespeicherte Herkunft auch bei fehlendem oder abweichendem Client-Marker erhalten.");
+    assert.equal(saved.evidence_type, "synthetic_source_based");
+    assert.equal(saved.payload.evidenceType, "synthetic_source_based");
+    assert.equal(result.items.find((row) => row.id === original.id).evidenceType, "synthetic_source_based");
+    assert.equal(stored.get("observation-new").evidence_type, "reported");
+    assert.equal(stored.get("observation-new").payload.originalEvidenceType, undefined, "Neue Beobachtungen dürfen keinen erfundenen Herkunftsmarker erhalten.");
+    assert.ok(calls.every((call) => call.options.transaction === transaction));
+    assert.equal(calls[0].options.method, undefined, "Die gespeicherte Herkunft muss vor dem Überschreiben gelesen werden.");
+  }
+}
+
+{
+  const contextFields = ["situation", "situationContext", "situation_context", "context"];
+  const contextValues = (value) => contextFields.map((field) => value[field] ?? null);
+  const declarations = [
+    sourceBetween("const HOSPITATION_OBSERVATION_FIELDS = [", "const ROADMAP_ITEM_FIELDS = ["),
+    sourceBetween("const HOSPITATION_OBSERVATION_INPUT_FIELDS = [", "const HOSPITATION_IMPORT_PREVIEW_FIELDS = ["),
+    sourceBetween("function splitList(", "function normalizePriority("),
+    sourceBetween("function assertPlainObject(", "async function readJsonBody("),
+    sourceBetween("function hospitationObservationEvidenceType(", "function hospitationSlotToDb("),
+    sourceBetween("async function patchHospitationObservation(", "async function syncHospitationObservations("),
+    `async function readValidatedJsonBody(request, fields, label) {
+      assertAllowedFields(request.body, fields, label);
+      return request.body;
+    }`
+  ].join("\n");
+
+  for (const legacyPayload of [
+    { context: "Nur im historischen Payload gespeicherter Kontext" },
+    {
+      situation: "Ursprüngliche Situation",
+      situationContext: "Früherer Kontextalias",
+      situation_context: "Historischer Unterstrichalias",
+      context: "Historischer Payload-Kontext"
+    }
+  ]) {
+    let storedRow = {
+      id: "observation-context-contract",
+      hospitation_id: "hospitation-context-contract",
+      title: "Ursprüngliche Kurzfassung",
+      situation: legacyPayload.situation || null,
+      description: "Dokumentierte Beobachtung",
+      status: "active",
+      updated_at: "2026-01-01T12:00:00.000Z",
+      payload: { ...legacyPayload }
+    };
+    const calls = [];
+    const activityEvents = [];
+    const transaction = { query: async () => ({ rows: [] }) };
+    let rejectConcurrentWrite = false;
+    const { patchHospitationObservation, hospitationObservationToDto, hospitationObservationToDb } = evaluate(
+      declarations,
+      {
+        URLSearchParams,
+        validationError: (message) => Object.assign(new Error(message), { status: 400 }),
+        generatedId: () => { throw new Error("Ein PATCH darf keine neue Beobachtungs-ID erzeugen."); },
+        userIdFromToken: () => "profile-context-contract",
+        withDomainTransaction: async (work) => work(transaction),
+        recordActivityEventInternal: async (actualTransaction, _request, event) => {
+          assert.equal(actualTransaction, transaction);
+          activityEvents.push(plain(event));
+        },
+        cloudSqlRest: async (path, _request, params, options = {}) => {
+          assert.equal(path, "hospitation_observations");
+          assert.equal(options.transaction, transaction);
+          assert.equal(params.get("id"), `eq.${storedRow.id}`);
+          calls.push({ method: options.method || "GET", params: Object.fromEntries(params), body: options.body && plain(options.body) });
+          if (!options.method) return [plain(storedRow)];
+          assert.equal(options.method, "PATCH");
+          assert.equal(params.get("updated_at"), `eq.${storedRow.updated_at}`, "Jeder Schreibzugriff muss die gelesene Version absichern.");
+          if (rejectConcurrentWrite) return [];
+          storedRow = { ...storedRow, ...plain(options.body) };
+          return [plain(storedRow)];
+        }
+      },
+      ["patchHospitationObservation", "hospitationObservationToDto", "hospitationObservationToDb"]
+    );
+    const patch = (body) => patchHospitationObservation({ body: { ...body, expectedUpdatedAt: storedRow.updated_at } }, storedRow.id);
+    const before = plain(hospitationObservationToDto(storedRow));
+    for (const body of [{ title: "Überarbeitete Kurzfassung" }, { problemType: "Information fehlt" }]) {
+      const result = await patch(body);
+      for (const [field, value] of Object.entries(body)) assert.equal(result[field], value);
+      assert.deepEqual(contextValues(result), contextValues(before), "Kurzfassung und Codes müssen alle vorhandenen Kontextalias erhalten.");
+      assert.equal(result.description, before.description);
+      assert.notEqual(result.updatedAt, before.updatedAt);
+      assert.equal(result.updatedBy, "profile-context-contract");
+      assert.equal(Object.hasOwn(storedRow.payload, "expectedUpdatedAt"), false);
+    }
+
+    const beforeConflict = plain(storedRow);
+    const writesBeforeConflict = calls.filter((call) => call.method === "PATCH").length;
+    const eventsBeforeConflict = activityEvents.length;
+    await assert.rejects(
+      patchHospitationObservation({ body: { situation: "", situationContext: "", expectedUpdatedAt: before.updatedAt } }, storedRow.id),
+      (error) => error.status === 409
+    );
+    assert.deepEqual(storedRow, beforeConflict, "Eine veraltete Version darf den Kontext nicht leeren.");
+    assert.equal(calls.filter((call) => call.method === "PATCH").length, writesBeforeConflict);
+    assert.equal(activityEvents.length, eventsBeforeConflict);
+
+    const combinedDescription = `${before.context}\n\n${before.description}`;
+    const cleared = await patch({ description: combinedDescription, situation: "", situationContext: "" });
+    assert.equal(cleared.description, combinedDescription);
+    assert.deepEqual(contextValues(cleared), ["", "", "", ""]);
+    assert.equal(storedRow.situation, null, "Die nullable Datenbankspalte muss beim expliziten Leeren leer bleiben.");
+    assert.deepEqual(contextValues(storedRow.payload), ["", "", "", ""], "Auch historischer payload.context darf nicht wieder erscheinen.");
+    const roundtrip = hospitationObservationToDto(hospitationObservationToDb(cleared, storedRow.hospitation_id));
+    assert.deepEqual(contextValues(roundtrip), ["", "", "", ""]);
+    assert.equal(roundtrip.description, combinedDescription);
+    assert.equal(Object.hasOwn(storedRow.payload, "expectedUpdatedAt"), false);
+
+    const repeated = await patch({ description: combinedDescription, situation: "", situationContext: "" });
+    assert.equal(repeated.description, combinedDescription, "Erneutes Speichern darf den übernommenen Kontext nicht verdoppeln.");
+    const aliasOnly = await patch({ situationContext: "  Neuer Kontext  " });
+    assert.deepEqual(contextValues(aliasOnly), Array(4).fill("Neuer Kontext"), "Der erlaubte situationContext-PATCH muss alle Alias vereinheitlichen.");
+    assert.equal(storedRow.situation, "Neuer Kontext");
+    const explicitEmpty = await patch({ situation: "", situationContext: "Veralteter Fallback" });
+    assert.deepEqual(contextValues(explicitEmpty), ["", "", "", ""], "Eine explizit leere Situation hat Vorrang vor einem befüllten Alias.");
+
+    rejectConcurrentWrite = true;
+    const beforeRace = plain(storedRow);
+    const eventsBeforeRace = activityEvents.length;
+    await assert.rejects(patch({ situationContext: "Darf nicht gespeichert werden" }), (error) => error.status === 409);
+    assert.deepEqual(storedRow, beforeRace);
+    assert.equal(activityEvents.length, eventsBeforeRace, "Ein konkurrierend abgelehnter PATCH darf kein Erfolgsevent schreiben.");
+  }
 }
 
 {

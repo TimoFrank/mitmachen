@@ -182,7 +182,11 @@
     return unique(values).join(separator);
   }
 
-  function evidenceLabel(value) {
+  function observationEvidenceLabel(item = {}) {
+    const originalEvidenceType = text(item.originalEvidenceType || item.original_evidence_type || item.payload?.originalEvidenceType || item.payload?.original_evidence_type);
+    const value = originalEvidenceType === "synthetic_source_based"
+      ? "synthetic_source_based"
+      : text(item.evidenceType ?? item.evidence_type ?? item.payload?.evidenceType);
     return text(value) ? optionLabel("evidenceType", value) : "";
   }
 
@@ -222,7 +226,7 @@
   function observationFields(item = {}) {
     return [
       ["Beobachtung", observationText(item)],
-      ["Quelle", evidenceLabel(item.evidenceType) || "Noch nicht angegeben"],
+      ["Quelle", observationEvidenceLabel(item) || "Noch nicht angegeben"],
       ["Beobachtet am", formatDate(item.observedAt, true)],
       ["Reihenfolge", item.sequence],
       ["Auslöser", item.trigger],
@@ -245,7 +249,7 @@
   function observationOverviewFields(item = {}) {
     return [
       ["Beobachtung", observationText(item)],
-      ["Quelle", evidenceLabel(item.evidenceType) || "Noch nicht angegeben"],
+      ["Quelle", observationEvidenceLabel(item) || "Noch nicht angegeben"],
       ["Konkrete Folge", item.immediateConsequence],
       ["Quellenbezug", observationSource(item)]
     ].filter(([, value]) => text(value));
@@ -254,7 +258,7 @@
   function appointmentObservationFields(item = {}) {
     return [
       ["Beobachtung", observationText(item)],
-      ["Quelle", evidenceLabel(item.evidenceType) || "Noch nicht angegeben"],
+      ["Quelle", observationEvidenceLabel(item) || "Noch nicht angegeben"],
       ["Auslöser", item.trigger],
       ["Handlungsschritte", list(item.actions || item.actionSteps)],
       ["Konkrete Folge", item.immediateConsequence],
