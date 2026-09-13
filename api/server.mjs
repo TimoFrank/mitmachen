@@ -920,9 +920,11 @@ const HOSPITATION_INPUT_FIELDS = [
 ];
 const HOSPITATION_ENTITY_REFERENCE_INPUT_FIELDS = ["mode", "id", "name"];
 const HOSPITATION_OBSERVATION_INPUT_FIELDS = [
-  "title", "situation", "description", "observed", "processPhase", "process_phase",
+  "title", "situation", "situationContext", "description", "observed", "processPhase", "process_phase",
   "problemType", "problem_type", "impact", "observationType", "observation_type",
   "evidenceType", "evidence_type", "relevanceScore", "relevance_score",
+  "sourceReference", "source_reference",
+  "immediateConsequence", "uncertainty", "relevanceReason", "nextStep",
   "usageRecommendation", "usage_recommendation", "nextUse", "involvedRoles",
   "involved_roles", "affectedProducts", "affected_products", "topics", "themes",
   "status", "archivedAt", "archived_at", "archivedBy", "archived_by",
@@ -2371,6 +2373,42 @@ function hospitationToDto(row = {}) {
   };
 }
 
+function hospitationObservationEvidenceType(observation = {}, forWrite = false) {
+  const payload = observation.payload && typeof observation.payload === "object" && !Array.isArray(observation.payload) ? observation.payload : {};
+  // Ältere Seeds mussten synthetische Quellen als "interpreted" speichern.
+  // Ihre explizite Herkunft bleibt auch bei einer späteren Bearbeitung bindend.
+  if (observation.originalEvidenceType === "synthetic_source_based" || payload.originalEvidenceType === "synthetic_source_based") return "synthetic_source_based";
+  const value = String(observation.evidenceType ?? observation.evidence_type ?? payload.evidenceType ?? "").trim();
+  if (forWrite && !["", "directly_observed", "source_bound", "synthetic_source_based", "reported", "interpreted"].includes(value)) {
+    throw validationError("Die Quellenart der Beobachtung ist nicht unterstützt.");
+  }
+  return value;
+}
+
+function normalizeHospitationObservationPatch(input = {}) {
+  const patch = { ...input };
+  const aliases = {
+    process_phase: "processPhase",
+    problem_type: "problemType",
+    observation_type: "observationType",
+    evidence_type: "evidenceType",
+    source_reference: "sourceReference",
+    relevance_score: "relevanceScore",
+    careRelevance: "relevanceScore",
+    care_relevance: "relevanceScore",
+    usage_recommendation: "usageRecommendation",
+    nextUse: "usageRecommendation",
+    next_use: "usageRecommendation",
+    possibleUse: "usageRecommendation",
+    possible_use: "usageRecommendation"
+  };
+  for (const [alias, canonical] of Object.entries(aliases)) {
+    if (Object.hasOwn(patch, alias) && !Object.hasOwn(patch, canonical)) patch[canonical] = patch[alias];
+    delete patch[alias];
+  }
+  return patch;
+}
+
 function hospitationObservationToDto(row = {}) {
   const payload = row.payload && typeof row.payload === "object" && !Array.isArray(row.payload) ? row.payload : {};
   return {
@@ -2385,7 +2423,8 @@ function hospitationObservationToDto(row = {}) {
     problemType: row.problem_type ?? payload.problemType ?? "",
     impact: row.impact ?? payload.impact ?? "",
     observationType: row.observation_type ?? payload.observationType ?? "",
-    evidenceType: row.evidence_type || payload.evidenceType || "interpreted",
+    evidenceType: hospitationObservationEvidenceType({ ...row, evidenceType: row.evidence_type ?? row.evidenceType ?? payload.evidenceType ?? "" }),
+    sourceReference: row.sourceReference ?? row.source_reference ?? payload.sourceReference ?? payload.source_reference ?? "",
     relevanceScore: Number(row.relevance_score ?? payload.relevanceScore ?? 0) || null,
     usageRecommendation: row.usage_recommendation ?? payload.usageRecommendation ?? payload.nextUse ?? "",
     involvedRoles: Array.isArray(row.involved_roles) ? row.involved_roles : payload.involvedRoles || [],
@@ -2402,9 +2441,14 @@ function hospitationObservationToDto(row = {}) {
 }
 
 function hospitationObservationToDb(observation = {}, hospitationId = "") {
-  const payload = { ...observation };
+  const evidenceType = hospitationObservationEvidenceType(observation, true);
+  const payload = {
+    ...normalizeHospitationObservationPatch(observation),
+    evidenceType,
+    sourceReference: String(observation.sourceReference ?? observation.source_reference ?? "").trim()
+  };
   delete payload.expectedUpdatedAt;
-  const relevance = Number(observation.relevanceScore ?? observation.relevance_score ?? 0) || null;
+  const relevance = Number(payload.relevanceScore ?? 0) || null;
   return {
     id: String(observation.id || generatedId("observation")).trim(),
     hospitation_id: String(hospitationId || observation.hospitationId || observation.hospitation_id || "").trim(),
@@ -2412,13 +2456,13 @@ function hospitationObservationToDb(observation = {}, hospitationId = "") {
     title: String(observation.title || "Beobachtung").trim() || "Beobachtung",
     situation: String(observation.situation || observation.situationContext || "").trim() || null,
     description: String(observation.description || observation.observed || "").trim() || null,
-    process_phase: String(observation.processPhase || observation.process_phase || "").trim() || null,
-    problem_type: String(observation.problemType || observation.problem_type || "").trim() || null,
+    process_phase: String(observation.processPhase ?? observation.process_phase ?? "").trim() || null,
+    problem_type: String(observation.problemType ?? observation.problem_type ?? "").trim() || null,
     impact: String(observation.impact || "").trim() || null,
-    observation_type: String(observation.observationType || observation.observation_type || "").trim() || null,
-    evidence_type: ["directly_observed", "reported", "interpreted"].includes(observation.evidenceType || observation.evidence_type) ? observation.evidenceType || observation.evidence_type : "interpreted",
+    observation_type: String(observation.observationType ?? observation.observation_type ?? "").trim() || null,
+    evidence_type: evidenceType,
     relevance_score: relevance,
-    usage_recommendation: String(observation.usageRecommendation || observation.usage_recommendation || observation.nextUse || "").trim() || null,
+    usage_recommendation: String(payload.usageRecommendation ?? "").trim() || null,
     involved_roles: splitList(observation.involvedRoles || observation.involved_roles),
     affected_products: splitList(observation.affectedProducts || observation.affected_products),
     topics: splitList(observation.topics || observation.themes),
@@ -8903,7 +8947,7 @@ async function listHospitationObservations(request, url) {
 }
 
 async function patchHospitationObservation(request, id) {
-  const patch = await readValidatedJsonBody(request, HOSPITATION_OBSERVATION_INPUT_FIELDS, "Beobachtungs-Update");
+  const patch = normalizeHospitationObservationPatch(await readValidatedJsonBody(request, HOSPITATION_OBSERVATION_INPUT_FIELDS, "Beobachtungs-Update"));
   const expectedUpdatedAt = String(patch.expectedUpdatedAt || "").trim();
   const userId = userIdFromToken(request);
   if (!userId) throw Object.assign(new Error("User-ID konnte nicht aus dem Token gelesen werden."), { status: 401 });
@@ -8918,7 +8962,13 @@ async function patchHospitationObservation(request, id) {
       throw Object.assign(new Error("Die Beobachtung wurde zwischenzeitlich geändert. Bitte neu laden."), { status: 409 });
     }
     const current = hospitationObservationToDto(currentRows[0]);
-    const payload = hospitationObservationToDb({ ...current, ...patch, id }, current.hospitationId);
+    const updated = { ...current, ...patch, id };
+    if (Object.hasOwn(patch, "situation") || Object.hasOwn(patch, "situationContext")) {
+      const situation = String((Object.hasOwn(patch, "situation") ? patch.situation : patch.situationContext) ?? "").trim();
+      // Explizites Leeren darf Kontext aus älteren Payload-Alias nicht reaktivieren.
+      for (const key of ["situation", "situationContext", "situation_context", "context"]) updated[key] = situation;
+    }
+    const payload = hospitationObservationToDb(updated, current.hospitationId);
     delete payload.id;
     payload.updated_by = userId;
     payload.updated_at = new Date().toISOString();

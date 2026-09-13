@@ -183,7 +183,32 @@
   }
 
   function evidenceLabel(value) {
-    return optionLabel("evidenceType", value);
+    return text(value) ? optionLabel("evidenceType", value) : "";
+  }
+
+  function observationCodeLabel(key, value) {
+    const label = text(optionLabel(key, value));
+    if (!label) return "";
+    const model = window.VersorgungsCompassHospitationModel;
+    return model?.isLegacyCodebookValue?.(key, value) ? `${label} (bisherige Codierung)` : label;
+  }
+
+  function observationSource(item = {}) {
+    return [item.sourceType, item.source, item.sourceReference].map(text).filter(Boolean).join(" | ");
+  }
+
+  function observationText(item) {
+    return window.VersorgungsCompassHospitationModel.observationText(item);
+  }
+
+  function observationAssessmentFields(item = {}) {
+    const relevance = [item.relevanceScore || item.careRelevance ? `${item.relevanceScore || item.careRelevance} / 5` : "", item.relevanceReason].map(text).filter(Boolean).join(" - ");
+    return [
+      ["Beobachtungsart", observationCodeLabel("observationType", item.observationType)],
+      ["Nächste Nutzung", nonEmpty(item.usageRecommendation, item.nextUse)],
+      ["Relevanz", relevance],
+      ["Nächster Schritt", item.nextStep]
+    ].filter(([, value]) => text(value));
   }
 
   function permissionLabel(item = {}) {
@@ -195,31 +220,21 @@
   }
 
   function observationFields(item = {}) {
-    const source = [item.sourceType, item.source, item.sourceReference].map(text).filter(Boolean).join(" | ");
-    const relevance = [item.relevanceScore || item.careRelevance ? `${item.relevanceScore || item.careRelevance} / 5` : "", item.relevanceReason].map(text).filter(Boolean).join(" - ");
     return [
-      ["Situation / Kontext", nonEmpty(item.situation, item.situationContext)],
-      ["Konkrete Beobachtung", nonEmpty(item.description, item.observed, item.observation)],
+      ["Beobachtung", observationText(item)],
+      ["Quelle", evidenceLabel(item.evidenceType) || "Noch nicht angegeben"],
       ["Beobachtet am", formatDate(item.observedAt, true)],
       ["Reihenfolge", item.sequence],
       ["Auslöser", item.trigger],
       ["Handlungsschritte", list(item.actions || item.actionSteps)],
       ["Werkzeuge und Dokumente", list(item.toolsAndDocuments)],
       ["Kommunikationskanäle", list(item.communicationChannels)],
-      ["Unmittelbare Folge", item.immediateConsequence],
+      ["Konkrete Folge", item.immediateConsequence],
       ["Beteiligte Rollen", list(item.involvedRoles || item.affectedRoles)],
-      ["Prozessphase", item.processPhase],
-      ["Problemtyp", item.problemType],
-      ["Auswirkung", item.impact],
-      ["Beobachtungsart", item.observationType],
-      ["Evidenztyp", evidenceLabel(item.evidenceType)],
-      ["Relevanz", relevance],
       ["Aktueller Workaround", nonEmpty(item.workaround, item.currentWorkaround)],
-      ["Quelle", source],
+      ["Quellenbezug", observationSource(item)],
       ["Unsicherheit", item.uncertainty],
       ["Grenzen", item.limitations],
-      ["Nutzungsempfehlung", nonEmpty(item.usageRecommendation, item.nextUse)],
-      ["Nächster Schritt", item.nextStep],
       ["Betroffene Produkte", list(item.affectedProducts)],
       ["Themen", list(item.topics || item.themes)],
       ["Nutzungsfreigabe", permissionLabel(item)],
@@ -228,37 +243,32 @@
   }
 
   function observationOverviewFields(item = {}) {
-    const classification = [item.processPhase, item.problemType, item.impact].map(text).filter(Boolean).join(" | ");
     return [
-      ["Situation / Kontext", nonEmpty(item.situation, item.situationContext)],
-      ["Beobachtung", nonEmpty(item.description, item.observed, item.observation)],
-      ["Unmittelbare Folge", item.immediateConsequence],
-      ["Einordnung", classification]
+      ["Beobachtung", observationText(item)],
+      ["Quelle", evidenceLabel(item.evidenceType) || "Noch nicht angegeben"],
+      ["Konkrete Folge", item.immediateConsequence],
+      ["Quellenbezug", observationSource(item)]
     ].filter(([, value]) => text(value));
   }
 
   function appointmentObservationFields(item = {}) {
     return [
-      ["Situation / Kontext", nonEmpty(item.situation, item.situationContext)],
-      ["Konkrete Beobachtung", nonEmpty(item.description, item.observed, item.observation)],
+      ["Beobachtung", observationText(item)],
+      ["Quelle", evidenceLabel(item.evidenceType) || "Noch nicht angegeben"],
       ["Auslöser", item.trigger],
       ["Handlungsschritte", list(item.actions || item.actionSteps)],
-      ["Unmittelbare Folge", item.immediateConsequence],
+      ["Konkrete Folge", item.immediateConsequence],
       ["Beteiligte Rollen", list(item.involvedRoles || item.affectedRoles)],
       ["Aktueller Workaround", nonEmpty(item.workaround, item.currentWorkaround)],
-      ["Nächster Schritt", item.nextStep]
+      ["Quellenbezug", observationSource(item)]
     ].filter(([, value]) => Array.isArray(value) ? value.length : text(value));
   }
 
   function observationCodingItems(item = {}) {
-    const relevance = Number(item.relevanceScore || item.careRelevance) || 0;
     return [
-      { label: "Problemtyp", value: text(item.problemType) || "Noch nicht codiert", tone: "problem" },
-      { label: "Prozessphase", value: text(item.processPhase) || "Prozessphase offen", tone: "phase" },
-      { label: "Auswirkung", value: text(item.impact) || "Auswirkung offen", tone: "impact" },
-      { label: "Nächste Nutzung", value: nonEmpty(item.usageRecommendation, item.nextUse) || "Noch nicht festgelegt", tone: "usage" },
-      { label: "Evidenzart", value: evidenceLabel(item.evidenceType) || "Evidenzart offen", tone: "evidence" },
-      { label: "Relevanz", value: relevance ? `${Math.max(1, Math.min(5, relevance))} / 5` : "Offen", tone: "relevance" }
+      { label: "Prozessphase", value: observationCodeLabel("processPhase", item.processPhase) || "Noch nicht codiert", tone: "phase" },
+      { label: "Problemtyp", value: observationCodeLabel("problemType", item.problemType) || "Noch nicht codiert", tone: "problem" },
+      { label: "Auswirkung", value: observationCodeLabel("impact", item.impact) || "Noch nicht codiert", tone: "impact" }
     ].map((entry) => ({ ...entry, palette: CODING_BADGE_PALETTES[entry.tone] }));
   }
 
@@ -474,6 +484,15 @@
   }
 
   function wFieldParagraph(label, value) {
+    if (label === "Beobachtung") {
+      return String(value).split(/\r?\n[\t ]*\r?\n/).map((paragraph, index, paragraphs) => wParagraph([
+        ...(index === 0 ? [wRun(`${label}: `, { bold: true, color: COLORS.teal, size: 18, font: "Arial" })] : []),
+        ...paragraph.split(/\r?\n/).flatMap((line, lineIndex) => [
+          ...(lineIndex ? ["<w:r><w:br/></w:r>"] : []),
+          wRun(line, { color: COLORS.text, size: 19, font: "Arial" })
+        ])
+      ], { keepNext: paragraphs.length > 1 && index === paragraphs.length - 2, spacing: { after: 55, line: 244 } })).join("");
+    }
     return wParagraph([
       wRun(`${label}: `, { bold: true, color: COLORS.teal, size: 18, font: "Arial" }),
       wRun(value, { color: COLORS.text, size: 19, font: "Arial" })
@@ -560,7 +579,7 @@
 
   function wCodingBadgeCell(item = {}, width = 3220) {
     const palette = item.palette || CODING_BADGE_PALETTES.relevance;
-    return `<w:tc><w:tcPr><w:tcW w:type="dxa" w:w="${width}"/><w:tcBorders><w:top w:val="single" w:sz="7" w:color="${palette.border}"/><w:left w:val="single" w:sz="7" w:color="${palette.border}"/><w:bottom w:val="single" w:sz="7" w:color="${palette.border}"/><w:right w:val="single" w:sz="7" w:color="${palette.border}"/></w:tcBorders><w:tcMar><w:top w:w="95" w:type="dxa"/><w:left w:w="125" w:type="dxa"/><w:bottom w:w="95" w:type="dxa"/><w:right w:w="125" w:type="dxa"/></w:tcMar><w:shd w:val="clear" w:fill="${palette.fill}"/><w:vAlign w:val="center"/></w:tcPr>${wParagraph(item.label, { run: { bold: true, color: COLORS.muted, size: 14, font: "Arial" }, spacing: { after: 18, line: 190 } })}${wParagraph(item.value, { run: { bold: true, color: palette.text, size: 17, font: "Arial" }, spacing: { after: 0, line: 220 } })}</w:tc>`;
+    return `<w:tc><w:tcPr><w:tcW w:type="dxa" w:w="${width}"/><w:tcBorders><w:top w:val="single" w:sz="7" w:color="${palette.border}"/><w:left w:val="single" w:sz="7" w:color="${palette.border}"/><w:bottom w:val="single" w:sz="7" w:color="${palette.border}"/><w:right w:val="single" w:sz="7" w:color="${palette.border}"/></w:tcBorders><w:tcMar><w:top w:w="95" w:type="dxa"/><w:left w:w="125" w:type="dxa"/><w:bottom w:w="95" w:type="dxa"/><w:right w:w="125" w:type="dxa"/></w:tcMar><w:shd w:val="clear" w:fill="${palette.fill}"/><w:vAlign w:val="center"/></w:tcPr>${wParagraph(item.label, { keepNext: true, run: { bold: true, color: COLORS.muted, size: 14, font: "Arial" }, spacing: { after: 18, line: 190 } })}${wParagraph(item.value, { keepNext: true, run: { bold: true, color: palette.text, size: 17, font: "Arial" }, spacing: { after: 0, line: 220 } })}</w:tc>`;
   }
 
   function wCodingBadges(observation = {}) {
@@ -573,17 +592,29 @@
     return [
       wParagraph("Codierung", { style: "FieldLabel", keepNext: true, spacing: { before: 30, after: 35, line: 220 } }),
       `<w:tbl><w:tblPr><w:tblW w:type="dxa" w:w="${width * 3}"/><w:tblInd w:w="0" w:type="dxa"/><w:tblLayout w:type="fixed"/><w:tblCellSpacing w:w="70" w:type="dxa"/><w:tblBorders><w:top w:val="nil"/><w:left w:val="nil"/><w:bottom w:val="nil"/><w:right w:val="nil"/><w:insideH w:val="nil"/><w:insideV w:val="nil"/></w:tblBorders></w:tblPr><w:tblGrid><w:gridCol w:w="${width}"/><w:gridCol w:w="${width}"/><w:gridCol w:w="${width}"/></w:tblGrid>${rows.join("")}</w:tbl>`,
-      wParagraph("", { spacing: { after: 45, line: 100 } })
+      wParagraph("", { keepNext: true, spacing: { after: 45, line: 100 } })
     ].join("");
   }
 
-  function wAppointmentObservationBlock(observation = {}, index = 0) {
+  function wObservationReadingBlock(observation = {}, index = 0, fields = []) {
+    const fieldMarkup = wFields(fields);
+    const firstParagraphEnd = fieldMarkup.indexOf("</w:p>") + 6;
+    const firstParagraph = firstParagraphEnd >= 6 ? fieldMarkup.slice(0, firstParagraphEnd) : "";
+    const heading = wParagraph(`Beobachtung ${index + 1} | ${text(observation.title) || "Ohne Kurztitel"}`, { style: "Heading3" });
+    const coding = wCodingBadges(observation);
+    const firstTextLength = firstParagraph.replace(/<[^>]+>/g, "").length;
+    // Nur der kurze Einstieg wird zusammengehalten; lange Befunde bleiben frei umbrechbar.
+    if (!firstParagraph || firstTextLength > 800) return `${heading}${coding}${fieldMarkup}`;
+    const intro = `${heading}${coding}${firstParagraph}`;
+    return `<w:tbl><w:tblPr><w:tblW w:type="dxa" w:w="${A4.usableDxa}"/><w:tblInd w:w="0" w:type="dxa"/><w:tblLayout w:type="fixed"/><w:tblBorders><w:top w:val="nil"/><w:left w:val="nil"/><w:bottom w:val="nil"/><w:right w:val="nil"/><w:insideH w:val="nil"/><w:insideV w:val="nil"/></w:tblBorders></w:tblPr><w:tblGrid><w:gridCol w:w="${A4.usableDxa}"/></w:tblGrid><w:tr><w:trPr><w:cantSplit/></w:trPr><w:tc><w:tcPr><w:tcW w:type="dxa" w:w="${A4.usableDxa}"/><w:tcMar><w:top w:w="0" w:type="dxa"/><w:left w:w="0" w:type="dxa"/><w:bottom w:w="0" w:type="dxa"/><w:right w:w="0" w:type="dxa"/></w:tcMar></w:tcPr>${intro}</w:tc></w:tr></w:tbl>${fieldMarkup.slice(firstParagraphEnd)}`;
+  }
+
+  function wAppointmentObservationBlock(observation = {}, index = 0, { isLast = false } = {}) {
     const content = [
-      wParagraph(`Beobachtung ${index + 1} | ${text(observation.title) || "Ohne Kurztitel"}`, { style: "Heading3" }),
-      wCodingBadges(observation),
-      wFields(appointmentObservationFields(observation))
+      wObservationReadingBlock(observation, index, appointmentObservationFields(observation)),
+      wObservationAssessment(observation)
     ].join("");
-    return `<w:tbl><w:tblPr><w:tblW w:type="dxa" w:w="${A4.usableDxa}"/><w:tblInd w:w="0" w:type="dxa"/><w:tblLayout w:type="fixed"/><w:tblBorders><w:top w:val="nil"/><w:left w:val="nil"/><w:bottom w:val="nil"/><w:right w:val="nil"/><w:insideH w:val="nil"/><w:insideV w:val="nil"/></w:tblBorders></w:tblPr><w:tblGrid><w:gridCol w:w="${A4.usableDxa}"/></w:tblGrid><w:tr><w:trPr><w:cantSplit/></w:trPr><w:tc><w:tcPr><w:tcW w:type="dxa" w:w="${A4.usableDxa}"/><w:tcMar><w:top w:w="0" w:type="dxa"/><w:left w:w="0" w:type="dxa"/><w:bottom w:w="0" w:type="dxa"/><w:right w:w="0" w:type="dxa"/></w:tcMar></w:tcPr>${content}</w:tc></w:tr></w:tbl>${wParagraph("", { spacing: { after: 60, line: 100 } })}`;
+    return isLast ? content : `${content}${wParagraph("", { spacing: { after: 60, line: 100 } })}`;
   }
 
   function wPageBreak() {
@@ -693,6 +724,11 @@
     return fields.map(([label, value]) => Array.isArray(value) ? wListField(label, value) : wFieldParagraph(label, text(value))).join("");
   }
 
+  function wObservationAssessment(observation = {}) {
+    const fields = observationAssessmentFields(observation);
+    return fields.length ? `${wParagraph("Spätere Bewertung", { style: "FieldLabel", keepNext: true })}${wFields(fields)}` : "";
+  }
+
   function wChapter(item, index) {
     const documentation = documentationFor(item);
     const observations = observationItems(item);
@@ -724,8 +760,8 @@
     } else {
       observations.forEach((observation, observationIndex) => {
         body.push(
-          wParagraph(`Beobachtung ${observationIndex + 1} | ${text(observation.title) || "Ohne Kurztitel"}`, { style: "Heading3" }),
-          wFields(observationFields(observation))
+          wObservationReadingBlock(observation, observationIndex, observationFields(observation)),
+          wObservationAssessment(observation)
         );
       });
     }
@@ -842,8 +878,8 @@
     } else {
       observations.forEach((observation, observationIndex) => {
         body.push(
-          wParagraph(`Beobachtung ${observationIndex + 1} | ${text(observation.title) || "Ohne Kurztitel"}`, { style: "Heading3" }),
-          wFields(observationOverviewFields(observation))
+          wObservationReadingBlock(observation, observationIndex, observationOverviewFields(observation)),
+          wObservationAssessment(observation)
         );
       });
     }
@@ -905,7 +941,7 @@
     const observationBody = observations.length
       ? observations.map((observation, index) => {
         const startsNewPage = index === 1 || (index > 1 && (index - 1) % 3 === 0);
-        return `${startsNewPage ? wPageBreak() : ""}${wAppointmentObservationBlock(observation, index)}`;
+        return `${startsNewPage ? wPageBreak() : ""}${wAppointmentObservationBlock(observation, index, { isLast: index === observations.length - 1 })}`;
       }).join("")
       : wParagraph("Noch keine Beobachtungen dokumentiert.", { style: "Callout" });
     const body = [
@@ -1226,8 +1262,9 @@
       this.y += 13;
     }
 
-    subheading(value) {
-      this.ensureSpace(25);
+    subheading(value, { keepAfter = 0 } = {}) {
+      const headingHeight = wrapText(value, this.width - this.margin * 2 - 9, 10.2, true).length * 12 + 3;
+      this.ensureSpace(Math.max(25, headingHeight + keepAfter));
       this.drawRect(this.margin, this.y, 3, 18, { fill: COLORS.blue });
       this.paragraph(value, { x: this.margin + 9, width: this.width - this.margin * 2 - 9, bold: true, color: COLORS.navy, size: 10.2, lineHeight: 12, after: 3 });
     }
@@ -1332,8 +1369,21 @@
       if (!text(value)) return;
       const labelWidth = Math.min(120, measureText(`${label}:`, 8.2, true) + 8);
       const available = this.width - this.margin * 2 - labelWidth;
-      const lines = wrapText(value, available, 8.8, false);
+      const lines = label === "Beobachtung"
+        ? String(value ?? "").replace(/\r/g, "").split("\n").flatMap((line) => wrapText(line, available, 8.8, false))
+        : wrapText(value, available, 8.8, false);
       const height = Math.max(11.5, lines.length * 10.5) + 1;
+      if (label === "Beobachtung") {
+        this.ensureSpace(Math.min(height, 22));
+        this.drawText(`${label}:`, this.margin, this.y, { bold: true, color: COLORS.teal, size: 8.2 });
+        lines.forEach((line) => {
+          this.ensureSpace(10.5);
+          this.drawText(line, this.margin + labelWidth, this.y, { size: 8.8, color: COLORS.text });
+          this.y += 10.5;
+        });
+        this.y += Math.max(11.5, lines.length * 10.5) - lines.length * 10.5 + 1;
+        return;
+      }
       this.ensureSpace(height);
       this.drawText(`${label}:`, this.margin, this.y, { bold: true, color: COLORS.teal, size: 8.2 });
       lines.forEach((line, index) => this.drawText(line, this.margin + labelWidth, this.y + index * 10.5, { size: 8.8, color: COLORS.text }));
@@ -1417,8 +1467,11 @@
     pdf.sectionTitle(`Beobachtungen (${observations.length})`);
     if (!observations.length) pdf.callout("Noch keine Beobachtungen dokumentiert.");
     observations.forEach((observation, observationIndex) => {
-      pdf.subheading(`Beobachtung ${observationIndex + 1} | ${text(observation.title) || "Ohne Kurztitel"}`);
+      const codingItems = observationCodingItems(observation);
+      pdf.subheading(`Beobachtung ${observationIndex + 1} | ${text(observation.title) || "Ohne Kurztitel"}`, { keepAfter: pdf.badgeHeight(codingItems) + 22 });
+      pdf.badges(codingItems);
       observationFields(observation).forEach(([label, value]) => pdf.field(label, value));
+      pdfObservationAssessment(pdf, observation);
     });
 
     const quotes = quoteItems(item);
@@ -1506,16 +1559,27 @@
     pdf.sectionTitle(`Beobachtungen (${observations.length})`);
     if (!observations.length) pdf.callout("Noch keine Beobachtungen dokumentiert.");
     observations.forEach((observation, observationIndex) => {
-      pdf.subheading(`Beobachtung ${observationIndex + 1} | ${text(observation.title) || "Ohne Kurztitel"}`);
+      const codingItems = observationCodingItems(observation);
+      pdf.subheading(`Beobachtung ${observationIndex + 1} | ${text(observation.title) || "Ohne Kurztitel"}`, { keepAfter: pdf.badgeHeight(codingItems) + 22 });
+      pdf.badges(codingItems);
       observationOverviewFields(observation).forEach(([label, value]) => pdf.field(label, value));
+      pdfObservationAssessment(pdf, observation);
     });
+  }
+
+  function pdfObservationAssessment(pdf, observation = {}) {
+    const fields = observationAssessmentFields(observation);
+    if (!fields.length) return;
+    pdf.ensureSpace(25);
+    pdf.paragraph("Spätere Bewertung", { bold: true, color: COLORS.teal, size: 8.2, lineHeight: 9.8, after: 3 });
+    fields.forEach(([label, value]) => pdf.field(label, value));
   }
 
   function pdfAppointment(pdf, snapshot) {
     const item = snapshot.hospitations[0] || snapshot.appointments[0] || {};
     const observations = observationItems(item);
     pdf.contactHero(item);
-    pdf.callout(`${countLabel(observations.length, "Beobachtung", "Beobachtungen")} zu diesem Termin. Die Codierung folgt direkt unter jedem dokumentierten Befund.`);
+    pdf.callout(`${countLabel(observations.length, "Beobachtung", "Beobachtungen")} zu diesem Termin. Jede Beobachtung zeigt Beschreibung, Quelle und drei Codierungen.`);
     pdf.sectionTitle("Termin im Überblick");
     appointmentMetadata(item).forEach(([label, value]) => pdf.field(label, text(value) || "Nicht hinterlegt"));
     const summaryFields = [
@@ -1533,10 +1597,10 @@
     }
     observations.forEach((observation, index) => {
       const codingItems = observationCodingItems(observation);
-      pdf.ensureSpace(25 + pdf.badgeHeight(codingItems));
-      pdf.subheading(`Beobachtung ${index + 1} | ${text(observation.title) || "Ohne Kurztitel"}`);
+      pdf.subheading(`Beobachtung ${index + 1} | ${text(observation.title) || "Ohne Kurztitel"}`, { keepAfter: pdf.badgeHeight(codingItems) + 22 });
       pdf.badges(codingItems);
       appointmentObservationFields(observation).forEach(([label, value]) => pdf.field(label, value));
+      pdfObservationAssessment(pdf, observation);
     });
   }
 

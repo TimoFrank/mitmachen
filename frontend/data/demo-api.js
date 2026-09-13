@@ -1460,6 +1460,10 @@
         return error("E-Mail und Telefon dürfen in der Demo nur von Contact Ownern geändert werden.", 403);
       }
       target[index] = { ...target[index], ...safeBody, updatedAt: new Date().toISOString() };
+      if (property === "hospitationObservations" && (Object.hasOwn(safeBody, "situation") || Object.hasOwn(safeBody, "situationContext"))) {
+        const situation = String((Object.hasOwn(safeBody, "situation") ? safeBody.situation : safeBody.situationContext) ?? "").trim();
+        for (const key of ["situation", "situationContext", "situation_context", "context"]) target[index][key] = situation;
+      }
       if (property === "organizationPrimarySystems") updateOrganizationPrimarySystems();
       if (property === "contacts") {
         addDemoActivity({

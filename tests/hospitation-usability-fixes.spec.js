@@ -11,7 +11,7 @@ async function openDemo(page, hash) {
 }
 
 test.describe("Hospitations-Usability-Fixes", () => {
-  test("Fragebogen validiert Kontext, Beobachtung und Codierung schrittweise", async ({ page }, testInfo) => {
+  test("Fragebogen validiert Kontext und Beobachtung und speichert Quelle und Codierung offen", async ({ page }, testInfo) => {
     await openDemo(page, "#questionnaire");
     const isMobile = testInfo.project.name.includes("mobile");
     const context = page.locator('[data-questionnaire-step="1"]');
@@ -43,19 +43,41 @@ test.describe("Hospitations-Usability-Fixes", () => {
 
     await advanceStep(observation);
     await expect(observation).toHaveAttribute("open", "");
-    await expect(observation.locator("[data-questionnaire-step-validation]")).toContainText("Kurztitel");
+    await expect(observation.locator("[data-questionnaire-step-validation]")).toContainText("Kurzfassung");
     await expect(page.locator('input[name="questionnaireObservations[1][title]"]')).toBeFocused();
 
     await page.locator('input[name="questionnaireObservations[1][title]"]').fill("Rückfrage im Übergabeprozess");
     await page.locator('textarea[name="questionnaireObservations[1][observation]"]').fill("Die Pflegefachperson ruft wegen eines fehlenden Befunds zurück.");
+    const source = observation.locator('select[name="questionnaireObservations[1][evidenceType]"]');
+    await expect(source).toHaveValue("");
+    await expect(source).not.toHaveAttribute("required", "");
+    await expect(source.locator('option[value=""]')).toHaveText("Quelle offen");
     await advanceStep(observation);
     await expect(coding).toHaveAttribute("open", "");
 
+    await expect(coding.locator("select")).toHaveCount(5);
+    await expect(coding.locator("select[required]")).toHaveCount(0);
     await advanceStep(coding);
-    await expect(coding).toHaveAttribute("open", "");
-    await expect(coding.locator("[data-questionnaire-step-validation]")).toContainText("Relevanz");
-    await expect(coding.locator(".questionnaire-select-shell.is-invalid")).toHaveCount(5);
-    await expect(coding.locator(".custom-select-trigger").first()).toBeFocused();
+    await expect(coding.locator("[data-questionnaire-step-validation]")).toHaveCount(0);
+    await expect(coding.locator(".questionnaire-select-shell.is-invalid")).toHaveCount(0);
+    for (const stepNumber of [4, 5, 6]) {
+      const step = page.locator(`[data-questionnaire-step="${stepNumber}"]`);
+      await expect(step).toHaveAttribute("open", "");
+      await advanceStep(step);
+    }
+    await expect(page.locator('[data-questionnaire-step="7"]')).toHaveAttribute("open", "");
+    if (isMobile) await mobileNavigation.locator("[data-questionnaire-step-next]").click();
+    else await page.locator("[data-questionnaire-submit]").click();
+    await expect(page.locator("[data-questionnaire-save-status]")).toContainText("In Termin übernommen");
+    await page.locator("[data-questionnaire-open-container]").click();
+    const drawer = page.locator("#hospitation-editor-drawer");
+    await expect(drawer).toHaveClass(/is-open/);
+    const saved = drawer.locator('[data-repeatable-card][data-repeatable-type="observation"]').first();
+    await expect(saved.locator('[data-repeatable-field="title"]')).toHaveValue("Rückfrage im Übergabeprozess");
+    await expect(saved.locator('[data-repeatable-field="observed"]')).toHaveValue("Die Pflegefachperson ruft wegen eines fehlenden Befunds zurück.");
+    for (const field of ["evidenceType", "processPhase", "problemType", "impact", "observationType", "relevanceScore"]) {
+      await expect(saved.locator(`[data-repeatable-field="${field}"]`)).toHaveValue("");
+    }
   });
 
   test("bestehender Termin übernimmt auch spät gelistete Kontaktperson", async ({ page }) => {

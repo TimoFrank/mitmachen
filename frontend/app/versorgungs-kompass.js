@@ -679,6 +679,27 @@
       const contactFormatStatusOptions = ["Eingeladen", "Zugesagt", "Teilgenommen", "Abgesagt"];
       const hospitationModel = window.VersorgungsCompassHospitationModel || {};
       const hospitationCodebook = hospitationModel.codebook || {};
+      const hospitationCodingLabels = { processPhase: "Prozessphase", problemType: "Problemtyp", impact: "Auswirkung", observationType: "Beobachtungsart", evidenceType: "Quelle" };
+
+      function hospitationCodingOptions(key, selected = "") {
+        const options = [...(hospitationCodebook[key] || [])];
+        if (selected && !options.some((entry) => (typeof entry === "object" ? entry.value : entry) === selected)) {
+          options.push({ value: selected, label: `${hospitationModel.optionLabel?.(key, selected) || selected} (bisherige Codierung)` });
+        }
+        return options;
+      }
+
+      function hospitationCodingSelectedHelp(key, value = "") {
+        if (hospitationModel.isLegacyCodebookValue?.(key, value)) return "Bisherige Codierung: bleibt beim Speichern erhalten. Bitte nur nach Prüfung der Situation neu zuordnen.";
+        return hospitationModel.codebookDefinition?.(key, value)?.definition || hospitationModel.codebookFieldDefinitions?.[key]?.guide || "Die Zuordnung kann offenbleiben.";
+      }
+
+      function observationCodingLabel(field, value = "", empty = "Noch offen") {
+        if (!value) return empty;
+        const label = hospitationModel.optionLabel?.(field, value) || value;
+        return hospitationModel.isLegacyCodebookValue?.(field, value) ? `${label} (bisherige Codierung)` : label;
+      }
+
       function hospitationCodebookOptions(key, fallback = []) {
         const values = hospitationCodebook[key];
         return Array.isArray(values) && values.length ? values : fallback;
@@ -1054,11 +1075,15 @@
       const hospitationDashboard = document.getElementById("hospitation-dashboard");
       const hospitationObservationsWorkbench = document.getElementById("hospitation-observations-workbench");
       const hospitationPatternsWorkbench = document.getElementById("hospitation-patterns-workbench");
+      document.querySelectorAll("[data-profile-drawer-header]").forEach((header) => {
+        header.innerHTML = renderProfileDrawerHeader(header.dataset.profileDrawerHeader, header.dataset.profileDrawerLabel, header.dataset.profileDrawerCloseLabel);
+      });
       const observationDetailDrawer = document.getElementById("observation-detail-drawer");
       const observationDetailOverlay = document.getElementById("observation-detail-overlay");
       const observationDetailClose = document.getElementById("observation-detail-close");
       const observationDetailTitle = document.getElementById("observation-detail-title");
       const observationDetailSubtitle = document.getElementById("observation-detail-subtitle");
+      const observationDetailHeaderActions = document.getElementById("observation-detail-header-actions");
       const observationDetailBody = document.getElementById("observation-detail-body");
       const hospitationEditorDrawer = document.getElementById("hospitation-editor-drawer");
       const hospitationEditorOverlay = document.getElementById("hospitation-editor-overlay");
@@ -1667,13 +1692,16 @@
       let activeHospitationObservationId = "";
       let activeHospitationPatternKey = "";
       let hospitationObservationEditMode = false;
+      let hospitationObservationInlineEdit = null;
+      let hospitationObservationCodeSave = null;
+      let hospitationObservationOpenRequest = 0;
       let hospitationObservationCreateMode = false;
       let hospitationObservationSortKey = "date";
       let hospitationObservationSortDirection = "desc";
       const hospitationObservationTableColumns = [
         { key: "number", label: "ID", required: true, defaultVisible: true, minWidth: 48 },
         { key: "title", label: "Beobachtung", required: true, defaultVisible: true, minWidth: 215 },
-        { key: "evidenceType", label: "Evidenzart", defaultVisible: false, minWidth: 110 },
+        { key: "evidenceType", label: "Quelle", defaultVisible: false, minWidth: 110 },
         { key: "date", label: "Hospitation", defaultVisible: true, minWidth: 96 },
         { key: "contact", label: "Kontakt", defaultVisible: true, minWidth: 178 },
         { key: "organization", label: "Organisation", defaultVisible: false, minWidth: 150 },
@@ -14549,7 +14577,7 @@
         return `questionnaireObservations[${observationId}][${field}]`;
       }
 
-      function questionnaireObservationSelectMarkup({ observationId, field, label, values, placeholder, required = true }) {
+      function questionnaireObservationSelectMarkup({ observationId, field, label, values, placeholder, required = false }) {
         const fieldId = questionnaireObservationFieldId(observationId, field);
         return `
           <div class="questionnaire-field">
@@ -14574,13 +14602,14 @@
             </div>
             <div class="questionnaire-observation-grid">
               <div class="questionnaire-field">
-                <label for="${fieldId("title")}">Kurztitel</label>
+                <label for="${fieldId("title")}">Kurzfassung</label>
                 <input id="${fieldId("title")}" name="${fieldName("title")}" type="text" required />
               </div>
               <div class="questionnaire-field questionnaire-field--wide">
-                <label for="${fieldId("observation")}">Was wurde beobachtet?</label>
+                <label for="${fieldId("observation")}">Beobachtung</label>
                 <textarea id="${fieldId("observation")}" name="${fieldName("observation")}" placeholder="z. B. Anmeldung erfolgt telefonisch. Befund wird ausgedruckt und eingescannt. MFA ruft wegen fehlender KIM-Adresse zurück. Patient:in bringt Unterlagen selbst mit. Team nutzt Excel-Liste als Workaround." required></textarea>
               </div>
+              ${questionnaireObservationSelectMarkup({ observationId, field: "evidenceType", label: "Quelle", values: hospitationCodebook.evidenceType, placeholder: "Quelle offen", required: false })}
             </div>
           </article>
         `;
@@ -14654,6 +14683,7 @@
         questionnaireObservationCodingList.insertAdjacentHTML("beforeend", questionnaireObservationCodingCardMarkup(questionnaireObservationCounter));
         const card = questionnaireObservationsList.lastElementChild;
         const codingCard = questionnaireObservationCodingList.lastElementChild;
+        refreshCustomSelects(card);
         refreshCustomSelects(codingCard);
         updateQuestionnaireObservationCards();
         return card;
@@ -14695,7 +14725,7 @@
               nextStep,
               affectedProducts: questionnaireSelectedProducts,
               source: "questionnaire",
-              evidenceType: "directly_observed",
+              evidenceType: questionnaireObservationControlValue(observationId, "evidenceType"),
               internalUseAllowed: true,
               externalUseAllowed: false
             }, index);
@@ -14831,7 +14861,7 @@
       function questionnaireSummaryFromDocumentation(payload = {}) {
         const observation = hospitationDocumentationArray(payload.observations).find(hospitationObservationIsMeaningful);
         return meaningfulOrEmpty(observation?.title) ||
-          meaningfulOrEmpty(observation?.observed) ||
+          meaningfulOrEmpty(hospitationModel.observationText(observation)) ||
           meaningfulOrEmpty(payload.experience) ||
           "Hospitation dokumentiert";
       }
@@ -15079,19 +15109,7 @@
             const missing = [title, observation].filter((control) => !String(control?.value || "").trim());
             if (missing.length) {
               addError(
-                `Ergänze für Beobachtung ${cardIndex + 1} Kurztitel und die konkret beobachtete Situation.`,
-                missing
-              );
-            }
-          });
-        }
-        if (index === 2) {
-          const cards = [...(questionnaireObservationCodingList?.querySelectorAll("[data-questionnaire-observation-coding-card]") || [])];
-          cards.forEach((card, cardIndex) => {
-            const missing = [...card.querySelectorAll("select[required]")].filter((control) => !String(control.value || "").trim());
-            if (missing.length) {
-              addError(
-                `Vervollständige für Beobachtung ${cardIndex + 1} Relevanz, Prozessphase, Problemtyp, Auswirkung und Beobachtungsart.`,
+                `Ergänze für Beobachtung ${cardIndex + 1} Kurzfassung und Beobachtung.`,
                 missing
               );
             }
@@ -17461,8 +17479,12 @@
 
       function hospitationEditButton(item = {}, field = "", label = "Feld bearbeiten") {
         if (!canEditHospitationScheduleItem()) return "";
+        return renderProfileFieldEditButton(label, `data-hospitation-edit-field="${escapeHtml(field)}" data-hospitation-id="${escapeHtml(item.id || "")}"`);
+      }
+
+      function renderProfileFieldEditButton(label, attributes = "", className = "hospitation-edit-trigger") {
         return `
-          <button class="hospitation-edit-trigger" type="button" data-hospitation-edit-field="${escapeHtml(field)}" data-hospitation-id="${escapeHtml(item.id || "")}" aria-label="${escapeHtml(label)}">
+          <button class="${escapeHtml(className)}" type="button" ${attributes} aria-label="${escapeHtml(label)}">
             <svg viewBox="0 0 24 24" aria-hidden="true">
               <path d="M12 20h9"></path>
               <path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"></path>
@@ -17631,9 +17653,8 @@
       function hospitationObservationIsMeaningful(observation = {}) {
         return [
           observation.title,
-          observation.situationContext,
+          hospitationModel.observationText(observation),
           observation.trigger,
-          observation.observed,
           observation.actions,
           observation.toolsAndDocuments,
           observation.immediateConsequence,
@@ -17654,64 +17675,36 @@
       }
 
       function normalizeHospitationObservation(observation = {}, index = 0) {
-        const observationId = observation.id || observation.observationId || observation.observation_id || `observation-${index + 1}`;
-        const evidenceType = hospitationOptionValue(
-          hospitationDocumentationEvidenceOptions,
-          observation.evidenceType || observation.evidence_type,
-          "directly_observed"
-        );
-        const nextUse = hospitationOptionValue(
-          hospitationDocumentationNextUseOptions,
-          observation.nextUse || observation.next_use || observation.possibleUse || observation.possible_use,
-          ""
-        );
-        const affectedRoles = Array.isArray(observation.affectedRoles || observation.affected_roles)
-          ? (observation.affectedRoles || observation.affected_roles).join(", ")
-          : String(observation.affectedRoles || observation.affected_roles || "").trim();
-        const source = String(observation.source || observation.captureSource || observation.capture_source || "").trim() ||
-          (String(observationId).includes("questionnaire") ? "questionnaire" : "");
+        const payload = observation.payload && typeof observation.payload === "object" && !Array.isArray(observation.payload) ? observation.payload : {};
+        const original = { ...payload, ...observation };
+        const observationId = original.id || original.observationId || original.observation_id || `observation-${index + 1}`;
+        const title = String(original.title ?? original.shortTitle ?? original.short_title ?? "").trim();
+        const synthetic = [original.originalEvidenceType, original.original_evidence_type, payload.originalEvidenceType, payload.original_evidence_type].includes("synthetic_source_based");
+        const normalized = hospitationModel.normalizeObservation({
+          ...original,
+          id: observationId,
+          title,
+          impact: original.impact ?? original.effect ?? "",
+          relevanceReason: original.relevanceReason ?? original.relevance_reason ?? original.whyRelevant ?? original.why_relevant ?? "",
+          ...(synthetic ? { originalEvidenceType: "synthetic_source_based", evidenceType: "synthetic_source_based" } : {})
+        });
+        // Das Modell bewahrt Werte und Herkunft; der Editor benötigt Listen als Text.
+        // Eine leere Entwurfskarte erhält keinen automatisch erzeugten Kurztitel.
         return {
+          ...original,
+          ...normalized,
           id: hospitationDocumentationUid("observation", observationId),
-          title: String(observation.title || observation.shortTitle || observation.short_title || "").trim(),
-          sequence: numberOrEmpty(observation.sequence || observation.order || observation.position),
-          observedAt: String(observation.observedAt || observation.observed_at || observation.observationTime || observation.observation_time || "").trim(),
-          situationContext: String(observation.situationContext || observation.situation_context || observation.context || "").trim(),
-          trigger: String(observation.trigger || "").trim(),
-          observed: String(observation.observed || observation.concreteObservation || observation.concrete_observation || observation.observation || "").trim(),
-          actions: Array.isArray(observation.actions || observation.actionSteps || observation.action_steps)
-            ? (observation.actions || observation.actionSteps || observation.action_steps).join("\n")
-            : String(observation.actions || observation.actionSteps || observation.action_steps || "").trim(),
-          toolsAndDocuments: Array.isArray(observation.toolsAndDocuments || observation.tools_and_documents)
-            ? (observation.toolsAndDocuments || observation.tools_and_documents).join(", ")
-            : String(observation.toolsAndDocuments || observation.tools_and_documents || "").trim(),
-          communicationChannels: Array.isArray(observation.communicationChannels || observation.communication_channels)
-            ? (observation.communicationChannels || observation.communication_channels).join(", ")
-            : String(observation.communicationChannels || observation.communication_channels || "").trim(),
-          immediateConsequence: String(observation.immediateConsequence || observation.immediate_consequence || observation.consequence || "").trim(),
-          sourceType: String(observation.sourceType || observation.source_type || "").trim(),
-          sourceReference: String(observation.sourceReference || observation.source_reference || "").trim(),
-          uncertainty: String(observation.uncertainty || "").trim(),
-          limitations: String(observation.limitations || "").trim(),
-          relevanceReason: String(observation.relevanceReason || observation.relevance_reason || observation.whyRelevant || observation.why_relevant || "").trim(),
-          affectedRoles,
-          processPhase: hospitationNormalizeCodebookValue("processPhase", observation.processPhase || observation.process_phase, ""),
-          problemType: hospitationNormalizeCodebookValue("problemType", observation.problemType || observation.problem_type, ""),
-          impact: hospitationNormalizeCodebookValue("impact", observation.impact || observation.effect, ""),
-          observationType: hospitationNormalizeCodebookValue("observationType", observation.observationType || observation.observation_type || observation.type, ""),
-          evidenceType,
-          relevanceScore: numberOrEmpty(observation.relevanceScore ?? observation.relevance_score ?? observation.careRelevance ?? observation.care_relevance),
-          careRelevance: numberOrEmpty(observation.relevanceScore ?? observation.relevance_score ?? observation.careRelevance ?? observation.care_relevance),
-          nextUse,
-          currentWorkaround: String(observation.currentWorkaround || observation.current_workaround || "").trim(),
-          nextStep: String(observation.nextStep || observation.next_step || "").trim(),
-          source,
-          affectedProducts: normalizeThemes(observation.affectedProducts || observation.affected_products || observation.products || observation.productReference || observation.product_reference || observation.product),
-          linkedQuoteIds: normalizeThemes(observation.linkedQuoteIds || observation.linked_quote_ids || observation.quoteIds || observation.quote_ids),
-          linkedMediaIds: normalizeThemes(observation.linkedMediaIds || observation.linked_media_ids || observation.mediaIds || observation.media_ids),
-          settingType: String(observation.settingType || observation.setting_type || "").trim(),
-          theme: String(observation.theme || observation.topic || "").trim(),
-          internalUseAllowed: hospitationDocumentationBoolean(observation.internalUseAllowed ?? observation.internal_use_allowed, true),
-          externalUseAllowed: hospitationDocumentationBoolean(observation.externalUseAllowed ?? observation.external_use_allowed, false)
+          title,
+          sequence: numberOrEmpty(normalized.sequence),
+          actions: normalized.actions.join("\n"),
+          toolsAndDocuments: normalized.toolsAndDocuments.join(", "),
+          communicationChannels: normalized.communicationChannels.join(", "),
+          affectedRoles: normalized.involvedRoles.join(", "),
+          relevanceScore: numberOrEmpty(normalized.relevanceScore),
+          careRelevance: numberOrEmpty(normalized.relevanceScore),
+          nextUse: normalized.usageRecommendation,
+          currentWorkaround: normalized.workaround,
+          source: normalized.source || (String(observationId).includes("questionnaire") ? "questionnaire" : "")
         };
       }
 
@@ -18242,7 +18235,7 @@
       }
 
       function hospitationObservationOptionLabel(observation = {}, index = 0) {
-        return String(observation.title || observation.observed || observation.situationContext || `Beobachtung ${index + 1}`).trim();
+        return String(observation.title || hospitationModel.observationText(observation) || `Beobachtung ${index + 1}`).trim();
       }
 
       function hospitationObservationSelectOptionMarkup(observations = [], selectedId = "") {
@@ -18368,7 +18361,6 @@
         const fields = [
           { field: "sequence", label: "Ablaufschritt", type: "input", value: item.sequence, placeholder: "z. B. 1" },
           { field: "observedAt", label: "Zeitpunkt", type: "input", value: item.observedAt, placeholder: "z. B. 09:20 Uhr" },
-          { field: "situationContext", label: "Situation / Kontext", type: "textarea", value: item.situationContext, placeholder: "Wo, bei wem oder in welchem Ablauf trat die Situation auf?" },
           { field: "trigger", label: "Auslöser", type: "textarea", value: item.trigger, placeholder: "Welches Ereignis setzte den Ablauf in Gang?" },
           { field: "actions", label: "Handlungsschritte", type: "textarea", value: item.actions, placeholder: "Ein Schritt pro Zeile" },
           { field: "toolsAndDocuments", label: "Systeme und Dokumente", type: "textarea", value: item.toolsAndDocuments, placeholder: "z. B. PVS, Entlassbrief, Papierliste" },
@@ -18402,8 +18394,8 @@
         const title = hospitationObservationOptionLabel(item, index);
         const meta = hospitationObservationMeta(item);
         return renderHospitationRepeatableCard("observation", item, index, title, meta, `
+          <input type="hidden" data-repeatable-original value="${escapeHtml(JSON.stringify(item))}" />
           <input type="hidden" data-repeatable-field="source" value="${escapeHtml(item.source)}" />
-          <input type="hidden" data-repeatable-field="evidenceType" value="${escapeHtml(item.evidenceType)}" />
           <input type="hidden" data-repeatable-field="linkedQuoteIds" value="${escapeHtml(normalizeThemes(item.linkedQuoteIds).join(", "))}" />
           <input type="hidden" data-repeatable-field="linkedMediaIds" value="${escapeHtml(normalizeThemes(item.linkedMediaIds).join(", "))}" />
           <input type="hidden" data-repeatable-field="affectedProducts" value="${escapeHtml(hospitationObservationProductLabels(item.affectedProducts).join(", "))}" />
@@ -18411,17 +18403,18 @@
             <section class="hospitation-observation-compact__section">
               <p class="hospitation-observation-compact__label">Beobachtung</p>
               <div class="format-editor-grid">
-                ${hospitationRepeatableInputField("observation", item, "title", "Kurztitel", item.title, { wide: true, placeholder: "Worum geht es in einem Satz?" })}
-                ${hospitationRepeatableTextareaField("observation", item, "observed", "Was wurde beobachtet?", item.observed, { wide: true, placeholder: "Sichtbare Handlung, Aussage, Workaround oder Prozessmoment beschreiben" })}
+                ${hospitationRepeatableInputField("observation", item, "title", "Kurzfassung", item.title, { wide: true, placeholder: "Worum geht es in einem Satz?" })}
+                ${hospitationRepeatableTextareaField("observation", item, "observed", "Beobachtung", hospitationModel.observationText(observation), { wide: true, placeholder: "Bei Bedarf mit kurzem Kontext beginnen, dann sachlich beschreiben, was gesehen oder berichtet wurde." })}
               </div>
             </section>
             <section class="hospitation-observation-compact__section">
               <p class="hospitation-observation-compact__label">Codierung</p>
               <div class="hospitation-observation-coding-grid">
-                ${hospitationRepeatableSelectField("observation", item, "processPhase", "Prozessphase", hospitationOptionalCodebookOptions(hospitationProcessPhaseOptions), item.processPhase)}
-                ${hospitationRepeatableSelectField("observation", item, "problemType", "Problemtyp", hospitationOptionalCodebookOptions(hospitationProblemTypeOptions), item.problemType)}
-                ${hospitationRepeatableSelectField("observation", item, "impact", "Auswirkung", hospitationOptionalCodebookOptions(hospitationImpactOptions), item.impact)}
-                ${hospitationRepeatableSelectField("observation", item, "observationType", "Beobachtungsart", hospitationOptionalCodebookOptions(hospitationObservationTypeOptions), item.observationType)}
+                ${hospitationRepeatableSelectField("observation", item, "evidenceType", "Quelle", hospitationOptionalCodebookOptions(hospitationCodingOptions("evidenceType", item.evidenceType)), item.evidenceType)}
+                ${hospitationRepeatableSelectField("observation", item, "processPhase", "Prozessphase", hospitationOptionalCodebookOptions(hospitationCodingOptions("processPhase", item.processPhase)), item.processPhase)}
+                ${hospitationRepeatableSelectField("observation", item, "problemType", "Problemtyp", hospitationOptionalCodebookOptions(hospitationCodingOptions("problemType", item.problemType)), item.problemType)}
+                ${hospitationRepeatableSelectField("observation", item, "impact", "Auswirkung", hospitationOptionalCodebookOptions(hospitationCodingOptions("impact", item.impact)), item.impact)}
+                ${hospitationRepeatableSelectField("observation", item, "observationType", "Beobachtungsart", hospitationOptionalCodebookOptions(hospitationCodingOptions("observationType", item.observationType)), item.observationType)}
                 ${hospitationRepeatableSelectField("observation", item, "relevanceScore", "Relevanz 1-5", [{ value: "", label: "Auswählen" }, ...QUESTIONNAIRE_CODEBOOK.relevance], String(item.relevanceScore || ""))}
               </div>
             </section>
@@ -18563,35 +18556,48 @@
       }
 
       function hospitationDocumentationObservationsFromForm(form) {
+        const editableFields = ["id", "title", "sequence", "observedAt", "trigger", "observed", "actions", "toolsAndDocuments", "immediateConsequence", "sourceReference", "uncertainty", "relevanceReason", "affectedRoles", "processPhase", "problemType", "impact", "observationType", "relevanceScore", "evidenceType", "source", "affectedProducts", "linkedQuoteIds", "linkedMediaIds", "currentWorkaround", "nextStep"];
         return hospitationRepeatableCardsFromForm(form, "observation")
-          .map((card, index) => normalizeHospitationObservation({
-            id: hospitationRepeatableFieldValue(card, "id"),
-            title: hospitationRepeatableFieldValue(card, "title"),
-            sequence: hospitationRepeatableFieldValue(card, "sequence"),
-            observedAt: hospitationRepeatableFieldValue(card, "observedAt"),
-            situationContext: hospitationRepeatableFieldValue(card, "situationContext"),
-            trigger: hospitationRepeatableFieldValue(card, "trigger"),
-            observed: hospitationRepeatableFieldValue(card, "observed"),
-            actions: hospitationRepeatableFieldValue(card, "actions"),
-            toolsAndDocuments: hospitationRepeatableFieldValue(card, "toolsAndDocuments"),
-            immediateConsequence: hospitationRepeatableFieldValue(card, "immediateConsequence"),
-            sourceReference: hospitationRepeatableFieldValue(card, "sourceReference"),
-            uncertainty: hospitationRepeatableFieldValue(card, "uncertainty"),
-            relevanceReason: hospitationRepeatableFieldValue(card, "relevanceReason"),
-            affectedRoles: hospitationRepeatableFieldValue(card, "affectedRoles"),
-            processPhase: hospitationRepeatableFieldValue(card, "processPhase"),
-            problemType: hospitationRepeatableFieldValue(card, "problemType"),
-            impact: hospitationRepeatableFieldValue(card, "impact"),
-            observationType: hospitationRepeatableFieldValue(card, "observationType"),
-            relevanceScore: hospitationRepeatableFieldValue(card, "relevanceScore"),
-            evidenceType: hospitationRepeatableFieldValue(card, "evidenceType"),
-            source: hospitationRepeatableFieldValue(card, "source"),
-            affectedProducts: hospitationRepeatableFieldValue(card, "affectedProducts"),
-            linkedQuoteIds: hospitationRepeatableFieldValue(card, "linkedQuoteIds"),
-            linkedMediaIds: hospitationRepeatableFieldValue(card, "linkedMediaIds"),
-            currentWorkaround: hospitationRepeatableFieldValue(card, "currentWorkaround"),
-            nextStep: hospitationRepeatableFieldValue(card, "nextStep")
-          }, index))
+          .map((card, index) => {
+            const stored = card.querySelector("[data-repeatable-original]")?.value || "{}";
+            let original;
+            try {
+              original = JSON.parse(stored);
+              if (!original || typeof original !== "object" || Array.isArray(original)) throw new Error();
+            } catch {
+              throw new Error("Die ursprünglichen Beobachtungsangaben konnten nicht gelesen werden. Bitte den Editor erneut öffnen.");
+            }
+            const patch = Object.fromEntries(editableFields
+              .filter((field) => card.querySelector(`[data-repeatable-field="${field}"]`))
+              .map((field) => [field, hospitationRepeatableFieldValue(card, field)]));
+            // Nur sichtbare Bearbeitungsfelder ersetzen den Bestand. Alias müssen
+            // denselben neuen Wert tragen, damit Leeren auch nach dem Rücklesen gilt.
+            if (Object.hasOwn(patch, "observed")) Object.assign(patch, {
+              description: patch.observed,
+              situation: "", situationContext: "", situation_context: "", context: ""
+            });
+            const aliases = {
+              observed: ["concreteObservation", "concrete_observation", "observation"],
+              sequence: ["order", "position"], observedAt: ["observed_at", "observationTime", "observation_time"],
+              actions: ["actionSteps", "action_steps"], toolsAndDocuments: ["tools_and_documents", "tools", "documents"],
+              immediateConsequence: ["immediate_consequence", "consequence"], sourceReference: ["source_reference"],
+              relevanceReason: ["relevance_reason", "whyRelevant", "why_relevant"],
+              affectedRoles: ["involvedRoles", "involved_roles", "affected_roles"],
+              processPhase: ["process_phase"], problemType: ["problem_type"], impact: ["effect"],
+              observationType: ["observation_type", "type"], evidenceType: ["evidence_type"],
+              relevanceScore: ["relevance_score", "careRelevance", "care_relevance"],
+              source: ["captureSource", "capture_source"],
+              affectedProducts: ["affected_products", "products", "productReference", "product_reference", "product"],
+              linkedQuoteIds: ["linked_quote_ids", "quoteIds", "quote_ids"],
+              linkedMediaIds: ["linked_media_ids", "mediaIds", "media_ids"],
+              currentWorkaround: ["workaround", "current_workaround"], nextStep: ["next_step"]
+            };
+            for (const [field, names] of Object.entries(aliases)) {
+              if (!Object.hasOwn(patch, field)) continue;
+              for (const name of names) if (Object.hasOwn(original, name)) patch[name] = patch[field];
+            }
+            return normalizeHospitationObservation({ ...original, ...patch }, index);
+          })
           .filter(hospitationObservationIsMeaningful);
       }
 
@@ -20248,7 +20254,7 @@
       function hospitationDashboardDocumentedObservations(items = []) {
         return hospitationDashboardAllObservations(items)
           .filter((observation) => !observation.synthetic)
-          .filter((observation) => meaningfulOrEmpty(observation.observed || observation.title || observation.situationContext));
+          .filter((observation) => meaningfulOrEmpty(hospitationModel.observationText(observation) || observation.title));
       }
 
       function hospitationDashboardAllQuotes(items = []) {
@@ -20387,7 +20393,7 @@
               .forEach((product) => current.products.set(product, (current.products.get(product) || 0) + 1));
             const nextUse = meaningfulOrEmpty(observation.nextUse) || meaningfulOrEmpty(observation.nextStep) || meaningfulOrEmpty(payload.nextUse) || "weiter validieren";
             current.nextUses.set(nextUse, (current.nextUses.get(nextUse) || 0) + 1);
-            const example = meaningfulOrEmpty(observation.observed) || meaningfulOrEmpty(observation.title) || meaningfulOrEmpty(observation.situationContext);
+            const example = meaningfulOrEmpty(hospitationModel.observationText(observation)) || meaningfulOrEmpty(observation.title);
             if (example && !current.examples.includes(example) && current.examples.length < 2) current.examples.push(example);
             current.hasRoadmapSignal = current.hasRoadmapSignal ||
               nextUse === "Roadmap prüfen" ||
@@ -20597,7 +20603,7 @@
         const activeHospitationIds = new Set(activeHospitations.map((item) => item.id).filter(Boolean));
         const documentedObservations = hospitationObservationSourceRows().filter((row) =>
           activeHospitationIds.has(row.hospitationId) &&
-          meaningfulOrEmpty(row.observed || row.title || row.situationContext)
+          meaningfulOrEmpty(hospitationModel.observationText(row) || row.title)
         );
         const dataSet = {
           visible: activeHospitations,
@@ -21003,7 +21009,7 @@
         const parent = row.hospitation || {};
         const number = Number(row._chronologicalNumber) || 0;
         const title = meaningfulOrEmpty(row.title) || meaningfulOrEmpty(row.problemType) || "Beobachtung";
-        const finding = meaningfulOrEmpty(row.description || row.observed || row.situation || row.situationContext) || "Noch ohne Beschreibung";
+        const finding = meaningfulOrEmpty(hospitationModel.observationText(row)) || "Noch ohne Beschreibung";
         const contactLabel = hospitationDocumentationContactLabel(parent) || "Kontakt nicht hinterlegt";
         const organizationLabel = hospitationOrganizationLabel(parent) || "Organisation nicht hinterlegt";
         const dateLabel = hospitationDateOnlyLabel(parent) || "Termin offen";
@@ -21181,8 +21187,7 @@
         const observationTexts = hospitationDocumentationArray(payload.observations)
           .flatMap((observation) => [
             observation.title,
-            observation.situationContext,
-            observation.observed,
+            hospitationModel.observationText(observation),
             observation.relevanceReason,
             observation.affectedRoles,
             observation.processPhase,
@@ -21232,7 +21237,7 @@
         const payload = hospitationDocumentationPayload(item);
         return meaningfulOrEmpty(item.documentationSummary) ||
           meaningfulOrEmpty(payload.quotes?.[0]?.quote) ||
-          meaningfulOrEmpty(payload.observations?.[0]?.observed) ||
+          meaningfulOrEmpty(hospitationModel.observationText(payload.observations?.[0])) ||
           meaningfulOrEmpty(payload.experience) ||
           meaningfulOrEmpty(payload.insight) ||
           meaningfulOrEmpty(payload.nextUse) ||
@@ -21436,7 +21441,7 @@
             </div>
             <div class="hospitation-dashboard-card-list">
               ${payload.insight ? `<div class="hospitation-dashboard-answer"><strong>Einordnung</strong><span>${escapeHtml(payload.insight)}</span></div>` : ""}
-              ${observations.map((observation) => `<div class="hospitation-dashboard-answer"><strong>${escapeHtml(observation.problemType || observation.title || "Beobachtung")}</strong><span>${escapeHtml(observation.observed || observation.title || "")}</span></div>`).join("")}
+              ${observations.map((observation) => `<div class="hospitation-dashboard-answer"><strong>${escapeHtml(observation.problemType || observation.title || "Beobachtung")}</strong><span>${escapeHtml(hospitationModel.observationText(observation) || observation.title || "")}</span></div>`).join("")}
               ${quotes.map((quote) => `<div class="hospitation-dashboard-answer"><strong>${escapeHtml(quote.personRole || "Zitat")}</strong><span>${escapeHtml(quote.quote)}</span></div>`).join("")}
             </div>
           </article>
@@ -21915,7 +21920,7 @@
           id: observation.id,
           hospitationId: observation.hospitationId,
           item: observation.hospitation,
-          text: observation.observed || observation.title,
+          text: hospitationModel.observationText(observation) || observation.title,
           kind: "Beobachtung",
           role: observation.affectedRoles,
           setting: observation.settingType || hospitationDashboardSettingLabel(observation.hospitation),
@@ -21976,7 +21981,7 @@
           <div class="hospitation-dashboard-observation-list">
             ${cards.map((card) => {
               const title = meaningfulOrEmpty(card.title) || meaningfulOrEmpty(card.problemType) || "Beobachtung";
-              const text = meaningfulOrEmpty(card.observed) || title;
+              const text = meaningfulOrEmpty(hospitationModel.observationText(card)) || title;
               return `
                 <article class="hospitation-dashboard-observation-card" data-hospitation-dashboard-observation-card>
                   <div class="hospitation-dashboard-observation-head">
@@ -22109,7 +22114,7 @@
 
       function renderHospitationDashboardObservationDetailRow(observation = {}) {
         const item = observation.hospitation || {};
-        const text = meaningfulOrEmpty(observation.observed || observation.title) || "Beobachtung ohne Freitext";
+        const text = meaningfulOrEmpty(hospitationModel.observationText(observation) || observation.title) || "Beobachtung ohne Freitext";
         const date = hospitationDateSourceValue(item) ? hospitationDateOnlyLabel(item) : "";
         return `
           <article class="hospitation-dashboard-detail-row hospitation-dashboard-detail-row--observation" data-hospitation-dashboard-detail-row>
@@ -23919,7 +23924,7 @@
         const rows = source
           .filter((item) => item.status !== "archived")
           .map((observation) => {
-            const hospitation = observation.hospitation || parentRows.find((item) => item.id === observation.hospitationId) || {};
+            const hospitation = parentRows.find((item) => item.id === observation.hospitationId) || observation.hospitation || {};
             return { ...observation, hospitationId: observation.hospitationId || hospitation.id, hospitation };
           });
         const chronologyTimestamp = (row = {}) => {
@@ -24086,7 +24091,7 @@
       }
 
       function observationEvidenceLabel(value = "") {
-        return ({ directly_observed: "Direkt beobachtet", reported: "Berichtet", interpreted: "Interpretiert" })[value] || "Nicht eingeordnet";
+        return observationCodingLabel("evidenceType", value, "Quelle offen");
       }
 
       function observationEvidenceTone(value = "") {
@@ -24102,14 +24107,14 @@
           date: "Hospitation",
           processPhase: "Prozessphase",
           problemType: "Problemtyp",
-          evidenceType: "Evidenz"
+          evidenceType: "Quelle"
         })[key] || key;
       }
 
       function observationFilterDisplayValue(key = "", value = "") {
         if (key === "owner") return value === "__none__" ? "Kein Owner" : (ownerDisplayLabel(value) || value);
         if (key === "evidenceType") return observationEvidenceLabel(value);
-        return value;
+        return observationCodingLabel(key, value);
       }
 
       function observationHeaderFilterOptions(rows = [], key = "") {
@@ -24122,7 +24127,7 @@
           ];
         }
         if (key === "evidenceType") {
-          return ["directly_observed", "reported", "interpreted"].map((value) => ({ value, label: observationEvidenceLabel(value) }));
+          return hospitationCodebook.evidenceType.map((entry) => ({ value: entry.value, label: entry.label }));
         }
         const getter = {
           sector: (row) => hospitationSectorLabel(row.hospitation),
@@ -24133,7 +24138,7 @@
           problemType: (row) => row.problemType
         }[key];
         if (!getter) return [];
-        return hospitationObservationFilterOptions(rows, getter).map((value) => ({ value, label: value }));
+        return hospitationObservationFilterOptions(rows, getter).map((value) => ({ value, label: observationCodingLabel(key, value) }));
       }
 
       function observationHeaderFilterMarkup(rows = [], key = "", label = "") {
@@ -24266,8 +24271,7 @@
         }
         if (key === "title") {
           const title = meaningfulOrEmpty(row.title) || meaningfulOrEmpty(row.problemType) || "Beobachtung";
-          const summary = meaningfulOrEmpty(row.description || row.observed || row.situation) || "Noch ohne Beschreibung";
-          return `<span class="observation-table-cell"><strong>${escapeHtml(title)}</strong><small>${escapeHtml(hospitationDashboardShortText(summary, 112))}</small></span>`;
+          return `<span class="observation-table-cell"><strong>${escapeHtml(title)}</strong></span>`;
         }
         if (key === "evidenceType") {
           return `<span class="observation-table-cell"><span class="observation-evidence-label observation-evidence-label--${escapeHtml(observationEvidenceTone(row.evidenceType))}">${escapeHtml(observationEvidenceLabel(row.evidenceType))}</span></span>`;
@@ -24282,8 +24286,8 @@
           return `<span class="observation-table-cell"><span class="observation-table-cell__primary">${escapeHtml(hospitationOrganizationLabel(parent) || "Nicht hinterlegt")}</span></span>`;
         }
         if (key === "sector") return `<span class="observation-table-cell observation-table-cell--sector">${sectorBadgeMarkup(hospitationSectorLabel(parent))}</span>`;
-        if (key === "processPhase") return `<span class="observation-table-cell"><span class="observation-table-cell__primary">${escapeHtml(row.processPhase || "Noch nicht codiert")}</span></span>`;
-        if (key === "problemType") return `<span class="observation-table-cell"><span class="observation-table-cell__primary">${escapeHtml(row.problemType || "Noch nicht codiert")}</span></span>`;
+        if (key === "processPhase") return `<span class="observation-table-cell"><span class="observation-table-cell__primary">${escapeHtml(observationCodingLabel("processPhase", row.processPhase))}</span></span>`;
+        if (key === "problemType") return `<span class="observation-table-cell"><span class="observation-table-cell__primary">${escapeHtml(observationCodingLabel("problemType", row.problemType))}</span></span>`;
         if (key === "owner") return `<span class="observation-table-cell">${hospitationOwnerAvatarStackMarkup(parent)}</span>`;
         return `<span class="observation-table-cell"></span>`;
       }
@@ -24337,30 +24341,101 @@
       }
 
       function renderHospitationObservationForm(row = {}, { create = false } = {}) {
-        const evidenceType = row.evidenceType || "directly_observed";
+        const codeField = (key) => `<label>${hospitationCodingLabels[key]}<select name="${key}" aria-describedby="observation-form-hint-${key}">${observationSelectOptions(hospitationCodingOptions(key, row[key] || ""), row[key] || "", "Noch offen")}</select><span class="observation-input-hint" id="observation-form-hint-${key}">${escapeHtml(observationFieldHint(key))}</span></label>`;
         return `
           <form class="observation-detail-form" ${create ? "data-observation-create-form" : `data-observation-edit-form data-observation-id="${escapeHtml(row.id)}" data-observation-updated-at="${escapeHtml(row.updatedAt || "")}"`}>
             ${create ? `<label>Ursprungshospitation<select name="hospitationId" required><option value="">Hospitation auswählen</option>${observationParentOptionMarkup(row.hospitationId || "")}</select></label><p class="observation-create-note">Owner, Kontakt, Organisation und Terminbezug werden aus der gewählten Hospitation übernommen. Beobachtung und analytische Einordnung bleiben getrennt.</p>` : ""}
-            <label>Titel<input name="title" value="${escapeHtml(row.title || "")}" placeholder="Kurzer, sachlicher Beobachtungstitel" required></label>
-            <label>Situation<textarea name="situation" placeholder="In welchem Versorgungskontext trat die Situation auf?">${escapeHtml(row.situation || row.situationContext || "")}</textarea></label>
-            <label>Konkrete Beobachtung<textarea name="description" placeholder="Was wurde gesehen oder berichtet?" required>${escapeHtml(row.description || row.observed || "")}</textarea></label>
+            <label>Kurzfassung<input name="title" value="${escapeHtml(row.title || "")}" placeholder="Kurze, sachliche Zusammenfassung" aria-describedby="observation-inline-hint-title" required></label>
+            ${observationInputHint("title")}
+            <label>Beobachtung<textarea name="description" placeholder="Bei Bedarf kurzer Kontext, dann der beobachtete Ablauf" aria-describedby="observation-inline-hint-description" required>${escapeHtml(hospitationModel.observationText(row))}</textarea></label>
+            ${observationInputHint("description")}
             <div class="observation-detail-grid">
-              <label>Prozessphase<select name="processPhase">${observationSelectOptions(hospitationProcessPhaseOptions, row.processPhase)}</select></label>
-              <label>Problemtyp<select name="problemType">${observationSelectOptions(hospitationProblemTypeOptions, row.problemType)}</select></label>
-              <label>Auswirkung<select name="impact">${observationSelectOptions(hospitationImpactOptions, row.impact)}</select></label>
-              <label>Evidenzart<select name="evidenceType" required>${observationSelectOptions([
-                { value: "directly_observed", label: "Direkt beobachtet" },
-                { value: "reported", label: "Berichtet" },
-                { value: "interpreted", label: "Interpretiert" }
-              ], evidenceType, "Evidenzart wählen")}</select></label>
-              <label>Relevanz (1–5)<input name="relevanceScore" type="number" min="1" max="5" value="${escapeHtml(row.relevanceScore || "")}"></label>
-              <label>Nächste Nutzung<select name="usageRecommendation">${observationSelectOptions(hospitationUsageRecommendationOptions, row.usageRecommendation || row.nextUse)}</select></label>
+              ${["processPhase", "problemType", "impact", "evidenceType"].map(codeField).join("")}
             </div>
+            <details class="observation-detail-assessment" data-codebook-additional><summary>Spätere Bewertung</summary>
+              <div class="observation-detail-grid">
+                ${codeField("observationType")}
+                <label>Relevanz (1–5)<input name="relevanceScore" type="number" min="1" max="5" value="${escapeHtml(row.relevanceScore || "")}"></label>
+                <label>Nächste Nutzung<select name="usageRecommendation">${observationSelectOptions(hospitationCodingOptions("usageRecommendation", row.usageRecommendation || row.nextUse), row.usageRecommendation || row.nextUse)}</select></label>
+              </div>
+              <p class="observation-input-hint">Diese Angaben sind optional. Relevanz bewertet nicht die Stärke der Evidenz.</p>
+            </details>
             <label>Beteiligte Rollen<input name="involvedRoles" value="${escapeHtml((row.involvedRoles || []).join(", "))}" placeholder="Kommagetrennt"></label>
             <label>Betroffene Produkte<input name="affectedProducts" value="${escapeHtml((row.affectedProducts || []).join(", "))}" placeholder="Kommagetrennt"></label>
             <div class="observation-detail-actions"><button class="action-button" type="button" data-observation-edit-cancel>Abbrechen</button><button class="action-button action-button--primary" type="submit">${create ? "Beobachtung anlegen" : "Speichern"}</button></div>
           </form>
         `;
+      }
+
+      function observationFieldHint(field) {
+        const definition = hospitationModel.codebookFieldDefinitions?.[field];
+        if (definition) return `${definition.question} ${definition.guide}`;
+        return {
+          title: "Fasse die Beobachtung kurz und sachlich zusammen, zum Beispiel: „Befund muss telefonisch angefordert werden“.",
+          description: "Beginne bei Bedarf mit kurzem Kontext, beschreibe dann sachlich, was gesehen oder berichtet wurde. Zum Beispiel: „Bei der Vorbereitung eines Kontrolltermins sucht die MFA den Befund im PVS und ruft anschließend die Facharztpraxis an.“",
+          usageRecommendation: "Halte fest, wie die Beobachtung weiter genutzt werden soll, zum Beispiel Wissen teilen oder weiter validieren. Eine noch offene Entscheidung kannst du später ergänzen.",
+          relevanceScore: "Optionale spätere Einschätzung von 1 (sehr niedrig) bis 5 (sehr hoch). Sie bewertet nicht die Stärke der Evidenz. Lass sie offen, wenn du sie noch nicht einschätzen kannst."
+        }[field] || "";
+      }
+
+      function observationInputHint(field, { code = false, hidden = false } = {}) {
+        return `<p class="observation-input-hint ${code ? "observation-code-input-hint" : ""}" data-observation-input-hint="${field}" id="observation-${code ? "code" : "inline"}-hint-${field}" ${hidden ? "hidden" : ""}>${escapeHtml(observationFieldHint(field))}</p>`;
+      }
+
+      function observationFieldHead(field, label) {
+        const editButton = field === "description" && canEditContacts()
+          ? renderProfileFieldEditButton(`${label} bearbeiten`, `data-observation-edit-field="${escapeHtml(field)}" data-observation-scope="observation" aria-expanded="false"`) : "";
+        const helpId = `observation-help-${field}`;
+        const infoButton = `<button class="observation-field-info" type="button" data-observation-info="${field}" aria-label="Informationen zu ${escapeHtml(label)}" aria-expanded="false" aria-controls="${helpId}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><circle cx="12" cy="12" r="9"></circle><path d="M12 11v6M12 7v1"></path></svg></button>`;
+        const journey = field === "processPhase" ? `<ol class="observation-phase-guide" aria-label="Patient Journey">${hospitationCodebook.processPhase.slice(0, 6).map((phase) => `<li>${escapeHtml(phase)}</li>`).join("")}</ol>` : "";
+        return `<div class="observation-detail-field__head"><span>${escapeHtml(label)}</span>${editButton}${infoButton}</div><div class="observation-field-help" id="${helpId}" data-observation-help="${field}" role="note" hidden>${journey}<p>${escapeHtml(observationFieldHint(field))}</p></div>`;
+      }
+
+      function observationFieldValue(markup) {
+        return `<div class="observation-detail-field__value"><div class="observation-detail-field__text">${markup}</div></div>`;
+      }
+
+      function observationCodeOptions(field, currentValue = "") {
+        if (!Array.isArray(hospitationCodebook[field])) return [];
+        const options = hospitationCodingOptions(field, currentValue).map((entry) => typeof entry === "object" ? { value: String(entry.value), label: entry.label } : { value: String(entry), label: String(entry) });
+        return [{ value: "", label: field === "usageRecommendation" ? "Noch nicht festgelegt" : "Noch offen" }, ...options];
+      }
+
+      function observationCodeStatus(field) {
+        return `<p class="observation-code-status" data-observation-code-status="${field}" role="status" aria-live="polite"></p>`;
+      }
+
+      function renderObservationCodeSelect(row, item) {
+        const currentValue = String(row[item.field] ?? (item.field === "usageRecommendation" ? row.nextUse : "") ?? "");
+        const badgeClass = `observation-coding-badge observation-coding-badge--${item.tone}`;
+        if (!canEditContacts()) return `<span class="${badgeClass}">${escapeHtml(item.value)}</span>`;
+        const popupId = `observation-code-options-${item.field}`;
+        return `<div class="observation-code-select" data-observation-code-control="${item.field}" data-observation-code-id="${escapeHtml(row.id)}" data-observation-code-version="${escapeHtml(row.updatedAt || "")}">
+          <button class="${badgeClass} observation-code-trigger" type="button" data-observation-code-toggle="${item.field}" aria-label="${escapeHtml(item.label)}: ${escapeHtml(item.value)}. Ändern" aria-haspopup="listbox" aria-expanded="false" aria-controls="${popupId}-listbox">
+            <span>${escapeHtml(item.value)}</span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="m7 10 5 5 5-5"></path></svg>
+          </button>
+          <div class="observation-code-popover" id="${popupId}" data-observation-code-popover="${item.field}" hidden>
+            ${observationInputHint(item.field, { code: true })}
+            <div class="observation-code-options" role="listbox" id="${popupId}-listbox" aria-label="${escapeHtml(item.label)}" aria-describedby="observation-code-hint-${item.field}">
+              ${observationCodeOptions(item.field, currentValue).map((option) => `<button class="observation-code-option ${option.value === currentValue ? "is-selected" : ""}" type="button" role="option" tabindex="-1" aria-label="${escapeHtml(option.label)}" aria-selected="${option.value === currentValue}" data-observation-code-option="${item.field}" data-observation-code-value="${escapeHtml(option.value)}">${escapeHtml(option.label)}${hospitationModel.codebookDefinition?.(item.field, option.value)?.definition ? `<small>${escapeHtml(hospitationModel.codebookDefinition(item.field, option.value).definition)}</small>` : ""}</button>`).join("")}
+            </div>
+          </div>
+          ${observationCodeStatus(item.field)}
+        </div>`;
+      }
+
+      function renderObservationRelevanceControl(row) {
+        const score = Math.max(0, Math.min(5, Number(row.relevanceScore) || 0));
+        if (!canEditContacts()) return `<span class="observation-relevance-readonly" aria-label="Relevanz ${score ? `${score} von 5` : "offen"}">${[1, 2, 3, 4, 5].map((value) => `<span class="observation-relevance-point ${value <= score ? "is-active" : ""}" aria-hidden="true"></span>`).join("")}<span>${score ? `${score}/5` : "Offen"}</span></span>`;
+        return `<div class="observation-relevance-control" data-observation-code-control="relevanceScore" data-observation-code-id="${escapeHtml(row.id)}" data-observation-code-version="${escapeHtml(row.updatedAt || "")}">
+          <div class="observation-relevance-points" role="radiogroup" aria-label="Relevanz" aria-describedby="observation-code-hint-relevanceScore">
+            ${[1, 2, 3, 4, 5].map((value) => `<button class="observation-relevance-point ${value <= score ? "is-active" : ""}" type="button" role="radio" aria-checked="${value === score}" aria-label="${value} von 5" tabindex="${value === (score || 1) ? "0" : "-1"}" data-observation-relevance-value="${value}"><span aria-hidden="true"></span></button>`).join("")}
+          </div>
+          <span class="observation-relevance-value">${score ? `${score}/5` : "Offen"}</span>
+          <button class="observation-relevance-clear" type="button" data-observation-relevance-clear aria-label="Relevanz auf offen setzen" ${score ? "" : "hidden"}>Zurücksetzen</button>
+          ${observationInputHint("relevanceScore", { code: true, hidden: true })}
+          ${observationCodeStatus("relevanceScore")}
+        </div>`;
       }
 
       function renderHospitationObservationDetail(row = null) {
@@ -24370,96 +24445,69 @@
         if (hospitationObservationEditMode) return renderHospitationObservationForm(row);
         const history = Array.isArray(row._history) ? row._history : [];
         const canModify = canEditContacts();
-        const contact = hospitationContact(parent);
-        const contactLabel = hospitationDocumentationContactLabel(parent);
-        const contactAvatar = contact
-          ? contactAvatarMarkup(contact, "lg")
-          : `<span class="avatar avatar-fallback avatar-lg" aria-hidden="true">${escapeHtml(initialsFromLabel(contactLabel))}</span>`;
-        const observationNumber = Number(row._chronologicalNumber) || 0;
-        const organizationLabel = hospitationOrganizationLabel(parent) || "Keine Organisation";
         const locationLabel = parent.location || parent.city || "Ort offen";
-        const relevanceScore = Math.max(0, Math.min(5, Number(row.relevanceScore) || 0));
+        const observationNumber = Number(row._chronologicalNumber) || "–";
         const codingItems = [
-          { label: "Problemtyp", value: row.problemType || "Noch nicht codiert", tone: "problem" },
-          { label: "Prozessphase", value: row.processPhase || "Prozessphase offen", tone: "phase" },
-          { label: "Auswirkung", value: row.impact || "Auswirkung offen", tone: "impact" },
-          { label: "Nächste Nutzung", value: row.usageRecommendation || row.nextUse || "Noch nicht festgelegt", tone: "usage" }
+          { field: "processPhase", label: "Prozessphase", value: observationCodingLabel("processPhase", row.processPhase), tone: "phase" },
+          { field: "problemType", label: "Problemtyp", value: observationCodingLabel("problemType", row.problemType), tone: "problem" },
+          { field: "impact", label: "Auswirkung", value: observationCodingLabel("impact", row.impact), tone: "impact" }
+        ];
+        const laterItems = [
+          { field: "observationType", label: "Beobachtungsart", value: observationCodingLabel("observationType", row.observationType), tone: "phase" },
+          { field: "usageRecommendation", label: "Nächste Nutzung", value: observationCodingLabel("usageRecommendation", row.usageRecommendation ?? row.nextUse, "Noch nicht festgelegt"), tone: "usage" }
         ];
         const historyActionLabels = { create: "Erstellt", update: "Geändert", archive: "Archiviert", restore: "Wiederhergestellt" };
         return `
-          <div class="observation-detail-content" aria-label="Beobachtungsdetail">
-            <section class="observation-detail-hero" aria-label="Kontakt und Beobachtungskennung">
-              <div class="observation-detail-hero__identity">
-                <div class="observation-detail-hero__avatar">${contactAvatar}</div>
-                <div class="observation-detail-hero__copy">
-                  <div class="observation-detail-hero__eyebrow">
-                    <span>Kontakt</span>
-                    <code class="observation-detail-id">ID ${escapeHtml(observationNumber || "Nicht vergeben")}</code>
-                  </div>
-                  <div class="observation-detail-hero__name">
-                    <strong>${escapeHtml(contactLabel || "Kein Kontakt")}</strong>
-                    ${sectorBadgeMarkup(hospitationSectorLabel(parent))}
-                  </div>
-                  <p>${escapeHtml(organizationLabel)} · ${escapeHtml(hospitationDateOnlyLabel(parent) || "Termin offen")}</p>
-                </div>
-              </div>
-              <div class="observation-detail-hero__actions">
-                <span class="observation-evidence-label observation-evidence-label--${escapeHtml(observationEvidenceTone(row.evidenceType))}">${escapeHtml(observationEvidenceLabel(row.evidenceType))}</span>
-                ${canModify ? `<button class="action-button action-button--compact" type="button" data-observation-edit>Bearbeiten</button>` : ""}
-              </div>
-            </section>
-
+          <div class="observation-detail-content detail-profile" aria-label="Beobachtungsdetail">
             <section class="observation-detail-card observation-detail-card--finding" aria-labelledby="observation-detail-finding-title">
-              <div class="observation-detail-card__head">
-                <span class="observation-detail-card__icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 5.5h16v13H4z"></path><path d="M8 9h8M8 13h8"></path></svg></span>
-                <div><h4 id="observation-detail-finding-title">Beobachtung</h4><p>Dokumentierter Kontext und konkreter Befund</p></div>
+              <div class="observation-detail-heading" data-observation-field="title">
+                <span class="observation-detail-id observation-row-number" aria-label="Beobachtung ${escapeHtml(observationNumber)}">${escapeHtml(observationNumber)}</span>
+                <h3 class="detail-section-title observation-detail-title observation-detail-field__value" id="observation-detail-finding-title">${escapeHtml(row.title || "Beobachtung")}</h3>
+                ${canModify ? renderProfileFieldEditButton("Kurzfassung bearbeiten", 'data-observation-edit-field="title" data-observation-scope="observation" aria-expanded="false"') : ""}
               </div>
               <div class="observation-detail-copy-grid">
-                <article class="observation-detail-copy-block">
-                  <span>Situation</span>
-                  <p>${escapeHtml(row.situation || row.situationContext || "Keine Situation dokumentiert.")}</p>
+                <article class="observation-detail-copy-block" data-observation-field="description">
+                  ${observationFieldHead("description", "Beobachtung")}
+                  ${observationFieldValue(`<p>${escapeHtml(hospitationModel.observationText(row) || "Keine Beobachtung dokumentiert.")}</p>`)}
                 </article>
-                <article class="observation-detail-copy-block observation-detail-copy-block--primary">
-                  <span>Konkrete Beobachtung</span>
-                  <p>${escapeHtml(row.description || row.observed || "Keine Beschreibung dokumentiert.")}</p>
-                </article>
+              </div>
+              <div class="observation-detail-evidence" data-observation-field="evidenceType">
+                ${observationFieldHead("evidenceType", "Quelle")}
+                ${renderObservationCodeSelect(row, { field: "evidenceType", label: "Quelle", value: observationEvidenceLabel(row.evidenceType), tone: "relevance" })}
               </div>
             </section>
 
             <section class="observation-detail-card observation-detail-card--coding" aria-labelledby="observation-detail-coding-title">
-              <div class="observation-detail-card__head">
-                <span class="observation-detail-card__icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m4 7 4-3 4 3-4 3-4-3Z"></path><path d="m12 7 4-3 4 3-4 3-4-3Z"></path><path d="m4 15 4-3 4 3-4 3-4-3Z"></path><path d="m12 15 4-3 4 3-4 3-4-3Z"></path></svg></span>
-                <div><h4 id="observation-detail-coding-title">Codierung</h4><p>Analytische Einordnung des Befunds</p></div>
-              </div>
+              <h4 class="detail-section-title" id="observation-detail-coding-title">Codierung</h4>
               <dl class="observation-detail-coding-grid">
                 ${codingItems.map((item) => `
-                  <div class="observation-detail-coding-item ${/offen|nicht codiert|nicht festgelegt/i.test(item.value) ? "is-empty" : ""}">
-                    <dt>${escapeHtml(item.label)}</dt>
-                    <dd><span class="observation-coding-badge observation-coding-badge--${escapeHtml(item.tone)}">${escapeHtml(item.value)}</span></dd>
+                  <div class="observation-detail-coding-item ${/offen|nicht codiert|nicht festgelegt/i.test(item.value) ? "is-empty" : ""}" data-observation-field="${escapeHtml(item.field)}">
+                    <dt>${observationFieldHead(item.field, item.label)}</dt>
+                    <dd>${renderObservationCodeSelect(row, item)}</dd>
                   </div>
                 `).join("")}
-                <div class="observation-detail-coding-item">
-                  <dt>Evidenzart</dt>
-                  <dd><span class="observation-evidence-label observation-evidence-label--${escapeHtml(observationEvidenceTone(row.evidenceType))}">${escapeHtml(observationEvidenceLabel(row.evidenceType))}</span></dd>
-                </div>
-                <div class="observation-detail-coding-item ${relevanceScore ? "" : "is-empty"}">
-                  <dt>Relevanz</dt>
-                  <dd><span class="observation-coding-badge observation-coding-badge--relevance observation-detail-relevance" aria-label="Relevanz ${relevanceScore || "noch offen"} von 5"><span class="observation-detail-relevance__dots" aria-hidden="true">${[1, 2, 3, 4, 5].map((level) => `<i class="${level <= relevanceScore ? "is-active" : ""}"></i>`).join("")}</span><strong>${relevanceScore ? `${relevanceScore}/5` : "Offen"}</strong></span></dd>
-                </div>
               </dl>
+              <details class="observation-detail-assessment"><summary>Spätere Bewertung</summary>
+                <dl class="observation-detail-coding-grid">
+                  ${laterItems.map((item) => `<div class="observation-detail-coding-item" data-observation-field="${item.field}"><dt>${observationFieldHead(item.field, item.label)}</dt><dd>${renderObservationCodeSelect(row, item)}</dd></div>`).join("")}
+                  <div class="observation-detail-coding-item" data-observation-field="relevanceScore"><dt>${observationFieldHead("relevanceScore", "Relevanz")}</dt><dd>${renderObservationRelevanceControl(row)}</dd></div>
+                </dl>
+              </details>
             </section>
 
             <section class="observation-detail-card observation-detail-card--source" aria-labelledby="observation-detail-source-title">
-              <div class="observation-detail-card__head">
-                <span class="observation-detail-card__icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 21h18"></path><path d="M5 21V7l8-4v18"></path><path d="M19 21V11l-6-4"></path><path d="M9 9h1M9 13h1M9 17h1"></path></svg></span>
-                <div><h4 id="observation-detail-source-title">Herkunft</h4><p>Bezug zur dokumentierten Hospitation</p></div>
+              <div class="observation-detail-source-heading">
+                <h4 class="detail-section-title" id="observation-detail-source-title">Hospitation</h4>
+                <button class="observation-detail-source-action" type="button" data-observation-open-source="${escapeHtml(parent.id || "")}">In Hospitation öffnen</button>
               </div>
-              <dl class="observation-detail-source-grid">
-                <div><dt>Hospitation</dt><dd>${escapeHtml(hospitationDateOnlyLabel(parent) || "Termin offen")} · ${escapeHtml(locationLabel)}</dd></div>
-                <div><dt>Organisation</dt><dd>${escapeHtml(organizationLabel)}</dd></div>
-                <div><dt>Owner</dt><dd>${hospitationOwnersMarkup(parent)}</dd></div>
-              </dl>
-              <button class="action-button action-button--compact observation-detail-source-action" type="button" data-observation-open-source="${escapeHtml(parent.id || "")}">In Hospitation öffnen</button>
+              ${renderHospitationContextProfile(parent, {
+                readOnly: true,
+                metaMarkup: `<dl class="observation-source-meta">
+                  <div class="observation-source-meta-item"><dt class="visually-hidden">Datum</dt><dd>${escapeHtml(hospitationDateOnlyLabel(parent) || "Termin offen")}</dd></div>
+                  <div class="observation-source-meta-item"><dt class="visually-hidden">Ort</dt><dd>${escapeHtml(locationLabel)}</dd></div>
+                  <div class="observation-source-meta-item observation-source-meta-item--owner"><dt>Owner</dt><dd>${hospitationOwnerIds(parent).map((id) => `<span class="observation-source-owner-name">${escapeHtml(ownerDisplayLabel(id) || id)}</span>`).join("") || "Kein Owner"}</dd></div>
+                </dl>`
+              })}
             </section>
 
             <details class="observation-detail-history">
@@ -24473,28 +24521,363 @@
         `;
       }
 
+      function closeObservationFieldHelp({ restoreFocus = false } = {}) {
+        const panel = observationDetailBody?.querySelector("[data-observation-help]:not([hidden])");
+        if (!panel) return false;
+        panel.hidden = true;
+        const button = observationDetailBody.querySelector(`[data-observation-info="${panel.dataset.observationHelp}"]`);
+        button?.setAttribute("aria-expanded", "false");
+        if (restoreFocus) button?.focus({ preventScroll: true });
+        return true;
+      }
+
+      function observationHelpState() {
+        return {
+          assessmentOpen: Boolean(observationDetailBody.querySelector(".observation-detail-assessment[open]")),
+          infoField: observationDetailBody.querySelector("[data-observation-help]:not([hidden])")?.dataset.observationHelp || "",
+          codeHints: [...observationDetailBody.querySelectorAll(".observation-relevance-control [data-observation-input-hint]:not([hidden])")].map((hint) => hint.dataset.observationInputHint)
+        };
+      }
+
+      function restoreObservationHelpState(state) {
+        if (state.assessmentOpen) observationDetailBody.querySelector(".observation-detail-assessment")?.setAttribute("open", "");
+        if (state.infoField) {
+          const panel = observationDetailBody.querySelector(`[data-observation-help="${state.infoField}"]`);
+          if (panel) panel.hidden = false;
+          observationDetailBody.querySelector(`[data-observation-info="${state.infoField}"]`)?.setAttribute("aria-expanded", "true");
+        }
+        state.codeHints.forEach((field) => {
+          const hint = observationDetailBody.querySelector(`[data-observation-input-hint="${field}"]`);
+          if (hint) hint.hidden = false;
+        });
+      }
+
+      function bindObservationFieldHelp(root) {
+        root.querySelectorAll("[data-observation-info]").forEach((button) => {
+          button.addEventListener("click", () => {
+            const panel = root.querySelector(`[data-observation-help="${button.dataset.observationInfo}"]`);
+            if (!panel) return;
+            const opening = panel.hidden;
+            closeObservationFieldHelp();
+            panel.hidden = !opening;
+            button.setAttribute("aria-expanded", String(opening));
+          });
+        });
+      }
+
+      function closeObservationCodePopover({ restoreFocus = false } = {}) {
+        const popover = observationDetailBody?.querySelector("[data-observation-code-popover]:not([hidden])");
+        if (!popover) return false;
+        if (hospitationObservationCodeSave) return true;
+        const field = popover.dataset.observationCodePopover;
+        popover.hidden = true;
+        const trigger = observationDetailBody.querySelector(`[data-observation-code-toggle="${field}"]`);
+        trigger?.setAttribute("aria-expanded", "false");
+        popover.closest(".observation-code-select")?.classList.remove("is-opening-up");
+        if (restoreFocus) trigger?.focus({ preventScroll: true });
+        return true;
+      }
+
+      function prepareObservationCodeInteraction() {
+        const hadInlineEditor = Boolean(hospitationObservationInlineEdit);
+        if (!confirmObservationInlineDiscard()) return false;
+        if (hadInlineEditor) renderHospitationObservationDrawer();
+        return true;
+      }
+
+      function openObservationCodePopover(field, focusLast = false) {
+        if (!canEditContacts() || !prepareObservationCodeInteraction()) return;
+        const popover = observationDetailBody.querySelector(`[data-observation-code-popover="${field}"]`);
+        const trigger = observationDetailBody.querySelector(`[data-observation-code-toggle="${field}"]`);
+        if (!popover || !trigger) return;
+        if (!popover.hidden) {
+          closeObservationCodePopover({ restoreFocus: true });
+          return;
+        }
+        closeObservationCodePopover();
+        popover.hidden = false;
+        trigger.setAttribute("aria-expanded", "true");
+        const container = popover.closest(".observation-code-select");
+        const triggerRect = trigger.getBoundingClientRect();
+        const popupHeight = popover.getBoundingClientRect().height;
+        const availableBottom = window.innerHeight - triggerRect.bottom - 16;
+        container.classList.toggle("is-opening-up", availableBottom < popupHeight && triggerRect.top > popupHeight + 16);
+        if (availableBottom < popupHeight && triggerRect.top <= popupHeight + 16) trigger.scrollIntoView({ block: "center", behavior: "instant" });
+        const options = [...popover.querySelectorAll("[role='option']")];
+        const selected = options.find((option) => option.getAttribute("aria-selected") === "true");
+        (focusLast ? options.at(-1) : selected || options[0])?.focus({ preventScroll: true });
+        (focusLast ? options.at(-1) : selected || options[0])?.scrollIntoView({ block: "nearest", behavior: "instant" });
+      }
+
+      async function saveObservationCode(field, value, focusSelector) {
+        if (!canEditContacts() || !prepareObservationCodeInteraction()) return;
+        const row = hospitationObservationSourceRows().find((item) => item.id === activeHospitationObservationId);
+        const control = observationDetailBody.querySelector(`[data-observation-code-control="${field}"]`);
+        if (!row || !control || control.dataset.observationCodeId !== row.id) return;
+        const allowed = field === "relevanceScore" ? [null, 1, 2, 3, 4, 5]
+          : observationCodeOptions(field, String(row[field] ?? (field === "usageRecommendation" ? row.nextUse : "") ?? "")).map((option) => option.value);
+        if (!allowed.includes(value)) return;
+        const currentValue = field === "relevanceScore" ? Number(row.relevanceScore) || null : row[field] ?? (field === "usageRecommendation" ? row.nextUse : "") ?? "";
+        if (currentValue === value) {
+          closeObservationCodePopover({ restoreFocus: true });
+          return;
+        }
+        const status = control.querySelector(`[data-observation-code-status="${field}"]`);
+        const openPopover = observationDetailBody.querySelector("[data-observation-code-popover]:not([hidden])");
+        if (openPopover && openPopover.dataset.observationCodePopover !== field) closeObservationCodePopover();
+        const activeControl = document.activeElement;
+        const enabled = [...observationDetailBody.querySelectorAll("[data-observation-code-control] button")].filter((button) => !button.disabled);
+        const save = { field, status };
+        hospitationObservationCodeSave = save;
+        control.setAttribute("aria-busy", "true");
+        status.textContent = "Wird gespeichert …";
+        status.classList.remove("is-error");
+        enabled.forEach((button) => { button.disabled = true; });
+        try {
+          const updated = await window.dataService.updateHospitationObservation(row.id, { [field]: value }, control.dataset.observationCodeVersion || "");
+          if (!updated?.id) throw new Error("Die Codierung konnte nicht gespeichert werden.");
+          hospitationObservations = [updated, ...hospitationObservations.filter((item) => item.id !== updated.id)];
+          mergeCanonicalObservationsIntoHospitations();
+          const helpState = observationHelpState();
+          hospitationObservationCodeSave = null;
+          setStorageStatus("Codierung gespeichert");
+          renderHospitationsView();
+          renderHospitationObservationDrawer();
+          restoreObservationHelpState(helpState);
+          observationDetailBody.querySelector(`[data-observation-code-status="${field}"]`).textContent = "Gespeichert";
+          const nextFocus = observationDetailBody.querySelector(focusSelector);
+          if (nextFocus?.disabled || nextFocus?.hidden) observationDetailBody.querySelector(`[data-observation-relevance-value="1"]`)?.focus({ preventScroll: true });
+          else nextFocus?.focus({ preventScroll: true });
+        } catch (error) {
+          status.textContent = error?.message || "Speichern fehlgeschlagen. Der bisherige Wert bleibt erhalten. Bitte erneut versuchen.";
+          status.classList.add("is-error");
+        } finally {
+          if (hospitationObservationCodeSave === save) hospitationObservationCodeSave = null;
+          control.removeAttribute("aria-busy");
+          enabled.forEach((button) => { button.disabled = false; });
+          if (control.isConnected && activeControl?.isConnected) activeControl.focus({ preventScroll: true });
+        }
+      }
+
+      function bindObservationCodeControls(root) {
+        observationDetailDrawer.onclick = (event) => {
+          if (event.target.closest(".observation-code-select")) return;
+          const popover = root.querySelector("[data-observation-code-popover]:not([hidden])");
+          closeObservationCodePopover({ restoreFocus: Boolean(popover?.contains(document.activeElement) && !event.target.closest("button, a, input, select, textarea, [tabindex]")) });
+        };
+        root.querySelectorAll("[data-observation-code-toggle]").forEach((trigger) => {
+          trigger.addEventListener("click", () => openObservationCodePopover(trigger.dataset.observationCodeToggle));
+          trigger.addEventListener("keydown", (event) => {
+            if (!["ArrowDown", "ArrowUp"].includes(event.key)) return;
+            event.preventDefault();
+            openObservationCodePopover(trigger.dataset.observationCodeToggle, event.key === "ArrowUp");
+          });
+        });
+        root.querySelectorAll("[data-observation-code-option]").forEach((option) => {
+          option.addEventListener("click", () => saveObservationCode(option.dataset.observationCodeOption, option.dataset.observationCodeValue || "", `[data-observation-code-toggle="${option.dataset.observationCodeOption}"]`));
+        });
+        root.querySelectorAll("[data-observation-code-popover]").forEach((popover) => {
+          popover.addEventListener("focusout", (event) => {
+            if (event.relatedTarget && !popover.closest(".observation-code-select")?.contains(event.relatedTarget)) closeObservationCodePopover();
+          });
+          popover.addEventListener("keydown", (event) => {
+            if (event.defaultPrevented) return;
+            if (event.key === "Escape") {
+              event.preventDefault();
+              event.stopPropagation();
+              if (closeObservationFieldHelp({ restoreFocus: false })) return;
+              closeObservationCodePopover({ restoreFocus: true });
+              return;
+            }
+            if (!["ArrowDown", "ArrowUp", "Home", "End"].includes(event.key)) return;
+            event.preventDefault();
+            const options = [...popover.querySelectorAll("[role='option']:not(:disabled)")];
+            if (!options.length) return;
+            const index = options.indexOf(document.activeElement);
+            const next = event.key === "Home" ? 0 : event.key === "End" ? options.length - 1 : (index + (event.key === "ArrowDown" ? 1 : -1) + options.length) % options.length;
+            options[next].focus({ preventScroll: true });
+            options[next].scrollIntoView({ block: "nearest", behavior: "instant" });
+          });
+        });
+        root.querySelectorAll("[data-observation-relevance-value]").forEach((button) => {
+          button.addEventListener("click", () => saveObservationCode("relevanceScore", Number(button.dataset.observationRelevanceValue), `[data-observation-relevance-value="${button.dataset.observationRelevanceValue}"]`));
+        });
+        root.querySelector("[data-observation-relevance-clear]")?.addEventListener("click", () => saveObservationCode("relevanceScore", null, "[data-observation-relevance-clear]"));
+        root.querySelectorAll(".observation-relevance-points").forEach((group) => {
+          const showHint = () => {
+            const hint = group.closest("[data-observation-code-control]")?.querySelector("[data-observation-input-hint]");
+            if (hint) hint.hidden = false;
+          };
+          const control = group.closest("[data-observation-code-control]");
+          control?.addEventListener("focusin", showHint);
+          control?.addEventListener("pointerdown", showHint);
+          group.addEventListener("keydown", (event) => {
+            if (!["ArrowRight", "ArrowLeft", "ArrowDown", "ArrowUp", "Home", "End"].includes(event.key)) return;
+            event.preventDefault();
+            const radios = [...group.querySelectorAll("[role='radio']:not(:disabled)")];
+            if (!radios.length) return;
+            const index = radios.indexOf(document.activeElement);
+            const next = event.key === "Home" ? 0 : event.key === "End" ? radios.length - 1 : (index + (["ArrowRight", "ArrowDown"].includes(event.key) ? 1 : -1) + radios.length) % radios.length;
+            radios[next].focus({ preventScroll: true });
+            radios[next].click();
+          });
+        });
+      }
+
+      function observationInlineFormSignature(form) {
+        return JSON.stringify([...new FormData(form).entries()]);
+      }
+
+      function confirmObservationInlineDiscard() {
+        if (hospitationObservationCodeSave) {
+          hospitationObservationCodeSave.status.textContent = "Bitte warte, bis das Speichern abgeschlossen ist.";
+          return false;
+        }
+        const edit = hospitationObservationInlineEdit;
+        if (!edit) return true;
+        if (edit.saving) {
+          edit.form.querySelector("[data-observation-inline-status]").textContent = "Bitte warte, bis das Speichern abgeschlossen ist.";
+          return false;
+        }
+        if (observationInlineFormSignature(edit.form) !== edit.signature && !window.confirm("Ungespeicherte Änderungen verwerfen?")) return false;
+        hospitationObservationInlineEdit = null;
+        return true;
+      }
+
+      function observationInlineControlMarkup(row, field) {
+        if (!["title", "description"].includes(field)) return "";
+        const label = field === "title" ? "Kurzfassung" : "Beobachtung";
+        const id = `observation-inline-${field}`;
+        const attrs = `id="${id}" name="${field}" aria-label="${escapeHtml(label)}" aria-describedby="observation-inline-hint-${field}"`;
+        if (field === "title") return `<label class="visually-hidden" for="${id}">${label}</label><input class="format-fact-control" ${attrs} value="${escapeHtml(row.title || "")}" required>`;
+        const value = hospitationModel.observationText(row);
+        return `<label class="visually-hidden" for="${id}">${label}</label><textarea class="format-fact-control hospitation-inline-textarea" ${attrs}${field === "description" ? " required" : ""}>${escapeHtml(value)}</textarea>`;
+      }
+
+      function startObservationInlineEdit(field) {
+        if (!["title", "description"].includes(field) || !canEditContacts()) return;
+        if (hospitationObservationInlineEdit?.field === field) {
+          hospitationObservationInlineEdit.form.querySelector("input, textarea")?.focus();
+          return;
+        }
+        if (!confirmObservationInlineDiscard()) return;
+        const row = hospitationObservationSourceRows().find((item) => item.id === activeHospitationObservationId);
+        if (!row) return;
+        const control = observationInlineControlMarkup(row, field);
+        if (!control) return;
+        renderHospitationObservationDrawer();
+        const container = observationDetailBody.querySelector(`[data-observation-field="${field}"]`);
+        const value = container?.querySelector(".observation-detail-field__value");
+        if (!value) return;
+        value.hidden = true;
+        container.classList.add("is-editing");
+        container.querySelector("[data-observation-edit-field]")?.setAttribute("aria-expanded", "true");
+        value.insertAdjacentHTML("afterend", `<form class="observation-inline-form" data-observation-inline-form data-observation-field="${field}" data-observation-scope="observation">
+          ${control}
+          ${observationInputHint(field)}
+          <p class="observation-inline-status" data-observation-inline-status role="status" aria-live="polite"></p>
+          <div class="observation-inline-form__actions"><button class="action-button action-button--compact" type="button" data-observation-inline-cancel>Abbrechen</button><button class="action-button action-button--compact action-button--primary" type="submit" data-observation-inline-save>Speichern</button></div>
+        </form>`);
+        const form = container.querySelector("form");
+        hospitationObservationInlineEdit = {
+          field, observationId: row.id, updatedAt: row.updatedAt || "",
+          form, signature: observationInlineFormSignature(form), saving: false
+        };
+        const cancel = () => {
+          if (hospitationObservationInlineEdit?.saving) return;
+          hospitationObservationInlineEdit = null;
+          renderHospitationObservationDrawer();
+          observationDetailBody.querySelector(`[data-observation-edit-field="${field}"]`)?.focus({ preventScroll: true });
+        };
+        form.querySelector("[data-observation-inline-cancel]")?.addEventListener("click", cancel);
+        form.addEventListener("submit", saveObservationInlineEdit);
+        form.addEventListener("keydown", (event) => {
+          if (event.key !== "Escape" || event.defaultPrevented) return;
+          event.preventDefault();
+          event.stopPropagation();
+          if (closeObservationFieldHelp({ restoreFocus: true })) return;
+          if (confirmObservationInlineDiscard()) cancel();
+        });
+        window.requestAnimationFrame(() => form.querySelector("input, textarea")?.focus({ preventScroll: true }));
+      }
+
+      async function saveObservationInlineEdit(event) {
+        event.preventDefault();
+        const edit = hospitationObservationInlineEdit;
+        if (!edit || edit.form !== event.currentTarget || edit.saving || !["title", "description"].includes(edit.field)) return;
+        const form = edit.form;
+        const status = form.querySelector("[data-observation-inline-status]");
+        if (!canEditContacts()) {
+          status.textContent = "Du hast keine Berechtigung, dieses Feld zu bearbeiten.";
+          status.classList.add("is-error");
+          return;
+        }
+        if (!form.reportValidity()) return;
+        const data = new FormData(form);
+        const value = String(data.get(edit.field) || "").trim();
+        if (["title", "description"].includes(edit.field) && !value) {
+          status.textContent = edit.field === "title" ? "Bitte gib eine Kurzfassung ein." : "Bitte gib eine Beobachtung ein.";
+          status.classList.add("is-error");
+          form.querySelector(`[name="${edit.field}"]`)?.focus({ preventScroll: true });
+          return;
+        }
+        edit.saving = true;
+        status.textContent = "Wird gespeichert …";
+        status.classList.remove("is-error");
+        const enabled = [...form.querySelectorAll("button, input, textarea, select")].filter((control) => !control.disabled);
+        enabled.forEach((control) => { control.disabled = true; });
+        try {
+          const patch = edit.field === "description" ? { description: value, situation: "", situationContext: "" } : { title: value };
+          const updated = await window.dataService.updateHospitationObservation(edit.observationId, patch, edit.updatedAt);
+          if (!updated?.id) throw new Error("Die Beobachtung konnte nicht gespeichert werden.");
+          hospitationObservations = [updated, ...hospitationObservations.filter((item) => item.id !== updated.id)];
+          mergeCanonicalObservationsIntoHospitations();
+          hospitationObservationInlineEdit = null;
+          setStorageStatus("Beobachtung gespeichert");
+          renderHospitationsView();
+          renderHospitationObservationDrawer();
+          observationDetailBody.querySelector(`[data-observation-edit-field="${edit.field}"]`)?.focus({ preventScroll: true });
+        } catch (error) {
+          status.textContent = error?.message || "Speichern fehlgeschlagen. Deine Eingabe bleibt erhalten. Bitte prüfe Rolle und Verbindung.";
+          status.classList.add("is-error");
+        } finally {
+          edit.saving = false;
+          enabled.forEach((control) => { control.disabled = false; });
+        }
+      }
+
       function closeHospitationObservationDrawer() {
+        if (!confirmObservationInlineDiscard()) return false;
+        hospitationObservationOpenRequest += 1;
         observationDetailDrawer?.classList.remove("is-open");
         observationDetailDrawer?.classList.remove("is-observation-read", "is-observation-edit", "is-observation-create");
         observationDetailDrawer?.setAttribute("aria-hidden", "true");
         hospitationObservationCreateMode = false;
         hospitationObservationEditMode = false;
+        return true;
       }
 
       async function openHospitationObservationDrawerById(id = "") {
         const row = hospitationObservationSourceRows().find((item) => item.id === id);
         if (!row) return false;
+        if (!closeHospitationObservationDrawer()) return false;
+        const request = ++hospitationObservationOpenRequest;
+        const openingView = activeView;
+        const openingTab = activeHospitationTab;
+        const observation = hospitationObservations.find((item) => item.id === id);
+        let history = [];
+        if (observation && window.dataService.loadHospitationObservationHistory) {
+          try {
+            history = await window.dataService.loadHospitationObservationHistory(observation.id);
+          } catch (_error) {
+            history = [];
+          }
+        }
+        if (request !== hospitationObservationOpenRequest || activeView !== openingView || activeHospitationTab !== openingTab) return false;
+        if (observation) observation._history = history;
         activeHospitationObservationId = id;
         hospitationObservationCreateMode = false;
         hospitationObservationEditMode = false;
-        const observation = hospitationObservations.find((item) => item.id === id);
-        if (observation && window.dataService.loadHospitationObservationHistory) {
-          try {
-            observation._history = await window.dataService.loadHospitationObservationHistory(observation.id);
-          } catch (_error) {
-            observation._history = [];
-          }
-        }
         if (activeHospitationTab === "observations") renderHospitationObservationsWorkbench();
         renderHospitationObservationDrawer();
         return true;
@@ -24503,18 +24886,23 @@
       function renderHospitationObservationDrawer() {
         if (!observationDetailBody || !observationDetailDrawer) return;
         const row = hospitationObservationSourceRows().find((item) => item.id === activeHospitationObservationId) || null;
+        const isReading = Boolean(row && !hospitationObservationCreateMode && !hospitationObservationEditMode);
         observationDetailTitle.textContent = hospitationObservationCreateMode
           ? "Neue Beobachtung"
           : hospitationObservationEditMode
             ? "Beobachtung bearbeiten"
-            : (row?.title || "Beobachtung");
+            : "Beobachtung";
         observationDetailSubtitle.textContent = hospitationObservationCreateMode
           ? "Qualitativen Befund mit einer Ursprungshospitation verknüpfen."
           : hospitationObservationEditMode
-            ? `ID ${row?._chronologicalNumber || "Nicht vergeben"} · Inhalte und Codierung anpassen`
-            : `ID ${row?._chronologicalNumber || "Nicht vergeben"} · ${observationEvidenceLabel(row?.evidenceType)}`;
+            ? "Inhalte und Codierung anpassen"
+            : "";
+        observationDetailSubtitle.hidden = !observationDetailSubtitle.textContent;
+        observationDetailHeaderActions.innerHTML = isReading && canEditContacts() ? renderProfileDrawerAction("Bearbeiten", "data-observation-edit") : "";
+        observationDetailHeaderActions.hidden = !observationDetailHeaderActions.innerHTML;
         observationDetailBody.innerHTML = renderHospitationObservationDetail(row);
-        observationDetailDrawer.classList.toggle("is-observation-read", Boolean(row && !hospitationObservationCreateMode && !hospitationObservationEditMode));
+        observationDetailDrawer.classList.toggle("is-profile-mode", isReading);
+        observationDetailDrawer.classList.toggle("is-observation-read", isReading);
         observationDetailDrawer.classList.toggle("is-observation-edit", Boolean(row && hospitationObservationEditMode));
         observationDetailDrawer.classList.toggle("is-observation-create", hospitationObservationCreateMode);
         observationDetailDrawer.classList.add("is-open");
@@ -24603,6 +24991,8 @@
         });
         root.querySelector("[data-observation-new]")?.addEventListener("click", () => {
           if (!canEditContacts()) return;
+          if (!confirmObservationInlineDiscard()) return;
+          hospitationObservationOpenRequest += 1;
           activeHospitationObservationId = "";
           hospitationObservationCreateMode = true;
           hospitationObservationEditMode = false;
@@ -24691,14 +25081,19 @@
 
       function observationPatchFromForm(form) {
         const data = new FormData(form);
+        const title = String(data.get("title") || "").trim();
+        const description = String(data.get("description") || "").trim();
+        if (!title || !description) throw new Error("Bitte ergänze Kurzfassung und Beobachtung.");
         return {
-          title: String(data.get("title") || "").trim(),
-          situation: String(data.get("situation") || "").trim(),
-          description: String(data.get("description") || "").trim(),
+          title,
+          situation: "",
+          situationContext: "",
+          description,
           processPhase: String(data.get("processPhase") || ""),
           problemType: String(data.get("problemType") || ""),
           impact: String(data.get("impact") || ""),
-          evidenceType: String(data.get("evidenceType") || "interpreted"),
+          evidenceType: String(data.get("evidenceType") || ""),
+          observationType: String(data.get("observationType") || ""),
           relevanceScore: Number(data.get("relevanceScore")) || null,
           usageRecommendation: String(data.get("usageRecommendation") || ""),
           involvedRoles: String(data.get("involvedRoles") || "").split(",").map((value) => value.trim()).filter(Boolean),
@@ -24710,10 +25105,32 @@
         const root = observationDetailBody;
         if (!root) return;
         observationDetailClose.onclick = closeHospitationObservationDrawer;
-        observationDetailOverlay.onclick = closeHospitationObservationDrawer;
-        root.querySelector("[data-observation-edit]")?.addEventListener("click", () => {
+        observationDetailOverlay.onclick = () => {
+          if (!closeObservationCodePopover({ restoreFocus: true })) closeHospitationObservationDrawer();
+        };
+        observationDetailDrawer.onkeydown = (event) => {
+          if (event.key !== "Escape" || event.defaultPrevented || root.querySelector("[data-custom-select].is-open")) return;
+          event.preventDefault();
+          if (closeObservationFieldHelp({ restoreFocus: true })) return;
+          if (closeObservationCodePopover({ restoreFocus: true })) return;
+          closeHospitationObservationDrawer();
+        };
+        bindObservationFieldHelp(root);
+        bindObservationCodeControls(root);
+        root.querySelectorAll("[data-observation-edit-field]").forEach((button) => button.addEventListener("click", () => {
+          startObservationInlineEdit(button.dataset.observationEditField);
+        }));
+        observationDetailDrawer.querySelector("[data-observation-edit]")?.addEventListener("click", () => {
+          if (!canEditContacts() || !confirmObservationInlineDiscard()) return;
           hospitationObservationEditMode = true;
           renderHospitationObservationDrawer();
+        });
+        observationDetailDrawer.querySelectorAll('[data-hospitation-action="open-contact"], [data-hospitation-action="open-organization"]').forEach((button) => {
+          button.addEventListener("click", () => {
+            if (!closeHospitationObservationDrawer()) return;
+            if (button.dataset.contactId) openPersonProfile("contact", button.dataset.contactId, { returnTo: "hospitations" });
+            else if (button.dataset.organizationId) openOrganizationProfile("care", button.dataset.organizationId, { returnTo: "hospitations" });
+          });
         });
         root.querySelector("[data-observation-edit-cancel]")?.addEventListener("click", () => {
           if (hospitationObservationCreateMode) closeHospitationObservationDrawer();
@@ -24725,12 +25142,15 @@
         root.querySelector("[data-observation-open-source]")?.addEventListener("click", (event) => {
           const parent = hospitations.find((item) => item.id === event.currentTarget.dataset.observationOpenSource);
           if (parent) {
-            closeHospitationObservationDrawer();
+            if (!closeHospitationObservationDrawer()) return;
             openHospitationEditor("documentation", parent);
           }
         });
         root.querySelector("[data-observation-archive]")?.addEventListener("click", async (event) => {
           const id = event.currentTarget.dataset.observationArchive;
+          const inlineEditorWasOpen = Boolean(hospitationObservationInlineEdit);
+          if (!canEditContacts() || !confirmObservationInlineDiscard()) return;
+          if (inlineEditorWasOpen) renderHospitationObservationDrawer();
           if (!id || !window.confirm("Beobachtung archivieren? Sie bleibt im Verlauf erhalten.")) return;
           try {
             await window.dataService.archiveHospitationObservation(id, "In der Beobachtungs-Workbench archiviert");
@@ -24744,6 +25164,7 @@
         });
         root.querySelector("[data-observation-edit-form]")?.addEventListener("submit", async (event) => {
           event.preventDefault();
+          if (!canEditContacts()) return;
           const form = event.currentTarget;
           try {
             const updated = await window.dataService.updateHospitationObservation(form.dataset.observationId, observationPatchFromForm(form), form.dataset.observationUpdatedAt || "");
@@ -24757,6 +25178,7 @@
         });
         root.querySelector("[data-observation-create-form]")?.addEventListener("submit", async (event) => {
           event.preventDefault();
+          if (!canEditContacts()) return;
           const form = event.currentTarget;
           const data = new FormData(form);
           const hospitationId = String(data.get("hospitationId") || "");
@@ -24764,16 +25186,16 @@
           const existing = hospitationObservationSourceRows().filter((item) => item.hospitationId === hospitationId);
           const generatedId = `observation-${window.crypto?.randomUUID?.() || `${Date.now()}-${Math.random().toString(16).slice(2)}`}`;
           const now = new Date().toISOString();
-          const created = {
-            id: generatedId,
-            hospitationId,
-            sequence: Math.max(0, ...existing.map((item) => Number(item.sequence) || 0)) + 1,
-            ...observationPatchFromForm(form),
-            status: "active",
-            createdAt: now,
-            updatedAt: now
-          };
           try {
+            const created = {
+              id: generatedId,
+              hospitationId,
+              sequence: Math.max(0, ...existing.map((item) => Number(item.sequence) || 0)) + 1,
+              ...observationPatchFromForm(form),
+              status: "active",
+              createdAt: now,
+              updatedAt: now
+            };
             const saved = await window.dataService.syncHospitationObservations(hospitationId, [...existing, created]);
             const savedRows = Array.isArray(saved) ? saved : [];
             hospitationObservations = [...savedRows, ...hospitationObservations.filter((item) => item.hospitationId !== hospitationId)];
@@ -25029,48 +25451,65 @@
         return `${index + 1} von ${entries.length} Hospitationen`;
       }
 
+      function renderProfileDrawerHeader(prefix, label, closeLabel) {
+        return `
+          <div>
+            <h3 id="${escapeHtml(prefix)}-title">${escapeHtml(label)}</h3>
+            <p id="${escapeHtml(prefix)}-subtitle" hidden></p>
+          </div>
+          <div class="hospitation-editor-header-actions" id="${escapeHtml(prefix)}-header-actions" hidden></div>
+          <button class="import-close" type="button" id="${escapeHtml(prefix)}-close" aria-label="${escapeHtml(closeLabel)}">&times;</button>
+        `;
+      }
+
+      function renderProfileDrawerAction(label, attributes, icon = "edit") {
+        const path = icon === "profile"
+          ? '<circle cx="12" cy="8" r="3"></circle><path d="M5 21v-2a7 7 0 0 1 14 0v2"></path>'
+          : icon === "open"
+          ? '<path d="M5 12h14m-6-6 6 6-6 6"></path>'
+          : '<path d="M12 20h9"></path><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"></path>';
+        return `<button class="hospitation-editor-header-action" type="button" ${attributes} aria-label="${escapeHtml(label)}" title="${escapeHtml(label)}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">${path}</svg><span>${escapeHtml(label)}</span></button>`;
+      }
+
+      function renderHospitationProfileActions(hospitation, editAttributes = "") {
+        const contact = hospitationContact(hospitation);
+        return renderProfileDrawerAction("Profil öffnen", contact
+          ? `data-hospitation-action="open-contact" data-contact-id="${escapeHtml(contact.id)}"`
+          : "disabled", "profile")
+          + (editAttributes ? renderProfileDrawerAction("Bearbeiten", editAttributes) : "");
+      }
+
+      function renderProfileMetaControl(label, bodyMarkup, { attributes = "", owner = false } = {}) {
+        return `<div class="detail-meta-control ${owner ? "detail-meta-control--owner profile-owner-control" : ""}" ${attributes}>
+          <div class="detail-meta-control__head"><span class="detail-meta-control__label">${escapeHtml(label)}</span></div>
+          ${bodyMarkup}
+        </div>`;
+      }
+
+      function renderProfileOwnerMain(hospitation, { editButton = "", pickerMarkup = "" } = {}) {
+        return `<div class="profile-owner-control__main hospitation-owner-control__main" data-hospitation-owner-control>
+          <div class="profile-owner-control__row hospitation-owner-control__row">
+            <div class="profile-owner-control__badge hospitation-owner-control__badge">${hospitationOwnersMarkup(hospitation)}</div>
+            ${editButton}
+          </div>
+          ${pickerMarkup}
+        </div>`;
+      }
+
       function hospitationDocumentationOwnerControl(hospitation = {}) {
         const ownerIds = hospitationOwnerIds(hospitation);
         const canEditOwner = canEditHospitationScheduleItem() && hospitation.id;
         const pickerId = `hospitation-owner-picker-${normalizeClassPart(hospitation.id || "current")}`;
-        const editButton = canEditOwner
-          ? `
-            <button class="profile-owner-control__edit hospitation-owner-edit" type="button" data-hospitation-owner-edit aria-label="Owner bearbeiten" aria-expanded="${hospitationDocumentationOwnerPickerOpen ? "true" : "false"}" aria-controls="${pickerId}">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
-                <path d="M12 20h9"></path>
-                <path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"></path>
-              </svg>
-            </button>
-          `
-          : "";
-        return `
-          <div class="detail-meta-control detail-meta-control--owner profile-owner-control">
-            <div class="detail-meta-control__head">
-              <span class="detail-meta-control__label">Owner</span>
-            </div>
-            <div class="profile-owner-control__main hospitation-owner-control__main" data-hospitation-owner-control>
-              <div class="profile-owner-control__row hospitation-owner-control__row">
-                <div class="profile-owner-control__badge hospitation-owner-control__badge">${hospitationOwnersMarkup(hospitation)}</div>
-                ${editButton}
-              </div>
-              <div class="owner-multi-select owner-multi-select--inline profile-owner-control__picker hospitation-owner-picker" id="${pickerId}" data-hospitation-owner-picker data-original-owner-ids="${escapeHtml(ownerIds.join(","))}" ${hospitationDocumentationOwnerPickerOpen && canEditOwner ? "" : "hidden"}>
-                ${canEditOwner ? ownerDirectPickerMarkup(ownerIds) : ""}
-              </div>
-            </div>
-          </div>
-        `;
+        const editButton = canEditOwner ? renderProfileFieldEditButton("Owner bearbeiten", `data-hospitation-owner-edit aria-expanded="${hospitationDocumentationOwnerPickerOpen ? "true" : "false"}" aria-controls="${pickerId}"`, "hospitation-edit-trigger hospitation-owner-edit") : "";
+        const pickerMarkup = `<div class="owner-multi-select owner-multi-select--inline profile-owner-control__picker hospitation-owner-picker" id="${pickerId}" data-hospitation-owner-picker data-original-owner-ids="${escapeHtml(ownerIds.join(","))}" ${hospitationDocumentationOwnerPickerOpen && canEditOwner ? "" : "hidden"}>
+          ${canEditOwner ? ownerDirectPickerMarkup(ownerIds) : ""}
+        </div>`;
+        return renderProfileMetaControl("Owner", renderProfileOwnerMain(hospitation, { editButton, pickerMarkup }), { owner: true });
       }
 
       function renderHospitationDocumentationHeaderActions(hospitation = {}) {
-        const contact = hospitationContact(hospitation);
         const canEdit = canEditHospitationScheduleItem() && hospitation.id;
-        const profileButton = contact
-          ? `<button class="hospitation-editor-header-action" type="button" data-hospitation-action="open-contact" data-contact-id="${escapeHtml(contact.id)}">Profil öffnen</button>`
-          : `<button class="hospitation-editor-header-action" type="button" disabled title="Kein Kontaktprofil verknüpft">Profil öffnen</button>`;
-        return [
-          profileButton,
-          canEdit ? `<button class="hospitation-editor-header-action" type="button" data-hospitation-action="edit" data-hospitation-id="${escapeHtml(hospitation.id)}">Bearbeiten</button>` : ""
-        ].filter(Boolean).join("");
+        return renderHospitationProfileActions(hospitation, canEdit ? `data-hospitation-action="edit" data-hospitation-id="${escapeHtml(hospitation.id)}"` : "");
       }
 
       function renderHospitationDocumentationArchiveAction(hospitation = {}) {
@@ -25084,6 +25523,10 @@
       }
 
       function renderHospitationDocumentationProfile(hospitation = {}, documentation = {}, topics = []) {
+        return renderHospitationContextProfile(hospitation, { metaMarkup: hospitationDocumentationOwnerControl(hospitation) });
+      }
+
+      function renderHospitationContextProfile(hospitation = {}, { metaMarkup = "", readOnly = false } = {}) {
         const contact = hospitationContact(hospitation);
         const contactLabel = hospitationDocumentationContactLabel(hospitation);
         const contactAvatar = contact
@@ -25110,7 +25553,9 @@
             </svg>
           </span>
         `;
-        const organizationMarkup = organization?.id
+        const organizationMarkup = readOnly
+          ? `<span class="hospitation-context-organization-name hospitation-documentation-profile-link__text">${escapeHtml(organizationLabel || "Organisation nicht dokumentiert")}</span>`
+          : organization?.id
           ? `<button class="hospitation-documentation-profile-link" type="button" data-hospitation-action="open-organization" data-organization-id="${escapeHtml(organization.id)}">${organizationLinkContent}</button>`
           : `<button class="hospitation-documentation-profile-link" type="button" disabled title="Keine Organisation verknüpft">${organizationLinkContent}</button>`;
         return `
@@ -25123,7 +25568,7 @@
               </div>
             </div>
             <div class="detail-profile-meta profile-owner-meta">
-              ${hospitationDocumentationOwnerControl(hospitation)}
+              ${metaMarkup}
             </div>
           </section>
         `;
@@ -25871,21 +26316,26 @@
         focusTarget?.focus({ preventScroll: true });
       }
 
-      async function saveHospitationDocumentationOwnerIds(ownerIds = []) {
-        if (!editingHospitationId) return false;
-        if (!canEditHospitationScheduleItem()) {
-          showPermissionDenied(viewerCreateDisabledMessage("das Bearbeiten von Hospitationen"));
-          return false;
-        }
-        const current = hospitations.find((item) => item.id === editingHospitationId) || {};
+      function hospitationDocumentationOwnerPatch(current = {}, ownerIds = []) {
         const ids = normalizeOwnerIds(ownerIds);
-        const currentDocumentation = hospitationDocumentationPayload(current);
+        const rawDocumentation = String(current.documentationOutcome || current.documentation_outcome || "");
+        let currentDocumentation;
+        try {
+          const parsed = JSON.parse(rawDocumentation);
+          currentDocumentation = parsed && typeof parsed === "object" && !Array.isArray(parsed) ? parsed : null;
+        } catch (_error) {
+          currentDocumentation = null;
+        }
+        if (!currentDocumentation) {
+          currentDocumentation = { kind: hospitationDocumentationKind, version: 2, experience: rawDocumentation, observation: rawDocumentation };
+        }
         const currentMetadata = currentDocumentation.metadata && typeof currentDocumentation.metadata === "object" && !Array.isArray(currentDocumentation.metadata)
           ? currentDocumentation.metadata
           : {};
-        const patch = {
-          ...hospitationOwnerPatchForIds(ids),
-          documentationOutcome: serializeHospitationDocumentationPayload({
+        return {
+          ownerId: ids[0] || "",
+          owner: ids.map(ownerDisplayLabel).filter(Boolean).join(", "),
+          documentationOutcome: JSON.stringify({
             ...currentDocumentation,
             metadata: {
               ...currentMetadata,
@@ -25893,9 +26343,19 @@
             }
           })
         };
+      }
+
+      async function saveHospitationDocumentationOwnerIds(ownerIds = []) {
+        if (!editingHospitationId) return false;
+        if (!canEditHospitationScheduleItem()) {
+          showPermissionDenied(viewerCreateDisabledMessage("das Bearbeiten von Hospitationen"));
+          return false;
+        }
+        const current = hospitations.find((item) => item.id === editingHospitationId) || {};
+        const patch = hospitationDocumentationOwnerPatch(current, ownerIds);
         try {
           const updated = await window.dataService.updateHospitation(editingHospitationId, patch);
-          const next = { ...current, ...(updated || {}), ...patch };
+          const next = { ...current, ...(updated || {}), ...patch, ...hospitationOwnerPatchForIds(ownerIds) };
           replaceHospitation(next);
           const badge = hospitationEditorDrawer?.querySelector(".hospitation-owner-control__badge");
           if (badge) badge.innerHTML = hospitationOwnersMarkup(next);
@@ -26452,7 +26912,10 @@
           hospitationEditorTitle.textContent = mode === "documentation" ? hospitationDocumentationCounterLabel(record || context) : title;
           hospitationEditorTitle.classList.toggle("detail-counter", mode === "documentation");
         }
-        if (hospitationEditorSubtitle) hospitationEditorSubtitle.textContent = subtitle;
+        if (hospitationEditorSubtitle) {
+          hospitationEditorSubtitle.textContent = subtitle;
+          hospitationEditorSubtitle.hidden = !subtitle;
+        }
         if (hospitationEditorHeaderActions) {
           const headerActions = mode === "documentation"
             ? renderHospitationDocumentationHeaderActions(record || context)
@@ -26463,6 +26926,7 @@
         if (hospitationEditorBody) hospitationEditorBody.innerHTML = renderHospitationEditor(record, context);
         bindHospitationEditor();
         hospitationEditorDrawer?.classList.toggle("is-documentation-mode", mode === "documentation");
+        hospitationEditorDrawer?.classList.toggle("is-profile-mode", mode === "documentation");
         if (hospitationEditorDrawer) hospitationEditorDrawer.dataset.hospitationEditorMode = mode;
         hospitationEditorDrawer?.classList.add("is-open");
         hospitationEditorDrawer?.setAttribute("aria-hidden", "false");
@@ -26485,6 +26949,7 @@
         closeHospitationEntityComboboxes();
         hospitationEditorDrawer?.classList.remove("is-open");
         hospitationEditorDrawer?.classList.remove("is-documentation-mode");
+        hospitationEditorDrawer?.classList.remove("is-profile-mode");
         if (hospitationEditorDrawer) delete hospitationEditorDrawer.dataset.hospitationEditorMode;
         hospitationEditorDrawer?.setAttribute("aria-hidden", "true");
         if (hospitationEditorBody) hospitationEditorBody.innerHTML = "";
@@ -39483,8 +39948,12 @@
           closeDetail();
         }
         if (viewChanged && observationDetailDrawer?.classList.contains("is-open")) {
-          closeHospitationObservationDrawer();
+          if (!closeHospitationObservationDrawer()) {
+            blockedRouteUpdate = true;
+            return false;
+          }
         }
+        if (viewChanged) hospitationObservationOpenRequest += 1;
         if (viewChanged && searchContextForView(previousView) !== searchContextForView(view)) {
           clearSearchInput({ update: false });
           if (view === "patients") restorePatientModeState(activePatientMode);
@@ -40009,6 +40478,11 @@
       }
 
       function managedDialogHasUnsavedChanges(dialog) {
+        if (dialog.closest("#observation-detail-drawer") && hospitationObservationCodeSave) return true;
+        if (dialog.closest("#observation-detail-drawer") && hospitationObservationInlineEdit) {
+          const edit = hospitationObservationInlineEdit;
+          return edit.saving || observationInlineFormSignature(edit.form) !== edit.signature;
+        }
         // The hospitation editor persists changes continuously and exposes its
         // own save status. Treating its transient form state as an unsaved
         // draft would block a normal close even after autosave completed.
@@ -40028,6 +40502,8 @@
       }
 
       function confirmManagedDialogDiscard(dialog) {
+        if (dialog.closest("#observation-detail-drawer") && hospitationObservationCodeSave) return confirmObservationInlineDiscard();
+        if (dialog.closest("#observation-detail-drawer") && hospitationObservationInlineEdit) return confirmObservationInlineDiscard();
         if (!managedDialogHasUnsavedChanges(dialog)) return true;
         const confirmed = window.confirm("Ungespeicherte Änderungen verwerfen?");
         if (confirmed) {
@@ -40039,7 +40515,7 @@
 
       function managedDialogHasOpenTransientControl(dialog) {
         return Boolean(dialog.querySelector(
-          "[data-custom-select].is-open, [data-organization-combobox].is-open, [data-hospitation-entity-combobox].is-open"
+          "[data-custom-select].is-open, [data-organization-combobox].is-open, [data-hospitation-entity-combobox].is-open, [data-observation-code-popover]:not([hidden]), [data-observation-help]:not([hidden])"
         ));
       }
 
@@ -42750,8 +43226,8 @@
           const hospitationRoute = parseHospitationRoute(targetView);
           closeMobileSidebar();
           if (hospitationRoute) {
+            if (hospitationRoute.tab !== "observations" && !closeHospitationObservationDrawer()) return;
             activeHospitationTab = hospitationRoute.tab;
-            if (activeHospitationTab !== "observations") closeHospitationObservationDrawer();
             setActiveView("hospitations");
             updateRouteHash(hospitationRouteForTab(activeHospitationTab));
             updateView();
@@ -43182,8 +43658,8 @@
       hospitationBulkArchiveButton?.addEventListener("click", archiveSelectedHospitationEntries);
       hospitationTabButtons.forEach((button) => {
         button.addEventListener("click", () => {
+          if (button.dataset.hospitationTab !== "observations" && !closeHospitationObservationDrawer()) return;
           activeHospitationTab = button.dataset.hospitationTab || "appointments";
-          if (activeHospitationTab !== "observations") closeHospitationObservationDrawer();
           selectedHospitationEntryKeys.clear();
           updateRouteHash(hospitationRouteForTab(activeHospitationTab));
           renderHospitationsView();
@@ -44193,6 +44669,7 @@
         }
         const hospitationRoute = parseHospitationRoute(hashView);
         if (hospitationRoute) {
+          if (activeHospitationTab !== hospitationRoute.tab) hospitationObservationOpenRequest += 1;
           activeHospitationTab = hospitationRoute.tab;
           return "hospitations";
         }
@@ -44287,7 +44764,11 @@
           updateRouteHash("onboarding", { replace: true });
           return;
         }
-        if (nextView === "hospitations" && activeHospitationTab !== "observations") closeHospitationObservationDrawer();
+        if (nextView === "hospitations" && activeHospitationTab !== "observations" && !closeHospitationObservationDrawer()) {
+          activeHospitationTab = "observations";
+          updateRouteHash(hospitationRouteForTab("observations"), { replace: true });
+          return;
+        }
         if (!setActiveView(nextView)) {
           blockedRouteUpdate = false;
           updateRouteHash(activeView, { replace: true });

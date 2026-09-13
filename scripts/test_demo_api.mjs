@@ -1011,6 +1011,88 @@ assert.ok(!afterHospitationDelete.hospitationObservations.some((item) => (item.h
 assert.ok(!afterHospitationDelete.hospitationRoadmapAssessments.some((item) => (item.hospitationId || item.hospitation_id) === hospitationId), "Roadmap-Bewertungen müssen lokal kaskadieren.");
 assert.ok(!afterHospitationDelete.hospitationUnmetNeeds.some((item) => (item.hospitationId || item.hospitation_id) === hospitationId), "Unmet Needs müssen lokal kaskadieren.");
 
+{
+  const contextFields = ["situation", "situationContext", "situation_context", "context"];
+  const contextValues = (value) => contextFields.map((field) => value[field] ?? null);
+  const contextRuntime = createRuntime({
+    mutateDemoData(demoData) {
+      demoData.hospitationObservations = [
+        { context: "Nur historisch gespeicherter Kontext" },
+        {
+          situation: "Ursprüngliche Situation",
+          situationContext: "Früherer Kontextalias",
+          situation_context: "Historischer Unterstrichalias",
+          context: "Historischer Kontext"
+        }
+      ].map((legacyContext, index) => ({
+        id: `demo-observation-context-${index}`,
+        hospitationId: demoData.hospitations[0].id,
+        title: "Ursprüngliche Kurzfassung",
+        description: "Dokumentierte Beobachtung",
+        status: "active",
+        updatedAt: "2026-01-01T12:00:00.000Z",
+        ...legacyContext
+      }));
+    }
+  });
+  const contextFetch = contextRuntime.window.fetch;
+  const contextApi = contextRuntime.window.VersorgungsCompassDemoApi;
+  const initialContextRows = JSON.parse(JSON.stringify(contextApi.snapshot().hospitationObservations));
+  const readObservation = async (id) => {
+    const response = await contextFetch("/api/hospitation-observations");
+    assert.equal(response.status, 200);
+    return (await response.json()).items.find((row) => row.id === id);
+  };
+
+  for (const initial of initialContextRows) {
+    let current = await readObservation(initial.id);
+    assert.deepEqual(current, initial, "Das Lesen historischer Kontextfelder darf keine Migration auslösen.");
+    const patchObservation = async (patch) => {
+      const response = await contextFetch(`/api/hospitation-observations/${encodeURIComponent(initial.id)}`, {
+        method: "PATCH",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ ...patch, expectedUpdatedAt: current.updatedAt })
+      });
+      assert.equal(response.status, 200);
+      current = await response.json();
+      assert.equal(current.id, initial.id);
+      assert.notEqual(current.updatedAt, initial.updatedAt);
+      assert.deepEqual(await readObservation(initial.id), current, "Der nächste Lesezugriff muss den gespeicherten Zustand zurückgeben.");
+      return current;
+    };
+
+    for (const patch of [{ title: "Überarbeitete Kurzfassung" }, { problemType: "Information fehlt" }]) {
+      const updated = await patchObservation(patch);
+      for (const [field, value] of Object.entries(patch)) assert.equal(updated[field], value);
+      assert.deepEqual(contextValues(updated), contextValues(initial), "Ein Kurzfassung- oder Code-PATCH muss bestehende Kontextalias unverändert lassen.");
+      assert.equal(updated.description, initial.description);
+    }
+
+    const description = `${initial.context}\n\n${initial.description}`;
+    const cleared = await patchObservation({ description, situation: "", situationContext: "" });
+    assert.deepEqual(contextValues(cleared), ["", "", "", ""], "Das explizite Leeren muss auch alte context- und situation_context-Werte entfernen.");
+    assert.equal(cleared.description, description);
+    const repeated = await patchObservation({ description, situation: "", situationContext: "" });
+    assert.equal(repeated.description, description, "Wiederholtes Speichern darf den Kontext nicht verdoppeln.");
+    const withoutContext = await patchObservation({ description: initial.description, situation: "", situationContext: "" });
+    assert.equal(withoutContext.description, initial.description);
+    assert.deepEqual(contextValues(withoutContext), ["", "", "", ""], "Entfernter Kontext darf beim Rücklesen nicht wieder erscheinen.");
+
+    const aliasOnly = await patchObservation({ situationContext: "  Neuer Kontext  " });
+    assert.deepEqual(contextValues(aliasOnly), Array(4).fill("Neuer Kontext"));
+    const explicitEmpty = await patchObservation({ situation: "", situationContext: "Veralteter Fallback" });
+    assert.deepEqual(contextValues(explicitEmpty), ["", "", "", ""], "Eine leere Situation darf nicht durch einen älteren Alias ersetzt werden.");
+    const codeAfterClearing = await patchObservation({ relevanceScore: 4 });
+    assert.equal(codeAfterClearing.relevanceScore, 4);
+    assert.deepEqual(contextValues(codeAfterClearing), ["", "", "", ""]);
+  }
+
+  contextApi.reset();
+  assert.deepEqual(JSON.parse(JSON.stringify(contextApi.snapshot().hospitationObservations)), initialContextRows, "Die Fixture muss trotz Änderungen vollständig zurücksetzbar bleiben.");
+  assert.equal(contextRuntime.originalFetchCalls.length, 0, "Kontextänderungen der Demo müssen lokal bleiben.");
+  assert.deepEqual(contextRuntime.storageAccesses, []);
+}
+
 const formatContractRuntime = createRuntime({
   allDemoContactsInvitable: false,
   mutateDemoData(demoData) {

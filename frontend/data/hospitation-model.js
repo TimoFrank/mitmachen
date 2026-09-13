@@ -2,10 +2,10 @@
   const DOCUMENTATION_KIND = "hospitation-documentation-v2";
   const LEGACY_DOCUMENTATION_KIND = "hospitation-documentation-v1";
   const SYSTEM_TAGS = ["Hospitation", "Versorgungskontakt"];
+  const codebookVersion = "1.1-erprobung";
 
-  const codebook = Object.freeze({
-    goalType: ["Einblick gewinnen", "Thema verstehen", "Verbesserung prüfen"],
-    documentationStatus: ["draft", "documented", "reviewed"],
+  // Alte Kategorien bleiben lesbar. Sie werden nicht in neue Codes übersetzt.
+  const legacyCodebook = Object.freeze({
     processPhase: [
       "Anmeldung / Aufnahme",
       "Identifikation",
@@ -29,7 +29,8 @@
       "Rollenunklarheit",
       "technisches Problem",
       "positives Muster / Best Practice",
-      "offene Frage"
+      "offene Frage",
+      "Übernahme nötig"
     ],
     impact: [
       "Zeitaufwand",
@@ -48,13 +49,32 @@
       "Gegenbeispiel",
       "offene Frage",
       "Kontextwissen"
+    ]
+  });
+
+  const codebook = Object.freeze({
+    goalType: ["Einblick gewinnen", "Thema verstehen", "Verbesserung prüfen"],
+    documentationStatus: ["draft", "documented", "reviewed"],
+    processPhase: ["Zugang", "Aufnahme", "Abklärung", "Versorgung", "Übergang", "Nachsorge", "Übergreifend", "Noch nicht zuordenbar"],
+    problemType: [
+      { value: "Information fehlt", label: "Fehlende Information" },
+      { value: "Doppelte Dokumentation", label: "Doppelte Dokumentation" },
+      { value: "Technik gestört", label: "Technische Störung" },
+      { value: "Abstimmung unklar", label: "Unklare Abstimmung" },
+      { value: "Verständnis erschwert", label: "Verständnisproblem" },
+      { value: "Kapazität fehlt", label: "Fehlende Kapazität" },
+      { value: "Anderer Aspekt", label: "Anderes Problem" },
+      { value: "Kein Hindernis", label: "Kein Problem erkennbar" },
+      { value: "Noch nicht zuordenbar", label: "Noch nicht zuordenbar" }
     ],
+    impact: ["Zusätzliche Arbeit", "Verzögerung", "Fehler", "Belastung", "Entlastung", "Andere Folge", "Nicht feststellbar"],
+    observationType: ["Hindernis", "Gelungener Ablauf", "Kontext"],
     evidenceType: [
       { value: "directly_observed", label: "direkt beobachtet" },
-      { value: "source_bound", label: "aus anonymisierter Beobachtungsunterlage" },
-      { value: "synthetic_source_based", label: "synthetisch, quellenbasiert" },
       { value: "reported", label: "berichtet" },
-      { value: "interpreted", label: "interpretiert" }
+      { value: "source_bound", label: "Beobachtungsunterlage" },
+      { value: "interpreted", label: "Annahme" },
+      { value: "synthetic_source_based", label: "synthetisches Beispiel" }
     ],
     usageRecommendation: [
       "Wissen teilen",
@@ -97,6 +117,251 @@
       { value: "closed", label: "geschlossen" }
     ],
     systemTags: SYSTEM_TAGS
+  });
+
+  const codebookBasis = Object.freeze({
+    processPhase: "SEIPS 3.0 und SEIPS 101: Patient Journey; die Phasen sind eine lokale Erprobungsfassung, kein validierter Standardpfad.",
+    problemType: "SEIPS 101: Hindernisse im Arbeitssystem; diese beobachtbaren Problemtypen sind eine lokale Operationalisierung in Erprobung.",
+    impact: "SEIPS 101: Outcomes Matrix; konkrete Folgen und betroffene Personen getrennt benennen. Die Auswahl allein belegt keine Ursache.",
+    observationType: "SEIPS 101: Hindernisse und förderliche Bedingungen; lokale Einordnung des Falls, keine Bewertung der gesamten Einrichtung.",
+    evidenceType: "Qualitative Beobachtungsmethodik: Beobachtung, Bericht und Interpretation auseinanderhalten; synthetische Beispiele sind keine Felddaten."
+  });
+
+  const codebookFieldDefinitions = Object.freeze({
+    processPhase: Object.freeze({
+      question: "An welcher Stelle im Versorgungsverlauf spielt die Situation?",
+      guide: "Wähle den Schwerpunkt der konkreten Situation. Kommunikation und Dokumentation begleiten mehrere Phasen. Der Verlauf kann zurückspringen; er ist kein Pflichtablauf.",
+      basis: codebookBasis.processPhase
+    }),
+    problemType: Object.freeze({
+      question: "Was erschwert den nächsten Schritt unmittelbar?",
+      guide: "Wähle das Hindernis, das in der Situation am deutlichsten belegt ist. Beschreibe weitere Hindernisse im Text; leite keine Ursache aus einer Rückfrage oder Wartezeit ab.",
+      basis: codebookBasis.problemType
+    }),
+    impact: Object.freeze({
+      question: "Welche konkrete Folge ist feststellbar, und für wen?",
+      guide: "Wähle die vorrangige belegte Folge. Benenne im Folgentext die betroffene Person oder Rolle und woran die Folge erkennbar ist. Vermutete Risiken gehören zu den offenen Fragen.",
+      basis: codebookBasis.impact
+    }),
+    observationType: Object.freeze({
+      question: "Was zeigt diese Situation?",
+      guide: "Ordne den einzelnen Fall ein. Ein gelungenes Beispiel belegt noch keine übertragbare Best Practice; offene Fragen können bei jedem Fall bestehen.",
+      basis: codebookBasis.observationType
+    }),
+    evidenceType: Object.freeze({
+      question: "Worauf beruht die Beschreibung?",
+      guide: "Kennzeichne die Quelle des Befunds. Wenn Beobachtung, Bericht und Annahme zusammenkommen, trenne sie im Text und benenne den jeweiligen Bezug. Eine unbekannte Quelle bleibt offen.",
+      basis: codebookBasis.evidenceType
+    })
+  });
+
+  function defineCode(key, definition, inclusion, exclusion, example, boundary) {
+    return Object.freeze({ definition, inclusion, exclusion, example, boundary, basis: codebookBasis[key] });
+  }
+
+  const codebookDefinitions = Object.freeze({
+    processPhase: Object.freeze({
+      Zugang: defineCode("processPhase",
+        "Versorgung suchen und einen passenden Kontakt erreichen.",
+        "Orientierung, Terminvereinbarung und Klärung, an welche Stelle sich jemand wenden kann.",
+        "Formale Aufnahme bei einer bereits erreichten Stelle.",
+        "Eine Patientin versucht, einen Termin für eine Abklärung zu erhalten.",
+        "Zugang endet dort, wo die konkrete Aufnahme beginnt; die Grenze richtet sich nach dem beschriebenen Schritt."),
+      Aufnahme: defineCode("processPhase",
+        "Eine Person für den konkreten Versorgungskontakt aufnehmen.",
+        "Anmeldung, Identifikation und administrative Erfassung beim Beginn des Kontakts.",
+        "Die inhaltliche Beurteilung des Anliegens.",
+        "Am Empfang werden Identität und Versicherungsdaten geprüft.",
+        "Dient eine Angabe schon der fachlichen Einschätzung, ist Abklärung näher als Aufnahme."),
+      Abklärung: defineCode("processPhase",
+        "Das Anliegen fachlich erfassen und den Versorgungsbedarf bestimmen.",
+        "Anamnese, Untersuchung, Diagnostik und die Einordnung relevanter Befunde.",
+        "Die Durchführung einer bereits ausgewählten Versorgung.",
+        "Eine Ärztin sucht einen Vorbefund für die diagnostische Entscheidung.",
+        "Befundsuche gehört zur Phase, deren Entscheidung sie dient; Dokumentation ist keine eigene Zeitphase."),
+      Versorgung: defineCode("processPhase",
+        "Die vereinbarte Behandlung, Unterstützung oder Beratung durchführen.",
+        "Therapie, Pflege, konkrete Beratung und das Ausstellen einer Verordnung.",
+        "Organisation des Wechsels zu einer anderen versorgenden Stelle.",
+        "Eine Verordnung wird ausgestellt und mit der Patientin besprochen.",
+        "Bei Beratung ist ihr Zweck entscheidend: Bedarf klären gehört zur Abklärung, eine Maßnahme umsetzen zur Versorgung."),
+      Übergang: defineCode("processPhase",
+        "Versorgung an eine andere Stelle übergeben oder den Anschluss organisieren.",
+        "Überweisung, Entlassung, Übergabe und Abstimmung der Anschlussversorgung.",
+        "Kontrolle nach einer abgeschlossenen Maßnahme ohne laufende Übergabe.",
+        "Eine Praxis übermittelt Unterlagen für die Weiterbehandlung.",
+        "Eine Überweisung ist Übergang, wenn die konkrete Situation die Weiterleitung oder Übergabe betrifft."),
+      Nachsorge: defineCode("processPhase",
+        "Nach einer Maßnahme den weiteren Verlauf prüfen oder begleiten.",
+        "Verlaufskontrolle, Rückmeldung zu Ergebnissen und vereinbarte Nachbeobachtung.",
+        "Allgemeine administrative Nacharbeit ohne Bezug zum weiteren Versorgungsverlauf.",
+        "Die Praxis fragt nach, ob die vereinbarte Kontrolle stattgefunden hat.",
+        "Administrative Nacharbeit der ursprünglichen Phase zuordnen; Nachsorge braucht einen Bezug zum weiteren Verlauf."),
+      Übergreifend: defineCode("processPhase",
+        "Die Situation betrifft mehrere Phasen, ohne dass eine davon im Vordergrund steht.",
+        "Ein nachvollziehbarer Zusammenhang über mehrere Schritte oder ein phasenübergreifender Arbeitsablauf.",
+        "Eine Situation, deren Phase nur noch nicht ausreichend beschrieben ist.",
+        "Eine Person erklärt, wie ein gemeinsamer Status von der Aufnahme bis zur Entlassung genutzt wird.",
+        "Wenn der Schwerpunkt benennbar ist, diese Phase wählen; bei fehlendem Kontext Noch nicht zuordenbar."),
+      "Noch nicht zuordenbar": defineCode("processPhase",
+        "Die vorhandene Beschreibung reicht für eine Phasenzuordnung nicht aus.",
+        "Zeitpunkt oder Zweck des beschriebenen Schritts ist offen.",
+        "Ein nachweislich phasenübergreifender Ablauf.",
+        "Eine Notiz nennt eine Befundsuche, aber nicht deren Anlass.",
+        "Fehlenden Kontext als offene Frage festhalten; die Phase nicht aus dem Werkzeugnamen ableiten.")
+    }),
+    problemType: Object.freeze({
+      "Information fehlt": defineCode("problemType",
+        "Eine für den nächsten Schritt benötigte Angabe ist nicht verfügbar.",
+        "Fehlende oder nicht zugängliche Befunde, Kontaktdaten oder Statusangaben.",
+        "Vorhandene Angaben, die nur erneut eingegeben oder verständlich erklärt werden müssen.",
+        "Für die Weiterbehandlung fehlt der aktuelle Befund.",
+        "Fehlt der Inhalt, hier zuordnen. Werden dieselben vorhandenen Angaben erneut dokumentiert, Doppelte Dokumentation prüfen."),
+      "Doppelte Dokumentation": defineCode("problemType",
+        "Dieselben bereits vorhandenen Angaben müssen erneut dokumentiert werden.",
+        "Dieselbe Angabe nochmals abtippen oder in einem weiteren Dokument oder System erneut festhalten.",
+        "Neue oder aktualisierte Angaben; einmaliges Scannen, Übermitteln oder Zusammenführen ohne erneute Dokumentation derselben Angaben.",
+        "Die MFA tippt bekannte Angaben aus einem PDF erneut in das PVS.",
+        "Benennen, welche Angabe schon wo dokumentiert ist und wo sie nochmals eingetragen wird. Ein Medienwechsel allein reicht nicht aus."),
+      "Technik gestört": defineCode("problemType",
+        "Eine technische Funktion fällt aus oder funktioniert in der Situation nicht wie vorgesehen.",
+        "Abbruch, Fehlermeldung, Ausfall oder beobachtete technische Fehlfunktion.",
+        "Eine funktionierende, aber schwer verständliche Bedienung; eine nicht vorgesehene Schnittstelle.",
+        "Beim Absenden erscheint eine Fehlermeldung, der Vorgang bricht ab.",
+        "Technische Ursache nicht aus einer Verzögerung vermuten. Erzwingt eine fehlende Schnittstelle das erneute Dokumentieren derselben Angaben, Doppelte Dokumentation prüfen."),
+      "Abstimmung unklar": defineCode("problemType",
+        "Zuständigkeit oder ein erforderlicher gemeinsamer nächster Schritt ist zwischen Beteiligten nicht geklärt.",
+        "Widersprüchliche Absprachen, ungeklärte Übergabe oder unklare Verantwortung.",
+        "Nur ein fehlender Befund oder bloß nicht verfügbare Termine.",
+        "Praxis und Klinik gehen jeweils davon aus, dass die andere Stelle den Kontrolltermin vereinbart.",
+        "Wer muss mit wem was klären? Ist nur ein einzelner Inhalt nicht verfügbar, Information fehlt prüfen."),
+      "Verständnis erschwert": defineCode("problemType",
+        "Vorhandene Angaben oder eine Bedienung sind für Beteiligte nicht ausreichend verständlich.",
+        "Unklare Begriffe, missverständliche Anweisungen oder eine schwer nachvollziehbare Oberfläche.",
+        "Fehlende Angaben, technische Ausfälle oder ungeklärte Zuständigkeiten zwischen Stellen.",
+        "Eine Patientin kann aus der vorhandenen Anleitung den nächsten Schritt nicht erkennen.",
+        "Den konkreten unverständlichen Inhalt benennen; nicht pauschal mangelnde Kompetenz einer Person unterstellen."),
+      "Kapazität fehlt": defineCode("problemType",
+        "Eine benötigte personelle, zeitliche oder räumliche Ressource steht nicht zur Verfügung.",
+        "Kein verfügbarer Termin, fehlende Besetzung oder nicht verfügbare Behandlungsplätze.",
+        "Eine Wartezeit, deren Grund unbekannt ist; ein technischer Ausfall.",
+        "Der nötige Termin kann laut zuständiger Person wegen fehlender freier Plätze nicht angeboten werden.",
+        "Kapazitätsmangel muss beobachtet oder konkret berichtet sein. Wartezeit allein belegt ihn nicht."),
+      "Anderer Aspekt": defineCode("problemType",
+        "Ein belegtes Hindernis passt nicht zu den sechs Kernkategorien.",
+        "Beschriebene Hindernisse mit bekanntem Inhalt außerhalb der vorhandenen Kategorien.",
+        "Fehlende Informationen über die Art des Hindernisses.",
+        "Eine räumliche Barriere erschwert einen Schritt, ohne dass eine Kapazität fehlt.",
+        "Den Aspekt im Text benennen; wiederkehrende Fälle im Codebuchreview prüfen, statt sie in einen unpassenden Code zu drücken."),
+      "Kein Hindernis": defineCode("problemType",
+        "Für die beschriebene Situation ist kein Hindernis festgestellt.",
+        "Ein konkret nachvollziehbarer gelungener Ablauf oder eine Situation ohne festgestellte Schwierigkeit.",
+        "Eine Beschreibung, die keine Beurteilung zulässt.",
+        "Die zuständige Stelle erhält die benötigten Angaben und kann den Schritt abschließen.",
+        "Bezieht sich nur auf den beschriebenen Fall; bedeutet weder Fehlerfreiheit noch generelle Best Practice."),
+      "Noch nicht zuordenbar": defineCode("problemType",
+        "Der Befund reicht noch nicht aus, um das Hindernis oder dessen Fehlen zu bestimmen.",
+        "Unklarer Auslöser, lückenhafte Beschreibung oder mehrere noch nicht unterscheidbare Erklärungen.",
+        "Ein klar beschriebenes Hindernis außerhalb der Kategorien.",
+        "Es wird eine Wartezeit berichtet, aber nicht, was den nächsten Schritt verhindert.",
+        "Die fehlende Klärung im Text festhalten. Anderer Aspekt setzt ein bereits beschreibbares Hindernis voraus.")
+    }),
+    impact: Object.freeze({
+      "Zusätzliche Arbeit": defineCode("impact",
+        "Für eine benannte Person oder Rolle fallen zusätzliche Tätigkeiten an.",
+        "Erneutes Erfassen, zusätzliche Telefonate, Suchschritte oder Vermittlungsarbeit.",
+        "Reine verstrichene Wartezeit ohne zusätzliche Tätigkeit.",
+        "Die MFA muss den Befund telefonisch anfordern und den Eingang später prüfen.",
+        "Benennen, wer welche zusätzliche Arbeit leistet. Minuten nur angeben, wenn gemessen oder als Schätzung gekennzeichnet."),
+      Verzögerung: defineCode("impact",
+        "Ein benannter Schritt beginnt oder endet später beziehungsweise bleibt vorerst liegen.",
+        "Festgestellte Wartezeit, verschobene Weiterbearbeitung oder verspäteter Anschluss.",
+        "Nur vermutete Verzögerung; zusätzliche Arbeit ohne erkennbaren zeitlichen Aufschub.",
+        "Die Aufnahme ruht, bis der angeforderte Befund eintrifft.",
+        "Welcher Schritt verzögert sich und für wen? Den Umfang nicht aus einem Problemcode ableiten."),
+      Fehler: defineCode("impact",
+        "Eine konkrete falsche Angabe, Zuordnung oder Ausführung ist festgestellt.",
+        "Nachvollziehbar dokumentierter oder konkret berichteter Fehler, auch wenn er rechtzeitig korrigiert wurde.",
+        "Bloße Fehleranfälligkeit, Unsicherheit oder ein vermutetes Sicherheitsrisiko.",
+        "Eine Angabe wurde in die falsche Akte übernommen und anschließend korrigiert.",
+        "Den tatsächlichen Fehler beschreiben. Daraus weder einen eingetretenen Schaden noch dessen Ursache automatisch folgern."),
+      Belastung: defineCode("impact",
+        "Eine benannte Person berichtet Belastung oder zeigt konkret beschreibbare Belastungsanzeichen.",
+        "Geäußerter Stress, Frust oder Überforderung mit erkennbarer Quelle.",
+        "Nur vermutetes Befinden oder zusätzlicher Aufwand ohne belegte Belastung.",
+        "Eine Mitarbeiterin beschreibt die wiederholte Suche als belastend.",
+        "Bericht und sichtbares Verhalten auseinanderhalten; Gefühle und klinische Folgen nicht aus Körpersprache diagnostizieren."),
+      Entlastung: defineCode("impact",
+        "Eine konkrete Erleichterung für eine benannte Person oder Rolle ist belegt.",
+        "Entfallene Tätigkeit oder ausdrücklich berichtete Erleichterung im beschriebenen Ablauf.",
+        "Pauschales Lob ohne konkrete Folge; vermutete Einsparungen.",
+        "Die Mitarbeiterin berichtet, dass die automatische Übernahme das erneute Abtippen erspart.",
+        "Den Vergleich oder die Quelle der Erleichterung nennen; aus einem gelungenen Ablauf keine Entlastung voraussetzen."),
+      "Andere Folge": defineCode("impact",
+        "Eine konkrete Folge ist feststellbar, passt aber nicht zu den vorhandenen Folgenarten.",
+        "Beschriebene Folgen für Personen oder Einrichtungen außerhalb der übrigen Kategorien.",
+        "Unbekannte Folgen oder lediglich vermutete Risiken.",
+        "Eine Person berichtet einen zusätzlichen Anfahrtsweg, dessen Aufwand noch nicht näher beschrieben ist.",
+        "Die Folge und betroffene Person im Text benennen. Wiederkehrende Fälle für die Weiterentwicklung sammeln."),
+      "Nicht feststellbar": defineCode("impact",
+        "Aus der vorhandenen Quelle lässt sich keine konkrete Folge bestimmen.",
+        "Der weitere Verlauf wurde nicht beobachtet oder nicht berichtet.",
+        "Eine konkret belegte Folge, die nur keiner vorhandenen Kategorie entspricht.",
+        "Die Beobachtung endet bei der Rückfrage; die weitere Bearbeitung bleibt unbekannt.",
+        "Nicht feststellbar bedeutet nicht folgenlos. Offene Risiken getrennt als Annahmen dokumentieren.")
+    }),
+    observationType: Object.freeze({
+      Hindernis: defineCode("observationType",
+        "Die Situation zeigt eine konkret beschreibbare Schwierigkeit beim Ausführen eines Schritts.",
+        "Eine Tätigkeit wird erschwert, unterbrochen oder kann nicht wie benötigt fortgesetzt werden.",
+        "Bloße Vermutung eines Problems ohne beschriebenen Bezug.",
+        "Die Weiterbearbeitung stockt, weil die benötigte Angabe fehlt.",
+        "Eine Umgehungslösung kann das Hindernis kompensieren; ihr Erfolg hebt die dokumentierte Schwierigkeit nicht auf."),
+      "Gelungener Ablauf": defineCode("observationType",
+        "Die Situation zeigt, wie ein benötigter Schritt nachvollziehbar gelingt.",
+        "Ein konkretes förderliches Vorgehen mit beschriebenem Ablauf.",
+        "Allgemeines Lob ohne Situation oder die Behauptung einer überall wirksamen Best Practice.",
+        "Eine abgestimmte Übergabe stellt die benötigten Unterlagen für den nächsten Schritt bereit.",
+        "Nur den Einzelfall einordnen; Übertragbarkeit und tatsächliche Entlastung benötigen eigene Belege."),
+      Kontext: defineCode("observationType",
+        "Die Beschreibung hilft, Bedingungen oder Abläufe zu verstehen, ohne sie als Hindernis oder gelungenen Fall zu bewerten.",
+        "Hintergrundwissen, normale Abläufe und noch nicht beurteilbare Situationen.",
+        "Bereits konkret beschriebene Schwierigkeiten oder förderliche Abläufe.",
+        "Eine Mitarbeiterin erklärt, welche Dokumente für eine Übergabe verwendet werden.",
+        "Offene Fragen sind bei jeder Beobachtungsart möglich und ändern diese Einordnung nicht automatisch.")
+    }),
+    evidenceType: Object.freeze({
+      directly_observed: defineCode("evidenceType",
+        "Die dokumentierende Person hat den beschriebenen Vorgang selbst wahrgenommen.",
+        "Selbst gesehene Handlungen oder Abläufe mit erkennbarem Situationsbezug.",
+        "Erzählungen über andere Situationen und daraus abgeleitete Annahmen.",
+        "Bei der Hospitation wurde die erneute Eingabe eines Befunds beobachtet.",
+        "Eine gehörte Erzählung ist ein Bericht über den Vorgang; nur das Gespräch selbst wurde direkt wahrgenommen."),
+      reported: defineCode("evidenceType",
+        "Eine beteiligte Person schildert eine Situation oder ihre Erfahrung.",
+        "Berichte aus Gespräch, Interview oder Rückmeldung mit Quellenbezug.",
+        "Selbst beobachteter Vorgang oder eine eigene Erklärungshypothese.",
+        "Eine Pflegekraft berichtet, dass sie regelmäßig Unterlagen nachfordern muss.",
+        "Sprecherrolle und Berichtsbezug festhalten; berichtete Häufigkeit nicht als selbst gemessene Häufigkeit ausgeben."),
+      source_bound: defineCode("evidenceType",
+        "Die Beschreibung beruht auf einer vorhandenen Beobachtungsunterlage.",
+        "Anonymisierte Feldnotiz oder Unterlage mit nachvollziehbarer Herkunft.",
+        "Ein frei erfundenes Fallbeispiel oder eine eigene direkte Beobachtung ohne solchen Unterlagenbezug.",
+        "Eine anonymisierte Feldnotiz beschreibt die Unterbrechung bei einer Aufnahme.",
+        "Die Unterlage referenzieren und deren Grenzen übernehmen; ihre Nutzung macht die bearbeitende Person nicht zur Augenzeugin."),
+      interpreted: defineCode("evidenceType",
+        "Die Aussage ist eine Annahme oder Deutung auf Grundlage vorhandener Hinweise.",
+        "Erklärungshypothesen, noch ungeprüfte Schlussfolgerungen und vermutete Zusammenhänge.",
+        "Ein konkret belegter Vorgang, dessen Quelle nur nicht angegeben wurde.",
+        "Es wird vermutet, dass eine unklare Zuständigkeit zur Verzögerung beiträgt.",
+        "Den zugrunde liegenden Hinweis und die offene Prüfung benennen. Eine fehlende Quellenwahl bleibt leer."),
+      synthetic_source_based: defineCode("evidenceType",
+        "Der Fall wurde für Erklärung oder Erprobung konstruiert, gegebenenfalls anhand von Quellen.",
+        "Fiktive Beispiele und bewusst zusammengesetzte Übungsfälle.",
+        "Tatsächliche Feldbeobachtungen oder Berichte über einen realen Einzelfall.",
+        "Ein erfundener Fall zeigt, wie eine fehlende Statusangabe codiert werden könnte.",
+        "Synthetische Fälle getrennt von Felddaten auswerten; sie belegen keine Häufigkeit oder reale Wirkung.")
+    })
   });
 
   const labelAliases = {
@@ -255,6 +520,10 @@
     return String(value ?? "").trim();
   }
 
+  function firstNonBlank(...values) {
+    return values.map(text).find(Boolean) || "";
+  }
+
   function list(value) {
     if (Array.isArray(value)) return [...new Set(value.map(text).filter(Boolean))];
     return [...new Set(text(value).split(/[;,]\s*|\n+/).map(text).filter(Boolean))];
@@ -282,7 +551,7 @@
   function normalizeCodebookValue(key, value, fallback = "") {
     const raw = text(value);
     if (!raw) return fallback;
-    const values = valuesFor(key);
+    const values = [...valuesFor(key), ...(legacyCodebook[key] || [])];
     if (values.includes(raw)) return raw;
     const alias = labelAliases[key]?.[raw.toLowerCase()];
     if (alias && values.includes(alias)) return alias;
@@ -294,6 +563,16 @@
     const raw = text(value);
     const match = (codebook[key] || []).find((entry) => (typeof entry === "object" ? entry.value : entry) === raw);
     return typeof match === "object" ? match.label : match || raw;
+  }
+
+  function isLegacyCodebookValue(key, value) {
+    const normalized = normalizeCodebookValue(key, value);
+    return Boolean(normalized && (legacyCodebook[key] || []).includes(normalized) && !valuesFor(key).includes(normalized));
+  }
+
+  function codebookDefinition(key, value) {
+    const normalized = normalizeCodebookValue(key, value);
+    return codebookDefinitions[key]?.[normalized] || null;
   }
 
   function timestamp(value) {
@@ -353,11 +632,27 @@
     );
   }
 
+  function observationText(item = {}) {
+    const input = item && typeof item === "object" ? item : {};
+    const situation = firstNonBlank(input.situation, input.situationContext, input.situation_context, input.context);
+    const description = firstNonBlank(input.description, input.observed, input.concreteObservation, input.concrete_observation, input.observation);
+    if (!situation) return description;
+    if (!description) return situation;
+    // Nur ein identischer oder vollständig vorangestellter Kontext ist schon enthalten.
+    // Ein Treffer mitten im Text oder innerhalb eines längeren Wortes reicht nicht.
+    const comparableSituation = situation.replace(/\r\n?/g, "\n");
+    const comparableDescription = description.replace(/\r\n?/g, "\n");
+    if (comparableDescription === comparableSituation
+      || (comparableDescription.startsWith(comparableSituation)
+        && /^\s/.test(comparableDescription.slice(comparableSituation.length)))) return description;
+    return `${situation}\n\n${description}`;
+  }
+
   function normalizeObservation(input = {}, context = {}) {
     const now = timestamp(input.updatedAt || input.updated_at || context.updatedAt);
     const hospitationId = text(input.hospitationId || input.hospitation_id || context.hospitationId || context.id);
-    const situation = text(input.situation || input.situationContext || input.situation_context || input.context);
-    const description = text(input.description || input.observed || input.concreteObservation || input.concrete_observation || input.observation);
+    const situation = firstNonBlank(input.situation, input.situationContext, input.situation_context, input.context);
+    const description = firstNonBlank(input.description, input.observed, input.concreteObservation, input.concrete_observation, input.observation);
     const involvedRoles = list(input.involvedRoles || input.involved_roles || input.affectedRoles || input.affected_roles);
     const relevanceScore = rating(input.relevanceScore ?? input.relevance_score ?? input.careRelevance ?? input.care_relevance);
     const usageRecommendation = normalizeCodebookValue("usageRecommendation", input.usageRecommendation || input.usage_recommendation || input.nextUse || input.next_use || input.possibleUse || input.possible_use, "");
@@ -367,7 +662,8 @@
     const actions = list(input.actions || input.actionSteps || input.action_steps);
     const toolsAndDocuments = list(input.toolsAndDocuments || input.tools_and_documents || input.tools || input.documents);
     const communicationChannels = list(input.communicationChannels || input.communication_channels || input.channels);
-    const observationType = normalizeCodebookValue("observationType", input.observationType || input.observation_type || input.type, "");
+    const observationType = normalizeCodebookValue("observationType", input.observationType ?? input.observation_type ?? input.type, "");
+    const originalEvidenceType = text(input.originalEvidenceType || input.original_evidence_type || input.payload?.originalEvidenceType || input.payload?.original_evidence_type);
     const topics = list(input.topics || input.themes || input.topic || input.theme);
     const affectedProducts = list(input.affectedProducts || input.affected_products || input.products || input.productReference || input.product_reference || input.product);
     const linkedQuoteIds = list(input.linkedQuoteIds || input.linked_quote_ids || input.quoteIds || input.quote_ids);
@@ -389,17 +685,18 @@
       communicationChannels,
       immediateConsequence: text(input.immediateConsequence || input.immediate_consequence || input.consequence),
       sourceType: text(input.sourceType || input.source_type),
-      sourceReference: text(input.sourceReference || input.source_reference),
+      sourceReference: text(input.sourceReference ?? input.source_reference),
       uncertainty: text(input.uncertainty),
       limitations: text(input.limitations),
       relevanceReason: text(input.relevanceReason || input.relevance_reason),
       involvedRoles,
       affectedRoles: involvedRoles.join(", "),
-      processPhase: normalizeCodebookValue("processPhase", input.processPhase || input.process_phase, ""),
-      problemType: normalizeCodebookValue("problemType", input.problemType || input.problem_type, ""),
+      processPhase: normalizeCodebookValue("processPhase", input.processPhase ?? input.process_phase, ""),
+      problemType: normalizeCodebookValue("problemType", input.problemType ?? input.problem_type, ""),
       impact: normalizeCodebookValue("impact", input.impact, ""),
       observationType,
-      evidenceType: normalizeCodebookValue("evidenceType", input.evidenceType || input.evidence_type, "interpreted"),
+      evidenceType: normalizeCodebookValue("evidenceType", input.evidenceType ?? input.evidence_type, ""),
+      ...(valuesFor("evidenceType").includes(originalEvidenceType) ? { originalEvidenceType } : {}),
       relevanceScore,
       careRelevance: relevanceScore,
       usageRecommendation,
@@ -863,9 +1160,16 @@
     DOCUMENTATION_KIND,
     LEGACY_DOCUMENTATION_KIND,
     codebook,
+    codebookVersion,
+    legacyCodebook,
+    codebookDefinitions,
+    codebookFieldDefinitions,
+    codebookDefinition,
+    isLegacyCodebookValue,
     systemTags: SYSTEM_TAGS,
     normalizeCodebookValue,
     optionLabel,
+    observationText,
     normalizeObservation,
     normalizeQuote,
     normalizeMediaArtifact,

@@ -286,6 +286,13 @@
     const model = hospitationModel();
     return model?.normalizeHospitationRecord ? model.normalizeHospitationRecord(record) : record;
   }
+  function hospitationObservationEvidenceType(observation = {}, forWrite = false) {
+    const payload = observation.payload && typeof observation.payload === "object" && !Array.isArray(observation.payload) ? observation.payload : {};
+    if (observation.originalEvidenceType === "synthetic_source_based" || payload.originalEvidenceType === "synthetic_source_based") return "synthetic_source_based";
+    const value = String(observation.evidenceType ?? observation.evidence_type ?? payload.evidenceType ?? "").trim();
+    if (forWrite && !["", "directly_observed", "source_bound", "synthetic_source_based", "reported", "interpreted"].includes(value)) throw new Error("Die Quellenart der Beobachtung ist nicht unterstützt.");
+    return value;
+  }
   function hospitationObservationDbToUi(row = {}) {
     const payload = row.payload && "object" == typeof row.payload && !Array.isArray(row.payload) ? row.payload : {}, raw = {
       // Die API liefert den persistierten Payload bereits als camelCase-DTO auf
@@ -298,12 +305,16 @@
       sequence: row.sequence ?? payload.sequence ?? null,
       title: row.title || payload.title || "Beobachtung",
       situation: row.situation ?? payload.situation ?? "",
+      situationContext: row.situationContext ?? payload.situationContext ?? "",
+      situation_context: row.situation_context ?? payload.situation_context ?? "",
+      context: row.context ?? payload.context ?? "",
       description: row.description ?? payload.description ?? payload.observed ?? "",
       processPhase: row.process_phase ?? row.processPhase ?? payload.processPhase ?? "",
       problemType: row.problem_type ?? row.problemType ?? payload.problemType ?? "",
       impact: row.impact ?? payload.impact ?? "",
       observationType: row.observation_type ?? row.observationType ?? payload.observationType ?? "",
-      evidenceType: row.evidence_type || row.evidenceType || payload.evidenceType || "interpreted",
+      evidenceType: hospitationObservationEvidenceType({ ...row, evidenceType: row.evidence_type ?? row.evidenceType ?? payload.evidenceType ?? "" }),
+      sourceReference: row.sourceReference ?? row.source_reference ?? payload.sourceReference ?? payload.source_reference ?? "",
       relevanceScore: Number(row.relevance_score ?? row.relevanceScore ?? payload.relevanceScore ?? 0) || null,
       usageRecommendation: row.usage_recommendation ?? row.usageRecommendation ?? row.nextUse ?? payload.usageRecommendation ?? payload.nextUse ?? "",
       involvedRoles: Array.isArray(row.involved_roles) ? row.involved_roles : Array.isArray(row.involvedRoles) ? row.involvedRoles : payload.involvedRoles || [],
@@ -339,7 +350,7 @@
       problem_type: String(normalized.problemType || "").trim() || null,
       impact: String(normalized.impact || "").trim() || null,
       observation_type: String(normalized.observationType || "").trim() || null,
-      evidence_type: [ "directly_observed", "reported", "interpreted" ].includes(normalized.evidenceType) ? normalized.evidenceType : "interpreted",
+      evidence_type: hospitationObservationEvidenceType(normalized, true),
       relevance_score: Number(normalized.relevanceScore) || null,
       usage_recommendation: String(normalized.usageRecommendation || normalized.nextUse || "").trim() || null,
       involved_roles: splitList(normalized.involvedRoles || normalized.affectedRoles),
@@ -347,6 +358,7 @@
       topics: splitList(normalized.topics || normalized.themes),
       payload: {
         ...normalized,
+        evidenceType: hospitationObservationEvidenceType(normalized, true),
         status: "archived" === observation.status ? "archived" : "active",
         archiveReason: observation.archiveReason || observation.archive_reason || ""
       },
@@ -1014,13 +1026,13 @@
     });
     if (!String(next.situation || "").trim() && !String(next.description || next.observed || "").trim()) throw new Error("Eine Beobachtung benötigt eine Situation oder Beschreibung.");
     {
-      const updated = await apiRequest(`/api/hospitation-observations/${encodeURIComponent(id)}`, {
+      const updated = hospitationObservationDbToUi(await apiRequest(`/api/hospitation-observations/${encodeURIComponent(id)}`, {
         method: "PATCH",
         body: {
           ...patch,
           expectedUpdatedAt: expectedUpdatedAt
         }
-      });
+      }));
       return hospitationObservationCache = [ updated, ...hospitationObservationCache.filter(item => item.id !== id) ],
       updated;
     }
@@ -1943,7 +1955,7 @@
             observations: observations
           }
         });
-        return Array.isArray(payload.items) ? payload.items : [];
+        return Array.isArray(payload.items) ? payload.items.map(hospitationObservationDbToUi) : [];
       }
     },
     archiveHospitationObservation: async function(id, reason = "") {
