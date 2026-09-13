@@ -529,7 +529,7 @@ for (const [group, dependencies] of Object.entries({
 const apiPackageJson = JSON.parse(read("api/package.json"));
 const apiPackageLockJson = JSON.parse(read("api/package-lock.json"));
 const expectedApiDependencies = {
-  nodemailer: "9.0.4",
+  nodemailer: "10.0.9",
   pg: "8.21.0"
 };
 assert.deepEqual(
@@ -576,6 +576,41 @@ for (const asset of browserAssetManifest.assets) {
   assert.equal(createHash("sha256").update(bytes).digest("hex"), asset.sha256, `${asset.path}: Vendor-Hash stimmt nicht.`);
   assert.equal(packageLock.packages[`node_modules/${asset.package}`]?.version, asset.version, `${asset.path}: Vendor-Version stimmt nicht mit dem Lockfile ueberein.`);
 }
+
+const mammothBrowserAsset = browserAssetManifest.assets.find(
+  (asset) => asset.path === "frontend/vendor/mammoth/mammoth.browser.min.js"
+);
+const xmldomVersion = packageLock.packages["node_modules/@xmldom/xmldom"]?.version || "";
+const [xmldomMajor, xmldomMinor, xmldomPatch] = xmldomVersion.split(".").map((part) => Number.parseInt(part, 10));
+assert.ok(
+  xmldomMajor > 0 || (xmldomMajor === 0 && (xmldomMinor > 8 || (xmldomMinor === 8 && xmldomPatch >= 15))),
+  `Das ausgelieferte Mammoth-Bundle benoetigt @xmldom/xmldom >=0.8.15, gefunden: ${xmldomVersion || "fehlend"}.`
+);
+assert.deepEqual(
+  packageJson.overrides?.mammoth,
+  { "@xmldom/xmldom": xmldomVersion },
+  "Die gepatchte xmldom-Version muss fuer Mammoth im Installationsvertrag festgeschrieben sein."
+);
+assert.deepEqual(
+  mammothBrowserAsset?.bundledPackages,
+  { "@xmldom/xmldom": xmldomVersion },
+  "Das Vendor-Manifest muss die tatsaechlich eingebettete xmldom-Version ausweisen."
+);
+assert.deepEqual(
+  mammothBrowserAsset?.build,
+  { package: "esbuild", version: packageLock.packages["node_modules/esbuild"]?.version },
+  "Das Vendor-Manifest muss den reproduzierbaren Mammoth-Build ausweisen."
+);
+const mammothBrowserBundle = read("frontend/vendor/mammoth/mammoth.browser.min.js");
+assert.ok(
+  mammothBrowserBundle.startsWith(`/*!\nmammoth@${mammothBrowserAsset.version} (BSD-2-Clause)`),
+  "Das Mammoth-Bundle muss mit seinem generierten Versions- und Lizenzhinweis beginnen."
+);
+assert.ok(
+  mammothBrowserBundle.includes(`@xmldom/xmldom@${xmldomVersion} (MIT)`) &&
+    mammothBrowserBundle.includes("Copyright 2019 - present Christopher J. Brody"),
+  "Das Mammoth-Bundle muss xmldom-Version und MIT-Lizenzhinweis enthalten."
+);
 
 const valuesSource = read("deploy/helm/versorgungs-kompass/values.yaml");
 const configMapSource = read("deploy/helm/versorgungs-kompass/templates/configmap.yaml");
