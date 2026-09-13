@@ -149,6 +149,7 @@ services:
       OIDC_IDENTITY_BOOTSTRAP_HMAC_FILE: /run/secrets/identity-bootstrap-hmac
       API_CUTOVER_MODE_REQUIRED: "1"
       API_CUTOVER_MODE: ${API_CUTOVER_MODE:?API_CUTOVER_MODE fehlt}
+      API_WRITER_FENCE_DIRECTORY: /run/versorgungs-kompass-control
       DB_HOST: /run/postgresql
       DB_PORT: "5432"
       DB_NAME: versorgungs_kompass
@@ -166,6 +167,7 @@ services:
       RATE_LIMIT_WRITES_PER_MINUTE: "60"
     volumes:
       - ${STATE_DIR:?STATE_DIR fehlt}/postgres-socket:/run/postgresql:ro
+      - ${STATE_DIR:?STATE_DIR fehlt}/api-control:/run/versorgungs-kompass-control:ro
       - ${STATE_DIR:?STATE_DIR fehlt}/object-storage:/var/lib/versorgungs-kompass/object-storage
       - ${CONFIG_DIR:?CONFIG_DIR fehlt}/db-app-password:/run/secrets/db-app-password:ro
       - ${CONFIG_DIR:?CONFIG_DIR fehlt}/identity-bootstrap-hmac:/run/secrets/identity-bootstrap-hmac:ro

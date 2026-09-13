@@ -9,6 +9,7 @@ single_server_load_environment "${1:-}"
 single_server_require_command docker
 single_server_require_command git
 single_server_require_command node
+single_server_require_command sha256sum
 single_server_require_command sed
 
 if [[ "${SINGLE_SERVER_LOCAL_TEST:-0}" != "1" ]]; then
@@ -57,6 +58,17 @@ check_single_line_secret restic-repository 16 2048 70
 check_single_line_secret restic-password 32 256 70
 check_secret_file restic-aws-credentials 64 4096 70
 check_secret_file allowed-emails 6 1024 65532
+check_secret_file initial-open-source-writer.public.pem 64 1024 0
+
+initial_open_public_key="$CONFIG_DIR/initial-open-source-writer.public.pem"
+[[ "$(sha256sum "$initial_open_public_key" | awk '{print $1}')" == "$INITIAL_OPEN_SOURCE_WRITER_PUBLIC_KEY_SHA256" ]] \
+  || single_server_die "Installierter Initial-Open-Public-Key weicht vom vorab gepinnten Environment-Wert ab."
+INITIAL_OPEN_PUBLIC_KEY="$initial_open_public_key" node -e '
+  const { createPublicKey } = require("node:crypto");
+  const { readFileSync } = require("node:fs");
+  const key = createPublicKey(readFileSync(process.env.INITIAL_OPEN_PUBLIC_KEY));
+  if (key.type !== "public" || key.asymmetricKeyType !== "ed25519") process.exit(1);
+' || single_server_die "Installierter Initial-Open-Public-Key ist kein gueltiger Ed25519-Public-Key."
 
 grep -Eq '^[a-f0-9]{64}$' "$CONFIG_DIR/identity-bootstrap-hmac" \
   || single_server_die "identity-bootstrap-hmac muss exakt 32 zufaellige Bytes als Hexwert enthalten."
@@ -103,6 +115,18 @@ if [[ "$(uname -s)" == "Linux" ]]; then
   }
   check_directory "$CONFIG_DIR" 0 700
   check_directory "$STATE_DIR" 0 700
+  check_directory "$STATE_DIR/api-control" 0 750
+  [[ "$(stat -c '%g' "$STATE_DIR/api-control")" == "70" ]] \
+    || single_server_die "Writer-Fence-Verzeichnis muss GID 70 gehoeren."
+  writer_fence_contract="$STATE_DIR/api-control/.writer-fence-ready"
+  [[ -f "$writer_fence_contract" && ! -L "$writer_fence_contract" ]] \
+    || single_server_die "Writer-Fence-Sentinel fehlt oder ist keine symlinkfreie regulaere Datei."
+  [[ "$(stat -c '%u:%g' "$writer_fence_contract")" == "0:70" \
+     && "$(stat -c '%a' "$writer_fence_contract")" == "440" ]] \
+    || single_server_die "Writer-Fence-Sentinel muss root:70 und Modus 0440 besitzen."
+  [[ "$(sha256sum "$writer_fence_contract" | awk '{print $1}')" == \
+     "377b83127c4696bc13b0cbee5f63893c2153dc478651010faa8f76120ff61bdb" ]] \
+    || single_server_die "Writer-Fence-Sentinel besitzt nicht den erwarteten Vertrag."
   check_directory "$STATE_DIR/caddy-data" 1000 700
   check_directory "$STATE_DIR/caddy-config" 1000 700
   check_directory "$STATE_DIR/object-storage" 70 700

@@ -16,8 +16,13 @@ Restore-Tests gelten die Skripte unter `deploy/single-server/backup/`.
   Zielrevision muss exakt dem für den Einzelserver vorgesehenen Commit
   entsprechen. Beide Revisionen dürfen und werden im Regelfall voneinander
   abweichen.
-- Schreibzugriffe auf die Quelldatenbank bleiben vom GKE-Freeze bis zum
-  ausdrücklichen Unfreeze nach dem Export gesperrt. Der versionierte
+- Schreibzugriffe auf die Quelldatenbank bleiben vom GKE-Freeze mindestens bis
+  zum vollständig abgeschlossenen Initial-Open des VPS gesperrt. Der Abschluss
+  verlangt gemeinsam die kanonische Initial-Attestation, die aktuelle
+  Open-Attestation, einen fehlenden Cutover-Pending-Marker und den laufenden
+  Prozess-Readback `cutoverMode=open`. Vorher ist kein Unfreeze freigegeben;
+  bei einem Rollback muss zuerst der VPS-Writer nachweislich geschlossen sein.
+  Der versionierte
   `gke-writer-freeze.mjs` skaliert dabei ausschließlich das exakt gebundene
   API-Deployment im konfigurierten Namespace auf null. Writer in anderen
   Namespaces und externe Datenbank-Clients müssen separat ausgeschlossen und
@@ -254,12 +259,23 @@ liegen und darf nicht wiederverwendet werden; für einen erneuten Lauf wird ein
 neuer Zielname gewählt.
 
 Nach erfolgreichem Export den Frozen-Zustand ein weiteres Mal explizit lesen
-und erst nach gesicherter Paketprüfung entscheiden, ob die alte Quelle für
-Rollback-Zwecke wieder geöffnet werden soll:
+und bis zum oben definierten vollständigen Initial-Open-Abschluss des VPS
+unverändert erhalten:
 
 ```bash
 /absoluter/kanonischer/repository-pfad/deploy/single-server/migration/gke-writer-freeze.mjs \
   freeze --config /absoluter/externer/gke-freeze.conf --readback
+```
+
+Vor dem Initial-Open sind `unfreeze`, `close` und ein neuer Freeze-Zyklus
+unzulässig: Sie invalidieren den historischen Freeze des Pakets. In diesem Fall
+gibt es keinen Override; ein neuer Freeze, Export und Import ist erforderlich.
+Nur bei einem abgebrochenen Cutover beziehungsweise einem später bewusst
+ausgelösten Rollback wird zuerst der VPS-Writer nachweislich `closed` gesetzt.
+Erst danach darf die alte Quelle mit den jeweils frisch vorgelesenen
+Bestätigungstexten wieder geöffnet und der Freeze-Zyklus archiviert werden:
+
+```bash
 /absoluter/kanonischer/repository-pfad/deploy/single-server/migration/gke-writer-freeze.mjs \
   unfreeze --config /absoluter/externer/gke-freeze.conf
 /absoluter/kanonischer/repository-pfad/deploy/single-server/migration/gke-writer-freeze.mjs \
@@ -306,7 +322,22 @@ Danach wird derselbe Aufruf mit dem vollständigen Text als zweitem Argument
 wiederholt. Erst bei exakter Übereinstimmung stoppt der Wrapper die laufende
 API, führt den Importcontainer aus und startet die API nach erfolgreichem
 Zeilenabgleich wieder. Bei jedem Import- oder Prüffehler bleibt die API
-absichtlich gestoppt.
+absichtlich gestoppt. Nach erfolgreichem Import und stabilem API-Readback im
+Cutover-Modus `closed` persistiert der Wrapper atomar und datenträgersynchron
+`STATE_DIR/.database-import-attestation` mit exakt folgendem Inhalt:
+
+```text
+schemaVersion=1
+packageSha256=<SHA-256-von-SHA256SUMS>
+sourceRevision=<exakte-Zielrevision>
+operationId=<UTC-Kompaktzeitpunkt>-<Prozess-ID>
+importedAt=<UTC-Zeitpunkt>
+```
+
+Die Datei gehört `root:root`, besitzt Modus `0600` und wird nicht
+überschrieben. Ihr Vorhandensein sperrt jeden weiteren normalen Import; sie ist
+der dauerhafte, später vom Cutover-Gate zu bindende Nachweis des tatsächlich
+importierten Pakets und Ziel-Commits.
 
 Ein harter Prozess- oder Hostabbruch nach Anlage von
 `STATE_DIR/.database-import-recovery-required` wird nicht durch einen normalen
@@ -321,9 +352,15 @@ sudo deploy/single-server/migration/import-database.sh \
 
 Der Recovery-Lauf entfernt nur exakt operationsgebundene Importcontainer und
 akzeptiert anschließend genau zwei atomare Zustände: vollständig importiert
-oder weiterhin vollständig leer. Nur dann startet er die API und entfernt den
-Marker. Ein teilweise oder anders befüllter Zustand bleibt fail-closed; weder
-API noch Marker werden freigegeben.
+oder weiterhin vollständig leer. Beim vollständig importierten Zustand erzeugt
+er nach stabilem API-Readback die Attestation aus den paket- und
+operationsgebundenen Markerwerten; eine bereits vor einem Abbruch persistierte,
+exakt passende Attestation wird idempotent weiterverwendet. Erst danach wird
+der Recovery-Marker dauerhaft entfernt. Beim vollständig leeren Zustand wird
+keine Attestation erzeugt, sodass der Import erneut bestätigt werden kann. Kann
+Attestation oder Markerstatus nicht datenträgersynchron persistiert werden,
+wird die API wieder gestoppt. Ein teilweise oder anders befüllter Zustand
+bleibt fail-closed; weder API noch Marker werden freigegeben.
 
 Der Importcontainer prüft vor dem Restore erneut:
 
@@ -341,6 +378,61 @@ Der Importcontainer prüft vor dem Restore erneut:
 `--single-transaction`. Schemaerzeugung, `--clean`, `--create`, Owner und ACLs
 sind ausgeschlossen. Nach Erfolg werden Tabellen- und Objektreferenzzählungen
 erneut mit den Manifesten verglichen.
+
+## Finalen Source-Writer-Nachweis für Initial-Open erfassen
+
+Nach Zielimport, Zielbackup und Restore-Test bleibt die GCP-Quelle weiterhin
+eingefroren. Unmittelbar vor dem Initial-Open erzeugt der VPS mit
+`openssl rand -hex 32` einen neuen 64-stelligen Gate-Nonce. Dieser Nonce wird
+zusammen mit dem ursprünglichen Exportpaket an den Source-Collector übergeben.
+VPS und ausführender Source-Operator müssen zuvor eine synchronisierte
+UTC-Zeit besitzen; der spätere Open-Gate-Validator verlangt einen
+Source-Readback nach dem attestierten Zielimport.
+Der Collector läuft aus einem sauberen Checkout der paketgebundenen
+Zielrevision und verlangt einen höchstens zehn Minuten alten, erneut an GKE und
+Cloud SQL gebundenen globalen Writer-Nachweis:
+
+```bash
+/absoluter/kanonischer/repository-pfad/deploy/single-server/migration/capture-initial-open-writer-evidence.sh \
+  --migration-dir /absoluter/externer/exportpfad \
+  --libpq-dir /absoluter/externer/libpq-pfad \
+  --gke-config /absoluter/externer/gke-freeze.conf \
+  --global-writer-attestation /absoluter/externer/frischer-global-writer-nachweis.conf \
+  --gate-nonce '<64-HEX-VOM-VPS>' \
+  --output-dir /absoluter/externer/neuer-evidenzpfad \
+  --signing-key /absoluter/geschuetzter/initial-open-source-writer.private.pem
+```
+
+Der Collector prüft den historischen State-Hash des Pakets, einen aktuellen
+Frozen-Readback vor und nach der Cloud-SQL-Abfrage, PostgreSQL 16, die exakte
+Instanz und Datenbank sowie null andere Client-Sessions. Anschließend validiert
+er den unveränderten globalen Writer-Nachweis erneut. Nur dann legt er exklusiv
+ein neues, geschütztes Output-Verzeichnis an und schreibt genau zwei durable
+Dateien:
+
+```text
+initial-open-source-writer.attestation
+initial-open-source-writer.attestation.sig
+```
+
+Die Payload bindet Gate-Nonce, Paketfingerprint, Quell- und Zielrevision,
+Projekt und Cloud-SQL-Instanz, historischen GKE-State, Binding und
+Deployment-Generation, Namespace-Inventur, frischen globalen Writer-Nachweis,
+sämtliche Null-Writer-Zählungen und `observedAt`. Die Signatur besteht aus 64
+rohen Ed25519-Bytes. Beide Dateien werden verschlüsselt auf den VPS übertragen
+und dort mit `root:root`/`0600` unter denselben Namen im `CONFIG_DIR`
+installiert. Der zugehörige Public Key muss dort bereits vorab gepinnt sein;
+private Schlüssel, Kubeconfig und GCP-/Cloud-SQL-Zugang bleiben auf der Quelle.
+Eine Kollision ersetzt nichts. Ein erst nach Anlage des Output-Verzeichnisses
+auftretender Fehler lässt den unvollständigen, lokal fail-closed gesperrten
+Pfad zur Sichtprüfung stehen; er darf weder übertragen noch wiederverwendet
+werden.
+
+Jedes zwischenzeitliche `unfreeze`, `close`, Refreeze, jede andere
+Cloud-SQL-Client-Session, State-/Namespace-Drift oder ein abgelaufener globaler
+Writer-Nachweis verhindert die Ausgabe. Dann wird kein altes Artefakt
+wiederverwendet, sondern der Cutover bleibt geschlossen und benötigt je nach
+Ursache einen neuen Export und Import.
 
 Das Exportpaket wird nicht automatisch gelöscht. Erst nach fachlichem Smoke,
 erfolgreichem Offsite-Backup und bestandenem Restore-Test darf es nach der

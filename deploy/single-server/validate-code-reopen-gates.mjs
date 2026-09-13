@@ -55,6 +55,7 @@ const [
 const revision = /^[a-f0-9]{40,64}$/u;
 const hex64 = /^[a-f0-9]{64}$/u;
 const timestamp = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z$/u;
+const compactTimestamp = /^\d{8}T\d{6}Z$/u;
 if (
   !gateFile || !initialAttestationFile || !closedAttestationFile || !closedDeploymentAttestationFile
   || !stateDirectory || !appHost
@@ -75,31 +76,48 @@ const gate = exactKeyValues(gateSource, [
   ["identityAuditSha256", hex64],
   ["approvedAt", timestamp]
 ], "Code-Reopen-Gate-Datei");
-const age = Date.now() - Date.parse(gate.get("approvedAt"));
+function canonicalIsoUtcTimestampMilliseconds(value) {
+  if (!timestamp.test(value)) return Number.NaN;
+  const milliseconds = Date.parse(value);
+  if (!Number.isFinite(milliseconds)) return Number.NaN;
+  return new Date(milliseconds).toISOString().replace(".000Z", "Z") === value
+    ? milliseconds
+    : Number.NaN;
+}
+
+function canonicalCompactUtcTimestampMilliseconds(value) {
+  if (!compactTimestamp.test(value)) return Number.NaN;
+  const isoValue = `${value.slice(0, 4)}-${value.slice(4, 6)}-${value.slice(6, 8)}T${value.slice(9, 11)}:${value.slice(11, 13)}:${value.slice(13, 15)}Z`;
+  const milliseconds = canonicalIsoUtcTimestampMilliseconds(isoValue);
+  if (!Number.isFinite(milliseconds)) return Number.NaN;
+  return isoValue.replaceAll("-", "").replaceAll(":", "") === value
+    ? milliseconds
+    : Number.NaN;
+}
+
+const approvedAtMilliseconds = canonicalIsoUtcTimestampMilliseconds(gate.get("approvedAt"));
+const age = Date.now() - approvedAtMilliseconds;
 if (!Number.isFinite(age) || age < -30_000 || age > 30 * 60 * 1000) {
   fail("Code-Reopen-Gate ist nicht frisch genug.");
-}
-const approvedAtMilliseconds = Date.parse(gate.get("approvedAt"));
-
-function compactTimestampMilliseconds(value) {
-  const match = /^(\d{4})(\d{2})(\d{2})T(\d{2})(\d{2})(\d{2})Z$/u.exec(value);
-  if (!match) return Number.NaN;
-  return Date.UTC(...match.slice(1).map(Number).map((part, index) => index === 1 ? part - 1 : part));
 }
 
 const initialSource = readRegularFile(initialAttestationFile, "Initiale Cutover-Attestation");
 if (sha256(initialSource) !== gate.get("initialCutoverAttestationSha256")) {
   fail("Code-Reopen-Gate passt nicht zur initialen Cutover-Attestation.");
 }
-exactKeyValues(initialSource, [
+const initial = exactKeyValues(initialSource, [
   ["schemaVersion", "1"],
   ["appHost", appHost],
   ["initialRevision", revision],
   ["gateSha256", hex64],
   ["migrationPackageSha256", hex64],
   ["backupSnapshotId", hex64],
-  ["promotedAt", timestamp]
+  ["preparedAt", timestamp]
 ], "Initiale Cutover-Attestation");
+const preparedAtMilliseconds = canonicalIsoUtcTimestampMilliseconds(initial.get("preparedAt"));
+if (!Number.isFinite(preparedAtMilliseconds)) {
+  fail("Initiale Cutover-Attestation enthaelt keinen kanonischen preparedAt-Zeitpunkt.");
+}
 
 const closedSource = readRegularFile(closedAttestationFile, "Closed-Attestation");
 if (sha256(closedSource) !== gate.get("closedAttestationSha256")) {
@@ -117,9 +135,13 @@ const closed = exactKeyValues(closedSource, [
 if (closed.get("persistenceContractSha256") !== gate.get("persistenceContractSha256")) {
   fail("Persistenzvertrag hat sich seit dem Schliessen veraendert.");
 }
-const closedAtMilliseconds = Date.parse(closed.get("closedAt"));
-if (!Number.isFinite(closedAtMilliseconds) || closedAtMilliseconds > approvedAtMilliseconds) {
-  fail("Closed-Attestation liegt nicht vor der aktuellen Freigabe.");
+const closedAtMilliseconds = canonicalIsoUtcTimestampMilliseconds(closed.get("closedAt"));
+if (
+  !Number.isFinite(closedAtMilliseconds)
+  || closedAtMilliseconds <= preparedAtMilliseconds
+  || closedAtMilliseconds > approvedAtMilliseconds
+) {
+  fail("Closed-Attestation liegt nicht eindeutig nach der Initial-Vorbereitung und vor der aktuellen Freigabe.");
 }
 
 const deploymentSource = readRegularFile(closedDeploymentAttestationFile, "Closed-Deployment-Attestation");
@@ -134,12 +156,12 @@ const deployment = exactKeyValues(deploymentSource, [
   ["persistenceContractSha256", persistenceContractSha256],
   ["deployedAt", timestamp]
 ], "Closed-Deployment-Attestation");
-const deployedAtMilliseconds = Date.parse(deployment.get("deployedAt"));
+const deployedAtMilliseconds = canonicalIsoUtcTimestampMilliseconds(deployment.get("deployedAt"));
 if (
   !Number.isFinite(deployedAtMilliseconds)
-  || deployedAtMilliseconds < closedAtMilliseconds
+  || deployedAtMilliseconds <= closedAtMilliseconds
   || deployedAtMilliseconds > approvedAtMilliseconds
-) fail("Geschlossenes Zieldeployment liegt nicht zwischen Close und aktueller Freigabe.");
+) fail("Geschlossenes Zieldeployment liegt nicht eindeutig nach dem Close und vor der aktuellen Freigabe.");
 
 const restoreRoot = path.join(stateDirectory, "restore-tests");
 let restoreRootStat;
@@ -178,13 +200,13 @@ for (const directoryName of readdirSync(restoreRoot)) {
   ) {
     const restoreTimestamp = resultLines[1].slice("restoreTest=".length);
     const backupTimestamp = resultLines[3].slice("backupOperationId=".length).split("-")[0];
-    const restoreAtMilliseconds = compactTimestampMilliseconds(restoreTimestamp);
-    const backupAtMilliseconds = compactTimestampMilliseconds(backupTimestamp);
+    const restoreAtMilliseconds = canonicalCompactUtcTimestampMilliseconds(restoreTimestamp);
+    const backupAtMilliseconds = canonicalCompactUtcTimestampMilliseconds(backupTimestamp);
     const restoreIsFresh = Number.isFinite(restoreAtMilliseconds)
       && Number.isFinite(backupAtMilliseconds)
       && directoryName === restoreTimestamp
-      && backupAtMilliseconds >= deployedAtMilliseconds
-      && restoreAtMilliseconds >= backupAtMilliseconds
+      && backupAtMilliseconds > deployedAtMilliseconds
+      && restoreAtMilliseconds > backupAtMilliseconds
       && approvedAtMilliseconds >= restoreAtMilliseconds
       && approvedAtMilliseconds - restoreAtMilliseconds <= 6 * 60 * 60 * 1000;
     if (restoreIsFresh) restoreMatches += 1;

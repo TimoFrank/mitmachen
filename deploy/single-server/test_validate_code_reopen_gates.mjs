@@ -26,6 +26,15 @@ const hash = (value) => createHash("sha256").update(value).digest("hex");
 const now = Math.floor(Date.now() / 1000) * 1000;
 const iso = (milliseconds) => new Date(milliseconds).toISOString().replace(/\.\d{3}Z$/u, "Z");
 const compact = (milliseconds) => iso(milliseconds).replaceAll("-", "").replaceAll(":", "");
+const invalidCalendarAlias = (milliseconds) => {
+  const value = new Date(milliseconds);
+  const targetMonth = value.getUTCMonth();
+  const previousMonthYear = targetMonth === 0 ? value.getUTCFullYear() - 1 : value.getUTCFullYear();
+  const previousMonth = targetMonth === 0 ? 12 : targetMonth;
+  const previousMonthDays = new Date(Date.UTC(value.getUTCFullYear(), targetMonth, 0)).getUTCDate();
+  const invalidDay = previousMonthDays + value.getUTCDate();
+  return `${previousMonthYear}${String(previousMonth).padStart(2, "0")}${String(invalidDay).padStart(2, "0")}T${String(value.getUTCHours()).padStart(2, "0")}${String(value.getUTCMinutes()).padStart(2, "0")}${String(value.getUTCSeconds()).padStart(2, "0")}Z`;
+};
 const closedAt = now - 5 * 60 * 1000;
 const deployedAt = now - 4 * 60 * 1000;
 const backupAt = now - 3 * 60 * 1000;
@@ -50,7 +59,7 @@ try {
     `gateSha256=${"1".repeat(64)}`,
     `migrationPackageSha256=${"2".repeat(64)}`,
     `backupSnapshotId=${"3".repeat(64)}`,
-    "promotedAt=2026-09-11T12:00:00Z",
+    "preparedAt=2026-09-11T12:00:00Z",
     ""
   ].join("\n");
   writeFileSync(initialFile, initialSource);
@@ -139,6 +148,170 @@ try {
     persistenceSha256
   ]);
   assert.notEqual(wrongRevision.status, 0, "Gate und Restore muessen exakt zur Zielrevision passen.");
+
+  const invalidPreparedSource = initialSource.replace(
+    "preparedAt=2026-09-11T12:00:00Z",
+    "preparedAt=2026-02-30T12:00:00Z"
+  );
+  const invalidPreparedGateSource = gateSource.replace(
+    `initialCutoverAttestationSha256=${hash(initialSource)}`,
+    `initialCutoverAttestationSha256=${hash(invalidPreparedSource)}`
+  ).replace(
+    `closedAttestationSha256=${hash(closedSource)}`,
+    `closedAttestationSha256=${hash(closedSource.replace(hash(initialSource), hash(invalidPreparedSource)))}`
+  );
+  const invalidPreparedClosedSource = closedSource.replace(hash(initialSource), hash(invalidPreparedSource));
+  writeFileSync(initialFile, invalidPreparedSource);
+  writeFileSync(closedFile, invalidPreparedClosedSource);
+  writeFileSync(gateFile, invalidPreparedGateSource);
+  const invalidIsoCalendarDay = run([
+    gateFile,
+    initialFile,
+    closedFile,
+    deploymentFile,
+    stateDirectory,
+    appHost,
+    targetRevision,
+    persistenceSha256
+  ]);
+  assert.notEqual(invalidIsoCalendarDay.status, 0, "Ungueltige Kalendertage in ISO-UTC-Zeitpunkten muessen blockieren.");
+  writeFileSync(initialFile, initialSource);
+  writeFileSync(closedFile, closedSource);
+  writeFileSync(gateFile, gateSource);
+
+  const equalPreparedClosedInitialSource = initialSource.replace(
+    "preparedAt=2026-09-11T12:00:00Z",
+    `preparedAt=${iso(closedAt)}`
+  );
+  const equalPreparedClosedSource = closedSource.replace(
+    hash(initialSource),
+    hash(equalPreparedClosedInitialSource)
+  );
+  const equalPreparedClosedGateSource = gateSource
+    .replace(
+      `initialCutoverAttestationSha256=${hash(initialSource)}`,
+      `initialCutoverAttestationSha256=${hash(equalPreparedClosedInitialSource)}`
+    )
+    .replace(
+      `closedAttestationSha256=${hash(closedSource)}`,
+      `closedAttestationSha256=${hash(equalPreparedClosedSource)}`
+    );
+  writeFileSync(initialFile, equalPreparedClosedInitialSource);
+  writeFileSync(closedFile, equalPreparedClosedSource);
+  writeFileSync(gateFile, equalPreparedClosedGateSource);
+  const equalPreparedClosed = run([
+    gateFile,
+    initialFile,
+    closedFile,
+    deploymentFile,
+    stateDirectory,
+    appHost,
+    targetRevision,
+    persistenceSha256
+  ]);
+  assert.notEqual(equalPreparedClosed.status, 0,
+    "Initial-Vorbereitung und Closed-Attestation mit identischem Sekundentimestamp muessen scheitern.");
+  writeFileSync(initialFile, initialSource);
+  writeFileSync(closedFile, closedSource);
+  writeFileSync(gateFile, gateSource);
+
+  const invalidBackupResult = restoreResult.replace(
+    `backupOperationId=${compact(backupAt)}-42`,
+    `backupOperationId=${invalidCalendarAlias(backupAt)}-42`
+  );
+  const invalidBackupGateSource = gateSource.replace(
+    `restoreResultSha256=${hash(restoreResult)}`,
+    `restoreResultSha256=${hash(invalidBackupResult)}`
+  );
+  writeFileSync(path.join(restoreDirectory, "RESULT.txt"), invalidBackupResult);
+  writeFileSync(gateFile, invalidBackupGateSource);
+  const invalidCompactCalendarDay = run([
+    gateFile,
+    initialFile,
+    closedFile,
+    deploymentFile,
+    stateDirectory,
+    appHost,
+    targetRevision,
+    persistenceSha256
+  ]);
+  assert.notEqual(invalidCompactCalendarDay.status, 0, "Ungueltige Kalendertage in kompakten UTC-Zeitpunkten muessen blockieren.");
+
+  const equalDeploymentBackupResult = restoreResult.replace(
+    `backupOperationId=${compact(backupAt)}-42`,
+    `backupOperationId=${compact(deployedAt)}-42`
+  );
+  const equalDeploymentBackupGateSource = gateSource.replace(
+    `restoreResultSha256=${hash(restoreResult)}`,
+    `restoreResultSha256=${hash(equalDeploymentBackupResult)}`
+  );
+  writeFileSync(path.join(restoreDirectory, "RESULT.txt"), equalDeploymentBackupResult);
+  writeFileSync(gateFile, equalDeploymentBackupGateSource);
+  const equalDeploymentBackup = run([
+    gateFile,
+    initialFile,
+    closedFile,
+    deploymentFile,
+    stateDirectory,
+    appHost,
+    targetRevision,
+    persistenceSha256
+  ]);
+  assert.notEqual(equalDeploymentBackup.status, 0, "Das Backup muss strikt nach dem geschlossenen Deployment liegen.");
+  writeFileSync(path.join(restoreDirectory, "RESULT.txt"), restoreResult);
+  writeFileSync(gateFile, gateSource);
+
+  const equalCloseDeploymentSource = deploymentSource.replace(
+    `deployedAt=${iso(deployedAt)}`,
+    `deployedAt=${iso(closedAt)}`
+  );
+  const equalCloseDeploymentGateSource = gateSource.replace(
+    `closedDeploymentAttestationSha256=${hash(deploymentSource)}`,
+    `closedDeploymentAttestationSha256=${hash(equalCloseDeploymentSource)}`
+  );
+  writeFileSync(deploymentFile, equalCloseDeploymentSource);
+  writeFileSync(gateFile, equalCloseDeploymentGateSource);
+  const equalCloseDeployment = run([
+    gateFile,
+    initialFile,
+    closedFile,
+    deploymentFile,
+    stateDirectory,
+    appHost,
+    targetRevision,
+    persistenceSha256
+  ]);
+  assert.notEqual(equalCloseDeployment.status, 0,
+    "Das geschlossene Deployment muss strikt nach der Closed-Attestation liegen.");
+  writeFileSync(deploymentFile, deploymentSource);
+  writeFileSync(gateFile, gateSource);
+
+  const equalBackupRestoreTimestamp = compact(backupAt);
+  const equalBackupRestoreDirectory = path.join(stateDirectory, "restore-tests", equalBackupRestoreTimestamp);
+  const equalBackupRestoreResult = restoreResult.replace(
+    `restoreTest=${restoreTimestamp}`,
+    `restoreTest=${equalBackupRestoreTimestamp}`
+  );
+  mkdirSync(equalBackupRestoreDirectory, { recursive: true });
+  writeFileSync(path.join(equalBackupRestoreDirectory, "RESULT.txt"), equalBackupRestoreResult);
+  writeFileSync(gateFile, gateSource.replace(
+    `restoreResultSha256=${hash(restoreResult)}`,
+    `restoreResultSha256=${hash(equalBackupRestoreResult)}`
+  ));
+  const equalBackupRestore = run([
+    gateFile,
+    initialFile,
+    closedFile,
+    deploymentFile,
+    stateDirectory,
+    appHost,
+    targetRevision,
+    persistenceSha256
+  ]);
+  assert.notEqual(equalBackupRestore.status, 0,
+    "Der Restore-Test muss strikt nach dem gebundenen Backup liegen.");
+  rmSync(equalBackupRestoreDirectory, { recursive: true, force: true });
+  writeFileSync(gateFile, gateSource);
 
   const staleClosedAt = now - 8 * 60 * 60 * 1000;
   const staleDeployedAt = now - 7 * 60 * 60 * 1000 - 2 * 60 * 1000;

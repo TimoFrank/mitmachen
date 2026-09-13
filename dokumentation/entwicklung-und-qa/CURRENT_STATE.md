@@ -1,6 +1,6 @@
 # Current State
 
-Stand: 2026-09-11.
+Stand: 2026-09-13.
 
 ## Aktiver Arbeitsmodus
 
@@ -34,6 +34,12 @@ Stand: 2026-09-11.
   deshalb **vorbereitet und lokal geprüft**, nicht deployed oder live
   verifiziert. Das operative Gate steht im
   [Einzelserver-Runbook](../../deploy/single-server/README.md).
+- Ein produktives Initial-Open bleibt zusätzlich blockiert, bis ein dauerhafter
+  Source-Writer-Fence, eine autoritative GCS-Bucket-Inventur und ein gegen eine
+  vorab gebundene VPS-IP erhobener DNS-Readback versioniert umgesetzt und auf
+  der echten Linux-/GCP-Kette verifiziert sind. Die derzeitigen Gate-Dateien
+  prüfen lokale Konsistenz und Frische, erheben diese externen Tatsachen aber
+  nicht selbst.
 
 ## Release Candidate und parallele Entwicklung
 

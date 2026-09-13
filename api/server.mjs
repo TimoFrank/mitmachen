@@ -22,6 +22,10 @@ import {
 } from "./object-storage.mjs";
 import { createIdentityBootstrapClaim } from "./identity-bootstrap-claim.mjs";
 import {
+  assertApiWriterFencePermission,
+  validateApiWriterFenceConfiguration
+} from "./cutover-writer-fence.mjs";
+import {
   HOSPITATION_IMPORT_CONFIRMATION,
   HOSPITATION_IMPORT_SCHEMA_VERSION,
   buildHospitationImportPlan,
@@ -565,6 +569,7 @@ if (!["disabled", "validated-original"].includes(IMAGE_UPLOAD_MODE) || (process.
 const IDENTITY_CONFIGURATION = validateIdentityConfiguration(process.env);
 const API_AUTH_MODE = IDENTITY_CONFIGURATION.mode;
 const API_CUTOVER_MODE = validateApiCutoverMode(process.env);
+const API_WRITER_FENCE_DIRECTORY = validateApiWriterFenceConfiguration(process.env);
 const IAP_IDENTITY_MODE = IDENTITY_CONFIGURATION.iapIdentityMode;
 const API_AUTH_ALLOW_DEV_PROFILE = process.env.API_AUTH_ALLOW_DEV_PROFILE === "1";
 const API_AUTH_ALLOW_BEARER_DEV = process.env.API_AUTH_ALLOW_BEARER_DEV === "1";
@@ -3722,6 +3727,7 @@ async function authorizeRequest(request, url) {
   }
   request.routePolicy = policy;
   assertApiCutoverPermission(API_CUTOVER_MODE, policy);
+  assertApiWriterFencePermission(API_WRITER_FENCE_DIRECTORY, policy);
   if (policy.role === "public") return;
   const profile = await resolveRequestProfile(request);
   request.currentProfile = profile;

@@ -94,6 +94,7 @@ single_server_load_environment() {
   : "${CONFIG_DIR:?CONFIG_DIR fehlt}"
   : "${STATE_DIR:?STATE_DIR fehlt}"
   : "${GOOGLE_OAUTH_CLIENT_ID:?GOOGLE_OAUTH_CLIENT_ID fehlt}"
+  : "${INITIAL_OPEN_SOURCE_WRITER_PUBLIC_KEY_SHA256:?INITIAL_OPEN_SOURCE_WRITER_PUBLIC_KEY_SHA256 fehlt}"
   : "${API_CUTOVER_MODE:?API_CUTOVER_MODE fehlt}"
 
   [[ "$APP_HOST" =~ ^[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?(\.[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?)+$ ]] \
@@ -106,6 +107,8 @@ single_server_load_environment() {
     || single_server_die "GOOGLE_OAUTH_CLIENT_ID ist kein Google-Web-Client."
   [[ "$GOOGLE_OAUTH_CLIENT_ID" != *REPLACE_WITH* ]] \
     || single_server_die "GOOGLE_OAUTH_CLIENT_ID enthaelt noch den Platzhalter aus environment.example."
+  [[ "$INITIAL_OPEN_SOURCE_WRITER_PUBLIC_KEY_SHA256" =~ ^[a-f0-9]{64}$ ]] \
+    || single_server_die "INITIAL_OPEN_SOURCE_WRITER_PUBLIC_KEY_SHA256 muss den vorab gepinnten Ed25519-Public-Key hashen."
   [[ "$API_CUTOVER_MODE" =~ ^(closed|open)$ ]] \
     || single_server_die "API_CUTOVER_MODE muss exakt closed oder open sein."
 
@@ -137,7 +140,8 @@ single_server_load_environment() {
   [[ "$PRODUCT_VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]] || single_server_die "Produktversion ist ungueltig."
 
   export SINGLE_SERVER_ENV_FILE APP_HOST APP_ORIGIN APP_SITE_ADDRESS CONFIG_DIR STATE_DIR API_CUTOVER_MODE
-  export GOOGLE_OAUTH_CLIENT_ID LEGACY_PROFILE_IMAGE_BUCKET SOURCE_URL SOURCE_REVISION PRODUCT_VERSION
+  export GOOGLE_OAUTH_CLIENT_ID INITIAL_OPEN_SOURCE_WRITER_PUBLIC_KEY_SHA256 LEGACY_PROFILE_IMAGE_BUCKET
+  export SOURCE_URL SOURCE_REVISION PRODUCT_VERSION
 }
 
 single_server_assert_api_cutover_mode() {
@@ -199,7 +203,7 @@ single_server_assert_initial_cutover_attestation() {
     const pattern = new RegExp(
       `^schemaVersion=1\\nappHost=${escapedHost}\\ninitialRevision=${revision}\\n`
       + `gateSha256=${hex}\\nmigrationPackageSha256=${hex}\\nbackupSnapshotId=${hex}\\n`
-      + "promotedAt=\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}Z\\n$"
+      + "preparedAt=\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}Z\\n$"
     );
     if (!pattern.test(source)) process.exit(1);
   ' "$attestation" \
@@ -233,12 +237,35 @@ single_server_assert_open_attestation() {
   fi
 }
 
+single_server_assert_api_writer_fence_contract() {
+  local control_directory="$STATE_DIR/api-control"
+  local contract_file="$control_directory/.writer-fence-ready"
+  single_server_require_command sha256sum
+  [[ -d "$control_directory" && ! -L "$control_directory" \
+     && "$(realpath -e -- "$control_directory")" == "$control_directory" ]] \
+    || single_server_die "API-Writer-Fence-Verzeichnis fehlt, ist ein Symlink oder nicht kanonisch."
+  [[ -f "$contract_file" && ! -L "$contract_file" ]] \
+    || single_server_die "API-Writer-Fence-Sentinel fehlt oder ist keine symlinkfreie regulaere Datei."
+  if [[ "$(uname -s)" == "Linux" ]]; then
+    [[ "$(stat -c '%u:%g' "$control_directory")" == "0:70" \
+       && "$(stat -c '%a' "$control_directory")" == "750" ]] \
+      || single_server_die "API-Writer-Fence-Verzeichnis muss root:70 und Modus 0750 besitzen."
+    [[ "$(stat -c '%u:%g' "$contract_file")" == "0:70" \
+       && "$(stat -c '%a' "$contract_file")" == "440" ]] \
+      || single_server_die "API-Writer-Fence-Sentinel muss root:70 und Modus 0440 besitzen."
+  fi
+  [[ "$(sha256sum "$contract_file" | awk '{print $1}')" == \
+     "377b83127c4696bc13b0cbee5f63893c2153dc478651010faa8f76120ff61bdb" ]] \
+    || single_server_die "API-Writer-Fence-Sentinel besitzt nicht den erwarteten Vertrag."
+}
+
 single_server_assert_no_api_recovery_markers() {
   local marker
+  single_server_assert_api_writer_fence_contract
   for marker in \
     "$STATE_DIR/.backup-api-restart-required" \
     "$STATE_DIR/.database-import-recovery-required" \
-    "$STATE_DIR/.cutover-mode-change-pending"; do
+    "$STATE_DIR/api-control/.cutover-mode-change-pending"; do
     [[ ! -e "$marker" && ! -L "$marker" ]] \
       || single_server_die "Offener Recovery-Marker blockiert jeden API-Start: $marker"
   done

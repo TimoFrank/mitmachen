@@ -14,6 +14,11 @@ API_CUTOVER_MODE=closed
 
 GOOGLE_OAUTH_CLIENT_ID=REPLACE_WITH_WEB_CLIENT_ID.apps.googleusercontent.com
 
+# Vor dem ersten geschlossenen Deployment aus dem separat erzeugten
+# Ed25519-Public-Key berechnen; der private Schluessel bleibt ausschliesslich
+# in der GCP-Operatorumgebung.
+INITIAL_OPEN_SOURCE_WRITER_PUBLIC_KEY_SHA256=REPLACE_WITH_64_HEX_SHA256
+
 # Nur erforderlich, solange importierte profiles.avatar_url noch auf gs:// zeigt.
 LEGACY_PROFILE_IMAGE_BUCKET=
 

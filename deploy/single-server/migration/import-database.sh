@@ -155,6 +155,12 @@ MIGRATION_PACKAGE_SHA256="$(sha256sum "$MIGRATION_DIR/SHA256SUMS" | awk '{print 
   || single_server_die "Paketfingerprint ist ungueltig."
 expected_confirmation="IMPORT versorgungs_kompass PACKAGE $MIGRATION_PACKAGE_SHA256"
 import_marker="$STATE_DIR/.database-import-recovery-required"
+database_import_attestation="$STATE_DIR/.database-import-attestation"
+
+assert_database_import_attestation_absent() {
+  [[ ! -e "$database_import_attestation" && ! -L "$database_import_attestation" ]] \
+    || single_server_die "Eine dauerhafte Datenbankimport-Attestation existiert bereits; ein weiterer Import ist nicht zulaessig."
+}
 
 load_import_marker() {
   [[ -f "$import_marker" && ! -L "$import_marker" ]] || single_server_die "Import-Recovery-Marker fehlt oder ist kein regulaeres File."
@@ -171,6 +177,53 @@ load_import_marker() {
   import_operation_id="${marker_lines[1]#operationId=}"
 }
 
+validate_database_import_attestation() {
+  local expected_operation_id="${1:-}"
+  [[ -f "$database_import_attestation" && ! -L "$database_import_attestation" ]] \
+    || single_server_die "Datenbankimport-Attestation fehlt oder ist kein regulaeres File."
+  [[ "$(stat -c '%u:%g' "$database_import_attestation")" == "0:0" \
+     && "$(stat -c '%a' "$database_import_attestation")" == "600" ]] \
+    || single_server_die "Datenbankimport-Attestation muss root:root und Modus 0600 besitzen."
+  mapfile -t import_attestation_lines <"$database_import_attestation"
+  [[ "${#import_attestation_lines[@]}" -eq 5 \
+     && "${import_attestation_lines[0]}" == "schemaVersion=1" \
+     && "${import_attestation_lines[1]}" == "packageSha256=$MIGRATION_PACKAGE_SHA256" \
+     && "${import_attestation_lines[2]}" == "sourceRevision=$SOURCE_REVISION" \
+     && "${import_attestation_lines[3]}" =~ ^operationId=[0-9]{8}T[0-9]{6}Z-[1-9][0-9]*$ \
+     && "${import_attestation_lines[4]}" =~ ^importedAt=[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}Z$ ]] \
+    || single_server_die "Datenbankimport-Attestation passt nicht exakt zu Paket und Checkout."
+  if [[ -n "$expected_operation_id" ]]; then
+    [[ "${import_attestation_lines[3]}" == "operationId=$expected_operation_id" ]] \
+      || single_server_die "Datenbankimport-Attestation passt nicht zur aktuellen Importoperation."
+  fi
+}
+
+persist_database_import_attestation() {
+  local operation_id="${1:?Importoperation fehlt fuer die Datenbankimport-Attestation}"
+  local imported_at pending_attestation
+  if [[ -e "$database_import_attestation" || -L "$database_import_attestation" ]]; then
+    validate_database_import_attestation "$operation_id"
+    return 0
+  fi
+  imported_at="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+  pending_attestation="$STATE_DIR/.database-import-attestation.pending.$$"
+  [[ ! -e "$pending_attestation" && ! -L "$pending_attestation" ]] || return 1
+  if ! (
+    umask 077
+    printf 'schemaVersion=1\npackageSha256=%s\nsourceRevision=%s\noperationId=%s\nimportedAt=%s\n' \
+      "$MIGRATION_PACKAGE_SHA256" "$SOURCE_REVISION" "$operation_id" "$imported_at" \
+      >"$pending_attestation" || exit 1
+    chmod 0600 -- "$pending_attestation" || exit 1
+    single_server_promote_durable_file "$pending_attestation" "$database_import_attestation"
+  ); then
+    if [[ -f "$pending_attestation" && ! -L "$pending_attestation" ]]; then
+      unlink -- "$pending_attestation" >/dev/null 2>&1 || true
+    fi
+    return 1
+  fi
+  validate_database_import_attestation "$operation_id"
+}
+
 start_api_after_import_readback() {
   single_server_compose up -d --no-deps api
   if ! (
@@ -181,13 +234,42 @@ start_api_after_import_readback() {
     single_server_compose stop --timeout 40 api >/dev/null 2>&1 || true
     single_server_die "API wurde nach Import-Readback nicht stabil, revisionsgebunden und closed; Recovery-Marker bleibt erhalten."
   fi
-  single_server_unlink_durable_file "$import_marker"
+}
+
+remove_import_marker_after_readback() {
+  if ! (single_server_unlink_durable_file "$import_marker"); then
+    single_server_compose stop --timeout 40 api >/dev/null 2>&1 || true
+    single_server_die "Import-Recovery-Marker konnte nicht dauerhaft entfernt werden; API bleibt gestoppt."
+  fi
+}
+
+finalize_completed_import_after_api_readback() {
+  local operation_id="${1:?Importoperation fehlt fuer den Abschluss}"
+  if ! (persist_database_import_attestation "$operation_id"); then
+    single_server_compose stop --timeout 40 api >/dev/null 2>&1 || true
+    single_server_die "Datenbankimport-Attestation konnte nicht dauerhaft persistiert werden; API bleibt gestoppt und Recovery-Marker erhalten."
+  fi
+  remove_import_marker_after_readback
+}
+
+import_cleanup_active=0
+import_cleanup() {
+  local status="$?"
+  if [[ "$import_cleanup_active" == "1" ]]; then
+    single_server_compose stop --timeout 40 api >/dev/null 2>&1 || true
+  fi
+  single_server_release_maintenance_lock >/dev/null 2>&1 || true
+  return "$status"
 }
 
 if [[ "$confirmation" == "RECOVER" ]]; then
   load_import_marker
+  if [[ -e "$database_import_attestation" || -L "$database_import_attestation" ]]; then
+    validate_database_import_attestation "$import_operation_id"
+  fi
   single_server_acquire_maintenance_lock database-import-recovery
-  trap 'single_server_release_maintenance_lock || true' EXIT
+  import_cleanup_active=1
+  trap import_cleanup EXIT
   single_server_install_terminating_signal_traps
   for blocking_marker in \
     "$STATE_DIR/.backup-api-restart-required" \
@@ -211,17 +293,27 @@ if [[ "$confirmation" == "RECOVER" ]]; then
   readback_status="$?"
   set -e
   case "$readback_status" in
-    0) recovery_result="vollstaendig importiert" ;;
-    20) recovery_result="atomar leer; Import kann erneut bestaetigt werden" ;;
+    0)
+      recovery_result="vollstaendig importiert und dauerhaft attestiert"
+      start_api_after_import_readback
+      finalize_completed_import_after_api_readback "$import_operation_id"
+      ;;
+    20)
+      assert_database_import_attestation_absent
+      recovery_result="atomar leer; Import kann erneut bestaetigt werden"
+      start_api_after_import_readback
+      remove_import_marker_after_readback
+      ;;
     *) single_server_die "Import-Recovery-Readback ist nicht eindeutig. API und Marker bleiben gesperrt." ;;
   esac
-  start_api_after_import_readback
+  import_cleanup_active=0
   single_server_release_maintenance_lock
   trap - EXIT HUP INT TERM
   printf 'Import-Recovery erfolgreich: %s. Paketfingerprint: %s\n' "$recovery_result" "$MIGRATION_PACKAGE_SHA256"
   exit 0
 fi
 
+assert_database_import_attestation_absent
 if [[ -z "$confirmation" ]]; then
   [[ ! -e "$import_marker" && ! -L "$import_marker" ]] \
     || single_server_die "Ein abgebrochener Import erfordert zuerst den Aufruf mit dem zweiten Argument RECOVER."
@@ -234,8 +326,10 @@ fi
   || single_server_die "Ein abgebrochener Import erfordert zuerst den Aufruf mit dem zweiten Argument RECOVER."
 
 single_server_acquire_maintenance_lock database-import
-trap 'single_server_release_maintenance_lock || true' EXIT
+import_cleanup_active=1
+trap import_cleanup EXIT
 single_server_install_terminating_signal_traps
+assert_database_import_attestation_absent
 single_server_assert_no_maintenance_recovery_markers
 
 running_services="$(single_server_compose ps --status running --services)"
@@ -273,6 +367,8 @@ if ! single_server_compose run --name "$import_container_name" --rm --no-deps da
 fi
 
 start_api_after_import_readback
+finalize_completed_import_after_api_readback "$import_operation_id"
+import_cleanup_active=0
 single_server_release_maintenance_lock
 trap - EXIT HUP INT TERM
 printf 'Datenbankimport erfolgreich; API ist wieder healthy. Paketfingerprint: %s\n' "$MIGRATION_PACKAGE_SHA256"

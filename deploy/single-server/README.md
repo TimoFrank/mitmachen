@@ -20,6 +20,17 @@ oder auf einem Einzelserver importiert**. Der aktuelle Read-only-Livebefund zu
 den vier privaten Datenbuckets ist weiter unten als Momentaufnahme dokumentiert;
 auch er ersetzt nicht die erneute Cutover-Prüfung.
 
+Der aktuelle Stand ist ausdrücklich noch **nicht produktionsfreigegeben**. Vor
+einem echten Initial-Open fehlen drei externe technische Nachweise: ein über das
+Zeitfenster hinaus wirksamer Fence für sämtliche schreibfähigen Quellrollen,
+eine autoritative Bucket-Inventur aus dem eingefrorenen Deployment plus
+Terraform-State sowie ein DNS-Readback gegen eine vor dem Deployment gebundene
+VPS-IP. Die vorhandenen `.conf`-Prüfungen validieren Format, Bindungen,
+Nullzählungen, Signatur und Frische, erheben diese drei externen Tatsachen aber
+nicht selbst. Bis versionierte Collector-/Fence-Nachweise diese Lücke schließen,
+bleibt `API_CUTOVER_MODE=closed`; die dokumentierte Open-Aktion ist kein
+Go-live-Freigabenachweis.
+
 Die produktiven Serverpfade sind aus Schutz vor versehentlicher Umberechtigung
 kritischer Hostverzeichnisse fest vorgegeben:
 
@@ -181,7 +192,8 @@ ruft `git fetch` auf und bricht bei jeder Abweichung ab. Keine Feature-Branches,
 lokalen Patches oder unversionierten Dateien deployen.
 
 Environment-Vorlage installieren und danach Client-ID, externen
-`MIGRATION_DIR` sowie gegebenenfalls den Legacy-Bucket-Hinweis setzen:
+`MIGRATION_DIR`, den vorab ermittelten Public-Key-Hash sowie gegebenenfalls den
+Legacy-Bucket-Hinweis setzen:
 
 ```bash
 sudo install -d -m 0700 -o root -g root /etc/versorgungs-kompass
@@ -192,6 +204,28 @@ sudoedit /etc/versorgungs-kompass/single-server.env
 sudo install -d -m 0700 -o 70 -g 70 \
   /var/lib/versorgungs-kompass-migration
 ```
+
+Für den einmaligen Offline-Nachweis des weiterhin geschlossenen GCP-Writers
+wird außerhalb des Repositories in der geschützten GCP-Operatorumgebung ein
+eigener Ed25519-Schlüssel erzeugt. Der private Schlüssel bleibt dort; nur der
+Public Key wird vor dem ersten Deployment verschlüsselt auf den VPS übertragen:
+
+```bash
+openssl genpkey -algorithm Ed25519 \
+  -out /absolut/geschuetzt/initial-open-source-writer.private.pem
+openssl pkey \
+  -in /absolut/geschuetzt/initial-open-source-writer.private.pem \
+  -pubout \
+  -out /absolut/geschuetzt/initial-open-source-writer.public.pem
+sha256sum /absolut/geschuetzt/initial-open-source-writer.public.pem
+```
+
+Der ausgegebene Hash wird als
+`INITIAL_OPEN_SOURCE_WRITER_PUBLIC_KEY_SHA256` in der Environment-Datei
+gepinnt. Nach `prepare-host.sh` wird genau dieser Public Key als
+`CONFIG_DIR/initial-open-source-writer.public.pem` mit `root:root` und Modus
+`0600` installiert. Private Schlüssel, GKE-Kubeconfig, Cloud-SQL-Zugang und
+`gcloud`-Credentials werden nie auf den VPS kopiert.
 
 `MIGRATION_DIR` muss ein kanonischer absoluter Pfad außerhalb von Git-Checkout,
 `STATE_DIR` und `CONFIG_DIR` sein. `prepare-host.sh` legt ihn absichtlich nicht
@@ -296,7 +330,12 @@ Writer-Nachweis attestiert zusätzlich, dass weder andere Namespaces noch
 externe Clients in die gebundene Cloud-SQL-Instanz schreiben. Der
 Export-Wrapper verlangt diesen Nachweis, prüft den GKE-Freeze unmittelbar vor
 und nach dem Export erneut und bricht bei jeder Abweichung ab. Die Quelle bleibt
-bis zum ausdrücklichen Unfreeze schreibgesperrt.
+mindestens bis zum vollständig abgeschlossenen Initial-Open des VPS
+schreibgesperrt. Der Abschluss verlangt gemeinsam die kanonische Initial-
+Attestation, die aktuelle Open-Attestation, einen fehlenden Cutover-Pending-
+Marker und den laufenden Prozess-Readback `cutoverMode=open`. Vorher ist kein
+Unfreeze freigegeben; ein Rollback darf die Quelle erst wieder öffnen, nachdem
+der VPS-Writer nachweislich geschlossen ist.
 
 Die tatsächlich deployte Quellrevision wird als Herkunftsnachweis erfasst.
 Davon getrennt muss die für den Einzelserver vorgesehene Zielrevision exakt dem
@@ -442,7 +481,8 @@ Auf dem Zielhost wird für genau eine Person direkt im geschützten
 unveränderte String aus der Browserantwort. Die Profil-E-Mail muss exakt der
 signierten Adresse entsprechen. Bei einem migrierten Profil müssen auch alle
 anderen Profilfelder bytegenau zum vorhandenen Datensatz passen; bei einem
-dokumentierten leeren Neustart wird das Profil neu angelegt:
+nachweislich leeren, aber trotzdem exportierten und importierten Quellstand
+wird das Profil neu angelegt:
 
 ```json
 {
@@ -520,10 +560,13 @@ bis zum protokollierten Abschluss geschützt erhalten. **Keiner dieser echten
 Export-, Übertragungs- oder Importschritte wurde mit Live-Daten bereits
 ausgeführt.**
 
-Wenn für die wenigen Testnutzer stattdessen bewusst ein leerer Neustart
-vereinbart wird, muss diese Entscheidung ebenso dokumentiert werden. Profile
-und Google-OIDC-Bindungen entstehen dann über den gleichen Preview-/Apply-/
-Readback-Vorgang; eine E-Mail-Allowlist allein reicht nicht.
+Ein Neustart ohne Export- und Importpaket ist in diesem Betriebsstand nicht
+freigegeben. Auch wenn die bestehende Quelle nachweislich leer ist, wird sie mit
+Nullzählungen exportiert und auf dem Ziel importiert. Dadurch bleiben
+Quellstillstand, Zielrevision und leerer Ausgangsbestand an denselben
+Cutover-Nachweis gebunden. Profile und Google-OIDC-Bindungen entstehen danach
+über den gleichen Preview-/Apply-/Readback-Vorgang; eine E-Mail-Allowlist
+allein reicht nicht.
 
 ## 5. Erstes Deployment und Backup-Gate
 
@@ -597,9 +640,9 @@ mindestens einem externen Resolver sichtbar sein.
 
 Bis Daten-, Identity-, Backup- und Restore-Gate abgeschlossen sind, bleibt die
 Gateway-Allowlist auf den verantwortlichen Operator beschränkt und es werden
-keine fachlichen Schreibzugriffe freigegeben. Wenn der bisherige Datenstand
-fortgesetzt werden soll, folgt direkt nach dem erfolgreichen Deployment der
-zweistufige Import aus Abschnitt 4. Erst nach erfolgreichem Import,
+keine fachlichen Schreibzugriffe freigegeben. Direkt nach dem erfolgreichen
+Deployment folgt auch bei einer leeren Quelle der zweistufige Import aus
+Abschnitt 4. Erst nach erfolgreichem Import,
 Identity-Prüfung und `status.sh` werden Backup und Restore-Test ausgeführt:
 
 ```bash
@@ -612,10 +655,10 @@ sudo /opt/versorgungs-kompass/current/deploy/single-server/restore-test.sh \
   '<vollstaendige-64-stellige-snapshot_id-aus-dem-Inventar>'
 ```
 
-Bei einem dokumentierten leeren Neustart entfällt nur der Datenimport, nicht
-die Anlage und Prüfung der Identity-Bindungen. Backup und Restore-Test müssen
-in beiden Fällen erfolgreich sein, bevor weitere Nutzer zugelassen oder
-produktive Schreibzugriffe eröffnet werden.
+Auch bei einer nachweislich leeren Quelle entfallen Export und Import nicht.
+Die Anlage und Prüfung der Identity-Bindungen, Backup und Restore-Test müssen
+ebenfalls erfolgreich sein, bevor weitere Nutzer zugelassen oder produktive
+Schreibzugriffe eröffnet werden.
 
 ## 6. systemd für Boot und regelmäßiges Backup
 
@@ -702,11 +745,14 @@ erfolgreiches Deployment öffnet den Zielwriter nicht:
    und nach dem gemeinsamen PostgreSQL-Snapshot einen eigenen Frozen-Readback
    aus. TOC, Metadaten, Tabellen- und Objektreferenzzählungen sowie SHA-256-Werte
    getrennt prüfen und das Paket verschlüsselt nach `MIGRATION_DIR`
-   übertragen. Alternativ den bewusst leeren Neustart dokumentieren.
-6. Nach dem Export den Frozen-Readback nochmals explizit ausführen. Nur wenn die
-   alte Quelle für den dokumentierten Rollback wieder laufen soll, die exakten
-   `UNFREEZE:`- und danach `CLOSE:`-Vorschauen anwenden, den Running-Readback
-   prüfen und den archivierten Abschlusszustand protokollieren.
+   übertragen. Auch eine nachweislich leere Quelle durchläuft diesen Pfad; ein
+   Neustart ohne Migrationsnachweis ist nicht freigegeben.
+6. Nach dem Export den Frozen-Readback nochmals explizit ausführen und die
+   Quelle bis zum oben definierten vollständigen Initial-Open-Abschluss des VPS
+   geschlossen lassen. Jedes `unfreeze` oder ein neuer Freeze-Zyklus invalidiert Paket und
+   Import für diesen Initial-Cutover; dann sind neuer Export und neuer Import
+   erforderlich. Für einen Rollback zuerst den VPS-Writer nachweislich
+   `closed` setzen und erst danach die Quelle kontrolliert öffnen.
 7. Das bereits initialisierte Offsite-Backup-Ziel und die auf den Operator
    beschränkte Gateway-Allowlist kontrollieren. `API_CUTOVER_MODE=closed`,
    OAuth-Redirect und Operator nochmals gegen den kanonischen Host prüfen.
@@ -715,9 +761,10 @@ erfolgreiches Deployment öffnet den Zielwriter nicht:
 9. Neue DNS-Antworten auf dem Host und extern nachweisen, `deploy.sh` mit dem
    zweiten Argument `closed` ausführen und auf das Zertifikat warten. Der
    interne Readback muss Revision und `cutoverMode=closed` bestätigen.
-10. Bei Datenfortsetzung zuerst den read-only Paketlauf und danach den exakt
-    bestätigten `database-import` ausführen. Ein Fehler laesst die API gestoppt;
-    nach einem harten Abbruch ausschließlich mit `RECOVER` fortsetzen.
+10. Zwingend zuerst den read-only Paketlauf und danach den exakt bestätigten
+    `database-import` ausführen, auch bei einer leeren Quelle. Ein Fehler laesst
+    die API gestoppt; nach einem harten Abbruch ausschließlich mit `RECOVER`
+    fortsetzen.
 11. Automatischen Count-Abgleich bestätigen und Profile, Rollen, Scopes,
     Google-Issuer und Subjects für alle erwarteten Personen fachlich prüfen.
 12. Auf dem neuen Server `status.sh`, Backup, Snapshot-Inventar und Restore-Test
@@ -726,12 +773,22 @@ erfolgreiches Deployment öffnet den Zielwriter nicht:
     Leseoperation prüfen. Eine nicht zugelassene Adresse muss vor der App
     stoppen. Alle freigegebenen Allowlist-Adressen müssen genau eine aktive
     Google-Bindung besitzen; alte IAP-Bindungen bleiben inaktiv.
-14. Die nachfolgend beschriebene frische Open-Gate-Datei aus den tatsächlich
-    geprüften Nachweisen erstellen. Der Schalter wiederholt lokal Import- und
-    Identity-Readback, bindet den erfolgreichen Restore-Test und verbraucht die
-    Gate-Datei atomar. Zuerst die read-only Vorschau, dann nur deren exakten
-    Bestätigungstext als viertes Argument anwenden.
-15. Erst nach einem erfolgreichen Prozess-Readback `cutoverMode=open` weitere
+14. Einen zufälligen Gate-Nonce auf dem VPS erzeugen. Unmittelbar danach auf
+    der weiterhin eingefrorenen Quelle den signierten finalen Source-Writer-
+    Nachweis gemäß Migrations-Runbook erstellen und Payload sowie Signatur
+    verschlüsselt unter den festen Namen im `CONFIG_DIR` installieren. Die
+    frische Bucket-Inventur und den DNS-Readback ebenfalls als die unten exakt
+    beschriebenen Dateien festhalten. Vorher müssen VPS und ausführender
+    Source-Operator eine synchronisierte UTC-Zeit besitzen; der Validator
+    verlangt, dass dieser Source-Readback zeitlich nach dem attestierten
+    Zielimport liegt.
+15. Die nachfolgend beschriebene Open-Gate-Datei aus den tatsächlich geprüften
+    Nachweisen erstellen. Der Schalter wiederholt lokal Import- und Identity-
+    Readback, bindet den erfolgreichen post-Import-Restore-Test, den vorab
+    gepinnten Public Key und alle Evidenzdateien und verbraucht nur die
+    Gate-Datei atomar. Zuerst die read-only Vorschau, dann nur deren exakten,
+    Gate-Hash-gebundenen Bestätigungstext als viertes Argument anwenden.
+16. Erst nach einem erfolgreichen Prozess-Readback `cutoverMode=open` weitere
     zugelassene Personen aufnehmen und deren Login sowie Datenbankbindung
     einzeln prüfen. Zeitpunkt, DNS-Werte, Quell- und Ziel-Commit,
     Paketfingerprint, Backup-Snapshot, Bucket-Inventur und Prüfergebnis
@@ -746,12 +803,79 @@ löschen oder verändern.
 Die Vorlage `cutover-open-gates.conf.example` wird außerhalb von Git als
 `/etc/versorgungs-kompass/secrets/cutover-open-gates.conf` mit Eigentum
 `root:root` und Modus `0600` angelegt. Sie enthält in der vorgegebenen
-Reihenfolge den aktuellen Zielcommit, den SHA-256 des Migrationsmanifests und
-des GKE-Freeze, die volle Snapshot-ID, den SHA-256 des erfolgreichen
-`RESULT.txt`, den nur als Hash gespeicherten Identity-Readback sowie die Hashes
-der geschützten Bucket- und DNS-Inventur. `approvedAt` darf beim Lauf höchstens
-30 Minuten alt sein. Kein Nachweiswert wird geraten oder aus der Vorlage
-übernommen.
+Reihenfolge den aktuellen Zielcommit, den SHA-256 von Migrationsmanifest und
+dauerhafter Import-Attestation, den historischen GKE-Freeze, Gate-Nonce,
+Hashes von signiertem finalem Source-Writer-Nachweis, Signatur und vorab
+gepinntem Ed25519-Public-Key, die volle Snapshot-ID, den SHA-256 des
+erfolgreichen `RESULT.txt`, den nur als Hash gespeicherten Identity-Readback
+sowie die Hashes der geschützten Bucket- und DNS-Evidenz. `approvedAt` darf
+beim Lauf höchstens zehn Minuten alt sein. Kein Nachweiswert wird geraten oder
+aus der Vorlage übernommen.
+
+Die folgenden fünf Dateien liegen beim Initial-Open zusätzlich unter ihren
+festen Namen in demselben `CONFIG_DIR`, jeweils `root:root`/`0600` und ohne
+Symlink:
+
+```text
+initial-open-source-writer.attestation
+initial-open-source-writer.attestation.sig
+initial-open-source-writer.public.pem
+cutover-bucket-inventory.conf
+cutover-dns-readback.conf
+```
+
+Der Public-Key-Hash muss zusätzlich mit dem schon vor dem ersten Deployment in
+`single-server.env` gepinnten Wert übereinstimmen. `preflight.sh` prüft Datei,
+Ed25519-Typ und Hash bereits im geschlossenen Deployment. Source-Writer-Nachweis,
+Bucket-Inventur und DNS-Readback dürfen bei `approvedAt` höchstens zehn Minuten
+alt und auch beim letzten Ziel-Readback noch höchstens zehn Minuten alt sein.
+Das gebundene Zielbackup muss eindeutig nach der Import-Attestation liegen, der
+Restore-Test danach und höchstens sechs Stunden vor der Freigabe.
+
+`cutover-bucket-inventory.conf` besitzt exakt dieses Schema und bindet jede
+Nullzählung an Quelle, Ziel und Paket:
+
+```text
+schemaVersion=1
+gcpProjectId=<GCP-PROJEKT>
+sourceRevision=<DEPLOYTE-QUELLREVISION>
+targetRevision=<ZIELREVISION>
+migrationPackageSha256=<SHA256-VON-SHA256SUMS>
+gkeFreezeStateSha256=<HISTORISCHER-FREEZE-SHA256>
+contactImageBucket=<ECHTER-BUCKET-NAME>
+contactImageLiveObjects=0
+contactNoteAttachmentBucket=<ECHTER-BUCKET-NAME>
+contactNoteAttachmentLiveObjects=0
+profileImageBucket=<ECHTER-BUCKET-NAME>
+profileImageLiveObjects=0
+stakeholderLogoBucket=<ECHTER-BUCKET-NAME>
+stakeholderLogoLiveObjects=0
+inventoriedAt=<UTC-ZEITPUNKT>
+```
+
+`cutover-dns-readback.conf` besitzt exakt dieses Schema. Ohne vorbereitete
+IPv6-Konnektivität steht an allen drei IPv6-Stellen `none`:
+
+```text
+schemaVersion=1
+appHost=versorgungs-kompass.de
+targetRevision=<ZIELREVISION>
+vpsIpv4=<VPS-IPV4>
+vpsIpv6=<VPS-IPV6-ODER-none>
+vpsResolverA=<VPS-IPV4>
+vpsResolverAAAA=<VPS-IPV6-ODER-none>
+vpsResolverWwwCname=versorgungs-kompass.de.
+externalResolver=1.1.1.1
+externalResolverA=<VPS-IPV4>
+externalResolverAAAA=<VPS-IPV6-ODER-none>
+externalResolverWwwCname=versorgungs-kompass.de.
+checkedAt=<UTC-ZEITPUNKT>
+```
+
+Fehlende Dateien, freie Hashwerte, wiederholte Bucket-Namen,
+Mehrfachadressen, nichtleere Buckets, abweichende Resolverantworten oder alte
+Zeitstempel stoppen fail-closed. Diese lokale Konsistenzprüfung ersetzt nicht
+die oben als Go-live-Blocker benannten autoritativen Collector-Nachweise.
 
 Der Identity-Hash wird ohne Ausgabe der personenbezogenen Zeilen aus demselben
 sortierten read-only SQL-Ergebnis ermittelt, das der Schalter erneut gegen die
@@ -775,18 +899,38 @@ sudo /opt/versorgungs-kompass/current/deploy/single-server/set-cutover-mode.sh \
   open \
   /etc/versorgungs-kompass/single-server.env \
   /etc/versorgungs-kompass/secrets/cutover-open-gates.conf \
-  'SET API CUTOVER MODE open FOR <EXAKTER-COMMIT-AUS-DER-VORSCHAU>'
+  'SET API CUTOVER MODE open FOR <EXAKTER-COMMIT> WITH GATE <GATE-SHA256-AUS-DER-VORSCHAU>'
 ```
 
 Der Moduswechsel hält dieselbe globale Wartungssperre wie Backup, Import,
 Deployment und Identity-Provisionierung. Vor der API-Umschaltung schreibt er
-einen fsync-gesicherten Recovery-Marker. Beim ersten Öffnen werden der
-unveränderliche Initialnachweis und die revisionsgebundene Open-Autorisierung
-durable geschrieben, bevor die API erstmals offen startet. Nach
-API-Provenienz-, Readiness- und Mode-Readback werden Recovery-Marker und
-einmalige Gate-Datei entfernt. Bleibt der Marker nach Abbruch oder Reboot
-liegen, wird nicht erneut geöffnet, sondern ausschließlich nach einem
-nachgewiesenen API-Stopp fail-closed wiederhergestellt:
+einen fsync-gesicherten Recovery-Marker unter
+`$STATE_DIR/api-control/.cutover-mode-change-pending`. Das Hostverzeichnis wird
+read-only nach `/run/versorgungs-kompass-control` in die API gemountet. Nur bei
+der exakt einzeiligen Sentinel-Datei `.writer-fence-ready` mit
+`schemaVersion=1` und ohne diesen Marker gibt der Runtime-Writer-Fence
+schreibende Policies frei. Der Marker sperrt damit alle neuen fachlichen
+Schreibrequests, auch wenn die API für den technischen Open-Readback bereits im
+Modus `open` läuft. Beim kontrollierten Schließen lässt der nachfolgende
+Containerstopp bereits autorisierte Requests auslaufen; erst nach dem
+bestätigten Stopp entsteht die Closed-Attestation. Beim
+ersten Öffnen werden ein fester, geschützter Initial-Kandidat und die
+revisionsgebundene Open-Autorisierung durable geschrieben, bevor die API für
+diesen weiterhin schreibgesperrten Readback startet. Erst nach
+API-Provenienz-, Readiness- und Mode-Readback wird der Kandidat zur
+unveränderlichen `.initial-cutover-attestation` promoviert; ihr Feld
+`preparedAt` bezeichnet wahrheitsgemäß die Erstellung des gebundenen
+Kandidaten, nicht den späteren Dateiaustausch. Danach werden die
+einmalige Gate-Datei und zuletzt der Recovery-Marker entfernt; erst dessen
+Entfernung gibt fachliche Writes frei. Bleibt der Marker vorher nach Abbruch
+oder Reboot liegen, entfernt `recover-closed` Kandidat und vorläufige
+Open-/Closed-Nachweise und stellt einen retry-fähigen geschlossenen Zustand her.
+Bleibt er dagegen erst nach der kanonischen Promotion liegen, behält Recovery
+die Initial-Attestation bewusst: Der vollständige Cutover darf dann nicht
+wiederholt werden; nach dem geschlossenen Recovery-Zustand ist nur der separat
+geprüfte Code-Reopen-Pfad zulässig. Ohne kanonischen Initialnachweis bleibt
+dieser leichtere Pfad gesperrt. Recovery erfolgt ausschließlich nach einem
+nachgewiesenen API-Stopp:
 
 ```bash
 sudo /opt/versorgungs-kompass/current/deploy/single-server/set-cutover-mode.sh \
@@ -795,8 +939,11 @@ sudo /opt/versorgungs-kompass/current/deploy/single-server/set-cutover-mode.sh \
 
 Nach dem ersten erfolgreichen Öffnen existieren zwei getrennte Nachweise. Die
 unveränderliche `.initial-cutover-attestation` belegt dauerhaft den
-vollständigen GCP-zu-VPS-Cutover. Die aktuelle `.cutover-open-attestation`
-autorisiert dagegen immer nur den exakt laufenden Commit als Writer. Beim
+irreversiblen Initial-Cutover-Punkt. Erst zusammen mit der aktuellen
+`.cutover-open-attestation`, einem fehlenden Cutover-Pending-Marker und dem
+laufenden Prozess-Readback `cutoverMode=open` belegt sie den vollständigen
+GCP-zu-VPS-Cutover. Die Open-Attestation autorisiert dabei immer nur den exakt
+laufenden Commit als Writer. Beim
 kontrollierten Schließen wird nur die aktuelle Open-Autorisierung entfernt und
 eine `.cutover-closed-attestation` mit bisheriger Revision, Initialnachweis und
 Persistenzvertrag geschrieben. Ein manuelles Ändern der Environment-Datei auf
@@ -846,7 +993,7 @@ sudo /opt/versorgungs-kompass/current/deploy/single-server/set-cutover-mode.sh \
   reopen-code \
   /etc/versorgungs-kompass/single-server.env \
   /etc/versorgungs-kompass/secrets/code-reopen-gates.conf \
-  'REOPEN API AFTER CODE UPDATE FOR <EXAKTER-COMMIT-AUS-DER-VORSCHAU>'
+  'REOPEN API AFTER CODE UPDATE FOR <EXAKTER-COMMIT> WITH GATE <GATE-SHA256-AUS-DER-VORSCHAU>'
 ```
 
 Der Reopen-Schalter bindet Initial-, Closed- und Closed-Deployment-Attestation,

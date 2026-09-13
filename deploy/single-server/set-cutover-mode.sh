@@ -42,13 +42,14 @@ for required_command in awk chmod chown dirname mktemp mv node realpath rm sha25
   single_server_require_command "$required_command"
 done
 
-pending_marker="$STATE_DIR/.cutover-mode-change-pending"
+pending_marker="$STATE_DIR/api-control/.cutover-mode-change-pending"
 open_attestation="$STATE_DIR/.cutover-open-attestation"
 initial_attestation="$STATE_DIR/.initial-cutover-attestation"
+initial_attestation_candidate="$STATE_DIR/.initial-cutover-attestation.candidate"
 closed_attestation="$STATE_DIR/.cutover-closed-attestation"
 closed_deployment_attestation="$STATE_DIR/.closed-deployment-attestation"
 temporary_file=""
-initial_attestation_pending=""
+initial_attestation_temporary=""
 
 durable_replace() {
   local source="$1" destination="$2"
@@ -107,7 +108,7 @@ stop_api_and_assert_stopped() {
 
 write_pending_marker() {
   local current_mode="$1" desired_mode="$2" pending environment_sha256
-  pending="$STATE_DIR/.cutover-mode-change-pending.pending.$$"
+  pending="$STATE_DIR/api-control/.cutover-mode-change-pending.pending.$$"
   environment_sha256="$(sha256sum "$SINGLE_SERVER_ENV_FILE" | awk '{print $1}')"
   [[ ! -e "$pending_marker" && ! -L "$pending_marker" && ! -e "$pending" && ! -L "$pending" ]] \
     || single_server_die "Ein offener oder temporaerer Cutover-Recovery-Marker blockiert den Moduswechsel."
@@ -119,16 +120,63 @@ write_pending_marker() {
   durable_replace "$pending" "$pending_marker"
 }
 
+validate_pending_marker() {
+  single_server_assert_private_attestation_file "$pending_marker" "Cutover-Recovery-Marker"
+  SOURCE_REVISION="$SOURCE_REVISION" node -e '
+    const fs = require("node:fs");
+    const source = fs.readFileSync(process.argv[1], "utf8");
+    const lines = source.split("\n");
+    if (lines.at(-1) !== "") process.exit(1);
+    lines.pop();
+    const expectedKeys = [
+      "schemaVersion", "transitionKind", "currentMode", "desiredMode",
+      "sourceRevision", "environmentSha256", "createdAt"
+    ];
+    if (lines.length !== expectedKeys.length) process.exit(1);
+    const values = new Map();
+    for (let index = 0; index < expectedKeys.length; index += 1) {
+      const separator = lines[index].indexOf("=");
+      if (separator <= 0 || lines[index].slice(0, separator) !== expectedKeys[index]) process.exit(1);
+      values.set(expectedKeys[index], lines[index].slice(separator + 1));
+    }
+    const kind = values.get("transitionKind");
+    const currentMode = values.get("currentMode");
+    const desiredMode = values.get("desiredMode");
+    const semantics = (
+      ((kind === "open" || kind === "reopen-code") && currentMode === "closed" && desiredMode === "open")
+      || (kind === "closed" && currentMode === "open" && desiredMode === "closed")
+    );
+    if (
+      values.get("schemaVersion") !== "1"
+      || !semantics
+      || values.get("sourceRevision") !== process.env.SOURCE_REVISION
+      || !/^[a-f0-9]{64}$/u.test(values.get("environmentSha256") || "")
+      || !/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z$/u.test(values.get("createdAt") || "")
+    ) process.exit(1);
+    process.stdout.write([kind, currentMode, desiredMode].join("\t"));
+  ' "$pending_marker" \
+    || single_server_die "Cutover-Recovery-Marker ist nicht exakt an eine gueltige Transition und die aktuelle Revision gebunden."
+}
+
 validate_open_gate() {
-  local gate_values identity_rows readback_container_name
+  local gate_values identity_rows readback_container_name revalidated_gate_values
   [[ "$gate_file" == "$CONFIG_DIR/cutover-open-gates.conf" \
      && -f "$gate_file" && ! -L "$gate_file" \
      && "$(realpath -e -- "$gate_file")" == "$gate_file" \
      && "$(stat -c '%u:%g' "$gate_file")" == "0:0" \
      && "$(stat -c '%a' "$gate_file")" == "600" ]] \
     || single_server_die "Open-Gate-Datei muss der kanonische root:root/0600-Pfad cutover-open-gates.conf im CONFIG_DIR sein."
+  for evidence_file in \
+    "$CONFIG_DIR/initial-open-source-writer.attestation" \
+    "$CONFIG_DIR/initial-open-source-writer.attestation.sig" \
+    "$CONFIG_DIR/initial-open-source-writer.public.pem" \
+    "$CONFIG_DIR/cutover-bucket-inventory.conf" \
+    "$CONFIG_DIR/cutover-dns-readback.conf"; do
+    single_server_assert_private_attestation_file "$evidence_file" "Initial-Open-Evidenz"
+  done
   gate_values="$(node "$SCRIPT_DIR/validate-cutover-open-gates.mjs" evidence \
-    "$gate_file" "$MIGRATION_DIR" "$STATE_DIR" "$APP_HOST" "$SOURCE_REVISION")" \
+    "$gate_file" "$MIGRATION_DIR" "$STATE_DIR" "$APP_HOST" "$SOURCE_REVISION" \
+    "$INITIAL_OPEN_SOURCE_WRITER_PUBLIC_KEY_SHA256")" \
     || single_server_die "Lokale Open-Gates sind nicht vollstaendig und konsistent."
   IFS=$'\t' read -r gate_file_sha256 gate_package_sha256 gate_snapshot_id \
     gate_identity_sha256 gate_bucket_sha256 gate_dns_sha256 <<<"$gate_values"
@@ -152,10 +200,16 @@ validate_open_gate() {
   node "$SCRIPT_DIR/validate-cutover-open-gates.mjs" identity \
     "$gate_identity_sha256" "$CONFIG_DIR/allowed-emails" <<<"$identity_rows" \
     || single_server_die "Open-Gate verlangt fuer jede Allowlist-Adresse genau eine aktive Google-Bindung."
+  revalidated_gate_values="$(node "$SCRIPT_DIR/validate-cutover-open-gates.mjs" evidence \
+    "$gate_file" "$MIGRATION_DIR" "$STATE_DIR" "$APP_HOST" "$SOURCE_REVISION" \
+    "$INITIAL_OPEN_SOURCE_WRITER_PUBLIC_KEY_SHA256")" \
+    || single_server_die "Open-Gate ist nach Datenbank- und Identity-Readback nicht mehr frisch oder konsistent."
+  [[ "$revalidated_gate_values" == "$gate_values" ]] \
+    || single_server_die "Open-Gate-Evidenz driftete waehrend des finalen Ziel-Readbacks."
 }
 
 validate_code_reopen_gate() {
-  local gate_values identity_rows persistence_contract_sha256
+  local gate_values identity_rows persistence_contract_sha256 revalidated_gate_values
   [[ "$gate_file" == "$CONFIG_DIR/code-reopen-gates.conf" \
      && -f "$gate_file" && ! -L "$gate_file" \
      && "$(realpath -e -- "$gate_file")" == "$gate_file" \
@@ -188,21 +242,29 @@ validate_code_reopen_gate() {
   node "$SCRIPT_DIR/validate-cutover-open-gates.mjs" identity \
     "$gate_identity_sha256" "$CONFIG_DIR/allowed-emails" <<<"$identity_rows" \
     || single_server_die "Code-Reopen verlangt fuer jede Allowlist-Adresse genau eine aktive Google-Bindung."
+  revalidated_gate_values="$(node "$SCRIPT_DIR/validate-code-reopen-gates.mjs" \
+    "$gate_file" "$initial_attestation" "$closed_attestation" "$closed_deployment_attestation" "$STATE_DIR" \
+    "$APP_HOST" "$SOURCE_REVISION" "$persistence_contract_sha256")" \
+    || single_server_die "Code-Reopen-Gate ist nach dem finalen Identity-Readback nicht mehr frisch oder konsistent."
+  [[ "$revalidated_gate_values" == "$gate_values" ]] \
+    || single_server_die "Code-Reopen-Gate-Evidenz driftete waehrend des finalen Ziel-Readbacks."
 }
 
 prepare_initial_attestation() {
-  [[ ! -e "$initial_attestation" && ! -L "$initial_attestation" ]] \
-    || single_server_die "Die initiale Cutover-Attestation existiert bereits; ein erneuter Voll-Cutover ist gesperrt."
-  initial_attestation_pending="$STATE_DIR/.initial-cutover-attestation.pending.$$"
-  [[ ! -e "$initial_attestation_pending" && ! -L "$initial_attestation_pending" ]] \
-    || single_server_die "Temporaere initiale Cutover-Attestation existiert bereits."
-  printf 'schemaVersion=1\nappHost=%s\ninitialRevision=%s\ngateSha256=%s\nmigrationPackageSha256=%s\nbackupSnapshotId=%s\npromotedAt=%s\n' \
+  [[ ! -e "$initial_attestation" && ! -L "$initial_attestation" \
+     && ! -e "$initial_attestation_candidate" && ! -L "$initial_attestation_candidate" ]] \
+    || single_server_die "Initiale Cutover-Attestation oder Kandidat existiert bereits; ein erneuter Voll-Cutover ist gesperrt."
+  initial_attestation_temporary="$STATE_DIR/.initial-cutover-attestation.candidate.pending.$$"
+  [[ ! -e "$initial_attestation_temporary" && ! -L "$initial_attestation_temporary" ]] \
+    || single_server_die "Temporaerer initialer Cutover-Kandidat existiert bereits."
+  printf 'schemaVersion=1\nappHost=%s\ninitialRevision=%s\ngateSha256=%s\nmigrationPackageSha256=%s\nbackupSnapshotId=%s\npreparedAt=%s\n' \
     "$APP_HOST" "$SOURCE_REVISION" "$gate_file_sha256" "$gate_package_sha256" "$gate_snapshot_id" \
-    "$(date -u +%Y-%m-%dT%H:%M:%SZ)" >"$initial_attestation_pending"
-  chmod 0600 -- "$initial_attestation_pending"
-  chown 0:0 -- "$initial_attestation_pending"
-  sync -f "$initial_attestation_pending"
-  initial_attestation_sha256="$(sha256sum "$initial_attestation_pending" | awk '{print $1}')"
+    "$(date -u +%Y-%m-%dT%H:%M:%SZ)" >"$initial_attestation_temporary"
+  chmod 0600 -- "$initial_attestation_temporary"
+  chown 0:0 -- "$initial_attestation_temporary"
+  single_server_promote_durable_file "$initial_attestation_temporary" "$initial_attestation_candidate"
+  initial_attestation_temporary=""
+  initial_attestation_sha256="$(sha256sum "$initial_attestation_candidate" | awk '{print $1}')"
   [[ "$initial_attestation_sha256" =~ ^[a-f0-9]{64}$ ]] \
     || single_server_die "Initiale Cutover-Attestation besitzt keinen gueltigen Hash."
 }
@@ -258,9 +320,14 @@ cleanup_exit() {
   if [[ -n "$temporary_file" && -f "$temporary_file" && ! -L "$temporary_file" ]]; then
     rm -f -- "$temporary_file" || true
   fi
-  if [[ -n "$initial_attestation_pending" \
-     && -f "$initial_attestation_pending" && ! -L "$initial_attestation_pending" ]]; then
-    durable_unlink "$initial_attestation_pending" || true
+  if [[ -n "$initial_attestation_temporary" \
+     && -f "$initial_attestation_temporary" && ! -L "$initial_attestation_temporary" ]]; then
+    durable_unlink "$initial_attestation_temporary" || true
+  fi
+  if [[ "$status" -ne 0 \
+     && ! -e "$pending_marker" && ! -L "$pending_marker" \
+     && -f "$initial_attestation_candidate" && ! -L "$initial_attestation_candidate" ]]; then
+    durable_unlink "$initial_attestation_candidate" || true
   fi
   single_server_release_maintenance_lock || true
   return "$status"
@@ -282,13 +349,31 @@ trap 'handle_signal 15' TERM
 if [[ "$action" == "recover-closed" ]]; then
   [[ -f "$pending_marker" && ! -L "$pending_marker" ]] \
     || single_server_die "Kein regulaerer Cutover-Recovery-Marker vorhanden."
+  pending_marker_values="$(validate_pending_marker)"
+  IFS=$'\t' read -r recovery_transition_kind recovery_current_mode recovery_desired_mode \
+    <<<"$pending_marker_values"
+  if [[ "$recovery_transition_kind" == "open" ]]; then
+    [[ ! -e "$initial_attestation" || ! -e "$initial_attestation_candidate" ]] \
+      || single_server_die "Recovery verweigert: kanonische Initial-Attestation und Kandidat duerfen nicht gleichzeitig existieren."
+    if [[ -e "$initial_attestation_candidate" || -L "$initial_attestation_candidate" ]]; then
+      single_server_assert_private_attestation_file \
+        "$initial_attestation_candidate" "Initialer Cutover-Kandidat"
+    fi
+  fi
   stop_api_and_assert_stopped \
     || single_server_die "Recovery verweigert: API konnte nicht nachweislich gestoppt werden; Hostzustand bleibt unveraendert und der Recovery-Marker erhalten."
+  if [[ "$recovery_transition_kind" == "closed" \
+     || -e "$initial_attestation" || -L "$initial_attestation" ]]; then
+    single_server_assert_initial_cutover_attestation
+    recovery_initial_sha256="$(sha256sum "$initial_attestation" | awk '{print $1}')"
+    write_closed_attestation_for_initial_sha "$recovery_initial_sha256"
+  fi
   rewrite_environment_mode closed \
     || single_server_die "Recovery konnte Environment nicht fail-closed auf closed setzen."
   durable_unlink "$open_attestation"
   if [[ ! -e "$initial_attestation" && ! -L "$initial_attestation" ]]; then
     durable_unlink "$closed_attestation"
+    durable_unlink "$initial_attestation_candidate"
   fi
   if ! restart_api_in_mode closed; then
     if stop_api_and_assert_stopped; then
@@ -304,6 +389,8 @@ if [[ "$action" == "recover-closed" ]]; then
 fi
 
 single_server_assert_no_maintenance_recovery_markers
+[[ ! -e "$initial_attestation_candidate" && ! -L "$initial_attestation_candidate" ]] \
+  || single_server_die "Verwaister initialer Cutover-Kandidat blockiert den Betriebsschritt; Zustand manuell pruefen."
 single_server_assert_running_api_revision
 single_server_assert_api_cutover_mode "$API_CUTOVER_MODE"
 current_mode="$API_CUTOVER_MODE"
@@ -318,7 +405,7 @@ case "$action" in
        && ! -e "$open_attestation" && ! -L "$open_attestation" ]] \
       || single_server_die "Initiale Attestation oder frueherer Close-Zustand existiert bereits; Voll-Cutover darf nicht wiederholt werden."
     validate_open_gate
-    expected_confirmation="SET API CUTOVER MODE open FOR $SOURCE_REVISION"
+    expected_confirmation="SET API CUTOVER MODE open FOR $SOURCE_REVISION WITH GATE $gate_file_sha256"
     ;;
   reopen-code)
     [[ "$current_mode" == "closed" ]] \
@@ -326,7 +413,7 @@ case "$action" in
     [[ ! -e "$open_attestation" && ! -L "$open_attestation" ]] \
       || single_server_die "Code-Reopen erwartet im Closed-Zustand keine aktuelle Open-Attestation."
     validate_code_reopen_gate
-    expected_confirmation="REOPEN API AFTER CODE UPDATE FOR $SOURCE_REVISION"
+    expected_confirmation="REOPEN API AFTER CODE UPDATE FOR $SOURCE_REVISION WITH GATE $gate_file_sha256"
     ;;
   closed)
     expected_confirmation="SET API CUTOVER MODE closed FOR $SOURCE_REVISION"
@@ -348,16 +435,13 @@ if [[ "$current_mode" == "$desired_mode" ]]; then
   exit 0
 fi
 
-[[ "$action" != "closed" ]] || write_closed_attestation
 write_pending_marker "$current_mode" "$desired_mode"
 stop_api_and_assert_stopped \
   || single_server_die "API konnte vor dem Moduswechsel nicht fail-closed gestoppt werden; Recovery-Marker bleibt erhalten."
+[[ "$action" != "closed" ]] || write_closed_attestation
 if [[ "$action" == "open" ]]; then
   prepare_initial_attestation
   write_closed_attestation_for_initial_sha "$initial_attestation_sha256"
-  single_server_promote_durable_file "$initial_attestation_pending" "$initial_attestation"
-  initial_attestation_pending=""
-  single_server_assert_initial_cutover_attestation
   write_open_attestation initial-cutover "$gate_file_sha256" "$gate_snapshot_id" "$initial_attestation_sha256"
 elif [[ "$action" == "reopen-code" ]]; then
   write_open_attestation code-reopen "$gate_file_sha256" "$gate_snapshot_id" "$initial_attestation_sha256"
@@ -372,12 +456,15 @@ if ! restart_api_in_mode "$desired_mode"; then
   single_server_die "KRITISCH: Zielmodus konnte nicht bestaetigt und der API-Container danach nicht nachweislich gestoppt werden; sofortigen manuellen Container-Stopp pruefen."
 fi
 if [[ "$action" == "open" ]]; then
+  single_server_promote_durable_file "$initial_attestation_candidate" "$initial_attestation"
+  single_server_assert_initial_cutover_attestation
   single_server_assert_open_attestation
 elif [[ "$action" == "reopen-code" ]]; then
   single_server_assert_open_attestation
 fi
-durable_unlink "$pending_marker"
+[[ "$desired_mode" != "open" ]] || durable_unlink "$closed_attestation"
 [[ "$desired_mode" != "open" ]] || durable_unlink "$gate_file"
+durable_unlink "$pending_marker"
 single_server_release_maintenance_lock
 trap - EXIT HUP INT TERM
 printf 'API-Cutover-Aktion %s wurde fuer Revision %s kontrolliert auf Modus %s abgeschlossen.\n' \

@@ -15,9 +15,11 @@ const singleServerRoot = path.join(projectRoot, "deploy", "single-server");
 const read = (relativePath) => readFileSync(path.join(projectRoot, relativePath), "utf8");
 
 const compose = read("deploy/single-server/compose.yaml");
+const environmentExample = read("deploy/single-server/environment.example");
 const caddy = read("deploy/single-server/caddy/Caddyfile");
 const oauth = read("deploy/single-server/oauth2-proxy.cfg");
 const common = read("deploy/single-server/common.sh");
+const cutoverWriterFence = read("api/cutover-writer-fence.mjs");
 const preflight = read("deploy/single-server/preflight.sh");
 const prepareHost = read("deploy/single-server/prepare-host.sh");
 const deploy = read("deploy/single-server/deploy.sh");
@@ -46,7 +48,9 @@ const postgresRestoreTest = read("deploy/single-server/backup/postgres-restore-t
 const migrationHostImport = read("deploy/single-server/migration/import-database.sh");
 const migrationContainerImport = read("deploy/single-server/migration/container-import.sh");
 const migrationExport = read("deploy/single-server/migration/export-database.sh");
+const initialOpenWriterCollector = read("deploy/single-server/migration/capture-initial-open-writer-evidence.sh");
 const migrationGuide = read("deploy/single-server/migration/README.md");
+const singleServerGuide = read("deploy/single-server/README.md");
 const objectStorage = read("api/object-storage.mjs");
 const identityBootstrap = read("api/identity-bootstrap-claim.mjs");
 const identityProvision = read("api/identity-provision.mjs");
@@ -360,6 +364,8 @@ assert.match(prepareHost, /create_hex_secret "\$CONFIG_DIR\/db-owner-password" 7
 assert.match(prepareHost, /create_hex_secret "\$CONFIG_DIR\/restic-password" 70/u);
 assert.match(prepareHost, /create_hex_secret "\$CONFIG_DIR\/identity-bootstrap-hmac" 70/u);
 assert.match(prepareHost, /create_cookie_secret "\$CONFIG_DIR\/oauth2-cookie-secret" 65532/u);
+assert.match(prepareHost, /initial-open-source-writer\.public\.pem:0/u,
+  "Die Host-Vorbereitung muss den vorab gepinnten Public Key als manuelle root-Datei ausweisen.");
 assert.match(preflight, /check_single_line_secret google-oauth-client-secret 16 256 65532/u);
 assert.match(preflight, /check_single_line_secret db-owner-password 48 128 70/u);
 assert.match(preflight, /check_single_line_secret identity-bootstrap-hmac 64 64 70/u);
@@ -423,12 +429,26 @@ assert.match(common, /com\.docker\.compose\.oneoff/u,
 assert.match(deploy, /single_server_acquire_maintenance_lock deployment/u);
 assert.match(serviceControl, /single_server_acquire_maintenance_lock "service-\$action"/u);
 assert.match(compose, /API_CUTOVER_MODE_REQUIRED: "1"[\s\S]*API_CUTOVER_MODE: \$\{API_CUTOVER_MODE:\?API_CUTOVER_MODE fehlt\}/u);
+assert.match(compose, /API_WRITER_FENCE_DIRECTORY: \/run\/versorgungs-kompass-control[\s\S]*\$\{STATE_DIR:\?STATE_DIR fehlt\}\/api-control:\/run\/versorgungs-kompass-control:ro/u,
+  "Die API muss den kanonischen Host-Control-Pfad read-only als Runtime-Writer-Fence erhalten.");
+assert.match(cutoverWriterFence, /FENCE_CONTRACT = "schemaVersion=1\\n"[\s\S]*FENCE_CONTRACT_FILE = "\.writer-fence-ready"[\s\S]*TRANSITION_MARKER_FILE = "\.cutover-mode-change-pending"/u,
+  "API und Hostschalter muessen denselben Sentinel- und Transitionmarker-Vertrag verwenden.");
+assert.match(cutoverWriterFence, /policy\?\.writeClass === "read"[\s\S]*readFileSync[\s\S]*lstatSync/u,
+  "Jede schreibende Policy muss Sentinel und fehlenden Transitionmarker fail-closed pruefen.");
+assert.match(common, /single_server_assert_api_writer_fence_contract\(\)[\s\S]*api-control[\s\S]*\.writer-fence-ready[\s\S]*377b83127c4696bc13b0cbee5f63893c2153dc478651010faa8f76120ff61bdb/u,
+  "Der Host muss denselben Writer-Fence-Vertrag vor Start- und Statuspfaden validieren.");
+assert.match(common, /377b83127c4696bc13b0cbee5f63893c2153dc478651010faa8f76120ff61bdb/u,
+  "Die Hostpruefung muss den bytegenauen Writer-Fence-Sentinel hashen.");
+assert.match(common, /single_server_assert_no_api_recovery_markers\(\)[\s\S]*single_server_assert_api_writer_fence_contract[\s\S]*\.cutover-mode-change-pending/u,
+  "Start und Status duerfen einen fehlenden oder driftenden Writer-Fence nicht als gesund melden.");
 assert.match(requireService(composeServiceBlocks(compose), "api"), /restart: "no"/u,
   "Docker darf den API-Writer nach Reboot nicht an den fail-closed systemd-Gates vorbei starten.");
 assert.match(common, /single_server_assert_api_cutover_mode/u);
 assert.match(common, /SINGLE_SERVER_COMPOSE_OVERRIDE_FILE[\s\S]*SINGLE_SERVER_LOCAL_TEST[\s\S]*!= "Linux"/u,
   "Ein Compose-Override darf den produktiven Linux-Vertrag niemals veraendern.");
 assert.match(preflight, /API_CUTOVER_MODE.*closed\|open/u);
+assert.match(preflight, /initial-open-source-writer\.public\.pem[\s\S]*INITIAL_OPEN_SOURCE_WRITER_PUBLIC_KEY_SHA256[\s\S]*asymmetricKeyType !== "ed25519"/u,
+  "Der Closed-Preflight muss den installierten Ed25519-Public-Key gegen den vorab gepinnten Hash pruefen.");
 assert.match(deploy, /\[\[ "\$#" -eq 2 && "\$expected_cutover_mode" == "closed"[\s\S]*single_server_assert_api_cutover_mode "\$expected_cutover_mode"/u,
   "Deployments muessen den erwarteten closed-Modus als separaten Bedienentscheid verlangen und danach am Prozess lesen.");
 assert.match(deploy, /deployment_complete[\s\S]*single_server_compose stop --timeout 40 api/u,
@@ -440,6 +460,8 @@ assert.match(serviceControl, /single_server_assert_running_api_revision[\s\S]*si
 assert.match(migrationHostImport, /API_CUTOVER_MODE.*closed[\s\S]*single_server_assert_api_cutover_mode closed/u,
   "Import und API-Neustart duerfen nur im geschlossenen Cutover-Modus laufen.");
 assert.match(status, /single_server_assert_api_cutover_mode "\$API_CUTOVER_MODE"/u);
+assert.match(status, /single_server_acquire_maintenance_lock status[\s\S]*single_server_assert_no_maintenance_recovery_markers[\s\S]*single_server_release_maintenance_lock/u,
+  "Der Betriebsstatus muss unter derselben nonblocking Wartungssperre wie alle Mutationen laufen.");
 assert.match(cutoverModeControl, /single_server_acquire_maintenance_lock "cutover-mode-\$action"/u);
 assert.match(cutoverModeControl, /REOPEN API AFTER CODE UPDATE FOR \$SOURCE_REVISION/u);
 assert.match(cutoverModeControl, /\.initial-cutover-attestation/u);
@@ -452,21 +474,83 @@ assertBefore(cutoverModeControl, 'sync -f "$source"', 'mv -- "$source" "$destina
   "Die neue Environment-Datei muss vor dem atomaren Austausch durable geschrieben sein.");
 assertBefore(
   cutoverModeControl,
-  'single_server_promote_durable_file "$initial_attestation_pending" "$initial_attestation"',
-  'restart_api_in_mode "$desired_mode"',
-  "Die kanonische Initial-Attestation muss vor dem ersten offenen API-Start durable vorliegen."
+  'single_server_promote_durable_file "$initial_attestation_temporary" "$initial_attestation_candidate"',
+  'write_open_attestation initial-cutover',
+  "Der feste Initial-Kandidat muss vor der Open-Autorisierung durable vorliegen."
 );
+assertBefore(
+  cutoverModeControl,
+  'restart_api_in_mode "$desired_mode"',
+  'single_server_promote_durable_file "$initial_attestation_candidate" "$initial_attestation"',
+  "Die kanonische Initial-Attestation darf erst nach erfolgreichem API-Provenienz-, Readiness- und Mode-Readback entstehen."
+);
+assert.match(cutoverModeControl, /initial_attestation_candidate="\$STATE_DIR\/\.initial-cutover-attestation\.candidate"/u,
+  "Der noch nicht kanonische Initialnachweis braucht einen festen geschuetzten Kandidatenpfad.");
+assert.match(cutoverModeControl, /backupSnapshotId=%s\\npreparedAt=%s/u,
+  "Der Kandidat muss seinen wahren Vorbereitungszeitpunkt statt einer vorgezogenen Promotion attestieren.");
+assert.doesNotMatch(cutoverModeControl, /promotedAt=/u,
+  "Der vor dem Runtime-Readback erzeugte Kandidat darf keinen bereits erfolgten Promotionzeitpunkt behaupten.");
+assert.match(singleServerGuide, /Bleibt er dagegen erst nach der kanonischen Promotion liegen[\s\S]*vollständige Cutover darf dann nicht\s+wiederholt werden/u,
+  "Das Runbook muss Recovery vor und nach der kanonischen Initial-Promotion unterscheiden.");
+assert.match(cutoverModeControl, /pending_marker="\$STATE_DIR\/api-control\/\.cutover-mode-change-pending"/u,
+  "Cutover-Schalter und API muessen denselben read-only gemounteten Runtime-Writer-Fence verwenden.");
 assert.match(cutoverModeControl, /stop_api_and_assert_stopped\(\)[\s\S]*single_server_compose stop[\s\S]*running_services="\$\(single_server_compose ps --status running --services\)" \|\| return 1[\s\S]*! grep -qx api/u,
   "Ein Cutover-Stopp muss Befehl und tatsaechlichen Containerzustand gemeinsam bestaetigen.");
 assert.match(cutoverModeControl, /recover-closed[\s\S]*stop_api_and_assert_stopped[\s\S]*rewrite_environment_mode closed/u,
   "Recovery darf den Hostzustand erst nach einem nachgewiesenen API-Stopp auf closed umschreiben.");
+assert.match(cutoverModeControl, /validate_pending_marker\(\)[\s\S]*transitionKind[\s\S]*sourceRevision[\s\S]*environmentSha256/u,
+  "Recovery darf nur einen exakt strukturierten und revisionsgebundenen Transitionsmarker verwenden.");
+assert.match(cutoverModeControl, /recovery_transition_kind" == "closed"[\s\S]*write_closed_attestation_for_initial_sha[\s\S]*rewrite_environment_mode closed/u,
+  "Eine unterbrochene Open-zu-Closed-Transition muss ihre Closed-Attestation vor der Recovery idempotent vervollstaendigen.");
+assert.match(cutoverModeControl, /recovery_transition_kind" == "closed"[\s\S]*-e "\$initial_attestation"[\s\S]*write_closed_attestation_for_initial_sha/u,
+  "Recovery nach einem bereits kanonischen Open-Punkt muss die Closed-Attestation neu erzeugen.");
+assert.match(cutoverModeControl, /single_server_assert_initial_cutover_attestation[\s\S]*validate_code_reopen_gate/u,
+  "Der leichte Code-Reopen-Pfad darf nur mit kanonischer Initial-Attestation erreichbar sein.");
+assert.match(cutoverModeControl, /recovery_transition_kind" == "open"[\s\S]*Initialer Cutover-Kandidat[\s\S]*stop_api_and_assert_stopped/u,
+  "Initial-Open-Recovery muss einen vorhandenen Kandidaten vor jeder Bereinigung als geschuetzte Datei validieren.");
+assert.match(cutoverModeControl, /rewrite_environment_mode closed[\s\S]*durable_unlink "\$open_attestation"[\s\S]*! -e "\$initial_attestation"[\s\S]*durable_unlink "\$closed_attestation"[\s\S]*durable_unlink "\$initial_attestation_candidate"[\s\S]*restart_api_in_mode closed/u,
+  "Recovery vor kanonischem Initial-Open muss Open-, Closed- und Kandidaten-Nachweis entfernen und retry-faehig closed starten.");
 assert.match(cutoverModeControl, /API wurde nachweislich gestoppt, der Recovery-Marker bleibt erhalten/u,
   "Ein fehlgeschlagener Mode-Wechsel ohne bestaetigten Rueckweg muss die API fail-closed stoppen.");
 assert.match(cutoverModeControl, /\.cutover-mode-change-pending[\s\S]*restart_api_in_mode "\$desired_mode"/u,
   "Der Mode-Wechsel muss vor jeder API-Mutation einen durable Recovery-Marker setzen.");
+for (const runtimeFenceDetail of [
+  "$STATE_DIR/api-control/.cutover-mode-change-pending",
+  "/run/versorgungs-kompass-control",
+  ".writer-fence-ready"
+]) {
+  assert.ok(singleServerGuide.includes(runtimeFenceDetail),
+    `Das Runbook muss den Runtime-Writer-Fence-Bestandteil ${runtimeFenceDetail} erklaeren.`);
+}
+assertBefore(
+  cutoverModeControl,
+  'write_pending_marker "$current_mode" "$desired_mode"',
+  '[[ "$action" != "closed" ]] || write_closed_attestation',
+  "Auch die Closed-Attestation darf erst bei aktivem fail-closed Recovery-Marker geschrieben werden."
+);
+assert.match(
+  cutoverModeControl,
+  /write_pending_marker "\$current_mode" "\$desired_mode"\s+stop_api_and_assert_stopped[\s\S]*?Recovery-Marker bleibt erhalten\."\s+\[\[ "\$action" != "closed" \]\] \|\| write_closed_attestation/u,
+  "Die Closed-Attestation darf erst nach einem nachgewiesenen API-Stopp entstehen."
+);
 assert.match(cutoverModeControl, /restart_api_in_mode\(\)[\s\S]*&& single_server_assert_running_api_revision[\s\S]*&& single_server_assert_api_cutover_mode/u,
   "Alle Runtime-Gates des Mode-Wechsels muessen explizit verkettet sein.");
 assert.match(cutoverModeControl, /validate-cutover-open-gates\.mjs" evidence/u);
+assert.match(cutoverModeControl, /revalidated_gate_values[\s\S]*Open-Gate-Evidenz driftete waehrend des finalen Ziel-Readbacks/u,
+  "Open-Evidenz muss nach Datenbank- und Identity-Readback unmittelbar vor der Promotion erneut validiert werden.");
+assert.match(cutoverModeControl, /revalidated_gate_values[\s\S]*Code-Reopen-Gate-Evidenz driftete waehrend des finalen Ziel-Readbacks/u,
+  "Code-Reopen-Evidenz muss nach dem finalen Identity-Readback unmittelbar vor dem Reopen erneut validiert werden.");
+assert.match(cutoverModeControl, /\[\[ "\$desired_mode" != "open" \]\] \|\| durable_unlink "\$gate_file"\s+durable_unlink "\$pending_marker"/u,
+  "Die einmalige Open-Gate-Datei muss verbraucht werden, solange der fail-closed Recovery-Marker noch aktiv ist.");
+assert.match(cutoverModeControl, /\[\[ "\$desired_mode" != "open" \]\] \|\| durable_unlink "\$closed_attestation"\s+\[\[ "\$desired_mode" != "open" \]\] \|\| durable_unlink "\$gate_file"/u,
+  "Ein erfolgreich geoeffneter Writer darf keinen gleichzeitig gueltig wirkenden Closed-Nachweis behalten.");
+assert.match(cutoverModeControl, /SET API CUTOVER MODE open FOR \$SOURCE_REVISION WITH GATE \$gate_file_sha256/u,
+  "Die menschliche Initial-Open-Bestaetigung muss den frisch validierten Gate-Hash binden.");
+assert.match(cutoverModeControl, /REOPEN API AFTER CODE UPDATE FOR \$SOURCE_REVISION WITH GATE \$gate_file_sha256/u,
+  "Auch ein Code-Reopen muss den frisch validierten Gate-Hash binden.");
+assert.match(common, /INITIAL_OPEN_SOURCE_WRITER_PUBLIC_KEY_SHA256[\s\S]*\^\[a-f0-9\]\{64\}\$/u,
+  "Der Source-Writer-Public-Key muss vor dem Deployment als SHA-256 in der Serverkonfiguration gepinnt sein.");
+assert.match(environmentExample, /^INITIAL_OPEN_SOURCE_WRITER_PUBLIC_KEY_SHA256=REPLACE_WITH_64_HEX_SHA256$/mu);
 for (const openAttestationBinding of [
   "schemaVersion=2\\\\nmode=open",
   "authorizedRevision=${revision}",
@@ -490,8 +574,16 @@ assert.match(persistenceContractHasher, /collect\("api"\)/u,
   "Der leichte Reopen-Pfad muss jede Datei des vollstaendigen API-Runtime-Kontexts hashen.");
 assert.match(persistenceContractHasher, /collect\([\s\S]*"deploy\/postgres\/pre-gematik"[\s\S]*endsWith\("\.sql"\)/u,
   "Der leichte Reopen-Pfad muss alle SQL-Dateien des PostgreSQL-Vertrags rekursiv hashen.");
-assert.match(cutoverOpenGateValidator, /migrationPackageSha256[\s\S]*gkeFreezeStateSha256[\s\S]*backupSnapshotId[\s\S]*restoreResultSha256[\s\S]*identityAuditSha256[\s\S]*bucketInventorySha256[\s\S]*dnsReadbackSha256/u,
-  "Open muss an Migration, alten Writer-Freeze, Backup, Restore, Identity, Bucket-Inventur und DNS-Readback gebunden sein.");
+assert.match(cutoverOpenGateValidator, /migrationPackageSha256[\s\S]*databaseImportAttestationSha256[\s\S]*gkeFreezeStateSha256[\s\S]*sourceWriterGateNonce[\s\S]*sourceWriterEvidenceSha256[\s\S]*sourceWriterSignatureSha256[\s\S]*sourceWriterPublicKeySha256[\s\S]*backupSnapshotId[\s\S]*restoreResultSha256[\s\S]*identityAuditSha256[\s\S]*bucketInventorySha256[\s\S]*dnsReadbackSha256/u,
+  "Open muss Import, finalen signierten Source-Freeze, Backup, Restore, Identity, Bucket-Inventur und DNS binden.");
+assert.match(cutoverOpenGateValidator, /createPublicKey[\s\S]*asymmetricKeyType !== "ed25519"[\s\S]*verify\(null, sourceWriterEvidence/u,
+  "Der finale Source-Writer-Nachweis muss offline mit dem gepinnten Ed25519-Schluessel verifiziert werden.");
+assert.match(cutoverOpenGateValidator, /\.database-import-attestation[\s\S]*backupAt <= importedAt[\s\S]*restoredAt <= backupAt/u,
+  "Backup und Restore muessen nach dem dauerhaft attestierten Datenbankimport liegen.");
+assert.match(cutoverOpenGateValidator, /cutover-bucket-inventory\.conf[\s\S]*sha256\(bucketInventorySource\)[\s\S]*contactImageLiveObjects[\s\S]*stakeholderLogoLiveObjects/u,
+  "Die vier Bucket-Nullzaehlungen muessen aus einer gehashten realen Evidenzdatei stammen.");
+assert.match(cutoverOpenGateValidator, /cutover-dns-readback\.conf[\s\S]*sha256\(dnsReadbackSource\)[\s\S]*externalResolverA[\s\S]*externalResolverWwwCname/u,
+  "VPS- und externer DNS-Readback muessen aus einer gehashten realen Evidenzdatei stammen.");
 assert.match(cutoverIdentityAudit, /single_server_acquire_maintenance_lock cutover-identity-audit[\s\S]*identity-hash/u,
   "Der personenbezogen sensible Identity-Readback muss gesperrt erfolgen und nur seinen Hash ausgeben.");
 assert.match(systemdService, /service-control\.sh start/u);
@@ -659,6 +751,26 @@ assert.match(migrationHostImport, /expected_confirmation="IMPORT versorgungs_kom
 assert.match(migrationHostImport,
   /\[\[ "\$confirmation" == "\$expected_confirmation" \]\][\s\S]*single_server_promote_durable_file "\$pending_marker" "\$import_marker"[\s\S]*single_server_compose stop -t 40 api[\s\S]*single_server_compose run --name "\$import_container_name" --rm --no-deps database-import[\s\S]*start_api_after_import_readback/u,
   "Bestaetigung, persistenter Recovery-Marker, API-Stopp, Import und API-Neustart muessen in dieser Reihenfolge erfolgen.");
+assert.match(migrationHostImport, /database_import_attestation="\$STATE_DIR\/\.database-import-attestation"/u,
+  "Ein erfolgreicher Import braucht einen festen dauerhaften Nachweispfad.");
+assert.match(migrationHostImport, /schemaVersion=1\\npackageSha256=%s\\nsourceRevision=%s\\noperationId=%s\\nimportedAt=%s/u,
+  "Die Import-Attestation muss Paket, Zielrevision, Operation und Abschlusszeit exakt binden.");
+assertBefore(migrationHostImport, "start_api_after_import_readback", 'finalize_completed_import_after_api_readback "$import_operation_id"',
+  "Die Import-Attestation darf erst nach stabilem API-Readback abgeschlossen werden.");
+assert.match(migrationHostImport, /persist_database_import_attestation "\$operation_id"[\s\S]*remove_import_marker_after_readback/u,
+  "Der Recovery-Marker darf erst nach dauerhaft persistierter Import-Attestation entfernt werden.");
+assert.match(migrationHostImport, /import_cleanup\(\)[\s\S]*single_server_compose stop --timeout 40 api/u,
+  "Ein abgebrochener Importabschluss muss die API auch nach ihrem vorlaeufigen Closed-Neustart wieder stoppen.");
+assert.match(initialOpenWriterCollector, /read_frozen_writer_evidence[\s\S]*Cloud-SQL[\s\S]*read_frozen_writer_evidence/u,
+  "Der Initial-Open-Collector muss GKE vor und nach den Cloud-SQL-Pruefungen live lesen.");
+assert.match(initialOpenWriterCollector, /HISTORICAL_GKE_FREEZE_STATE_SHA256[\s\S]*STATE_FILE weicht vom historischen Exportzustand ab/u,
+  "Unfreeze oder Refreeze nach dem Export muss den Initial-Open-Nachweis sperren.");
+assert.match(initialOpenWriterCollector, /pg_stat_activity[\s\S]*count\(\*\) = 0/u,
+  "Der Source-Collector muss andere Cloud-SQL-Client-Sessions fail-closed ausschliessen.");
+assert.match(initialOpenWriterCollector, /createPrivateKey[\s\S]*asymmetricKeyType !== "ed25519"[\s\S]*sign\(null, payload/u,
+  "Der Source-Writer-Nachweis muss mit einem geschuetzten Ed25519-Key signiert werden.");
+assert.match(initialOpenWriterCollector, /O_EXCL[\s\S]*mkdirSync\(outputDirectory[\s\S]*unvollstaendige Output-Verzeichnis bleibt fail-closed/u,
+  "Der Collector darf bei Output-Kollisionen nichts ersetzen oder rekursiv fremde Pfade loeschen.");
 
 assert.match(migrationContainerImport, /source_deployed_revision/u,
   "Das Paket muss die echte Quell-Live-Revision getrennt als Provenienz erhalten.");
@@ -673,6 +785,12 @@ assert.match(migrationContainerImport, /cmp -s \/migration\/row-counts\.tsv \/tm
 assert.match(migrationContainerImport, /Objektreferenzmanifest muss fuer alle vier GCS-Datenbereiche exakt null ausweisen/u);
 assert.match(migrationGuide, /bewusst kein GCS-Importer enthalten/u,
   "Ohne erneut bestaetigte Nullbestaende darf kein impliziter GCS-Import behauptet werden.");
+assert.match(singleServerGuide, /Ein Neustart ohne Export- und Importpaket ist in diesem Betriebsstand nicht\s+freigegeben/u,
+  "Das Runbook darf keinen technisch nicht oeffnungsfaehigen Leerstart ohne Migrationsnachweis anbieten.");
+assert.match(singleServerGuide, /Auch bei einer nachweislich leeren Quelle entfallen Export und Import nicht/u,
+  "Auch ein leerer Quellstand muss an denselben Export-, Import- und Cutover-Nachweis gebunden bleiben.");
+assert.doesNotMatch(singleServerGuide, /Bei einem dokumentierten leeren Neustart entfaellt nur der Datenimport/u,
+  "Das Runbook darf nicht behaupten, dass ein Open-Cutover ohne Import moeglich ist.");
 assert.match(migrationExport, /source_service='service=versorgungs-kompass-source'/u,
   "Der Quellexport muss libpq ueber einen festen Servicenamen statt ueber einen DSN im Prozessargument verbinden.");
 assert.doesNotMatch(migrationExport, /VK_MIGRATION_SOURCE_DSN/u,
@@ -783,4 +901,4 @@ for (const file of shellScripts) {
   assert.equal(syntax.status, 0, `${relative} ist syntaktisch ungueltig:\n${syntax.stderr || syntax.stdout}`);
 }
 
-console.log("Single-server contract test OK: Exposition, Pins, DB-Socket, Auth, Upload-Stopp, Logging, Backups, Restore und Quarantaene sind abgesichert.");
+console.log("Single-server contract test OK: Exposition, Pins, DB-Socket, Auth, Import, signierte Writer-Evidenz, Bucket/DNS-Gates, Backups, Restore und Quarantaene sind abgesichert.");

@@ -8,6 +8,15 @@ single_server_load_environment "${1:-}"
 single_server_require_command curl
 single_server_require_command node
 
+single_server_acquire_maintenance_lock status
+status_cleanup() {
+  local status="$?"
+  single_server_release_maintenance_lock >/dev/null 2>&1 || true
+  return "$status"
+}
+trap status_cleanup EXIT
+single_server_install_terminating_signal_traps
+
 single_server_assert_no_maintenance_recovery_markers
 node "$SCRIPT_DIR/backup/recovery-escrow.mjs" verify "$CONFIG_DIR"
 single_server_compose ps
@@ -29,3 +38,5 @@ api_status="$(curl --silent --show-error --output /dev/null --max-time 20 --writ
 [[ "$api_status" == "401" ]] || single_server_die "Anonyme API-Anfrage wird nicht mit 401 abgewiesen."
 curl --fail --silent --show-error --max-time 20 "$APP_ORIGIN/" >/dev/null
 printf '%s\n' "Lokaler Zielstack, kanonischer Origin, Login-Grenze und anonyme API-Ablehnung sind erreichbar; Cutover-Modus: $API_CUTOVER_MODE."
+single_server_release_maintenance_lock
+trap - EXIT HUP INT TERM

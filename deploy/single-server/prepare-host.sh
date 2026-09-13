@@ -10,8 +10,11 @@ single_server_load_environment "${1:-}"
 [[ "$(uname -s)" == "Linux" ]] || single_server_die "Host-Vorbereitung ist nur fuer Linux vorgesehen."
 [[ "$(id -u)" -eq 0 ]] || single_server_die "Host-Vorbereitung muss einmalig als root laufen."
 single_server_require_command install
+single_server_require_command mktemp
+single_server_require_command mv
 single_server_require_command openssl
 single_server_require_command realpath
+single_server_require_command sync
 single_server_require_command tr
 
 assert_existing_safe_parent() {
@@ -48,12 +51,24 @@ assert_existing_safe_parent "/etc/versorgungs-kompass" 0
 assert_existing_safe_parent "/var/lib" 0
 install_safe_directory "$CONFIG_DIR" "/etc/versorgungs-kompass" 0700 0 0
 install_safe_directory "$STATE_DIR" "/var/lib" 0700 0 0
+install_safe_directory "$STATE_DIR/api-control" "$STATE_DIR" 0750 0 70
 install_safe_directory "$STATE_DIR/caddy-data" "$STATE_DIR" 0700 1000 1000
 install_safe_directory "$STATE_DIR/caddy-config" "$STATE_DIR" 0700 1000 1000
 install_safe_directory "$STATE_DIR/object-storage" "$STATE_DIR" 0700 70 70
 install_safe_directory "$STATE_DIR/backup-staging" "$STATE_DIR" 0700 70 70
 install_safe_directory "$STATE_DIR/postgres-data" "$STATE_DIR" 0700 70 70
 install_safe_directory "$STATE_DIR/postgres-socket" "$STATE_DIR" 0700 70 70
+
+writer_fence_contract="$STATE_DIR/api-control/.writer-fence-ready"
+[[ ! -L "$writer_fence_contract" && ( ! -e "$writer_fence_contract" || -f "$writer_fence_contract" ) ]] \
+  || single_server_die "Writer-Fence-Sentinel darf kein Symlink oder Nicht-Dateiziel sein."
+writer_fence_pending="$(mktemp "$STATE_DIR/api-control/.writer-fence-ready.pending.XXXXXX")"
+printf 'schemaVersion=1\n' >"$writer_fence_pending"
+chmod 0440 -- "$writer_fence_pending"
+chown 0:70 -- "$writer_fence_pending"
+sync -f "$writer_fence_pending"
+mv -f -- "$writer_fence_pending" "$writer_fence_contract"
+sync -f "$STATE_DIR/api-control"
 
 create_hex_secret() {
   local target="$1" owner="$2"
@@ -86,6 +101,7 @@ create_cookie_secret "$CONFIG_DIR/oauth2-cookie-secret" 65532
 printf '%s\n' "Host-Verzeichnisse und lokale Zufalls-Secrets sind vorbereitet."
 printf '%s\n' "Manuell, owner-only (0600) und mit der genannten numerischen UID bereitzustellen:"
 for required_spec in \
+  "initial-open-source-writer.public.pem:0" \
   "google-oauth-client-secret:65532" \
   "allowed-emails:65532" \
   "restic-repository:70" \
