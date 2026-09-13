@@ -253,9 +253,20 @@ const editorOriginal = plain(editorContext.normalizeEditor({
   problemType: "Medienbruch", processPhase: "Anmeldung / Aufnahme", impact: "Frust / Belastung",
   evidenceType: "", sourceType: "field-note", limitations: "Nur eine Situation dokumentiert.",
   internalUseAllowed: false, externalUseAllowed: true, usageRecommendation: "Wissen teilen",
+  communicationChannels: ["Telefon", "Papier"],
   actions: ["Zusätzliches Telefonat"], involvedRoles: ["MFA"], workaround: "Telefonische Rückfrage",
   sourceReference: "Feldnotiz", source_reference: "Alter Quellenbezug", customMetadata: { marker: "erhalten" }
 }));
+const editorOriginalBefore = JSON.stringify(editorOriginal);
+const [editorRecoded] = editorContext.readEditor([editorCard(editorOriginal, {
+  problemType: "Doppelte Dokumentation", processPhase: "Aufnahme"
+})]);
+assert.equal(editorRecoded.situation, editorOriginal.situation, "Eine reine Codeänderung muss den historischen Kontext bewahren.");
+assert.equal(editorRecoded.description, editorOriginal.description);
+assert.equal(editorRecoded.observationType, "", "Der Editor darf aus einem Problemcode keine Beobachtungsart ableiten.");
+assert.equal(editorRecoded.evidenceType, "", "Eine Codeänderung darf keine Quelle erfinden.");
+assert.deepEqual(plain(editorRecoded.customMetadata), editorOriginal.customMetadata);
+assert.equal(JSON.stringify(editorOriginal), editorOriginalBefore, "Der Formularleser darf seinen Ausgangsstand nicht verändern.");
 const combinedText = model.observationText(editorOriginal);
 const [editorSaved] = editorContext.readEditor([editorCard(editorOriginal, {
   id: editorOriginal.id, title: "Neue Kurzfassung", observed: combinedText,
@@ -273,10 +284,23 @@ assert.equal(editorSaved.actions, "");
 assert.equal(editorSaved.affectedRoles, "");
 for (const field of ["sourceType", "limitations", "internalUseAllowed", "externalUseAllowed", "nextUse", "processPhase", "impact"]) assert.equal(editorSaved[field], editorOriginal[field], `${field}: Ein nicht bearbeitetes Feld muss erhalten bleiben.`);
 assert.deepEqual(plain(editorSaved.customMetadata), editorOriginal.customMetadata);
+assert.deepEqual(plain(editorSaved.communicationChannels), ["Telefon", "Papier"], "Nicht bearbeitete Kommunikationskanäle müssen als Liste erhalten bleiben.");
 const [savedAgain] = editorContext.readEditor([editorCard(plain(editorSaved), { observed: combinedText })]);
 assert.equal(model.observationText(savedAgain), combinedText);
 const [emptyText] = editorContext.readEditor([editorCard(plain(editorSaved), { observed: "" })]);
 assert.equal(model.observationText(emptyText), "", "Das Leeren der Beobachtung darf keinen historischen Textalias reaktivieren.");
+const [emptyTextAgain] = editorContext.readEditor([editorCard(plain(emptyText), { problemType: "Information fehlt" })]);
+assert.equal(model.observationText(emptyTextAgain), "", "Ein späterer Codewechsel darf gelöschten Text nicht wiederherstellen.");
+const payloadEditor = editorContext.normalizeEditor({
+  id: "payload-editor", title: "Metadaten erhalten", evidenceType: "",
+  payload: { description: "Eine berichtete Szene.", evidenceType: "reported", importReference: "fixture-ref", customMetadata: { marker: "payload" } }
+});
+const [payloadSaved] = editorContext.readEditor([editorCard(plain(payloadEditor), { problemType: "Technik gestört" })]);
+assert.equal(payloadSaved.description, "Eine berichtete Szene.");
+assert.equal(payloadSaved.evidenceType, "", "Ein explizit leeres Feld hat Vorrang vor dem historischen Payload.");
+assert.equal(payloadSaved.importReference, "fixture-ref");
+assert.deepEqual(plain(payloadSaved.payload), plain(payloadEditor.payload));
+assert.deepEqual(plain(payloadSaved.customMetadata), { marker: "payload" });
 const [syntheticSaved] = editorContext.readEditor([editorCard(plain(syntheticEditor), { title: "Synthetische Quelle bleibt erkennbar", evidenceType: "directly_observed" })]);
 assert.equal(syntheticSaved.originalEvidenceType, "synthetic_source_based");
 assert.equal(syntheticSaved.evidenceType, "synthetic_source_based");

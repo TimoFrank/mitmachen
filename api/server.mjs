@@ -8975,16 +8975,29 @@ async function syncHospitationObservations(request, hospitationId) {
     throw error;
   }
   const now = new Date().toISOString();
-  const rows = observations.map((observation) => ({
-    ...hospitationObservationToDb(observation, hospitationId),
-    created_by: userId,
-    updated_by: userId,
-    updated_at: now,
-    status: "active",
-    archived_at: null,
-    archived_by: null
-  }));
   return withDomainTransaction(async (transaction) => {
+    const existingRows = observations.length ? await cloudSqlRest("hospitation_observations", request, new URLSearchParams({
+      hospitation_id: `eq.${hospitationId}`,
+      select: "id,payload"
+    }), { transaction }) : [];
+    const existingById = new Map((existingRows || []).map((row) => [row.id, row]));
+    const rows = observations.map((observation) => {
+      const originalEvidenceType = existingById.get(observation.id)?.payload?.originalEvidenceType;
+      // Ein älterer Client darf gespeicherte Herkunft beim Vollabgleich weder
+      // weglassen noch umklassifizieren. Neue Beobachtungen erhalten keinen Marker.
+      const retained = ["directly_observed", "source_bound", "synthetic_source_based", "reported", "interpreted"].includes(originalEvidenceType)
+        ? { ...observation, originalEvidenceType }
+        : observation;
+      return {
+        ...hospitationObservationToDb(retained, hospitationId),
+        created_by: userId,
+        updated_by: userId,
+        updated_at: now,
+        status: "active",
+        archived_at: null,
+        archived_by: null
+      };
+    });
     if (rows.length) {
       const upsertedRows = await cloudSqlRest("hospitation_observations", request, new URLSearchParams({
         select: HOSPITATION_OBSERVATION_FIELDS.join(","),

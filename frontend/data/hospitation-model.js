@@ -695,7 +695,9 @@
       problemType: normalizeCodebookValue("problemType", input.problemType ?? input.problem_type, ""),
       impact: normalizeCodebookValue("impact", input.impact, ""),
       observationType,
-      evidenceType: normalizeCodebookValue("evidenceType", input.evidenceType ?? input.evidence_type, ""),
+      evidenceType: originalEvidenceType === "synthetic_source_based"
+        ? "synthetic_source_based"
+        : normalizeCodebookValue("evidenceType", input.evidenceType ?? input.evidence_type, ""),
       ...(valuesFor("evidenceType").includes(originalEvidenceType) ? { originalEvidenceType } : {}),
       relevanceScore,
       careRelevance: relevanceScore,

@@ -293,11 +293,10 @@
   }
   function hospitationObservationDbToUi(row = {}) {
     const payload = row.payload && "object" == typeof row.payload && !Array.isArray(row.payload) ? row.payload : {}, raw = {
-      // Die API liefert den persistierten Payload bereits als camelCase-DTO auf
-      // oberster Ebene. Daher zuerst alle DTO-Felder erhalten und anschließend
-      // nur die kanonischen Spalten-/Aliaswerte gezielt vereinheitlichen.
-      ...row,
+      // Aktuelle DTO-Werte haben Vorrang vor einem mitgelieferten älteren Payload,
+      // auch wenn ein sichtbares Feld ausdrücklich geleert wurde.
       ...payload,
+      ...row,
       id: row.id || payload.id || "",
       hospitationId: row.hospitation_id || row.hospitationId || payload.hospitationId || "",
       sequence: row.sequence ?? payload.sequence ?? null,
