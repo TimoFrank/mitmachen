@@ -1211,8 +1211,8 @@ create table if not exists public.hospitation_observations (
   problem_type text,
   impact text,
   observation_type text,
-  evidence_type text not null default 'interpreted'
-    check (evidence_type in ('directly_observed', 'reported', 'interpreted')),
+  evidence_type text not null default ''
+    check (evidence_type in ('', 'directly_observed', 'source_bound', 'synthetic_source_based', 'reported', 'interpreted')),
   relevance_score integer check (relevance_score between 1 and 5),
   usage_recommendation text,
   involved_roles text[] not null default '{}'::text[],

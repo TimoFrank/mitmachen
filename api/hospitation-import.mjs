@@ -27,7 +27,7 @@ const HOSPITATION_FIELDS = Object.freeze([
 const OBSERVATION_FIELDS = Object.freeze([
   "id", "hospitationId", "sequence", "title", "situation", "situationContext",
   "description", "observed", "observedAt", "immediateConsequence", "processPhase",
-  "problemType", "impact", "observationType", "evidenceType", "relevanceScore",
+  "problemType", "impact", "observationType", "evidenceType", "originalEvidenceType", "relevanceScore",
   "usageRecommendation", "nextUse", "involvedRoles", "affectedRoles",
   "affectedProducts", "topics", "themes", "theme", "sourceType", "sourceReference",
   "uncertainty", "limitations", "source", "settingType", "internalUseAllowed",
@@ -218,7 +218,7 @@ function normalizeObservation(source, index) {
   for (const key of [
     "situation", "situationContext", "description", "observed", "observedAt",
     "immediateConsequence", "processPhase", "problemType", "impact", "observationType",
-    "evidenceType", "usageRecommendation", "nextUse", "theme", "sourceType",
+    "evidenceType", "originalEvidenceType", "usageRecommendation", "nextUse", "theme", "sourceType",
     "sourceReference", "uncertainty", "limitations", "source", "settingType"
   ]) copyText(source, result, key, key, 50000);
   if (Object.prototype.hasOwnProperty.call(source, "sequence")) result.sequence = integer(source.sequence, `${label}.sequence`, { min: 1, max: 100000 });
@@ -229,9 +229,12 @@ function normalizeObservation(source, index) {
   for (const key of ["internalUseAllowed", "externalUseAllowed"]) {
     if (Object.prototype.hasOwnProperty.call(source, key)) result[key] = booleanValue(source[key], `${label}.${key}`);
   }
-  if (Object.prototype.hasOwnProperty.call(result, "evidenceType") && !["directly_observed", "reported", "interpreted"].includes(result.evidenceType)) {
-    throw validationError(`${label}.evidenceType hat einen nicht unterstuetzten Wert.`);
+  for (const field of ["evidenceType", "originalEvidenceType"]) {
+    if (Object.prototype.hasOwnProperty.call(result, field) && !["", "directly_observed", "source_bound", "synthetic_source_based", "reported", "interpreted"].includes(result[field])) {
+      throw validationError(`${label}.${field} hat einen nicht unterstuetzten Wert.`);
+    }
   }
+  if (result.originalEvidenceType === "synthetic_source_based") result.evidenceType = "synthetic_source_based";
   if (Object.prototype.hasOwnProperty.call(source, "status")) {
     const status = normalizeStatus(source.status, ["active"], "active", `${label}.status`);
     result.status = status;
@@ -566,6 +569,11 @@ function desiredObservation(source, targetId, hospitationId, targetRow = null) {
   };
   for (const [sourceKey, targetKey] of Object.entries(scalarMapping)) {
     if (hasImportContent(source[sourceKey])) record[targetKey] = sourceKey === "relevanceScore" ? source[sourceKey] : dbText(source[sourceKey]);
+  }
+  if (targetRow?.payload?.originalEvidenceType === "synthetic_source_based" || record.payload.originalEvidenceType === "synthetic_source_based") {
+    record.payload.originalEvidenceType = "synthetic_source_based";
+    record.evidence_type = "synthetic_source_based";
+    record.payload.evidenceType = "synthetic_source_based";
   }
   if (hasImportContent(source.usageRecommendation) || hasImportContent(source.nextUse)) record.usage_recommendation = dbText(source.usageRecommendation || source.nextUse);
   if (hasImportContent(source.involvedRoles) || hasImportContent(source.affectedRoles)) record.involved_roles = source.involvedRoles?.length ? source.involvedRoles : source.affectedRoles;

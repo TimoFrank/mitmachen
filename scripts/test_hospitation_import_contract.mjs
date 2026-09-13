@@ -73,6 +73,25 @@ function manifest(overrides = {}) {
 }
 
 const normalized = normalizeHospitationImportManifest(manifest());
+for (const evidenceType of ["", "directly_observed", "source_bound", "synthetic_source_based", "reported", "interpreted"]) {
+  const withSource = normalizeHospitationImportManifest(manifest({
+    observations: [{ ...manifest().observations[0], evidenceType, sourceReference: "Fiktive Unterlage, Szene 1" }]
+  }));
+  assert.equal(withSource.observations[0].evidenceType, evidenceType);
+  assert.equal(withSource.observations[0].sourceReference, "Fiktive Unterlage, Szene 1");
+}
+const withoutEvidence = { ...manifest().observations[0] };
+delete withoutEvidence.evidenceType;
+assert.equal(normalizeHospitationImportManifest(manifest({ observations: [withoutEvidence] })).observations[0].evidenceType, undefined,
+  "Import darf eine fehlende Quellenart nicht interpretieren.");
+assert.throws(() => normalizeHospitationImportManifest(manifest({
+  observations: [{ ...manifest().observations[0], evidenceType: "unsupported" }]
+})), /evidenceType/u);
+const syntheticProvenance = normalizeHospitationImportManifest(manifest({
+  observations: [{ ...manifest().observations[0], evidenceType: "directly_observed", originalEvidenceType: "synthetic_source_based" }]
+}));
+assert.equal(syntheticProvenance.observations[0].evidenceType, "synthetic_source_based",
+  "Bekannte synthetische Herkunft darf im Import nicht empirisch umcodiert werden.");
 assert.equal(normalized.schemaVersion, HOSPITATION_IMPORT_SCHEMA_VERSION);
 assert.equal(normalized.snapshot.createdAt, "2026-07-22T12:00:00.000Z");
 assert.equal(manifestFingerprint(normalized), manifestFingerprint(normalizeHospitationImportManifest(manifest())));
@@ -81,6 +100,14 @@ const emptyTarget = {
   organizations: [], contacts: [], contact_owners: [], hospitations: [], hospitation_observations: []
 };
 const createPlan = buildHospitationImportPlan(normalized, emptyTarget, owner);
+for (const evidenceType of ["", "directly_observed", "source_bound", "synthetic_source_based", "reported", "interpreted"]) {
+  const evidenceManifest = normalizeHospitationImportManifest(manifest({
+    observations: [{ ...manifest().observations[0], evidenceType }]
+  }));
+  const evidenceRecord = buildHospitationImportPlan(evidenceManifest, emptyTarget, owner).items.observations[0].record;
+  assert.equal(evidenceRecord.evidence_type ?? "", evidenceType,
+    "Der Importplan muss Quellenarten ohne Interpretation an das Schema weitergeben.");
+}
 assert.deepEqual(createPlan.summary.total, { total: 4, create: 4, update: 0, unchanged: 0, conflict: 0 });
 assert.equal(createPlan.canApply, true);
 assert.equal(createPlan.items.contacts[0].record.owner_id, owner.id);
@@ -133,6 +160,24 @@ const appliedTarget = {
   ]
 };
 const secondPreview = buildHospitationImportPlan(normalized, appliedTarget, owner);
+const syntheticTarget = {
+  ...appliedTarget,
+  hospitation_observations: appliedTarget.hospitation_observations.map((item) => ({
+    ...item,
+    payload: { ...item.payload, originalEvidenceType: "synthetic_source_based" }
+  }))
+};
+const syntheticUpdate = buildHospitationImportPlan(normalized, syntheticTarget, owner).items.observations[0].record;
+assert.equal(syntheticUpdate.evidence_type, "synthetic_source_based",
+  "Ein bekannt synthetischer Zielbestand darf durch einen Import keine empirische Quelle erhalten.");
+assert.equal(syntheticUpdate.payload.originalEvidenceType, "synthetic_source_based");
+const relabeledSynthetic = normalizeHospitationImportManifest(manifest({
+  observations: [{ ...manifest().observations[0], originalEvidenceType: "reported" }]
+}));
+const protectedSynthetic = buildHospitationImportPlan(relabeledSynthetic, syntheticTarget, owner).items.observations[0].record;
+assert.equal(protectedSynthetic.payload.originalEvidenceType, "synthetic_source_based",
+  "Ein anderer Herkunftswert im Manifest darf die bekannte synthetische Zielherkunft nicht überschreiben.");
+assert.equal(protectedSynthetic.evidence_type, "synthetic_source_based");
 assert.deepEqual(secondPreview.summary.total, { total: 4, create: 0, update: 0, unchanged: 4, conflict: 0 });
 assert.equal(secondPreview.canApply, false);
 assert.equal(secondPreview.items.observations.length, 1, "Nicht im Manifest enthaltene Beobachtungen werden nicht archiviert oder veraendert.");
