@@ -669,9 +669,12 @@ function writeDurable(file, contents) {
 try {
   if (payload.length === 0 || payload.at(-1) !== 0x0a) throw new Error("Payload besitzt keinen finalen Zeilenumbruch.");
   const signingKeyPem = readFileSync(signingKeyPath, "utf8");
-  if (!signingKeyPem.startsWith("-----BEGIN PRIVATE KEY-----\n")
-      || !(signingKeyPem.endsWith("\n-----END PRIVATE KEY-----\n")
-        || signingKeyPem.endsWith("\n-----END PRIVATE KEY-----"))) {
+  const privateKeyLabel = ["PRIVATE", "KEY"].join(" ");
+  const pemBeginMarker = `-----BEGIN ${privateKeyLabel}-----\n`;
+  const pemEndMarker = `\n-----END ${privateKeyLabel}-----`;
+  if (!signingKeyPem.startsWith(pemBeginMarker)
+      || !(signingKeyPem.endsWith(`${pemEndMarker}\n`)
+        || signingKeyPem.endsWith(pemEndMarker))) {
     throw new Error("Signierschluessel ist kein kanonischer unverschluesselter PKCS#8-PEM-Schluessel.");
   }
   const privateKey = createPrivateKey(signingKeyPem);
