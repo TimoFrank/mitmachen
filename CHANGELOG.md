@@ -2,15 +2,35 @@
 
 Kompakte Zusammenfassung der wichtigsten Funktionssprünge des Versorgungs-Kompass.
 
-## Version 0.24 - Neues in Version 0.24
+## Version 0.24 - Beobachtungen klarer erfassen und codieren
 
-28. August 2026
+21. September 2026
 
-Der Versorgungs-Kompass wird klarer, verlässlicher und leichter nutzbar. Die neuen Verbesserungen unterstützen das Netzwerk dabei, Wissen zu teilen und gemeinsam ins Handeln zu kommen.
+Version 0.24 gliedert Beobachtungen, Codierung und den Bezug zur Hospitation klarer. Einzelne Inhalte lassen sich direkt bearbeiten; Ausfüllhinweise erklären die Felder. Word- und PDF-Exporte übernehmen dieselbe Struktur.
 
-### Verbesserungen für Versorgungs-Kompass
+### Beobachtungsdrawer vereinheitlichen (#264)
 
-Der Bereich Versorgungs-Kompass wurde weiterentwickelt. Die Änderung erleichtert die tägliche Arbeit mit dem Versorgungs-Kompass. Wichtige Informationen und Funktionen sind dadurch schneller erreichbar.
+Beobachtungen und Hospitationen verwenden gemeinsame Drawer-Komponenten. Die Beobachtungsnummer steht an der Kurzfassung; der schreibgeschützte Hospitationsbezug zeigt Kontakt, Organisation, Datum, Ort und Zuständigkeit kompakt an. Inhalte können einzeln bearbeitet werden. Ausfüllhinweise und Infofelder erklären die Eingaben.
+
+### Codierung und Exporte abstimmen (#264)
+
+Das Codebuch 1.1 verwendet die abgestimmten Antwortwerte. Frühere Codierungen bleiben erhalten und als solche erkennbar. Eine frühere Situation bleibt im gemeinsamen Beobachtungstext erhalten; Word- und PDF-Exporte übernehmen denselben Inhalt. Auswahlfelder bleiben auch im schmalen Drawer bedienbar.
+
+### Erfassung vereinfachen und Vergleiche an Quellen binden (#265)
+
+Kurzfassung, Beobachtungstext und freiwillige Quelle bilden den Einstieg; die drei Codes können bei Bedarf ergänzt werden. Passende Beobachtungen aus mindestens zwei Hospitationen liefern Vergleichshinweise. Gleiche Codes belegen weder ein Muster noch eine Ursache; synthetische Beispiele und Annahmen werden aus empirischen Vergleichen ausgeschlossen. Herkunft und vorhandene Zusatzangaben bleiben beim Speichern und Export geschützt.
+
+### Datenstand und Bibliotheken aktualisieren (#259, #261)
+
+Der öffentliche Bundestag-Snapshot sowie xmldom und Nodemailer wurden aktualisiert. Die Pages-Demo lädt geänderte Dateien mit einer passenden Cache-Version. Das geschützte Backend benötigt weiterhin eine eigene Auslieferung.
+
+### Hospitations-Framework und ausfüllbare Vorlage herunterladen
+
+Einzeltermine erhalten das neue Word- und PDF-Layout mit minutengenauen Beobachtungszeiten, farbiger Codierung und kompakter Codehilfe. Im Fragebogen steht zusätzlich die ausfüllbare PDF mit 39 Feldern und drei ausdrücklich fiktiven Beispielen bereit. Bestehende Codes und Herkunftsangaben bleiben erhalten.
+
+### Geschützten Google-Betrieb vorbereiten (#269)
+
+Cloud Run und Firebase Hosting ermöglichen den günstigeren Betrieb mit der vorhandenen Datenbank, Nutzerverwaltung und verwalteten Sicherungen. Die Live-Umschaltung erfolgt erst nach separater Prüfung der geschützten Umgebung. Die lokale Synchronisation folgt nach dem Umzug.
 
 ## Version 0.23 - Sicherer Zugang. Verlässliche Releases.
 

@@ -112,11 +112,19 @@ try {
   git(["config", "user.name", "Release Test"]);
   git(["config", "user.email", "release-test@example.invalid"]);
 
+  const historicalReplacements = [{
+    version: "0.22.0",
+    supersededCommit: "a".repeat(40),
+    sourceCommit: "b".repeat(40),
+    approvedOn: "2026-08-01",
+    decision: "dokumentation/betrieb-und-deployment/FIXTURE_KANDIDATENERSETZUNG.md"
+  }];
   const baselineConfig = {
     ...releaseConfigTemplate,
     productVersion: "0.22.0",
     baselineVersion: "0.22.0",
-    baselineRef: "baseline"
+    baselineRef: "baseline",
+    candidateReplacements: historicalReplacements
   };
   write(".gitignore", "dist/\n");
   write("config/release.json", `${JSON.stringify(baselineConfig, null, 2)}\n`);
@@ -275,6 +283,7 @@ Die bereinigte Baseline ist dokumentiert.
   assert(weeklyOutput.github_prerelease === "true" && weeklyOutput.github_latest === "false", "Weekly vor 1.0 muss Prerelease und nicht Latest sein.");
   assert(weeklyOutput.notes_path === "dokumentation/release-notes/v0.23.0.md", "Der Notes-Pfad muss deterministisch sein.");
   assert(JSON.parse(read("config/release.json")).productVersion === "0.23.0", "productVersion muss auf 0.23.0 steigen.");
+  assert(JSON.stringify(JSON.parse(read("config/release.json")).candidateReplacements) === JSON.stringify(historicalReplacements), "Weekly muss historische Kandidatenentscheidungen unverändert erhalten.");
   assert(read("deploy/helm/versorgungs-kompass/Chart.yaml").includes("version: 0.23.0\nappVersion: \"0.23.0\""), "Weekly muss Chart.version und appVersion aktualisieren.");
   assert(read("deploy/helm/versorgungs-kompass/values.yaml").includes('productVersion: "0.23.0"'), "Weekly muss die Helm-Values-Version aktualisieren.");
   assert(read("CHANGELOG.md").match(/^## Version 0\.23 -/gm)?.length === 1, "Der Changelog muss das Weekly genau einmal enthalten.");
@@ -358,6 +367,7 @@ Die bereinigte Baseline ist dokumentiert.
   const hotfixOutput = outputValues("hotfix-output.txt");
   assert(hotfixOutput.mode === "prepare" && hotfixOutput.release_type === "hotfix", "Der Hotfix muss explizit vorbereitet werden.");
   assert(hotfixOutput.version === "0.23.1" && hotfixOutput.tag === "v0.23.1", "Der Hotfix muss Patch um eins erhöhen.");
+  assert(JSON.stringify(JSON.parse(read("config/release.json")).candidateReplacements) === JSON.stringify(historicalReplacements), "Hotfix muss historische Kandidatenentscheidungen unverändert erhalten.");
   assert(read("deploy/helm/versorgungs-kompass/Chart.yaml").includes("version: 0.23.1\nappVersion: \"0.23.1\""), "Hotfix muss beide Chart-Versionen aktualisieren.");
   assert(read("deploy/helm/versorgungs-kompass/values.yaml").includes('productVersion: "0.23.1"'), "Hotfix muss die Helm-Values-Version aktualisieren.");
   assert(hotfixOutput.title === "0.23.1 Release Candidate", "Der Hotfix-Titel muss dem RC-Vertrag folgen.");

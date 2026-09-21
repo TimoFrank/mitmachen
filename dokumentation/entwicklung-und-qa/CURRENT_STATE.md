@@ -17,6 +17,23 @@ Stand: 2026-08-09.
 - Die Vorarbeit aus Einzelserver-PR #258 bleibt erhalten. Ihr Abschluss ist
   offen; sie ist kein freigegebener Weg zur VPS-Bestellung oder Migration.
 
+## Freigegebener Umfang für den Google-Umzug
+
+Am 21. September 2026 wurde die gemeinsame Auslieferung der neuen
+Beobachtungsansicht, freiwilligen Codierung, des Einzeltermin-Frameworks mit
+Uhrzeit sowie der ausfüllbaren PDF-Vorlage freigegeben. Die Vorlage ist im
+Fragebogen neben den vorhandenen Downloads eingeordnet. Die vorbereitete
+Übernahme von 13 Beobachtungen und drei Stammdatenkorrekturen erfolgt erst nach
+kompatiblem geschütztem Rollout und erneuter Importprüfung.
+
+Die bisher ungenutzte lokale Mac-Anwendung soll nach dem Google-Umzug einen
+beidseitigen Abgleich erhalten, damit sie zum Lesen, Vorführen und Bearbeiten
+ohne Internet nutzbar bleibt. Der Online-Stand ist der hauptsächliche
+Arbeitsstand. Bei widersprüchlichen Änderungen bleiben beide Fassungen erhalten;
+der Nutzer entscheidet den Konflikt. Dieser Abgleich ist noch nicht umgesetzt
+und keine Voraussetzung für die Live-Umschaltung. Er ersetzt keine verwaltete
+Datenbanksicherung.
+
 ## Aktiver Arbeitsmodus
 
 - Führende App-Quellen: `frontend/app/versorgungs-kompass.html` für das Markup sowie `frontend/app/versorgungs-kompass.css` und `frontend/app/versorgungs-kompass.js` für Darstellung und Verhalten. Karte, Login, Hospitation und öffentliche #Mitmachen-Seiten folgen demselben Muster mit eigenen HTML-, CSS- und gegebenenfalls JS-Dateien.

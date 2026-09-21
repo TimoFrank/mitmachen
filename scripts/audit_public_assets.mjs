@@ -286,6 +286,7 @@ const requiredFiles = new Set([
   "public/demo-profile-viewer.svg",
   "public/hospitation/mitmachen-hospitations-framework.docx",
   "public/hospitation/mitmachen-hospitations-framework.pdf",
+  "public/hospitation/hospitations-framework-ausfuellbar.pdf",
   "public/media/demo/mitmachen/versorgungs-netzwerk-concept.svg",
   "public/media/social/mitmachen-share-v1.png",
   "public/media/social/mitmachen-share-v2.png",

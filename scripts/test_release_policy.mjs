@@ -24,6 +24,70 @@ assert.equal(config.schemaVersion, 2);
 assert.doesNotThrow(() => parseProductVersion(config.productVersion));
 assert.equal(config.defaultBump, policy.cadence.weekly.bump);
 
+// Existing configs remain valid; optional audit history survives later version projections.
+const configWithoutHistory = structuredClone(config);
+delete configWithoutHistory.candidateReplacements;
+assert.doesNotThrow(() => validateReleaseConfig(configWithoutHistory));
+const replacement = {
+  version: config.productVersion,
+  supersededCommit: "a".repeat(40),
+  sourceCommit: "b".repeat(40),
+  approvedOn: "2024-02-29",
+  decision: "dokumentation/betrieb-und-deployment/KANDIDATENERSETZUNG.md"
+};
+const auditConfig = { ...structuredClone(config), candidateReplacements: [replacement] };
+const originalAudit = JSON.stringify(auditConfig);
+assert.doesNotThrow(() => validateReleaseConfig(auditConfig));
+assert.equal(JSON.stringify(auditConfig), originalAudit, "Audit validation must not mutate release metadata.");
+const nextConfig = JSON.parse(JSON.stringify({
+  ...auditConfig,
+  productVersion: nextProductVersion(config.productVersion, "weekly", { policy })
+}));
+assert.doesNotThrow(() => validateReleaseConfig(nextConfig));
+assert.deepEqual(nextConfig.candidateReplacements, auditConfig.candidateReplacements);
+
+for (const records of [undefined, null, {}, [], [null]]) {
+  assert.throws(() => validateReleaseConfig({ ...config, candidateReplacements: records }), /candidateReplacements/);
+}
+for (const [change, error] of [
+  [{ version: "0.24" }, /vollständige semantische Version/],
+  [{ version: `${config.productVersion}\n` }, /vollständige semantische Version/],
+  [{ version: 24 }, /version muss eine Zeichenfolge/],
+  [{ version: nextConfig.productVersion }, /nicht nach productVersion/],
+  [{ supersededCommit: "a".repeat(39) }, /supersededCommit/],
+  [{ sourceCommit: "b".repeat(41) }, /sourceCommit/],
+  [{ sourceCommit: "B".repeat(40) }, /sourceCommit/],
+  [{ sourceCommit: "g".repeat(40) }, /sourceCommit/],
+  [{ sourceCommit: `${"b".repeat(40)}\n` }, /sourceCommit/],
+  [{ sourceCommit: replacement.supersededCommit }, /unterschiedliche/],
+  [{ approvedOn: "2025-02-29" }, /Kalenderdatum/],
+  [{ approvedOn: "2026-02-30" }, /Kalenderdatum/],
+  [{ approvedOn: "2026-13-01" }, /Kalenderdatum/],
+  [{ approvedOn: "2026-9-13" }, /Kalenderdatum/],
+  [{ approvedOn: "2026-09-13T00:00:00Z" }, /Kalenderdatum/],
+  [{ decision: "/dokumentation/ENTSCHEIDUNG.md" }, /relativer Markdown-Pfad/],
+  [{ decision: "dokumentation/../config/release.json" }, /relativer Markdown-Pfad/],
+  [{ decision: "https://example.invalid/entscheidung.md" }, /relativer Markdown-Pfad/],
+  [{ decision: "dokumentation\\ENTSCHEIDUNG.md" }, /relativer Markdown-Pfad/],
+  [{ decision: "dokumentation/ENTSCHEIDUNG.txt" }, /relativer Markdown-Pfad/],
+  [{ decision: "dokumentation/ENTSCHEIDUNG.md\n" }, /relativer Markdown-Pfad/],
+  [{ publish: true }, /unbekannt: publish/]
+]) {
+  assert.throws(() => validateReleaseConfig({
+    ...config,
+    candidateReplacements: [{ ...replacement, ...change }]
+  }), error);
+}
+const incompleteReplacement = { ...replacement };
+delete incompleteReplacement.sourceCommit;
+assert.throws(() => validateReleaseConfig({
+  ...config, candidateReplacements: [incompleteReplacement]
+}), /fehlend: sourceCommit/);
+assert.throws(() => validateReleaseConfig({
+  ...config, candidateReplacements: [replacement, { ...replacement, approvedOn: "2026-09-13" }]
+}), /bereits dokumentierte Kandidatenersetzung/);
+assert.throws(() => validateReleaseConfig({ ...configWithoutHistory, publish: true }), /unbekannt: publish/);
+
 assert.equal(nextProductVersion("0.22.0", "weekly", { hasChanges: false }), null);
 assert.equal(nextProductVersion("0.22.0", "weekly", { hasChanges: true }), "0.23.0");
 assert.equal(nextProductVersion("0.23.0", "hotfix", { hasChanges: true }), "0.23.1");

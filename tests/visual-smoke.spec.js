@@ -153,6 +153,7 @@ function onboardingDataServiceScript({
   createdAt = "2026-06-09T08:30:00.000Z",
   completed = false,
   settingsDelayMs = 0,
+  deferSettings = false,
   criticalDataFails = false,
   deferContacts = false
 } = {}) {
@@ -207,7 +208,13 @@ function onboardingDataServiceScript({
         }
       ];
       window.__vkSettingsWrites = 0;
-      window.__vkSettingsResolved = ${JSON.stringify(settingsDelayMs === 0)};
+      window.__vkSettingsResolved = ${JSON.stringify(settingsDelayMs === 0 && !deferSettings)};
+      ${deferSettings ? `const settingsReady = new Promise((resolve) => {
+        window.__resolveInitialSettings = () => {
+          window.__vkSettingsResolved = true;
+          resolve();
+        };
+      });` : ""}
       window.dataService = {
         isConfigured: () => true,
         getClient: () => ({ auth: { signOut: async () => ({}) } }),
@@ -251,7 +258,9 @@ function onboardingDataServiceScript({
         loadExpertEntityLinks: async () => [],
         loadFormats: async () => [],
         getSavedViews: async () => [],
-        getUserSettings: async () => ${settingsDelayMs > 0
+        getUserSettings: async () => ${deferSettings
+          ? "settingsReady.then(() => settings)"
+          : settingsDelayMs > 0
           ? `new Promise((resolve) => window.setTimeout(() => {
               window.__vkSettingsResolved = true;
               resolve(settings);
@@ -2222,7 +2231,7 @@ test("Hospitation: Fragebogen-Modul rendern", async ({ page }, testInfo) => {
   const questionnaireHeader = page.locator("#view-questionnaire .questionnaire-toolbar");
   await expect(questionnaireHeader).toBeVisible();
   await expect(questionnaireHeader.locator("h2")).toHaveCount(0);
-  await expect(questionnaireHeader.locator(".questionnaire-download-link")).toHaveCount(2);
+  await expect(questionnaireHeader.locator(".questionnaire-download-link")).toHaveCount(3);
   const questionnaireOrganization = page.locator("#questionnaire-organization");
   const questionnaireContact = page.locator("#questionnaire-contact");
   const questionnaireSector = page.locator("#questionnaire-setting");
@@ -3511,12 +3520,15 @@ test("Onboarding: früher Einstieg bewahrt verzögert geladene Einstellungen", a
   await gotoAuthenticated(page, "/onboarding", {
     role: "viewer",
     cleanUrls: true,
-    dataServiceScript: onboardingDataServiceScript({ completed: true, settingsDelayMs: 450 })
+    dataServiceScript: onboardingDataServiceScript({ completed: true, deferSettings: true })
   });
 
   await expect(page.locator('[data-onboarding-step-panel="welcome"]')).toBeVisible();
   expect(await page.evaluate(() => window.__vkSettingsResolved)).toBe(false);
   await page.locator("#onboarding-welcome-next").click();
+  // Keep the read pending until after the interaction, independent of runner speed.
+  expect(await page.evaluate(() => window.__vkSettingsWrites)).toBe(0);
+  await page.evaluate(() => window.__resolveInitialSettings());
   await expect(page.locator("#onboarding-profile-form")).toBeVisible();
 
   const settingsState = await page.evaluate(async () => ({
@@ -7159,7 +7171,7 @@ test("Mein Profil: Changelog ist als Profil-Reiter erreichbar", async ({ page },
   const latestRelease = page.locator("#about-version-list .about-version").first();
   await expect(latestRelease).toBeVisible();
   await expect(latestRelease.locator(".about-version__badge")).toHaveText("0.24");
-  await expect(latestRelease.locator("summary")).toContainText("Neues in Version 0.24");
+  await expect(latestRelease.locator("summary")).toContainText("Beobachtungen klarer erfassen und codieren");
   await latestRelease.locator("summary").click();
   await expect(latestRelease.locator(".about-version__body")).toContainText("Was sich für Anwender geändert hat");
 
@@ -8046,6 +8058,7 @@ test("Versorgungs-Kompass: Übersicht spiegelt die Viewer-Rechte", async ({ page
   await expect(page.locator("#workspace-view-subtitle")).toHaveText("Karte und verfügbare Arbeitsbereiche auf einen Blick.");
   await expectNoHorizontalOverflow(page);
 
+  await expect(overview.locator(".care-overview-layout")).toHaveAttribute("data-entrance-state", "complete");
   const viewerGeometry = await overview.evaluate((panel) => {
     const layout = panel.querySelector(".care-overview-layout")?.getBoundingClientRect();
     const cards = [...panel.querySelectorAll(".care-overview-destination")]

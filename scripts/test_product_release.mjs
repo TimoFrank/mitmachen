@@ -7,6 +7,8 @@ import { fileURLToPath } from "node:url";
 const verifier = fileURLToPath(new URL("./verify_product_release.mjs", import.meta.url));
 const sourceRoot = path.resolve(path.dirname(verifier), "..");
 const releaseConfigTemplate = JSON.parse(readFileSync(path.join(sourceRoot, "config/release.json"), "utf8"));
+// Historical release fixtures must not inherit decisions from later real releases.
+delete releaseConfigTemplate.candidateReplacements;
 const fixture = mkdtempSync(path.join(tmpdir(), "versorgungs-product-release-test-"));
 
 function write(relativePath, content) {

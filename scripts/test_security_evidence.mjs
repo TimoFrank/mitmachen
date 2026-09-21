@@ -117,6 +117,8 @@ try {
   mkdirSync(reportDir, { recursive: true });
   mkdirSync(path.join(sourceRoot, "config/security"), { recursive: true });
   const releaseConfig = JSON.parse(readFileSync(path.join(process.cwd(), "config/release.json"), "utf8"));
+  // Historical evidence fixtures must not inherit decisions from later real releases.
+  delete releaseConfig.candidateReplacements;
   releaseConfig.productVersion = productVersion;
   writeFileSync(
     path.join(sourceRoot, "config/release.json"),
