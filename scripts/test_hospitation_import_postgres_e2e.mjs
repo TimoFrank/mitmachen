@@ -825,7 +825,40 @@ try {
     await pool.query("drop function if exists public.synthetic_hospitation_import_e2e_failure()");
   }
 
-  console.log("Hospitationsimport E2E OK: echte HTTP/API/PostgreSQL-16-Kette mit Least-Privilege-Laufzeitrolle; Vorschau schreibfrei, stale Fingerprint ohne Teilschreiben, Apply mit Owner-/Audit-/Trigger-Nachweisen, Archiv- und Owner-Schutz, zweite Vorschau idempotent und erzwungener DB-Fehler vollständig zurückgerollt.");
+  // Der reale PostgreSQL-Treiber liefert Date-Objekte; bestehende Daten können
+  // zusätzlich Mikrosekunden enthalten. Browser senden den JSON-Zeitstempel.
+  const observationId = manifestIds(primaryManifest).observationId;
+  await pool.query("update hospitation_observations set updated_at = '2026-08-03T08:00:00.123456Z' where id = $1", [observationId]);
+  const readObservation = async () => {
+    const response = await fetch(`${baseUrl}/api/hospitation-observations`);
+    assert.equal(response.status, 200);
+    return (await response.json()).items.find((item) => item.id === observationId);
+  };
+  const patchObservation = async (title, expectedUpdatedAt) => {
+    const response = await fetch(`${baseUrl}/api/hospitation-observations/${observationId}`, {
+      method: "PATCH", headers: { "content-type": "application/json" },
+      body: JSON.stringify({ title, expectedUpdatedAt })
+    });
+    return { status: response.status, payload: await response.json() };
+  };
+  const original = await readObservation();
+  const firstUpdate = await patchObservation("Synthetische Bearbeitung mit Mikrosekunden", original.updatedAt);
+  assert.equal(firstUpdate.status, 200, JSON.stringify(firstUpdate.payload));
+  const secondUpdate = await patchObservation("Synthetische zweite Bearbeitung", (await readObservation()).updatedAt);
+  assert.equal(secondUpdate.status, 200, JSON.stringify(secondUpdate.payload));
+  const beforeStaleUpdate = await databaseState(pool);
+  assert.equal((await patchObservation("Veraltete Fassung nicht übernehmen", original.updatedAt)).status, 409);
+  assert.deepEqual(await databaseState(pool), beforeStaleUpdate, "Ein veralteter Versionsstand darf weder Inhalt noch Verlauf ändern.");
+  const concurrentVersion = (await readObservation()).updatedAt;
+  const competingUpdates = await Promise.all([
+    patchObservation("Synthetische parallele Bearbeitung A", concurrentVersion),
+    patchObservation("Synthetische parallele Bearbeitung B", concurrentVersion)
+  ]);
+  assert.deepEqual(competingUpdates.map((result) => result.status).sort(), [200, 409],
+    "Von zwei konkurrierenden Änderungen darf genau eine gespeichert werden.");
+  assert.equal((await readObservation()).title, competingUpdates.find((result) => result.status === 200).payload.title);
+
+  console.log("Hospitationsimport E2E OK: echte HTTP/API/PostgreSQL-16-Kette mit Least-Privilege-Laufzeitrolle; Vorschau schreibfrei, stale Fingerprint ohne Teilschreiben, Apply mit Owner-/Audit-/Trigger-Nachweisen, Archiv- und Owner-Schutz, zweite Vorschau idempotent und erzwungener DB-Fehler vollständig zurückgerollt. Beobachtungsbearbeitung mit Mikrosekunden, erneutem Speichern, veraltetem Stand und konkurrierenden Änderungen geprüft.");
 } catch (error) {
   const databaseLogResult = spawnSync("docker", ["logs", "--tail", "160", containerName], {
     encoding: "utf8",

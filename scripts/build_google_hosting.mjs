@@ -28,6 +28,12 @@ transform("data/runtime-config.js", "VERSORGUNGS_COMPASS_CONFIG", (value) => ({
 transform("public/auth/portal-config.js", "IDENTITY_PORTAL_CONFIG", (value) => ({
   ...value, sessionMode: "google-hosting", enableLocalPreview: false
 }));
+// History-Routen liegen auch mehrere Ebenen tief. Dynamisch gesetzte Bilder
+// und responsive Bildquellen müssen daher am Ursprung beginnen.
+const appPath = path.join(output, "versorgungs-kompass.js");
+fs.writeFileSync(appPath, fs.readFileSync(appPath, "utf8").replaceAll('"./public/', '"/public/'));
+const documentPath = path.join(output, "versorgungs-kompass.html");
+fs.writeFileSync(documentPath, fs.readFileSync(documentPath, "utf8").replaceAll('srcset="./', 'srcset="/'));
 const manifestPath = path.join(output, "build-manifest.json");
 const manifest = JSON.parse(fs.readFileSync(manifestPath, "utf8"));
 fs.rmSync(manifestPath);

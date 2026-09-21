@@ -32,7 +32,7 @@ const publicKey = read("gh", ["variable", "get", "RELEASE_TAG_GPG_PUBLIC_KEY", "
 const fingerprint = read("gh", ["variable", "get", "RELEASE_TAG_GPG_FINGERPRINT", "--repo", repository]);
 const keyDirectory = fs.mkdtempSync(path.join(output, "release-verification-"));
 const environment = { ...process.env, GNUPGHOME: keyDirectory };
-run("gpg", ["--batch", "--import"], { input: publicKey, env: environment });
+run("gpg", ["--batch", "--import"], { input: publicKey, env: environment, stdio: ["pipe", "inherit", "inherit"] });
 run("node", ["scripts/verify_release_tag.mjs", "--tag", tag, "--commit-sha", revision, "--fingerprint", fingerprint, "--expected-title", metadata.name, "--remote-tag-object-sha", remoteObject, "--github-verification-json", verificationPath, "--published-release-metadata-json", metadataPath], { env: environment });
 if (JSON.parse(fs.readFileSync("config/release.json")).productVersion !== tag.slice(1)) throw new Error("Produktversion und Tag stimmen nicht überein.");
 run("node", ["scripts/build_google_hosting.mjs"], { env: { ...process.env, API_BASE_URL: config.origin, IAP_EXTERNAL_AUTH_API_KEY: config.apiKey, IAP_GCIP_PROJECT_ID: config.project } });

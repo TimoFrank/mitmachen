@@ -18,6 +18,9 @@ export function renderGoogleServices(config) {
     if (!/^[a-z][a-z0-9_-]{1,62}$/u.test(value || "")) throw new Error("Ein Ressourcenname fehlt oder ist ungültig.");
   }
   if (!["closed", "open"].includes(config.cutoverMode || "closed")) throw new Error("Ungültiger Umschaltzustand.");
+  if (config.resetIngressHost && (!/^[a-z0-9-]+(?:\.[a-z0-9-]+)*\.run\.app$/u.test(config.resetIngressHost)
+    || !config.resetIngressHost.startsWith(`${resetService}-`))) throw new Error("Der Passwortdienst benötigt seinen eigenen expliziten Cloud-Run-Hostname.");
+  if (config.cutoverMode === "open" && !config.resetIngressHost) throw new Error("Vor der Freigabe den tatsächlichen Passwortdienst-Host bestätigen.");
   const shared = {
     NODE_ENV: "production", GOOGLE_HOSTING_ENABLED: "1", GOOGLE_STATE_BUCKET: stateBucket,
     GOOGLE_CUTOVER_MODE: config.cutoverMode || "closed", IAP_GCIP_PROJECT_ID: project,
@@ -73,8 +76,8 @@ export function renderGoogleServices(config) {
   ], true);
   const reset = service(resetService, "vk-google-password-reset", [{
     name: "password-reset", image, command: ["node"], args: ["api/password-reset-server.mjs"], ports: [{ containerPort: 8080 }],
-    resources: { limits: { cpu: "1", memory: "256Mi" } },
-    env: [...env({ ...shared, PASSWORD_RESET_BROKER_ENABLED: "1", PASSWORD_RESET_ALLOWED_ORIGIN: origin, PASSWORD_INVITATION_BUCKET: invitationBucket }), secret("PASSWORD_RESET_SMTP_PASSWORD", smtpSecret)],
+    resources: { limits: { cpu: "1", memory: "512Mi" } },
+    env: [...env({ ...shared, PASSWORD_RESET_BROKER_ENABLED: "1", PASSWORD_RESET_ALLOWED_ORIGIN: origin, PASSWORD_RESET_CLOUD_RUN_HOST: config.resetIngressHost || "", PASSWORD_INVITATION_BUCKET: invitationBucket }), secret("PASSWORD_RESET_SMTP_PASSWORD", smtpSecret)],
     startupProbe: { httpGet: { path: "/healthz", port: 8080 }, timeoutSeconds: 1, periodSeconds: 2, failureThreshold: 30 }
   }], false);
   const hosting = { rewrites: [

@@ -8,6 +8,8 @@ Kompakte Zusammenfassung der wichtigsten Funktionssprünge des Versorgungs-Kompa
 
 Version 0.24 gliedert Beobachtungen, Codierung und den Bezug zur Hospitation klarer. Einzelne Inhalte lassen sich direkt bearbeiten; Ausfüllhinweise erklären die Felder. Word- und PDF-Exporte übernehmen dieselbe Struktur.
 
+- **Hotfix v0.24.1:** Die Passwort-Wiederherstellung funktioniert hinter Firebase Hosting; Logos laden auch auf tiefen Unterseiten. Beobachtungen lassen sich ohne falschen Versionskonflikt speichern, während echte konkurrierende Änderungen weiterhin geschützt bleiben. Die Google-Bereitstellung berücksichtigt den Mindestarbeitsspeicher und die korrekte Übergabe des öffentlichen Signierschlüssels.
+
 ### Beobachtungsdrawer vereinheitlichen (#264)
 
 Beobachtungen und Hospitationen verwenden gemeinsame Drawer-Komponenten. Die Beobachtungsnummer steht an der Kurzfassung; der schreibgeschützte Hospitationsbezug zeigt Kontakt, Organisation, Datum, Ort und Zuständigkeit kompakt an. Inhalte können einzeln bearbeitet werden. Ausfüllhinweise und Infofelder erklären die Eingaben.

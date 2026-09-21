@@ -47,6 +47,18 @@ assert.equal(services.app.spec.template.metadata.annotations["autoscaling.knativ
 assert.equal(services.app.spec.template.metadata.annotations["run.googleapis.com/vpc-access-egress"], "private-ranges-only");
 assert.equal(services.hosting.rewrites[0].run.serviceId, deployment.resetService);
 assert.equal(services.hosting.rewrites[1].run.serviceId, deployment.appService);
+for (const service of [services.app, services.reset]) {
+  const memoryMi = service.spec.template.spec.containers.reduce((sum, container) => sum + Number.parseInt(container.resources.limits.memory, 10), 0);
+  assert.ok(memoryMi >= 512, "Die zweite Cloud-Run-Ausführungsumgebung benötigt insgesamt mindestens 512 MiB.");
+}
+const resetIngressHost = "compass-password-reset-example-ey.a.run.app";
+const opened = renderGoogleServices({ ...deployment, cutoverMode: "open", resetIngressHost });
+assert.equal(opened.reset.spec.template.spec.containers[0].env.find((value) => value.name === "PASSWORD_RESET_CLOUD_RUN_HOST").value, resetIngressHost);
+for (const changes of [
+  { cutoverMode: "open" }, { resetIngressHost: "*.run.app" },
+  { resetIngressHost: "other-service-example-ey.a.run.app" },
+  { resetIngressHost: `${resetIngressHost}.attacker.invalid` }
+]) assert.throws(() => renderGoogleServices({ ...deployment, ...changes }));
 for (const changes of [{ image: deployment.image.split("@")[0] + ":latest" }, { region: "us-central1" }, { databaseSecret: { name: "database-password", version: "latest" } }, { cutoverMode: "unknown" }]) {
   assert.throws(() => renderGoogleServices({ ...deployment, ...changes }));
 }

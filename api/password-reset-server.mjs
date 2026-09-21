@@ -87,6 +87,14 @@ export function passwordResetServerConfiguration(env = process.env) {
   if (env.GOOGLE_HOSTING_ENABLED === "1" && !["open", "closed"].includes(env.GOOGLE_CUTOVER_MODE || "closed")) {
     throw new Error("GOOGLE_CUTOVER_MODE ist ungültig.");
   }
+  const googleHosting = env.GOOGLE_HOSTING_ENABLED === "1";
+  const cloudRunHost = String(env.PASSWORD_RESET_CLOUD_RUN_HOST || "").trim();
+  if (cloudRunHost && (!googleHosting || !/^[a-z0-9-]+(?:\.[a-z0-9-]+)*\.run\.app$/u.test(cloudRunHost))) {
+    throw new Error("PASSWORD_RESET_CLOUD_RUN_HOST muss ein expliziter Cloud-Run-Hostname sein.");
+  }
+  if (googleHosting && env.GOOGLE_CUTOVER_MODE === "open" && !cloudRunHost) {
+    throw new Error("Vor der Freigabe muss der tatsächliche Cloud-Run-Hostname bestätigt werden.");
+  }
   return Object.freeze({
     production,
     port,
@@ -96,7 +104,7 @@ export function passwordResetServerConfiguration(env = process.env) {
     invitationBucketName,
     allowedOrigin: allowedOrigin.origin,
     allowedHost: allowedOrigin.host,
-    ...(env.GOOGLE_HOSTING_ENABLED === "1" ? { cutoverMode: env.GOOGLE_CUTOVER_MODE || "closed" } : {}),
+    ...(googleHosting ? { cutoverMode: env.GOOGLE_CUTOVER_MODE || "closed", cloudRunHost } : {}),
     continueUrl: `${allowedOrigin.origin}/start`
   });
 }
@@ -155,8 +163,13 @@ function assertBrowserRequest(request, configuration) {
   const fetchSite = String(request.headers["sec-fetch-site"] || "").trim().toLowerCase();
   const fetchMode = String(request.headers["sec-fetch-mode"] || "").trim().toLowerCase();
   const fetchDest = String(request.headers["sec-fetch-dest"] || "").trim().toLowerCase();
+  const host = String(request.headers.host || "").trim();
+  // Firebase Hosting rewrites Host to the destination service. Accept only
+  // that explicitly verified service hostname; forwarded headers grant no trust.
+  const allowedHost = host === configuration.allowedHost
+    || (configuration.cloudRunHost && host === configuration.cloudRunHost);
   if (
-    String(request.headers.host || "").trim() !== configuration.allowedHost
+    !allowedHost
     || origin !== configuration.allowedOrigin
     || !/^application\/json(?:\s*;\s*charset=utf-8)?$/u.test(contentType)
     || (fetchSite && fetchSite !== "same-origin")
