@@ -58,7 +58,10 @@ Konfigurationen und Nachweise liegen owner-only außerhalb von Git.
 - dem bestehenden öffentlichen Identity-Platform-`apiKey`,
   `accessExpiresAt`, gegebenenfalls `importOwnerProfileId`;
 - `policyAdminMember` als ausdrücklich benanntem Infrastruktur-Administrator
-  und `cutoverMode` (`closed` als Standard, `open` erst nach Abnahme).
+  und `cutoverMode` (`closed` als Standard, `open` erst nach Abnahme);
+- `resetIngressHost`: vor der Öffnung den exakten Host aus `uri` des
+  bereitgestellten Cloud-Run-Passwortdienstes übernehmen. Keine Wildcards und
+  keine aus Browser- oder Weiterleitungsheadern abgeleiteten Werte verwenden.
 
 Die Basis wird mit `node deploy/google-hosting/bootstrap.mjs <config> --apply`
 additiv eingerichtet. Bereits vorhandene IAM-Bindungen bleiben erhalten.
@@ -90,6 +93,13 @@ unverwaltbar macht.
    im expliziten Projekt und in Frankfurt bereitstellen. Nur diese beiden
    Dienste erhalten `roles/run.invoker` für `allUsers`; der serverseitige
    Sitzungsvertrag schützt auch die direkte Cloud-Run-Adresse.
+   Die Dienste zunächst geschlossen bereitstellen. Danach den tatsächlichen
+   Passwortdienst-Host aus der Google-Servicebeschreibung als `resetIngressHost`
+   eintragen und neu rendern. Firebase ersetzt den HTTP-Host beim Weiterleiten;
+   nur dieser bestätigte Dienst-Host wird zusätzlich zur Hauptdomain akzeptiert.
+   Origin, JSON, Browserheader, Cookie-Verbot und gemeinsame Begrenzungen bleiben
+   wirksam. Beide Dienste erfüllen die Mindestgröße von 512 MiB für die zweite
+   Cloud-Run-Ausführungsumgebung; die API einschließlich Proxy verwendet 640 MiB.
 5. Für die getrennte Abnahme denselben Digest mit eigener Servicebezeichnung,
    eigenem HTTPS-Origin und ausschließlich synthetischer Datenbank konfigurieren.
    Die bestehende Datenbank darf währenddessen keinen zweiten Writer erhalten.

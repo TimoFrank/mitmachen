@@ -1502,6 +1502,18 @@ const validServerEnvironment = Object.freeze({
   PASSWORD_RESET_SMTP_PASSWORD: TEST_SMTP_PASSWORD
 });
 const validServerConfiguration = passwordResetServerConfiguration(validServerEnvironment);
+const cloudRunHost = "compass-password-reset-example-ey.a.run.app";
+const googleServerEnvironment = {
+  ...validServerEnvironment, GOOGLE_HOSTING_ENABLED: "1", GOOGLE_CUTOVER_MODE: "open",
+  PASSWORD_RESET_CLOUD_RUN_HOST: cloudRunHost
+};
+assert.equal(passwordResetServerConfiguration(googleServerEnvironment).cloudRunHost, cloudRunHost);
+for (const changed of [
+  { PASSWORD_RESET_CLOUD_RUN_HOST: "" }, { PASSWORD_RESET_CLOUD_RUN_HOST: "*.run.app" },
+  { PASSWORD_RESET_CLOUD_RUN_HOST: `${cloudRunHost}:443` },
+  { PASSWORD_RESET_CLOUD_RUN_HOST: `${cloudRunHost}.attacker.invalid` },
+  { GOOGLE_HOSTING_ENABLED: "0" }
+]) assert.throws(() => passwordResetServerConfiguration({ ...googleServerEnvironment, ...changed }));
 assert.deepEqual(validServerConfiguration, {
   production: true,
   port: 8087,
@@ -1732,6 +1744,27 @@ await withHttpHandler(localHttpConfiguration, {
     assert.equal(response.status, 400, `${label} muss 400 liefern.`);
   }
   assert.equal(httpBrokerCalls.length, 3, "Abgewiesene HTTP-Anfragen dürfen den Broker nicht erreichen.");
+});
+
+let googleHttpBrokerCalls = 0;
+await withHttpHandler({ ...localHttpConfiguration, cloudRunHost, cutoverMode: "open" }, {
+  async request() { googleHttpBrokerCalls += 1; return PASSWORD_RESET_ACCEPTED_RESPONSE; }
+}, async (port) => {
+  const forwardedHeaders = { ...browserHeaders, host: cloudRunHost };
+  const accepted = await httpRequest(port, { headers: forwardedHeaders, body: JSON.stringify({ email: TEST_EMAIL }) });
+  assert.equal(accepted.status, 202, "Firebase darf den Host auf den bestätigten Cloud-Run-Dienst umschreiben.");
+  for (const changedHeaders of [
+    { host: "unapproved-example-ey.a.run.app", "x-forwarded-host": localHttpConfiguration.allowedHost },
+    { host: "attacker.invalid", "x-forwarded-host": cloudRunHost },
+    { origin: "https://attacker.invalid" }, { "content-type": "text/plain" },
+    { "sec-fetch-site": "cross-site" }, { "sec-fetch-mode": "navigate" },
+    { "sec-fetch-dest": "document" }, { cookie: "__session=untrusted" },
+    { authorization: "Bearer untrusted" }
+  ]) {
+    const rejected = await httpRequest(port, { headers: { ...forwardedHeaders, ...changedHeaders }, body: JSON.stringify({ email: TEST_EMAIL }) });
+    assert.equal(rejected.status, 403, "Der zusätzliche Dienst-Host darf keine übrige Browsergrenze aufheben.");
+  }
+  assert.equal(googleHttpBrokerCalls, 1);
 });
 
 const originalConsoleError = console.error;

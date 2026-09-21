@@ -15,6 +15,10 @@ for (const name of [config.appService, config.resetService]) {
     || service.template?.containers?.[0]?.image !== config.image) {
     throw new Error(`Cloud Run ${name} ist nicht mit dem erwarteten Release bereit.`);
   }
+  if (name === config.resetService && config.cutoverMode === "open"
+    && new URL(service.uri).hostname !== config.resetIngressHost) {
+    throw new Error("Der freigegebene Passwortdienst-Host stimmt nicht mit der Google-Serviceadresse überein.");
+  }
 }
 const base = "https://firebasehosting.googleapis.com/v1beta1";
 const site = `projects/${config.project}/sites/${config.siteId}`;
