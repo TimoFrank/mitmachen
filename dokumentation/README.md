@@ -2,6 +2,10 @@
 
 Die Dokumentation ist nach Zweck gegliedert. Führende Frontend-Quellen liegen unter [`frontend/`](../frontend/); generierte Buildausgaben sind keine Quellen.
 
+## Privater Google-Betrieb
+
+- [Google-Betriebsplan](betrieb-und-deployment/GOOGLE_BETRIEBSPLAN.md): Entscheidung für Cloud Run und Firebase Hosting statt Einzelserver, Erhalt von Cloud SQL, Anmeldung und Sicherungen sowie offene Umsetzung und Umschaltung
+
 ## Gematik-PoC
 
 - [GitLab-/Software-Factory-Übergabe](betrieb-und-deployment/GITLAB_SOFTWARE_FACTORY_UEBERGABE.md): aktueller Vertrag für signiertes Quellpaket, unabhängige Prüfung, einmaligen Import und Single-Writer-Cutover

@@ -195,7 +195,7 @@ export function validateIdentityConfiguration(env = process.env, options = {}) {
   const mode = String(env.API_AUTH_MODE || "").trim().toLowerCase();
   const production = env.NODE_ENV === "production";
   const devBypass = env.API_AUTH_ALLOW_DEV_PROFILE === "1" || env.API_AUTH_ALLOW_BEARER_DEV === "1";
-  const supported = new Set(["iap", "oidc", "trusted-header"]);
+  const supported = new Set(["iap", "oidc", "identity-platform", "trusted-header"]);
   const iapIdentityMode = String(env.IAP_IDENTITY_MODE || "iam").trim().toLowerCase();
   let iapGcipProjectId = "";
   let iapGcipTenantId = "";
@@ -210,8 +210,11 @@ export function validateIdentityConfiguration(env = process.env, options = {}) {
   if (!IAP_IDENTITY_MODES.has(iapIdentityMode)) {
     throw new Error("IAP_IDENTITY_MODE muss iam oder external sein.");
   }
-  if (iapIdentityMode === "external" && mode !== "iap") {
+  if (iapIdentityMode === "external" && !["iap", "identity-platform"].includes(mode)) {
     throw new Error("IAP_IDENTITY_MODE=external setzt API_AUTH_MODE=iap voraus.");
+  }
+  if (mode === "identity-platform" && (iapIdentityMode !== "external" || env.GOOGLE_HOSTING_ENABLED !== "1")) {
+    throw new Error("Identity Platform benötigt den expliziten Google-Hosting-Pfad und externe Identitäten.");
   }
   if (production && devBypass) {
     throw new Error("Entwicklungs-Authentifizierung darf in Produktion nicht aktiviert sein.");
@@ -222,7 +225,7 @@ export function validateIdentityConfiguration(env = process.env, options = {}) {
   if (mode === "iap" && !String(env.IAP_JWT_AUDIENCE || "").trim()) {
     throw new Error("IAP_JWT_AUDIENCE ist fuer API_AUTH_MODE=iap zwingend erforderlich.");
   }
-  if (mode === "iap" && iapIdentityMode === "external") {
+  if (["iap", "identity-platform"].includes(mode) && iapIdentityMode === "external") {
     iapGcipProjectId = String(env.IAP_GCIP_PROJECT_ID || "").trim();
     iapGcipTenantId = String(env.IAP_GCIP_TENANT_ID || "").trim();
     if (!/^[a-z][a-z0-9-]{4,28}[a-z0-9]$/u.test(iapGcipProjectId)) {

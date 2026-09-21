@@ -2,6 +2,21 @@
 
 Stand: 2026-08-09.
 
+## Betriebsentscheidung vom 21. September 2026
+
+- Der private Google-Betrieb soll von GKE auf Cloud Run mit Firebase Hosting
+  umgestellt werden. Die bestehende Cloud-SQL-Datenbank in Frankfurt,
+  Identity-Platform-Konten, Rollen und verwalteten Sicherungen sollen erhalten
+  bleiben. Der geplante Einzelserver wird als Zielweg nicht weiterverfolgt.
+- Maßgeblich für diese Folgeplanung ist der
+  [Google-Betriebsplan](../betrieb-und-deployment/GOOGLE_BETRIEBSPLAN.md).
+  Der eigene technische Google-Pfad ist vorbereitet; maßgeblich ist das
+  [Google-Betriebsrunbook](../betrieb-und-deployment/GOOGLE_BETRIEB.md).
+  Live-Abnahme, Umschaltung und Kostenverifikation stehen aus. Die unten beschriebenen bestehenden
+  Auslieferungswege sind damit noch nicht technisch ersetzt.
+- Die Vorarbeit aus Einzelserver-PR #258 bleibt erhalten. Ihr Abschluss ist
+  offen; sie ist kein freigegebener Weg zur VPS-Bestellung oder Migration.
+
 ## Aktiver Arbeitsmodus
 
 - Führende App-Quellen: `frontend/app/versorgungs-kompass.html` für das Markup sowie `frontend/app/versorgungs-kompass.css` und `frontend/app/versorgungs-kompass.js` für Darstellung und Verhalten. Karte, Login, Hospitation und öffentliche #Mitmachen-Seiten folgen demselben Muster mit eigenen HTML-, CSS- und gegebenenfalls JS-Dateien.
