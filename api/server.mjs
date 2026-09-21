@@ -16,6 +16,7 @@ import {
   organizationsAreSameCanonicalIdentity
 } from "./duplicate-identity.mjs";
 import { normalizedRequestLogPath } from "./request-log-privacy.mjs";
+import { createGoogleHostingHandler } from "./google-hosting.mjs";
 import {
   HOSPITATION_IMPORT_CONFIRMATION,
   HOSPITATION_IMPORT_SCHEMA_VERSION,
@@ -555,6 +556,9 @@ if (!["disabled", "validated-original"].includes(IMAGE_UPLOAD_MODE) || (process.
 }
 const IDENTITY_CONFIGURATION = validateIdentityConfiguration(process.env);
 const API_AUTH_MODE = IDENTITY_CONFIGURATION.mode;
+const GOOGLE_RUNTIME = API_AUTH_MODE === "identity-platform"
+  ? (await import("./google-runtime.mjs")).createGoogleRuntime(IDENTITY_CONFIGURATION)
+  : null;
 const IAP_IDENTITY_MODE = IDENTITY_CONFIGURATION.iapIdentityMode;
 const API_AUTH_ALLOW_DEV_PROFILE = process.env.API_AUTH_ALLOW_DEV_PROFILE === "1";
 const API_AUTH_ALLOW_BEARER_DEV = process.env.API_AUTH_ALLOW_BEARER_DEV === "1";
@@ -3378,6 +3382,7 @@ function authModeLabel() {
   return {
     iap: IAP_IDENTITY_MODE === "external" ? "IAP/Identity Platform" : "IAP/SSO",
     oidc: "OIDC/SSO",
+    "identity-platform": "Google Identity Platform",
     "trusted-header": "Gateway-SSO"
   }[API_AUTH_MODE] || "Backend-Identitaet";
 }
@@ -3692,7 +3697,9 @@ function devProfileFromRequest(request) {
 async function resolveRequestProfile(request) {
   const devProfile = devProfileFromRequest(request);
   if (devProfile) return devProfile;
-  const iapPayload = await verifyIapJwt(request);
+  const iapPayload = GOOGLE_RUNTIME
+    ? await GOOGLE_RUNTIME.sessions.verify(request)
+    : await verifyIapJwt(request);
   const oidcPayload = await verifyOidcJwt(request);
   const unsignedHeaderMode = !IDENTITY_CONFIGURATION.production && API_AUTH_MODE === "trusted-header";
   const subject = String(iapPayload
@@ -9952,6 +9959,8 @@ async function getOpsChecks() {
     || Date.now() < IDENTITY_CONFIGURATION.iapExternalAccessExpiresAtMs;
   const signedIdentityReady = API_AUTH_MODE === "iap"
     ? Boolean(IAP_JWT_AUDIENCE) && externalIapReady
+    : API_AUTH_MODE === "identity-platform"
+      ? Boolean(GOOGLE_RUNTIME) && externalIapReady
     : API_AUTH_MODE === "oidc"
       ? Boolean(OIDC_ISSUER && OIDC_AUDIENCE && OIDC_JWKS_URL)
       : false;
@@ -10334,7 +10343,7 @@ async function handle(request, response) {
       return jsonResponse(response, result.status, result.body);
     }
     if (request.method === "GET" && url.pathname === "/api/auth/bootstrap") {
-      if (API_AUTH_MODE === "iap") {
+      if (API_AUTH_MODE === "iap" || API_AUTH_MODE === "identity-platform") {
         try {
           request.currentProfile = await resolveRequestProfile(request);
         } catch (error) {
@@ -10348,7 +10357,7 @@ async function handle(request, response) {
     }
     if (request.method === "POST" && url.pathname === "/api/auth/external-enrollment") {
       return jsonResponse(response, 202, await submitExternalIapEnrollment(request, {
-        verifyIapJwt,
+        verifyIapJwt: GOOGLE_RUNTIME ? (value) => GOOGLE_RUNTIME.sessions.verify(value) : verifyIapJwt,
         pool: getPool(),
         identityMode: IAP_IDENTITY_MODE
       }));
@@ -10698,7 +10707,16 @@ async function handle(request, response) {
   }
 }
 
-const server = http.createServer({ maxHeaderSize: HTTP_MAX_HEADER_BYTES }, handle);
+const requestHandler = GOOGLE_RUNTIME ? createGoogleHostingHandler({
+  apiHandler: handle,
+  resolveProfile: resolveRequestProfile,
+  ...GOOGLE_RUNTIME,
+  origin: ALLOWED_ORIGIN,
+  root: process.env.GOOGLE_FRONTEND_ROOT || "/app/frontend-build",
+  aliases: String(process.env.GOOGLE_ALIAS_HOSTS || "").split(",").filter(Boolean),
+  cutoverMode: process.env.GOOGLE_CUTOVER_MODE || "closed"
+}) : handle;
+const server = http.createServer({ maxHeaderSize: HTTP_MAX_HEADER_BYTES }, requestHandler);
 server.requestTimeout = Math.max(5000, Number(process.env.HTTP_REQUEST_TIMEOUT_MS || 30000));
 server.headersTimeout = Math.max(5000, Number(process.env.HTTP_HEADERS_TIMEOUT_MS || 10000));
 server.keepAliveTimeout = Math.max(1000, Number(process.env.HTTP_KEEP_ALIVE_TIMEOUT_MS || 5000));

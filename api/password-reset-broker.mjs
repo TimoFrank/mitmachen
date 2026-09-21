@@ -1159,7 +1159,8 @@ export function createPasswordResetBroker({
   invitationPollMs = DEFAULT_INVITATION_POLL_MS,
   invitationPollLimit = DEFAULT_INVITATION_POLL_LIMIT,
   invitationMintStaleMs = DEFAULT_INVITATION_MINT_STALE_MS,
-  minimumResponseMs = 750
+  minimumResponseMs = 750,
+  awaitDelivery = false
 }) {
   if (
     !identityClient
@@ -1219,6 +1220,7 @@ export function createPasswordResetBroker({
       })
       .finally(() => pendingDeliveries.delete(delivery));
     pendingDeliveries.add(delivery);
+    return delivery;
   }
 
   function currentIsoTimestamp(stage) {
@@ -1503,7 +1505,7 @@ export function createPasswordResetBroker({
   async function invitationRequestContext(invitationToken, clientIp, allowExpired = false) {
     if (!invitationEnabled || !isIP(clientIp)) throw invalidInvitation();
     const objectName = passwordInvitationObjectName(invitationToken);
-    if (!rateLimiter.allow(`password-invitation:${objectName}`, clientIp)) {
+    if (!(await rateLimiter.allow(`password-invitation:${objectName}`, clientIp))) {
       throw new PasswordInvitationRateLimitError();
     }
     const context = await readStoredInvitation(objectName, allowExpired);
@@ -1630,7 +1632,7 @@ export function createPasswordResetBroker({
             : await redeemInvitation(invitationToken, clientIp);
         }
         const email = normalizePasswordResetEmail(inputEmail);
-        if (!email || !isIP(clientIp) || !rateLimiter.allow(email, clientIp)) {
+        if (!email || !isIP(clientIp) || !(await rateLimiter.allow(email, clientIp))) {
           return PASSWORD_RESET_ACCEPTED_RESPONSE;
         }
         const rawUser = await identityClient.lookupByEmail(email);
@@ -1638,7 +1640,8 @@ export function createPasswordResetBroker({
         if (!user || !(await isEligibleUser(user))) {
           return PASSWORD_RESET_ACCEPTED_RESPONSE;
         }
-        schedulePasswordReset(email);
+        const delivery = schedulePasswordReset(email);
+        if (awaitDelivery) await delivery;
         return PASSWORD_RESET_ACCEPTED_RESPONSE;
       } catch (cause) {
         if (

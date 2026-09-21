@@ -39,6 +39,21 @@
   window.addEventListener("DOMContentLoaded", function () {
     const copy = document.getElementById("login-copy");
     const externalLoginButton = document.getElementById("external-login-submit");
+    if (runtimeConfig.identityProvider === "google-hosting") {
+      const finish = () => window.location.replace("/anmelden");
+      if (isExplicitSignOutReturn()) {
+        fetch("/api/auth/logout", {
+          method: "POST", credentials: "same-origin", cache: "no-store", redirect: "error",
+          headers: { "content-type": "application/json" }, body: "{}"
+        }).then((response) => {
+          if (!response.ok) throw new Error("Abmeldung fehlgeschlagen.");
+          finish();
+        }).catch(() => {
+          if (copy) copy.textContent = "Die Abmeldung konnte nicht abgeschlossen werden. Bitte lade die Seite erneut.";
+        });
+      } else finish();
+      return;
+    }
 
     if (!usesExternalIdentityProvider()) {
       if (copy) copy.textContent = "Die Anwendung ist fail-closed: Ohne konfigurierte OIDC- oder IAP-Anmeldung ist kein Zugriff möglich.";

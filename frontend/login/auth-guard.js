@@ -41,6 +41,9 @@
   }
 
   function buildLoginUrl() {
+    if (runtimeConfig().identityProvider === "google-hosting") {
+      return "/anmelden?return=" + encodeURIComponent(currentPathFromLogin());
+    }
     const loginPath = config.loginPath || "./" + (config.loginFile || "login.html");
     const params = new URLSearchParams();
     params.set("return", currentPathFromLogin());
@@ -49,6 +52,7 @@
 
   function buildLogoutUrl() {
     const runtime = runtimeConfig();
+    if (runtime.identityProvider === "google-hosting") return "/login.html#signed-out";
     if (runtime.authMode !== "iap") return buildLoginUrl() + "#signed-out";
     if (runtime.iapIdentityMode === "external") {
       const logoutUrl = new URL(window.location.href);
@@ -105,6 +109,13 @@
 
   function reauthenticateIapSession() {
     const runtime = runtimeConfig();
+    if (runtime.identityProvider === "google-hosting" && runtime.dataMode === "api") {
+      if (!iapReauthenticationStarted) {
+        iapReauthenticationStarted = true;
+        window.location.replace(buildLoginUrl());
+      }
+      return true;
+    }
     if (runtime.authMode !== "iap" || runtime.dataMode !== "api") return false;
     const apiBaseUrl = String(runtime.apiBaseUrl || "").replace(/\/+$/, "");
     if (!/^https:\/\//i.test(apiBaseUrl)) return false;

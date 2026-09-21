@@ -1,0 +1,20 @@
+{
+  "name": "versorgungs-kompass-google-runtime",
+  "version": "0.1.0",
+  "private": true,
+  "license": "Apache-2.0",
+  "type": "module",
+  "engines": {
+    "node": ">=22"
+  },
+  "dependencies": {
+    "firebase-admin": "14.4.0",
+    "nodemailer": "10.0.9",
+    "pg": "8.21.0"
+  },
+  "overrides": {
+    "gaxios": {
+      "uuid": "11.1.1"
+    }
+  }
+}

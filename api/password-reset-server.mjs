@@ -84,6 +84,9 @@ export function passwordResetServerConfiguration(env = process.env) {
   if (!Number.isInteger(port) || port < 1 || port > 65535) {
     throw new Error("PORT ist ungültig.");
   }
+  if (env.GOOGLE_HOSTING_ENABLED === "1" && !["open", "closed"].includes(env.GOOGLE_CUTOVER_MODE || "closed")) {
+    throw new Error("GOOGLE_CUTOVER_MODE ist ungültig.");
+  }
   return Object.freeze({
     production,
     port,
@@ -93,6 +96,7 @@ export function passwordResetServerConfiguration(env = process.env) {
     invitationBucketName,
     allowedOrigin: allowedOrigin.origin,
     allowedHost: allowedOrigin.host,
+    ...(env.GOOGLE_HOSTING_ENABLED === "1" ? { cutoverMode: env.GOOGLE_CUTOVER_MODE || "closed" } : {}),
     continueUrl: `${allowedOrigin.origin}/start`
   });
 }
@@ -167,7 +171,7 @@ function assertBrowserRequest(request, configuration) {
   }
 }
 
-export function createPasswordResetHttpHandler({ configuration, broker }) {
+export function createPasswordResetHttpHandler({ configuration, broker, clientIpProvider = trustedPasswordResetClientIp }) {
   if (!configuration || typeof broker?.request !== "function") {
     throw new TypeError("Passwort-Reset-Server ist nicht vollständig konfiguriert.");
   }
@@ -178,6 +182,9 @@ export function createPasswordResetHttpHandler({ configuration, broker }) {
       }
       if (request.method !== "POST" || request.url !== PASSWORD_RESET_BROKER_PATH) {
         return sendJson(response, 404, { error: "Not found" }, configuration.production);
+      }
+      if (configuration.cutoverMode === "closed") {
+        return sendJson(response, 503, { error: "Die neue Umgebung ist noch nicht freigegeben." }, configuration.production);
       }
       assertBrowserRequest(request, configuration);
       const body = await readRequestBody(request);
@@ -201,7 +208,7 @@ export function createPasswordResetHttpHandler({ configuration, broker }) {
               invitationToken: body.invitationToken,
               ...(invitationFinalizeRequest ? { finalize: true } : {})
             }),
-        clientIp: trustedPasswordResetClientIp(request, {
+        clientIp: clientIpProvider(request, {
           production: configuration.production
         })
       });
@@ -245,7 +252,10 @@ export function createPasswordResetServer({
   fetchImpl = globalThis.fetch,
   accessTokenProvider,
   sendPasswordResetEmail,
-  minimumResponseMs = 750
+  minimumResponseMs = 750,
+  rateLimiter,
+  awaitDelivery = false,
+  clientIpProvider
 } = {}) {
   const configuration = passwordResetServerConfiguration(env);
   const resolvedAccessTokenProvider = accessTokenProvider
@@ -272,6 +282,8 @@ export function createPasswordResetServer({
   const broker = createPasswordResetBroker({
     identityClient,
     sendPasswordResetEmail: resolvedSendPasswordResetEmail,
+    ...(rateLimiter ? { rateLimiter } : {}),
+    awaitDelivery,
     invitationStore,
     projectId: configuration.projectId,
     apiKey: configuration.apiKey,
@@ -288,19 +300,29 @@ export function createPasswordResetServer({
     },
     minimumResponseMs
   });
-  const server = http.createServer(createPasswordResetHttpHandler({ configuration, broker }));
+  const handler = createPasswordResetHttpHandler({ configuration, broker, clientIpProvider });
+  const server = http.createServer(handler);
   server.requestTimeout = 10_000;
   server.headersTimeout = 5_000;
   server.keepAliveTimeout = 5_000;
   server.maxRequestsPerSocket = 100;
-  return Object.freeze({ broker, configuration, server });
+  return Object.freeze({ broker, configuration, server, handler });
 }
 
 const invoked = process.argv[1]
   ? fileURLToPath(import.meta.url) === path.resolve(process.argv[1])
   : false;
 if (invoked) {
-  const { broker, configuration, server } = createPasswordResetServer();
+  const googleRuntime = process.env.GOOGLE_HOSTING_ENABLED === "1"
+    ? (await import("./google-runtime.mjs")).createGoogleRuntime(null)
+    : null;
+  const { broker, configuration, server } = createPasswordResetServer(googleRuntime ? {
+    awaitDelivery: true,
+    rateLimiter: { allow: (email) => googleRuntime.state.allowReset(email) },
+    // This route deliberately applies an account-neutral global limit, not a
+    // caller-controlled forwarded IP. The legacy broker still requires an IP.
+    clientIpProvider: () => "127.0.0.1"
+  } : {});
   server.listen(configuration.port, "0.0.0.0", () => {
     console.log(JSON.stringify({
       timestamp: new Date().toISOString(),

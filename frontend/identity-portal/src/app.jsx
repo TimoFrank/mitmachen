@@ -5,6 +5,8 @@ import {
   GoogleAuthProvider,
   getAuth,
   signOut,
+  setPersistence,
+  inMemoryPersistence,
   signInWithEmailAndPassword,
   signInWithPopup
 } from "firebase/auth";
@@ -187,7 +189,7 @@ function SignInPanel({ auth, onCredential, preview = false }) {
     setBusy(true);
     setError("");
     try {
-      onCredential(await signInWithEmailAndPassword(auth, email.trim(), password));
+      await onCredential(await signInWithEmailAndPassword(auth, email.trim(), password));
     } catch (signInError) {
       setError(normalizeSignInError(signInError));
       setBusy(false);
@@ -201,7 +203,7 @@ function SignInPanel({ auth, onCredential, preview = false }) {
     try {
       const provider = new GoogleAuthProvider();
       provider.setCustomParameters({ prompt: "select_account" });
-      onCredential(await signInWithPopup(auth, provider));
+      await onCredential(await signInWithPopup(auth, provider));
     } catch (signInError) {
       setError(normalizeSignInError(signInError));
       setBusy(false);
@@ -439,10 +441,46 @@ function startPreview(config) {
   renderSignIn(null, config, () => undefined, true);
 }
 
+async function startGoogleSession(config) {
+  assertProductionConfig(config);
+  assertSafeFirebaseDefaults();
+  const auth = getAuth(getOrCreateFirebaseApp(config.firebase, "google-hosting"));
+  auth.languageCode = "de";
+  await setPersistence(auth, inMemoryPersistence);
+  const candidate = new URLSearchParams(window.location.search).get("return") || "/start";
+  const returnUrl = new URL(candidate, window.location.origin);
+  const safeReturn = returnUrl.origin === window.location.origin
+    && /^\/(?:start|versorgung|stakeholder|hospitationen|profil|personen|organisationen|formate|teams|onboarding)(?:\/|$)/u.test(returnUrl.pathname)
+    ? `${returnUrl.pathname}${returnUrl.search}${returnUrl.hash}` : "/start";
+  renderSignIn(auth, config, async (credential) => {
+    try {
+      const response = await fetch("/api/auth/session", {
+        method: "POST", credentials: "same-origin", cache: "no-store", redirect: "error",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ idToken: await credential.user.getIdToken() })
+      });
+      if (!response.ok) throw new Error("Sitzung konnte nicht erstellt werden.");
+      await signOut(auth);
+      window.location.replace(safeReturn);
+    } catch (error) {
+      await signOut(auth);
+      throw error;
+    }
+  });
+}
+
 function start() {
   const config = getPortalConfig();
   if (isLocalPreview(config, "signin")) {
     startPreview(config);
+    return;
+  }
+  if (config.sessionMode === "google-hosting") {
+    startGoogleSession(config).catch(() => renderMessage(config, {
+      shellTitle: "Anmeldung nicht verfügbar", shellIntro: "Bitte versuche es später erneut.",
+      tone: "error", title: "Der Zugang ist vorübergehend nicht erreichbar.",
+      message: "Die Anmeldung konnte nicht sicher vorbereitet werden."
+    }));
     return;
   }
 
