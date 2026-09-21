@@ -20,12 +20,38 @@
     "baselineVersion": { "$ref": "#/$defs/version" },
     "baselineRef": { "type": "string", "minLength": 1 },
     "defaultBump": { "const": "minor" },
+    "candidateReplacements": {
+      "description": "Historische Entscheidungen über ersetzte, unveröffentlichte Kandidaten. Reine Audit-Metadaten: keine Auswahl eines Release-Commits, keine Veröffentlichungsfreigabe und keine Änderung von Gates.",
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": { "$ref": "#/$defs/candidateReplacement" }
+    },
     "policy": { "$ref": "#/$defs/policy" }
   },
   "$defs": {
     "version": {
       "type": "string",
       "pattern": "^(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)$"
+    },
+    "candidateReplacement": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["version", "supersededCommit", "sourceCommit", "approvedOn", "decision"],
+      "properties": {
+        "version": { "$ref": "#/$defs/version" },
+        "supersededCommit": { "type": "string", "minLength": 40, "maxLength": 40, "pattern": "^[a-f0-9]{40}$" },
+        "sourceCommit": { "type": "string", "minLength": 40, "maxLength": 40, "pattern": "^[a-f0-9]{40}$" },
+        "approvedOn": {
+          "type": "string",
+          "format": "date",
+          "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}$"
+        },
+        "decision": {
+          "type": "string",
+          "pattern": "^dokumentation/([A-Za-z0-9_-]+/)*[A-Za-z0-9_-]+\\.md$"
+        }
+      }
     },
     "policy": {
       "type": "object",

@@ -14,11 +14,11 @@ function assertObject(value, label) {
   }
 }
 
-function assertExactKeys(value, expectedKeys, label) {
+function assertExactKeys(value, expectedKeys, label, optionalKeys = []) {
   assertObject(value, label);
   const actualKeys = Object.keys(value).sort();
   const expected = [...expectedKeys].sort();
-  const unexpected = actualKeys.filter((key) => !expected.includes(key));
+  const unexpected = actualKeys.filter((key) => !expected.includes(key) && !optionalKeys.includes(key));
   const missing = expected.filter((key) => !actualKeys.includes(key));
   if (unexpected.length || missing.length) {
     const details = [
@@ -187,6 +187,47 @@ export function assertNewTechnicalTag(tag, { existingTags = [], policy } = {}) {
   return tag;
 }
 
+function validateCandidateReplacements(records, productVersion) {
+  // Audit history only: it never selects a commit or authorizes publication.
+  if (!Array.isArray(records) || records.length === 0) {
+    fail("candidateReplacements muss eine nicht leere Liste sein.");
+  }
+  const seen = new Set();
+  for (const [index, record] of records.entries()) {
+    const label = `candidateReplacements[${index}]`;
+    assertExactKeys(record, ["version", "supersededCommit", "sourceCommit", "approvedOn", "decision"], label);
+    if (typeof record.version !== "string") fail(`${label}.version muss eine Zeichenfolge sein.`);
+    if (formatProductVersion(parseProductVersion(record.version)) !== record.version) {
+      fail(`${label}.version muss eine vollständige semantische Version X.Y.Z sein.`);
+    }
+    if (compareProductVersions(record.version, productVersion) > 0) {
+      fail(`${label}.version darf nicht nach productVersion liegen.`);
+    }
+    for (const key of ["supersededCommit", "sourceCommit"]) {
+      if (typeof record[key] !== "string" || record[key].length !== 40 || !/^[a-f0-9]{40}$/.test(record[key])) {
+        fail(`${label}.${key} muss ein vollständiger kleingeschriebener Commit-SHA sein.`);
+      }
+    }
+    if (record.supersededCommit === record.sourceCommit) {
+      fail(`${label} muss unterschiedliche ersetzte und neue Quell-Commits dokumentieren.`);
+    }
+    if (typeof record.approvedOn !== "string"
+        || !/^\d{4}-\d{2}-\d{2}$/.test(record.approvedOn)
+        || !Number.isFinite(Date.parse(`${record.approvedOn}T00:00:00Z`))
+        || new Date(`${record.approvedOn}T00:00:00Z`).toISOString().slice(0, 10) !== record.approvedOn) {
+      fail(`${label}.approvedOn muss ein gültiges Kalenderdatum YYYY-MM-DD sein.`);
+    }
+    if (typeof record.decision !== "string"
+        || !record.decision.endsWith(".md")
+        || !/^dokumentation\/([A-Za-z0-9_-]+\/)*[A-Za-z0-9_-]+\.md$/.test(record.decision)) {
+      fail(`${label}.decision muss ein relativer Markdown-Pfad unter dokumentation/ sein.`);
+    }
+    const key = `${record.version}:${record.supersededCommit}:${record.sourceCommit}`;
+    if (seen.has(key)) fail(`${label} enthält eine bereits dokumentierte Kandidatenersetzung.`);
+    seen.add(key);
+  }
+}
+
 export function validateReleaseConfig(config) {
   assertExactKeys(config, [
     "$schema",
@@ -196,13 +237,16 @@ export function validateReleaseConfig(config) {
     "baselineRef",
     "defaultBump",
     "policy"
-  ], "config/release.json");
+  ], "config/release.json", ["candidateReplacements"]);
   assertEqual(config.$schema, "./release.schema.json", "config/release.json.$schema");
   assertEqual(config.schemaVersion, 2, "config/release.json.schemaVersion");
   parseProductVersion(config.productVersion);
   parseProductVersion(config.baselineVersion);
   assertString(config.baselineRef, "config/release.json.baselineRef");
   assertEqual(config.defaultBump, "minor", "config/release.json.defaultBump");
+  if (Object.hasOwn(config, "candidateReplacements")) {
+    validateCandidateReplacements(config.candidateReplacements, config.productVersion);
+  }
 
   const policy = config.policy;
   assertExactKeys(policy, [

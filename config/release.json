@@ -5,6 +5,15 @@
   "baselineVersion": "0.20.0",
   "baselineRef": "fac533f154355a00e8bc1bb78112ec476ae68fef",
   "defaultBump": "minor",
+  "candidateReplacements": [
+    {
+      "version": "0.24.0",
+      "supersededCommit": "29cd44c662bc7b8577a85aedf5cd7e5e8aec67eb",
+      "sourceCommit": "6192f1270e047d6cb525d700d1fcf2d86dbd3940",
+      "approvedOn": "2026-09-21",
+      "decision": "dokumentation/betrieb-und-deployment/RELEASE_0_24_KANDIDATENERSETZUNG.md"
+    }
+  ],
   "policy": {
     "policyVersion": 1,
     "effectiveFromVersion": "0.23.0",

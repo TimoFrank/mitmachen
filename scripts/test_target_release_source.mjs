@@ -207,6 +207,8 @@ process.on("SIGTERM", () => server.close(() => process.exit(0)));
   run("git", ["remote", "add", "origin", sourceUrl], { cwd: repository });
 
   const releaseConfig = JSON.parse(readFileSync(path.join(projectRoot, "config/release.json"), "utf8"));
+  // Historical source fixtures must not inherit decisions from later real releases.
+  delete releaseConfig.candidateReplacements;
   releaseConfig.productVersion = "0.23.0";
   mkdirSync(path.join(repository, "config"));
   writeFileSync(

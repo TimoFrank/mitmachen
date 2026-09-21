@@ -313,7 +313,7 @@ EOF
   cp "$ROOT_DIR/public/media/social/mitmachen-share-v3.png" "$STAGE_DIR/public/media/social/mitmachen-share-v3.png"
   cp "$ROOT_DIR/public/media/social/versorgungs-netzwerk-share-v1.png" "$STAGE_DIR/public/media/social/versorgungs-netzwerk-share-v1.png"
   cp "$ROOT_DIR/public/manifest.pages.webmanifest" "$STAGE_DIR/manifest.webmanifest"
-  for asset in mitmachen-hospitations-framework.docx mitmachen-hospitations-framework.pdf; do
+  for asset in mitmachen-hospitations-framework.docx mitmachen-hospitations-framework.pdf hospitations-framework-ausfuellbar.pdf; do
     if [ -f "$ROOT_DIR/public/hospitation/$asset" ]; then
       cp "$ROOT_DIR/public/hospitation/$asset" "$STAGE_DIR/public/hospitation/$asset"
     fi
@@ -709,7 +709,7 @@ build_target() {
   cp "$ROOT_DIR/public/media/demo/mitmachen/versorgungs-netzwerk-concept.svg" "$STAGE_DIR/public/media/demo/mitmachen/versorgungs-netzwerk-concept.svg"
   cp "$ROOT_DIR/public/media/social/mitmachen-share-v3.png" "$STAGE_DIR/public/media/social/mitmachen-share-v3.png"
   cp "$ROOT_DIR/public/manifest.webmanifest" "$STAGE_DIR/manifest.webmanifest"
-  for asset in mitmachen-hospitations-framework.docx mitmachen-hospitations-framework.pdf; do
+  for asset in mitmachen-hospitations-framework.docx mitmachen-hospitations-framework.pdf hospitations-framework-ausfuellbar.pdf; do
     if [ -f "$ROOT_DIR/public/hospitation/$asset" ]; then
       cp "$ROOT_DIR/public/hospitation/$asset" "$STAGE_DIR/public/hospitation/$asset"
     fi

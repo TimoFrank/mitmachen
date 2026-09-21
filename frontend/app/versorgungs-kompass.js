@@ -5857,12 +5857,18 @@
       const appVersionHistory = [
         {
           version: "0.24.0",
-          date: "28. August 2026",
-          title: "Neues in Version 0.24",
+          date: "21. September 2026",
+          title: "Beobachtungen klarer erfassen und codieren",
           icon: "start",
-          summary: "Der Versorgungs-Kompass wird klarer, verlässlicher und leichter nutzbar. Die neuen Verbesserungen unterstützen das Netzwerk dabei, Wissen zu teilen und gemeinsam ins Handeln zu kommen.",
+          summary: "Version 0.24 gliedert Beobachtungen, Codierung und den Bezug zur Hospitation klarer. Das Hospitations-Framework zeigt Beobachtungen mit Uhrzeit im neuen Word- und PDF-Layout. Eine ausfüllbare PDF ergänzt die Vorlagen im Fragebogen.",
           items: [
-            "Verbesserungen für Versorgungs-Kompass: Der Bereich Versorgungs-Kompass wurde weiterentwickelt. Die Änderung erleichtert die tägliche Arbeit mit dem Versorgungs-Kompass. Wichtige Informationen und Funktionen sind dadurch schneller erreichbar."
+            "Hospitations-Framework herunterladen: Word- und PDF-Dateien einzelner Termine enthalten das neue Layout mit Uhrzeit, Quellenangaben und Codehilfe.",
+            "Ausfüllbare PDF: Im Fragebogen steht eine Vorlage mit 39 editierbaren Feldern und drei fiktiven Beispielen bereit.",
+            "Beobachtungen direkt bearbeiten (#264): Gemeinsame Drawer-Komponenten, eine sichtbare Beobachtungsnummer und kompakte Angaben zur Hospitation erleichtern die Orientierung.",
+            "Codierungen verständlicher auswählen (#264): Das Codebuch 1.1 verwendet die abgestimmten Antwortwerte. Bestehende Codierungen bleiben erkennbar; Beobachtung, Bericht und Interpretation bleiben unterscheidbar.",
+            "Beobachtungstexte und Exporte zusammenführen (#264): Eine frühere Situation bleibt im gemeinsamen Text erhalten. Word- und PDF-Exporte verwenden denselben Inhalt.",
+            "Erfassung und Vergleiche an Quellen binden (#265): Die Codierung ist freiwillig. Passende Beobachtungen aus mehreren Hospitationen liefern Vergleichshinweise; synthetische Beispiele und Annahmen bleiben davon ausgeschlossen.",
+            "Öffentliche Informationen und technische Grundlagen aktualisieren (#259, #261): Der Bundestag-Snapshot und verwendete Bibliotheken wurden aktualisiert."
           ]
         },
         {
@@ -17125,9 +17131,7 @@
         };
         return {
           documentKind: "appointment",
-          documentLabel: "Hospitations-Termin | Einzelansicht",
-          title: `Hospitation | ${exported.contact || exported.context || "Termin"}`,
-          subtitle: "Versorgungs-Kompass | #Mitmachen",
+          // Titel und Untertitel kommen aus der gemeinsamen Dokumentvorlage.
           modeLabel: "Terminakte",
           generatedAt: new Date().toISOString(),
           sourceUpdatedAt: exported.updatedAt || "",

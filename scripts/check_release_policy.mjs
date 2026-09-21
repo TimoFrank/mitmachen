@@ -114,7 +114,9 @@ function validateClosedSchemaObjects(schemaNode, location = "$schema") {
   const schemaFailures = [];
   if (!schemaNode || typeof schemaNode !== "object") return schemaFailures;
   if (schemaNode.type === "object" && schemaNode.additionalProperties === false) {
-    const properties = Object.keys(schemaNode.properties ?? {}).sort();
+    // Only this root-level audit history is optional; all policy gates stay mandatory.
+    const optionalAuditKeys = location === "$schema" ? ["candidateReplacements"] : [];
+    const properties = Object.keys(schemaNode.properties ?? {}).filter((key) => !optionalAuditKeys.includes(key)).sort();
     const required = [...(schemaNode.required ?? [])].sort();
     if (!sameJsonValue(properties, required)) {
       schemaFailures.push(`${location}: properties und required müssen für den geschlossenen Vertrag identisch sein.`);
