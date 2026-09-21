@@ -133,7 +133,7 @@ Der Quellcode und die technische Dokumentation stehen unter der [Apache License 
 
 ## Aktueller Release
 
-- Version: [v0.24.0](https://github.com/TimoFrank/mitmachen/releases/tag/v0.24.0)
+- Version: [v0.24.1](https://github.com/TimoFrank/mitmachen/releases/tag/v0.24.1)
 - Stand: 21. September 2026
-- Kurznotiz: Beobachtungen klarer erfassen und codieren
+- Kurznotiz: Die Passwort-Wiederherstellung funktioniert hinter Firebase Hosting; Logos laden auch auf tiefen Unterseiten. Beobachtungen lassen sich ohne falschen Versionskonflikt speichern, während echte konkurrierende Änderungen weiterhin geschützt bleiben. Die Google-Bereitstellung berücksichtigt den Mindestarbeitsspeicher und die korrekte Übergabe des öffentlichen Signierschlüssels.
 - Demo-Kanal: [GitHub Pages](https://timofrank.github.io/mitmachen/)

@@ -8920,13 +8920,10 @@ async function patchHospitationObservation(request, id) {
   const userId = userIdFromToken(request);
   if (!userId) throw Object.assign(new Error("User-ID konnte nicht aus dem Token gelesen werden."), { status: 401 });
   const row = await withDomainTransaction(async (transaction) => {
-    const currentRows = await cloudSqlRest("hospitation_observations", request, new URLSearchParams({
-      id: `eq.${id}`,
-      select: HOSPITATION_OBSERVATION_FIELDS.join(","),
-      limit: "1"
-    }), { transaction });
+    const { rows: currentRows } = await databaseQuery(transaction,
+      "select *, updated_at::text as version_updated_at from hospitation_observations where id = $1", [id]);
     if (!currentRows?.[0]) throw Object.assign(new Error("Beobachtung wurde nicht gefunden."), { status: 404 });
-    if (expectedUpdatedAt && currentRows[0].updated_at !== expectedUpdatedAt) {
+    if (expectedUpdatedAt && comparableTimestamp(currentRows[0].updated_at) !== comparableTimestamp(expectedUpdatedAt)) {
       throw Object.assign(new Error("Die Beobachtung wurde zwischenzeitlich geändert. Bitte neu laden."), { status: 409 });
     }
     const current = hospitationObservationToDto(currentRows[0]);
@@ -8949,7 +8946,9 @@ async function patchHospitationObservation(request, id) {
     }
     const updateParams = new URLSearchParams({
       id: `eq.${id}`,
-      updated_at: `eq.${currentRows[0].updated_at}`,
+      // PostgreSQL-Mikrosekunden für die atomare Versionsbedingung erhalten.
+      // JavaScript-Date und dessen Standardtext würden Präzision verlieren.
+      updated_at: `eq.${currentRows[0].version_updated_at}`,
       select: HOSPITATION_OBSERVATION_FIELDS.join(",")
     });
     const rows = await cloudSqlRest("hospitation_observations", request, updateParams, {

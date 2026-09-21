@@ -252,6 +252,7 @@ function plain(value) {
     sourceBetween("function splitList(", "function normalizePriority("),
     sourceBetween("function assertPlainObject(", "async function readJsonBody("),
     sourceBetween("function hospitationObservationEvidenceType(", "function hospitationSlotToDb("),
+    sourceBetween("function comparableTimestamp(", "function sameFormatCreationIntent("),
     sourceBetween("async function patchHospitationObservation(", "async function syncHospitationObservations("),
     `async function readValidatedJsonBody(request, fields, label) {
       assertAllowedFields(request.body, fields, label);
@@ -290,6 +291,13 @@ function plain(value) {
         generatedId: () => { throw new Error("Ein PATCH darf keine neue Beobachtungs-ID erzeugen."); },
         userIdFromToken: () => "profile-context-contract",
         withDomainTransaction: async (work) => work(transaction),
+        databaseQuery: async (actualTransaction, sql, values) => {
+          assert.equal(actualTransaction, transaction);
+          assert.match(sql, /updated_at::text as version_updated_at/);
+          assert.deepEqual(plain(values), [storedRow.id]);
+          calls.push({ method: "GET" });
+          return { rows: [{ ...plain(storedRow), updated_at: new Date(storedRow.updated_at), version_updated_at: storedRow.updated_at }] };
+        },
         recordActivityEventInternal: async (actualTransaction, _request, event) => {
           assert.equal(actualTransaction, transaction);
           activityEvents.push(plain(event));
@@ -369,6 +377,7 @@ function plain(value) {
     sourceBetween("function splitList(", "function normalizePriority("),
     sourceBetween("function assertPlainObject(", "async function readJsonBody("),
     sourceBetween("function hospitationObservationEvidenceType(", "function hospitationSlotToDb("),
+    sourceBetween("function comparableTimestamp(", "function sameFormatCreationIntent("),
     sourceBetween("async function patchHospitationObservation(", "async function syncHospitationObservations("),
     `async function readValidatedJsonBody(request, fields, label) {
       assertAllowedFields(request.body, fields, label);
@@ -407,6 +416,13 @@ function plain(value) {
         generatedId: () => { throw new Error("Ein PATCH darf keine neue Beobachtungs-ID erzeugen."); },
         userIdFromToken: () => "profile-context-contract",
         withDomainTransaction: async (work) => work(transaction),
+        databaseQuery: async (actualTransaction, sql, values) => {
+          assert.equal(actualTransaction, transaction);
+          assert.match(sql, /updated_at::text as version_updated_at/);
+          assert.deepEqual(plain(values), [storedRow.id]);
+          calls.push({ method: "GET" });
+          return { rows: [{ ...plain(storedRow), updated_at: new Date(storedRow.updated_at), version_updated_at: storedRow.updated_at }] };
+        },
         recordActivityEventInternal: async (actualTransaction, _request, event) => {
           assert.equal(actualTransaction, transaction);
           activityEvents.push(plain(event));
