@@ -17,16 +17,22 @@ const appRoutes = [
   /^\/(?:start|onboarding|formate|teams)\/?$/u,
   /^\/versorgung(?:\/(?:karte|kontakte|organisationen|auswertung|datenqualitaet|aktivitaeten))?\/?$/u,
   /^\/stakeholder(?:\/(?:patienten|politik|presse|expertenkreis|kassenaerztliche-vereinigungen|krankenkassen|patientenverbaende|krankenhausgesellschaften|aerztliche-berufsverbaende))?\/?$/u,
-  /^\/hospitationen(?:\/(?:framework|beobachtungen|muster|dashboard|fragebogen))?\/?$/u,
+  /^\/hospitationen(?:\/(?:uebersicht|framework|beobachtungen|muster|dashboard|fragebogen))?\/?$/u,
   /^\/profil(?:\/(?:benachrichtigungen|einstellungen|aenderungen|ueber-die-app|importe\/(?:registrierungen|dateiimport|online-erfassung|historie)))?\/?$/u,
   /^\/personen\/(?:versorgung|expertenkreis|stakeholder|patienten|politik|presse)\/[^/]+\/?$/u,
   /^\/organisationen\/(?:versorgung|expertenkreis|patienten|stakeholder|presse)\/[^/]+\/?$/u
 ];
 
+function isAppRoute(pathname) {
+  if (/^\/hospitationskompass(?:\/(?:termine|framework|fragebogen|beobachtungen|muster|dashboard))?\/?$/u.test(pathname)) return true;
+  const unscoped = pathname.startsWith("/hospitationskompass/") ? pathname.slice("/hospitationskompass".length) : pathname;
+  return appRoutes.some((rule) => rule.test(unscoped));
+}
+
 export function safeReturnPath(value = "/start") {
   if (typeof value !== "string" || !value.startsWith("/") || value.startsWith("//") || /[\\\u0000-\u001f\u007f]/u.test(value)) return "/start";
   const parsed = new URL(value, "https://return.invalid");
-  return parsed.origin === "https://return.invalid" && (appRoutes.some((rule) => rule.test(parsed.pathname)) || ["/versorgungs-kompass.html", "/mac-abgleich"].includes(parsed.pathname))
+  return parsed.origin === "https://return.invalid" && (isAppRoute(parsed.pathname) || ["/versorgungs-kompass.html", "/mac-abgleich"].includes(parsed.pathname))
     ? `${parsed.pathname}${parsed.search}${parsed.hash}` : "/start";
 }
 
@@ -108,7 +114,7 @@ export function createGoogleHostingHandler({ apiHandler, resolveProfile, session
           throw error;
         }
         if (url.pathname.startsWith("/public/auth/")) return json(response, 404, { error: "Nicht gefunden." });
-        relative = url.pathname === "/mac-abgleich" ? "mac-sync.html" : appRoutes.some((rule) => rule.test(url.pathname)) ? "versorgungs-kompass.html" : decodeURIComponent(url.pathname).slice(1);
+        relative = url.pathname === "/mac-abgleich" ? "mac-sync.html" : isAppRoute(url.pathname) ? "versorgungs-kompass.html" : decodeURIComponent(url.pathname).slice(1);
       }
       if (!relative || relative.split("/").some((part) => part.startsWith("."))) return json(response, 404, { error: "Nicht gefunden." });
       let filename = path.resolve(directory, relative);

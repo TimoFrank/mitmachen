@@ -1,5 +1,6 @@
 import { expect, test } from "@playwright/test";
 import { gotoAuthenticated } from "./helpers/app-test-session.js";
+import { createProtectedBackendFixture } from "./helpers/protected-backend-fixture.js";
 
 function teamDirectoryBackendFixtureScript() {
   return `
@@ -338,3 +339,67 @@ for (const role of ["viewer", "editor", "admin"]) {
     await expect(firstTeam.getByText(/Kontakte? öffnen/).first()).toBeVisible();
   });
 }
+
+test.describe("Hospitations-Kompass als eigener Einstieg", () => {
+  const focusedApp = "/frontend/app/versorgungs-kompass.html?workspace=hospitation";
+  async function showNavigation(page, testInfo) {
+    if (testInfo.project.name.includes("mobile") && !(await page.locator(".app-shell").evaluate((node) => node.classList.contains("is-mobile-sidebar-expanded")))) {
+      await page.locator("#sidebar-collapse-button").click();
+    }
+  }
+
+  test("behält den Fokus bei Bereichswechsel, Neuladen und Rückkehr zur Übersicht", async ({ page }, testInfo) => {
+    await gotoAuthenticated(page, focusedApp);
+    await expect(page.locator(".app-shell")).toHaveAttribute("data-active-view", "hospitationOverview");
+    await expect(page).toHaveTitle("Übersicht · Hospitations-Kompass");
+    await showNavigation(page, testInfo);
+    await expect(page.locator('[data-sidebar-group="care"]')).toBeHidden();
+    await expect(page.locator('[data-sidebar-group="stakeholders"]')).toBeHidden();
+    await expect(page.locator('[data-sidebar-group="formats"]')).toBeHidden();
+    await expect(page.locator('[data-sidebar-group="planning"] .primary-tab:visible')).toHaveCount(7);
+    await page.locator('[data-view-tab="hospitations:observations"]').click();
+    await expect(page).toHaveURL(/workspace=hospitation#hospitations:observations$/);
+    await page.reload();
+    await expect(page.locator("#workspace-view-title")).toHaveText("Beobachtungen");
+    await expect(page).toHaveTitle("Beobachtungen · Hospitations-Kompass");
+    await showNavigation(page, testInfo);
+    await page.locator("#sidebar-profile-button").click();
+    await expect(page.locator(".app-shell")).toHaveAttribute("data-active-view", "profile");
+    await showNavigation(page, testInfo);
+    await expect(page.locator('[data-sidebar-group="planning"] .primary-tab:visible')).toHaveCount(7);
+    await page.locator("#brand-home-link").click();
+    await expect(page.locator(".app-shell")).toHaveAttribute("data-active-view", "hospitationOverview");
+    await showNavigation(page, testInfo);
+    await page.locator("#hospitation-other-apps").click();
+    await expect(page).not.toHaveURL(/workspace=hospitation/);
+    await expect(page.locator(".app-shell")).not.toHaveAttribute("data-workspace", "hospitation");
+    await expect(page.locator("#hospitation-other-apps")).toBeHidden();
+    await expect(page.locator("#hospitation-recent")).toBeHidden();
+  });
+
+  test("öffnet die zuletzt bearbeitete Beobachtung im bestehenden Editor", async ({ page }) => {
+    await gotoAuthenticated(page, focusedApp);
+    const recent = page.locator("[data-recent-observation]");
+    await expect(recent).toHaveCount(3);
+    const title = await recent.first().locator("strong").innerText();
+    await recent.first().click();
+    await expect(page).toHaveURL(/#hospitations:observations$/);
+    await expect(page.locator("#observation-detail-drawer")).toHaveClass(/is-open/);
+    await expect(page.locator("#observation-detail-drawer")).toContainText(title);
+    await expect(page.locator(".app-shell")).toHaveAttribute("data-workspace", "hospitation");
+  });
+
+  test("behält Leserechte und zeigt einen leeren Bestand ohne Beispielersatz", async ({ page }, testInfo) => {
+    const fixture = createProtectedBackendFixture({ role: "viewer" });
+    fixture.hospitations = [];
+    fixture.hospitationSlots = [];
+    fixture.hospitationObservations = [];
+    await gotoAuthenticated(page, focusedApp, { role: "viewer", backendFixture: fixture });
+    await expect(page.locator(".hospitation-overview-priority")).toHaveAttribute("data-hospitation-overview-state", "ready");
+    await expect(page.locator("#hospitation-overview-plan-button")).toBeHidden();
+    await expect(page.locator("#hospitation-recent-items")).toHaveText("Noch keine Beobachtungen erfasst.");
+    await expect(page.locator("[data-recent-observation]")).toHaveCount(0);
+    await showNavigation(page, testInfo);
+    await expect(page.locator("#hospitation-other-apps")).toBeVisible();
+  });
+});

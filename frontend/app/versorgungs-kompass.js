@@ -1,5 +1,6 @@
       const APP_ROUTES = window.VKAppRoutes || null;
       const CLEAN_URLS_ENABLED = Boolean(APP_ROUTES?.cleanUrlsEnabled?.());
+      const isHospitationWorkspace = Boolean(APP_ROUTES?.isHospitationWorkspace?.());
       const XLSX_SCRIPT_SRC = APP_ROUTES?.assetUrl?.("../vendor/xlsx/xlsx.bundle.js") || "../vendor/xlsx/xlsx.bundle.js";
       const IS_PUBLIC_DEMO_PROFILE = window.VERSORGUNGS_COMPASS_CONFIG?.dataMode === "demo"
         && window.VERSORGUNGS_COMPASS_CONFIG?.authMode === "anonymous-demo";
@@ -1355,6 +1356,21 @@
       const appSidebar = document.getElementById("app-sidebar");
       const sidebarCollapseButton = document.getElementById("sidebar-collapse-button");
       const sidebarBrandLink = document.getElementById("brand-home-link");
+      if (isHospitationWorkspace) {
+        appShell.dataset.workspace = "hospitation";
+        sidebarBrandLink.dataset.routeLink = "hospitation-overview";
+        sidebarBrandLink.href = APP_ROUTES.urlForRouteToken("hospitation-overview");
+        sidebarBrandLink.setAttribute("aria-label", "Hospitations-Kompass – zur Übersicht");
+        sidebarBrandLink.querySelector(".brand-mark").src = document.querySelector("#sidebar-section-planning-toggle img").src;
+        sidebarBrandLink.querySelector(".sidebar-brand-word").innerHTML = "Hospitations-<wbr>Kompass";
+        const otherApps = document.getElementById("hospitation-other-apps");
+        otherApps.hidden = false;
+        otherApps.href = APP_ROUTES.urlForRouteToken("home", { workspace: false });
+        const appointmentsTab = document.querySelector('[data-view-tab="hospitations"]');
+        appointmentsTab.title = "Termine";
+        appointmentsTab.querySelector("span").textContent = "Termine";
+        hospitationOverviewPlanButton.textContent = "Hospitation anlegen";
+      }
       const sidebarAccountSection = document.querySelector(".sidebar-account-section");
       const sidebarLayoutMediaQuery = window.matchMedia("(max-width: 760px)");
       const viewTabs = [...document.querySelectorAll("[data-view-tab]")];
@@ -2478,6 +2494,7 @@
 
       function setSidebarSectionExpanded(section, expanded) {
         if (!section) return;
+        if (isHospitationWorkspace && section.dataset.sidebarGroup === "planning") expanded = true;
         section.classList.toggle("is-expanded", expanded);
         section.classList.toggle("is-collapsed", !expanded);
         const toggle = section.querySelector("[data-sidebar-section-toggle]");
@@ -20678,7 +20695,38 @@
         };
       }
 
+      function renderRecentHospitationObservations() {
+        const section = document.getElementById("hospitation-recent");
+        if (!section || !isHospitationWorkspace) return;
+        section.hidden = false;
+        const items = document.getElementById("hospitation-recent-items");
+        if (hospitationDataState !== "ready") {
+          items.textContent = hospitationDataState === "error" ? "Beobachtungen nicht verfügbar." : "Beobachtungen werden geladen.";
+          return;
+        }
+        const timestamp = (row) => Date.parse(row.updatedAt || row.createdAt || "") || 0;
+        const rows = hospitationObservationSourceRows()
+          .sort((left, right) => timestamp(right) - timestamp(left) || String(left.id).localeCompare(String(right.id)))
+          .slice(0, 3);
+        items.innerHTML = rows.length ? rows.map((row) => `
+          <button class="hospitation-recent-item" type="button" data-recent-observation="${escapeHtml(row.id)}">
+            <span><strong>${escapeHtml(row.title || "Beobachtung ohne Kurzfassung")}</strong>
+              <span>${escapeHtml(row.hospitation.organizationName || row.hospitation.contactName || "Hospitation")}</span></span>
+            <span aria-hidden="true">→</span>
+          </button>`).join("") : '<p class="hospitation-overview-empty">Noch keine Beobachtungen erfasst.</p>';
+        items.querySelectorAll("[data-recent-observation]").forEach((button) => {
+          button.addEventListener("click", () => {
+            activeHospitationTab = "observations";
+            if (!setActiveView("hospitations")) return;
+            updateRouteHash("hospitations");
+            updateView();
+            void openHospitationObservationDrawerById(button.dataset.recentObservation);
+          });
+        });
+      }
+
       function renderHospitationOverview() {
+        renderRecentHospitationObservations();
         const priority = document.querySelector(".hospitation-overview-priority");
         if (!priority) return;
         const nextDate = document.getElementById("hospitation-overview-next-date");
@@ -39603,7 +39651,7 @@
       }
 
       function workspaceBrandConfig(view = activeView) {
-        const group = sidebarGroupForView(view);
+        const group = isHospitationWorkspace ? "planning" : sidebarGroupForView(view);
         if (group === "stakeholders") {
           return {
             group,
@@ -39675,7 +39723,7 @@
           workspaceBrandImage.alt = brand.name;
         }
         if (mainContent) mainContent.setAttribute("aria-label", view.title);
-        if (!isHospitationDocumentationStandalone) document.title = `${view.title} · #Mitmachen`;
+        if (!isHospitationDocumentationStandalone) document.title = `${view.title} · ${isHospitationWorkspace ? "Hospitations-Kompass" : "#Mitmachen"}`;
         const announcement = [view.title, view.subtitle].filter(Boolean).join(". ");
         if (routeAnnouncer && routeAnnouncer.dataset.currentAnnouncement !== announcement) {
           routeAnnouncer.dataset.currentAnnouncement = announcement;
@@ -39942,6 +39990,7 @@
       }
 
       function setActiveView(view) {
+        if (isHospitationWorkspace && view === "home") view = "hospitationOverview";
         if (onboardingActive && view !== "onboarding") view = "onboarding";
         if (onboardingReviewActive && view !== "onboarding") {
           onboardingReviewActive = false;
@@ -44699,6 +44748,7 @@
       function routeViewFromToken(routeToken = "") {
         const hashView = String(routeToken || "").replace(/^#/, "");
         activePoliticsMemberId = "";
+        if (isHospitationWorkspace && (!hashView || hashView === "home")) return "hospitationOverview";
         const patientRoute = /^patients(?:\?(.*))?$/.exec(hashView);
         if (patientRoute) {
           const requestedMode = new URLSearchParams(patientRoute[1] || "").get("view") || "people";

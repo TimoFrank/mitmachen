@@ -39,6 +39,19 @@ Danach sind die wichtigsten Einstiege erreichbar:
 
 Die beiden Einstiege verwenden dieselbe App-Oberfläche. Die gebaute Pages-Demo lädt ausschließlich `demo-data.js` und den lokalen `demo-api.js`-Adapter, hat keinen Login und sendet keine Fachdaten an ein externes API. Die App-Quelle benötigt dagegen die geschützte Target-Runtime und API-Konfiguration.
 
+Den eigenen Hospitations-Einstieg lokal prüfen:
+
+```bash
+npm run preview:hospitationskompass
+```
+
+Die Vorschau öffnet unter `http://127.0.0.1:4187/hospitationskompass` dieselben
+Fachansichten mit synthetischen Demo-Daten. Sie bindet ausschließlich an den
+lokalen Rechner. Änderungen an Testdaten gelten nur bis zum Neuladen.
+`HOSPITATION_PREVIEW_PORT` erlaubt einen anderen Port. Der geschützte
+Google-Betrieb verwendet für diesen Einstieg weiterhin seine bestehende
+Anmeldung und API; die Vorschau ist kein Nachweis einer Veröffentlichung.
+
 ## Änderungen prüfen
 
 ```bash

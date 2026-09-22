@@ -138,6 +138,9 @@ for (const headers of [{}, { origin: "https://attacker.invalid", "content-type":
 for (const value of ["//attacker.invalid/path", "https://attacker.invalid", "/\\attacker.invalid", "/anmelden", "/api/export"]) assert.equal(safeReturnPath(value), "/start");
 assert.equal(safeReturnPath("/versorgung/kontakte?query=test#detail"), "/versorgung/kontakte?query=test#detail");
 assert.equal(safeReturnPath("/mac-abgleich?code=synthetic-pairing-code"), "/mac-abgleich?code=synthetic-pairing-code");
+const hospitationPaths = ["/hospitationskompass", "/hospitationskompass/", "/hospitationskompass/termine", "/hospitationskompass/framework", "/hospitationskompass/fragebogen", "/hospitationskompass/beobachtungen", "/hospitationskompass/muster", "/hospitationskompass/dashboard", "/hospitationskompass/profil", "/hospitationskompass/personen/versorgung/test-person", "/hospitationskompass/organisationen/versorgung/test-organization"];
+for (const value of hospitationPaths) assert.equal(safeReturnPath(value), value);
+for (const value of ["/hospitationskompass-unbekannt", "/hospitationskompass/api/export", "/hospitationskompass/unbekannt"]) assert.equal(safeReturnPath(value), "/start");
 
 const objects = new Map();
 let generation = 0;
@@ -204,6 +207,15 @@ try {
   assert.equal(deniedPairing.status, 302);
   assert.equal(new URL(deniedPairing.headers.get("location"), base).searchParams.get("return"), "/mac-abgleich?code=synthetic-pairing-code");
   assert.equal(await (await fetch(base + "/mac-abgleich", { headers: request().headers })).text(), "protected-mac-pairing");
+  for (const pathname of hospitationPaths) {
+    const anonymous = await fetch(base + pathname, { redirect: "manual" });
+    assert.equal(anonymous.status, 302);
+    assert.equal(anonymous.headers.get("location"), `/anmelden?return=${encodeURIComponent(pathname)}`);
+    const authenticated = await fetch(base + pathname, { headers: request().headers });
+    assert.equal(authenticated.status, 200);
+    assert.equal(await authenticated.text(), "protected-app");
+  }
+  assert.equal((await fetch(base + "/hospitationskompass/unbekannt", { headers: request().headers })).status, 404);
   assert.equal(permitted.headers.get("referrer-policy"), "no-referrer");
   const anonymousConfig = await fetch(base + "/data/runtime-config.js", { redirect: "manual" });
   assert.equal(anonymousConfig.status, 302);

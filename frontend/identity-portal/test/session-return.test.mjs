@@ -4,9 +4,15 @@ import { safeSessionReturnPath } from "../src/session-return.js";
 
 const origin = "https://app.example.invalid";
 
-test("behält die bestehenden Arbeitsbereiche nach der Anmeldung", () => {
-  for (const path of ["/versorgung/kontakte", "/profil", "/hospitationen", "/start"])
-    assert.equal(safeSessionReturnPath(path, origin), path);
+test("behält Hospitationskontext, Profil und Fragebogen nach der Anmeldung", () => {
+  for (const path of [
+    "/hospitationskompass", "/hospitationskompass/termine",
+    "/hospitationskompass/fragebogen", "/hospitationskompass/beobachtungen",
+    "/hospitationskompass/muster", "/hospitationskompass/dashboard",
+    "/hospitationskompass/framework", "/hospitationskompass/profil",
+    "/hospitationskompass/personen/versorgung/test-person?view=details#notes",
+    "/versorgung/kontakte", "/profil", "/hospitationen", "/start"
+  ]) assert.equal(safeSessionReturnPath(path, origin), path);
 });
 
 test("behält den Mac-Kopplungscode beim Rücksprung nach der Anmeldung", () => {

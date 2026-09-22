@@ -192,6 +192,37 @@ const standaloneRoutes = loadRoutes({
 assert.equal(standaloneRoutes.cleanUrlsEnabled(), false);
 assert.equal(standaloneRoutes.urlForRouteToken("hospitations:observations"), "#hospitations:observations");
 
+const focusedRoutes = loadRoutes({ href: "https://versorgungs-kompass.de/hospitationskompass" });
+assert.equal(focusedRoutes.isHospitationWorkspace(), true);
+const focusedMatrix = new Map([
+  ["hospitation-overview", ""], ["hospitations", "/termine"],
+  ["framework", "/framework"], ["questionnaire", "/fragebogen"],
+  ["hospitations:observations", "/beobachtungen"], ["hospitations:patterns", "/muster"],
+  ["hospitations:dashboard", "/dashboard"], ["profile", "/profil"],
+  ["person/contact/test-person", "/personen/versorgung/test-person"],
+  ["organization/care/test-organization", "/organisationen/versorgung/test-organization"]
+]);
+for (const [token, suffix] of focusedMatrix) {
+  const pathname = `/hospitationskompass${suffix}`;
+  assert.equal(focusedRoutes.urlForRouteToken(token), pathname);
+  assert.equal(focusedRoutes.routeTokenForPath(pathname), token);
+  assert.equal(focusedRoutes.routeTokenForPath(`${pathname}/`), token);
+  assert.equal(focusedRoutes.isApplicationPath(pathname), true);
+  assert.equal(loadRoutes({ href: `https://versorgungs-kompass.de${pathname}` }).isHospitationWorkspace(), true);
+}
+assert.equal(focusedRoutes.urlForRouteToken("home"), "/hospitationskompass");
+assert.equal(focusedRoutes.urlForRouteToken("home", { workspace: false }), "/start");
+assert.equal(focusedRoutes.isApplicationPath("/hospitationskompass/unbekannt"), false);
+assert.equal(routes.isHospitationWorkspace(), false);
+const focusedStaticRoutes = loadRoutes({
+  href: "http://127.0.0.1:4173/frontend/app/versorgungs-kompass.html?workspace=hospitation",
+  scriptSrc: "http://127.0.0.1:4173/frontend/app/versorgungs-kompass-routes.js",
+  cleanUrls: false
+});
+assert.equal(focusedStaticRoutes.isHospitationWorkspace(), true);
+assert.equal(focusedStaticRoutes.urlForRouteToken("home"), "#hospitation-overview");
+assert.equal(focusedStaticRoutes.urlForRouteToken("home", { workspace: false }), "/frontend/app/versorgungs-kompass.html#home");
+
 const unrelatedStandaloneQueryRoutes = loadRoutes({
   href: "https://versorgungs-kompass.de/versorgung/karte?standalone=invalid"
 });

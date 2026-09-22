@@ -41,6 +41,19 @@ Diese Farben kennzeichnen ausschließlich die fachliche Gruppe. Größe, Abstand
 - Admin-/Betriebshinweise sind neutral oder dezent blau, nie dominant.
 - Kartenfarben dürfen fachliche Kategorien abbilden, müssen aber in Legende und Listen gleich bleiben.
 
+## Eigener Hospitations-Einstieg
+
+Unter `/hospitationskompass` bleibt die gemeinsame App-Shell auf den
+Hospitations-Kompass fokussiert. Die Sidebar zeigt dessen Marke und vorhandene
+Fachansichten; „Weitere Anwendungen“ führt zur Gesamtübersicht. Profil, Teams
+und verknüpfte Datensätze behalten den Einstiegskontext. Diese Darstellung
+verändert keine Rollen oder Datenrechte. Die Übersicht ergänzt höchstens drei
+zuletzt bearbeitete Beobachtungen als einfache Textzeilen mit Titel,
+Hospitationsbezug und direktem Zugang zum vorhandenen Beobachtungsdrawer.
+Der gesamte Zeilenbutton ist per Tastatur erreichbar; ohne Daten erscheint
+ein leerer Zustand. Der ursprüngliche lokale Dokumentationseinstieg bleibt
+eine eigenständige Betriebsvariante.
+
 ## Typografie
 
 - Font: `Inter, "SF Pro Text", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif`.
