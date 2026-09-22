@@ -34,7 +34,7 @@ for (const changes of [{ role: "editor" }, { active: false }, { access_scope: "t
 let localPool, remoteAdmin, runtime, localProcess, syncServer, worker;
 let localLogs = "", serviceOrigin = "", deviceOrigin = "";
 let remoteUserDisabled = false, loseNextApplyResponse = false, configuration, imageVersion = 1;
-let assetCalls = 0, limitAssetDownload = false;
+let assetCalls = 0, limitAssetDownload = false, assetFailureStatus = 0;
 try {
   docker(["run", "--rm", "-d", "--name", container, "--label", "versorgungs-kompass.test=mac-sync", "-e", "POSTGRES_USER=vk_local_admin", "-e", `POSTGRES_PASSWORD=${password}`, "-e", "POSTGRES_DB=versorgungs_kompass_local", "-p", "127.0.0.1::5432", "postgres:16-alpine"]);
   const port = Number(/:(\d+)\s*$/u.exec(docker(["port", container, "5432/tcp"]))[1]);
@@ -68,7 +68,7 @@ try {
     auth: { getUser: async () => ({ disabled: remoteUserDisabled, emailVerified: true, tokensValidAfterTime: "2020-01-01T00:00:00Z" }) }, state: { consume: async () => true },
     resolveProfile: async request => { request.googleVerifiedIdentity = { identity: { subject: "securetoken.google.com/synthetic:synthetic-user" }, payload: { iss: "https://cloud.google.com/iap", gcip: { uid: "synthetic-user" } } }; return profile; },
     execute: operation => invokeApi(runtime.handle, operation, "http://127.0.0.1:4199"),
-    readAsset: async (path, currentProfile) => { assert.equal(currentProfile.id, profile.id); assert.ok([`/api/profile-avatar/${profile.id}`, "/api/profile-avatar/synthetic-sync-extra"].includes(path)); return { status: 200, body: Buffer.from(`synthetic-image-${imageVersion}`), headers: { "content-type": "image/png" } }; }
+    readAsset: async (path, currentProfile) => { assert.equal(currentProfile.id, profile.id); assert.ok([`/api/profile-avatar/${profile.id}`, "/api/profile-avatar/synthetic-sync-extra"].includes(path)); return { status: path === `/api/profile-avatar/${profile.id}` && assetFailureStatus ? assetFailureStatus : 200, body: Buffer.from(`synthetic-image-${imageVersion}`), headers: { "content-type": "image/png" } }; }
   });
   syncServer = http.createServer(handler); syncServer.listen(0, "127.0.0.1"); await once(syncServer, "listening");
   deviceOrigin = `http://127.0.0.1:${syncServer.address().port}`;
@@ -228,6 +228,30 @@ try {
   assert.equal((await localPool.query("select count(*)::int as count from local_app.sync_asset_current")).rows[0].count, 2);
   assert.deepEqual(await readSyncData(localPool), await readSyncData(remoteAdmin));
   console.log("Mac-Abgleich: unterbrochener Dateiabruf nach Ratenlimit und Neustart fortgesetzt; Daten und Bildfassungen erst vollständig übernommen.");
+  await remoteAdmin.query("insert into profiles (id,email,display_name,role,active,avatar_url) values ('synthetic-sync-inactive','inactive@synthetic.example.invalid','Inaktives Testprofil','viewer',false,'gs://synthetic/profile-images/inactive.png')");
+  imageVersion = 4; assetFailureStatus = 404;
+  await remoteAdmin.query("update profiles set avatar_url='gs://synthetic/profile-images/avatar-four.png' where id=$1", [profile.id]);
+  await worker.run();
+  assert.equal((await worker.status()).status, "current", "Inaktive und nicht verfügbare Bilder blockieren keine Fachdaten");
+  assert.deepEqual(await readSyncData(localPool), await readSyncData(remoteAdmin));
+  assert.equal((await worker.asset(`/api/profile-avatar/${profile.id}`)).missing, true);
+  assert.equal((await worker.asset('/api/profile-avatar/synthetic-sync-inactive')).missing, true);
+  assert.equal((await localPool.query("select count(*)::int as count from local_app.sync_asset_current")).rows[0].count, 1);
+  assert.equal((await localPool.query("select count(*)::int as count from local_app.sync_assets")).rows[0].count, 4, "Frühere Bildfassungen bleiben privat erhalten");
+  assetFailureStatus = 0;
+  await worker.run();
+  assert.equal((await worker.asset(`/api/profile-avatar/${profile.id}`)).content.toString(), "synthetic-image-4", "Eine wieder verfügbare Datei wird auch ohne geänderten Verweis nachgeladen");
+  const beforeFailure = await readSyncData(localPool);
+  imageVersion = 5; assetFailureStatus = 503;
+  await remoteAdmin.query("update profiles set avatar_url='gs://synthetic/profile-images/avatar-five.png' where id=$1", [profile.id]);
+  await worker.run();
+  assert.equal((await worker.status()).status, "offline");
+  assert.deepEqual(await readSyncData(localPool), beforeFailure, "Ein Serverfehler lässt den zuletzt vollständigen Stand erhalten");
+  assert.equal((await worker.asset(`/api/profile-avatar/${profile.id}`)).content.toString(), "synthetic-image-4");
+  assetFailureStatus = 0;
+  await worker.run();
+  assert.equal((await worker.status()).status, "current");
+  console.log("Mac-Abgleich: inaktive Profile und fehlende Bilder berücksichtigt, frühere Fassungen erhalten, wieder verfügbare Bilder nachgeladen und Serverfehler sicher abgefangen.");
   remoteUserDisabled = true;
   await worker.run(); assert.equal((await worker.status()).status, "reconnect");
   remoteUserDisabled = false;

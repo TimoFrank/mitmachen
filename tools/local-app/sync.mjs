@@ -87,22 +87,33 @@ export function createLocalSync({ pool, profileId, transport = fetch, intervalMs
     const references = [];
     for (const [table, field, prefix] of [["profiles", "avatar_url", "profile-avatar"], ["contacts", "image_storage_path", "contact-images"], ["stakeholder_organizations", "logo_url", "stakeholder-logos"], ["contact_note_attachments", "storage_path", "contact-note-attachments"]]) {
       for (const row of snapshot.data[table] || []) {
+        // The live avatar API deliberately hides inactive profiles.
+        if (table === "profiles" && row.active !== true) continue;
         const source = row[field];
         if (!source || (table !== "contacts" && table !== "contact_note_attachments" && !/^(?:gs:|private:|\/api\/)/u.test(source))) continue;
         const path = `/api/${prefix}/${encodeURIComponent(row.id)}${table === "contact_note_attachments" ? "/content" : ""}`;
         references.push({ path, reference: fingerprint({ source, updated: row.image_updated_at || row.updated_at }) });
       }
     }
+    const available = [];
     for (const item of references) {
-      if ((await pool.query("select 1 from local_app.sync_assets where path=$1 and reference=$2", [item.path, item.reference])).rowCount) continue;
-      const asset = await remote("asset", { method: "POST", body: { path: item.path }, credential, binary: true });
+      if ((await pool.query("select 1 from local_app.sync_assets where path=$1 and reference=$2", [item.path, item.reference])).rowCount) { available.push(item); continue; }
+      let asset;
+      try { asset = await remote("asset", { method: "POST", body: { path: item.path }, credential, binary: true }); }
+      catch (error) {
+        // A file unavailable in the live API is unavailable locally, too. Keep
+        // older private bytes for recovery and try again on the next pull.
+        if (error.status === 404) continue;
+        throw error;
+      }
       // Cache each completed download privately so a later rate limit or
       // disconnect resumes here. It becomes visible only with the data pull.
       await pool.query("insert into local_app.sync_assets (path,reference,content_type,content) values ($1,$2,$3,$4) on conflict do nothing", [item.path, item.reference, asset.contentType, asset.content]);
+      available.push(item);
     }
     // Only switch current references in the same transaction as the data pull.
     // Older bytes remain in this private database for recovery.
-    return references;
+    return available;
   }
   async function status() {
     const state = await readState();

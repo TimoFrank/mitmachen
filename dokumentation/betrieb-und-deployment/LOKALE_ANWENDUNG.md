@@ -48,6 +48,11 @@ werden über die autorisierte Datei-Schnittstelle gelesen und lokal gehalten.
 Ihre älteren Fassungen bleiben wiederherstellbar. Neue Datei- und Bild-Uploads
 bleiben entsprechend der Produktentscheidung deaktiviert.
 
+Bilder deaktivierter Profile und online nicht verfügbare Dateien halten die
+übrigen Daten nicht vom Abgleich ab. Wieder verfügbare Dateien werden bei einem
+späteren Abgleich erneut abgerufen. Server- und Verbindungsfehler bewahren den
+zuletzt vollständig übernommenen Stand.
+
 Online-Anmeldung, Nutzerverwaltung und externe Integrationen sind lokal
 nicht verfügbar. Karten nutzen lokale Geometrien ohne externe Straßenkacheln.
 Gesicherte externe Bilder bleiben vorhanden; weitere externe Bilder und
