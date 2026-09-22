@@ -960,7 +960,7 @@
         { id: "appointments", label: "Termine", title: "Hospitationen", subtitle: "Termine planen und Versorgungskontakte dokumentieren." },
         { id: "observations", label: "Beobachtungen", title: "Beobachtungen", subtitle: "Beobachtungen aus Hospitationen erfassen, strukturieren und weiterbearbeiten." },
         { id: "patterns", label: "Muster", title: "Muster", subtitle: "Wiederkehrende Beobachtungen bündeln und als belastbare Muster einordnen." },
-        { id: "dashboard", label: "Dashboard", title: "Dashboard", subtitle: "Hospitationswissen, Beobachtungen und Muster im Überblick auswerten." }
+        { id: "dashboard", label: "Auswertung", title: "Auswertung", subtitle: "Hospitationstermine, Dokumentation und erfasste Beobachtungen auswerten." }
       ];
       function normalizeHospitationTab(tab = "") {
         const normalized = String(tab || "").trim();
@@ -5855,7 +5855,7 @@
         stakeholderOverview: { title: "Stakeholder-Kompass", subtitle: "Perspektiven, Institutionen und Netzwerke auf einen Blick." },
         stakeholders: { title: "Stakeholder", subtitle: "Stakeholder-Organisationen, Kontakte und Kartenbezug." },
         hospitationOverview: { title: "Übersicht", subtitle: "Was steht an, was ist offen und was haben wir gelernt?" },
-        framework: { title: "Hospitationsframework", subtitle: "Vor Ort beobachten, qualitativ auswerten und daraus belastbares Versorgungswissen ableiten." },
+        framework: { title: "Framework-Grundlagen", subtitle: "Vor Ort beobachten, qualitativ auswerten und daraus belastbares Versorgungswissen ableiten." },
         formats: { title: "Formate", subtitle: "Einladungslisten für Roundtables, Fachgespräche und Veranstaltungen planen." },
         hospitations: { title: "Hospitationen", subtitle: "Termine planen und Versorgungskontakte dokumentieren." },
         questionnaire: { title: "Hospitations-Fragebogen", subtitle: "Beobachtungen Schritt für Schritt festhalten und einordnen." },
@@ -40098,13 +40098,15 @@
         viewTabs.forEach((tab) => {
           const tabView = tab.dataset.viewTab;
           const stakeholderTypeRoute = tab.dataset.stakeholderTypeRoute || "";
-          const active = stakeholderTypeRoute
+          const active = activeNavigationView === "questionnaire"
+            ? tabView === "hospitations"
+            : stakeholderTypeRoute
             ? activeNavigationView === "stakeholders" && stakeholderTypeRoute === activeStakeholderTypeId
             : activeNavigationView === "hospitations"
               ? (activeHospitationTab === "appointments" ? tabView === "hospitations" : tabView === `hospitations:${activeHospitationTab}`)
               : tabView === activeNavigationView || (tab.dataset.viewGroup === "care" && isCareView(activeNavigationView));
           tab.classList.toggle("is-active", active);
-          if (active) tab.setAttribute("aria-current", "page");
+          if (active) tab.setAttribute("aria-current", activeNavigationView === "questionnaire" ? "location" : "page");
           else tab.removeAttribute("aria-current");
         });
         sidebarAnalyticsButton?.classList.toggle("is-active", isAnalyticsView(view));

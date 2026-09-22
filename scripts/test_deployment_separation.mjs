@@ -274,7 +274,7 @@ try {
     "Pages muss Amtsträger-Datensatz, Demo-Daten, Demo-Adapter und API-Vertrag in sicherer Reihenfolge laden"
   );
   assert.doesNotMatch(pagesHtml, /auth-(?:config|guard|login)\.js/i);
-  for (const label of ["Versorgung", "Auswertung", "Aktivitäten", "Stakeholder", "Expertenkreis", "Hospitationen", "Beobachtungen", "Fragebogen", "Dashboard", "Formate", "Teams"]) {
+  for (const label of ["Versorgung", "Auswertung", "Aktivitäten", "Stakeholder", "Expertenkreis", "Hospitationen", "Beobachtungen", "Fragebogen", "Grundlagen", "Formate", "Teams"]) {
     assert.match(pagesHtml, new RegExp(label), `Pages muss den Voll-App-Bereich ${label} enthalten`);
   }
   const pagesRegistrationHtml = fs.readFileSync(path.join(pagesDir, "mitmachen", "versorgungs-netzwerk.html"), "utf8");

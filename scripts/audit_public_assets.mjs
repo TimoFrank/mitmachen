@@ -659,7 +659,7 @@ if (existsSync(appHtmlPath)) {
   ]) {
     assert(appAssetSources.includes(mark), `${artifactLabel}/versorgungs-kompass.html oder versorgungs-kompass.js referenziert das Signet ${mark} nicht`);
   }
-  for (const label of ["Versorgung", "Auswertung", "Aktivitäten", "Stakeholder", "Expertenkreis", "Hospitationen", "Beobachtungen", "Fragebogen", "Dashboard", "Formate", "Teams"]) {
+  for (const label of ["Versorgung", "Auswertung", "Aktivitäten", "Stakeholder", "Expertenkreis", "Hospitationen", "Beobachtungen", "Fragebogen", "Grundlagen", "Formate", "Teams"]) {
     assert(appHtml.includes(label), `${artifactLabel}/versorgungs-kompass.html enthaelt den Voll-App-Bereich ${label} nicht`);
   }
 }

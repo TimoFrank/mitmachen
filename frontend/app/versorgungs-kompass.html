@@ -257,64 +257,60 @@
                 </svg>
                 <span>Übersicht</span>
               </button>
-              <button class="primary-tab" type="button" data-view-tab="framework" title="Framework">
-                <svg viewBox="0 0 24 24" fill="none" stroke-width="2" aria-hidden="true">
-                  <path d="M4 6h16"></path>
-                  <path d="M4 12h10"></path>
-                  <path d="M4 18h7"></path>
-                  <path d="m15 15 3 3 3-6"></path>
-                </svg>
-                <span>Framework</span>
-              </button>
-              <button class="primary-tab" type="button" data-view-tab="hospitations" title="Hospitationen">
-                <svg viewBox="0 0 24 24" fill="none" stroke-width="2" aria-hidden="true">
-                  <path d="M8 2v4"></path>
-                  <path d="M16 2v4"></path>
-                  <rect x="3" y="4" width="18" height="18" rx="2"></rect>
-                  <path d="M3 10h18"></path>
-                  <path d="M12 14v5"></path>
-                  <path d="M9.5 16.5h5"></path>
-                </svg>
-                <span>Hospitationen</span>
-              </button>
-              <button class="primary-tab" type="button" data-view-tab="questionnaire" title="Fragebogen">
-                <svg viewBox="0 0 24 24" fill="none" stroke-width="2" aria-hidden="true">
-                  <path d="M9 3h6l2 2v16H7V5l2-2Z"></path>
-                  <path d="M9 9h6"></path>
-                  <path d="M9 13h6"></path>
-                  <path d="M9 17h3"></path>
-                  <path d="m15 16 1.2 1.2L19 14.5"></path>
-                </svg>
-                <span>Fragebogen</span>
-              </button>
-              <button class="primary-tab" type="button" data-view-tab="hospitations:observations" title="Beobachtungen">
-                <svg viewBox="0 0 24 24" fill="none" stroke-width="2" aria-hidden="true">
-                  <path d="M2.5 12s3.5-6 9.5-6 9.5 6 9.5 6-3.5 6-9.5 6-9.5-6-9.5-6Z"></path>
-                  <circle cx="12" cy="12" r="2.6"></circle>
-                </svg>
-                <span>Beobachtungen</span>
-              </button>
-              <button class="primary-tab" type="button" data-view-tab="hospitations:patterns" title="Muster">
-                <svg viewBox="0 0 24 24" fill="none" stroke-width="2" aria-hidden="true">
-                  <circle cx="6" cy="7" r="2.4"></circle>
-                  <circle cx="18" cy="7" r="2.4"></circle>
-                  <circle cx="12" cy="17" r="2.4"></circle>
-                  <path d="m8.2 8.2 2.6 6.2"></path>
-                  <path d="m15.8 8.2-2.6 6.2"></path>
-                  <path d="M8.4 7h7.2"></path>
-                </svg>
-                <span>Muster</span>
-              </button>
-              <button class="primary-tab" type="button" data-view-tab="hospitations:dashboard" title="Dashboard">
-                <svg viewBox="0 0 24 24" fill="none" stroke-width="2" aria-hidden="true">
-                  <path d="M4 19V5"></path>
-                  <path d="M4 19h16"></path>
-                  <rect x="7" y="11" width="2.8" height="5" rx="1"></rect>
-                  <rect x="12" y="7" width="2.8" height="9" rx="1"></rect>
-                  <rect x="17" y="9" width="2.8" height="7" rx="1"></rect>
-                </svg>
-                <span>Dashboard</span>
-              </button>
+              <div class="sidebar-subnav" role="group" aria-labelledby="sidebar-hospitations-label">
+                <span class="sidebar-subnav__label" id="sidebar-hospitations-label">Hospitationen</span>
+                <button class="primary-tab primary-tab--nested" type="button" data-view-tab="hospitations" title="Termine">
+                  <svg viewBox="0 0 24 24" fill="none" stroke-width="2" aria-hidden="true">
+                    <path d="M8 2v4"></path>
+                    <path d="M16 2v4"></path>
+                    <rect x="3" y="4" width="18" height="18" rx="2"></rect>
+                    <path d="M3 10h18"></path>
+                    <path d="M12 14v5"></path>
+                    <path d="M9.5 16.5h5"></path>
+                  </svg>
+                  <span>Termine</span>
+                </button>
+                <button class="primary-tab primary-tab--nested" type="button" data-view-tab="hospitations:dashboard" title="Auswertung">
+                  <svg viewBox="0 0 24 24" fill="none" stroke-width="2" aria-hidden="true">
+                    <path d="M4 19V5"></path>
+                    <path d="M4 19h16"></path>
+                    <rect x="7" y="11" width="2.8" height="5" rx="1"></rect>
+                    <rect x="12" y="7" width="2.8" height="9" rx="1"></rect>
+                    <rect x="17" y="9" width="2.8" height="7" rx="1"></rect>
+                  </svg>
+                  <span>Auswertung</span>
+                </button>
+              </div>
+              <div class="sidebar-subnav" role="group" aria-labelledby="sidebar-framework-label">
+                <span class="sidebar-subnav__label" id="sidebar-framework-label">Framework</span>
+                <button class="primary-tab primary-tab--nested" type="button" data-view-tab="hospitations:observations" title="Beobachtungen">
+                  <svg viewBox="0 0 24 24" fill="none" stroke-width="2" aria-hidden="true">
+                    <path d="M2.5 12s3.5-6 9.5-6 9.5 6 9.5 6-3.5 6-9.5 6-9.5-6-9.5-6Z"></path>
+                    <circle cx="12" cy="12" r="2.6"></circle>
+                  </svg>
+                  <span>Beobachtungen</span>
+                </button>
+                <button class="primary-tab primary-tab--nested" type="button" data-view-tab="hospitations:patterns" title="Muster">
+                  <svg viewBox="0 0 24 24" fill="none" stroke-width="2" aria-hidden="true">
+                    <circle cx="6" cy="7" r="2.4"></circle>
+                    <circle cx="18" cy="7" r="2.4"></circle>
+                    <circle cx="12" cy="17" r="2.4"></circle>
+                    <path d="m8.2 8.2 2.6 6.2"></path>
+                    <path d="m15.8 8.2-2.6 6.2"></path>
+                    <path d="M8.4 7h7.2"></path>
+                  </svg>
+                  <span>Muster</span>
+                </button>
+                <button class="primary-tab primary-tab--nested" type="button" data-view-tab="framework" title="Grundlagen">
+                  <svg viewBox="0 0 24 24" fill="none" stroke-width="2" aria-hidden="true">
+                    <path d="M4 6h16"></path>
+                    <path d="M4 12h10"></path>
+                    <path d="M4 18h7"></path>
+                    <path d="m15 15 3 3 3-6"></path>
+                  </svg>
+                  <span>Grundlagen</span>
+                </button>
+              </div>
             </div>
           </div>
           <div class="sidebar-section is-collapsed" aria-label="Format-Kompass" data-sidebar-section="formats" data-sidebar-group="formats" data-sidebar-collapsible>
@@ -1515,7 +1511,7 @@
                       <span id="hospitation-overview-attention-focus-copy">Hospitationen</span>
                     </div>
                   </div>
-                  <a class="hospitation-overview-attention__action" id="hospitation-overview-dashboard-open" data-route-link="hospitations:dashboard" href="#hospitations:dashboard" aria-label="Dashboard öffnen">
+                  <a class="hospitation-overview-attention__action" id="hospitation-overview-dashboard-open" data-route-link="hospitations:dashboard" href="#hospitations:dashboard" aria-label="Auswertung öffnen">
                     <span class="hospitation-overview-attention__action-icon" aria-hidden="true">
                       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                         <path d="M4 19V5M4 19h16"></path>
@@ -1524,7 +1520,7 @@
                         <rect x="17" y="9" width="2.8" height="7" rx="1"></rect>
                       </svg>
                     </span>
-                    <span>Dashboard</span>
+                    <span>Auswertung</span>
                     <span aria-hidden="true">→</span>
                   </a>
                 </section>
@@ -1571,14 +1567,14 @@
                     <span class="hospitation-overview-section-label">Erkenntnisse</span>
                     <strong>Von der Beobachtung<br>zur Evidenz</strong>
                   </span>
-                  <a class="hospitation-overview-context-link hospitation-overview-evidence__framework" data-route-link="framework" href="#framework" aria-label="Framework öffnen">
+                  <a class="hospitation-overview-context-link hospitation-overview-evidence__framework" data-route-link="framework" href="#framework" aria-label="Framework-Grundlagen öffnen">
                     <span class="hospitation-overview-context-link__icon" aria-hidden="true">
                       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                         <circle cx="12" cy="12" r="9"></circle>
                         <path d="m15.5 8.5-2.1 4.9-4.9 2.1 2.1-4.9 4.9-2.1Z"></path>
                       </svg>
                     </span>
-                    <span>Framework</span>
+                    <span>Grundlagen</span>
                     <span aria-hidden="true">→</span>
                   </a>
                 </div>
@@ -1940,6 +1936,7 @@
                   </div>
                   <div class="hospitation-appointments-action-row__right">
                     <div class="workspace-secondary-actions" id="workspace-secondary-actions" aria-label="Weitere Aktionen">
+                      <a class="action-button action-button--compact" id="hospitation-questionnaire-open" data-route-link="questionnaire" href="#questionnaire">Fragebogen öffnen</a>
                       <div class="hospitation-export-actions" role="group" aria-label="Hospitations-Termine exportieren">
                         <button class="action-button action-button--compact hospitation-export-button" type="button" data-hospitation-export="docx" title="Erstellt beim Download neu aus dem aktuellen Datenstand">
                           <svg viewBox="0 0 24 24" aria-hidden="true">
@@ -1967,7 +1964,7 @@
                 </div>
                 <div class="hospitation-list" id="hospitation-list"></div>
               </section>
-              <section class="hospitation-tab-panel" id="hospitation-dashboard-panel" data-hospitation-tab-panel="dashboard" aria-label="Hospitations-Dashboard" hidden>
+              <section class="hospitation-tab-panel" id="hospitation-dashboard-panel" data-hospitation-tab-panel="dashboard" aria-label="Auswertung der Hospitationen" hidden>
                 <div class="dashboard-grid hospitation-dashboard" id="hospitation-dashboard"></div>
               </section>
               <section class="hospitation-tab-panel" id="hospitation-observations-panel" data-hospitation-tab-panel="observations" aria-label="Hospitations-Beobachtungen" hidden>
@@ -1981,8 +1978,9 @@
 
           <section class="view-panel" id="view-questionnaire" data-view-panel="questionnaire">
             <form class="questionnaire-workspace" id="hospitation-questionnaire-form">
-              <div class="dashboard-card hospitation-dashboard-preview-card questionnaire-toolbar questionnaire-toolbar--actions-only" aria-label="Fragebogen herunterladen">
+              <div class="dashboard-card hospitation-dashboard-preview-card questionnaire-toolbar questionnaire-toolbar--actions-only" aria-label="Fragebogen und Downloads">
                 <div class="hospitation-dashboard-preview-actions questionnaire-toolbar__actions">
+                  <a class="action-button" id="questionnaire-back-to-appointments" data-route-link="hospitations" href="#hospitations">Zurück zu den Terminen</a>
                   <a class="action-button questionnaire-download-link" href="../../public/hospitation/mitmachen-hospitations-framework.docx" download="Mitmachen-Hospitations-Framework.docx">
                     <span class="action-button__icon" aria-hidden="true">
                       <svg viewBox="0 0 24 24" role="img" focusable="false">

@@ -28459,7 +28459,8 @@
         resize: vertical;
       }
 
-      .questionnaire-download-link {
+      .hospitation-table-toolbar a.action-button,
+      .questionnaire-toolbar a.action-button {
         display: inline-flex;
         align-items: center;
         justify-content: center;
