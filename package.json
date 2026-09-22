@@ -8,6 +8,7 @@
     "start": "python3 -m http.server 4173",
     "start:api": "node api/server.mjs",
     "start:demo": "npm run start",
+    "preview:hospitationskompass": "npm run build:pages && node scripts/preview_hospitationskompass.mjs",
     "prepare:local-hospitation": "node scripts/prepare_local_hospitation.mjs",
     "start:local-hospitation": "npm run prepare:local-hospitation && npm start",
     "build:single-hospitation": "node scripts/build_single_html_hospitation.mjs",

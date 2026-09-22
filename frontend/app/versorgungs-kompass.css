@@ -18516,6 +18516,83 @@
         padding: 0;
       }
 
+      .hospitation-recent {
+        padding: 16px 20px;
+        border-top: 1px solid var(--border);
+      }
+
+      .hospitation-recent h2 {
+        margin: 0 0 12px;
+        font-size: var(--font-size-sm);
+        color: var(--text-primary);
+      }
+
+      .hospitation-recent-item {
+        display: flex;
+        width: 100%;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        padding: 12px 0;
+        border: 0;
+        border-bottom: 1px solid var(--border);
+        background: transparent;
+        color: var(--text-primary);
+        font: inherit;
+        font-size: var(--font-size-sm);
+        text-align: left;
+        cursor: pointer;
+      }
+
+      .hospitation-recent-item > span:first-child {
+        display: grid;
+        min-width: 0;
+        gap: 4px;
+        overflow-wrap: anywhere;
+      }
+
+      .hospitation-recent-item strong + span {
+        color: var(--text-muted);
+        font-size: var(--font-size-xs);
+      }
+
+      .hospitation-recent-item:hover {
+        color: var(--primary);
+      }
+
+      .hospitation-recent-item:focus-visible {
+        outline: 2px solid var(--primary);
+        outline-offset: 2px;
+      }
+
+      /* Eigener Einstieg, gemeinsame Fachansichten und Berechtigungen. */
+      #hospitation-other-apps[hidden],
+      #hospitation-recent[hidden] {
+        display: none !important;
+      }
+
+      .app-shell[data-workspace="hospitation"] :is(
+        .sidebar-home-entry,
+        [data-sidebar-group="care"],
+        [data-sidebar-group="stakeholders"],
+        [data-sidebar-group="formats"],
+        #sidebar-section-planning-toggle,
+        #sidebar-tour-button
+      ) {
+        display: none !important;
+      }
+
+      .app-shell[data-workspace="hospitation"] .sidebar-brand-word {
+        font-size: var(--font-size-sm);
+        line-height: 1.35;
+        white-space: normal;
+        overflow-wrap: anywhere;
+      }
+
+      .app-shell[data-workspace="hospitation"] #hospitation-other-apps {
+        text-decoration: none;
+      }
+
       .app-sidebar {
         width: var(--sidebar-width);
         padding: 22px 14px 18px;

@@ -5,6 +5,16 @@
     window.location.href
   );
   const appBaseUrl = new URL("./", scriptUrl);
+  const hospitationWorkspacePath = "hospitationskompass";
+  const hospitationWorkspaceRoutes = new Map([
+    ["hospitation-overview", ""],
+    ["framework", "framework"],
+    ["hospitations", "termine"],
+    ["hospitations:observations", "beobachtungen"],
+    ["hospitations:patterns", "muster"],
+    ["hospitations:dashboard", "dashboard"],
+    ["questionnaire", "fragebogen"]
+  ]);
   const patientRoutePath = "stakeholder/patienten";
   const legacyPatientOrganizationsPath = "stakeholder/patientenverbaende";
   const legacyPatientOrganizationsAlias = "stakeholders/patientenverbaende";
@@ -85,6 +95,19 @@
     return runtime.cleanUrls === true && !standalone;
   }
 
+  function isHospitationWorkspace() {
+    const relativePath = relativeAppPath();
+    return relativePath === hospitationWorkspacePath
+      || relativePath.startsWith(`${hospitationWorkspacePath}/`)
+      || new URLSearchParams(window.location.search).get("workspace") === "hospitation";
+  }
+
+  function withoutWorkspacePrefix(relativePath) {
+    if (relativePath === hospitationWorkspacePath) return "";
+    return relativePath.startsWith(`${hospitationWorkspacePath}/`)
+      ? relativePath.slice(hospitationWorkspacePath.length + 1) : relativePath;
+  }
+
   function normalizeRoutePath(pathname = "") {
     let decoded = String(pathname || "");
     try {
@@ -155,7 +178,13 @@
   }
 
   function routeTokenForPath(pathname = window.location.pathname, search = window.location.search) {
-    const relativePath = relativeAppPath(pathname);
+    const originalPath = relativeAppPath(pathname);
+    const relativePath = withoutWorkspacePrefix(originalPath);
+    if (originalPath === hospitationWorkspacePath || originalPath.startsWith(`${hospitationWorkspacePath}/`)) {
+      for (const [token, path] of hospitationWorkspaceRoutes) {
+        if (path === relativePath) return token;
+      }
+    }
     if (!relativePath || relativePath === "versorgungs-kompass.html") return "";
 
     if (relativePath === legacyPatientOrganizationsPath) {
@@ -199,13 +228,19 @@
   }
 
   function urlForRouteToken(routeToken = "home", options = {}) {
-    const canonicalToken = canonicalRouteToken(routeToken);
+    const workspace = options.workspace !== false && isHospitationWorkspace();
+    const canonicalToken = canonicalRouteToken(workspace && routeToken === "home" ? "hospitation-overview" : routeToken);
     if (!cleanUrlsEnabled()) {
+      if (options.workspace === false && isHospitationWorkspace()) {
+        return `${appBaseUrl.pathname}versorgungs-kompass.html#${canonicalToken}`;
+      }
       return `#${canonicalToken}`;
     }
 
     const { path, query } = pathForRouteToken(canonicalToken);
-    const target = new URL(path, appBaseUrl);
+    const { token } = splitRouteToken(canonicalToken);
+    const workspacePath = hospitationWorkspaceRoutes.has(token) ? hospitationWorkspaceRoutes.get(token) : path;
+    const target = new URL(workspace ? `${hospitationWorkspacePath}${workspacePath ? `/${workspacePath}` : ""}` : path, appBaseUrl);
     const searchParams = persistentSearchParams(options.search);
     const routeSearch = new URLSearchParams(query);
     routeSearch.forEach((value, key) => searchParams.set(key, value));
@@ -221,7 +256,11 @@
   }
 
   function isApplicationPath(pathname = "") {
-    const relativePath = relativeAppPath(pathname);
+    const originalPath = relativeAppPath(pathname);
+    const relativePath = withoutWorkspacePrefix(originalPath);
+    if (originalPath === hospitationWorkspacePath || originalPath.startsWith(`${hospitationWorkspacePath}/`)) {
+      if ([...hospitationWorkspaceRoutes.values()].includes(relativePath)) return true;
+    }
     if (relativePath === "versorgungs-kompass.html") return true;
     if (relativePath === legacyPatientOrganizationsPath) return true;
     if (routeTokenByPath.has(relativePath) || importTabByPath.has(relativePath)) return true;
@@ -234,6 +273,7 @@
     assetUrl,
     cleanUrlsEnabled,
     isApplicationPath,
+    isHospitationWorkspace,
     pathForRouteToken,
     routeTokenForPath,
     routes: Object.freeze(Object.fromEntries(staticRouteEntries)),

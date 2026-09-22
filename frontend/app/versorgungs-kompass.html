@@ -344,6 +344,15 @@
           </div>
         </nav>
         <div class="sidebar-account-section" aria-label="App-Tour, Teams und Profil" data-sidebar-section="account">
+          <a class="sidebar-link" id="hospitation-other-apps" href="#home" title="Weitere Anwendungen" hidden>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+              <rect x="3" y="3" width="7" height="7" rx="1"></rect>
+              <rect x="14" y="3" width="7" height="7" rx="1"></rect>
+              <rect x="3" y="14" width="7" height="7" rx="1"></rect>
+              <rect x="14" y="14" width="7" height="7" rx="1"></rect>
+            </svg>
+            <span>Weitere Anwendungen</span>
+          </a>
           <span class="sidebar-section-label">Hilfe &amp; Konto</span>
           <button class="sidebar-link" type="button" id="sidebar-tour-button" aria-label="App-Tour starten" title="App-Tour starten">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
@@ -1549,6 +1558,11 @@
                   <strong class="hospitation-overview-plan-card__label">Neue Hospitation planen</strong>
                   <span class="hospitation-overview-plan-card__arrow" aria-hidden="true">→</span>
                 </button>
+              </section>
+
+              <section class="hospitation-recent" id="hospitation-recent" aria-labelledby="hospitation-recent-title" hidden>
+                <h2 id="hospitation-recent-title">Zuletzt bearbeitete Beobachtungen</h2>
+                <div id="hospitation-recent-items"></div>
               </section>
 
               <section class="hospitation-overview-evidence" aria-label="Prozess von der Beobachtung zum nächsten Schritt">
