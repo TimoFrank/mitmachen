@@ -8,6 +8,8 @@ Kompakte Zusammenfassung der wichtigsten Funktionssprünge des Versorgungs-Kompa
 
 Die lokale Mac-Anwendung hält den Datenstand zum Lesen, Vorführen und Bearbeiten ohne Internet bereit. Lokale und Online-Änderungen werden abgeglichen; bei Konflikten bleiben beide Fassungen erhalten und der Nutzer entscheidet.
 
+- **Hotfix v0.25.1:** Der Mac-Abgleich berücksichtigt den Schreibschutz des Aktivitätsprotokolls und erhält den Kopplungscode beim Anmelderücksprung. Unterbrochene Dateiübernahmen werden aus dem gesicherten Zwischenstand fortgesetzt. Der Integrationstest verwendet die tatsächlichen Laufzeitrechte.
+
 ### Hotfix v0.24.1
 
 Die Passwort-Wiederherstellung funktioniert hinter Firebase Hosting; Logos laden auch auf tiefen Unterseiten. Beobachtungen lassen sich ohne falschen Versionskonflikt speichern, während echte konkurrierende Änderungen weiterhin geschützt bleiben. Die Google-Bereitstellung berücksichtigt den Mindestarbeitsspeicher und die korrekte Übergabe des öffentlichen Signierschlüssels.

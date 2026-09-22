@@ -74,8 +74,11 @@
       }
       message.textContent = state.conflict ? "Eine Änderung wartet auf deine Entscheidung."
         : state.status === "reconnect" ? "Bitte bestätige die Verbindung in der Live-Anwendung erneut."
+        : state.status === "retry_wait" ? "Der Abgleich wird in Kürze automatisch fortgesetzt."
+        : state.status === "syncing" ? "Die Daten werden abgeglichen …"
         : state.pending ? `${state.pending} lokale Änderungen warten auf den Abgleich.`
         : state.lastSync ? `Zuletzt abgeglichen: ${new Date(state.lastSync).toLocaleString("de-DE", { dateStyle: "short", timeStyle: "short" })}`
+        : state.paired ? "Die Verbindung steht. Der erste Abgleich folgt."
         : "Noch nicht mit der Live-Anwendung verbunden.";
     }).catch(() => { message.textContent = "Dein lokaler Stand bleibt verfügbar."; }); }
     refreshNotice();

@@ -34,6 +34,7 @@ for (const changes of [{ role: "editor" }, { active: false }, { access_scope: "t
 let localPool, remoteAdmin, runtime, localProcess, syncServer, worker;
 let localLogs = "", serviceOrigin = "", deviceOrigin = "";
 let remoteUserDisabled = false, loseNextApplyResponse = false, configuration, imageVersion = 1;
+let assetCalls = 0, limitAssetDownload = false;
 try {
   docker(["run", "--rm", "-d", "--name", container, "--label", "versorgungs-kompass.test=mac-sync", "-e", "POSTGRES_USER=vk_local_admin", "-e", `POSTGRES_PASSWORD=${password}`, "-e", "POSTGRES_DB=versorgungs_kompass_local", "-p", "127.0.0.1::5432", "postgres:16-alpine"]);
   const port = Number(/:(\d+)\s*$/u.exec(docker(["port", container, "5432/tcp"]))[1]);
@@ -67,12 +68,16 @@ try {
     auth: { getUser: async () => ({ disabled: remoteUserDisabled, emailVerified: true, tokensValidAfterTime: "2020-01-01T00:00:00Z" }) }, state: { consume: async () => true },
     resolveProfile: async request => { request.googleVerifiedIdentity = { identity: { subject: "securetoken.google.com/synthetic:synthetic-user" }, payload: { iss: "https://cloud.google.com/iap", gcip: { uid: "synthetic-user" } } }; return profile; },
     execute: operation => invokeApi(runtime.handle, operation, "http://127.0.0.1:4199"),
-    readAsset: async (path, currentProfile) => { assert.equal(currentProfile.id, profile.id); assert.equal(path, `/api/profile-avatar/${profile.id}`); return { status: 200, body: Buffer.from(`synthetic-image-${imageVersion}`), headers: { "content-type": "image/png" } }; }
+    readAsset: async (path, currentProfile) => { assert.equal(currentProfile.id, profile.id); assert.ok([`/api/profile-avatar/${profile.id}`, "/api/profile-avatar/synthetic-sync-extra"].includes(path)); return { status: 200, body: Buffer.from(`synthetic-image-${imageVersion}`), headers: { "content-type": "image/png" } }; }
   });
   syncServer = http.createServer(handler); syncServer.listen(0, "127.0.0.1"); await once(syncServer, "listening");
   deviceOrigin = `http://127.0.0.1:${syncServer.address().port}`;
   const transport = async (url, options) => {
     assert.equal(new URL(url).origin, "https://versorgungs-kompass.de");
+    if (url.endsWith("/asset")) {
+      assetCalls++;
+      if (limitAssetDownload && assetCalls === 2) return new Response(JSON.stringify({ code: "SYNC_RATE_LIMIT" }), { status: 429, headers: { "content-type": "application/json" } });
+    }
     const result = await fetch(`${deviceOrigin}${new URL(url).pathname}`, options);
     if (loseNextApplyResponse && url.endsWith("/apply") && result.ok) { loseNextApplyResponse = false; await result.arrayBuffer(); throw new TypeError("Synthetischer Verbindungsabbruch nach Commit"); }
     return result;
@@ -205,6 +210,24 @@ try {
   await worker.run(); assert.equal((await worker.asset(`/api/profile-avatar/${profile.id}`)).missing, true);
   assert.ok((await worker.history()).items.length >= 2);
   console.log("Mac-Abgleich: aufeinanderfolgende Offline-Änderungen, privater Dateiabgleich, Bildversionen und lesbarer Konfliktverlauf erfolgreich.");
+  const beforeFiles = await readSyncData(localPool);
+  imageVersion = 3; assetCalls = 0; limitAssetDownload = true;
+  await remoteAdmin.query("update profiles set avatar_url='gs://synthetic/profile-images/avatar-three.png' where id=$1", [profile.id]);
+  await remoteAdmin.query("insert into profiles (id,email,display_name,role,active,avatar_url) values ('synthetic-sync-extra','extra@synthetic.example.invalid','Weiteres Testprofil','viewer',true,'gs://synthetic/profile-images/avatar-extra.png')");
+  await worker.run();
+  assert.equal((await worker.status()).status, "retry_wait");
+  assert.equal((await localPool.query("select count(*)::int as count from local_app.sync_assets")).rows[0].count, 3, "Abgeschlossene Datei bleibt nach dem Ratenlimit privat gesichert");
+  assert.deepEqual(await readSyncData(localPool), beforeFiles, "Unvollständiger Dateiabgleich ersetzt keine Fachdaten");
+  assert.equal((await localPool.query("select count(*)::int as count from local_app.sync_asset_current")).rows[0].count, 0, "Unvollständige Bildfassungen werden noch nicht angezeigt");
+  await worker.stop();
+  worker = createLocalSync({ pool: localPool, profileId: profile.id, transport, intervalMs: 3600_000 });
+  limitAssetDownload = false;
+  await worker.run();
+  assert.equal(assetCalls, 3, "Nach Neustart wird nur die fehlende Datei erneut angefordert");
+  assert.equal((await worker.status()).status, "current");
+  assert.equal((await localPool.query("select count(*)::int as count from local_app.sync_asset_current")).rows[0].count, 2);
+  assert.deepEqual(await readSyncData(localPool), await readSyncData(remoteAdmin));
+  console.log("Mac-Abgleich: unterbrochener Dateiabruf nach Ratenlimit und Neustart fortgesetzt; Daten und Bildfassungen erst vollständig übernommen.");
   remoteUserDisabled = true;
   await worker.run(); assert.equal((await worker.status()).status, "reconnect");
   remoteUserDisabled = false;
