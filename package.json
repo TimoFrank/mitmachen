@@ -139,8 +139,8 @@
     "test:mac-sync": "node scripts/test_mac_sync.mjs && node tools/local-app/test-gateway.mjs && node tools/local-app/test-import.mjs && node tools/local-app/test-timestamps.mjs && node tools/offline-copy/test.mjs"
   },
   "devDependencies": {
-    "@playwright/test": "1.62.1",
-    "esbuild": "0.28.1"
+    "@playwright/test": "1.63.0",
+    "esbuild": "0.28.2"
   },
   "dependencies": {
     "leaflet": "1.9.4",
