@@ -34,7 +34,7 @@ Ein erfolgreicher Code-Test allein belegt keine installierte Verbindung.
 
 Eine Verbindung gilt höchstens 30 Tage und niemals länger als die bestehende
 Freigabe der Online-Umgebung. Ein gesperrtes Konto, entzogene Identitätszuordnung,
-widerrufene Sitzung oder getrenntes Gerät kann nicht weiter abgleichen.
+globaler Widerruf der Google-Kontoberechtigung oder getrenntes Gerät kann nicht weiter abgleichen.
 Bereits lokal gespeicherte Daten bleiben auf dem autorisierten Mac verfügbar.
 Der Abgleich verlängert keine Zugangsfreigabe und ersetzt keine verwaltete
 Sicherung der Online-Datenbank.
