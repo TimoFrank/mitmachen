@@ -133,7 +133,7 @@ Der Quellcode und die technische Dokumentation stehen unter der [Apache License 
 
 ## Aktueller Release
 
-- Version: [v0.24.3](https://github.com/TimoFrank/mitmachen/releases/tag/v0.24.3)
+- Version: [v0.25.0](https://github.com/TimoFrank/mitmachen/releases/tag/v0.25.0)
 - Stand: 22. September 2026
-- Kurznotiz: Die Importvorschau vergleicht den Hospitationstag als Kalendertag. Ein bereits übernommenes Datum wird auch nach dem Lesen aus PostgreSQL als unverändert erkannt; tatsächlich andere Tage bleiben als Änderung sichtbar.
+- Kurznotiz: Online arbeiten und auf dem Mac weiterarbeiten
 - Demo-Kanal: [GitHub Pages](https://timofrank.github.io/mitmachen/)

@@ -41,6 +41,9 @@ const services = renderGoogleServices(deployment);
 const appContainer = services.app.spec.template.spec.containers[0];
 const resetContainer = services.reset.spec.template.spec.containers[0];
 assert.equal(appContainer.env.find((value) => value.name === "GOOGLE_CUTOVER_MODE").value, "closed");
+assert.equal(appContainer.env.find(value => value.name === "MAC_SYNC_ENABLED").value, "0");
+assert.equal(renderGoogleServices({ ...deployment, macSyncEnabled: true }).app.spec.template.spec.containers[0].env.find(value => value.name === "MAC_SYNC_ENABLED").value, "1");
+assert.throws(() => renderGoogleServices({ ...deployment, macSyncEnabled: "yes" }));
 assert.equal(resetContainer.env.find((value) => value.name === "GOOGLE_CUTOVER_MODE").value, "closed");
 assert.equal(appContainer.env.some((value) => value.name.includes("SMTP")), false);
 assert.equal(resetContainer.env.some((value) => value.name.startsWith("DB_")), false);
@@ -134,6 +137,7 @@ for (const headers of [{}, { origin: "https://attacker.invalid", "content-type":
 }
 for (const value of ["//attacker.invalid/path", "https://attacker.invalid", "/\\attacker.invalid", "/anmelden", "/api/export"]) assert.equal(safeReturnPath(value), "/start");
 assert.equal(safeReturnPath("/versorgung/kontakte?query=test#detail"), "/versorgung/kontakte?query=test#detail");
+assert.equal(safeReturnPath("/mac-abgleich?code=synthetic-pairing-code"), "/mac-abgleich?code=synthetic-pairing-code");
 
 const objects = new Map();
 let generation = 0;
@@ -180,6 +184,7 @@ const server = http.createServer(createGoogleHostingHandler({
 try {
   await writeFile(path.join(directory, "public-index.html"), "public-entry");
   await writeFile(path.join(directory, "versorgungs-kompass.html"), "protected-app");
+  await writeFile(path.join(directory, "mac-sync.html"), "protected-mac-pairing");
   await mkdir(path.join(directory, "data"));
   const runtimeFile = path.join(directory, "data/runtime-config.js");
   const originalRuntime = 'window.VERSORGUNGS_COMPASS_CONFIG = Object.freeze({dataMode:"api", requireApiGateway:true});';
@@ -195,6 +200,10 @@ try {
   assert.equal((await fetch(base + "/api/session")).status, 401);
   const permitted = await fetch(base + "/start", { headers: request().headers });
   assert.equal(await permitted.text(), "protected-app");
+  const deniedPairing = await fetch(base + "/mac-abgleich?code=synthetic-pairing-code", { redirect: "manual" });
+  assert.equal(deniedPairing.status, 302);
+  assert.equal(new URL(deniedPairing.headers.get("location"), base).searchParams.get("return"), "/mac-abgleich?code=synthetic-pairing-code");
+  assert.equal(await (await fetch(base + "/mac-abgleich", { headers: request().headers })).text(), "protected-mac-pairing");
   assert.equal(permitted.headers.get("referrer-policy"), "no-referrer");
   const anonymousConfig = await fetch(base + "/data/runtime-config.js", { redirect: "manual" });
   assert.equal(anonymousConfig.status, 302);
@@ -204,6 +213,7 @@ try {
   vm.runInNewContext(await runtimeResponse.text(), context, { timeout: 1000 });
   assert.equal(context.window.VERSORGUNGS_COMPASS_CONFIG.cartoBasemapApiKey, cartoBasemapApiKey);
   assert.equal(context.window.VERSORGUNGS_COMPASS_CONFIG.requireApiGateway, true);
+  assert.equal(context.window.VERSORGUNGS_COMPASS_CONFIG.macSyncEnabled, false);
   assert.equal(Object.isFrozen(context.window.VERSORGUNGS_COMPASS_CONFIG), true);
   assert.equal(context.window.injected, undefined, "Schlüsseldaten dürfen nicht als JavaScript ausgeführt werden.");
   assert.match(runtimeResponse.headers.get("cache-control"), /private, no-store/u);

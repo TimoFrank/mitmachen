@@ -5856,6 +5856,19 @@
 
       const appVersionHistory = [
         {
+          version: "0.25.0",
+          date: "22. September 2026",
+          title: "Online arbeiten und auf dem Mac weiterarbeiten",
+          icon: "start",
+          summary: "Der Datenstand bleibt auf dem Mac ohne Internet zum Lesen, Vorführen und Bearbeiten verfügbar. Bei Konflikten bleiben beide Fassungen erhalten und du entscheidest.",
+          items: [
+            "Hotfix v0.24.1: Die Passwort-Wiederherstellung funktioniert hinter Firebase Hosting; Logos laden auch auf tiefen Unterseiten. Beobachtungen lassen sich ohne falschen Versionskonflikt speichern, während echte konkurrierende Änderungen weiterhin geschützt bleiben. Die Google-Bereitstellung berücksichtigt den Mindestarbeitsspeicher und die korrekte Übergabe des öffentlichen Signierschlüssels.",
+            "Hotfix v0.24.2: Alle Kartenansichten verwenden einen domainbeschränkten CARTO-Schlüssel aus der geschützten Laufzeitkonfiguration und sichtbare Quellenhinweise. Nur Kartenbilder übertragen den Origin; interne Pfade und Suchbegriffe bleiben verborgen. Die Nebenabhängigkeit vm2 des Anmeldepakets ist auf die korrigierte Version 3.11.6 gepinnt.",
+            "Hotfix v0.24.3: Die Importvorschau vergleicht den Hospitationstag als Kalendertag. Ein bereits übernommenes Datum wird auch nach dem Lesen aus PostgreSQL als unverändert erkannt; tatsächlich andere Tage bleiben als Änderung sichtbar.",
+            "Mac-Abgleich: Beim Öffnen und alle 30 Minuten werden Daten abgeglichen. Status, ausstehende Änderungen und beide Konfliktfassungen sind sichtbar. Die Verbindung lässt sich im eigenen Online-Profil verwalten und trennen."
+          ]
+        },
+        {
           version: "0.24.0",
           date: "21. September 2026",
           title: "Beobachtungen klarer erfassen und codieren",
@@ -10360,6 +10373,11 @@
         const profile = currentProfile || {};
         const displayName = profile.display_name || profile.email || "Angemeldet";
         const role = currentRole();
+        const macSyncSection = document.getElementById("profile-mac-sync");
+        if (macSyncSection) {
+          macSyncSection.hidden = window.VERSORGUNGS_COMPASS_CONFIG?.macSyncEnabled !== true || role !== "admin" || isTestAccess();
+          if (!macSyncSection.hidden) document.getElementById("profile-mac-sync-link")?.setAttribute("href", "/mac-abgleich");
+        }
         updateAvatarElement(profileAvatarPreview, profile);
         updateAvatarElement(profilePhotoPreview, profile);
         if (profileDisplayTitle) profileDisplayTitle.textContent = displayName;

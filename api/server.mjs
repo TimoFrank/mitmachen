@@ -17,6 +17,9 @@ import {
 } from "./duplicate-identity.mjs";
 import { normalizedRequestLogPath } from "./request-log-privacy.mjs";
 import { createGoogleHostingHandler } from "./google-hosting.mjs";
+import { currentSyncContext, syncUuid, invokeApi, withinSyncTransaction } from "./mac-sync-context.mjs";
+import { createMacSyncHandler, syncJsonBody } from "./mac-sync-http.mjs";
+import { initializeLocalSync, captureLocalOperation } from "./mac-sync-local.mjs";
 import {
   HOSPITATION_IMPORT_CONFIRMATION,
   HOSPITATION_IMPORT_SCHEMA_VERSION,
@@ -556,6 +559,12 @@ if (!["disabled", "validated-original"].includes(IMAGE_UPLOAD_MODE) || (process.
 }
 const IDENTITY_CONFIGURATION = validateIdentityConfiguration(process.env);
 const API_AUTH_MODE = IDENTITY_CONFIGURATION.mode;
+const LOCAL_SYNC = process.env.LOCAL_APP_SYNC === "1";
+if (LOCAL_SYNC && (IDENTITY_CONFIGURATION.production || API_AUTH_MODE !== "trusted-header"
+  || process.env.DB_NAME !== "versorgungs_kompass_local" || process.env.DB_USER !== "vk_local_admin"
+  || !["database", "127.0.0.1", "localhost"].includes(process.env.DB_HOST))) {
+  throw new Error("Der lokale Abgleich benötigt die isolierte lokale Datenbank.");
+}
 const GOOGLE_RUNTIME = API_AUTH_MODE === "identity-platform"
   ? (await import("./google-runtime.mjs")).createGoogleRuntime(IDENTITY_CONFIGURATION)
   : null;
@@ -3055,7 +3064,7 @@ function contactPatchToDb(patch = {}) {
 
 function contactCreateToDb(contact = {}) {
   const db = contactPatchToDb(contact);
-  db.id = `contact-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
+  db.id = generatedId("contact");
   db.name = String(contact.name || "").trim();
   db.status = contact.status || "active";
   db.priority = normalizePriority(contact.priority);
@@ -3071,6 +3080,7 @@ function contactCreateToDb(contact = {}) {
 }
 
 function generatedId(prefix) {
+  if (currentSyncContext()) return `${prefix}-${syncUuid()}`;
   return `${prefix}-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
 }
 
@@ -3695,6 +3705,7 @@ function devProfileFromRequest(request) {
 }
 
 async function resolveRequestProfile(request) {
+  if (currentSyncContext()?.profile) return currentSyncContext().profile;
   const devProfile = devProfileFromRequest(request);
   if (devProfile) return devProfile;
   const iapPayload = GOOGLE_RUNTIME
@@ -4254,6 +4265,13 @@ function validateProductionDatabaseCredentials(config, env = process.env) {
 }
 
 function getPool() {
+  const current = currentSyncContext();
+  if (current) {
+    const client = current.client;
+    const borrowed = { query: (sql, values) => /^(?:begin|commit|rollback)$/iu.test(String(sql).trim())
+      ? Promise.resolve({ rows: [], rowCount: 0 }) : client.query(sql, values), release() {} };
+    return { query: client.query.bind(client), connect: async () => borrowed };
+  }
   if (pool) return pool;
   pool = new Pool(buildPostgresPoolConfig());
   return pool;
@@ -6276,7 +6294,7 @@ async function createContactNote(request) {
     method: "POST",
     headers: { prefer: "return=representation" },
     body: {
-      id: crypto.randomUUID(),
+      id: syncUuid(),
       contact_id: contactId,
       ...contactNotePayload(body),
       created_by: userId,
@@ -10107,11 +10125,10 @@ async function patchContact(request, id) {
     throw error;
   }
 
-  const oldRows = await cloudSqlRest("contacts", request, new URLSearchParams({
-    select: CONTACT_FIELDS.join(","),
-    id: `eq.${id}`,
-    limit: "1"
-  }));
+  const oldRows = (await getPool().query(
+    "select *, updated_at::text as version_updated_at from contacts where id = $1 limit 1",
+    [id]
+  )).rows;
   if (!oldRows?.length) {
     const error = new Error("Kontakt wurde nicht gefunden.");
     error.status = 404;
@@ -10173,7 +10190,7 @@ async function patchContact(request, id) {
       await assertNoContactDuplicate(transaction, { ...currentRow, ...dbPatch }, id, request);
     }
     const updateParams = new URLSearchParams({ id: `eq.${id}`, select: CONTACT_FIELDS.join(",") });
-    if (oldRow.updated_at) updateParams.set("updated_at", `eq.${new Date(oldRow.updated_at).toISOString()}`);
+    if (oldRow.version_updated_at) updateParams.set("updated_at", `eq.${oldRow.version_updated_at}`);
     const updatedRows = await cloudSqlRest("contacts", request, updateParams, {
       method: "PATCH",
       headers: { prefer: "return=representation" },
@@ -10331,6 +10348,10 @@ async function handle(request, response) {
       await getPool().query("select 1");
       await getPool().query("select access_scope, scope_ref from public.identity_bindings limit 0");
       await getPool().query("select entity_type, entity_id, scope_ref from public.test_access_objects limit 0");
+      if (GOOGLE_RUNTIME && process.env.MAC_SYNC_ENABLED === "1") {
+        await getPool().query("select id, secret_hash, expires_at from mac_sync.devices limit 0");
+        await getPool().query("select operation_id, fingerprint from mac_sync.receipts limit 0");
+      }
       return jsonResponse(response, 200, { ok: true });
     }
     if (request.method === "POST" && url.pathname === TYPO3_REGISTRATION_CONNECTOR_PATH) {
@@ -10706,8 +10727,29 @@ async function handle(request, response) {
   }
 }
 
+if (LOCAL_SYNC) await initializeLocalSync(getPool());
+const localHandler = async (request, response) => {
+  if (!LOCAL_SYNC || ["GET", "HEAD", "OPTIONS"].includes(request.method)) return handle(request, response);
+  try {
+    assertAllowedBrowserOrigin(request);
+    const profile = await resolveRequestProfile(request);
+    const body = await syncJsonBody(request);
+    const result = await captureLocalOperation({ pool: getPool(), profile, method: request.method, path: request.url, body, expectedFingerprint: request.headers["x-local-data-version"],
+      execute: operation => invokeApi(handle, operation, ALLOWED_ORIGIN) });
+    response.writeHead(result.status, result.headers); response.end(JSON.stringify(result.body));
+  } catch (error) {
+    return jsonResponse(response, error.status || 503, { error: error.code === "SYNC_VIEW_OUTDATED" ? "Die Daten wurden inzwischen aktualisiert. Bitte sichere deine noch offenen Eingaben und lade die Ansicht neu, bevor du speicherst." : "Die Änderung konnte nicht sicher für den Abgleich gespeichert werden. Dein bisheriger Stand bleibt erhalten.", code: error.code || "LOCAL_SYNC_UNAVAILABLE" });
+  }
+};
+const macSyncHandler = GOOGLE_RUNTIME && process.env.MAC_SYNC_ENABLED === "1" ? createMacSyncHandler({
+  pool: getPool, resolveProfile: resolveRequestProfile, ...GOOGLE_RUNTIME, configuration: IDENTITY_CONFIGURATION,
+  origin: ALLOWED_ORIGIN, execute: operation => invokeApi(handle, operation, ALLOWED_ORIGIN),
+  readAsset: (path, profile) => withinSyncTransaction(getPool(), { operationId: crypto.randomUUID(), profile },
+    () => invokeApi(handle, { method: "GET", path, body: {} }, ALLOWED_ORIGIN))
+}) : null;
 const requestHandler = GOOGLE_RUNTIME ? createGoogleHostingHandler({
   apiHandler: handle,
+  macSyncHandler,
   resolveProfile: resolveRequestProfile,
   ...GOOGLE_RUNTIME,
   origin: ALLOWED_ORIGIN,
@@ -10715,8 +10757,9 @@ const requestHandler = GOOGLE_RUNTIME ? createGoogleHostingHandler({
   aliases: String(process.env.GOOGLE_ALIAS_HOSTS || "").split(",").filter(Boolean),
   cutoverMode: process.env.GOOGLE_CUTOVER_MODE || "closed",
   cartoBasemapApiKey: process.env.CARTO_BASEMAP_API_KEY || ""
-}) : handle;
+}) : localHandler;
 const server = http.createServer({ maxHeaderSize: HTTP_MAX_HEADER_BYTES }, requestHandler);
+export { handle, getPool, server };
 server.requestTimeout = Math.max(5000, Number(process.env.HTTP_REQUEST_TIMEOUT_MS || 30000));
 server.headersTimeout = Math.max(5000, Number(process.env.HTTP_HEADERS_TIMEOUT_MS || 10000));
 server.keepAliveTimeout = Math.max(1000, Number(process.env.HTTP_KEEP_ALIVE_TIMEOUT_MS || 5000));
