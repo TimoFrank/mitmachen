@@ -356,7 +356,7 @@ test.describe("Hospitations-Kompass als eigener Einstieg", () => {
     await expect(page.locator('[data-sidebar-group="care"]')).toBeHidden();
     await expect(page.locator('[data-sidebar-group="stakeholders"]')).toBeHidden();
     await expect(page.locator('[data-sidebar-group="formats"]')).toBeHidden();
-    await expect(page.locator('[data-sidebar-group="planning"] .primary-tab:visible')).toHaveCount(7);
+    await expect(page.locator('[data-sidebar-group="planning"] .primary-tab:visible')).toHaveCount(6);
     await page.locator('[data-view-tab="hospitations:observations"]').click();
     await expect(page).toHaveURL(/workspace=hospitation#hospitations:observations$/);
     await page.reload();
@@ -366,7 +366,7 @@ test.describe("Hospitations-Kompass als eigener Einstieg", () => {
     await page.locator("#sidebar-profile-button").click();
     await expect(page.locator(".app-shell")).toHaveAttribute("data-active-view", "profile");
     await showNavigation(page, testInfo);
-    await expect(page.locator('[data-sidebar-group="planning"] .primary-tab:visible')).toHaveCount(7);
+    await expect(page.locator('[data-sidebar-group="planning"] .primary-tab:visible')).toHaveCount(6);
     await page.locator("#brand-home-link").click();
     await expect(page.locator(".app-shell")).toHaveAttribute("data-active-view", "hospitationOverview");
     await showNavigation(page, testInfo);

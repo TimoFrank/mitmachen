@@ -1071,7 +1071,7 @@ test("Kontakte: Liste und Filtertoolbar rendern", async ({ page }, testInfo) => 
   await expect(page.locator('[data-sidebar-section="planning"]')).toHaveClass(/is-collapsed/);
   await expect(page.locator('[data-sidebar-section-toggle="planning"]')).toHaveAttribute("aria-expanded", "false");
   const planningTabOrder = await page.locator('[data-sidebar-section="planning"] [data-view-tab]').evaluateAll((nodes) => nodes.map((node) => node.querySelector("span:not(.notification-count-indicator)")?.textContent.trim()));
-  expect(planningTabOrder).toEqual(["Übersicht", "Framework", "Hospitationen", "Fragebogen", "Beobachtungen", "Muster", "Dashboard"]);
+  expect(planningTabOrder).toEqual(["Übersicht", "Termine", "Auswertung", "Beobachtungen", "Muster", "Grundlagen"]);
   const formatsTabOrder = await page.locator('[data-sidebar-section="formats"] [data-view-tab]').evaluateAll((nodes) => nodes.map((node) => node.querySelector("span:not(.notification-count-indicator)")?.textContent.trim()));
   expect(formatsTabOrder).toEqual(["Formate"]);
   await expect(page.locator('[data-sidebar-section="formats"]')).toHaveClass(/is-collapsed/);
@@ -1086,12 +1086,12 @@ test("Kontakte: Liste und Filtertoolbar rendern", async ({ page }, testInfo) => 
   await expect(page.locator('[data-view-tab="contacts"]')).toContainText("Kontakte");
   await expect(page.locator('[data-view-tab="organizations"]')).toContainText("Organisationen");
   await expect(page.locator('[data-view-tab="hospitationOverview"]')).toContainText("Übersicht");
-  await expect(page.locator('[data-view-tab="framework"]')).toContainText("Framework");
-  await expect(page.locator('[data-view-tab="hospitations"]')).toContainText("Hospitationen");
+  await expect(page.locator('[data-view-tab="framework"]')).toContainText("Grundlagen");
+  await expect(page.locator('[data-view-tab="hospitations"]')).toContainText("Termine");
   await expect(page.locator('[data-view-tab="hospitations:observations"]')).toContainText("Beobachtungen");
-  await expect(page.locator('[data-view-tab="questionnaire"]')).toContainText("Fragebogen");
+  await expect(page.locator('#hospitation-questionnaire-open')).toContainText("Fragebogen öffnen");
   await expect(page.locator('[data-view-tab="hospitations:patterns"]')).toContainText("Muster");
-  await expect(page.locator('[data-view-tab="hospitations:dashboard"]')).toContainText("Dashboard");
+  await expect(page.locator('[data-view-tab="hospitations:dashboard"]')).toContainText("Auswertung");
   await expect(page.locator('[data-view-tab="formats"]')).toContainText("Formate");
   await expect(page.locator('[data-stakeholder-type-route="kv"]')).toContainText("Kassenärztliche Vereinigungen");
   await expect(page.locator("#care-mode-actions")).toHaveCount(0);
@@ -1328,15 +1328,15 @@ test("Hospitations-Kompass Übersicht: Editor sieht Termine, Arbeitswege und bel
   expect(attentionChildOrder).toEqual(["head", "focus", "dashboard"]);
   const dashboardLink = overview.locator('#hospitation-overview-dashboard-open[data-route-link="hospitations:dashboard"]');
   await expect(dashboardLink).toBeVisible();
-  await expect(dashboardLink).toHaveText(/Dashboard\s*→/);
-  await expect(dashboardLink).toHaveAccessibleName("Dashboard öffnen");
+  await expect(dashboardLink).toHaveText(/Auswertung\s*→/);
+  await expect(dashboardLink).toHaveAccessibleName("Auswertung öffnen");
   await expect(dashboardLink.locator(".hospitation-overview-attention__action-icon svg")).toHaveCount(1);
   await expect(overview.locator(".hospitation-overview-attention > #hospitation-overview-dashboard-open:last-child")).toHaveCount(1);
 
   const frameworkLink = overview.locator('a.hospitation-overview-evidence__framework[data-route-link="framework"]');
   await expect(frameworkLink).toBeVisible();
-  await expect(frameworkLink).toHaveAccessibleName("Framework öffnen");
-  await expect(frameworkLink).toHaveText(/Framework\s*→/);
+  await expect(frameworkLink).toHaveAccessibleName("Framework-Grundlagen öffnen");
+  await expect(frameworkLink).toHaveText(/Grundlagen\s*→/);
   await expect(frameworkLink.locator(".hospitation-overview-context-link__icon svg")).toHaveCount(1);
   const contextLinkStyles = await Promise.all([allTermsLink, frameworkLink].map((link) => link.evaluate((element) => {
     const style = getComputedStyle(element);
@@ -1728,7 +1728,7 @@ test("Hospitation: Framework-Modul rendern", async ({ page }, testInfo) => {
   await expect(page.locator('[data-view-tab="framework"]')).toHaveClass(/is-active/);
   const frameworkView = page.locator("#view-framework");
   await expect(frameworkView).toBeVisible();
-  await expect(page.locator("#workspace-view-title")).toHaveText("Hospitationsframework");
+  await expect(page.locator("#workspace-view-title")).toHaveText("Framework-Grundlagen");
   await expect(page.locator("#workspace-view-subtitle")).toHaveText("Vor Ort beobachten, qualitativ auswerten und daraus belastbares Versorgungswissen ableiten.");
   await expect(frameworkView).toContainText("Von Beobachtung zum nächsten Schritt");
   await expect(frameworkView.locator(".framework-header")).toHaveCount(0);
@@ -2224,7 +2224,7 @@ test("Hospitation: Fragebogen-Modul rendern", async ({ page }, testInfo) => {
   await expect(page.locator(".workspace-header")).toBeVisible();
   await expect(page.locator("[data-workspace-brand]:visible")).toHaveCount(1);
   await expect(page.locator('[data-sidebar-section="planning"]')).toHaveClass(/is-active-section/);
-  await expect(page.locator('[data-view-tab="questionnaire"]')).toHaveClass(/is-active/);
+  await expect(page.locator('[data-view-tab="hospitations"]')).toHaveAttribute("aria-current", "location");
   await expect(page.locator("#workspace-view-title")).toHaveText("Hospitations-Fragebogen");
   await expect(page.locator("#workspace-view-subtitle")).toHaveText("Beobachtungen Schritt für Schritt festhalten und einordnen.");
   await expect(page.locator("#hospitation-questionnaire-form")).toBeVisible();
@@ -6561,8 +6561,8 @@ test("Hospitationen: Dokumentationsdrawer mit Reitern", async ({ page }, testInf
   await expect(page).toHaveURL(/#hospitations:dashboard$/);
   await expect(page.locator('[data-view-tab="hospitations:dashboard"]')).toHaveClass(/is-active/);
   await expect(page.locator('[data-view-tab="hospitations"]')).not.toHaveClass(/is-active/);
-  await expect(page.locator("#workspace-view-title")).toHaveText("Dashboard");
-  await expect(page).toHaveTitle("Dashboard · #Mitmachen");
+  await expect(page.locator("#workspace-view-title")).toHaveText("Auswertung");
+  await expect(page).toHaveTitle("Auswertung · #Mitmachen");
   const dashboard = page.locator("#hospitation-dashboard");
   await expect(dashboard).toBeVisible();
   await expect(page.locator("#hospitation-mode-actions")).toBeHidden();

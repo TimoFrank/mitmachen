@@ -20,11 +20,11 @@ const routeGroups = [
     ["experts", "Expertenkreis"]
   ],
   [
-    ["framework", "Hospitationsframework"],
+    ["framework", "Framework-Grundlagen"],
     ["hospitations", "Hospitationen"],
     ["hospitations:observations", "Beobachtungen"],
     ["hospitations:patterns", "Muster"],
-    ["hospitations:dashboard", "Dashboard"],
+    ["hospitations:dashboard", "Auswertung"],
     ["questionnaire", "Hospitations-Fragebogen"],
     ["formats", "Formate"]
   ],
