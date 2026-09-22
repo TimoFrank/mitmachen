@@ -683,6 +683,7 @@ try {
     "synthetic-hospitation-import-e2e-primary-v1",
     "2026-08-03T08:00:00.000Z"
   );
+  primaryManifest.hospitations[0].scheduledOn = "2026-08-03";
   const stateBeforePreview = await databaseState(pool);
   const initialPreview = await preview(baseUrl, primaryManifest);
   assert.equal(initialPreview.status, 200, JSON.stringify(initialPreview.payload));

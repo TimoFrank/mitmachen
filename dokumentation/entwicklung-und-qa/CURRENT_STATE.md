@@ -1,6 +1,6 @@
 # Current State
 
-Stand: 2026-08-09.
+Stand: 2026-09-22. Ältere Kanalbeschreibungen bleiben als Referenz erhalten.
 
 ## Betriebsentscheidung vom 21. September 2026
 
@@ -12,8 +12,14 @@ Stand: 2026-08-09.
   [Google-Betriebsplan](../betrieb-und-deployment/GOOGLE_BETRIEBSPLAN.md).
   Der eigene technische Google-Pfad ist vorbereitet; maßgeblich ist das
   [Google-Betriebsrunbook](../betrieb-und-deployment/GOOGLE_BETRIEB.md).
-  Live-Abnahme, Umschaltung und Kostenverifikation stehen aus. Die unten beschriebenen bestehenden
-  Auslieferungswege sind damit noch nicht technisch ersetzt.
+  Die geschützte Anwendung und die Domain wurden am 22. September nach
+  Abnahme auf Cloud Run und Firebase Hosting umgestellt. Datenbank, Konten,
+  Rollen und verwaltete Sicherungen bleiben erhalten.
+- Auf ausdrücklichen Betreiberwunsch bleibt die alte GKE-Infrastruktur als
+  Rückfalloption bestehen. Ihre API- und Passwort-Schreibdienste sind gestoppt;
+  der alte Auslieferungsworkflow ist deaktiviert. Während der DNS-Verteilung
+  leitet die alte Adresse ebenfalls zur neuen Anwendung weiter. Der Abbau
+  und damit der Nachweis des Kostenziels von 15 bis 20 Euro netto stehen aus.
 - Die Vorarbeit aus Einzelserver-PR #258 bleibt erhalten. Ihr Abschluss ist
   offen; sie ist kein freigegebener Weg zur VPS-Bestellung oder Migration.
 
@@ -23,8 +29,11 @@ Am 21. September 2026 wurde die gemeinsame Auslieferung der neuen
 Beobachtungsansicht, freiwilligen Codierung, des Einzeltermin-Frameworks mit
 Uhrzeit sowie der ausfüllbaren PDF-Vorlage freigegeben. Die Vorlage ist im
 Fragebogen neben den vorhandenen Downloads eingeordnet. Die vorbereitete
-Übernahme von 13 Beobachtungen und drei Stammdatenkorrekturen erfolgt erst nach
-kompatiblem geschütztem Rollout und erneuter Importprüfung.
+Übernahme von 13 Beobachtungen und drei Stammdatenkorrekturen wurde am
+22. September nach Sicherung, kompatiblem Rollout und konfliktfreier Vorschau
+ausgeführt. Die dabei erkannte falsche Änderungsanzeige für identische
+Hospitationstage wird mit Hotfix 0.24.3 korrigiert; ein erneuter Import ist
+dafür nicht erforderlich.
 
 Die bisher ungenutzte lokale Mac-Anwendung soll nach dem Google-Umzug einen
 beidseitigen Abgleich erhalten, damit sie zum Lesen, Vorführen und Bearbeiten

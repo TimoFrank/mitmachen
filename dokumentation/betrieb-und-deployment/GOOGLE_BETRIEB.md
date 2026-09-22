@@ -158,6 +158,13 @@ Ein Rückweg schließt zuerst die neuen Writer, stellt die alte Domainroute
 wieder her und startet die alten Dienste mit demselben aktuellen Datenbestand.
 Ein alter Dump ist nach neuen Schreibvorgängen kein verlustfreier Rückweg.
 
+Die am 22. September zurückbehaltene alte Version kennt die neueren
+Beobachtungsquellen nicht vollständig. Sie darf deshalb nicht ungeprüft wieder
+schreiben: Vor einem Rückweg die Laufzeitkompatibilität mit dem aktuellen
+Datenbestand nachweisen. Herkunftsangaben niemals zur Anpassung an eine alte
+Version umcodieren. Die alte Infrastruktur bleibt auf Betreiberwunsch
+erhalten; ihr Abbau erfolgt erst nach gesonderter Freigabe.
+
 ## Kontrollierter Abbau
 
 Nach erfolgreicher Abnahme, regulärem Sicherungslauf und dokumentierter

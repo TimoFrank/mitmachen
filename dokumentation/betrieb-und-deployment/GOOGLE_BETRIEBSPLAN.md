@@ -1,11 +1,11 @@
 # Google-Betrieb mit Cloud Run
 
-Stand: 21. September 2026. Status: **Zielentscheidung getroffen,
-technischer Google-Pfad vorbereitet; Live-Abnahme und Umschaltung ausstehend.**
+Stand: 22. September 2026. Status: **Google-Anwendung aktiviert und Domain
+umgestellt; alte Infrastruktur auf Betreiberwunsch als Rückfalloption erhalten.**
 
 Implementierung und verbindlicher Ablauf stehen im
-[Google-Betriebsrunbook](GOOGLE_BETRIEB.md). Die vorhandene Domain bleibt bis
-zur erfolgreichen technischen Abnahme auf dem bisherigen Betrieb.
+[Google-Betriebsrunbook](GOOGLE_BETRIEB.md). Der Infrastrukturabbau und die
+Kostenverifikation stehen noch aus.
 
 ## Entscheidung und Geltungsbereich
 
@@ -18,11 +18,13 @@ keine Grundlage für Bestellung, Integration oder Umschaltung auf einen VPS.
 Die Entscheidung verwirft keine einzigartigen Commits oder lokalen Änderungen.
 Der PR-Abschluss und die Aufbewahrung der Vorarbeit stehen noch aus.
 
-Der bestehende GKE-Betrieb bleibt bis zum geprüften Wechsel der aktive
-Auslieferungskanal. Diese Planung ersetzt weder die technische Umsetzung noch
-deren Abnahme. Sie verändert keine Ressourcen, Daten, Zugangsbefristungen oder
-DNS-Einträge. Pages bleibt die öffentliche Demo; der gematik-Zielbetrieb in der
-Software Factory bleibt ein eigener Kanal.
+Seit der geprüften Umschaltung ist Cloud Run der aktive Auslieferungskanal.
+Die alte GKE-Infrastruktur bleibt erhalten, ihre API- und Passwort-Writer
+sind gestoppt und der alte Auslieferungsworkflow ist deaktiviert. Die alte
+Adresse leitet während der DNS-Verteilung ebenfalls zur neuen Anwendung.
+Das Kostenziel gilt erst nach einem gesondert freigegebenen Abbau. Pages bleibt
+die öffentliche Demo; der gematik-Zielbetrieb in der Software Factory bleibt
+ein eigener Kanal.
 
 ## Gewählter Aufbau
 
@@ -72,7 +74,10 @@ GCS, DNS und benötigte Secrets dürfen beim GKE-Abbau nicht mit entfernt werden
 
 ## Technische Umsetzung und Abnahme
 
-Die folgenden Punkte sind offen und vor einer Umschaltung nachzuweisen:
+Die folgenden Punkte bilden die verbindlichen Abnahmekriterien. Die Nachweise
+zur Umschaltung vom 22. September werden geschützt außerhalb des Repositorys
+aufbewahrt; die Infrastruktur- und Kostenabnahme nach dem späteren Abbau bleibt
+davon getrennt.
 
 1. **Anmeldung und Schutz der Daten:** Die Kombination aus Firebase Hosting,
    Cloud Run und Identity Platform bekommt einen eigenen geprüften

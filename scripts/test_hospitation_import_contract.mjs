@@ -187,6 +187,23 @@ assert.ok(!secondPreview.items.hospitations[0].changedFields.includes("documenta
 assert.ok(!secondPreview.items.hospitations[0].changedFields.includes("requester_profile_id"));
 assert.ok(!secondPreview.items.hospitations[0].changedFields.includes("documented_by"));
 
+for (const storedDate of ["2026-07-17", new Date(2026, 6, 17)]) {
+  const dateTarget = {
+    ...appliedTarget,
+    hospitations: appliedTarget.hospitations.map((row) => ({ ...row, scheduled_on: storedDate }))
+  };
+  const unchangedDate = buildHospitationImportPlan(dateOnlyManifest, dateTarget, owner);
+  assert.equal(unchangedDate.items.hospitations[0].action, "unchanged",
+    "Ein PostgreSQL-DATE und derselbe Kalendertag im Manifest sind keine Änderung.");
+  assert.equal(unchangedDate.canApply, false);
+  const changedDateManifest = normalizeHospitationImportManifest(manifest({
+    hospitations: [{ ...dateOnlyHospitation, scheduledOn: "2026-07-18" }]
+  }));
+  const changedDate = buildHospitationImportPlan(changedDateManifest, dateTarget, owner);
+  assert.deepEqual(changedDate.items.hospitations[0].changedFields, ["scheduled_on"],
+    "Ein tatsächlich anderer Hospitationstag muss weiterhin als Änderung erkannt werden.");
+}
+
 const enrichedManifest = normalizeHospitationImportManifest(manifest({
   hospitations: [{
     ...manifest().hospitations[0],
