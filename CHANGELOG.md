@@ -8,6 +8,8 @@ Kompakte Zusammenfassung der wichtigsten Funktionssprünge des Versorgungs-Kompa
 
 Version 0.24 gliedert Beobachtungen, Codierung und den Bezug zur Hospitation klarer. Einzelne Inhalte lassen sich direkt bearbeiten; Ausfüllhinweise erklären die Felder. Word- und PDF-Exporte übernehmen dieselbe Struktur.
 
+- **Hotfix v0.24.3:** Die Importvorschau vergleicht den Hospitationstag als Kalendertag. Ein bereits übernommenes Datum wird auch nach dem Lesen aus PostgreSQL als unverändert erkannt; tatsächlich andere Tage bleiben als Änderung sichtbar.
+
 - **Hotfix v0.24.2:** Alle Kartenansichten verwenden einen domainbeschränkten CARTO-Schlüssel aus der geschützten Laufzeitkonfiguration und sichtbare Quellenhinweise. Nur Kartenbilder übertragen den Origin; interne Pfade und Suchbegriffe bleiben verborgen. Die Nebenabhängigkeit vm2 des Anmeldepakets ist auf die korrigierte Version 3.11.6 gepinnt.
 
 - **Hotfix v0.24.1:** Die Passwort-Wiederherstellung funktioniert hinter Firebase Hosting; Logos laden auch auf tiefen Unterseiten. Beobachtungen lassen sich ohne falschen Versionskonflikt speichern, während echte konkurrierende Änderungen weiterhin geschützt bleiben. Die Google-Bereitstellung berücksichtigt den Mindestarbeitsspeicher und die korrekte Übergabe des öffentlichen Signierschlüssels.

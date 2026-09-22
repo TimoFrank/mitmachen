@@ -586,14 +586,15 @@ function desiredObservation(source, targetId, hospitationId, targetRow = null) {
   return record;
 }
 
-function comparable(value) {
+function comparable(value, field) {
+  if (field === "scheduled_on") return canonicalTargetDate(value) || null;
   if (value === undefined || value === "") return null;
   return canonicalValue(value);
 }
 
 function changedFields(current, desired) {
   return Object.keys(desired)
-    .filter((key) => key !== "id" && canonicalJson(comparable(current?.[key])) !== canonicalJson(comparable(desired[key])))
+    .filter((key) => key !== "id" && canonicalJson(comparable(current?.[key], key)) !== canonicalJson(comparable(desired[key], key)))
     .sort();
 }
 
