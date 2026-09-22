@@ -90,6 +90,10 @@ Kacheln laden direkt im Browser mit `key` und der auf Kartenbilder begrenzten
 `referrerPolicy: "origin"`. Interne Pfade, Suchbegriffe und Koordinaten werden
 nicht als Referrer übertragen; die allgemeine `no-referrer`-Richtlinie bleibt
 aktiv. Haupt-, Bundesland- und Kontaktkarte zeigen die Quellenhinweise.
+Die Kontaktkarte lädt ausschließlich eigenen Anwendungscode aus einem festen
+Pfad. Ihr Rahmen erlaubt denselben Origin, damit CARTO den Domainnachweis
+erhält, und neue Fenster für die Quellenlinks. Die übrigen Sandbox-Sperren
+sowie die allgemeine CSP und Referrer-Richtlinie bleiben erhalten.
 Die [CARTO-Bedingungen](https://carto.com/legal/basemap-terms/) erlauben keinen
 eigenen Kachelproxy, keine serverseitige Zwischenspeicherung und keinen
 Offline-Kacheldownload. Die Pages-Demo lädt weiterhin keine externen Kacheln.

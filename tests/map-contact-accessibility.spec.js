@@ -1,5 +1,6 @@
 import { expect, test } from "@playwright/test";
 import { gotoAuthenticated } from "./helpers/app-test-session.js";
+import { createProtectedBackendFixture } from "./helpers/protected-backend-fixture.js";
 
 const TRANSPARENT_TILE = Buffer.from(
   "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M/wHwAF/gL+Av0GAAAAAElFTkSuQmCC",
@@ -65,6 +66,26 @@ test("Karte: domainbeschränkter Schlüssel und sichtbare Quellen ohne interne R
       expect([...request.url.searchParams.keys()]).toEqual(["key"]);
       expect(request.referer).toBe(`${new URL(page.url()).origin}/`);
     }
+  }
+  requests.length = 0;
+  const backendFixture = createProtectedBackendFixture();
+  const contact = backendFixture.contacts[0];
+  Object.assign(contact, { lat: 52.52, lon: 13.405 });
+  await gotoAuthenticated(page, `/frontend/app/versorgungs-kompass.html#person/contact/${contact.id}`, {
+    cartoBasemapApiKey, backendFixture
+  });
+  const profile = page.locator("#person-profile-body");
+  await profile.locator(".detail-more > summary").click();
+  const iframe = profile.locator('iframe[title="Standortkarte Deutschland"]');
+  await expect(iframe).toBeVisible();
+  await expect(iframe).toHaveAttribute("referrerpolicy", "no-referrer");
+  const miniMap = iframe.contentFrame();
+  await expect(miniMap.locator(".leaflet-tile-loaded").first()).toBeVisible();
+  await expect(miniMap.getByRole("link", { name: "CARTO", exact: true })).toBeVisible();
+  expect(requests.length).toBeGreaterThan(0);
+  for (const request of requests) {
+    expect(request.url.searchParams.get("key")).toBe(cartoBasemapApiKey);
+    expect(request.referer).toBe(`${new URL(page.url()).origin}/`);
   }
 });
 

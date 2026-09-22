@@ -133,7 +133,7 @@ Der Quellcode und die technische Dokumentation stehen unter der [Apache License 
 
 ## Aktueller Release
 
-- Version: [v0.24.1](https://github.com/TimoFrank/mitmachen/releases/tag/v0.24.1)
-- Stand: 21. September 2026
-- Kurznotiz: Die Passwort-Wiederherstellung funktioniert hinter Firebase Hosting; Logos laden auch auf tiefen Unterseiten. Beobachtungen lassen sich ohne falschen Versionskonflikt speichern, während echte konkurrierende Änderungen weiterhin geschützt bleiben. Die Google-Bereitstellung berücksichtigt den Mindestarbeitsspeicher und die korrekte Übergabe des öffentlichen Signierschlüssels.
+- Version: [v0.24.2](https://github.com/TimoFrank/mitmachen/releases/tag/v0.24.2)
+- Stand: 22. September 2026
+- Kurznotiz: Alle Kartenansichten verwenden einen domainbeschränkten CARTO-Schlüssel aus der geschützten Laufzeitkonfiguration und sichtbare Quellenhinweise. Nur Kartenbilder übertragen den Origin; interne Pfade und Suchbegriffe bleiben verborgen. Die Nebenabhängigkeit vm2 des Anmeldepakets ist auf die korrigierte Version 3.11.6 gepinnt.
 - Demo-Kanal: [GitHub Pages](https://timofrank.github.io/mitmachen/)
