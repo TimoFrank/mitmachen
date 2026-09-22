@@ -1,3 +1,6 @@
+.app-main:has(> .local-app-notice) {
+  grid-template-rows: auto minmax(0, 1fr) auto;
+}
 .local-app-notice {
   display: flex;
   align-items: baseline;
