@@ -25,7 +25,7 @@ function authGuardStub() {
   `;
 }
 
-function configStub({ role, cleanUrls = false }) {
+function configStub({ role, cleanUrls = false, cartoBasemapApiKey = "" }) {
   return `window.VERSORGUNGS_COMPASS_CONFIG = {
     dataMode: "api",
     authMode: "trusted-header",
@@ -33,6 +33,7 @@ function configStub({ role, cleanUrls = false }) {
     apiCredentials: "include",
     requireApiGateway: true,
     cleanUrls: ${JSON.stringify(cleanUrls)},
+    cartoBasemapApiKey: ${JSON.stringify(cartoBasemapApiKey)},
     capabilities: {
       contactRole: true,
       contactConsent: true,
@@ -62,14 +63,15 @@ export async function installAppTestSession(
     dataServiceScript = "",
     backendFixture = null,
     localNotifications = [],
-    cleanUrls = false
+    cleanUrls = false,
+    cartoBasemapApiKey = ""
   } = {}
 ) {
   await page.route("**/login/auth-guard.js", async (route) => {
     await fulfillScript(route, authGuardStub());
   });
   await page.route("**/data/runtime-config.js", async (route) => {
-    await fulfillScript(route, configStub({ role, cleanUrls }));
+    await fulfillScript(route, configStub({ role, cleanUrls, cartoBasemapApiKey }));
   });
   const fixture = backendFixture || createProtectedBackendFixture({
     role,

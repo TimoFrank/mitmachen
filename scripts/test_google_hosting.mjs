@@ -1,7 +1,8 @@
 import assert from "node:assert/strict";
 import http from "node:http";
 import { once } from "node:events";
-import { mkdtemp, writeFile, rm, symlink } from "node:fs/promises";
+import { mkdtemp, mkdir, readFile, writeFile, rm, symlink } from "node:fs/promises";
+import vm from "node:vm";
 import os from "node:os";
 import path from "node:path";
 import { createGoogleStateStore } from "../api/google-state.mjs";
@@ -31,6 +32,7 @@ const deployment = {
   network: "compass-vpc", subnet: "compass-run", sqlConnectionName: "example-project:europe-west3:compass-db",
   database: "compass", databaseUser: "compass_app", databaseSecret: { name: "database-password", version: 2 },
   smtpSecret: { name: "smtp-password", version: 3 }, stateBucket: "example-project-runtime-state",
+  cartoSecret: { name: "carto-basemap-key", version: 1 },
   invitationBucket: "example-project-invitations", apiKey: env.IAP_EXTERNAL_AUTH_API_KEY,
   accessExpiresAt: env.IAP_EXTERNAL_ACCESS_EXPIRES_AT,
   buckets: { profiles: "profile-images", contacts: "contact-images", attachments: "contact-files", stakeholderLogos: "logos" }
@@ -42,6 +44,8 @@ assert.equal(appContainer.env.find((value) => value.name === "GOOGLE_CUTOVER_MOD
 assert.equal(resetContainer.env.find((value) => value.name === "GOOGLE_CUTOVER_MODE").value, "closed");
 assert.equal(appContainer.env.some((value) => value.name.includes("SMTP")), false);
 assert.equal(resetContainer.env.some((value) => value.name.startsWith("DB_")), false);
+assert.deepEqual(appContainer.env.find((value) => value.name === "CARTO_BASEMAP_API_KEY").valueFrom.secretKeyRef, { name: "carto-basemap-key", key: "1" });
+assert.equal(resetContainer.env.some((value) => value.name === "CARTO_BASEMAP_API_KEY"), false);
 assert.equal(services.app.spec.template.metadata.annotations["autoscaling.knative.dev/minScale"], "0");
 assert.equal(services.app.spec.template.metadata.annotations["autoscaling.knative.dev/maxScale"], "2");
 assert.equal(services.app.spec.template.metadata.annotations["run.googleapis.com/vpc-access-egress"], "private-ranges-only");
@@ -53,6 +57,10 @@ for (const service of [services.app, services.reset]) {
 }
 const resetIngressHost = "compass-password-reset-example-ey.a.run.app";
 const opened = renderGoogleServices({ ...deployment, cutoverMode: "open", resetIngressHost });
+assert.throws(() => renderGoogleServices({ ...deployment, cartoSecret: undefined, cutoverMode: "open", resetIngressHost }));
+assert.doesNotThrow(() => renderGoogleServices({ ...deployment, cartoSecret: undefined }));
+assert.throws(() => renderGoogleServices({ ...deployment, cartoSecret: { name: "carto-basemap-key", version: "latest" } }));
+assert.throws(() => renderGoogleServices({ ...deployment, cartoSecret: { name: "../other", version: 1 } }));
 assert.equal(opened.reset.spec.template.spec.containers[0].env.find((value) => value.name === "PASSWORD_RESET_CLOUD_RUN_HOST").value, resetIngressHost);
 for (const changes of [
   { cutoverMode: "open" }, { resetIngressHost: "*.run.app" },
@@ -162,14 +170,20 @@ assert.equal(completed, false, "Cloud Run darf nicht vor Ende des Versands antwo
 finishDelivery(); await delivery; assert.equal(completed, true);
 
 const directory = await mkdtemp(path.join(os.tmpdir(), "vk-google-test-"));
+const cartoBasemapApiKey = 'synthetic-key-";window.injected=true;//';
+assert.throws(() => createGoogleHostingHandler({ root: directory, origin: "https://example.invalid", cutoverMode: "open" }));
 const server = http.createServer(createGoogleHostingHandler({
   apiHandler: async (req, res) => { await sessions.verify(req); res.end("protected-api"); },
   resolveProfile: (req) => sessions.verify(req), sessions, state,
-  root: directory, origin: "https://example.invalid", cutoverMode: "open"
+  root: directory, origin: "https://example.invalid", cutoverMode: "open", cartoBasemapApiKey
 }));
 try {
   await writeFile(path.join(directory, "public-index.html"), "public-entry");
   await writeFile(path.join(directory, "versorgungs-kompass.html"), "protected-app");
+  await mkdir(path.join(directory, "data"));
+  const runtimeFile = path.join(directory, "data/runtime-config.js");
+  const originalRuntime = 'window.VERSORGUNGS_COMPASS_CONFIG = Object.freeze({dataMode:"api", requireApiGateway:true});';
+  await writeFile(runtimeFile, originalRuntime);
   await symlink("/etc/passwd", path.join(directory, "escape.txt"));
   server.listen(0, "127.0.0.1"); await once(server, "listening");
   const base = `http://127.0.0.1:${server.address().port}`;
@@ -181,6 +195,19 @@ try {
   assert.equal((await fetch(base + "/api/session")).status, 401);
   const permitted = await fetch(base + "/start", { headers: request().headers });
   assert.equal(await permitted.text(), "protected-app");
+  assert.equal(permitted.headers.get("referrer-policy"), "no-referrer");
+  const anonymousConfig = await fetch(base + "/data/runtime-config.js", { redirect: "manual" });
+  assert.equal(anonymousConfig.status, 302);
+  assert.equal((await anonymousConfig.text()).includes(cartoBasemapApiKey), false);
+  const runtimeResponse = await fetch(base + "/data/runtime-config.js", { headers: request().headers });
+  const context = { window: {} };
+  vm.runInNewContext(await runtimeResponse.text(), context, { timeout: 1000 });
+  assert.equal(context.window.VERSORGUNGS_COMPASS_CONFIG.cartoBasemapApiKey, cartoBasemapApiKey);
+  assert.equal(context.window.VERSORGUNGS_COMPASS_CONFIG.requireApiGateway, true);
+  assert.equal(Object.isFrozen(context.window.VERSORGUNGS_COMPASS_CONFIG), true);
+  assert.equal(context.window.injected, undefined, "Schlüsseldaten dürfen nicht als JavaScript ausgeführt werden.");
+  assert.match(runtimeResponse.headers.get("cache-control"), /private, no-store/u);
+  assert.equal(await readFile(runtimeFile, "utf8"), originalRuntime, "Das Image-Artefakt bleibt unverändert.");
   assert.equal((await fetch(base + "/escape.txt", { headers: request().headers })).status, 404);
   assert.equal((await fetch(base + "/api/auth/session", { method: "POST", body: '{}' })).status, 403);
   const loggedIn = await fetch(base + "/api/auth/session", { method: "POST", headers: { origin: "https://example.invalid", "content-type": "application/json" }, body: JSON.stringify({ idToken: "fresh-id-token" }) });

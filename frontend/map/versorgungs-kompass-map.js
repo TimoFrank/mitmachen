@@ -160,6 +160,10 @@
   const STATE_MAP_MAX_ZOOM = 12;
   const MAP_WHEEL_PX_PER_ZOOM = 140;
   const IS_PUBLIC_DEMO = window.VERSORGUNGS_COMPASS_CONFIG?.dataMode === "demo";
+  const CARTO_KEY = window.VERSORGUNGS_COMPASS_CONFIG?.cartoBasemapApiKey || "";
+  const CARTO_TILE_URL = 'https://{s}.basemaps.cartocdn.com/light_nolabels/{z}/{x}/{y}{r}.png'
+    + (CARTO_KEY ? `?key=${encodeURIComponent(CARTO_KEY)}` : "");
+  const CARTO_ATTRIBUTION = '&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener noreferrer">OpenStreetMap</a> &copy; <a href="https://carto.com/attributions" target="_blank" rel="noopener noreferrer">CARTO</a>';
   function currentMapMinZoom(){
     if (OVERVIEW_PREVIEW_MODE) return 2.5;
     return window.matchMedia('(max-width: 760px)').matches ? MOBILE_MAP_MIN_ZOOM : MAP_MIN_ZOOM;
@@ -203,11 +207,12 @@
 
   if (!IS_PUBLIC_DEMO) {
     if (!OVERVIEW_PREVIEW_MODE) {
-      L.tileLayer('https://{s}.basemaps.cartocdn.com/light_nolabels/{z}/{x}/{y}{r}.png', {
+      L.tileLayer(CARTO_TILE_URL, {
         subdomains: 'abcd',
         maxZoom: MAP_MAX_ZOOM,
         opacity: 0.58,
-        attribution: '&copy; OpenStreetMap-Mitwirkende &copy; CARTO'
+        referrerPolicy: CARTO_KEY ? "origin" : "no-referrer",
+        attribution: CARTO_ATTRIBUTION
       }).addTo(map);
     }
   }
@@ -2088,11 +2093,12 @@
       zoomDelta: 1,
       wheelPxPerZoomLevel: MAP_WHEEL_PX_PER_ZOOM
     });
-    stateMapTiles = IS_PUBLIC_DEMO ? null : L.tileLayer('https://{s}.basemaps.cartocdn.com/light_nolabels/{z}/{x}/{y}{r}.png', {
+    stateMapTiles = IS_PUBLIC_DEMO ? null : L.tileLayer(CARTO_TILE_URL, {
       subdomains: 'abcd',
       maxZoom: STATE_MAP_MAX_ZOOM,
       opacity: 0.52,
-      attribution: '&copy; OpenStreetMap-Mitwirkende &copy; CARTO'
+      referrerPolicy: CARTO_KEY ? "origin" : "no-referrer",
+      attribution: CARTO_ATTRIBUTION
     }).addTo(stateMap);
     stateMap.setMinZoom(MAP_MIN_ZOOM);
     stateMap.setMaxZoom(STATE_MAP_MAX_ZOOM);

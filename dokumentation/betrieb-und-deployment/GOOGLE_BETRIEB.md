@@ -16,7 +16,8 @@ unverändert. Direct VPC Egress und ein gepinnter Cloud SQL Auth Proxy verbinden
 die API privat und verschlüsselt mit PostgreSQL. Es gibt keinen neuen
 dauerhaft laufenden VPC-Connector.
 
-Die API erhält ausschließlich das Datenbank-Secret. Nur der getrennte
+Die API erhält das Datenbank-Secret und den domainbeschränkten
+CARTO-Kartenschlüssel. Nur der getrennte
 Passwortdienst erhält das SMTP-Secret und die bisherigen eingeschränkten
 Einladungsrechte. Numerische Secret-Versionen und Image-Digests sind Pflicht.
 Die Upload- und TYPO3-Freigaben bleiben im bisherigen deaktivierten Zustand.
@@ -52,7 +53,8 @@ Konfigurationen und Nachweise liegen owner-only außerhalb von Git.
   `appService`, `resetService`, `siteId`, `aliases`;
 - `network`, `subnet`, `subnetCidr` (ein nachgewiesen freies eigenes /24),
   `sqlConnectionName`, `database`, `databaseUser`;
-- `databaseSecret` und `smtpSecret`, jeweils mit `name` und numerischer `version`;
+- `databaseSecret`, `smtpSecret` und vor der Öffnung `cartoSecret`, jeweils
+  mit `name` und numerischer `version`;
 - `stateBucket`, `invitationBucket`, `buckets` mit `profiles`, `contacts`,
   `attachments` und `stakeholderLogos`;
 - dem bestehenden öffentlichen Identity-Platform-`apiKey`,
@@ -76,6 +78,27 @@ Policy-Administrator, damit die Entfernung von Legacy-Rechten ihn nicht
 unverwaltbar macht.
 
 ## Release und getrennte Abnahme
+
+Der kostenlose [CARTO-Kartenschlüssel](https://www.carto.com/basemaps/apikey/)
+wird im Secret Manager gehalten und erst bei der profilgeschützten Auslieferung
+von `data/runtime-config.js` ergänzt. Er steht weder in Git noch im Image und
+ist für berechtigte Browser technisch lesbar. Deshalb im CARTO-Dashboard
+ausschließlich Hauptdomain und tatsächlich verwendete Abnahmedomain erlauben.
+Die Google-Freigabe verweigert einen fehlenden Schlüssel.
+
+Kacheln laden direkt im Browser mit `key` und der auf Kartenbilder begrenzten
+`referrerPolicy: "origin"`. Interne Pfade, Suchbegriffe und Koordinaten werden
+nicht als Referrer übertragen; die allgemeine `no-referrer`-Richtlinie bleibt
+aktiv. Haupt-, Bundesland- und Kontaktkarte zeigen die Quellenhinweise.
+Die Kontaktkarte lädt ausschließlich eigenen Anwendungscode aus einem festen
+Pfad. Ihr Rahmen erlaubt denselben Origin, damit CARTO den Domainnachweis
+erhält, und neue Fenster für die Quellenlinks. Die übrigen Sandbox-Sperren
+sowie die allgemeine CSP und Referrer-Richtlinie bleiben erhalten.
+Die [CARTO-Bedingungen](https://carto.com/legal/basemap-terms/) erlauben keinen
+eigenen Kachelproxy, keine serverseitige Zwischenspeicherung und keinen
+Offline-Kacheldownload. Die Pages-Demo lädt weiterhin keine externen Kacheln.
+Zur Abnahme echte Kacheln ohne Schlüsselwarnung, Quellenhinweise, Desktop und
+Mobile sowie den unveränderten anonymen Zugriffsschutz prüfen.
 
 1. `npm run qa:full`, `npm run build:pages` und die Google-Vertragstests
    erfolgreich nachweisen. Bei überlasteter lokaler Browserparallelität ist

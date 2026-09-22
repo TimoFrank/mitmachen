@@ -40,6 +40,7 @@ async function openInlineField(drawer, field, scope = "observation") {
   await expect(form).toHaveCount(1);
   await expect(form).toHaveAttribute("data-observation-field", field);
   await expect(form).toHaveAttribute("data-observation-scope", scope);
+  await expect(form.locator("input, textarea").first()).toBeFocused();
   return form;
 }
 

@@ -36746,7 +36746,7 @@
               src="${src}"
               loading="lazy"
               tabindex="-1"
-              sandbox="allow-scripts"
+              sandbox="allow-scripts allow-same-origin allow-popups"
               referrerpolicy="no-referrer"
             ></iframe>
           </div>
