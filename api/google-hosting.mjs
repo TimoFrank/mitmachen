@@ -50,10 +50,12 @@ async function body(request) {
   } catch { throw Object.assign(new Error("Ungültige Anfrage."), { status: 400 }); }
 }
 
-export function createGoogleHostingHandler({ apiHandler, resolveProfile, sessions, state, origin, root, aliases = [], cutoverMode = "closed" }) {
+export function createGoogleHostingHandler({ apiHandler, resolveProfile, sessions, state, origin, root, aliases = [], cutoverMode = "closed", cartoBasemapApiKey = "" }) {
   const canonical = new URL(origin);
   const configuredDirectory = path.resolve(root);
   if (!["closed", "open"].includes(cutoverMode)) throw new Error("GOOGLE_CUTOVER_MODE muss closed oder open sein.");
+  if (typeof cartoBasemapApiKey !== "string" || cartoBasemapApiKey.length > 2048 || /[\s\u0000-\u001f\u007f]/u.test(cartoBasemapApiKey)) throw new Error("Ungültige CARTO-Konfiguration.");
+  if (cutoverMode === "open" && !cartoBasemapApiKey) throw new Error("Vor der Freigabe den CARTO-Kartenschlüssel einrichten.");
   return async function googleHosting(request, response) {
     response.setHeader("cache-control", "private, no-store");
     response.setHeader("vary", "Cookie, Origin, Accept-Encoding");
@@ -125,6 +127,11 @@ export function createGoogleHostingHandler({ apiHandler, resolveProfile, session
         : "default-src 'self'; base-uri 'none'; object-src 'none'; frame-ancestors 'self'; form-action 'self'; script-src 'self'; script-src-attr 'none'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https:; font-src 'self' data:; connect-src 'self' https://identitytoolkit.googleapis.com https://securetoken.googleapis.com; frame-src 'self'; worker-src 'self' blob:");
       const type = mime[path.extname(filename)] || "application/octet-stream";
       let bytes = await readFile(filename);
+      if (relative === "data/runtime-config.js") {
+        // Der domainbeschränkte Browser-Schlüssel kommt erst zur Laufzeit hinzu.
+        // Die Datei bleibt profilgeschützt und das Image enthält keinen Schlüssel.
+        bytes = Buffer.concat([bytes, Buffer.from(`\nwindow.VERSORGUNGS_COMPASS_CONFIG = Object.freeze({ ...window.VERSORGUNGS_COMPASS_CONFIG, cartoBasemapApiKey: ${JSON.stringify(cartoBasemapApiKey)} });\n`)]);
+      }
       response.setHeader("content-type", type);
       if (/\bgzip\b/u.test(String(request.headers["accept-encoding"] || "")) && bytes.length > 1024 && /^(?:text\/|application\/(?:json|javascript)|image\/svg)/u.test(type)) {
         bytes = await compress(bytes);

@@ -24,7 +24,8 @@
   },
   "overrides": {
     "gcip-iap": {
-      "firebase": "12.17.0"
+      "firebase": "12.17.0",
+      "vm2": "3.11.6"
     }
   }
 }

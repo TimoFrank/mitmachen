@@ -74,7 +74,7 @@ addBinding(invitations, `projects/${project}/roles/preGematikPasswordInvitationB
   expression: `resource.name.startsWith('projects/_/buckets/${invitationBucket}/objects/active/')`
 });
 await api(invitationUrl, { method: "PUT", body: invitations });
-for (const [secret, member] of [[config.databaseSecret.name, apiMember], [config.smtpSecret.name, resetMember]]) {
+for (const [secret, member] of [[config.databaseSecret.name, apiMember], [config.smtpSecret.name, resetMember], ...(config.cartoSecret ? [[config.cartoSecret.name, apiMember]] : [])]) {
   const url = `https://secretmanager.googleapis.com/v1/projects/${project}/secrets/${secret}`;
   const previous = await api(`${url}:getIamPolicy?options.requestedPolicyVersion=3`);
   addBinding(previous, "roles/secretmanager.secretAccessor", member);

@@ -10713,7 +10713,8 @@ const requestHandler = GOOGLE_RUNTIME ? createGoogleHostingHandler({
   origin: ALLOWED_ORIGIN,
   root: process.env.GOOGLE_FRONTEND_ROOT || "/app/frontend-build",
   aliases: String(process.env.GOOGLE_ALIAS_HOSTS || "").split(",").filter(Boolean),
-  cutoverMode: process.env.GOOGLE_CUTOVER_MODE || "closed"
+  cutoverMode: process.env.GOOGLE_CUTOVER_MODE || "closed",
+  cartoBasemapApiKey: process.env.CARTO_BASEMAP_API_KEY || ""
 }) : handle;
 const server = http.createServer({ maxHeaderSize: HTTP_MAX_HEADER_BYTES }, requestHandler);
 server.requestTimeout = Math.max(5000, Number(process.env.HTTP_REQUEST_TIMEOUT_MS || 30000));

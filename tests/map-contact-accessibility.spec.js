@@ -35,6 +35,39 @@ async function stubMapTiles(page) {
   });
 }
 
+test("Karte: domainbeschränkter Schlüssel und sichtbare Quellen ohne interne Referrer", async ({ page }) => {
+  const cartoBasemapApiKey = "synthetic-carto-key-with&query=fragment#";
+  const requests = [];
+  await page.route("https://**.basemaps.cartocdn.com/**", async (route) => {
+    requests.push({ url: new URL(route.request().url()), referer: route.request().headers().referer });
+    await route.fulfill({ contentType: "image/png", body: TRANSPARENT_TILE });
+  });
+  await page.route("**/frontend/map/*.html?**", async (route) => {
+    const response = await route.fetch();
+    await route.fulfill({ response, headers: { ...response.headers(), "referrer-policy": "no-referrer" } });
+  });
+  for (const route of [
+    "/frontend/map/versorgungs-kompass-map.html?embed=1&channel=contacts&query=private-test",
+    "/frontend/map/versorgungs-kompass-contact-mini-map.html?lat=52.52&lon=13.405"
+  ]) {
+    requests.length = 0;
+    await gotoAuthenticated(page, route, { cartoBasemapApiKey });
+    await expect(page.locator("#map .leaflet-tile-loaded").first()).toBeVisible();
+    await expect(page.locator("#map .leaflet-control-attribution").getByRole("link", { name: "CARTO", exact: true })).toBeVisible();
+    await expect(page.locator("#map .leaflet-control-attribution").getByRole("link", { name: "OpenStreetMap", exact: true })).toBeVisible();
+    if (route.includes("-map.html?embed")) {
+      await page.evaluate(() => { ensureStateMap(); stateMap.setView([52.52, 13.405], 6); });
+      await expect(page.locator("#state-map .leaflet-tile").first()).toHaveAttribute("referrerpolicy", "origin");
+    }
+    expect(requests.length).toBeGreaterThan(0);
+    for (const request of requests) {
+      expect(request.url.searchParams.get("key")).toBe(cartoBasemapApiKey);
+      expect([...request.url.searchParams.keys()]).toEqual(["key"]);
+      expect(request.referer).toBe(`${new URL(page.url()).origin}/`);
+    }
+  }
+});
+
 async function openMap(page, { embedded = true } = {}) {
   await stubMapTiles(page);
   const suffix = embedded ? "?embed=1&channel=contacts" : "";

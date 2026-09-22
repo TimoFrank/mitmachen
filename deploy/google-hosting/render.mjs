@@ -5,7 +5,7 @@ import { fileURLToPath } from "node:url";
 export const CLOUD_SQL_PROXY_IMAGE = "gcr.io/cloud-sql-connectors/cloud-sql-proxy:2.22.0@sha256:fa4c7308245407157c5e9c4e16f1c0f1113899d6f29dc8f8be3e30efae86467f";
 
 export function renderGoogleServices(config) {
-  const { project, region, image, revision, origin, appService, resetService, network, subnet, sqlConnectionName, database, databaseUser, databaseSecret, smtpSecret, stateBucket, invitationBucket, apiKey, accessExpiresAt, buckets } = config;
+  const { project, region, image, revision, origin, appService, resetService, network, subnet, sqlConnectionName, database, databaseUser, databaseSecret, smtpSecret, cartoSecret, stateBucket, invitationBucket, apiKey, accessExpiresAt, buckets } = config;
   if (!/^[a-z][a-z0-9-]{4,28}[a-z0-9]$/u.test(project || "") || region !== "europe-west3") throw new Error("Projekt und Frankfurt-Region müssen explizit festgelegt sein.");
   const url = new URL(origin);
   if (url.protocol !== "https:" || url.origin !== origin || url.username || url.password) throw new Error("Der kanonische Origin muss HTTPS verwenden.");
@@ -18,6 +18,8 @@ export function renderGoogleServices(config) {
     if (!/^[a-z][a-z0-9_-]{1,62}$/u.test(value || "")) throw new Error("Ein Ressourcenname fehlt oder ist ungültig.");
   }
   if (!["closed", "open"].includes(config.cutoverMode || "closed")) throw new Error("Ungültiger Umschaltzustand.");
+  if (cartoSecret && !/^[a-z][a-z0-9_-]{1,62}$/u.test(cartoSecret.name || "")) throw new Error("Ungültiger CARTO-Secret-Name.");
+  if (config.cutoverMode === "open" && !cartoSecret) throw new Error("Vor der Freigabe das domainbeschränkte CARTO-Secret einrichten.");
   if (config.resetIngressHost && (!/^[a-z0-9-]+(?:\.[a-z0-9-]+)*\.run\.app$/u.test(config.resetIngressHost)
     || !config.resetIngressHost.startsWith(`${resetService}-`))) throw new Error("Der Passwortdienst benötigt seinen eigenen expliziten Cloud-Run-Hostname.");
   if (config.cutoverMode === "open" && !config.resetIngressHost) throw new Error("Vor der Freigabe den tatsächlichen Passwortdienst-Host bestätigen.");
@@ -28,7 +30,7 @@ export function renderGoogleServices(config) {
   };
   const env = (values) => Object.entries(values).map(([name, value]) => ({ name, value: String(value) }));
   const secret = (name, value) => ({ name, valueFrom: { secretKeyRef: { name: value.name, key: String(value.version) } } });
-  for (const value of [databaseSecret, smtpSecret]) if (!/^[1-9][0-9]*$/u.test(String(value.version))) throw new Error("Secret-Versionen müssen numerisch gepinnt sein.");
+  for (const value of [databaseSecret, smtpSecret, ...(cartoSecret ? [cartoSecret] : [])]) if (!/^[1-9][0-9]*$/u.test(String(value.version))) throw new Error("Secret-Versionen müssen numerisch gepinnt sein.");
   const service = (name, account, containers, networked) => ({
     apiVersion: "serving.knative.dev/v1", kind: "Service",
     metadata: { name, labels: { "cloud.googleapis.com/location": region, "source-sha": revision, "managed-by": "vk-google-hosting" }, annotations: { "run.googleapis.com/ingress": "all" } },
@@ -63,7 +65,7 @@ export function renderGoogleServices(config) {
           PROFILE_IMAGE_BUCKET: buckets.profiles, CONTACT_IMAGE_BUCKET: buckets.contacts,
           CONTACT_NOTE_ATTACHMENT_BUCKET: buckets.attachments, STAKEHOLDER_LOGO_BUCKET: buckets.stakeholderLogos,
           ...(config.importOwnerProfileId ? { HOSPITATION_IMPORT_OWNER_PROFILE_ID: config.importOwnerProfileId } : {})
-        }), secret("DB_PASSWORD", databaseSecret)
+        }), secret("DB_PASSWORD", databaseSecret), ...(cartoSecret ? [secret("CARTO_BASEMAP_API_KEY", cartoSecret)] : [])
       ],
       startupProbe: { httpGet: { path: "/api/readyz", port: 8080 }, initialDelaySeconds: 0, timeoutSeconds: 6, periodSeconds: 6, failureThreshold: 30 }
     },

@@ -20,7 +20,7 @@
 
     const map = L.map("map", {
       zoomControl: false,
-      attributionControl: false,
+      attributionControl: window.VERSORGUNGS_COMPASS_CONFIG?.dataMode !== "demo",
       dragging: false,
       scrollWheelZoom: false,
       doubleClickZoom: false,
@@ -33,10 +33,16 @@
     });
 
     if (window.VERSORGUNGS_COMPASS_CONFIG?.dataMode !== "demo") {
-      L.tileLayer("https://{s}.basemaps.cartocdn.com/light_nolabels/{z}/{x}/{y}{r}.png", {
+      const cartoKey = window.VERSORGUNGS_COMPASS_CONFIG?.cartoBasemapApiKey || "";
+      const tileUrl = "https://{s}.basemaps.cartocdn.com/light_nolabels/{z}/{x}/{y}{r}.png"
+        + (cartoKey ? `?key=${encodeURIComponent(cartoKey)}` : "");
+      L.tileLayer(tileUrl, {
         subdomains: "abcd",
-        maxZoom: 19
+        maxZoom: 19,
+        referrerPolicy: cartoKey ? "origin" : "no-referrer",
+        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener noreferrer">OpenStreetMap</a> &copy; <a href="https://carto.com/attributions" target="_blank" rel="noopener noreferrer">CARTO</a>'
       }).addTo(map);
+      map.attributionControl.setPrefix(false);
     }
 
     const germanyGeoJson = window.MAP_DE_GEOJSON;
