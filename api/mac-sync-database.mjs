@@ -19,9 +19,13 @@ export async function readSyncData(client) {
 export async function lockSyncData(client) {
   await client.query("set local lock_timeout = '3s'");
   await client.query("set local statement_timeout = '15s'");
-  // Includes children: an online child added before a deletion must be noticed.
-  // Reads remain available. No network call is made while these locks are held.
-  await client.query(`lock table ${[...SYNC_TABLES].sort().map(qid).join(", ")} in share row exclusive mode`);
+  // Includes mutable children: an online child added before a deletion must be
+  // noticed. The append-only activity ledger is never a write guard; reading
+  // and inserting it must retain the runtime's SELECT/INSERT-only privileges.
+  // Snapshots still include that ledger. Reads remain available, and no network
+  // call is made while these locks are held.
+  const tables = SYNC_TABLES.filter(table => table !== "activity_events");
+  await client.query(`lock table ${[...tables].sort().map(qid).join(", ")} in share row exclusive mode`);
 }
 export async function snapshotForSync(pool) {
   const client = await pool.connect();

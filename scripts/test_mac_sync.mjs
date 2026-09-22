@@ -45,7 +45,13 @@ try {
   remoteAdmin = new Pool({ ...connection, database: "sync_remote" });
   const schema = await readFile(new URL("../deploy/postgres/pre-gematik/schema.sql", import.meta.url), "utf8");
   await localPool.query(schema); await remoteAdmin.query(schema);
-  await remoteAdmin.query("grant usage on schema public to vk_app; grant select,insert,update,delete on all tables in schema public to vk_app; grant usage,select on all sequences in schema public to vk_app");
+  const runtimeRole = await readFile(new URL("../deploy/postgres/pre-gematik/runtime-role.sql", import.meta.url), "utf8");
+  const runtimeGrants = await readFile(new URL("../deploy/postgres/pre-gematik/grants.sql", import.meta.url), "utf8");
+  docker(["exec", "-i", container, "psql", "-U", "vk_local_admin", "-d", "sync_remote", "-v", "ON_ERROR_STOP=1"], runtimeRole);
+  docker(["exec", "-i", container, "psql", "-U", "vk_local_admin", "-d", "sync_remote", "-v", "runtime_role=vk_app_runtime"], runtimeGrants);
+  await remoteAdmin.query("grant vk_app_runtime to vk_app");
+  const privileges = (await remoteAdmin.query("select has_table_privilege('vk_app','public.activity_events','SELECT') as read, has_table_privilege('vk_app','public.activity_events','INSERT') as append, has_table_privilege('vk_app','public.activity_events','UPDATE') as update, has_table_privilege('vk_app','public.activity_events','DELETE') as delete, has_table_privilege('vk_app','public.activity_events','TRUNCATE') as truncate")).rows[0];
+  assert.deepEqual(privileges, { read: true, append: true, update: false, delete: false, truncate: false });
   await remoteAdmin.query(await readFile(new URL("../deploy/postgres/pre-gematik/mac-sync.sql", import.meta.url), "utf8"));
   await remoteAdmin.query("insert into profiles (id,email,display_name,role,active) values ($1,'alex@synthetic.example.invalid',$2,'admin',true)", [profile.id, profile.display_name]);
   await remoteAdmin.query("insert into identity_bindings (issuer,subject,profile_id,active) values ('https://cloud.google.com/iap','securetoken.google.com/synthetic:synthetic-user',$1,true)", [profile.id]);
