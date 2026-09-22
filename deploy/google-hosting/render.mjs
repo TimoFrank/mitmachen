@@ -18,6 +18,7 @@ export function renderGoogleServices(config) {
     if (!/^[a-z][a-z0-9_-]{1,62}$/u.test(value || "")) throw new Error("Ein Ressourcenname fehlt oder ist ungültig.");
   }
   if (!["closed", "open"].includes(config.cutoverMode || "closed")) throw new Error("Ungültiger Umschaltzustand.");
+  if (config.macSyncEnabled !== undefined && typeof config.macSyncEnabled !== "boolean") throw new Error("Der Mac-Abgleich muss ausdrücklich aktiviert werden.");
   if (cartoSecret && !/^[a-z][a-z0-9_-]{1,62}$/u.test(cartoSecret.name || "")) throw new Error("Ungültiger CARTO-Secret-Name.");
   if (config.cutoverMode === "open" && !cartoSecret) throw new Error("Vor der Freigabe das domainbeschränkte CARTO-Secret einrichten.");
   if (config.resetIngressHost && (!/^[a-z0-9-]+(?:\.[a-z0-9-]+)*\.run\.app$/u.test(config.resetIngressHost)
@@ -61,6 +62,7 @@ export function renderGoogleServices(config) {
           DB_HOST: "127.0.0.1", DB_PORT: "5432", DB_SSL: "disable", DB_NAME: database, DB_USER: databaseUser,
           DB_POOL_MAX: "3", DB_APPLICATION_NAME: appService, API_LOG_REQUESTS: "0",
           IMAGE_UPLOAD_MODE: "disabled", ATTACHMENT_UPLOAD_MODE: "disabled", TYPO3_CONNECTOR_ENABLED: "0",
+          MAC_SYNC_ENABLED: config.macSyncEnabled === true ? "1" : "0",
           GOOGLE_ALIAS_HOSTS: (config.aliases || []).join(","),
           PROFILE_IMAGE_BUCKET: buckets.profiles, CONTACT_IMAGE_BUCKET: buckets.contacts,
           CONTACT_NOTE_ATTACHMENT_BUCKET: buckets.attachments, STAKEHOLDER_LOGO_BUCKET: buckets.stakeholderLogos,

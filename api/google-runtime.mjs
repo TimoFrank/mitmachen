@@ -16,6 +16,7 @@ export function createGoogleRuntime(configuration, env = process.env) {
   const state = createGoogleStateStore({ bucket: getStorage(app).bucket(env.GOOGLE_STATE_BUCKET) });
   return Object.freeze({
     state,
+    auth: getAuth(app),
     sessions: configuration ? createGoogleSessions({ auth: getAuth(app), state, configuration }) : null
   });
 }

@@ -134,7 +134,8 @@
     "test:poc-smoke": "playwright test tests/visual-smoke.spec.js --project=chromium-desktop --grep 'Kontakte: Liste und Filtertoolbar rendern|Karte: Kartenansicht und Controls rendern'",
     "test:visual:update": "playwright test --update-snapshots",
     "build:google-hosting": "node scripts/build_google_hosting.mjs",
-    "test:google-hosting": "node scripts/test_google_hosting.mjs"
+    "test:google-hosting": "node scripts/test_google_hosting.mjs",
+    "test:mac-sync": "node scripts/test_mac_sync.mjs && node tools/local-app/test-gateway.mjs && node tools/local-app/test-import.mjs && node tools/local-app/test-timestamps.mjs && node tools/offline-copy/test.mjs"
   },
   "devDependencies": {
     "@playwright/test": "1.62.1",

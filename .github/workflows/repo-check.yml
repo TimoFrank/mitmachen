@@ -40,6 +40,9 @@ jobs:
       - name: Run minimal checks
         run: npm run check
 
+      - name: Run Mac synchronization regressions
+        run: npm run test:mac-sync
+
       - name: Install Chromium
         run: npx playwright install --with-deps chromium
 

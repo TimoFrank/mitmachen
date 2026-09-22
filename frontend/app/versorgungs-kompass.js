@@ -10360,6 +10360,11 @@
         const profile = currentProfile || {};
         const displayName = profile.display_name || profile.email || "Angemeldet";
         const role = currentRole();
+        const macSyncSection = document.getElementById("profile-mac-sync");
+        if (macSyncSection) {
+          macSyncSection.hidden = window.VERSORGUNGS_COMPASS_CONFIG?.macSyncEnabled !== true || role !== "admin" || isTestAccess();
+          if (!macSyncSection.hidden) document.getElementById("profile-mac-sync-link")?.setAttribute("href", "/mac-abgleich");
+        }
         updateAvatarElement(profileAvatarPreview, profile);
         updateAvatarElement(profilePhotoPreview, profile);
         if (profileDisplayTitle) profileDisplayTitle.textContent = displayName;

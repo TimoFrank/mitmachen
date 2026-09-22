@@ -39,9 +39,19 @@ Die bisher ungenutzte lokale Mac-Anwendung soll nach dem Google-Umzug einen
 beidseitigen Abgleich erhalten, damit sie zum Lesen, Vorführen und Bearbeiten
 ohne Internet nutzbar bleibt. Der Online-Stand ist der hauptsächliche
 Arbeitsstand. Bei widersprüchlichen Änderungen bleiben beide Fassungen erhalten;
-der Nutzer entscheidet den Konflikt. Dieser Abgleich ist noch nicht umgesetzt
-und keine Voraussetzung für die Live-Umschaltung. Er ersetzt keine verwaltete
-Datenbanksicherung.
+der Nutzer entscheidet den Konflikt. Der Abgleich ist als eigener Lieferumfang
+mit Gerätekopplung, geordneten Schreibvorgängen, Vergleichsfassungen und
+atomarer lokaler Übernahme vorbereitet. Installation, Google-Aktivierung und
+erste echte Übernahme benötigen jeweils einen eigenen Nachweis; der Code-
+Stand allein belegt keine bereits gekoppelte Mac-App. Siehe
+[lokale Anwendung](../betrieb-und-deployment/LOKALE_ANWENDUNG.md).
+Der Abgleich ersetzt keine verwaltete Datenbanksicherung.
+
+Datei- und Bild-Uploads bleiben auf Betreiberentscheidung vom 22. September
+deaktiviert. Als spätere Produktoption sind eigenes Profilbild, Kontaktfoto und
+Anhänge an Kontaktnotizen vorgemerkt. Nach erfolgreichem Mac-Abgleich soll der
+Betreiber einmalig konkret nach diesen Einsatzorten gefragt werden. Eine
+Freischaltung oder ein allgemeiner Logo-Upload ist damit nicht beschlossen.
 
 ## Aktiver Arbeitsmodus
 

@@ -34,6 +34,8 @@ const appPath = path.join(output, "versorgungs-kompass.js");
 fs.writeFileSync(appPath, fs.readFileSync(appPath, "utf8").replaceAll('"./public/', '"/public/'));
 const documentPath = path.join(output, "versorgungs-kompass.html");
 fs.writeFileSync(documentPath, fs.readFileSync(documentPath, "utf8").replaceAll('srcset="./', 'srcset="/'));
+for (const name of ["mac-sync.html", "mac-sync.js"]) fs.copyFileSync(path.join(root, "frontend/app", name), path.join(output, name));
+fs.copyFileSync(path.join(root, "tools/local-app/sync.css"), path.join(output, "mac-sync.css"));
 const manifestPath = path.join(output, "build-manifest.json");
 const manifest = JSON.parse(fs.readFileSync(manifestPath, "utf8"));
 fs.rmSync(manifestPath);

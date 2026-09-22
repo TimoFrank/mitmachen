@@ -1,0 +1,28 @@
+<!doctype html>
+<html lang="de"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Mac-Abgleich · Versorgungs-Kompass</title>
+<link rel="icon" type="image/png" href="/public/brand/versorgungs-kompass/icons/app-icon-32.png">
+<link rel="stylesheet" href="/frontend/app/versorgungs-kompass.css">
+<link rel="stylesheet" href="/frontend/local-app/sync.css">
+<script src="/frontend/local-app/sync-ui.js" defer></script></head>
+<body class="local-sync-page"><main class="local-sync-main">
+<a class="local-sync-back" href="/frontend/app/versorgungs-kompass.html#hospitations">← Zur lokalen Anwendung</a>
+<header><p class="local-sync-eyebrow">Versorgungs-Kompass · Auf diesem Mac</p><h1>Mac-Abgleich</h1>
+<p>Online weiterarbeiten, unterwegs lesen und bearbeiten. Deine Änderungen werden beim nächsten Abgleich übertragen.</p></header>
+<section class="profile-section" aria-labelledby="sync-heading"><h2 id="sync-heading">Verbindung und Datenstand</h2>
+<p id="sync-status" role="status" aria-live="polite">Der Datenstand wird geprüft …</p>
+<dl class="local-sync-facts"><div><dt>Letzter erfolgreicher Abgleich</dt><dd id="sync-last">Noch keiner</dd></div><div><dt>Lokale Änderungen</dt><dd id="sync-pending">–</dd></div></dl>
+<p>Solange die lokale Anwendung läuft und der Mac wach ist, wird alle 30 Minuten abgeglichen. Ohne Internet bleibt dein letzter Stand verfügbar.</p>
+<div class="local-sync-actions"><button type="button" class="action-button action-button--primary" id="sync-now">Jetzt abgleichen</button>
+<button type="button" class="action-button action-button--ghost" id="sync-pair">Diesen Mac verbinden</button></div>
+<p id="sync-pairing" hidden>Öffne die Live-Anwendung und bestätige dort diesen Mac: <a id="sync-pairing-link" rel="noopener noreferrer" target="_blank">Verbindung bestätigen</a></p>
+<p id="sync-error" role="alert" hidden></p></section>
+<section class="profile-section" id="sync-conflict" hidden aria-labelledby="conflict-heading"><h2 id="conflict-heading">Deine Entscheidung ist gefragt</h2>
+<p>Dieser Vorgang betrifft einen Eintrag, der auch online geändert wurde. Prüfe beide Fassungen. Deine Entscheidung gilt für die unten gezeigten Einträge dieses Vorgangs.</p>
+<div id="sync-comparison"></div><p id="sync-validation" hidden></p>
+<p>Beide Fassungen und deine Entscheidung bleiben im geschützten lokalen Änderungsprotokoll erhalten. Bis zur Klärung bleibt der lokale Arbeitsstand bestehen.</p>
+<div class="local-sync-actions"><button class="action-button action-button--primary" id="sync-keep-local" type="button">Lokale Änderung übernehmen</button>
+<button class="action-button action-button--ghost" id="sync-keep-online" type="button">Online-Fassung verwenden</button></div></section>
+<section class="profile-section"><h2>Gesicherte Fassungen</h2><p>Hier kannst du die Fassungen nach einer Konfliktentscheidung wieder nachlesen und Texte daraus übernehmen. Die letzten 100 Vorgänge werden angezeigt; ältere bleiben im lokalen Protokoll erhalten.</p><button class="action-button action-button--ghost" id="sync-history-open" type="button">Gesicherte Fassungen anzeigen</button><div id="sync-history"></div></section>
+<p class="local-sync-footnote">Datei- und Bild-Uploads bleiben deaktiviert. Die Online-Datenbank wird weiterhin verwaltet gesichert.</p>
+</main></body></html>

@@ -26,7 +26,7 @@ const appRoutes = [
 export function safeReturnPath(value = "/start") {
   if (typeof value !== "string" || !value.startsWith("/") || value.startsWith("//") || /[\\\u0000-\u001f\u007f]/u.test(value)) return "/start";
   const parsed = new URL(value, "https://return.invalid");
-  return parsed.origin === "https://return.invalid" && (appRoutes.some((rule) => rule.test(parsed.pathname)) || parsed.pathname === "/versorgungs-kompass.html")
+  return parsed.origin === "https://return.invalid" && (appRoutes.some((rule) => rule.test(parsed.pathname)) || ["/versorgungs-kompass.html", "/mac-abgleich"].includes(parsed.pathname))
     ? `${parsed.pathname}${parsed.search}${parsed.hash}` : "/start";
 }
 
@@ -50,7 +50,7 @@ async function body(request) {
   } catch { throw Object.assign(new Error("Ungültige Anfrage."), { status: 400 }); }
 }
 
-export function createGoogleHostingHandler({ apiHandler, resolveProfile, sessions, state, origin, root, aliases = [], cutoverMode = "closed", cartoBasemapApiKey = "" }) {
+export function createGoogleHostingHandler({ apiHandler, resolveProfile, sessions, state, origin, root, aliases = [], cutoverMode = "closed", cartoBasemapApiKey = "", macSyncHandler = null }) {
   const canonical = new URL(origin);
   const configuredDirectory = path.resolve(root);
   if (!["closed", "open"].includes(cutoverMode)) throw new Error("GOOGLE_CUTOVER_MODE muss closed oder open sein.");
@@ -92,6 +92,7 @@ export function createGoogleHostingHandler({ apiHandler, resolveProfile, session
       if (url.pathname.startsWith("/api/") || ["/healthz", "/readyz"].includes(url.pathname)) {
         const publicProbe = ["/healthz", "/readyz", "/api/healthz", "/api/readyz"].includes(url.pathname);
         if (cutoverMode !== "open" && !publicProbe) return json(response, 503, { error: "Die neue Umgebung ist noch nicht freigegeben." });
+        if (macSyncHandler && url.pathname.startsWith("/api/mac-sync/")) return await macSyncHandler(request, response);
         if (!["GET", "HEAD", "OPTIONS"].includes(request.method)) assertGoogleBrowserMutation(request, origin);
         return await apiHandler(request, response);
       }
@@ -107,7 +108,7 @@ export function createGoogleHostingHandler({ apiHandler, resolveProfile, session
           throw error;
         }
         if (url.pathname.startsWith("/public/auth/")) return json(response, 404, { error: "Nicht gefunden." });
-        relative = appRoutes.some((rule) => rule.test(url.pathname)) ? "versorgungs-kompass.html" : decodeURIComponent(url.pathname).slice(1);
+        relative = url.pathname === "/mac-abgleich" ? "mac-sync.html" : appRoutes.some((rule) => rule.test(url.pathname)) ? "versorgungs-kompass.html" : decodeURIComponent(url.pathname).slice(1);
       }
       if (!relative || relative.split("/").some((part) => part.startsWith("."))) return json(response, 404, { error: "Nicht gefunden." });
       let filename = path.resolve(directory, relative);
@@ -130,7 +131,7 @@ export function createGoogleHostingHandler({ apiHandler, resolveProfile, session
       if (relative === "data/runtime-config.js") {
         // Der domainbeschränkte Browser-Schlüssel kommt erst zur Laufzeit hinzu.
         // Die Datei bleibt profilgeschützt und das Image enthält keinen Schlüssel.
-        bytes = Buffer.concat([bytes, Buffer.from(`\nwindow.VERSORGUNGS_COMPASS_CONFIG = Object.freeze({ ...window.VERSORGUNGS_COMPASS_CONFIG, cartoBasemapApiKey: ${JSON.stringify(cartoBasemapApiKey)} });\n`)]);
+        bytes = Buffer.concat([bytes, Buffer.from(`\nwindow.VERSORGUNGS_COMPASS_CONFIG = Object.freeze({ ...window.VERSORGUNGS_COMPASS_CONFIG, cartoBasemapApiKey: ${JSON.stringify(cartoBasemapApiKey)}, macSyncEnabled: ${Boolean(macSyncHandler)} });\n`)]);
       }
       response.setHeader("content-type", type);
       if (/\bgzip\b/u.test(String(request.headers["accept-encoding"] || "")) && bytes.length > 1024 && /^(?:text\/|application\/(?:json|javascript)|image\/svg)/u.test(type)) {

@@ -1,0 +1,24 @@
+.local-app-notice {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 4px 12px;
+  padding: 8px 22px;
+  border-bottom: 1px solid var(--border, #dce3f5);
+  background: var(--primary-soft, #eaf1ff);
+  color: var(--text-primary, #17275f);
+  font: 500 .78rem/1.5 Inter, "SF Pro Text", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+}
+.local-app-notice strong { font-weight: 700; }
+.local-app-notice a { color: var(--primary); text-underline-offset: 3px; margin-left: auto; }
+.local-app-notice__message { color: var(--text-secondary, #334155); }
+.local-app-upload-note {
+  display: block;
+  margin-top: 6px;
+  color: var(--text-muted, #64748b);
+  font-size: .78rem;
+  line-height: 1.4;
+}
+[data-local-upload-blocked="true"] { cursor: not-allowed !important; }
+@media (max-width: 760px) { .local-app-notice { padding: 8px 12px; font-size: .74rem; } }
+@media print { .local-app-notice { background: none; } }
