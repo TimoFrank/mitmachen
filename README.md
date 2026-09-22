@@ -133,7 +133,7 @@ Der Quellcode und die technische Dokumentation stehen unter der [Apache License 
 
 ## Aktueller Release
 
-- Version: [v0.25.0](https://github.com/TimoFrank/mitmachen/releases/tag/v0.25.0)
+- Version: [v0.25.1](https://github.com/TimoFrank/mitmachen/releases/tag/v0.25.1)
 - Stand: 22. September 2026
-- Kurznotiz: Online arbeiten und auf dem Mac weiterarbeiten
+- Kurznotiz: Der Mac-Abgleich berücksichtigt den Schreibschutz des Aktivitätsprotokolls und erhält den Kopplungscode beim Anmelderücksprung. Unterbrochene Dateiübernahmen werden aus dem gesicherten Zwischenstand fortgesetzt. Der Integrationstest verwendet die tatsächlichen Laufzeitrechte.
 - Demo-Kanal: [GitHub Pages](https://timofrank.github.io/mitmachen/)

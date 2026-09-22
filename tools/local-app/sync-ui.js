@@ -33,7 +33,7 @@
   function render(state) {
     const previous = current?.conflict?.revision;
     current = state;
-    const messages = { current: "Der Abgleich ist aktuell.", syncing: "Die Daten werden abgeglichen …", not_connected: "Dieser Mac ist noch nicht mit der Live-Anwendung verbunden.", pairing: "Bitte bestätige diesen Mac in der Live-Anwendung.", offline: "Der Abgleich ist gerade nicht möglich. Dein lokaler Stand bleibt verfügbar.", reconnect: "Die Verbindung muss erneut bestätigt werden. Dein lokaler Stand bleibt erhalten.", conflict: "Der Abgleich wartet auf deine Entscheidung." };
+    const messages = { current: "Der Abgleich ist aktuell.", syncing: "Die Daten werden abgeglichen …", retry_wait: "Die Übertragung wird in etwa einer Minute automatisch fortgesetzt.", not_connected: "Dieser Mac ist noch nicht mit der Live-Anwendung verbunden.", pairing: "Bitte bestätige diesen Mac in der Live-Anwendung.", offline: "Der Abgleich ist gerade nicht möglich. Dein lokaler Stand bleibt verfügbar.", reconnect: "Die Verbindung muss erneut bestätigt werden. Dein lokaler Stand bleibt erhalten.", conflict: "Der Abgleich wartet auf deine Entscheidung." };
     el("sync-status").textContent = state.status === "pending" ? "Lokale Änderungen warten auf den nächsten Abgleich." : messages[state.status] || "Der Datenstand wird geprüft …";
     el("sync-last").textContent = state.lastSync ? new Date(state.lastSync).toLocaleString("de-DE", { dateStyle: "medium", timeStyle: "short" }) : "Noch keiner";
     el("sync-pending").textContent = `${state.pending || 0} noch nicht übertragen`;

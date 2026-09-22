@@ -96,7 +96,9 @@ export function createLocalSync({ pool, profileId, transport = fetch, intervalMs
     for (const item of references) {
       if ((await pool.query("select 1 from local_app.sync_assets where path=$1 and reference=$2", [item.path, item.reference])).rowCount) continue;
       const asset = await remote("asset", { method: "POST", body: { path: item.path }, credential, binary: true });
-      Object.assign(item, asset);
+      // Cache each completed download privately so a later rate limit or
+      // disconnect resumes here. It becomes visible only with the data pull.
+      await pool.query("insert into local_app.sync_assets (path,reference,content_type,content) values ($1,$2,$3,$4) on conflict do nothing", [item.path, item.reference, asset.contentType, asset.content]);
     }
     // Only switch current references in the same transaction as the data pull.
     // Older bytes remain in this private database for recovery.
@@ -129,7 +131,7 @@ export function createLocalSync({ pool, profileId, transport = fetch, intervalMs
   async function perform() {
     if (busy || stopped) return status();
     busy = true;
-    let pairing = false;
+    let pairing = false, retryDelay = intervalMs;
     try {
       let state = await readState();
       if (!state.credential) return;
@@ -157,8 +159,9 @@ export function createLocalSync({ pool, profileId, transport = fetch, intervalMs
       await replaceLocalData(pool, snapshot, profileId, assets);
     } catch (error) {
       const code = /^SYNC_[A-Z_]+$/u.test(error.code || "") ? error.code : "SYNC_OFFLINE";
-      await saveState({ status: error.status === 401 || error.status === 403 ? "reconnect" : "offline", error: code }).catch(() => {});
-    } finally { busy = false; schedule(pairing ? 10_000 : intervalMs); }
+      if (error.status === 429) retryDelay = 60_000;
+      await saveState({ status: error.status === 401 || error.status === 403 ? "reconnect" : error.status === 429 ? "retry_wait" : "offline", error: code }).catch(() => {});
+    } finally { busy = false; schedule(pairing ? 10_000 : retryDelay); }
     return status();
   }
   async function run() {

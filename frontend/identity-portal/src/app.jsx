@@ -24,6 +24,7 @@ import {
   isLocalPreview
 } from "./config.js";
 import { requestPasswordResetEmail } from "./password-reset.js";
+import { safeSessionReturnPath } from "./session-return.js";
 import {
   InlineNotice,
   PortalShell,
@@ -448,10 +449,7 @@ async function startGoogleSession(config) {
   auth.languageCode = "de";
   await setPersistence(auth, inMemoryPersistence);
   const candidate = new URLSearchParams(window.location.search).get("return") || "/start";
-  const returnUrl = new URL(candidate, window.location.origin);
-  const safeReturn = returnUrl.origin === window.location.origin
-    && /^\/(?:start|versorgung|stakeholder|hospitationen|profil|personen|organisationen|formate|teams|onboarding)(?:\/|$)/u.test(returnUrl.pathname)
-    ? `${returnUrl.pathname}${returnUrl.search}${returnUrl.hash}` : "/start";
+  const safeReturn = safeSessionReturnPath(candidate, window.location.origin);
   renderSignIn(auth, config, async (credential) => {
     try {
       const response = await fetch("/api/auth/session", {
