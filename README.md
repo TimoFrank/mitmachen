@@ -133,7 +133,7 @@ Der Quellcode und die technische Dokumentation stehen unter der [Apache License 
 
 ## Aktueller Release
 
-- Version: [v0.25.2](https://github.com/TimoFrank/mitmachen/releases/tag/v0.25.2)
-- Stand: 22. September 2026
-- Kurznotiz: Der Mac-Abgleich berücksichtigt deaktivierte Profile und online nicht verfügbare Bilder. Er überträgt die übrigen Daten vollständig, bewahrt ältere Bildfassungen und lädt wieder verfügbare Dateien später nach.
+- Version: [v0.26.0](https://github.com/TimoFrank/mitmachen/releases/tag/v0.26.0)
+- Stand: 25. September 2026
+- Kurznotiz: Neues in Version 0.26
 - Demo-Kanal: [GitHub Pages](https://timofrank.github.io/mitmachen/)
