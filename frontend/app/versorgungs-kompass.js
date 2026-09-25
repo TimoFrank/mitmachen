@@ -5873,6 +5873,19 @@
 
       const appVersionHistory = [
         {
+          version: "0.26.0",
+          date: "25. September 2026",
+          title: "Neues in Version 0.26",
+          icon: "start",
+          summary: "Der Versorgungs-Kompass wird klarer, verlässlicher und leichter nutzbar. Die neuen Verbesserungen unterstützen das Netzwerk dabei, Wissen zu teilen und gemeinsam ins Handeln zu kommen.",
+          items: [
+            "Hotfix v0.25.1: Der Mac-Abgleich berücksichtigt den Schreibschutz des Aktivitätsprotokolls und erhält den Kopplungscode beim Anmelderücksprung. Unterbrochene Dateiübernahmen werden aus dem gesicherten Zwischenstand fortgesetzt. Der Integrationstest verwendet die tatsächlichen Laufzeitrechte.",
+            "Hotfix v0.25.2: Der Mac-Abgleich berücksichtigt deaktivierte Profile und online nicht verfügbare Bilder. Er überträgt die übrigen Daten vollständig, bewahrt ältere Bildfassungen und lädt wieder verfügbare Dateien später nach.",
+            "Hospitationsnavigation in Termine und Framework gliedern (#276): Die Änderung macht den Bereich Hospitationen klarer und leichter nutzbar. Die wichtigsten Schritte sind schneller nachvollziehbar. So bleibt mehr Zeit für die gemeinsame Arbeit im Versorgungsnetzwerk.",
+            "Eigenen Einstieg für den Hospitations-Kompass ergänzen (#275): Die Änderung macht den Bereich Hospitationen klarer und leichter nutzbar. Die wichtigsten Schritte sind schneller nachvollziehbar. So bleibt mehr Zeit für die gemeinsame Arbeit im Versorgungsnetzwerk."
+          ]
+        },
+        {
           version: "0.25.0",
           date: "22. September 2026",
           title: "Online arbeiten und auf dem Mac weiterarbeiten",
