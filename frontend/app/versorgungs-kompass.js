@@ -1415,6 +1415,7 @@
       const careOverviewAnalyticsLink = document.getElementById("care-overview-analytics-link");
       const careOverviewActivitiesLink = document.getElementById("care-overview-activities-link");
       const sidebarNotificationsButton = document.getElementById("sidebar-notifications-button");
+      const sidebarUserAdminButton = document.getElementById("sidebar-user-admin-button");
       const sidebarTeamButton = document.getElementById("sidebar-team-button");
       const sidebarSettingsButton = document.getElementById("sidebar-settings-button");
       const sidebarAboutButton = document.getElementById("sidebar-about-button");
@@ -2250,6 +2251,7 @@
       }
 
       function canAccessView(view) {
+        if (view === "userAdmin") return canAdministerData() && !IS_PUBLIC_DEMO_PROFILE;
         if (view === "onboarding") return onboardingActive || onboardingReviewActive;
         return !["settings", "about", "analytics", "quality", "activities"].includes(view) || canAdministerData();
       }
@@ -2553,6 +2555,8 @@
         setRoleElementVisible(newContactButton, !isTestAccess() || canCreateCareObject());
         setRoleElementVisible(newOrganizationButton, !isTestAccess() || canCreateCareObject());
         setRoleElementVisible(openImportButton, canAdministerData());
+        setRoleElementVisible(sidebarUserAdminButton, canAccessView("userAdmin"));
+        if (!canAccessView("userAdmin")) window.VKUserAdministration?.close();
         setRoleElementVisible(importsStartFileButton, canAdministerData());
         setRoleElementVisible(importsStartStakeholderButton, canAdministerData());
         setRoleElementVisible(importsOpenTableButton, canEditContacts());
@@ -5862,6 +5866,7 @@
         map: { title: "Karte", subtitle: "Regionale Verteilung und Standortkontext der aktuellen Auswahl." },
         analytics: { title: "Auswertung", subtitle: "Reporting, regionale Abdeckung und Netzwerktransparenz." },
         quality: { title: "Datenqualität", subtitle: "Pflegehinweise, Datenlücken und konkrete Arbeitslisten." },
+        userAdmin: { title: "Nutzerverwaltung", subtitle: "Konten überblicken, Nutzer einladen und Zugänge verwalten." },
         team: { title: "Teams", subtitle: "Finde Nutzer, Rollen und Zuständigkeiten, ohne lange Kontaktlisten durchsuchen zu müssen." },
         settings: { title: "Import", subtitle: "Kontakte erfassen, importieren und Backend-Eingänge prüfen." },
         about: { title: "Über die App", subtitle: "Kurzüberblick und Versionsverlauf des Versorgungs-Kompass." },
@@ -40029,6 +40034,7 @@
         if (viewChanged && previousView === "patients") {
           capturePatientModeState(activePatientMode);
         }
+        if (viewChanged && previousView === "userAdmin") window.VKUserAdministration?.close();
         if (viewChanged) currentPage = 1;
         if (viewChanged && detailDrawer?.classList.contains("is-open")) {
           closeDetail();
@@ -40111,6 +40117,9 @@
         });
         sidebarAnalyticsButton?.classList.toggle("is-active", isAnalyticsView(view));
         sidebarNotificationsButton?.classList.toggle("is-active", view === "notifications" || (view === "profile" && activeProfileTab === "notifications") || Boolean(notificationPopover && !notificationPopover.hidden));
+        sidebarUserAdminButton?.classList.toggle("is-active", view === "userAdmin");
+        if (view === "userAdmin") sidebarUserAdminButton?.setAttribute("aria-current", "page");
+        else sidebarUserAdminButton?.removeAttribute("aria-current");
         sidebarTeamButton?.classList.toggle("is-active", view === "team");
         sidebarSettingsButton?.classList.toggle("is-active", view === "profile");
         sidebarAboutButton?.classList.toggle("is-active", view === "about");
@@ -40137,6 +40146,7 @@
         if (view === "personProfile") renderPersonProfilePage();
         if (view === "organizationProfile") renderOrganizationProfilePage();
         if (view === "team") renderTeamView();
+        if (view === "userAdmin" && viewChanged) void window.VKUserAdministration?.open();
         if (view === "experts") renderExpertTablesVisibility();
         if (view === "stakeholders") {
           activeStakeholderMode = "organizations";
@@ -43470,6 +43480,11 @@
           return;
         }
         setSidebarCollapsed(!appShell?.classList.contains("is-sidebar-collapsed"));
+      });
+      sidebarUserAdminButton?.addEventListener("click", () => {
+        closeMobileSidebar();
+        setActiveView("userAdmin");
+        updateRouteHash("userAdmin");
       });
       sidebarTeamButton?.addEventListener("click", () => {
         closeMenus();

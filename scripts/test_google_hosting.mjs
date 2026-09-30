@@ -39,6 +39,14 @@ const deployment = {
 };
 const services = renderGoogleServices(deployment);
 const appContainer = services.app.spec.template.spec.containers[0];
+const adminDeployment = renderGoogleServices({ ...deployment, userAdministration: { databaseUser: "vk_user_admin_app", databaseSecret: { name: "user-admin-password", version: 1 } } });
+const adminEnv = adminDeployment.app.spec.template.spec.containers[0].env;
+assert.equal(adminEnv.find(v => v.name === "USER_ADMIN_ENABLED").value, "1");
+assert.deepEqual(adminEnv.find(v => v.name === "USER_ADMIN_DB_PASSWORD").valueFrom.secretKeyRef, { name: "user-admin-password", key: "1" });
+assert.equal(adminEnv.find(v => v.name === "USER_ADMIN_SMTP_PASSWORD").valueFrom.secretKeyRef.name, "smtp-password");
+assert.equal(adminDeployment.reset.spec.template.spec.containers[0].env.some(v => v.name.startsWith("USER_ADMIN_")), false);
+for (const userAdministration of [true, { databaseUser: "postgres", databaseSecret: { name: "admin-password", version: 1 } }, { databaseUser: "vk_user_admin_app", databaseSecret: { name: "admin-password", version: "latest" } }]) assert.throws(() => renderGoogleServices({ ...deployment, userAdministration }));
+
 const resetContainer = services.reset.spec.template.spec.containers[0];
 assert.equal(appContainer.env.find((value) => value.name === "GOOGLE_CUTOVER_MODE").value, "closed");
 assert.equal(appContainer.env.find(value => value.name === "MAC_SYNC_ENABLED").value, "0");

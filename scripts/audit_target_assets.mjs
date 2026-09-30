@@ -130,6 +130,8 @@ for (const required of [
   "mitmachen/index.html",
   "versorgungs-kompass.html",
   "versorgungs-kompass.css",
+  "user-administration.css",
+  "user-administration.js",
   "versorgungs-kompass-no-script.css",
   "versorgungs-kompass.js",
   "versorgungs-kompass-routes.js",

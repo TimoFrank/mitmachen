@@ -21,6 +21,7 @@
     <script src="../login/auth-guard.js"></script>
     <link rel="icon" type="image/svg+xml" href="../../public/brand/mitmachen/flechtwerk-mark.svg" />
     <link rel="stylesheet" href="./versorgungs-kompass.css" />
+    <link rel="stylesheet" href="./user-administration.css" />
     <noscript>
       <link rel="stylesheet" href="./versorgungs-kompass-no-script.css" data-no-script-home />
     </noscript>
@@ -367,6 +368,10 @@
               </svg>
             </span>
             <span class="sidebar-team-label">Teams</span>
+          </button>
+          <button class="sidebar-link" type="button" id="sidebar-user-admin-button" title="Nutzerverwaltung" hidden>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="9" cy="7" r="4"></circle><path d="M2 21v-2a4 4 0 0 1 4-4h6a4 4 0 0 1 4 4v2M19 8v6m-3-3h6"></path></svg>
+            <span>Nutzerverwaltung</span>
           </button>
           <div class="sidebar-account-row">
             <button class="sidebar-footer" type="button" id="sidebar-profile-button" aria-label="Mein Profil öffnen" title="Mein Profil">
@@ -2394,6 +2399,58 @@
             </div>
           </section>
 
+          <section class="view-panel" id="view-userAdmin" data-view-panel="userAdmin" aria-hidden="true">
+            <div class="user-admin-toolbar">
+              <label class="visually-hidden" for="user-admin-search">Name oder E-Mail suchen</label>
+              <input id="user-admin-search" data-admin-search type="search" placeholder="Name oder E-Mail suchen" autocomplete="off" />
+              <div class="user-admin-filters" role="group" aria-label="Kontostatus">
+                <button class="action-button" type="button" data-admin-filter="all" aria-pressed="true">Alle</button>
+                <button class="action-button" type="button" data-admin-filter="active" aria-pressed="false">Aktiv</button>
+                <button class="action-button" type="button" data-admin-filter="blocked" aria-pressed="false">Gesperrt</button>
+                <button class="action-button" type="button" data-admin-filter="unbound" aria-pressed="false">Ohne App-Zugang</button>
+              </div>
+              <button class="action-button" type="button" data-admin-reload>Aktualisieren</button>
+              <button class="action-button action-button--primary" type="button" data-admin-invite disabled>Nutzer einladen</button>
+            </div>
+            <p class="user-admin-status" data-admin-status role="status" aria-live="polite"></p>
+            <p class="user-admin-meta" data-admin-count></p>
+            <table class="user-admin-table" aria-label="Nutzerkonten">
+              <thead><tr><th scope="col">Name und E-Mail</th><th scope="col">Rolle und Team</th><th scope="col">Zugang</th><th scope="col">Letzte Anmeldung</th><th scope="col"><span class="visually-hidden">Aktionen</span></th></tr></thead>
+              <tbody data-admin-rows></tbody>
+            </table>
+            <p class="user-admin-meta">Aktiv bedeutet: Anmeldekonto, Profil und App-Zuordnung sind freigeschaltet. „Letzte Anmeldung“ ist kein Nachweis für die aktuelle Nutzung.</p>
+            <details class="user-admin-section"><summary>Einladungen</summary><ul class="user-admin-list" data-admin-invitations></ul></details>
+            <details class="user-admin-section"><summary>Änderungsverlauf</summary><ul class="user-admin-list" data-admin-history></ul></details>
+            <dialog class="user-admin-dialog" data-admin-dialog aria-labelledby="user-admin-dialog-title">
+              <header><h2 id="user-admin-dialog-title" data-admin-dialog-title></h2><button class="action-button" type="button" data-admin-close aria-label="Dialog schließen">Schließen</button></header>
+              <div data-admin-invite-panel hidden>
+                <form class="user-admin-form" data-admin-invite-form>
+                  <label>Name<input name="name" autocomplete="off" maxlength="120" required /></label>
+                  <label>E-Mail-Adresse<input name="email" type="email" autocomplete="off" maxlength="254" required /></label>
+                  <fieldset><legend>Rolle</legend><label><input name="role" type="radio" value="viewer" checked /> Viewer · ansehen</label><label><input name="role" type="radio" value="editor" /> Editor · bearbeiten</label></fieldset>
+                  <p class="user-admin-meta">Neue Nutzer erhalten Zugang zum Testbereich. Im nächsten Schritt prüfst du die Einladung vor dem Versand.</p>
+                  <label class="user-admin-check"><input name="ownership" type="checkbox" required /> Die E-Mail-Adresse wurde von der eingeladenen Person bestätigt.</label>
+                  <footer><button class="action-button" type="button" data-admin-close>Abbrechen</button><button class="action-button action-button--primary" type="submit">Einladung vorbereiten</button></footer>
+                </form>
+              </div>
+              <div data-admin-edit-panel hidden>
+                <p data-admin-edit-name></p>
+                <form class="user-admin-form" data-admin-edit-form>
+                  <fieldset><legend>Rolle</legend><label><input name="admin-edit-role" type="radio" value="viewer" /> Viewer</label><label><input name="admin-edit-role" type="radio" value="editor" /> Editor</label><label><input name="admin-edit-role" type="radio" value="admin" /> Admin</label></fieldset>
+                  <label class="user-admin-check"><input type="checkbox" data-admin-enabled /> Zugang freigeschaltet</label>
+                  <p class="user-admin-meta">Eine Änderung beendet bestehende Sitzungen. Die Person meldet sich anschließend erneut an.</p>
+                  <footer><button class="action-button" type="button" data-admin-close>Abbrechen</button><button class="action-button action-button--primary" type="submit">Änderung speichern</button></footer>
+                </form>
+              </div>
+              <div class="user-admin-preview" data-admin-preview-panel hidden>
+                <p>An: <strong data-admin-recipient></strong></p><p>Betreff: <strong data-admin-subject></strong></p>
+                <pre class="user-admin-mail" data-admin-mail></pre>
+                <footer><button class="action-button" type="button" data-admin-close>Später senden</button><button class="action-button action-button--primary" type="button" data-admin-send>Einladung senden</button></footer>
+              </div>
+              <p class="user-admin-status is-error" data-admin-dialog-status role="status" aria-live="polite"></p>
+            </dialog>
+          </section>
+
           <section class="view-panel" id="view-team" data-view-panel="team">
             <div class="team-workspace">
               <section class="team-directory" aria-label="Teamverzeichnis">
@@ -3698,6 +3755,7 @@
     <script src="../data/activity-model.js"></script>
     <script src="../data/document-text-extractor.js"></script>
     <script src="../data/data-service.js"></script>
+    <script src="./user-administration.js"></script>
     <script src="./versorgungs-kompass.js"></script>
   </body>
 </html>

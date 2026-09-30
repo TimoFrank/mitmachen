@@ -17,6 +17,7 @@ export function createGoogleRuntime(configuration, env = process.env) {
   return Object.freeze({
     state,
     auth: getAuth(app),
+    invitationBucket: name => getStorage(app).bucket(name),
     sessions: configuration ? createGoogleSessions({ auth: getAuth(app), state, configuration }) : null
   });
 }

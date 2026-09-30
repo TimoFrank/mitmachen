@@ -31,10 +31,23 @@ if (existingRole) {
 } else await api(`${iam}/roles`, { method: "POST", body: { roleId, role } });
 const apiMember = `serviceAccount:${accounts[0]}@${project}.iam.gserviceaccount.com`;
 const resetMember = `serviceAccount:${accounts[1]}@${project}.iam.gserviceaccount.com`;
+// Optionaler Admin-Pfad: eigene, eng begrenzte Rolle; die Sitzungsrolle bleibt unverändert.
+if (config.userAdministration) {
+  for (const [roleId, permissions] of [
+    ["vkGoogleUserAdministrator", ["firebaseauth.users.get", "firebaseauth.users.create", "firebaseauth.users.update"]],
+    ["vkGoogleInvitationWriter", ["storage.buckets.get", "storage.objects.get", "storage.objects.create"]]
+  ]) {
+    const existing = await api(`${iam}/roles/${roleId}`, { allow404: true });
+    if (existing) {
+      if (existing.deleted || JSON.stringify([...existing.includedPermissions].sort()) !== JSON.stringify([...permissions].sort())) throw new Error("Bestehende Admin-Rolle weicht ab; keine Rechteausweitung.");
+    } else await api(`${iam}/roles`, { method: "POST", body: { roleId, role: { title: roleId, description: "Explizit aktivierte Nutzerverwaltung in Mitmachen", stage: "GA", includedPermissions: permissions } } });
+  }
+}
 const projectUrl = `https://cloudresourcemanager.googleapis.com/v1/projects/${project}`;
 const policy = await api(`${projectUrl}:getIamPolicy`, { method: "POST", body: { options: { requestedPolicyVersion: 3 } } });
 addBinding(policy, `projects/${project}/roles/${roleId}`, apiMember);
 addBinding(policy, "roles/cloudsql.client", apiMember);
+if (config.userAdministration) addBinding(policy, `projects/${project}/roles/vkGoogleUserAdministrator`, apiMember);
 addBinding(policy, `projects/${project}/roles/preGematikPasswordResetBroker`, resetMember);
 await api(`${projectUrl}:setIamPolicy`, { method: "POST", body: { policy } });
 
@@ -73,8 +86,12 @@ addBinding(invitations, `projects/${project}/roles/preGematikPasswordInvitationB
   title: "active-password-invitations-only", description: "The public broker may read and consume only active invitation objects.",
   expression: `resource.name.startsWith('projects/_/buckets/${invitationBucket}/objects/active/')`
 });
+if (config.userAdministration) addBinding(invitations, `projects/${project}/roles/vkGoogleInvitationWriter`, apiMember, {
+  title: "user-admin-prepared-and-active", description: "Nur private Einladungen lesen und neu anlegen, keine Änderung oder Löschung.",
+  expression: `resource.name == 'projects/_/buckets/${invitationBucket}' || resource.name.startsWith('projects/_/buckets/${invitationBucket}/objects/prepared/') || resource.name.startsWith('projects/_/buckets/${invitationBucket}/objects/active/')`
+});
 await api(invitationUrl, { method: "PUT", body: invitations });
-for (const [secret, member] of [[config.databaseSecret.name, apiMember], [config.smtpSecret.name, resetMember], ...(config.cartoSecret ? [[config.cartoSecret.name, apiMember]] : [])]) {
+for (const [secret, member] of [[config.databaseSecret.name, apiMember], [config.smtpSecret.name, resetMember], ...(config.userAdministration ? [[config.userAdministration.databaseSecret.name, apiMember], [config.smtpSecret.name, apiMember]] : []), ...(config.cartoSecret ? [[config.cartoSecret.name, apiMember]] : [])]) {
   const url = `https://secretmanager.googleapis.com/v1/projects/${project}/secrets/${secret}`;
   const previous = await api(`${url}:getIamPolicy?options.requestedPolicyVersion=3`);
   addBinding(previous, "roles/secretmanager.secretAccessor", member);

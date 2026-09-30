@@ -355,7 +355,7 @@ export function validatePasswordInvitationRecord(value, { expectedStatus } = {})
   return Object.freeze({ ...value });
 }
 
-function invitationRecord({ account, guestAccess, bindingStateFingerprint, preparedAt }) {
+export function invitationRecord({ account, guestAccess, bindingStateFingerprint, preparedAt }) {
   return validatePasswordInvitationRecord({
     version: PASSWORD_INVITATION_VERSION,
     purpose: PASSWORD_INVITATION_PURPOSE,

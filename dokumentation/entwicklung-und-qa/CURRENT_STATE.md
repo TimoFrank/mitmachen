@@ -2,6 +2,14 @@
 
 Stand: 2026-09-30. Ältere Kanalbeschreibungen bleiben als Referenz erhalten.
 
+## Nutzerverwaltung in Vorbereitung
+
+- Die Kontenübersicht mit Einladungen, Rollen, Sperren und Audit
+  ist im Aufgabenbranch implementiert. Die Aktivierung in Cloud Run ist
+  ausstehend; bestehende Produktionsrechte werden dadurch noch nicht erweitert.
+- Bedienung, Grenzen, Migration und Freischaltung stehen im
+  [Runbook zur Nutzerverwaltung](../betrieb-und-deployment/NUTZERVERWALTUNG.md).
+
 ## Betriebsentscheidung vom 21. September 2026
 
 - Der private Google-Betrieb soll von GKE auf Cloud Run mit Firebase Hosting

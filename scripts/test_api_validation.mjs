@@ -409,6 +409,13 @@ try {
   await expectActivitySummaryValidationFailure("?from=2026-01-01T00%3A00%3A00.000Z&to=2026-03-01T00%3A00%3A00.000Z");
   await expectActivitySummaryValidationFailure("?from=2099-01-01T00%3A00%3A00.000Z");
   await expectIapBootstrapBoundary();
+  const adminList = await fetch(`http://127.0.0.1:${port}/api/admin/users`, { headers: { authorization: `Bearer ${fakeToken()}` } });
+  assert.equal(adminList.status, 503, "Google-Nutzerverwaltung ist ohne explizite Aktivierung gesperrt");
+  for (const origin of [undefined, "https://fremd.example.invalid"]) {
+    const response = await fetch(`http://127.0.0.1:${port}/api/admin/users/invitations`, { method: "POST", headers: { authorization: `Bearer ${fakeToken()}`, "content-type": "application/json", ...(origin ? { origin } : {}) }, body: "{}" });
+    assert.equal(response.status, 403, "Admin-Schreiben verlangt exakten App-Origin");
+  }
+
   console.log("API Validation Test OK: JSON-Felder, Aktivitaets-Producer und #Mitmachen-Nachweisregeln werden serverseitig validiert.");
 } finally {
   child.kill("SIGTERM");

@@ -40,7 +40,8 @@ const expectedMigrationFiles = Object.freeze([
   "202607280001_add_format_participation_workflow.sql",
   "202607300001_add_network_registration_intake.sql",
   "202607310001_restrict_activity_event_runtime_grants.sql",
-  "202609120001_hospitation_evidence_types.sql"
+  "202609120001_hospitation_evidence_types.sql",
+  "202609300001_user_administration.sql"
 ]);
 const migrationFiles = readdirSync(migrationsUrl)
   .filter((fileName) => /^\d+_[a-z0-9_]+\.sql$/u.test(fileName))

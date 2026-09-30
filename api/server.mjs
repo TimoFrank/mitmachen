@@ -17,6 +17,7 @@ import {
 } from "./duplicate-identity.mjs";
 import { normalizedRequestLogPath } from "./request-log-privacy.mjs";
 import { createGoogleHostingHandler } from "./google-hosting.mjs";
+import { createUserAdministration, adminError } from "./user-administration.mjs";
 import { currentSyncContext, syncUuid, invokeApi, withinSyncTransaction } from "./mac-sync-context.mjs";
 import { createMacSyncHandler, syncJsonBody } from "./mac-sync-http.mjs";
 import { initializeLocalSync, captureLocalOperation } from "./mac-sync-local.mjs";
@@ -1066,6 +1067,43 @@ let iapKeyCache = { expiresAt: 0, keys: new Map() };
 let oidcKeyCache = { expiresAt: 0, keys: new Map() };
 let supportsContactOwners = true;
 let pool = null;
+let userAdminPool = null;
+let userAdministration = null;
+
+async function getUserAdministration() {
+  if (!GOOGLE_RUNTIME || process.env.USER_ADMIN_ENABLED !== "1" || !process.env.USER_ADMIN_DB_USER || !process.env.USER_ADMIN_DB_PASSWORD) {
+    throw adminError(503, "Die Nutzerverwaltung ist für diese Umgebung noch nicht aktiviert.");
+  }
+  if (!userAdministration) {
+    userAdministration = (async () => {
+      if (!/^vk_user_admin_[a-z0-9_]+$/u.test(process.env.USER_ADMIN_DB_USER) || process.env.USER_ADMIN_DB_USER === "vk_user_admin_runtime") {
+        throw adminError(503, "Die Nutzerverwaltung benötigt einen eigenen Datenbankzugang.");
+      }
+      const adminEnv = { ...process.env, DB_USER: process.env.USER_ADMIN_DB_USER, DB_PASSWORD: process.env.USER_ADMIN_DB_PASSWORD,
+        DB_POOL_MAX: "3", DB_APPLICATION_NAME: "vk-user-administration" };
+      if (process.env.DATABASE_URL) {
+        const database = new URL(process.env.DATABASE_URL);
+        database.username = adminEnv.DB_USER; database.password = adminEnv.DB_PASSWORD;
+        adminEnv.DATABASE_URL = database.href;
+      }
+      userAdminPool ||= new Pool(buildPostgresPoolConfig(adminEnv));
+      const privileges = (await userAdminPool.query("select rolsuper,rolcreatedb,rolcreaterole,rolreplication,rolbypassrls,pg_has_role(current_user,'vk_user_admin_runtime','USAGE') as permitted from pg_roles where rolname=current_user")).rows[0];
+      if (!privileges?.permitted || ["rolsuper", "rolcreatedb", "rolcreaterole", "rolreplication", "rolbypassrls"].some(key => privileges[key])) {
+        throw adminError(503, "Der Datenbankzugang der Nutzerverwaltung ist nicht freigegeben.");
+      }
+      const project = IDENTITY_CONFIGURATION.iapGcipProjectId;
+      if (IDENTITY_CONFIGURATION.iapGcipTenantId) throw adminError(503, "Die Nutzerverwaltung benötigt die freigegebene Projektkonfiguration.");
+      let delivery = null;
+      if (process.env.USER_ADMIN_INVITATION_BUCKET && (process.env.USER_ADMIN_SMTP_CONFIG_FILE || process.env.USER_ADMIN_SMTP_PASSWORD)) {
+        const { createAdminInvitationDelivery } = await import("./user-administration-email.mjs");
+        delivery = await createAdminInvitationDelivery({ bucket: GOOGLE_RUNTIME.invitationBucket(process.env.USER_ADMIN_INVITATION_BUCKET),
+          project, accessEnd: process.env.IAP_EXTERNAL_ACCESS_EXPIRES_AT, smtpFile: process.env.USER_ADMIN_SMTP_CONFIG_FILE, smtpPassword: process.env.USER_ADMIN_SMTP_PASSWORD });
+      }
+      return createUserAdministration({ pool: userAdminPool, auth: GOOGLE_RUNTIME.auth, delivery, project });
+    })().catch(error => { userAdministration = null; throw error; });
+  }
+  return userAdministration;
+}
 const requestRateBuckets = new Map();
 
 const ROLE_MATRIX = [
@@ -10391,6 +10429,26 @@ async function handle(request, response) {
     if (request.method === "GET" && url.pathname === "/api/ops/checks") {
       return jsonResponse(response, 200, await getOpsChecks());
     }
+    if (url.pathname.startsWith("/api/admin/users")) {
+      if (request.method !== "GET" && (!ALLOWED_ORIGIN || request.headers.origin !== ALLOWED_ORIGIN
+        || !/^application\/json(?:\s*;.*)?$/iu.test(request.headers["content-type"] || ""))) {
+        throw adminError(403, "Die Kontoänderung benötigt eine bestätigte Anfrage aus der Anwendung.");
+      }
+      const administration = await getUserAdministration();
+      const actor = await resolveRequestProfile(request);
+      if (request.method === "GET" && url.pathname === "/api/admin/users") return jsonResponse(response, 200, await administration.list(actor));
+      if (request.method === "POST" && url.pathname === "/api/admin/users/invitations") {
+        return jsonResponse(response, 200, await administration.prepare(actor, await readJsonBody(request)));
+      }
+      const sendMatch = /^\/api\/admin\/users\/invitations\/([^/]+)\/send$/.exec(url.pathname);
+      if (request.method === "POST" && sendMatch) return jsonResponse(response, 200, await administration.send(actor, decodeURIComponent(sendMatch[1]), await readJsonBody(request)));
+      const userMatch = /^\/api\/admin\/users\/([^/]+)$/.exec(url.pathname);
+      if (request.method === "PATCH" && userMatch) {
+        const result = await administration.update(actor, decodeURIComponent(userMatch[1]), await readJsonBody(request));
+        profileCache = { expiresAt: 0, byId: new Map() };
+        return jsonResponse(response, 200, result);
+      }
+    }
     if (request.method === "GET" && url.pathname === "/api/export") {
       const stamp = new Date().toISOString().replace(/[:.]/g, "-");
       return jsonDownload(response, `versorgungs-kompass-cloud-sql-export-${stamp}.json`, await exportCloudSqlData());
@@ -10793,6 +10851,7 @@ function shutdown(signal, exitCode = 0) {
   server.close(async (error) => {
     try {
       if (pool) await pool.end();
+      if (userAdminPool) await userAdminPool.end();
     } catch {
       exitCode = 1;
     }

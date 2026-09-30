@@ -43,6 +43,10 @@ export const ROUTE_POLICIES = Object.freeze([
   ),
   route(["GET"], /^\/api\/session$/, "viewer", "session.read", WRITE_CLASSES.READ),
   route(["GET"], /^\/api\/ops\/(?:summary|checks)$/, "admin", "operations.read"),
+  route(["GET"], /^\/api\/admin\/users$/, "admin", "users.read"),
+  route(["PATCH"], /^\/api\/admin\/users\/[^/]+$/, "admin", "users.update"),
+  route(["POST"], /^\/api\/admin\/users\/invitations$/, "admin", "users.invite.prepare"),
+  route(["POST"], /^\/api\/admin\/users\/invitations\/[^/]+\/send$/, "admin", "users.invite.send"),
   route(["GET"], /^\/api\/export$/, "admin", "data.export"),
   route(["GET"], /^\/api\/politics\/health-committee$/, "viewer", "politics.health-committee.read", WRITE_CLASSES.READ),
 

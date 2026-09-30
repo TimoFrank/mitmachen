@@ -14,6 +14,7 @@ const publicFiles = new Map([
   ["/public/media/social/mitmachen-share-v3.png", "public/media/social/mitmachen-share-v3.png"]
 ]);
 const appRoutes = [
+  /^\/administration\/nutzer\/?$/u,
   /^\/(?:start|onboarding|formate|teams)\/?$/u,
   /^\/versorgung(?:\/(?:karte|kontakte|organisationen|auswertung|datenqualitaet|aktivitaeten))?\/?$/u,
   /^\/stakeholder(?:\/(?:patienten|politik|presse|expertenkreis|kassenaerztliche-vereinigungen|krankenkassen|patientenverbaende|krankenhausgesellschaften|aerztliche-berufsverbaende))?\/?$/u,
