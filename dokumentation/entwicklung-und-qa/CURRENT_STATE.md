@@ -1,6 +1,6 @@
 # Current State
 
-Stand: 2026-09-22. Ältere Kanalbeschreibungen bleiben als Referenz erhalten.
+Stand: 2026-09-30. Ältere Kanalbeschreibungen bleiben als Referenz erhalten.
 
 ## Betriebsentscheidung vom 21. September 2026
 
@@ -15,11 +15,22 @@ Stand: 2026-09-22. Ältere Kanalbeschreibungen bleiben als Referenz erhalten.
   Die geschützte Anwendung und die Domain wurden am 22. September nach
   Abnahme auf Cloud Run und Firebase Hosting umgestellt. Datenbank, Konten,
   Rollen und verwaltete Sicherungen bleiben erhalten.
-- Auf ausdrücklichen Betreiberwunsch bleibt die alte GKE-Infrastruktur als
-  Rückfalloption bestehen. Ihre API- und Passwort-Schreibdienste sind gestoppt;
-  der alte Auslieferungsworkflow ist deaktiviert. Während der DNS-Verteilung
-  leitet die alte Adresse ebenfalls zur neuen Anwendung weiter. Der Abbau
-  und damit der Nachweis des Kostenziels von 15 bis 20 Euro netto stehen aus.
+- Nach der neuen Betreiberfreigabe wurde GKE am 29. September vollständig
+  abgebaut, einschließlich altem Load Balancer, externer IP, NAT und Cloud
+  Armor. Der alte Auslieferungsworkflow bleibt deaktiviert. Datenbank,
+  Sicherungen, Dateien, Identität und die private Cloud-Run-Anbindung bleiben
+  erhalten. Eine Rückkehr zu GKE würde einen neuen Infrastrukturaufbau erfordern.
+- Die September-Vorschau ist seit 30. September abgeschaltet; ihre
+  Testdatenbank wurde nach Backup, geschütztem Export und geprüftem Restore
+  entfernt. Die gestoppte Juli-Demodatenbank bleibt bis zur zweiten
+  unabhängigen Löschfreigabe erhalten.
+- Die produktive Cloud-Run-Zugangsfrist wurde bis 31. Oktober 2026, 18 Uhr
+  Europe/Berlin verlängert (`2026-10-31T17:00:00Z`). Die private Betriebseingabe
+  für künftige Builds enthält dieselbe Frist; historische Snapshots bleiben
+  unverändert. Eine Verlängerung ist weiterhin eine eigene Betreiberentscheidung.
+- Das Kostenziel von 15 bis 20 Euro netto ist weiterhin ein Planungswert.
+  Eine wöchentliche Kosten- und Betriebskontrolle ist eingerichtet; die
+  verzögerte Oktoberabrechnung muss die Einsparung erst bestätigen.
 - Die Vorarbeit aus Einzelserver-PR #258 bleibt erhalten. Ihr Abschluss ist
   offen; sie ist kein freigegebener Weg zur VPS-Bestellung oder Migration.
 
