@@ -737,7 +737,7 @@ jobs:
           cache: npm
 
       - name: Download preflight-proven release assets
-        uses: actions/download-artifact@018cc2cf5baa6db3ef3c5f8a56943fffe632ef53 # v6
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
         with:
           name: product-release-assets-${{ inputs.tag }}
           path: dist/release/assets
@@ -854,7 +854,7 @@ jobs:
           printf '%s' "$RELEASE_TAG_GPG_PUBLIC_KEY" | gpg --batch --import
 
       - name: Download locally verified release assets
-        uses: actions/download-artifact@018cc2cf5baa6db3ef3c5f8a56943fffe632ef53 # v6
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
         with:
           name: product-release-assets-${{ inputs.tag }}
           path: dist/release/assets
