@@ -165,7 +165,8 @@ export function createUserAdministration({ pool, auth, delivery, project }) {
         try { user = await auth.getUser(row.uid); }
         catch (error) {
           if (error.code !== "auth/user-not-found") throw error;
-          user = await auth.createUser({ uid: row.uid, email: input.email, displayName: input.name, emailVerified: true, password: crypto.randomBytes(48).toString("base64url") });
+          const { generateUnsharedBootstrapPassword } = await import("../scripts/provision_pre_gematik_identity_platform_account.mjs");
+          user = await auth.createUser({ uid: row.uid, email: input.email, displayName: input.name, emailVerified: true, password: generateUnsharedBootstrapPassword() });
         }
         if (user.uid !== row.uid || user.email !== input.email || user.displayName !== input.name || user.disabled || !user.emailVerified || user.providerData?.length !== 1 || user.providerData[0].providerId !== "password") {
           throw adminError(409, "Das vorhandene Konto stimmt nicht mit diesem Vorgang überein.");

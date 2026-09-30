@@ -1,5 +1,6 @@
 import { expect, test } from "@playwright/test";
 import { createHash } from "node:crypto";
+import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { gotoAuthenticated } from "./helpers/app-test-session.js";
 import { createProtectedBackendFixture } from "./helpers/protected-backend-fixture.js";
@@ -7170,8 +7171,13 @@ test("Mein Profil: Changelog ist als Profil-Reiter erreichbar", async ({ page },
   await expect(page.locator("#profile-tab-changelog")).toBeVisible();
   const latestRelease = page.locator("#about-version-list .about-version").first();
   await expect(latestRelease).toBeVisible();
-  await expect(latestRelease.locator(".about-version__badge")).toHaveText("0.25");
-  await expect(latestRelease.locator("summary")).toContainText("Online arbeiten und auf dem Mac weiterarbeiten");
+  const productVersion = JSON.parse(readFileSync(new URL("../config/release.json", import.meta.url), "utf8")).productVersion;
+  const [major, minor] = productVersion.split(".");
+  const releaseNotes = readFileSync(new URL(`../dokumentation/release-notes/v${major}.${minor}.0.md`, import.meta.url), "utf8");
+  const releaseTheme = releaseNotes.match(/^# (.+)$/mu)?.[1];
+  expect(releaseTheme).toBeTruthy();
+  await expect(latestRelease.locator(".about-version__badge")).toHaveText(`${major}.${minor}`);
+  await expect(latestRelease.locator("summary")).toContainText(releaseTheme);
   await latestRelease.locator("summary").click();
   await expect(latestRelease.locator(".about-version__body")).toContainText("Was sich für Anwender geändert hat");
 
