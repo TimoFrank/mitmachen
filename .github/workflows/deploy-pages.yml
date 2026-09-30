@@ -316,9 +316,16 @@ jobs:
               and .artifactDigest == $digest
               and (.artifactDigest | test("^sha256:[0-9a-f]{64}$"))
             ' "$build_manifest_path" >/dev/null
-          for app_label in Versorgung Auswertung Aktivitäten Stakeholder Expertenkreis Hospitationen Beobachtungen Fragebogen Dashboard Formate Teams; do
-            grep --fixed-strings --quiet "$app_label" "$app_path"
+          for app_label in Versorgung Auswertung Aktivitäten Stakeholder Expertenkreis Hospitationen Beobachtungen Fragebogen Formate Teams; do
+            grep --fixed-strings --quiet "$app_label" "$app_path" || {
+              echo "GitHub Pages: Erwarteter Seitentext fehlt: ${app_label}" >&2
+              exit 1
+            }
           done
+          grep --fixed-strings --quiet 'data-view-tab="hospitations:dashboard" title="Auswertung"' "$app_path" || {
+            echo "GitHub Pages: Navigation zur Hospitations-Auswertung fehlt." >&2
+            exit 1
+          }
           node - \
             "$app_path" \
             "$registration_path" \
