@@ -5,6 +5,39 @@ Er ist vom öffentlichen Pages-Demobetrieb, den historischen Cloud-Run-Demos
 und dem gematik-Zielbetrieb getrennt. Ein vorhandenes Skript oder Image ist
 kein Nachweis einer erfolgten Domain-Umschaltung.
 
+## Verifizierter Betriebsstand vom 30. September 2026
+
+Die Hauptdomain läuft seit 22. September über Firebase Hosting und Cloud Run.
+Der GKE-Abbau wurde am 29. September nach Betreiberfreigabe abgeschlossen:
+Cluster, alter Load Balancer mit externer IP, NAT/Router und Cloud Armor sind
+entfernt. Die produktive Cloud-SQL-Instanz, ihre täglichen Sicherungen mit
+14 Aufbewahrungsständen und sieben Tagen zeitpunktbezogener Wiederherstellung,
+Dateien, Identität, VPC, Peering und Cloud-Run-Teilnetz bleiben erhalten.
+Am 30. September wurden Bereitschaft, anonyme Zugriffssperre und ein
+erfolgreiches Tagesbackup erneut geprüft. Private Inventare und geprüfte
+Wiederherstellungsarchive liegen außerhalb des Repositorys.
+
+Die freigegebene Zugangsfrist der Hauptanwendung endet am **31. Oktober 2026
+um 18 Uhr Europe/Berlin**, entsprechend `2026-10-31T17:00:00Z`. Die lokale
+Kostenkontrolle prüft sie wöchentlich und erinnert innerhalb der letzten
+sieben Tage. Sie verlängert keine Zugangsfreigabe automatisch.
+
+Die September-Abnahmeumgebung wurde am 30. September außer Betrieb genommen:
+beide Vorschau-Dienste sind auf manuell null Instanzen gesetzt, die zugehörige
+Cloud-SQL-Testinstanz ist gelöscht. Vorher wurden ein verwaltetes Backup und
+ein portabler Export erstellt. Dessen isolierter Restore bestätigte alle
+37 Tabellen und 717 Zeilen. Der Export bleibt im privaten Archiv mit
+Temporary Hold geschützt; ein zusätzliches erfolgreiches Final Backup wird
+bis 30. Oktober 2026 aufbewahrt. Eine neue Abnahme benötigt eine neu
+eingerichtete synthetische Datenbank und eine eigene Zugangsfreigabe.
+
+Die gestoppte Juli-Demodatenbank bleibt vorerst erhalten. Ihre beiden
+On-Demand-Backups und der gehaltene finale Export wurden erneut geprüft;
+ein isolierter Restore bestätigte alle 22 Tabellen samt Zeilenzahlen.
+Für ihre Löschung fehlt die zweite unabhängige Freigabe aus dem
+[historischen Lösch-Runbook](CLOUD_RUN_LOESCHUNG.md). Deletion Protection,
+Exporte, Bilder und alte Dienstkonfigurationen bleiben unverändert.
+
 ## Laufzeit und unveränderte Daten
 
 Firebase Hosting leitet ausschließlich weiter; private Anwendungsdateien
@@ -136,6 +169,19 @@ Mobile sowie den unveränderten anonymen Zugriffsschutz prüfen.
    CSRF, private Cache-Header, Einladungen und Passwortversand prüfen.
    Echte Nutzer erhalten keine Testmails.
 
+Vor jedem neuen Build die private, dauerhaft abgelegte `production-config.json`
+mit der tatsächlich bedienten Cloud-Run-Revision abgleichen, insbesondere
+`accessExpiresAt`, `macSyncEnabled`, Secret-Versionen und Datenbankziel.
+Die Ende September freigegebene Oktoberfrist muss in beiden übereinstimmen.
+Frühere temporäre Build-Eingaben und historische Service-Snapshots sind keine
+aktuelle Deploymentquelle. Die führende Eingabe bleibt für einen neuen Build
+bewusst `closed`; Öffnung und Traffic-Umschaltung folgen erst nach Abnahme.
+Eine genehmigte reine Friständerung benötigt kein neues Anwendungsimage,
+aber einen Vergleich aller übrigen Laufzeitparameter und die Prüfung der
+tatsächlich bedienten Revision. Anwendung und Passwortdienst können bis zum
+nächsten gemeinsamen Release verschiedene bereits geprüfte Quellstände haben;
+ein ungeprüftes gemeinsames `replace` ist kein Konfigurationsabgleich.
+
 Der Frontend-Build verwendet im Google-Pfad denselben Origin für die API.
 Dadurch kann dasselbe geprüfte Image von der Abnahme auf die Hauptdomain
 übernommen werden. Die bestehende kanonische Google-Anmeldedomain bleibt
@@ -162,8 +208,11 @@ Die am 22. September zurückbehaltene alte Version kennt die neueren
 Beobachtungsquellen nicht vollständig. Sie darf deshalb nicht ungeprüft wieder
 schreiben: Vor einem Rückweg die Laufzeitkompatibilität mit dem aktuellen
 Datenbestand nachweisen. Herkunftsangaben niemals zur Anpassung an eine alte
-Version umcodieren. Die alte Infrastruktur bleibt auf Betreiberwunsch
-erhalten; ihr Abbau erfolgt erst nach gesonderter Freigabe.
+Version umcodieren. Die alte Infrastruktur wurde am 29. September nach
+gesonderter Freigabe abgebaut. Der frühere direkte Rückweg steht deshalb nicht
+mehr bereit; er erfordert einen neuen Aufbau aus den geschützten Nachweisen,
+aktuelle Daten und erneute technische Abnahme. Die alte öffentliche IP wurde
+freigegeben und kann nicht als verfügbar vorausgesetzt werden.
 
 ## Kontrollierter Abbau
 

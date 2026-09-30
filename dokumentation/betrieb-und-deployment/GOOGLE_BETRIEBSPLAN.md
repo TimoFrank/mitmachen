@@ -1,11 +1,11 @@
 # Google-Betrieb mit Cloud Run
 
-Stand: 22. September 2026. Status: **Google-Anwendung aktiviert und Domain
-umgestellt; alte Infrastruktur auf Betreiberwunsch als Rückfalloption erhalten.**
+Stand: 30. September 2026. Status: **Cloud Run und Firebase Hosting aktiv;
+GKE und die ausschließlich dafür benötigten Netzwerkressourcen abgebaut.**
 
 Implementierung und verbindlicher Ablauf stehen im
-[Google-Betriebsrunbook](GOOGLE_BETRIEB.md). Der Infrastrukturabbau und die
-Kostenverifikation stehen noch aus.
+[Google-Betriebsrunbook](GOOGLE_BETRIEB.md). Der GKE-Abbau ist verifiziert;
+die Kostenverifikation erfolgt anhand der verzögerten Abrechnung.
 
 ## Entscheidung und Geltungsbereich
 
@@ -19,10 +19,10 @@ Die Entscheidung verwirft keine einzigartigen Commits oder lokalen Änderungen.
 Der PR-Abschluss und die Aufbewahrung der Vorarbeit stehen noch aus.
 
 Seit der geprüften Umschaltung ist Cloud Run der aktive Auslieferungskanal.
-Die alte GKE-Infrastruktur bleibt erhalten, ihre API- und Passwort-Writer
-sind gestoppt und der alte Auslieferungsworkflow ist deaktiviert. Die alte
-Adresse leitet während der DNS-Verteilung ebenfalls zur neuen Anwendung.
-Das Kostenziel gilt erst nach einem gesondert freigegebenen Abbau. Pages bleibt
+Die zunächst zurückbehaltene GKE-Infrastruktur wurde nach gesonderter
+Betreiberfreigabe am 29. September entfernt. Der alte Auslieferungsworkflow
+bleibt deaktiviert; die Domains zeigen auf Firebase Hosting. Das Kostenziel
+muss nach dem Abbau noch durch die Abrechnung bestätigt werden. Pages bleibt
 die öffentliche Demo; der gematik-Zielbetrieb in der Software Factory bleibt
 ein eigener Kanal.
 
@@ -65,19 +65,30 @@ sind zusätzlich zu berücksichtigen. Eine dauerhaft vorgehaltene Instanz benöt
 eine neue Kostenrechnung. Budgetalarme begrenzen keine Rechnung; maximale
 Instanzzahl, Verbindungen und Protokollmengen müssen zusätzlich begrenzt werden.
 
-Die Schätzung setzt den späteren kontrollierten Abbau der ausschließlich für
-GKE genutzten Ressourcen voraus: Cluster, externer Load Balancer, nicht mehr
-benötigtes NAT, Cloud Armor und kostenpflichtige Prometheus-Erfassung. Eine alte,
+Die ausschließlich für GKE genutzten Ressourcen wurden am 29. September
+entfernt: Cluster und damit seine Prometheus-Erfassung, externer Load Balancer,
+ungenutztes NAT und Cloud Armor. Bereits erfasste Monitoring-Daten können
+weiterhin in der verzögerten Abrechnung erscheinen. Eine alte,
 gestoppte Datenbank kann weiterhin Speicher- und IP-Kosten verursachen und muss
 getrennt inventarisiert werden. Cloud SQL, private Anbindung, Identity Platform,
 GCS, DNS und benötigte Secrets dürfen beim GKE-Abbau nicht mit entfernt werden.
+
+Seit 30. September ist eine lokale Kosten- und Betriebskontrolle eingerichtet:
+montags um 9 Uhr Europe/Berlin, erstmals am 5. Oktober. Sie erfasst dieses
+Projekt getrennt vom übrigen Abrechnungskonto, berücksichtigt mindestens
+48 Stunden Abrechnungsverzug und vergleicht tatsächliche Kosten und Prognose
+mit dem Planungsrahmen. Im ersten Monatslauf werden die Kosten des vollständigen
+Vormonats festgehalten. Dazwischen werden neue relevante Abweichungen,
+Betriebsfehler und erforderliche Entscheidungen gemeldet. Der Mac und die
+Codex-App müssen für diese lokale Prüfung verfügbar sein. Der Monitor verändert
+keine Cloud-Ressourcen und ist keine Kostenobergrenze.
 
 ## Technische Umsetzung und Abnahme
 
 Die folgenden Punkte bilden die verbindlichen Abnahmekriterien. Die Nachweise
 zur Umschaltung vom 22. September werden geschützt außerhalb des Repositorys
-aufbewahrt; die Infrastruktur- und Kostenabnahme nach dem späteren Abbau bleibt
-davon getrennt.
+aufbewahrt. Der verifizierte GKE-Abbau vom 29. September und die nachfolgende
+Kostenmessung bleiben getrennte Nachweise.
 
 1. **Anmeldung und Schutz der Daten:** Die Kombination aus Firebase Hosting,
    Cloud Run und Identity Platform bekommt einen eigenen geprüften
