@@ -8,6 +8,8 @@ Kompakte Zusammenfassung der wichtigsten Funktionssprünge des Versorgungs-Kompa
 
 Der Versorgungs-Kompass wird klarer, verlässlicher und leichter nutzbar. Die neuen Verbesserungen unterstützen das Netzwerk dabei, Wissen zu teilen und gemeinsam ins Handeln zu kommen.
 
+- **Hotfix v0.26.1:** Die Nutzerverwaltung fordert ihre Konten auch bei der initialen Ansicht an. Rollen- und Zugriffsschutz bleiben erhalten.
+
 ### Hotfix v0.25.1
 
 Der Mac-Abgleich berücksichtigt den Schreibschutz des Aktivitätsprotokolls und erhält den Kopplungscode beim Anmelderücksprung. Unterbrochene Dateiübernahmen werden aus dem gesicherten Zwischenstand fortgesetzt. Der Integrationstest verwendet die tatsächlichen Laufzeitrechte.
