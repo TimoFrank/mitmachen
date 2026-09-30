@@ -24,6 +24,11 @@ export function renderGoogleServices(config) {
   if (config.resetIngressHost && (!/^[a-z0-9-]+(?:\.[a-z0-9-]+)*\.run\.app$/u.test(config.resetIngressHost)
     || !config.resetIngressHost.startsWith(`${resetService}-`))) throw new Error("Der Passwortdienst benötigt seinen eigenen expliziten Cloud-Run-Hostname.");
   if (config.cutoverMode === "open" && !config.resetIngressHost) throw new Error("Vor der Freigabe den tatsächlichen Passwortdienst-Host bestätigen.");
+  const administration = config.userAdministration;
+  if (administration && (Object.keys(administration).sort().join() !== "databaseSecret,databaseUser"
+    || !/^vk_user_admin_[a-z0-9_]+$/u.test(administration.databaseUser || "") || administration.databaseUser === "vk_user_admin_runtime" || administration.databaseUser === databaseUser || administration.databaseSecret?.name === databaseSecret.name
+    || !/^[a-z][a-z0-9_-]{1,62}$/u.test(administration.databaseSecret?.name || "")
+    || !/^[1-9][0-9]*$/u.test(String(administration.databaseSecret?.version)))) throw new Error("Eigener Nutzerverwaltungs-Zugang und gepinnte Secret-Version fehlen.");
   const shared = {
     NODE_ENV: "production", GOOGLE_HOSTING_ENABLED: "1", GOOGLE_STATE_BUCKET: stateBucket,
     GOOGLE_CUTOVER_MODE: config.cutoverMode || "closed", IAP_GCIP_PROJECT_ID: project,
@@ -62,12 +67,14 @@ export function renderGoogleServices(config) {
           DB_HOST: "127.0.0.1", DB_PORT: "5432", DB_SSL: "disable", DB_NAME: database, DB_USER: databaseUser,
           DB_POOL_MAX: "3", DB_APPLICATION_NAME: appService, API_LOG_REQUESTS: "0",
           IMAGE_UPLOAD_MODE: "disabled", ATTACHMENT_UPLOAD_MODE: "disabled", TYPO3_CONNECTOR_ENABLED: "0",
+          USER_ADMIN_ENABLED: administration ? "1" : "0",
+          ...(administration ? { USER_ADMIN_DB_USER: administration.databaseUser, USER_ADMIN_INVITATION_BUCKET: invitationBucket } : {}),
           MAC_SYNC_ENABLED: config.macSyncEnabled === true ? "1" : "0",
           GOOGLE_ALIAS_HOSTS: (config.aliases || []).join(","),
           PROFILE_IMAGE_BUCKET: buckets.profiles, CONTACT_IMAGE_BUCKET: buckets.contacts,
           CONTACT_NOTE_ATTACHMENT_BUCKET: buckets.attachments, STAKEHOLDER_LOGO_BUCKET: buckets.stakeholderLogos,
           ...(config.importOwnerProfileId ? { HOSPITATION_IMPORT_OWNER_PROFILE_ID: config.importOwnerProfileId } : {})
-        }), secret("DB_PASSWORD", databaseSecret), ...(cartoSecret ? [secret("CARTO_BASEMAP_API_KEY", cartoSecret)] : [])
+        }), secret("DB_PASSWORD", databaseSecret), ...(administration ? [secret("USER_ADMIN_DB_PASSWORD", administration.databaseSecret), secret("USER_ADMIN_SMTP_PASSWORD", smtpSecret)] : []), ...(cartoSecret ? [secret("CARTO_BASEMAP_API_KEY", cartoSecret)] : [])
       ],
       startupProbe: { httpGet: { path: "/api/readyz", port: 8080 }, initialDelaySeconds: 0, timeoutSeconds: 6, periodSeconds: 6, failureThreshold: 30 }
     },

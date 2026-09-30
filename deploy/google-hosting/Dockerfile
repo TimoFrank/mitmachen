@@ -6,7 +6,22 @@ RUN npm ci --omit=dev --ignore-scripts && npm cache clean --force \
     && rm -f /usr/local/bin/npm /usr/local/bin/npx /usr/local/bin/corepack /usr/local/bin/yarn /usr/local/bin/yarnpkg
 COPY api/ ./api/
 COPY frontend/data/activity-model.js frontend/data/sector-registry.js ./frontend/data/
+COPY scripts/check_pre_gematik_migration_gcp.mjs ./scripts/check_pre_gematik_migration_gcp.mjs
+COPY scripts/lib/cloud-sql-managed-proxy.mjs ./scripts/lib/cloud-sql-managed-proxy.mjs
+COPY scripts/lib/google-onboarding-contract.mjs ./scripts/lib/google-onboarding-contract.mjs
+COPY scripts/lib/target-database-connection.mjs ./scripts/lib/target-database-connection.mjs
+COPY scripts/provision_iap_identity_bindings.mjs ./scripts/provision_iap_identity_bindings.mjs
+COPY scripts/provision_pre_gematik_identity_platform_account.mjs ./scripts/provision_pre_gematik_identity_platform_account.mjs
+COPY scripts/provision_pre_gematik_identity_platform_guest_access.mjs ./scripts/provision_pre_gematik_identity_platform_guest_access.mjs
+COPY scripts/provision_pre_gematik_password_invitation.mjs ./scripts/provision_pre_gematik_password_invitation.mjs
+COPY scripts/provision_pre_gematik_test_access.mjs ./scripts/provision_pre_gematik_test_access.mjs
+COPY scripts/render_pre_gematik_guest_welcome_email.mjs ./scripts/render_pre_gematik_guest_welcome_email.mjs
+COPY scripts/send_pre_gematik_guest_welcome_email.mjs ./scripts/send_pre_gematik_guest_welcome_email.mjs
 COPY config/pre-gematik/email/ ./config/pre-gematik/email/
+COPY public/brand/versorgungs-kompass/mark-on-dark.svg ./public/brand/versorgungs-kompass/mark-on-dark.svg
+COPY public/brand/modules/stakeholder/mark-on-dark.svg ./public/brand/modules/stakeholder/mark-on-dark.svg
+COPY public/brand/modules/hospitation/mark-on-dark.svg ./public/brand/modules/hospitation/mark-on-dark.svg
+COPY public/brand/modules/formate/mark-on-dark.svg ./public/brand/modules/formate/mark-on-dark.svg
 COPY dist/google-hosting/ ./frontend-build/
 ARG PRODUCT_VERSION
 ARG SOURCE_REVISION

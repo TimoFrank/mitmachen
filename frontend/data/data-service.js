@@ -49,7 +49,7 @@
     if (runtime?.publicDemo === true && runtime?.persistence === "memory-only" && adapter?.active === true) return;
     throw new Error("Die lokale Demo-Datenquelle ist nicht verfügbar. Es wurde keine Anfrage gesendet.");
   }
-  async function apiRequest(path, {method: method = "GET", params: params = {}, body: body} = {}) {
+  async function apiRequest(path, {method: method = "GET", params: params = {}, body: body, timeoutMs = API_REQUEST_TIMEOUT_MS} = {}) {
     assertDemoAdapterReady();
     const url = new URL(`${apiBaseUrl()}${path}`, window.location.origin);
     Object.entries(params).forEach(([key, value]) => {
@@ -60,7 +60,7 @@
     };
     if (CONFIG.authMode === "iap") headers["X-Requested-With"] = "XMLHttpRequest";
     void 0 !== body && (headers["Content-Type"] = "application/json");
-    const controller = new AbortController, timeoutId = setTimeout(() => controller.abort(), API_REQUEST_TIMEOUT_MS);
+    const controller = new AbortController, timeoutId = setTimeout(() => controller.abort(), timeoutMs);
     try {
       const response = await fetch(url.href, {
         method: method,
@@ -98,7 +98,7 @@
     } catch (error) {
       if (error?.code && Number.isFinite(Number(error?.status))) throw error;
       if (controller.signal.aborted) {
-        const timeoutError = new Error(`API-Anfrage wurde nach ${API_REQUEST_TIMEOUT_MS} ms abgebrochen.`);
+        const timeoutError = new Error(`API-Anfrage wurde nach ${timeoutMs} ms abgebrochen.`);
         throw timeoutError.status = 0, timeoutError.code = "API_TIMEOUT", timeoutError;
       }
       const networkError = new Error(error?.message || "API-Anfrage konnte nicht gesendet werden.", {
@@ -1083,6 +1083,10 @@
     getProfiles: async function(options = {}) {
       return loadProfiles(options);
     },
+    getAdminUsers: () => apiRequest("/api/admin/users", { timeoutMs: 60000 }),
+    updateAdminUser: (id, body) => apiRequest(`/api/admin/users/${encodeURIComponent(id)}`, { method: "PATCH", body, timeoutMs: 60000 }),
+    prepareAdminInvitation: body => apiRequest("/api/admin/users/invitations", { method: "POST", body, timeoutMs: 60000 }),
+    sendAdminInvitation: (id, body) => apiRequest(`/api/admin/users/invitations/${encodeURIComponent(id)}/send`, { method: "POST", body, timeoutMs: 60000 }),
     getCurrentProfile: getCurrentProfile,
     updateCurrentProfile: async function(profile = {}) {
       {

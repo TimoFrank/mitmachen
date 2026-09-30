@@ -48,6 +48,7 @@
     ["questionnaire", "hospitationen/fragebogen"],
     ["formats", "formate"],
     ["team", "teams"],
+    ["userAdmin", "administration/nutzer"],
     ["profile", "profil"],
     ["profile-notifications", "profil/benachrichtigungen"],
     ["notifications", "profil/benachrichtigungen"],

@@ -335,6 +335,15 @@ const fs = require("node:fs");
 const path = require("node:path");
 const root = process.argv[2];
 const repositoryRoot = process.argv[3];
+const publicAppPath = path.join(root, "versorgungs-kompass.html");
+let publicApp = fs.readFileSync(publicAppPath, "utf8");
+publicApp = publicApp.replace(/\s*<link[^>]+href="\.\/user-administration\.css"[^>]*>/u, "")
+  .replace(/\s*<script src="\.\/user-administration\.js"><\/script>/u, "")
+  .replace(/\s*<button[^>]+id="sidebar-user-admin-button"[\s\S]*?<\/button>/u, "")
+  .replace(/\s*<section class="view-panel" id="view-userAdmin"[\s\S]*?(?=\s*<section class="view-panel" id="view-team")/u, "");
+if (/user-administration\.(?:js|css)|id="view-userAdmin"|id="sidebar-user-admin-button"/u.test(publicApp)) throw new Error("Nutzerverwaltung darf nicht in der Pages-Demo liegen.");
+fs.writeFileSync(publicAppPath, publicApp);
+
 const {
   parseHtmlAttributes,
   scanHtmlStartTags
@@ -657,6 +666,8 @@ build_target() {
   cp "$FRONTEND_DIR/login/auth-guard.js" "$STAGE_DIR/auth-guard.js"
   cp "$FRONTEND_DIR/login/auth-login.js" "$STAGE_DIR/auth-login.js"
   cp "$FRONTEND_DIR/app/versorgungs-kompass.html" "$STAGE_DIR/versorgungs-kompass.html"
+  cp "$FRONTEND_DIR/app/user-administration.css" "$STAGE_DIR/user-administration.css"
+  cp "$FRONTEND_DIR/app/user-administration.js" "$STAGE_DIR/user-administration.js"
   cp "$FRONTEND_DIR/app/versorgungs-kompass.css" "$STAGE_DIR/versorgungs-kompass.css"
   cp "$FRONTEND_DIR/app/versorgungs-kompass-no-script.css" "$STAGE_DIR/versorgungs-kompass-no-script.css"
   cp "$FRONTEND_DIR/app/versorgungs-kompass.js" "$STAGE_DIR/versorgungs-kompass.js"

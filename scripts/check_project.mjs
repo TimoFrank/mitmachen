@@ -1,6 +1,10 @@
 import { execFileSync } from "node:child_process";
 
 const syntaxFiles = [
+  "api/user-administration.mjs",
+  "api/user-administration-email.mjs",
+  "frontend/app/user-administration.js",
+  "scripts/test_user_administration.mjs",
   "api/password-reset-broker.mjs",
   "api/password-reset-email.mjs",
   "api/password-reset-server.mjs",
