@@ -79,6 +79,11 @@ Strukturierte Fehler ohne Personenbezug und die Plattformmetriken bleiben erhalt
 
 ## Geschützte Betriebskonfiguration
 
+Neue Passwortgäste verwenden den [Cloud-Run-Onboarding-Ablauf](GOOGLE_ONBOARDING.md).
+Er ersetzt für die Neuanlage die GKE-Job-Abhängigkeit; Konto-/Profilprüfungen,
+Testzugang und der getrennte Einladungsversand bleiben erhalten. Vor der ersten
+Nutzung sind Operator-Release, eigene Berechtigungen und Cloud-Abnahme nötig.
+
 Konfigurationen und Nachweise liegen owner-only außerhalb von Git.
 `deploy/google-hosting/render.mjs` erwartet eine JSON-Datei mit:
 

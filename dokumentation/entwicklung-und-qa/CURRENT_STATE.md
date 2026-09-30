@@ -74,6 +74,13 @@ Freischaltung oder ein allgemeiner Logo-Upload ist damit nicht beschlossen.
 
 ## QA-Standard
 
+- Die Neuanlage von Passwortgästen für den Google-Betrieb hat einen eigenen
+  Cloud-Run-Operator: `npm run onboard:google`. Lokale Prüfung:
+  `npm run test:google-onboarding` sowie die bestehenden Gast-, Journal-, Mail-
+  und PostgreSQL-Tests. Der Ablauf endet bei der versandbereiten Einladung;
+  Infrastrukturfreigabe und erste Cloud-Abnahme bleiben getrennte Nachweise.
+  Siehe [Google-Onboarding](../betrieb-und-deployment/GOOGLE_ONBOARDING.md).
+
 - Kleine Änderung: `npm run qa:small`.
 - Fokussierte UI-/Flow-Änderung: `npm run check` plus gezielter Playwright-Test mit `-g`.
 - Größere Änderung oder Push-/Deploy-Auftrag: `npm run qa:full`.

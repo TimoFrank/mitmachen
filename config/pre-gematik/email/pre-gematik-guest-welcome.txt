@@ -5,19 +5,14 @@ Willkommen
 
 Hallo {{DISPLAY_NAME}},
 
-für {{RECIPIENT_EMAIL}} ist ein persönlicher, zeitlich begrenzter Testzugang zum Versorgungs-Kompass vorbereitet. Du meldest dich über die #Mitmachen-Anmeldeseite mit E-Mail-Adresse und Passwort an. Ein zusätzliches Google-Konto ist nicht erforderlich.
+für {{RECIPIENT_EMAIL}} ist dein persönlicher Zugang vorbereitet. Melde dich auf #Mitmachen an.
 
 Richte jetzt deinen persönlichen Zugang ein:
 {{ACTION_URL}}
 
 Bitte richte deinen Zugang innerhalb von 48 Stunden vollständig ein. Der Link kann nur einmal verwendet werden. Falls er nicht mehr gültig ist, antworte einfach auf diese E-Mail – wir senden dir dann eine neue Einladung.
 
-Nach dem Einrichten öffnest du:
-https://versorgungs-kompass.de/start
-
-Auf der #Mitmachen-Anmeldeseite gibst du deine E-Mail-Adresse und dein Passwort ein und wählst „Sicher anmelden“.
-
-Der Testzugang endet spätestens am {{PILOT_END}}. Wenn du diese Einladung nicht erwartet hast, kannst du sie ignorieren.
+Dein Zugang endet am {{PILOT_END}}. Wenn du diese Einladung nicht erwartet hast, kannst du sie ignorieren.
 
 Viele Grüße
 Dein {{SENDER_NAME}}-Team

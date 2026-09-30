@@ -8,9 +8,9 @@ import path from "node:path";
 import process from "node:process";
 import { execFileSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
+import { readGoogleAccessEnd } from "./lib/google-onboarding-contract.mjs";
 
 import {
-  EXPECTED_CONTINUE_URL,
   IdentityPlatformOnboardingError,
   loadProtectedIdentityPlatformAccountDocument
 } from "./provision_pre_gematik_identity_platform_account.mjs";
@@ -467,12 +467,10 @@ export function validateWelcomeEmailEml(rawMail) {
       return false;
     }
   });
-  const continueUrls = remoteUrls.filter((url) => url === EXPECTED_CONTINUE_URL);
   if (
-    remoteUrls.length !== 4
+    remoteUrls.length !== 3
     || actionUrls.length !== 3
     || new Set(actionUrls).size !== 1
-    || continueUrls.length !== 1
   ) {
     throw new IdentityPlatformOnboardingError(
       "Die EML-Datei enthaelt keinen exklusiven gebrandeten 48-Stunden-Wrapperlink."
@@ -651,6 +649,7 @@ export function parseWelcomeEmailSendArguments(argv) {
     mailFile: "",
     smtpConfig: "",
     invitationBucket: "",
+    googleService: "",
     confirmOperation: "",
     confirmFingerprint: ""
   };
@@ -660,6 +659,7 @@ export function parseWelcomeEmailSendArguments(argv) {
     ["--mail-file", "mailFile"],
     ["--smtp-config", "smtpConfig"],
     ["--invitation-bucket", "invitationBucket"],
+    ["--google-service", "googleService"],
     ["--confirm-operation", "confirmOperation"],
     ["--confirm-fingerprint", "confirmFingerprint"]
   ]);
@@ -806,6 +806,7 @@ export async function executeWelcomeEmailSend({
   invitationStoreFactory = ({ bucket, projectId }) =>
     createPasswordInvitationGcsStore({ bucket, projectId }),
   readPreparedInvitation = readBoundPreparedPasswordInvitation,
+  readAccessEnd = readGoogleAccessEnd,
   activateInvitation = activatePreparedPasswordInvitation,
   receiptDirectory = defaultWelcomeEmailReceiptDirectory(),
   log = console.log,
@@ -844,12 +845,16 @@ export async function executeWelcomeEmailSend({
   }
   const smtp = validateWelcomeEmailSmtpConfig(smtpDocument);
   const actionUrl = validateBrandedSetPasswordLink(rawActionUrl, document);
+  const approvedPilotEnd = options.googleService
+    ? await readAccessEnd({ project: document.project_id, service: options.googleService })
+    : EXPECTED_PILOT_END;
   const expectedMail = await renderGuestWelcomeEmail({
     document,
     actionUrl,
     senderName: WELCOME_EMAIL_SENDER_NAME,
     senderEmail: WELCOME_EMAIL_SENDER_EMAIL,
-    pilotEnd: EXPECTED_PILOT_END,
+    pilotEnd: approvedPilotEnd,
+    approvedPilotEnd,
     ...templates
   });
   if (mailFile.contents !== expectedMail.eml) {
