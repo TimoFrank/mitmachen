@@ -311,7 +311,7 @@ function verifyNamespaceAssets(assets, config) {
   }
 }
 
-function verifyInstance(instance, config) {
+export function verifyInstance(instance, config) {
   assertPlainObject(instance, "SQL_INSTANCE_INVALID", "Die Cloud-SQL-Instanz konnte nicht bestaetigt werden.");
   const ipAddresses = Array.isArray(instance.ipAddresses) ? instance.ipAddresses : [];
   const privateServerAddresses = [...new Set(ipAddresses
@@ -344,7 +344,7 @@ function verifyInstance(instance, config) {
   return Object.freeze(privateServerAddresses);
 }
 
-function verifyOnlineBackupPosture(instance) {
+export function verifyOnlineBackupPosture(instance) {
   const backupConfiguration = instance?.settings?.backupConfiguration;
   const retentionSettings = backupConfiguration?.backupRetentionSettings;
   const transactionLogRetentionDays = backupConfiguration?.transactionLogRetentionDays;
@@ -450,7 +450,7 @@ function verifyBackup(backup, config, nowMilliseconds) {
   return backup.endTime;
 }
 
-function verifyRecentAutomatedBackup(backups, config, nowMilliseconds) {
+export function verifyRecentAutomatedBackup(backups, config, nowMilliseconds) {
   if (!Array.isArray(backups) || backups.length !== 1) {
     throw gateError(
       "ONLINE_RECOVERY_POINT_INVALID",

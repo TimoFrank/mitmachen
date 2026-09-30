@@ -1,0 +1,9 @@
+{
+  "version": 1,
+  "project_id": "example-project",
+  "uid": "synthetic-password-guest-001",
+  "email": "guest@example.invalid",
+  "display_name": "Beispiel Gast",
+  "continue_url": "https://versorgungs-kompass.de/start",
+  "email_ownership_verified": false
+}

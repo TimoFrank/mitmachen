@@ -106,6 +106,7 @@ const OPERATOR_SOURCE_PATHS = Object.freeze([
   "scripts/render_pre_gematik_guest_welcome_email.mjs",
   "scripts/send_pre_gematik_guest_welcome_email.mjs",
   "scripts/lib/cloud-sql-managed-proxy.mjs",
+  "scripts/lib/google-onboarding-contract.mjs",
   "scripts/lib/target-database-connection.mjs"
 ]);
 
@@ -3281,7 +3282,8 @@ export class CommandOnlineOnboardingRuntime {
       "--link-file", path.join(this.context.runDirectory, "password-invitation-link.txt"),
       "--sender-name", WELCOME_EMAIL_SENDER_NAME,
       "--sender-email", WELCOME_EMAIL_SENDER_EMAIL,
-      "--pilot-end", EXPECTED_PILOT_END
+      "--pilot-end", this.context.googleService ? this.context.operatorRelease.pilot_end : EXPECTED_PILOT_END,
+      ...(this.context.googleService ? ["--google-service", this.context.googleService] : [])
     ];
     if (apply) {
       argumentsList.push(
@@ -3306,7 +3308,8 @@ export class CommandOnlineOnboardingRuntime {
         "--link-file", path.join(this.context.runDirectory, "password-invitation-link.txt"),
         "--mail-file", path.join(this.context.runDirectory, "welcome-mail", "welcome.eml"),
         "--smtp-config", this.context.smtpConfigPath,
-        "--invitation-bucket", this.context.operatorRelease.invitation_bucket
+        "--invitation-bucket", this.context.operatorRelease.invitation_bucket,
+        ...(this.context.googleService ? ["--google-service", this.context.googleService] : [])
       ],
       { timeoutMs: 180_000 }
     );
@@ -3344,7 +3347,11 @@ die Restbereinigung bis CLEANUP_COMPLETED_RESUME_REQUIRED aus. Dieser
 Orchestrator besitzt absichtlich keinen SMTP-Apply-Pfad und versendet keine Mail.`;
 }
 
-async function loadOnlineOnboardingContext(options) {
+export async function loadOnlineOnboardingContext(options, {
+  environmentKeys = BASE_ENVIRONMENT_KEYS,
+  validateEnvironment = validateBaseEnvironment,
+  validateRelease = validateOperatorRelease
+} = {}) {
   const repository = await repositoryRoot();
   const [
     account,
@@ -3378,9 +3385,9 @@ async function loadOnlineOnboardingContext(options) {
       label: "Das geschuetzte Onboarding-Laufverzeichnis"
     })
   ]);
-  const operatorEnvironment = validateBaseEnvironment(parseStrictEnv(
+  const operatorEnvironment = validateEnvironment(parseStrictEnv(
     await fs.readFile(operatorEnvironmentFile, "utf8"),
-    BASE_ENVIRONMENT_KEYS,
+    environmentKeys,
     "Online-Onboarding-Umgebung"
   ));
   const identityReadbackEnvironment = parseStrictEnv(
@@ -3396,7 +3403,7 @@ async function loadOnlineOnboardingContext(options) {
     "SMTP-Konfiguration"
   );
   validateWelcomeEmailSmtpConfig(smtpDocument);
-  const operatorRelease = validateOperatorRelease(
+  const operatorRelease = validateRelease(
     releaseDocument,
     operatorEnvironment,
     new Date(),

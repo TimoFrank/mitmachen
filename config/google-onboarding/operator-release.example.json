@@ -1,0 +1,9 @@
+{
+  "version": 2,
+  "source_commit": "REPLACE_WITH_EXACT_APPROVED_SOURCE_COMMIT",
+  "image": "europe-west3-docker.pkg.dev/example-project/operators/onboarding@sha256:REPLACE_WITH_APPROVED_IMAGE_DIGEST",
+  "cloud_sql_proxy_sha256": "sha256:REPLACE_WITH_PROXY_BINARY_DIGEST_FROM_THIS_IMAGE",
+  "approved_until": "REPLACE_WITH_APPROVED_UTC_END",
+  "invitation_bucket": "example-project-vk-pre-gematik-invitations",
+  "pilot_end": "REPLACE_WITH_LIVE_IAP_EXTERNAL_ACCESS_EXPIRES_AT"
+}

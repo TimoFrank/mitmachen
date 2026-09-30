@@ -108,9 +108,7 @@ for (const [name, value] of Object.entries(rendered)) {
 assert.equal(rendered.subject.trim(), WELCOME_EMAIL_SUBJECT);
 assert.equal(containsHiddenEmailContent(htmlTemplate), false);
 assert.equal(containsHiddenEmailContent(rendered.html), false);
-assert.match(rendered.text, /Ein zusätzliches Google-Konto ist nicht erforderlich/u);
 assert.match(rendered.text, /innerhalb von 48 Stunden vollständig ein/u);
-assert.match(rendered.text, /versorgungs-kompass\.de\/start/u);
 assert.match(rendered.html, /Persönlichen Zugang einrichten/u);
 assert.match(rendered.html, /mso-padding-alt:16px 28px/u);
 assert.match(rendered.html, /Der persönliche Link kann nur einmal verwendet werden/u);
@@ -134,10 +132,10 @@ for (const [index, spec] of WELCOME_EMAIL_BRAND_ASSET_SPECS.entries()) {
 for (const body of [rendered.text, rendered.html]) {
   assert.match(
     body,
-    /Auf der #Mitmachen-Anmeldeseite gibst du deine E-Mail-Adresse und dein Passwort ein und wählst „Sicher anmelden“\./u
+    /Melde dich auf #Mitmachen an\./u
   );
   assert.match(body, /#Mitmachen/u);
-  assert.doesNotMatch(body, /Mit E-Mail und Passwort anmelden/u);
+  assert.doesNotMatch(body, /Testzugang|Google-Konto|Anmeldeseite|Nach dem Einrichten|Sicher anmelden|versorgungs-kompass\.de\/start/iu);
 }
 assert.equal(rendered.text.split(actionUrl).length - 1, 1);
 assert.equal(
@@ -167,7 +165,7 @@ assert.match(
 assert.match(rendered.eml, /^From: #Mitmachen <zugang@versorgungs-kompass\.de>$/mu);
 assert.match(
   rendered.eml,
-  /^Subject: #Mitmachen: Dein Testzugang zum Versorgungs-Kompass$/mu
+  /^Subject: #Mitmachen: Dein Zugang$/mu
 );
 assert.doesNotMatch(rendered.eml, /=\?UTF-8\?[BQ]\?/iu);
 assert.match(rendered.eml, /To: <guest@example\.invalid>/u);

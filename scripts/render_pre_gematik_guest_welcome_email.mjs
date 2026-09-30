@@ -6,6 +6,7 @@ import process from "node:process";
 import { execFileSync } from "node:child_process";
 import { createHash } from "node:crypto";
 import { fileURLToPath } from "node:url";
+import { readGoogleAccessEnd } from "./lib/google-onboarding-contract.mjs";
 
 import {
   EXPECTED_CONTINUE_URL,
@@ -21,10 +22,10 @@ import {
 
 export const WELCOME_EMAIL_OPERATION = "RENDER_PRE_GEMATIK_GUEST_WELCOME_EMAIL";
 export const WELCOME_EMAIL_SUBJECT =
-  "#Mitmachen: Dein Testzugang zum Versorgungs-Kompass";
+  "#Mitmachen: Dein Zugang";
 export const WELCOME_EMAIL_SENDER_NAME = "#Mitmachen";
 export const WELCOME_EMAIL_SENDER_EMAIL = "zugang@versorgungs-kompass.de";
-export const WELCOME_EMAIL_TEMPLATE_ID = "pre-gematik-guest-welcome-v5";
+export const WELCOME_EMAIL_TEMPLATE_ID = "pre-gematik-guest-welcome-v6";
 export const EXPECTED_PILOT_END = "2026-09-30T16:00:00Z";
 export const PASSWORD_ACTION_ORIGIN = PASSWORD_INVITATION_ORIGIN;
 export const PASSWORD_ACTION_PATH = PASSWORD_INVITATION_PATH;
@@ -255,10 +256,10 @@ function htmlEscape(value) {
     .replaceAll("'", "&#39;");
 }
 
-function formatPilotEnd(value) {
-  if (value !== EXPECTED_PILOT_END) {
+function formatPilotEnd(value, approvedPilotEnd = EXPECTED_PILOT_END) {
+  if (value !== approvedPilotEnd) {
     throw new IdentityPlatformOnboardingError(
-      `--pilot-end muss exakt ${EXPECTED_PILOT_END} sein.`
+      `--pilot-end muss exakt ${approvedPilotEnd} sein.`
     );
   }
   return new Intl.DateTimeFormat("de-DE", {
@@ -609,6 +610,7 @@ export async function renderGuestWelcomeEmail({
   senderName,
   senderEmail,
   pilotEnd = EXPECTED_PILOT_END,
+  approvedPilotEnd = EXPECTED_PILOT_END,
   textTemplate,
   htmlTemplate
 }) {
@@ -641,7 +643,7 @@ export async function renderGuestWelcomeEmail({
   const values = {
     ACTION_URL: brandedActionUrl,
     DISPLAY_NAME: document.display_name,
-    PILOT_END: formatPilotEnd(pilotEnd),
+    PILOT_END: formatPilotEnd(pilotEnd, approvedPilotEnd),
     RECIPIENT_EMAIL: document.email,
     SENDER_EMAIL: safeSenderEmail,
     SENDER_NAME: safeSenderName
@@ -773,6 +775,7 @@ export function parseWelcomeEmailArguments(argv) {
     senderName: "",
     senderEmail: "",
     pilotEnd: "",
+    googleService: "",
     confirmOperation: "",
     confirmFingerprint: ""
   };
@@ -783,6 +786,7 @@ export function parseWelcomeEmailArguments(argv) {
     ["--sender-name", "senderName"],
     ["--sender-email", "senderEmail"],
     ["--pilot-end", "pilotEnd"],
+    ["--google-service", "googleService"],
     ["--confirm-operation", "confirmOperation"],
     ["--confirm-fingerprint", "confirmFingerprint"]
   ]);
@@ -873,14 +877,19 @@ export async function executeWelcomeEmailRendering({
   options,
   repository = repositoryRoot(),
   templates,
+  readAccessEnd = readGoogleAccessEnd,
   log = console.log
 }) {
+  const approvedPilotEnd = options.googleService
+    ? await readAccessEnd({ project: document.project_id, service: options.googleService })
+    : EXPECTED_PILOT_END;
   const rendered = await renderGuestWelcomeEmail({
     document,
     actionUrl,
     senderName: options.senderName,
     senderEmail: options.senderEmail,
     pilotEnd: options.pilotEnd,
+    approvedPilotEnd,
     ...templates
   });
   const fingerprint = welcomeEmailRenderingFingerprint(rendered);
