@@ -76,7 +76,10 @@ try {
     listUsers: async () => ({ users: [...users.values()] }),
     getUserByEmail: async email => { const u = [...users.values()].find(v => v.email === email); if (!u) throw notFound(); return u; },
     getUser: async uid => { if (!users.has(uid)) throw notFound(); return users.get(uid); },
-    createUser: async value => { const u = { ...value, providerData: [{ providerId: "password" }] }; delete u.password; users.set(u.uid, u); return u; },
+    createUser: async value => {
+      assert.ok(value.password.length >= 20 && [/[a-z]/u, /[A-Z]/u, /[0-9]/u, /[^A-Za-z0-9]/u].every(pattern => pattern.test(value.password)), "Identity Platform requires every password character class");
+      const u = { ...value, providerData: [{ providerId: "password" }] }; delete u.password; users.set(u.uid, u); return u;
+    },
     updateUser: async (uid, value) => { if (failProvider) throw new Error("synthetic provider failure"); Object.assign(users.get(uid), value); },
     revokeRefreshTokens: async () => { revokes++; }
   };
@@ -138,6 +141,12 @@ try {
   const uncertain = request(); const mail = await admin.prepare(actor, uncertain); failSend = true;
   await rejected(admin.send(actor, uncertain.operationId, { fingerprint: mail.preview.fingerprint }), 502); failSend = false;
   await rejected(admin.send(actor, uncertain.operationId, { fingerprint: mail.preview.fingerprint }), 409); assert.equal(sends, 2);
+  // A random suffix containing only letters must still satisfy the live password policy.
+  const originalRandomBytes = crypto.randomBytes;
+  try {
+    crypto.randomBytes = size => Buffer.alloc(size);
+    assert.equal((await admin.prepare(actor, request())).status, "ready");
+  } finally { crypto.randomBytes = originalRandomBytes; }
   const changed = request(); const pending = await admin.prepare(actor, changed);
   await owner.query("update public.identity_bindings set scope_ref='external-pilot:other' where subject=$1", [`securetoken.google.com/${project}:managed-${changed.operationId}`]);
   await rejected(admin.send(actor, changed.operationId, { fingerprint: pending.preview.fingerprint }), 409);
