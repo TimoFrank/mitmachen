@@ -40161,7 +40161,7 @@
         if (view === "personProfile") renderPersonProfilePage();
         if (view === "organizationProfile") renderOrganizationProfilePage();
         if (view === "team") renderTeamView();
-        if (view === "userAdmin" && viewChanged) void window.VKUserAdministration?.open();
+        if (view === "userAdmin" && (viewChanged || appShell?.classList.contains("is-initializing"))) void window.VKUserAdministration?.open();
         if (view === "experts") renderExpertTablesVisibility();
         if (view === "stakeholders") {
           activeStakeholderMode = "organizations";

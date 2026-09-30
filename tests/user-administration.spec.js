@@ -1,6 +1,6 @@
 import { test, expect } from "@playwright/test";
 import { mkdir } from "node:fs/promises";
-import { gotoAuthenticated } from "./helpers/app-test-session.js";
+import { gotoAuthenticated, installAppTestSession, writeAppTestStorage } from "./helpers/app-test-session.js";
 
 const path = "/frontend/app/versorgungs-kompass.html#home";
 function fixture() {
@@ -25,6 +25,17 @@ async function install(page, value, calls) {
     value.invitations.push(invitation); return route.fulfill({ json: invitation });
   });
 }
+
+test("Direkteinstieg lädt Konten nach dem eigenen Profil", async ({ page }) => {
+  await installAppTestSession(page);
+  await writeAppTestStorage(page);
+  await install(page, fixture(), []);
+  await page.goto("/frontend/app/versorgungs-kompass.html#userAdmin");
+  await expect(page.locator("#sidebar-user-name")).not.toHaveText("Nutzerprofil");
+  await expect(page.locator("[data-admin-count]")).toHaveText("4 von 4 Konten");
+  await page.reload();
+  await expect(page.locator("[data-admin-count]")).toHaveText("4 von 4 Konten");
+});
 
 test("Konten filtern, sperren und Einladung nach Vorschau senden", async ({ page }, testInfo) => {
   const errors = []; page.on("pageerror", error => errors.push(error.message));

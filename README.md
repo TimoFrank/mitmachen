@@ -133,7 +133,7 @@ Der Quellcode und die technische Dokumentation stehen unter der [Apache License 
 
 ## Aktueller Release
 
-- Version: [v0.26.0](https://github.com/TimoFrank/mitmachen/releases/tag/v0.26.0)
+- Version: [v0.26.1](https://github.com/TimoFrank/mitmachen/releases/tag/v0.26.1)
 - Stand: 30. September 2026
-- Kurznotiz: Konten verwalten und Hospitationen strukturieren
+- Kurznotiz: Die Nutzerverwaltung fordert ihre Konten auch bei der initialen Ansicht an. Rollen- und Zugriffsschutz bleiben erhalten.
 - Demo-Kanal: [GitHub Pages](https://timofrank.github.io/mitmachen/)
