@@ -133,7 +133,7 @@ Der Quellcode und die technische Dokumentation stehen unter der [Apache License 
 
 ## Aktueller Release
 
-- Version: [v0.26.1](https://github.com/TimoFrank/mitmachen/releases/tag/v0.26.1)
-- Stand: 30. September 2026
-- Kurznotiz: Die Nutzerverwaltung fordert ihre Konten auch bei der initialen Ansicht an. Rollen- und Zugriffsschutz bleiben erhalten.
+- Version: [v0.27.0](https://github.com/TimoFrank/mitmachen/releases/tag/v0.27.0)
+- Stand: 4. November 2026
+- Kurznotiz: Übersicht und Navigation für alle vier Kompasse
 - Demo-Kanal: [GitHub Pages](https://timofrank.github.io/mitmachen/)
