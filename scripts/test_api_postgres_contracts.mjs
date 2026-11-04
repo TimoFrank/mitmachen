@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import fs from "node:fs";
 import vm from "node:vm";
+import "./test_hospitation_observation_append.mjs";
 
 const apiSource = fs.readFileSync(new URL("../api/server.mjs", import.meta.url), "utf8");
 
@@ -483,6 +484,22 @@ function plain(value) {
     assert.equal(storedRow.situation, "Neuer Kontext");
     const explicitEmpty = await patch({ situation: "", situationContext: "Veralteter Fallback" });
     assert.deepEqual(contextValues(explicitEmpty), ["", "", "", ""], "Eine explizit leere Situation hat Vorrang vor einem befüllten Alias.");
+
+    storedRow.payload.setting_type = null;
+    const unrelated = await patch({ title: "Historischer Sektor bleibt beim Titelupdate erhalten" });
+    assert.equal(unrelated.settingType, null);
+    const sectorUpdate = await patch({ setting_type: "  Facharztpraxis  " });
+    assert.equal(sectorUpdate.settingType, "Facharztpraxis");
+    assert.equal(storedRow.payload.settingType, "Facharztpraxis");
+    assert.equal(Object.hasOwn(storedRow.payload, "setting_type"), false);
+    assert.equal((await patch({ settingType: "", setting_type: "Veralteter Sektor" })).settingType, "");
+    const beforeInvalidSetting = plain(storedRow);
+    const eventsBeforeInvalidSetting = activityEvents.length;
+    for (const settingType of [null, 1, "x".repeat(161)]) {
+      await assert.rejects(patch({ settingType }), (error) => error.status === 400);
+    }
+    assert.deepEqual(storedRow, beforeInvalidSetting);
+    assert.equal(activityEvents.length, eventsBeforeInvalidSetting);
 
     for (const usagePatch of [
       { usageRecommendation: "" }, { usage_recommendation: "" }, { nextUse: "" },

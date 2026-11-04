@@ -1868,6 +1868,109 @@
     });
   });
 
+  // The public workbench uses one labeled example built from existing demo records.
+  const demoComparisonIds = ["demo-observation-med-1", "demo-observation-sapv-2"];
+  const demoComparisonObservations = hospitationObservations.filter((row) => demoComparisonIds.includes(row.id));
+  const demoComparisonPatternKey = "demo-medikationsabgleich";
+  const demoComparisonClusterId = "demo-prueffrage-medikationsplan";
+  const hospitationSynthesisPatterns = [{
+    key: demoComparisonPatternKey,
+    comparisonType: "Synthetisches Beispiel",
+    problemType: "Unklare Medikationsstände",
+    processPhase: "Phasenübergreifend",
+    observationIds: demoComparisonObservations.map((row) => row.id),
+    hospitationIds: [...new Set(demoComparisonObservations.map((row) => row.hospitationId))]
+  }];
+  const demoDescribedObservations = hospitationObservations.filter((row) => row.description);
+  const hospitationSynthesis = {
+    schemaVersion: 1,
+    title: "Synthetische Beispielauswertung",
+    date: now.slice(0, 10),
+    reviewStatus: "Synthetisches Beispiel",
+    baseline: {
+      total: hospitationObservations.length,
+      substantive: demoDescribedObservations.length,
+      hospitations: new Set(demoDescribedObservations.map((row) => row.hospitationId)).size,
+      completedHospitations: hospitations.filter((row) => ["Durchgeführt", "Dokumentiert"].includes(row.status)).length,
+      note: "Die Beispielauswertung verknüpft zwei fiktive Situationen aus der Demo.",
+      observationIds: hospitationObservations.map((row) => row.id),
+      excludedObservationIds: hospitationObservations.filter((row) => !row.description).map((row) => row.id),
+      observationSnapshots: Object.fromEntries(demoComparisonObservations.map((row) => [row.id, {
+        title: row.title,
+        description: row.description,
+        updatedAt: row.updatedAt
+      }]))
+    },
+    clusters: [{
+      id: demoComparisonClusterId,
+      kind: "cluster",
+      title: "Synthetisches Beispiel zum Medikationsabgleich",
+      summary: "Zwei fiktive Situationen zeigen den Abgleich unterschiedlicher Medikationsstände.",
+      pattern: {
+        title: "Unklare Medikationsstände",
+        description: "In beiden Beispielen gleicht das Team einen Ausdruck mit einem digitalen Medikationsstand ab.",
+        careNeed: "Den aktuellen Medikationsplan im Arbeitsablauf erkennen."
+      },
+      hypothesis: {
+        title: "Synthetische Hypothese zur Kennzeichnung des aktuellen Plans",
+        description: "Eine eindeutige Kennzeichnung des aktuellen Medikationsplans könnte Rückfragen verringern.",
+        status: "Synthetischer Entwurf",
+        study: {
+          population: "Teams in der ambulanten Versorgung",
+          outcome: "Rückfragen zum aktuellen Planstand",
+          method: "Aufgabentest mit fiktiven Medikationsplänen",
+          items: ["Welcher Plan ist aktuell?"]
+        }
+      },
+      nextStep: {
+        title: "Synthetischen Aufgabentest vorbereiten",
+        description: "Zwei fiktive Planstände mit und ohne Kennzeichnung vergleichen.",
+        checks: ["Woran erkennen Teilnehmende den gültigen Planstand?"],
+        status: "Synthetischer Vorschlag"
+      },
+      gematik: {
+        topics: ["Medikationsplan"],
+        contribution: "Die Prüffrage betrifft die Anzeige des gültigen Planstands.",
+        boundary: "Die Auswertung demonstriert die Arbeitsschritte mit synthetischen Beispielen.",
+        sources: []
+      },
+      openQuestions: ["Wer bestätigt den aktuellen Planstand?"],
+      evidence: demoComparisonObservations.map((row) => ({
+        observationId: row.id,
+        role: "support",
+        label: row.title,
+        note: "Synthetische Beobachtung aus der Demo."
+      })),
+      assignmentObservationIds: demoComparisonIds
+    }],
+    patternLinks: [{
+      patternKey: demoComparisonPatternKey,
+      clusterId: demoComparisonClusterId,
+      observationIds: demoComparisonIds,
+      relation: "support",
+      note: "Beide Beispiele illustrieren den Abgleich unterschiedlicher Planstände."
+    }]
+  };
+
+  const demoDashboardThemeGroups = [
+    { id: "demo-dokumentation", label: "Medikationsabgleich", observationPrefix: "demo-observation-med-" },
+    { id: "demo-verordnung", label: "Elektronische Verordnung", observationPrefix: "demo-observation-erp-" },
+    { id: "demo-austausch", label: "Entlassung und Übergabe", observationPrefix: "demo-observation-entlass-" }
+  ];
+  const hospitationDashboardThemes = {
+    schemaVersion: 1,
+    themes: demoDashboardThemeGroups.map(({ id, label }) => ({ id, label })),
+    records: demoDashboardThemeGroups.flatMap((group) => demoDescribedObservations
+      .filter((row) => row.id.startsWith(group.observationPrefix))
+      .map((row) => ({
+        observationId: row.id,
+        originalTitle: row.title,
+        originalDescription: row.description,
+        themeId: group.id,
+        reason: "Synthetische Themenzuordnung zum Beispielablauf."
+      })))
+  };
+
   const activityDefinitions = [
     ["contact.updated", "master_data", "update", "Kontaktdaten aktualisiert"],
     ["contact.owner.assigned", "ownership", "assign", "Verantwortung zugeordnet"],
@@ -2184,6 +2287,9 @@
     hospitationSlots,
     hospitations,
     hospitationObservations,
+    hospitationSynthesis,
+    hospitationSynthesisPatterns,
+    hospitationDashboardThemes,
     roadmapItems,
     hospitationRoadmapAssessments,
     hospitationUnmetNeeds,

@@ -2474,10 +2474,127 @@
     };
   }
 
+  function normalizeWorkbenchSnapshot(input = {}) {
+    const labels = { hospitations: "Hospitationen", observations: "Beobachtungen", pattern: "Muster", hypothesis: "Hypothesen", nextStep: "Nächste Schritte" };
+    const stage = Object.prototype.hasOwnProperty.call(labels, input.stage) ? input.stage : "observations";
+    if (!Array.isArray(input.columns) || !input.columns.length || input.columns.length > 30 || !Array.isArray(input.rows) || input.rows.length > 2000) {
+      throw new Error("Die Exportauswahl enthält keine gültigen Spalten oder zu viele Einträge.");
+    }
+    const keys = new Set();
+    const columns = input.columns.map((column) => {
+      const key = text(column?.key);
+      const label = text(column?.label);
+      if (!key || !label || key.length > 100 || label.length > 200 || keys.has(key)) throw new Error("Ungültige oder doppelte Exportspalte.");
+      keys.add(key);
+      return { key, label };
+    });
+    const rows = input.rows.map((row) => {
+      if (!row || typeof row !== "object" || Array.isArray(row)) throw new Error("Ungültiger Exporteintrag.");
+      return Object.fromEntries(columns.map(({ key }) => {
+        const value = row[key];
+        if (value != null && !["string", "number", "boolean"].includes(typeof value)) throw new Error("Exportzellen müssen einfachen Text enthalten.");
+        const content = text(value);
+        if (content.length > 200000) throw new Error("Eine Exportzelle ist zu groß. Bitte die Auswahl verkleinern.");
+        return [key, content];
+      }));
+    });
+    const generatedAt = text(input.generatedAt) || new Date().toISOString();
+    if (!Number.isFinite(Date.parse(generatedAt))) throw new Error("Ungültiges Exportdatum.");
+    const title = text(input.title) || labels[stage];
+    if (title.length > 300) throw new Error("Der Exporttitel ist zu lang.");
+    return { stage, title, generatedAt, generatedLabel: formatGeneratedAt(generatedAt), documentKind: "workbench", documentLabel: `Erkenntniswerkstatt | ${labels[stage]}`, columns, rows };
+  }
+
+  function workbenchFilename(snapshot, extension) {
+    return `hospitationskompass-${filenameSlug(snapshot.stage)}-${safeFilenameDate(snapshot.generatedAt)}.${extension}`;
+  }
+
+  function wWorkbenchDocumentXml(snapshot) {
+    const body = [
+      wParagraph(snapshot.title, { keepNext: true, run: { bold: true, color: COLORS.navy, size: 36 }, spacing: { after: 100, line: 400 } }),
+      wParagraph(`${snapshot.rows.length} Einträge · ${snapshot.generatedLabel}`, { run: { color: COLORS.muted, size: 18 }, spacing: { after: 160 } }),
+      ...snapshot.rows.map((row, index) => [
+        wParagraph(`Eintrag ${index + 1}`, { keepNext: true, run: { bold: true, color: COLORS.navy, size: 22 }, bottomBorder: { color: COLORS.border, size: 4 }, spacing: { before: 150, after: 80 } }),
+        ...snapshot.columns.flatMap(({ key, label }) => [
+          wParagraph(label, { keepNext: true, run: { bold: true, color: COLORS.teal, size: 17 }, spacing: { before: 50, after: 25 } }),
+          ...String(row[key] || "—").split(/\r\n|\r|\n/).map((line) => wParagraph(line, { run: { size: 19 }, spacing: { after: 55, line: 250 } }))
+        ])
+      ].join("")),
+      ...(snapshot.rows.length ? [] : [wParagraph("Keine Einträge in dieser Auswahl.")]),
+      `<w:sectPr><w:headerReference w:type="default" r:id="rId3"/><w:footerReference w:type="default" r:id="rId4"/><w:pgSz w:w="${A4.widthDxa}" w:h="${A4.heightDxa}"/><w:pgMar w:top="893" w:right="878" w:bottom="835" w:left="878" w:header="317" w:footer="346"/></w:sectPr>`
+    ].join("");
+    return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><w:body>${body}</w:body></w:document>`;
+  }
+
+  function createWorkbenchDocx(input = {}) {
+    const snapshot = normalizeWorkbenchSnapshot(input);
+    const coreDate = new Date(snapshot.generatedAt).toISOString();
+    const entries = [
+      ["[Content_Types].xml", `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/word/document.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/><Override PartName="/word/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.styles+xml"/><Override PartName="/word/header1.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.header+xml"/><Override PartName="/word/footer1.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.footer+xml"/><Override PartName="/docProps/core.xml" ContentType="application/vnd.openxmlformats-package.core-properties+xml"/></Types>`],
+      ["_rels/.rels", `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="word/document.xml"/><Relationship Id="rId2" Type="http://schemas.openxmlformats.org/package/2006/relationships/metadata/core-properties" Target="docProps/core.xml"/></Relationships>`],
+      ["docProps/core.xml", `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><cp:coreProperties xmlns:cp="http://schemas.openxmlformats.org/package/2006/metadata/core-properties" xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:dcterms="http://purl.org/dc/terms/" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"><dc:title>${escapeXml(snapshot.title)}</dc:title><dc:subject>Ausgewählte Ansicht der Erkenntniswerkstatt</dc:subject><dc:creator>Hospitationskompass</dc:creator><dcterms:created xsi:type="dcterms:W3CDTF">${coreDate}</dcterms:created></cp:coreProperties>`],
+      ["word/document.xml", wWorkbenchDocumentXml(snapshot)],
+      ["word/styles.xml", wStylesXml()],
+      ["word/header1.xml", wHeaderXml(snapshot)],
+      ["word/footer1.xml", wFooterXml(snapshot)],
+      ["word/_rels/document.xml.rels", `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/><Relationship Id="rId3" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/header" Target="header1.xml"/><Relationship Id="rId4" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/footer" Target="footer1.xml"/></Relationships>`]
+    ];
+    return { blob: new Blob([zipStore(entries, snapshot.generatedAt)], { type: "application/vnd.openxmlformats-officedocument.wordprocessingml.document" }), filename: workbenchFilename(snapshot, "docx"), snapshot };
+  }
+
+  function workbenchPdfText(value) {
+    const normalized = String(value).replace(/→/g, "->").replace(/←/g, "<-").replace(/↔/g, "<->").replace(/−/g, "-");
+    if ([...normalized].some((character) => character.codePointAt(0) > 0xff && CP1252[character.codePointAt(0)] == null)) {
+      throw new Error("Diese Auswahl enthält Zeichen, die der PDF-Export nicht darstellen kann. Bitte als Word exportieren.");
+    }
+    return normalized;
+  }
+
+  class WorkbenchPdfBuilder extends PdfBuilder {
+    addPage() {
+      super.addPage();
+      if (this.recordLabel) {
+        this.flowParagraph(`${this.recordLabel} · Fortsetzung`, { size: 8, color: COLORS.muted, lineHeight: 11, after: 8 });
+      }
+    }
+  }
+
+  function createWorkbenchPdf(input = {}) {
+    const snapshot = normalizeWorkbenchSnapshot(input);
+    const title = workbenchPdfText(snapshot.title);
+    const columns = snapshot.columns.map((column) => ({ ...column, label: workbenchPdfText(column.label) }));
+    const rows = snapshot.rows.map((row) => Object.fromEntries(columns.map(({ key }) => [key, workbenchPdfText(row[key])])));
+    const pdf = new WorkbenchPdfBuilder(snapshot);
+    pdf.flowParagraph(title, { size: 22, bold: true, color: COLORS.navy, lineHeight: 27, after: 8 });
+    pdf.flowParagraph(`${rows.length} Einträge · ${snapshot.generatedLabel}`, { size: 9, color: COLORS.muted, lineHeight: 12, after: 15 });
+    rows.forEach((row, index) => {
+      pdf.recordLabel = "";
+      const rowHeight = 33 + columns.reduce((height, { key, label }) => height
+        + wrapReportText(label, pdf.width - pdf.margin * 2, 8.5, true).length * 11 + 3
+        + wrapReportText(row[key] || "—", pdf.width - pdf.margin * 2, 9.5).length * 13 + 9, 0);
+      pdf.ensureSpace(rowHeight <= pdf.height - pdf.bottom - 70 ? rowHeight : 65);
+      pdf.recordLabel = `Eintrag ${index + 1}`;
+      pdf.flowParagraph(pdf.recordLabel, { size: 11, bold: true, color: COLORS.navy, lineHeight: 15, after: 4 });
+      pdf.drawLine(pdf.margin, pdf.y, pdf.width - pdf.margin, pdf.y, COLORS.border, 0.5);
+      pdf.y += 9;
+      columns.forEach(({ key, label }) => {
+        pdf.recordLabel = `Eintrag ${index + 1} · ${label}`;
+        pdf.ensureSpace(42);
+        pdf.flowParagraph(label, { size: 8.5, bold: true, color: COLORS.teal, lineHeight: 11, after: 3 });
+        pdf.flowParagraph(row[key] || "—", { size: 9.5, lineHeight: 13, after: 9, widowControl: true });
+      });
+      pdf.y += 7;
+    });
+    if (!rows.length) pdf.flowParagraph("Keine Einträge in dieser Auswahl.");
+    return { blob: new Blob([assemblePdf(pdf.pages, pdf.images)], { type: "application/pdf" }), filename: workbenchFilename(snapshot, "pdf"), snapshot };
+  }
+
   window.VersorgungsCompassHospitationExport = {
     appointmentCodebook: APPOINTMENT_CODEBOOK,
     createDocx,
     createPdf,
+    createWorkbenchDocx,
+    createWorkbenchPdf,
     createAppointmentDocx: (input = {}) => createDocx({ ...input, documentKind: "appointment" }),
     createAppointmentPdf: (input = {}) => createPdf({ ...input, documentKind: "appointment" }),
     createObservationDocx: (input = {}) => createDocx({ ...input, documentKind: "observations" }),

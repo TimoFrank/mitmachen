@@ -2351,7 +2351,7 @@ test("Hospitation: Fragebogen-Modul rendern", async ({ page }, testInfo) => {
   await expect(questionnaireSectorShell.locator("[data-custom-select-search-input]")).toHaveAttribute("placeholder", "Sektor suchen...");
   await typeCustomSelectSearch(questionnaireSectorShell, "Pflege");
   await expect(questionnaireSectorShell.locator(".custom-select-empty")).toBeHidden();
-  await expect(questionnaireSectorShell.locator(".custom-select-option", { hasText: "Praxis" })).toHaveCount(0);
+  await expect(questionnaireSectorShell.getByRole("option", { name: "Praxis", exact: true })).toHaveCount(0);
   await questionnaireSectorShell.locator(".custom-select-option", { hasText: "Pflege" }).click();
   await expect(questionnaireSector).toHaveValue("Pflege");
   await expect(questionnaireOrganization.locator('option[value="demo-org-havelpflege"]')).toHaveCount(1);
@@ -2387,7 +2387,7 @@ test("Hospitation: Fragebogen-Modul rendern", async ({ page }, testInfo) => {
   await expect(questionnaireContactShell.locator(".custom-select-trigger__label .avatar")).toBeVisible();
 
   await questionnaireSectorShell.locator(".custom-select-trigger").click();
-  await questionnaireSectorShell.locator(".custom-select-option", { hasText: "Praxis" }).click();
+  await questionnaireSectorShell.getByRole("option", { name: "Praxis", exact: true }).click();
   await expect(questionnaireSector).toHaveValue("Praxis");
   await expect(questionnaireOrganization).toHaveValue("");
   await expect(questionnaireContact).toHaveValue("");
@@ -5024,6 +5024,8 @@ test("Dubletten: Admin-Ansichten bleiben im jeweiligen Tab", async ({ page }, te
 });
 
 test("Kontaktprofil: Detailpanel oeffnet im Lesemodus", async ({ page }, testInfo) => {
+  // Der Roundtable im Testbestand soll als kommendes Format erscheinen.
+  await page.clock.setFixedTime(new Date("2026-09-01T12:00:00.000Z"));
   await gotoAuthenticated(page, "/frontend/app/versorgungs-kompass.html#contacts");
 
   const isMobile = testInfo.project.name.includes("mobile");

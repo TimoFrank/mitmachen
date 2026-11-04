@@ -4,6 +4,8 @@
       const XLSX_SCRIPT_SRC = APP_ROUTES?.assetUrl?.("../vendor/xlsx/xlsx.bundle.js") || "../vendor/xlsx/xlsx.bundle.js";
       const IS_PUBLIC_DEMO_PROFILE = window.VERSORGUNGS_COMPASS_CONFIG?.dataMode === "demo"
         && window.VERSORGUNGS_COMPASS_CONFIG?.authMode === "anonymous-demo";
+      const USE_INTEGRATED_HOSPITATION = IS_PUBLIC_DEMO_PROFILE
+        && new URLSearchParams(window.location.search).get("standalone") !== "hospitation-documentation";
       const OWNER_ONLY_CONTACT_CHANNELS = IS_PUBLIC_DEMO_PROFILE
         && window.VERSORGUNGS_COMPASS_CONFIG?.capabilities?.ownerOnlyContactChannels === true;
       let xlsxLoadPromise = null;
@@ -959,8 +961,9 @@
       const hospitationTabItems = [
         { id: "appointments", label: "Termine", title: "Hospitationen", subtitle: "Termine planen und Versorgungskontakte dokumentieren." },
         { id: "observations", label: "Beobachtungen", title: "Beobachtungen", subtitle: "Beobachtungen aus Hospitationen erfassen, strukturieren und weiterbearbeiten." },
+        { id: "synthesis", label: "Framework", title: "Framework", subtitle: "" },
         { id: "patterns", label: "Muster", title: "Muster", subtitle: "Wiederkehrende Beobachtungen bündeln und als belastbare Muster einordnen." },
-        { id: "dashboard", label: "Auswertung", title: "Auswertung", subtitle: "Hospitationstermine, Dokumentation und erfasste Beobachtungen auswerten." }
+        { id: "dashboard", label: USE_INTEGRATED_HOSPITATION ? "Dashboard" : "Auswertung", title: USE_INTEGRATED_HOSPITATION ? "Dashboard" : "Auswertung", subtitle: "Hospitationswissen, Beobachtungen und Muster im Überblick auswerten." }
       ];
       function normalizeHospitationTab(tab = "") {
         const normalized = String(tab || "").trim();
@@ -968,13 +971,26 @@
         return hospitationTabItems.some((item) => item.id === normalized) ? normalized : "appointments";
       }
       function hospitationRouteForTab(tab = activeHospitationTab) {
-        const normalized = normalizeHospitationTab(tab);
-        return normalized === "appointments" ? "hospitations" : `hospitations:${normalized}`;
+        const [tabName, query = ""] = String(tab).split("?");
+        const normalized = normalizeHospitationTab(tabName);
+        if (!USE_INTEGRATED_HOSPITATION) {
+          return normalized === "appointments" ? "hospitations" : `hospitations:${normalized}`;
+        }
+        if (normalized === "dashboard") return "hospitations:dashboard";
+        const stage = normalized === "synthesis"
+          ? new URLSearchParams(query).get("stage") || window.HospitationSynthesis?.getSelection().stage || "hospitations"
+          : { appointments: "hospitations", observations: "observations", patterns: "pattern" }[normalized];
+        return `hospitations:synthesis?stage=${encodeURIComponent(stage)}`;
       }
       function parseHospitationRoute(hashValue = "") {
-        const hash = String(hashValue || "").replace(/^#/, "");
-        const match = /^hospitations(?:(?::|\/)(appointments|documentation|observations|patterns|dashboard))?$/.exec(hash);
-        return match ? { tab: normalizeHospitationTab(match[1] || "appointments") } : null;
+        const [hash, query = ""] = String(hashValue || "").replace(/^#/, "").split("?");
+        const match = /^hospitations(?:(?::|\/)(appointments|documentation|observations|patterns|dashboard|synthesis))?$/.exec(hash);
+        if (!match) return null;
+        const legacyTab = normalizeHospitationTab(match[1] || "appointments");
+        if (!USE_INTEGRATED_HOSPITATION) return legacyTab === "synthesis" ? null : { tab: legacyTab };
+        const stage = legacyTab === "synthesis" ? new URLSearchParams(query).get("stage")
+          : { appointments: "hospitations", observations: "observations", patterns: "pattern" }[legacyTab];
+        return { tab: legacyTab === "dashboard" ? "dashboard" : "synthesis", stage };
       }
       const settingsTabItems = [
         { id: "registrations", title: "Registrierungskonzept", subtitle: "Beispieleingänge aus dem Zukunftsszenario prüfen; kein aktueller gematik-Prozess." },
@@ -1373,6 +1389,14 @@
       }
       const sidebarAccountSection = document.querySelector(".sidebar-account-section");
       const sidebarLayoutMediaQuery = window.matchMedia("(max-width: 760px)");
+      if (USE_INTEGRATED_HOSPITATION) {
+        const navigation = document.getElementById("hospitation-demo-navigation");
+        if (navigation) {
+          navigation.parentElement.querySelectorAll(".sidebar-subnav").forEach((group) => group.remove());
+          navigation.replaceWith(navigation.content.cloneNode(true));
+        }
+        document.getElementById("questionnaire-back-to-appointments")?.remove();
+      }
       const viewTabs = [...document.querySelectorAll("[data-view-tab]")];
       const routeLinks = [...document.querySelectorAll("[data-route-link]")];
       const viewPanels = [...document.querySelectorAll("[data-view-panel]")];
@@ -11318,8 +11342,8 @@
         {
           id: "hospitation-framework",
           view: "framework",
-          target: "#view-framework .framework-process-flow",
-          mobileTarget: "#view-framework .framework-process-flow .hospitation-dashboard-funnel-step",
+          target: USE_INTEGRATED_HOSPITATION ? "#ho-panel-framework" : "#view-framework .framework-process-flow",
+          mobileTarget: USE_INTEGRATED_HOSPITATION ? "#ho-panel-framework" : "#view-framework .framework-process-flow .hospitation-dashboard-funnel-step",
           sidebarSection: "planning",
           sidebarView: "framework",
           icon: "⇢",
@@ -11353,7 +11377,7 @@
           id: "hospitation-questionnaire",
           view: "questionnaire",
           target: "#hospitation-questionnaire-form",
-          mobileTarget: "#view-questionnaire .questionnaire-toolbar",
+          mobileTarget: USE_INTEGRATED_HOSPITATION ? "#ho-panel-questionnaire" : "#view-questionnaire .questionnaire-toolbar",
           prepare: "questionnaire-overview",
           sidebarSection: "planning",
           sidebarView: "questionnaire",
@@ -11737,7 +11761,7 @@
           closeDetail();
         }
         if (step.prepare === "questionnaire-overview") {
-          document.querySelectorAll("#view-questionnaire [data-questionnaire-section]").forEach((section) => {
+          document.querySelectorAll("#hospitation-questionnaire-form [data-questionnaire-section]").forEach((section) => {
             if (section instanceof HTMLDetailsElement) section.open = false;
           });
           const questionnaire = document.getElementById("hospitation-questionnaire-form");
@@ -14294,9 +14318,14 @@
         return normalizeOrganizationName(contact.organization) === normalizeOrganizationName(organization.name);
       }
 
-      function questionnaireNormalizeSector(value = "") {
+      function normalizeHospitationSector(value = "") {
         const raw = meaningfulOrEmpty(value);
-        return raw ? normalizeCategory(raw) : "";
+        const practice = ["Hausarztpraxis", "Facharztpraxis"].find((label) => label.toLocaleLowerCase("de") === raw.toLocaleLowerCase("de"));
+        return practice || (raw ? normalizeCategory(raw) : "");
+      }
+
+      function questionnaireNormalizeSector(value = "") {
+        return normalizeHospitationSector(value);
       }
 
       function questionnaireSectorValueForOrganization(organization = {}) {
@@ -14520,20 +14549,39 @@
         if (contextNotes) contextNotes.value = hospitation.goal || "";
       }
 
+      function questionnaireSectorsMatch(entitySector = "", sector = "") {
+        const selected = questionnaireNormalizeSector(sector);
+        const entity = questionnaireNormalizeSector(entitySector);
+        return !selected || entity === selected || (entity === "Praxis" && ["Hausarztpraxis", "Facharztpraxis"].includes(selected));
+      }
+
+      function questionnaireExistingSectorContext(sector = selectedQuestionnaireSector()) {
+        const visit = selectedQuestionnaireContainer();
+        if (!visit) return null;
+        const stored = questionnaireNormalizeSector(visit.sector);
+        return !stored || stored === questionnaireNormalizeSector(sector) ? visit : null;
+      }
+
       function questionnaireOrganizationMatchesSector(organization = {}, sector = selectedQuestionnaireSector()) {
-        return !sector || questionnaireSectorValueForOrganization(organization) === sector;
+        const visit = questionnaireExistingSectorContext(sector);
+        return Boolean(visit && visit.organizationId && visit.organizationId === questionnaireOrganizationKey(organization))
+          || questionnaireSectorsMatch(questionnaireSectorValueForOrganization(organization), sector);
       }
 
       function questionnaireContactMatchesSector(contact = {}, sector = selectedQuestionnaireSector()) {
-        return !sector || questionnaireSectorValueForContact(contact) === sector;
+        const visit = questionnaireExistingSectorContext(sector);
+        return Boolean(visit && visit.contactId && visit.contactId === contact.id)
+          || questionnaireSectorsMatch(questionnaireSectorValueForContact(contact), sector);
       }
 
       function questionnaireContactMatchesOrganization(contact = {}, organization = selectedQuestionnaireOrganization()) {
-        return !organization || questionnaireContactBelongsToOrganization(contact, organization);
+        const visit = questionnaireExistingSectorContext();
+        const bound = visit && visit.contactId === contact.id && visit.organizationId && visit.organizationId === questionnaireOrganizationKey(organization || {});
+        return !organization || Boolean(bound) || questionnaireContactBelongsToOrganization(contact, organization);
       }
 
       function questionnaireAvailableSectors() {
-        const sectors = new Set(defaultCategories.map((sector) => questionnaireNormalizeSector(sector)).filter(Boolean));
+        const sectors = new Set([...defaultCategories, "Hausarztpraxis", "Facharztpraxis", ...hospitations.map((visit) => visit.sector)].map((sector) => questionnaireNormalizeSector(sector)).filter(Boolean));
         questionnaireActiveOrganizations().forEach((organization) => {
           const sector = questionnaireSectorValueForOrganization(organization);
           if (sector) sectors.add(sector);
@@ -14600,9 +14648,18 @@
         refreshCustomSelects(questionnaireForm);
       }
 
+      function questionnaireSectorFromSelection(proposed = "", contact = null, organization = null) {
+        const current = selectedQuestionnaireSector();
+        const visit = questionnaireExistingSectorContext(current);
+        const bound = visit && ((contact && visit.contactId === contact.id) || (!contact && organization && visit.organizationId === questionnaireOrganizationKey(organization)));
+        if (bound && visit.sector) return questionnaireNormalizeSector(visit.sector);
+        if (proposed === "Praxis" && ["Hausarztpraxis", "Facharztpraxis"].includes(current)) return current;
+        return proposed;
+      }
+
       function applyQuestionnaireOrganizationSelection() {
         const organization = selectedQuestionnaireOrganization();
-        const sector = questionnaireSettingValue(null, organization);
+        const sector = questionnaireSectorFromSelection(questionnaireSettingValue(null, organization), null, organization);
         if (questionnaireSectorSelect && sector && questionnaireSelectHasValue(questionnaireSectorSelect, sector)) {
           setSelectValue(questionnaireSectorSelect, sector, sector);
         }
@@ -14612,14 +14669,16 @@
       function applyQuestionnaireContactSelection() {
         const contact = selectedQuestionnaireContact();
         if (!contact) return;
-        const organization = questionnaireOrganizationForContact(contact);
+        const visit = questionnaireExistingSectorContext();
+        const organization = (visit && visit.contactId === contact.id && questionnaireOrganizationById(visit.organizationId))
+          || questionnaireOrganizationForContact(contact);
         if (organization && questionnaireOrganizationSelect) {
           const organizationKey = questionnaireOrganizationKey(organization);
           if (questionnaireSelectHasValue(questionnaireOrganizationSelect, organizationKey)) {
             setSelectValue(questionnaireOrganizationSelect, organizationKey, questionnaireOrganizationOptionLabel(organization));
           }
         }
-        const sector = questionnaireSettingValue(contact, organization);
+        const sector = questionnaireSectorFromSelection(questionnaireSettingValue(contact, organization), contact, organization);
         if (questionnaireSectorSelect && sector && questionnaireSelectHasValue(questionnaireSectorSelect, sector)) {
           setSelectValue(questionnaireSectorSelect, sector, sector);
         }
@@ -14974,8 +15033,9 @@
 
       function questionnaireStartsAtValue(existingHospitation = {}) {
         const date = String(questionnaireDateInput?.value || "").trim();
-        if (date) return dateTimeInputToIso(`${date}T09:00`);
-        return existingHospitation.startsAt || "";
+        const existingStart = existingHospitation.startsAt || "";
+        if (!date) return existingStart;
+        return existingStart && hospitationDateSourceValue(existingHospitation).slice(0, 10) === date ? existingStart : "";
       }
 
       async function questionnaireHospitationPayload(existingHospitation = null) {
@@ -14993,6 +15053,7 @@
           organizationName: organization?.id ? "" : organization?.name || existingHospitation?.organizationName || "",
           sector: sector || existingHospitation?.sector || "",
           startsAt,
+          scheduledOn: String(questionnaireDateInput?.value || "").trim() || existingHospitation?.scheduledOn || "",
           ownerId: existingHospitation?.ownerId || currentProfile?.id || "",
           goal: contextGoal || existingHospitation?.goal || "Beobachtung zu Evidenz aus Hospitation",
           topics,
@@ -16664,7 +16725,7 @@
         const contact = hospitationContact(hospitation);
         const organization = hospitationOrganization(hospitation);
         const sector = hospitation.sector || contact?.category || organization?.sector || "";
-        return meaningfulOrEmpty(sector) ? normalizeCategory(sector) : "Nicht hinterlegt";
+        return normalizeHospitationSector(sector) || "Nicht hinterlegt";
       }
 
       function hospitationOwnerValue(item = {}) {
@@ -19737,7 +19798,7 @@
                   ${hospitationRowNameMarkup(hospitationEntryTitle(entry), item)}
                   <span class="hospitation-row__mobile-organization">${escapeHtml(organization)}</span>
                   <span class="hospitation-row__mobile-footer">
-                    ${sectorBadgeMarkup(sector)}
+                    ${hospitationSectorBadgeMarkup(sector)}
                     <span class="hospitation-row__mobile-observations">${hospitationObservationCountBadgeMarkup(item, { entryKind: entry.kind })}</span>
                     <span class="hospitation-row__mobile-owner">${hospitationOwnerAvatarStackMarkup(item)}</span>
                   </span>
@@ -19752,7 +19813,7 @@
                 ${hospitationObservationCountBadgeMarkup(item, { entryKind: entry.kind })}
               </div>
               <div class="hospitation-row__badges hospitation-row__sector">
-                ${sectorBadgeMarkup(sector)}
+                ${hospitationSectorBadgeMarkup(sector)}
               </div>
               <div class="hospitation-row__cell hospitation-row__owner">
                 ${hospitationOwnerAvatarStackMarkup(item)}
@@ -20554,11 +20615,14 @@
 
       function hospitationFrameworkMetrics() {
         const { documentedObservations, pipeline } = hospitationFrameworkSourceData();
+        const demoPatterns = USE_INTEGRATED_HOSPITATION
+          ? window.VERSORGUNGS_COMPASS_DEMO_DATA?.hospitationSynthesisPatterns?.length || 0 : 0;
+        const synthesisCount = window.HospitationSynthesis?.getData()?.clusters.length;
         return {
           observations: documentedObservations.length,
-          patterns: pipeline.patterns.length,
-          hypotheses: pipeline.hypotheses.length,
-          nextSteps: pipeline.nextSteps.length
+          patterns: pipeline.patterns.length + demoPatterns,
+          hypotheses: synthesisCount ?? pipeline.hypotheses.length,
+          nextSteps: synthesisCount ?? pipeline.nextSteps.length
         };
       }
 
@@ -20572,12 +20636,36 @@
           hypotheses: "abgeleitete Hypothesen",
           nextSteps: "vorbereitete nächste Schritte"
         };
-        frameworkView.querySelectorAll("[data-framework-count]").forEach((badge) => {
+        (document.getElementById("hospitation-workspace-method") || frameworkView).querySelectorAll("[data-framework-count]").forEach((badge) => {
           const key = badge.dataset.frameworkCount || "";
           const value = Number(metrics[key]) || 0;
           badge.textContent = String(value);
           badge.setAttribute("aria-label", `${value} ${accessibleLabels[key] || "Einträge"}`);
         });
+        const synthesis = window.HospitationSynthesis?.getData();
+        if (synthesis && hospitationDataState === "ready") {
+          for (const [id, key, suffix, stage] of [
+            ["hospitation-overview-hypothesis-count", "hypotheses", " ungeprüft", "hypothesis"],
+            ["hospitation-overview-next-step-count", "nextSteps", " vorgeschlagen", "nextStep"]
+          ]) {
+            const count = document.getElementById(id);
+            if (!count) continue;
+            count.textContent = String(metrics[key]);
+            count.parentElement.replaceChildren(count, document.createTextNode(suffix));
+            const step = count.closest(".hospitation-overview-evidence__step");
+            if (step?.tagName === "DIV") {
+              const link = document.createElement("a");
+              link.className = `${step.className} hospitation-overview-evidence__step--interactive`;
+              link.href = "#hospitations:synthesis";
+              link.append(...step.childNodes);
+              link.addEventListener("click", (event) => {
+                event.preventDefault();
+                openHospitationSynthesis("", stage);
+              });
+              step.replaceWith(link);
+            }
+          }
+        }
       }
 
       function hospitationOverviewEntryTitle(entry = {}) {
@@ -20746,7 +20834,34 @@
       }
 
       function renderHospitationOverview() {
-        renderRecentHospitationObservations();
+        if (USE_INTEGRATED_HOSPITATION && window.HospitationOverview) {
+          const activeHospitations = hospitations.filter((item) => !isHospitationArchived(item));
+          const ids = new Set(activeHospitations.map((item) => item.id));
+          const overviewHospitations = activeHospitations.map((item) => {
+            const context = hospitationSynthesisContext(item);
+            return {
+              ...item,
+              ...context,
+              organizationName: context.organizationName === "Nicht hinterlegt" ? "" : context.organizationName,
+              contactName: context.contactName === "Kontakt nicht hinterlegt" ? "" : context.contactName,
+              city: item.city || hospitationLocationLabel(item),
+              scheduledOn: String(hospitationDateSourceValue(item) || "").slice(0, 10)
+            };
+          });
+          const byId = new Map(overviewHospitations.map((item) => [item.id, item]));
+          const observations = hospitationObservationSourceRows().filter((row) => ids.has(row.hospitationId))
+            .map((row) => ({ ...row, hospitation: byId.get(row.hospitationId) }));
+          window.HospitationOverview.render({
+            status: hospitationDataState,
+            hospitations: overviewHospitations,
+            observations,
+            metrics: { ...hospitationFrameworkMetrics(), observations: observations.length },
+            createObservation: canEditContacts() ? createHospitationObservation : null,
+            openHospitation: (id) => openHospitationEntry(`hospitation:${id}`, { initialTab: "overview" }),
+            openObservation: openHospitationObservationDrawerById
+          });
+          return;
+        }
         const priority = document.querySelector(".hospitation-overview-priority");
         if (!priority) return;
         const nextDate = document.getElementById("hospitation-overview-next-date");
@@ -20895,6 +21010,8 @@
             if (entry) openHospitationOverviewEntry(entry, { initialTab: "overview" });
           });
         });
+        syncHospitationFrameworkMetrics();
+        renderRecentHospitationObservations();
       }
 
       function hospitationPatternCountLabel(value = 0, singular = "Eintrag", plural = "Einträge") {
@@ -20905,7 +21022,7 @@
       function renderHospitationFrameworkReminder(metrics = {}, focus = "patterns") {
         const steps = [
           { key: "observations", label: "Beobachtungen", color: "var(--hospitation-dashboard-green)" },
-          { key: "patterns", label: "Vergleichshinweise", color: "var(--hospitation-dashboard-blue)" },
+          { key: "patterns", label: window.HospitationSynthesis?.getData() ? "Muster" : "Vergleichshinweise", color: "var(--hospitation-dashboard-blue)" },
           { key: "hypotheses", label: "Hypothesen", color: "var(--hospitation-dashboard-amber)" },
           { key: "nextSteps", label: "Nächster Schritt", color: "var(--hospitation-dashboard-red)" }
         ];
@@ -20994,7 +21111,7 @@
               <strong data-hospitation-pattern-observation-title>${escapeHtml(title)}</strong>
               <small>${escapeHtml(hospitationDashboardShortText(finding, 150))}</small>
             </span>
-            <span class="hospitation-pattern-observation-row__context">${sectorBadgeMarkup(hospitationSectorLabel(parent))}<span class="observation-evidence-label observation-evidence-label--${escapeHtml(observationEvidenceTone(row.evidenceType))}">${escapeHtml(observationEvidenceLabel(row.evidenceType))}</span></span>
+            <span class="hospitation-pattern-observation-row__context">${hospitationSectorBadgeMarkup(hospitationSectorLabel(parent))}<span class="observation-evidence-label observation-evidence-label--${escapeHtml(observationEvidenceTone(row.evidenceType))}">${escapeHtml(observationEvidenceLabel(row.evidenceType))}</span></span>
             <svg class="hospitation-pattern-observation-row__arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="m9 18 6-6-6-6"></path></svg>
           </button>
         `;
@@ -21008,6 +21125,7 @@
           <section class="hospitation-pattern-evidence-map" id="${escapeHtml(evidenceId)}" data-hospitation-pattern-observations aria-label="Evidenzkarte für ${escapeHtml(title)}">
             <div class="hospitation-pattern-evidence-list-head">
               <h4>Zugehörige Beobachtungen</h4>
+              ${window.HospitationSynthesis?.getData() ? `<button type="button" class="action-button action-button--compact" data-pattern-framework="${escapeHtml(entry.key)}">Herleitung in der Werkstatt →</button>` : ""}
             </div>
             <div class="hospitation-pattern-observation-list">
               ${observations.length ? observations.map(renderHospitationPatternObservationRow).join("") : `<div class="hospitation-dashboard-empty">Für diesen Vergleichshinweis wurden keine passenden Beobachtungen gefunden.</div>`}
@@ -21053,12 +21171,7 @@
         const source = hospitationFrameworkSourceData();
         const patterns = source.pipeline.patterns;
         if (!patterns.some((entry) => entry.key === activeHospitationPatternKey)) activeHospitationPatternKey = "";
-        const frameworkMetrics = {
-          observations: source.documentedObservations.length,
-          patterns: patterns.length,
-          hypotheses: source.pipeline.hypotheses.length,
-          nextSteps: source.pipeline.nextSteps.length
-        };
+        const frameworkMetrics = hospitationFrameworkMetrics();
         hospitationPatternsWorkbench.innerHTML = `
           <section class="hospitation-patterns-page" aria-labelledby="workspace-view-title">
             ${renderHospitationFrameworkReminder(frameworkMetrics, "patterns")}
@@ -21082,7 +21195,150 @@
         `;
       }
 
+      function hospitationSynthesisContext(item = {}) {
+        const contact = hospitationContact(item);
+        const candidate = safeImageUrl(decodeAttributeValue(contact?.image || ""));
+        let avatarUrl = "";
+        if (candidate) {
+          try {
+            const url = new URL(candidate, window.location.href);
+            if (url.protocol === "data:" || url.origin === window.location.origin) avatarUrl = candidate;
+          } catch (_error) { /* Ohne lokales Bild bleiben die Kontaktinitialen sichtbar. */ }
+        }
+        return {
+          organizationName: hospitationOrganizationLabel(item),
+          contactName: hospitationContactOnlyLabel(item),
+          scheduledOn: hospitationDateSourceValue(item),
+          dateLabel: hospitationDateOnlyLabel(item),
+          avatarUrl
+        };
+      }
+
+      function renderHospitationSynthesisWorkbench() {
+        const host = document.getElementById("hospitation-synthesis-workbench");
+        if (!host) return;
+        if (!window.HospitationSynthesis) return;
+        if (hospitationDataState !== "ready") {
+          const message = hospitationDataState === "error"
+            ? "Die Hospitationsdaten konnten nicht geladen werden."
+            : "Die Hospitationsdaten werden geladen.";
+          host.innerHTML = `<p role="status">${message}</p>`;
+          return;
+        }
+        const source = hospitationFrameworkSourceData();
+        const frameworkHospitations = hospitations.slice()
+          .sort((left, right) => hospitationDateTimestamp(left, Infinity) - hospitationDateTimestamp(right, Infinity) || String(left.id).localeCompare(String(right.id)))
+          .map((item, index) => {
+            const contact = hospitationContact(item);
+            const organization = hospitationOrganization(item);
+            const owner = hospitationOwnerIds(item).map(hospitationOwnerLabel).join(", ");
+            return {
+              id: item.id,
+              displayNumber: index + 1,
+              archived: isHospitationArchived(item),
+              contextMatches: hospitationMatchesContextFilter(item),
+              ...hospitationSynthesisContext(item),
+              title: hospitationEntryTitle({ kind: "hospitation", item }),
+              status: hospitationScheduleStatus(item, { entryKind: "hospitation" }),
+              sector: hospitationSectorLabel(item),
+              documentation: hospitationDocumentationState(item).label,
+              owner,
+              city: item.city || organization?.city || contact?.city || "",
+              searchText: [item.goal, item.topics, item.location, item.city, organization?.city, contact?.city,
+                item.requestNote, item.documentationSummary, item.documentationOutcome, item.followUpNote, owner].join(" ")
+            };
+          });
+        window.HospitationSynthesis.render(host, {
+          hospitations: frameworkHospitations.filter((item) => !item.archived),
+          archivedHospitations: canAdministerData() ? frameworkHospitations.filter((item) => item.archived && item.contextMatches) : [],
+          canViewArchive: canAdministerData(),
+          contextLabel: hospitationContextFilterLabel(),
+          clearContext: () => { hospitationContextFilter = { kind: "", id: "" }; renderHospitationsView(); },
+          observations: hospitationObservationSourceRows().map((row) => ({
+            ...row,
+            comparisonType: hospitationObservationComparisonType(row),
+            hospitation: { ...row.hospitation, ...hospitationSynthesisContext(row.hospitation) }
+          })),
+          patterns: [
+            ...source.pipeline.patterns.map((entry) => {
+              const rows = hospitationPatternObservations(entry, source.documentedObservations);
+              return {
+                key: entry.key,
+                comparisonType: entry.comparisonType,
+                problemType: entry.problemType,
+                processPhase: entry.processPhase,
+                observationIds: rows.map((row) => row.id),
+                hospitationIds: [...new Set(rows.map((row) => row.hospitationId).filter(Boolean))]
+              };
+            }),
+            ...(window.VERSORGUNGS_COMPASS_DEMO_DATA?.hospitationSynthesisPatterns || [])
+          ],
+          openHospitation: (id) => openHospitationEntry(`hospitation:${id}`, { initialTab: "overview" }),
+          createHospitation: canEditContacts() ? () => openHospitationEditor("request") : null,
+          openObservation: openHospitationObservationDrawerById,
+          onDetailToggle: syncBodyScrollLock,
+          onStageChange: (stage) => updateRouteHash(`hospitations:synthesis?stage=${stage}`),
+          createObservation: canEditContacts() ? createHospitationObservation : null,
+          exportRows: window.VersorgungsCompassHospitationExport?.createWorkbenchDocx ? exportHospitationSynthesisRows : null
+        });
+      }
+
+      async function exportHospitationSynthesisRows(format, view) {
+        const exporter = window.VersorgungsCompassHospitationExport;
+        if (!exporter || hospitationLoadErrorMessage) throw new Error("Der Export ist aktuell nicht verfügbar.");
+        const labels = { hospitations: "Hospitationen", observations: "Beobachtungen", pattern: "Muster", hypothesis: "Hypothesen", nextStep: "Nächste Schritte" };
+        const snapshot = { ...view, title: `Framework · ${labels[view.stage] || "Auswahl"}`, generatedAt: new Date().toISOString() };
+        const result = format === "pdf" ? exporter.createWorkbenchPdf(snapshot) : exporter.createWorkbenchDocx(snapshot);
+        exporter.downloadBlob(result.blob, result.filename);
+        setStorageStatus(`${labels[view.stage] || "Auswahl"} (${format === "pdf" ? "PDF" : "Word"}) exportiert`);
+      }
+
+      function openHospitationSynthesis(clusterId, stage = "hypothesis") {
+        if (!window.HospitationSynthesis?.getData() || !closeHospitationObservationDrawer()) return;
+        window.HospitationSynthesis.select(clusterId, stage);
+        activeHospitationTab = "synthesis";
+        setActiveView("hospitations");
+        updateRouteHash(hospitationRouteForTab("synthesis"));
+        renderHospitationsView();
+        document.getElementById("hospitation-synthesis-workbench")?.querySelector("[aria-current='step']")?.focus();
+      }
+
+      function openHospitationSynthesisPath(kind, id, detailId = "") {
+        if (!window.HospitationSynthesis?.getData() || !closeHospitationObservationDrawer()) return;
+        if (kind === "observation") window.HospitationSynthesis.selectObservation(id, "pattern");
+        else window.HospitationSynthesis.selectPattern(id, "pattern");
+        activeHospitationTab = "synthesis";
+        setActiveView("hospitations");
+        updateRouteHash(hospitationRouteForTab("synthesis"));
+        renderHospitationsView();
+        window.requestAnimationFrame(() => {
+          document.getElementById("hospitation-synthesis-workbench")?.querySelector("[aria-current='step']")?.focus();
+          if (detailId) window.HospitationSynthesis.openDetails(detailId);
+        });
+      }
+
+      function renderHospitationSynthesisLinks(row) {
+        const synthesis = window.HospitationSynthesis?.getData();
+        if (!synthesis) return "";
+        const source = hospitationFrameworkSourceData();
+        const patternKeys = source.pipeline.patterns.map((entry) => entry.key).sort();
+        const patterns = source.pipeline.patterns.filter((entry) => hospitationPatternObservations(entry, source.documentedObservations).some((item) => item.id === row.id));
+        return `<section class="observation-detail-card" aria-label="Herleitung in der Framework" data-observation-derivation>
+          <h4 class="detail-section-title">Muster und Herleitung</h4>
+          ${patterns.length ? `<div class="observation-detail-coding-grid">${patterns.map((entry) => {
+            const reference = `M${String(patternKeys.indexOf(entry.key) + 1).padStart(2, "0")}`;
+            const problem = entry.problemType === "positives Muster / Best Practice" ? "Bewährter Ablauf" : String(entry.problemType || "Muster");
+            const title = problem.charAt(0).toLocaleUpperCase("de-DE") + problem.slice(1);
+            const hypothesisCount = new Set(synthesis.patternLinks.filter((link) => link.patternKey === entry.key && link.observationIds.includes(row.id)).map((link) => link.clusterId)).size;
+            return `<button class="observation-detail-coding-item hs-observation-pattern-link" type="button" data-observation-framework="${escapeHtml(row.id)}" data-observation-framework-pattern="${escapeHtml(entry.key)}" aria-haspopup="dialog"><strong>${escapeHtml(reference)} · ${escapeHtml(title)}</strong><span class="observation-coding-badge observation-coding-badge--phase">${escapeHtml(entry.processPhase)}</span><small>${hypothesisCount ? `${hypothesisCount} ${hypothesisCount === 1 ? "verknüpfte Hypothese" : "verknüpfte Hypothesen"}` : "Hypothese noch offen"}</small></button>`;
+          }).join("")}</div>` : '<p class="muted">Noch kein Muster zugeordnet.</p>'}
+        </section>`;
+      }
+
       function bindHospitationPatternsActions(root = document) {
+        root.querySelectorAll("[data-pattern-framework]").forEach((button) => {
+          button.addEventListener("click", () => openHospitationSynthesisPath("pattern", button.dataset.patternFramework));
+        });
         root.querySelectorAll("[data-hospitation-pattern-select]").forEach((button) => {
           button.addEventListener("click", () => {
             const clickedKey = button.dataset.hospitationPatternSelect || "";
@@ -23266,6 +23522,48 @@
 
       function renderHospitationDashboard() {
         if (!hospitationDashboard) return;
+        if (USE_INTEGRATED_HOSPITATION && window.HospitationDashboard) {
+          hospitationDashboard.dataset.hdbMode = "new";
+          const source = hospitationFrameworkSourceData();
+          const legacyActive = source.activeHospitations;
+          const legacyDocumented = legacyActive.filter((item) => hospitationDocumentationState(item).label === "Dokumentiert");
+          const dashboardObservations = hospitationObservationSourceRows();
+          window.HospitationDashboard.render(hospitationDashboard, {
+            status: hospitationDataState,
+            hospitations: source.activeHospitations.map((item) => ({ ...item, displayName: hospitationDocumentationContactLabel(item), displayOrganization: hospitationOrganization(item)?.name || hospitationFreeTextOrganizationName(item) || "", avatarMarkup: hospitationAvatarMarkup(item), displayCity: item.city || hospitationContact(item)?.city || hospitationOrganization(item)?.city || "", displayDate: hospitationDateSourceValue(item) })),
+            observations: dashboardObservations,
+            locationMap: (() => {
+              const features = window.MAP_STATE_POLYGONS?.features || [];
+              const bounds = statePolygonBounds(features);
+              if (!features.length || !Number.isFinite(bounds.minX)) return null;
+              const mapped = source.activeHospitations.filter((item) => item.state);
+              const coordinateSources = new Map(mapped.map((item) => [item.id, hospitationDashboardLocationCoordinate(item)?.source || "state"]));
+              return {
+                viewBox: "0 0 240 292",
+                states: features.map((feature) => ({ name: feature.properties.name, path: statePolygonPath(feature, bounds) })),
+                points: hospitationDashboardLocationPoints(mapped, bounds).map((point) => ({ ...point, source: coordinateSources.get(point.id) }))
+              };
+            })(),
+            problemObservationIds: dashboardObservations.filter((item) => hospitationObservationCanCompare(item) && hospitationObservationComparisonType(item) === "Hindernis").map((item) => item.id),
+            wordCloudSourceIds: legacyDocumented.map((item) => item.id),
+            patterns: source.pipeline.patterns,
+            synthesis: window.HospitationSynthesis?.getData(),
+            openObservation: openHospitationObservationDrawerById,
+            widgets: [
+              { id: "process-phases", label: "Prozessphasen", caption: "Hospitationen", choiceNote: "Phasen der beschriebenen Beobachtungen" },
+              { id: "problem-types", label: "Problemtypen", caption: "Hindernisse, je Hospitation", choiceNote: "Problemtypen bei dokumentierten Hindernissen" },
+              { id: "free-text-terms", label: "Wörterwolke", caption: `${legacyDocumented.length} abgeschlossene Dokumentationen`, choiceNote: "Wortvorkommen aus mehreren Textfeldern", render: () => renderHospitationDashboardFreeTextTermsCard(legacyDocumented) },
+              { id: "topics", label: "Themen aus der Dokumentation", caption: "Hospitationen", choiceNote: "Themen aus Hospitationsnotizen", stats: hospitationDashboardAnalysisTagStats(legacyActive) },
+              { id: "affected-products", label: "Betroffene Produkte", caption: "Hospitationen", choiceNote: "Produkte, die bei Hospitationen genannt wurden", stats: hospitationDashboardAffectedProductStats(legacyActive) },
+              { id: "quotes", label: "Zitate", caption: "Dokumentierte Stimmen", choiceNote: "Dokumentierte Zitate und ihre Herkunft", render: () => renderHospitationDashboardQuotesCard(legacyActive) }
+            ],
+            renderQuotes: () => {
+              const quotes = hospitationDashboardAllQuotes(legacyActive).filter((quote) => meaningfulOrEmpty(quote.quote)).sort((a, b) => hospitationDateTimestamp(b.hospitation) - hospitationDateTimestamp(a.hospitation));
+              return quotes.length ? quotes.map(renderHospitationDashboardQuoteDetailRow).join("") : '<p>Keine Zitate erfasst.</p>';
+            }
+          });
+          return;
+        }
         const dataSet = hospitationDashboardDataSet();
         const unfiltered = dataSet.visible.filter((hospitation) => hospitation.status !== "Archiviert");
         const visible = hospitationDashboardApplyFilters(unfiltered, dataSet);
@@ -23282,6 +23580,7 @@
       }
 
       function bindHospitationDashboardActions(root = document) {
+        if (hospitationDashboard?.dataset.hdbMode === "new") return;
         refreshCustomSelects(root);
         const rerenderDashboard = () => {
           renderHospitationDashboard();
@@ -24247,7 +24546,7 @@
         if (key === "organization") {
           return `<span class="observation-table-cell"><span class="observation-table-cell__primary">${escapeHtml(hospitationOrganizationLabel(parent) || "Nicht hinterlegt")}</span></span>`;
         }
-        if (key === "sector") return `<span class="observation-table-cell observation-table-cell--sector">${sectorBadgeMarkup(hospitationSectorLabel(parent))}</span>`;
+        if (key === "sector") return `<span class="observation-table-cell observation-table-cell--sector">${hospitationSectorBadgeMarkup(hospitationSectorLabel(parent))}</span>`;
         if (key === "processPhase") return `<span class="observation-table-cell"><span class="observation-table-cell__primary">${escapeHtml(observationCodingLabel("processPhase", row.processPhase))}</span></span>`;
         if (key === "problemType") return `<span class="observation-table-cell"><span class="observation-table-cell__primary">${escapeHtml(observationCodingLabel("problemType", row.problemType))}</span></span>`;
         if (key === "owner") return `<span class="observation-table-cell">${hospitationOwnerAvatarStackMarkup(parent)}</span>`;
@@ -24373,7 +24672,8 @@
               ${renderHospitationCodingSelect("observationType", row.observationType || "")}
               ${textField("immediateConsequence", "Konkrete Folge", "Nur ergänzen, wenn es noch nicht in der Beschreibung steht.")}
               ${textField("sourceReference", "Quellenbezug", "Zum Beispiel Feldnotiz oder berichtete Situation mit Rolle und Datum.")}
-              ${textField("uncertainty", "Offene Fragen", "Was bleibt unklar?")}
+              ${textField("uncertainty", USE_INTEGRATED_HOSPITATION ? "Nachdokumentation" : "Offene Fragen",
+                USE_INTEGRATED_HOSPITATION ? "Ergänzungen oder noch zu klärende Punkte." : "Was bleibt unklar?")}
               <label>Relevanz (1–5)<input name="relevanceScore" type="number" min="1" max="5" value="${escapeHtml(row.relevanceScore || "")}"></label>
               <label>Nächste Nutzung<select name="usageRecommendation">${observationSelectOptions(hospitationUsageRecommendationOptions, row.usageRecommendation || row.nextUse)}</select></label>
               ${textField("relevanceReason", "Begründung", "Konkrete Folge, offene Frage und möglichen gematik-Bezug begründen.")}
@@ -24391,6 +24691,7 @@
         return {
           title: "Fasse die Beobachtung kurz und sachlich zusammen, zum Beispiel: „Befund muss telefonisch angefordert werden“.",
           description: "Beginne bei Bedarf mit kurzem Kontext, beschreibe dann sachlich, was gesehen oder berichtet wurde. Zum Beispiel: „Bei der Vorbereitung eines Kontrolltermins sucht die MFA den Befund im PVS und ruft anschließend die Facharztpraxis an.“",
+          uncertainty: "Ergänzungen und noch zu klärende Punkte zu dieser Beobachtung. Vorhandene Fragen bleiben erhalten, bis du den Text bewusst änderst.",
           usageRecommendation: "Halte fest, wie die Beobachtung weiter genutzt werden soll, zum Beispiel Wissen teilen oder weiter validieren. Eine noch offene Entscheidung kannst du später ergänzen.",
           relevanceScore: "Optionale spätere Einschätzung von 1 (sehr niedrig) bis 5 (sehr hoch). Sie bewertet nicht die Stärke der Evidenz. Lass sie offen, wenn du sie noch nicht einschätzen kannst."
         }[field] || "";
@@ -24401,7 +24702,7 @@
       }
 
       function observationFieldHead(field, label) {
-        const editButton = field === "description" && canEditContacts()
+        const editButton = ["description", "uncertainty"].includes(field) && canEditContacts()
           ? renderProfileFieldEditButton(`${label} bearbeiten`, `data-observation-edit-field="${escapeHtml(field)}" data-observation-scope="observation" aria-expanded="false"`) : "";
         const helpId = `observation-help-${field}`;
         const infoButton = `<button class="observation-field-info" type="button" data-observation-info="${field}" aria-label="Informationen zu ${escapeHtml(label)}" aria-expanded="false" aria-controls="${helpId}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><circle cx="12" cy="12" r="9"></circle><path d="M12 11v6M12 7v1"></path></svg></button>`;
@@ -24496,7 +24797,15 @@
               ${row.sourceReference ? `<div class="observation-detail-copy-grid"><article class="observation-detail-copy-block" data-observation-source-reference><span>Quellenbezug</span><p>${escapeHtml(row.sourceReference)}</p></article></div>` : ""}
             </section>
 
-            ${row.immediateConsequence || row.uncertainty ? `<section class="observation-detail-card">
+            ${USE_INTEGRATED_HOSPITATION ? `<section class="observation-detail-card">
+              <div class="observation-detail-copy-grid">
+                ${row.immediateConsequence ? `<article class="observation-detail-copy-block"><span>Konkrete Folge</span><p>${escapeHtml(row.immediateConsequence)}</p></article>` : ""}
+                <article class="observation-detail-copy-block" data-observation-field="uncertainty">
+                  ${observationFieldHead("uncertainty", "Nachdokumentation")}
+                  ${observationFieldValue(`<p>${escapeHtml(row.uncertainty || "Noch keine Ergänzung dokumentiert.")}</p>`)}
+                </article>
+              </div>
+            </section>` : row.immediateConsequence || row.uncertainty ? `<section class="observation-detail-card">
               <div class="observation-detail-copy-grid">
                 <article class="observation-detail-copy-block"><span>Konkrete Folge</span><p>${escapeHtml(row.immediateConsequence || "Nicht festgehalten")}</p></article>
                 <article class="observation-detail-copy-block"><span>Offene Fragen</span><p>${escapeHtml(row.uncertainty || "Nicht festgehalten")}</p></article>
@@ -24520,6 +24829,7 @@
               </details>
             </section>
 
+            ${renderHospitationSynthesisLinks(row)}
             <section class="observation-detail-card observation-detail-card--source" aria-labelledby="observation-detail-source-title">
               <div class="observation-detail-source-heading">
                 <h4 class="detail-section-title" id="observation-detail-source-title">Hospitation</h4>
@@ -24770,17 +25080,17 @@
       }
 
       function observationInlineControlMarkup(row, field) {
-        if (!["title", "description"].includes(field)) return "";
-        const label = field === "title" ? "Kurzfassung" : "Beobachtung";
+        if (!["title", "description", "uncertainty"].includes(field)) return "";
+        const label = field === "title" ? "Kurzfassung" : field === "uncertainty" ? "Nachdokumentation" : "Beobachtung";
         const id = `observation-inline-${field}`;
         const attrs = `id="${id}" name="${field}" aria-label="${escapeHtml(label)}" aria-describedby="observation-inline-hint-${field}"`;
         if (field === "title") return `<label class="visually-hidden" for="${id}">${label}</label><input class="format-fact-control" ${attrs} value="${escapeHtml(row.title || "")}" required>`;
-        const value = hospitationModel.observationText(row);
+        const value = field === "uncertainty" ? row.uncertainty || "" : hospitationModel.observationText(row);
         return `<label class="visually-hidden" for="${id}">${label}</label><textarea class="format-fact-control hospitation-inline-textarea" ${attrs}${field === "description" ? " required" : ""}>${escapeHtml(value)}</textarea>`;
       }
 
       function startObservationInlineEdit(field) {
-        if (!["title", "description"].includes(field) || !canEditContacts()) return;
+        if (!["title", "description", "uncertainty"].includes(field) || !canEditContacts()) return;
         if (hospitationObservationInlineEdit?.field === field) {
           hospitationObservationInlineEdit.form.querySelector("input, textarea")?.focus();
           return;
@@ -24829,7 +25139,7 @@
       async function saveObservationInlineEdit(event) {
         event.preventDefault();
         const edit = hospitationObservationInlineEdit;
-        if (!edit || edit.form !== event.currentTarget || edit.saving || !["title", "description"].includes(edit.field)) return;
+        if (!edit || edit.form !== event.currentTarget || edit.saving || !["title", "description", "uncertainty"].includes(edit.field)) return;
         const form = edit.form;
         const status = form.querySelector("[data-observation-inline-status]");
         if (!canEditContacts()) {
@@ -24852,7 +25162,7 @@
         const enabled = [...form.querySelectorAll("button, input, textarea, select")].filter((control) => !control.disabled);
         enabled.forEach((control) => { control.disabled = true; });
         try {
-          const patch = edit.field === "description" ? { description: value, situation: "", situationContext: "" } : { title: value };
+          const patch = edit.field === "description" ? { description: value, situation: "", situationContext: "" } : edit.field === "uncertainty" ? { uncertainty: value } : { title: value };
           const updated = await window.dataService.updateHospitationObservation(edit.observationId, patch, edit.updatedAt);
           if (!updated?.id) throw new Error("Die Beobachtung konnte nicht gespeichert werden.");
           hospitationObservations = [updated, ...hospitationObservations.filter((item) => item.id !== updated.id)];
@@ -24878,6 +25188,7 @@
         observationDetailDrawer?.classList.remove("is-open");
         observationDetailDrawer?.classList.remove("is-observation-read", "is-observation-edit", "is-observation-create");
         observationDetailDrawer?.setAttribute("aria-hidden", "true");
+        syncBodyScrollLock();
         hospitationObservationCreateMode = false;
         hospitationObservationEditMode = false;
         return true;
@@ -24909,6 +25220,15 @@
         return true;
       }
 
+      function createHospitationObservation() {
+        if (!canEditContacts() || !confirmObservationInlineDiscard()) return;
+        hospitationObservationOpenRequest += 1;
+        activeHospitationObservationId = "";
+        hospitationObservationCreateMode = true;
+        hospitationObservationEditMode = false;
+        renderHospitationObservationDrawer();
+      }
+
       function renderHospitationObservationDrawer() {
         if (!observationDetailBody || !observationDetailDrawer) return;
         const row = hospitationObservationSourceRows().find((item) => item.id === activeHospitationObservationId) || null;
@@ -24933,7 +25253,12 @@
         observationDetailDrawer.classList.toggle("is-observation-create", hospitationObservationCreateMode);
         observationDetailDrawer.classList.add("is-open");
         observationDetailDrawer.setAttribute("aria-hidden", "false");
+        syncBodyScrollLock();
         bindHospitationObservationDrawerActions();
+        if (USE_INTEGRATED_HOSPITATION) window.HospitationObservationSteps?.mount(observationDetailBody);
+        const dialog = observationDetailDrawer.querySelector('[role="dialog"]');
+        const dialogState = dialog && managedDialogState.get(dialog);
+        if (dialogState?.open) managedDialogState.set(dialog, { ...dialogState, formSignature: managedDialogFormSignature(dialog) });
       }
 
       function renderHospitationObservationsWorkbench() {
@@ -25015,15 +25340,7 @@
           renderHospitationObservationsWorkbench();
           window.requestAnimationFrame(() => hospitationObservationsWorkbench.querySelector("[data-observation-query]")?.focus());
         });
-        root.querySelector("[data-observation-new]")?.addEventListener("click", () => {
-          if (!canEditContacts()) return;
-          if (!confirmObservationInlineDiscard()) return;
-          hospitationObservationOpenRequest += 1;
-          activeHospitationObservationId = "";
-          hospitationObservationCreateMode = true;
-          hospitationObservationEditMode = false;
-          renderHospitationObservationDrawer();
-        });
+        root.querySelector("[data-observation-new]")?.addEventListener("click", createHospitationObservation);
         root.querySelectorAll("[data-observation-export]").forEach((button) => button.addEventListener("click", () => {
           exportHospitationObservations(button.dataset.observationExport === "pdf" ? "pdf" : "docx");
         }));
@@ -25153,6 +25470,9 @@
       function bindHospitationObservationDrawerActions() {
         const root = observationDetailBody;
         if (!root) return;
+        root.querySelectorAll("[data-observation-framework]").forEach((button) => {
+          button.addEventListener("click", () => openHospitationSynthesisPath("observation", button.dataset.observationFramework, button.dataset.observationFrameworkPattern || ""));
+        });
         refreshCustomSelects(root);
         root.querySelectorAll(".observation-field-info[popovertarget]").forEach((trigger) => {
           const hint = document.getElementById(trigger.getAttribute("popovertarget"));
@@ -25229,7 +25549,7 @@
             activeHospitationObservationId = "";
             closeHospitationObservationDrawer();
             setStorageStatus("Beobachtung archiviert");
-            renderHospitationObservationsWorkbench();
+            renderHospitationsView();
           } catch (error) { window.alert(error?.message || "Beobachtung konnte nicht archiviert werden."); }
         });
         root.querySelector("[data-observation-edit-form]")?.addEventListener("submit", async (event) => {
@@ -25242,7 +25562,7 @@
             mergeCanonicalObservationsIntoHospitations();
             hospitationObservationEditMode = false;
             setStorageStatus("Beobachtung gespeichert");
-            renderHospitationObservationsWorkbench();
+            renderHospitationsView();
             renderHospitationObservationDrawer();
           } catch (error) { window.alert(error?.message || "Beobachtung konnte nicht gespeichert werden."); }
         });
@@ -25274,7 +25594,7 @@
             hospitationObservationCreateMode = false;
             hospitationObservationEditMode = false;
             setStorageStatus("Beobachtung angelegt");
-            renderHospitationObservationsWorkbench();
+            renderHospitationsView();
             renderHospitationObservationDrawer();
           } catch (error) { window.alert(error?.message || "Beobachtung konnte nicht angelegt werden."); }
         });
@@ -25329,7 +25649,7 @@
 
       function updateHospitationDashboardChrome(activeTab = activeHospitationTab) {
         const dashboardActive = activeView === "hospitations" && activeTab === "dashboard";
-        const commandRowHidden = activeView === "hospitations" && ["dashboard", "observations", "patterns"].includes(activeTab);
+        const commandRowHidden = activeView === "hospitations" && ["dashboard", "observations", "patterns", "synthesis"].includes(activeTab);
         if (hospitationModeActions && activeView === "hospitations") hospitationModeActions.hidden = true;
         if (hospitationCommandRow) hospitationCommandRow.hidden = commandRowHidden;
         if (newHospitationRequestButton && activeView === "hospitations") {
@@ -25340,6 +25660,14 @@
       }
 
       function renderHospitationsView() {
+        if (USE_INTEGRATED_HOSPITATION) renderHospitationOverview();
+        if (USE_INTEGRATED_HOSPITATION && activeView === "hospitations" && !["synthesis", "dashboard"].includes(activeHospitationTab)) {
+          const stage = { appointments: "hospitations", observations: "observations", patterns: "pattern" }[activeHospitationTab];
+          window.HospitationSynthesis?.setStage(stage, { render: false });
+          activeHospitationTab = "synthesis";
+        }
+        if (activeView !== "hospitations" || activeHospitationTab !== "synthesis") window.HospitationSynthesis?.closeDetails();
+        if (activeView !== "hospitations" || activeHospitationTab !== "dashboard") window.HospitationDashboard?.closeDetails();
         if (activeView !== "hospitations") return;
         const activeTab = hospitationTabItems.some((item) => item.id === activeHospitationTab) ? activeHospitationTab : "appointments";
         activeHospitationTab = activeTab;
@@ -25374,6 +25702,7 @@
           renderHospitationDashboard();
           bindHospitationDashboardActions(hospitationDashboard);
         }
+        if (activeTab === "synthesis") renderHospitationSynthesisWorkbench();
         if (activeTab === "observations") renderHospitationObservationsWorkbench();
         if (activeTab === "patterns") {
           renderHospitationPatternsWorkbench();
@@ -25486,7 +25815,7 @@
             <div class="detail-line-list hospitation-documentation-overview-list">
               ${detailLine("Termin", hospitationStartLabel(hospitation))}
               ${detailLineHtml("Status", hospitationStatusBadgeMarkup(hospitation.status || "Dokumentiert"))}
-              ${detailLineHtml("Setting / Sektor", sectorBadgeMarkup(hospitationSectorLabel(hospitation)))}
+              ${detailLineHtml("Setting / Sektor", hospitationSectorBadgeMarkup(hospitationSectorLabel(hospitation)))}
               ${detailLine("Ort", hospitationLocationLabel(hospitation) || "Nicht hinterlegt")}
               ${detailLine("Bundesland", hospitationStateLabel(hospitation))}
             </div>
@@ -27193,6 +27522,7 @@
             const linkedHospitation = hospitations.find((item) => item.id === button.dataset.hospitationId);
             if (action === "list") {
               hospitationContextFilter = { kind: contextKind, id: contextId };
+              window.HospitationSynthesis?.setStage("hospitations", { clearSelection: true, resetFilters: true, render: false });
               hospitationArchiveView = false;
               hospitationScheduleView = "list";
               selectedHospitationEntryKeys.clear();
@@ -30493,6 +30823,12 @@
         const label = meaningfulOrEmpty(value) || "Indikation offen";
         const empty = !meaningfulOrEmpty(value);
         return `<span class="patient-indication-badge ${empty ? "patient-indication-badge--empty" : ""}" data-patient-indication-badge="${escapeHtml(label)}" style="${patientIndicationBadgeStyle(label)}">${escapeHtml(label)}</span>`;
+      }
+
+      function hospitationSectorBadgeMarkup(value) {
+        const label = normalizeHospitationSector(value);
+        if (!["Hausarztpraxis", "Facharztpraxis"].includes(label)) return sectorBadgeMarkup(label);
+        return `<span class="contact-sector-pill" style="${sectorBadgeStyle("Praxis")}">${escapeHtml(label)}</span>`;
       }
 
       function sectorBadgeMarkup(value) {
@@ -39948,6 +40284,11 @@
           return hospitationRouteForTab(String(routeView).split(":")[1] || activeHospitationTab);
         }
         if (routeView === "careOverview") return "care";
+        if (USE_INTEGRATED_HOSPITATION) {
+          if (["framework", "planning", "questionnaire"].includes(routeView)) return `hospitation-overview?tab=${routeView === "questionnaire" ? "questionnaire" : "framework"}`;
+          if (String(routeView).startsWith("hospitation-overview")) return routeView;
+          if (routeView === "hospitationOverview") return `hospitation-overview?tab=${window.HospitationWorkspace?.getOverviewTab() || "overview"}`;
+        }
         if (routeView === "hospitationOverview") return "hospitation-overview";
         if (routeView === "stakeholderOverview") return "stakeholders";
         if (routeView === "stakeholders") return stakeholderRouteForType();
@@ -40011,6 +40352,10 @@
 
       function setActiveView(view) {
         if (isHospitationWorkspace && view === "home") view = "hospitationOverview";
+        if (USE_INTEGRATED_HOSPITATION && ["framework", "planning", "questionnaire"].includes(view)) {
+          window.HospitationWorkspace?.showOverviewTab(view === "questionnaire" ? "questionnaire" : "framework");
+          view = "hospitationOverview";
+        }
         if (onboardingActive && view !== "onboarding") view = "onboarding";
         if (onboardingReviewActive && view !== "onboarding") {
           onboardingReviewActive = false;
@@ -40071,11 +40416,7 @@
           selectedConsentAvailability = [];
           contactSort = { key: "", direction: "" };
         }
-        const activeNavigationView = view === "personProfile"
-          ? personProfileParentView()
-          : view === "organizationProfile"
-            ? activeOrganizationProfile.returnTo || organizationProfileParentView()
-            : view;
+        const activeNavigationView = sidebarNavigationView(view);
         if (view === "organizations") {
           selectedPriorities = [];
           selectedSpecialties = [];
@@ -40122,10 +40463,10 @@
           const active = activeNavigationView === "questionnaire"
             ? tabView === "hospitations"
             : stakeholderTypeRoute
-            ? activeNavigationView === "stakeholders" && stakeholderTypeRoute === activeStakeholderTypeId
-            : activeNavigationView === "hospitations"
-              ? (activeHospitationTab === "appointments" ? tabView === "hospitations" : tabView === `hospitations:${activeHospitationTab}`)
-              : tabView === activeNavigationView || (tab.dataset.viewGroup === "care" && isCareView(activeNavigationView));
+              ? activeNavigationView === "stakeholders" && stakeholderTypeRoute === activeStakeholderTypeId
+              : activeNavigationView === "hospitations"
+                ? (activeHospitationTab === "appointments" ? tabView === "hospitations" : tabView === `hospitations:${activeHospitationTab}`)
+                : tabView === activeNavigationView || (tab.dataset.viewGroup === "care" && isCareView(activeNavigationView));
           tab.classList.toggle("is-active", active);
           if (active) tab.setAttribute("aria-current", activeNavigationView === "questionnaire" ? "location" : "page");
           else tab.removeAttribute("aria-current");
@@ -40144,6 +40485,9 @@
         if (view === "profile") sidebarProfileButton?.setAttribute("aria-current", "page");
         else sidebarProfileButton?.removeAttribute("aria-current");
         syncActiveSidebarSection(activeNavigationView);
+        window.HospitationWorkspace?.sync(activeNavigationView,
+          activeNavigationView === "hospitationOverview" ? window.HospitationWorkspace.getOverviewTab() : undefined,
+          sidebarGroupForView(activeNavigationView));
         viewPanels.forEach((panel) => {
           panel.classList.toggle("is-active", panel.dataset.viewPanel === view);
           panel.setAttribute("aria-hidden", panel.dataset.viewPanel === view ? "false" : "true");
@@ -40535,6 +40879,8 @@
           formatParticipantDrawer?.classList.contains("is-open") ||
           formatEditorDrawer?.classList.contains("is-open") ||
           hospitationEditorDrawer?.classList.contains("is-open") ||
+          observationDetailDrawer?.classList.contains("is-open") ||
+          document.getElementById("synthesis-detail-drawer")?.classList.contains("is-open") ||
           profilePhotoModal?.classList.contains("is-open");
         document.body.style.overflow = overlayOpen ? "hidden" : "";
       }
@@ -40566,14 +40912,17 @@
       }
 
       function managedDialogFocusables(dialog) {
+        const closedDetails = [...dialog.querySelectorAll("details:not([open])")];
         return [...dialog.querySelectorAll(
-          'a[href], button:not([disabled]), input:not([disabled]):not([type="hidden"]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])'
+          'a[href], button:not([disabled]), input:not([disabled]):not([type="hidden"]), select:not([disabled]), textarea:not([disabled]), summary, [tabindex]:not([tabindex="-1"])'
         )].filter((element) =>
           element instanceof HTMLElement &&
           !element.hidden &&
           !element.closest("[hidden]") &&
           element.getAttribute("aria-hidden") !== "true" &&
           element.tabIndex >= 0 &&
+          element.getClientRects().length > 0 &&
+          !closedDetails.some((details) => details.contains(element) && !details.querySelector(":scope > summary")?.contains(element)) &&
           getComputedStyle(element).visibility !== "hidden" &&
           getComputedStyle(element).display !== "none"
         );
@@ -42481,6 +42830,8 @@
       }
 
       function updateView() {
+        if (activeView !== "hospitations" || activeHospitationTab !== "synthesis") window.HospitationSynthesis?.closeDetails();
+        if (activeView !== "hospitations" || activeHospitationTab !== "dashboard") window.HospitationDashboard?.closeDetails();
         organizations = mergeOrganizations(organizations, deriveOrganizationsFromContacts(contacts));
         expertOrganizations = mergeExpertOrganizations(expertOrganizations, deriveExpertOrganizationsFromContacts(expertContacts));
         organizationLogoMapCache = null;
@@ -42527,7 +42878,7 @@
         const isFormatsView = activeView === "formats";
         const isFrameworkView = activeView === "framework";
         const isHospitationsView = activeView === "hospitations";
-        const isQuestionnaireView = activeView === "questionnaire";
+        const isQuestionnaireView = activeView === "questionnaire" || (isHospitationOverviewView && window.HospitationWorkspace?.getOverviewTab() === "questionnaire");
         if (isQuestionnaireView) {
           syncQuestionnaireCompassSelectors();
           syncQuestionnaireReflectionAuthor();
@@ -42617,7 +42968,7 @@
         searchInput.placeholder = searchPlaceholder;
         searchShell?.setAttribute("aria-label", searchPlaceholder);
         const isHospitationDashboardTab = isHospitationsView && activeHospitationTab === "dashboard";
-        const isHospitationCommandHiddenTab = isHospitationsView && ["dashboard", "observations", "patterns"].includes(activeHospitationTab);
+        const isHospitationCommandHiddenTab = isHospitationsView && ["dashboard", "observations", "patterns", "synthesis"].includes(activeHospitationTab);
         const isHospitationHeaderSearchVisible = hospitationHeaderSearchVisible(activeHospitationTab);
         const searchHidden = isHomeView || isOnboardingView || isCompassOverviewView || activeView === "analytics" || activeView === "quality" || isNotificationsView || isProfileRecordView || isFrameworkView || isQuestionnaireView || (isPoliticsView && politicsDataState !== "ready") || (isPressView && pressDataState !== "ready") || (isHospitationsView ? !isHospitationHeaderSearchVisible : false);
         if (searchShell) {
@@ -43341,6 +43692,7 @@
           if (hospitationRoute) {
             if (hospitationRoute.tab !== "observations" && !closeHospitationObservationDrawer()) return;
             activeHospitationTab = hospitationRoute.tab;
+            if (hospitationRoute.stage) window.HospitationSynthesis?.setStage(hospitationRoute.stage, { render: false });
             setActiveView("hospitations");
             updateRouteHash(hospitationRouteForTab(activeHospitationTab));
             updateView();
@@ -43777,7 +44129,7 @@
       hospitationTabButtons.forEach((button) => {
         button.addEventListener("click", () => {
           if (button.dataset.hospitationTab !== "observations" && !closeHospitationObservationDrawer()) return;
-          activeHospitationTab = button.dataset.hospitationTab || "appointments";
+          activeHospitationTab = normalizeHospitationTab(button.dataset.hospitationTab || "appointments");
           selectedHospitationEntryKeys.clear();
           updateRouteHash(hospitationRouteForTab(activeHospitationTab));
           renderHospitationsView();
@@ -44794,7 +45146,14 @@
         }
         if (hashView === "care") return "careOverview";
         if (hashView === "stakeholders") return "stakeholderOverview";
+        if (USE_INTEGRATED_HOSPITATION && (/^hospitation-overview(?:\?|$)/.test(hashView) || ["framework", "planning", "questionnaire"].includes(hashView))) {
+          window.HospitationWorkspace?.showOverviewTab(hashView === "questionnaire" ? "questionnaire"
+            : ["framework", "planning"].includes(hashView) ? "framework"
+            : new URLSearchParams(hashView.split("?")[1] || "").get("tab") || "overview");
+          return "hospitationOverview";
+        }
         if (hashView === "hospitation-overview") return "hospitationOverview";
+        if (hashView === "planning") return "framework";
         if (!hashView && isHospitationDocumentationStandalone) {
           activeHospitationTab = "appointments";
           return "hospitations";
@@ -44803,15 +45162,13 @@
         if (hospitationRoute) {
           if (activeHospitationTab !== hospitationRoute.tab) hospitationObservationOpenRequest += 1;
           activeHospitationTab = hospitationRoute.tab;
+          if (hospitationRoute.stage) window.HospitationSynthesis?.setStage(hospitationRoute.stage, { render: false });
           return "hospitations";
         }
         const stakeholderRoute = parseStakeholderRoute(hashView);
         if (stakeholderRoute) {
           activeStakeholderTypeId = stakeholderRoute.typeId;
           return "stakeholders";
-        }
-        if (hashView === "planning") {
-          return "framework";
         }
         const personRoute = parsePersonProfileRoute(hashView);
         if (personRoute) {
@@ -44886,6 +45243,9 @@
       }
 
       function applyLocationRoute({ canonicalizeLegacy = false } = {}) {
+        const previousTab = activeHospitationTab;
+        const previousStage = window.HospitationSynthesis?.getSelection().stage;
+        const previousOverviewTab = window.HospitationWorkspace?.getOverviewTab();
         const routeToken = routeTokenFromLocation();
         const nextView = routeViewFromToken(routeToken) || "home";
         if (routeToken === "onboarding" && !onboardingActive && !onboardingReviewActive) {
@@ -44897,11 +45257,21 @@
           return;
         }
         if (nextView === "hospitations" && activeHospitationTab !== "observations" && !closeHospitationObservationDrawer()) {
-          activeHospitationTab = "observations";
-          updateRouteHash(hospitationRouteForTab("observations"), { replace: true });
+          if (USE_INTEGRATED_HOSPITATION) {
+            activeHospitationTab = previousTab;
+            window.HospitationSynthesis?.setStage(previousStage, { render: false });
+            window.HospitationWorkspace?.showOverviewTab(previousOverviewTab);
+            updateRouteHash(activeView, { replace: true });
+          } else {
+            activeHospitationTab = "observations";
+            updateRouteHash(hospitationRouteForTab("observations"), { replace: true });
+          }
           return;
         }
         if (!setActiveView(nextView)) {
+          activeHospitationTab = previousTab;
+          window.HospitationSynthesis?.setStage(previousStage, { render: false });
+          window.HospitationWorkspace?.showOverviewTab(previousOverviewTab);
           blockedRouteUpdate = false;
           updateRouteHash(activeView, { replace: true });
           updateView();
@@ -45178,6 +45548,15 @@
           }
           mergeCanonicalObservationsIntoHospitations();
           hospitationLoadErrorMessage = "";
+          if (USE_INTEGRATED_HOSPITATION) {
+            const demoData = window.VERSORGUNGS_COMPASS_DEMO_DATA;
+            try {
+              await window.HospitationSynthesis?.load(demoData?.hospitationSynthesis);
+              await window.HospitationDashboard?.load(demoData?.hospitationDashboardThemes);
+            } catch (error) {
+              console.warn("Die ergänzenden Demobeispiele konnten nicht geladen werden.", error);
+            }
+          }
           hospitationDataState = "ready";
         } catch (hospitationError) {
           console.warn("Hospitationen konnten nicht geladen werden.", hospitationError);
@@ -45496,6 +45875,14 @@
         event.preventDefault();
         mainContent?.focus({ preventScroll: true });
         mainContent?.scrollIntoView({ block: "start" });
+      });
+      if (USE_INTEGRATED_HOSPITATION) window.HospitationWorkspace?.init({
+        onNavigate: (route) => {
+          const nextView = routeViewFromToken(route);
+          if (!nextView || !setActiveView(nextView)) return;
+          updateRouteHash(route);
+          updateView();
+        }
       });
       initializeManagedDialogFocus();
       initializeRenderedTableSemantics();

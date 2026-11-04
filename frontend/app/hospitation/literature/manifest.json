@@ -1,0 +1,62 @@
+{
+  "checkedAt": "2026-11-03",
+  "downloadServiceDocumentation": "https://pmc.ncbi.nlm.nih.gov/tools/pmcaws/",
+  "items": [
+    {
+      "id": "weston-2022",
+      "title": "Using observation to better understand the healthcare context",
+      "authors": "Lauren E. Weston, Sarah L. Krein, Molly Harrod",
+      "year": 2022,
+      "issueYear": 2021,
+      "sourceUrl": "https://pmc.ncbi.nlm.nih.gov/articles/PMC10336880/",
+      "image": "./weston-2022-preview.svg",
+      "kind": "labeled_typographic_preview",
+      "sourceLicense": "CC BY-NC 4.0",
+      "reason": "Typografische Vorschau mit bibliografischen Angaben."
+    },
+    {
+      "id": "gale-2013",
+      "title": "Using the framework method for the analysis of qualitative data in multi-disciplinary health research",
+      "authors": "Nicola K. Gale, Gemma Heath, Elaine Cameron, Sabina Rashid, Sabi Redwood",
+      "year": 2013,
+      "sourceUrl": "https://link.springer.com/article/10.1186/1471-2288-13-117",
+      "pdfUrl": "https://link.springer.com/content/pdf/10.1186/1471-2288-13-117.pdf",
+      "image": "./gale-2013-first-page.png",
+      "kind": "original_pdf_first_page",
+      "license": "CC BY 2.0",
+      "imageSha256": "0c6ecf1ced8889324d53d082e4c81aef216afe3c37700dca59e5472155298c53",
+      "licenseUrl": "https://creativecommons.org/licenses/by/2.0/"
+    },
+    {
+      "id": "hamilton-2019",
+      "title": "Qualitative methods in implementation research: An introduction",
+      "authors": "Alison B. Hamilton, Erin P. Finley",
+      "year": 2019,
+      "sourceUrl": "https://pubmed.ncbi.nlm.nih.gov/31437661/",
+      "image": "./hamilton-2019-preview.svg",
+      "kind": "labeled_typographic_preview",
+      "reason": "PMC-PDF asks for CAPTCHA. Official public dataset PDF not available at documented article-version URL."
+    },
+    {
+      "id": "fix-2022",
+      "title": "Direct Observation Methods: a Practical Guide for Health Researchers",
+      "authors": "Gemmae M. Fix, Bo Kim, Mollie Ruben, Megan B. McCullough",
+      "year": 2022,
+      "sourceUrl": "https://pubmed.ncbi.nlm.nih.gov/36406296/",
+      "image": "./fix-2022-preview.svg",
+      "kind": "labeled_typographic_preview",
+      "reason": "PMC-PDF asks for CAPTCHA. Official public dataset PDF not available at documented article-version URL."
+    },
+    {
+      "id": "carayon-2006",
+      "title": "Work system design for patient safety: the SEIPS model",
+      "authors": "Pascale Carayon et al.",
+      "year": 2006,
+      "sourceUrl": "https://qualitysafety.bmj.com/content/15/suppl_1/i50",
+      "doi": "10.1136/qshc.2005.015842",
+      "image": "./carayon-2006-preview.svg",
+      "kind": "labeled_typographic_preview",
+      "reason": "Typografische Vorschau mit bibliografischen Angaben. Keine Abbildung des Originalartikels."
+    }
+  ]
+}

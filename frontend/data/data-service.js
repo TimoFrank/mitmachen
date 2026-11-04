@@ -1939,6 +1939,17 @@
       clone(hospitationObservationCache.filter(observation => (options.includeArchived || "archived" !== observation.status) && (!options.hospitationId || observation.hospitationId === options.hospitationId)));
     },
     updateHospitationObservation: updateHospitationObservation,
+    appendHospitationObservation: async function(input) {
+      if (IS_PUBLIC_DEMO_PROFILE) {
+        throw new Error("Quellenbeobachtungen können nur in der geschützten Anwendung übernommen werden.");
+      }
+      const result = await apiRequest("/api/hospitation-observations", { method: "POST", body: input });
+      if (input?.mode === "apply" && result?.item?.id) {
+        const stored = hospitationObservationDbToUi(result.item);
+        hospitationObservationCache = [stored, ...hospitationObservationCache.filter(item => item.id !== stored.id)];
+      }
+      return result;
+    },
     syncHospitationObservations: async function(hospitationId, observations = []) {
       observations.map(observation => hospitationObservationDbToUi({
         ...hospitationObservationUiToDb(observation, hospitationId),

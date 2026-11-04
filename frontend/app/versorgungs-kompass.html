@@ -25,6 +25,12 @@
     <noscript>
       <link rel="stylesheet" href="./versorgungs-kompass-no-script.css" data-no-script-home />
     </noscript>
+    <link rel="stylesheet" href="./hospitation/hospitation-synthesis.css" />
+    <link rel="stylesheet" href="./hospitation/hospitation-dashboard.css" />
+    <link rel="stylesheet" href="./hospitation/hospitation-calendar.css" />
+    <link rel="stylesheet" href="./hospitation/hospitation-workspace.css" />
+    <link rel="stylesheet" href="./hospitation/hospitation-overview.css" />
+    <link rel="stylesheet" href="./hospitation/hospitation-observation-steps.css" />
   </head>
   <body>
     <a class="skip-link" href="#main-content">Zum Hauptinhalt springen</a>
@@ -312,6 +318,27 @@
                   <span>Grundlagen</span>
                 </button>
               </div>
+              <template id="hospitation-demo-navigation">
+                <button class="primary-tab" type="button" data-view-tab="hospitations:synthesis" title="Framework">
+                  <svg viewBox="0 0 24 24" fill="none" stroke-width="2" aria-hidden="true">
+                    <path d="M4 6h16"></path>
+                    <path d="M4 12h10"></path>
+                    <path d="M4 18h7"></path>
+                    <path d="m15 15 3 3 3-6"></path>
+                  </svg>
+                  <span>Framework</span>
+                </button>
+                <button class="primary-tab" type="button" data-view-tab="hospitations:dashboard" title="Dashboard">
+                  <svg viewBox="0 0 24 24" fill="none" stroke-width="2" aria-hidden="true">
+                    <path d="M4 19V5"></path>
+                    <path d="M4 19h16"></path>
+                    <rect x="7" y="11" width="2.8" height="5" rx="1"></rect>
+                    <rect x="12" y="7" width="2.8" height="9" rx="1"></rect>
+                    <rect x="17" y="9" width="2.8" height="7" rx="1"></rect>
+                  </svg>
+                  <span>Dashboard</span>
+                </button>
+              </template>
             </div>
           </div>
           <div class="sidebar-section is-collapsed" aria-label="Format-Kompass" data-sidebar-section="formats" data-sidebar-group="formats" data-sidebar-collapsible>
@@ -1977,6 +2004,9 @@
               </section>
               <section class="hospitation-tab-panel" id="hospitation-patterns-panel" data-hospitation-tab-panel="patterns" aria-label="Hospitations-Muster" hidden>
                 <div class="hospitation-patterns-workbench" id="hospitation-patterns-workbench"></div>
+              </section>
+              <section class="hospitation-tab-panel" id="hospitation-synthesis-panel" data-hospitation-tab-panel="synthesis" aria-label="Framework" hidden>
+                <div id="hospitation-synthesis-workbench"></div>
               </section>
             </div>
           </section>
@@ -3756,6 +3786,13 @@
     <script src="../data/document-text-extractor.js"></script>
     <script src="../data/data-service.js"></script>
     <script src="./user-administration.js"></script>
+    <script src="./hospitation/hospitation-icons.js"></script>
+    <script src="./hospitation/hospitation-calendar.js"></script>
+    <script src="./hospitation/hospitation-synthesis.js"></script>
+    <script src="./hospitation/hospitation-overview.js"></script>
+    <script src="./hospitation/hospitation-workspace.js"></script>
+    <script src="./hospitation/hospitation-dashboard.js"></script>
+    <script src="./hospitation/hospitation-observation-steps.js"></script>
     <script src="./versorgungs-kompass.js"></script>
   </body>
 </html>
