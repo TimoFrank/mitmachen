@@ -2,6 +2,20 @@
 
 Kompakte Zusammenfassung der wichtigsten Funktionssprünge des Versorgungs-Kompass.
 
+## Version 0.27 - Übersicht und Navigation für alle vier Kompasse
+
+4. November 2026
+
+Der Versorgungs-Kompass wird klarer, verlässlicher und leichter nutzbar. Die neuen Verbesserungen unterstützen das Netzwerk dabei, Wissen zu teilen und gemeinsam ins Handeln zu kommen.
+
+### Hotfix v0.26.1
+
+Die Nutzerverwaltung fordert ihre Konten auch bei der initialen Ansicht an. Rollen- und Zugriffsschutz bleiben erhalten.
+
+### Hospitationskompass und fokussierte Demo-Navigation integrieren (#292)
+
+Die Änderung macht den Bereich Hospitationen klarer und leichter nutzbar. Die wichtigsten Schritte sind schneller nachvollziehbar. So bleibt mehr Zeit für die gemeinsame Arbeit im Versorgungsnetzwerk.
+
 ## Version 0.26 - Konten verwalten und Hospitationen strukturieren
 
 30. September 2026

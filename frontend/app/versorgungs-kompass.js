@@ -5902,6 +5902,17 @@
 
       const appVersionHistory = [
         {
+          version: "0.27.0",
+          date: "4. November 2026",
+          title: "Übersicht und Navigation für alle vier Kompasse",
+          icon: "start",
+          summary: "Der Versorgungs-Kompass wird klarer, verlässlicher und leichter nutzbar. Die neuen Verbesserungen unterstützen das Netzwerk dabei, Wissen zu teilen und gemeinsam ins Handeln zu kommen.",
+          items: [
+            "Hotfix v0.26.1: Die Nutzerverwaltung fordert ihre Konten auch bei der initialen Ansicht an. Rollen- und Zugriffsschutz bleiben erhalten.",
+            "Hospitationskompass und fokussierte Demo-Navigation integrieren (#292): Die Änderung macht den Bereich Hospitationen klarer und leichter nutzbar. Die wichtigsten Schritte sind schneller nachvollziehbar. So bleibt mehr Zeit für die gemeinsame Arbeit im Versorgungsnetzwerk."
+          ]
+        },
+        {
           version: "0.26.0",
           date: "30. September 2026",
           title: "Konten verwalten und Hospitationen strukturieren",
