@@ -16,6 +16,7 @@ import {
   organizationsAreSameCanonicalIdentity
 } from "./duplicate-identity.mjs";
 import { normalizedRequestLogPath } from "./request-log-privacy.mjs";
+import { createObservationAppendHandler } from "./hospitation-observation-append.mjs";
 import { createGoogleHostingHandler } from "./google-hosting.mjs";
 import { createUserAdministration, adminError } from "./user-administration.mjs";
 import { currentSyncContext, syncUuid, invokeApi, withinSyncTransaction } from "./mac-sync-context.mjs";
@@ -919,7 +920,7 @@ const HOSPITATION_OBSERVATION_INPUT_FIELDS = [
   "title", "situation", "situationContext", "description", "observed", "processPhase", "process_phase",
   "problemType", "problem_type", "impact", "observationType", "observation_type",
   "evidenceType", "evidence_type", "relevanceScore", "relevance_score",
-  "sourceReference", "source_reference",
+  "sourceReference", "source_reference", "settingType", "setting_type",
   "immediateConsequence", "uncertainty", "relevanceReason", "nextStep",
   "usageRecommendation", "usage_recommendation", "nextUse", "involvedRoles",
   "involved_roles", "affectedProducts", "affected_products", "topics", "themes",
@@ -2421,6 +2422,7 @@ function normalizeHospitationObservationPatch(input = {}) {
     observation_type: "observationType",
     evidence_type: "evidenceType",
     source_reference: "sourceReference",
+    setting_type: "settingType",
     relevance_score: "relevanceScore",
     careRelevance: "relevanceScore",
     care_relevance: "relevanceScore",
@@ -5474,13 +5476,13 @@ async function readStorageObject(bucket, objectName, { maxBytes = 0, allowedCont
   };
 }
 
-async function loadProfiles(request) {
+async function loadProfiles(request, transaction = null) {
   if (profileCache.expiresAt > Date.now()) return;
   const params = new URLSearchParams({
     select: PROFILE_FIELDS.join(","),
     active: "eq.true"
   });
-  const rows = await cloudSqlRest("profiles", request, params);
+  const rows = await cloudSqlRest("profiles", request, params, { transaction });
   profileCache = {
     expiresAt: Date.now() + 60_000,
     byId: new Map((rows || []).map((profile) => {
@@ -8427,17 +8429,17 @@ async function applyHospitationImport(request) {
   });
 }
 
-async function getHospitation(request, id) {
-  await loadProfiles(request);
+async function getHospitation(request, id, transaction = null) {
+  await loadProfiles(request, transaction);
   const rows = await cloudSqlRest("hospitations", request, new URLSearchParams({
     select: HOSPITATION_FIELDS.join(","),
     id: `eq.${id}`,
     limit: "1"
-  }));
+  }), { transaction });
   assertEntityVisible(request, rows?.[0], "Hospitation wurde nicht gefunden.");
   if (rows[0].contact_id) {
     try {
-      await linkedContactVisibleToRequest(request, rows[0].contact_id);
+      await linkedContactVisibleToRequest(request, rows[0].contact_id, transaction);
     } catch (error) {
       if (error?.status === 404) throw Object.assign(new Error("Hospitation wurde nicht gefunden."), { status: 404 });
       throw error;
@@ -8970,8 +8972,19 @@ async function listHospitationObservations(request, url) {
   return { items: visibleRows.map(hospitationObservationToDto) };
 }
 
+const appendHospitationObservation = createObservationAppendHandler({
+  readValidatedJsonBody, userIdFromToken, getHospitation, withDomainTransaction,
+  databaseQuery, hospitationObservationToDb, hospitationObservationToDto,
+  cloudSqlRest, recordActivityEventInternal, observationFields: HOSPITATION_OBSERVATION_FIELDS
+});
+
 async function patchHospitationObservation(request, id) {
   const patch = normalizeHospitationObservationPatch(await readValidatedJsonBody(request, HOSPITATION_OBSERVATION_INPUT_FIELDS, "Beobachtungs-Update"));
+  if (Object.hasOwn(patch, "settingType")) {
+    if (typeof patch.settingType !== "string") throw validationError("Die Einrichtungsart muss als Text angegeben werden.");
+    patch.settingType = patch.settingType.trim();
+    if (patch.settingType.length > 160) throw validationError("Die Einrichtungsart darf höchstens 160 Zeichen enthalten.");
+  }
   const expectedUpdatedAt = String(patch.expectedUpdatedAt || "").trim();
   const userId = userIdFromToken(request);
   if (!userId) throw Object.assign(new Error("User-ID konnte nicht aus dem Token gelesen werden."), { status: 401 });
@@ -10637,6 +10650,9 @@ async function handle(request, response) {
     }
     if (request.method === "GET" && url.pathname === "/api/hospitation-observations") {
       return jsonResponse(response, 200, await listHospitationObservations(request, url));
+    }
+    if (request.method === "POST" && url.pathname === "/api/hospitation-observations") {
+      return jsonResponse(response, 200, await appendHospitationObservation(request));
     }
     const hospitationObservationMatch = /^\/api\/hospitation-observations\/([^/]+)$/.exec(url.pathname);
     if (request.method === "PATCH" && hospitationObservationMatch) {

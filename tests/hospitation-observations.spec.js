@@ -1220,7 +1220,7 @@ for (const entrypoint of ["index.html", "versorgungs-kompass.html"]) {
         body: script ? 'throw new Error("Veraltetes unversioniertes App-Skript geladen");' : "/* Veralteter unversionierter Stilstand */"
       });
     });
-    await page.goto(`/dist/pages/${entrypoint}?demoProfile=demo-profile-admin#hospitations:observations`);
+    await page.goto(`/dist/pages/${entrypoint}?demoProfile=demo-profile-admin#hospitations:synthesis?stage=observations`);
 
     for (const [selector, attribute] of [
       ['script[src*="versorgungs-kompass.js"]', "src"],
@@ -1233,10 +1233,12 @@ for (const entrypoint of ["index.html", "versorgungs-kompass.html"]) {
       expect(asset.searchParams.get("v")).toBe(createHash("sha256").update(await response.body()).digest("hex"));
     }
 
-    const rows = page.locator("#hospitation-observations-workbench [data-observation-open]");
-    const first = page.getByRole("listitem", { name: "Befundanforderung wird mit Einwilligung vorbereitet öffnen", exact: true });
+    const rows = page.locator('[data-synthesis-table="observations"] .hs-main-link[data-synthesis-observation]');
+    const firstTitle = "Befundanforderung wird mit Einwilligung vorbereitet";
+    const first = rows.and(page.getByRole("button", { name: firstTitle, exact: true }));
     await expect(first).toBeVisible();
-    const firstId = await first.getAttribute("data-observation-open");
+    const firstId = await first.getAttribute("data-synthesis-observation");
+    expect(firstId).toBeTruthy();
     await first.click();
     const drawer = page.locator("#observation-detail-drawer");
     await expect(drawer).toHaveClass(/is-open/);
@@ -1261,9 +1263,12 @@ for (const entrypoint of ["index.html", "versorgungs-kompass.html"]) {
     await drawer.locator("#observation-detail-close").click();
     await expect(drawer).not.toHaveClass(/is-open/);
 
-    const second = rows.filter({ hasNotText: "Befundanforderung wird mit Einwilligung vorbereitet" }).first();
-    expect(await second.getAttribute("data-observation-open")).not.toBe(firstId);
-    const secondTitle = (await second.getAttribute("aria-label")).replace(/ öffnen$/, "");
+    const second = rows.filter({ hasNotText: firstTitle }).first();
+    await expect(second).toBeVisible();
+    const secondId = await second.getAttribute("data-synthesis-observation");
+    expect(secondId).toBeTruthy();
+    expect(secondId).not.toBe(firstId);
+    const secondTitle = (await second.innerText()).trim();
     await second.click();
     await expect(drawer).toHaveClass(/is-open/);
     await expect(drawer.locator("h3.observation-detail-title")).toHaveText(secondTitle);

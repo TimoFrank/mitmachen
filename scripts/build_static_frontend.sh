@@ -189,6 +189,33 @@ cleanup() {
 }
 trap cleanup EXIT
 
+copy_hospitation_modules() {
+  local asset
+  mkdir -p "$STAGE_DIR/hospitation/literature"
+  for asset in \
+    hospitation-calendar.css \
+    hospitation-calendar.js \
+    hospitation-dashboard.css \
+    hospitation-dashboard.js \
+    hospitation-icons.js \
+    hospitation-observation-steps.css \
+    hospitation-observation-steps.js \
+    hospitation-overview.css \
+    hospitation-overview.js \
+    hospitation-synthesis.css \
+    hospitation-synthesis.js \
+    hospitation-workspace.css \
+    hospitation-workspace.js \
+    literature/carayon-2006-preview.svg \
+    literature/fix-2022-preview.svg \
+    literature/gale-2013-first-page.png \
+    literature/hamilton-2019-preview.svg \
+    literature/manifest.json \
+    literature/weston-2022-preview.svg; do
+    cp "$FRONTEND_DIR/app/hospitation/$asset" "$STAGE_DIR/hospitation/$asset"
+  done
+}
+
 build_pages() {
   mkdir -p \
     "$STAGE_DIR/data" \
@@ -217,6 +244,7 @@ build_pages() {
   cp "$FRONTEND_DIR/app/hospitation/index.html" "$STAGE_DIR/hospitation/index.html"
   cp "$FRONTEND_DIR/app/hospitation/hospitation.css" "$STAGE_DIR/hospitation/hospitation.css"
   cp "$FRONTEND_DIR/app/hospitation/hospitation.js" "$STAGE_DIR/hospitation/hospitation.js"
+  copy_hospitation_modules
   cp "$FRONTEND_DIR/pages/mitmachen/versorgungs-netzwerk.html" "$STAGE_DIR/mitmachen/versorgungs-netzwerk.html"
   cp "$FRONTEND_DIR/pages/mitmachen/versorgungs-netzwerk.css" "$STAGE_DIR/mitmachen/versorgungs-netzwerk.css"
   cp "$FRONTEND_DIR/pages/mitmachen/versorgungs-netzwerk.js" "$STAGE_DIR/mitmachen/versorgungs-netzwerk.js"
@@ -678,6 +706,7 @@ build_target() {
   cp "$FRONTEND_DIR/app/hospitation/import.html" "$STAGE_DIR/hospitation/import.html"
   cp "$FRONTEND_DIR/app/hospitation/import.css" "$STAGE_DIR/hospitation/import.css"
   cp "$FRONTEND_DIR/app/hospitation/import.js" "$STAGE_DIR/hospitation/import.js"
+  copy_hospitation_modules
   cp "$FRONTEND_DIR/pages/mitmachen/index.html" "$STAGE_DIR/mitmachen/index.html"
   cp "$FRONTEND_DIR/pages/mitmachen/mitmachen.css" "$STAGE_DIR/mitmachen/mitmachen.css"
   cp "$FRONTEND_DIR/pages/mitmachen/versorgungs-netzwerk.html" "$STAGE_DIR/mitmachen/versorgungs-netzwerk.html"

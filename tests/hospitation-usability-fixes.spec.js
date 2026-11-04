@@ -1,9 +1,17 @@
 import { expect, test } from "@playwright/test";
 
 const APP = "/dist/pages/versorgungs-kompass.html";
+const QUESTIONNAIRE = "#hospitation-overview?tab=questionnaire";
+const HOSPITATIONS = "#hospitations:synthesis?stage=hospitations";
+const OBSERVATIONS = "#hospitations:synthesis?stage=observations";
+const HOSPITATION_TITLE = '[data-synthesis-table="hospitations"] .hs-main-link[data-synthesis-hospitation]';
 
-async function openDemo(page, hash) {
-  await page.goto(`${APP}${hash}`);
+function questionnaire(page) {
+  return page.locator("#ho-panel-questionnaire #hospitation-questionnaire-form");
+}
+
+async function openDemo(page, route) {
+  await page.goto(`${APP}${route}`);
   const demoNotice = page.getByRole("note", { name: "Hinweis zur öffentlichen Demo" });
   if (await demoNotice.isVisible().catch(() => false)) {
     await demoNotice.getByRole("button", { name: "OK" }).click();
@@ -11,45 +19,36 @@ async function openDemo(page, hash) {
 }
 
 test.describe("Hospitations-Usability-Fixes", () => {
-  test("Fragebogen validiert Kontext und Beobachtung und lässt Codierung freiwillig", async ({ page }, testInfo) => {
-    await openDemo(page, "#questionnaire");
-    const isMobile = testInfo.project.name.includes("mobile");
-    const context = page.locator('[data-questionnaire-step="1"]');
-    const observation = page.locator('[data-questionnaire-step="2"]');
-    const coding = page.locator('[data-questionnaire-step="3"]');
-    const mobileNavigation = page.locator("[data-questionnaire-mobile-navigation]");
-    const advanceStep = async (step) => {
-      if (isMobile) {
-        await mobileNavigation.locator("[data-questionnaire-step-next]").click();
-        return;
-      }
-      await step.getByRole("button", { name: "Schritt abschließen" }).click();
-    };
+  test("Fragebogen validiert Kontext und Beobachtung und lässt Codierung freiwillig", async ({ page }) => {
+    await openDemo(page, QUESTIONNAIRE);
+    const form = questionnaire(page);
+    const context = form.locator('[data-questionnaire-step="1"]');
+    const observation = form.locator('[data-questionnaire-step="2"]');
+    const coding = form.locator('[data-questionnaire-step="3"]');
+    const navigation = form.locator("[data-questionnaire-mobile-navigation]");
+    const advanceStep = () => navigation.locator("[data-questionnaire-step-next]").click();
 
-    if (isMobile) {
-      await expect(mobileNavigation).toBeVisible();
-      await expect(context.getByRole("button", { name: "Schritt abschließen" })).toBeHidden();
-    }
-
-    await advanceStep(context);
+    await expect(navigation).toBeVisible();
+    await expect(context.getByRole("button", { name: "Schritt abschließen" })).toBeHidden();
+    await advanceStep();
     await expect(context).toHaveAttribute("open", "");
     await expect(context.locator("[data-questionnaire-step-validation]")).toContainText("Datum");
-    await expect(page.locator("#questionnaire-date")).toBeFocused();
+    await expect(form.locator("#questionnaire-date")).toBeFocused();
 
-    await page.locator("#questionnaire-date").fill("2026-07-24");
-    await page.locator("#questionnaire-organization").selectOption("demo-org-elbesozial");
-    await advanceStep(context);
+    await form.locator("#questionnaire-date").fill("2026-07-24");
+    await form.locator("#questionnaire-organization").selectOption("demo-org-elbesozial");
+    await advanceStep();
     await expect(observation).toHaveAttribute("open", "");
 
-    await advanceStep(observation);
+    await advanceStep();
     await expect(observation).toHaveAttribute("open", "");
     await expect(observation.locator("[data-questionnaire-step-validation]")).toContainText("Kurzfassung");
-    await expect(page.locator('input[name="questionnaireObservations[1][title]"]')).toBeFocused();
+    await expect(form.locator('input[name="questionnaireObservations[1][title]"]')).toBeFocused();
 
-    await page.locator('input[name="questionnaireObservations[1][title]"]').fill("Rückfrage im Übergabeprozess");
-    await page.locator('textarea[name="questionnaireObservations[1][observation]"]').fill("Die Pflegefachperson ruft wegen eines fehlenden Befunds zurück.");
+    await form.locator('input[name="questionnaireObservations[1][title]"]').fill("Rückfrage im Übergabeprozess");
+    await form.locator('textarea[name="questionnaireObservations[1][observation]"]').fill("Die Pflegefachperson ruft wegen eines fehlenden Befunds zurück.");
     await expect(observation.locator('select[name="questionnaireObservations[1][evidenceType]"]')).toHaveCount(0);
-    await advanceStep(observation);
+    await advanceStep();
     await expect(coding).toHaveAttribute("open", "");
 
     const codingField = (key) => coding.locator(`select[name="questionnaireObservations[1][${key}]"]`);
@@ -70,18 +69,14 @@ test.describe("Hospitations-Usability-Fixes", () => {
     await expect(additionalCodingFields.locator("textarea")).toHaveCount(3);
     await expect(additionalCodingFields.locator("textarea").first()).toBeHidden();
 
-    await advanceStep(coding);
-    const material = page.locator('[data-questionnaire-step="4"]');
+    await advanceStep();
+    const material = form.locator('[data-questionnaire-step="4"]');
     await expect(material).toHaveAttribute("open", "");
     await expect(coding).not.toHaveAttribute("open", "");
     await expect(coding.locator("[data-questionnaire-step-validation]")).toBeHidden();
     await expect(coding.locator(".is-invalid")).toHaveCount(0);
 
-    if (isMobile) {
-      await mobileNavigation.locator("[data-questionnaire-step-previous]").click();
-    } else {
-      await coding.locator(":scope > summary").click();
-    }
+    await navigation.locator("[data-questionnaire-step-previous]").click();
     await expect(coding).toHaveAttribute("open", "");
     await codingField("processPhase").selectOption("Übergang");
     await additionalCodingFields.locator(":scope > summary").click();
@@ -92,7 +87,7 @@ test.describe("Hospitations-Usability-Fixes", () => {
     const sourceReference = coding.locator('textarea[name="questionnaireObservations[1][sourceReference]"]');
     await sourceReference.fill("Fiktiver Testbericht der Pflegefachperson, 24.07.2026");
     await expect(codingGuide.locator('[data-hospitation-journey] [aria-current="step"]')).toHaveCount(0);
-    await advanceStep(coding);
+    await advanceStep();
     await expect(material).toHaveAttribute("open", "");
     await expect(coding.locator(".is-invalid")).toHaveCount(0);
     await expect(codingField("processPhase")).toHaveValue("Übergang");
@@ -103,41 +98,36 @@ test.describe("Hospitations-Usability-Fixes", () => {
     await expect(sourceReference).toHaveValue("Fiktiver Testbericht der Pflegefachperson, 24.07.2026");
   });
 
-  test("Fragebogen speichert eine vollständige Beobachtung mit offener Quelle und Codierung", async ({ page }, testInfo) => {
-    await openDemo(page, "#questionnaire");
-    const isMobile = testInfo.project.name.includes("mobile");
-    const mobileNavigation = page.locator("[data-questionnaire-mobile-navigation]");
-    const step = (number) => page.locator(`[data-questionnaire-step="${number}"]`);
-    const advanceStep = async (currentStep) => {
-      if (isMobile) await mobileNavigation.locator("[data-questionnaire-step-next]").click();
-      else await currentStep.getByRole("button", { name: "Schritt abschließen" }).click();
-    };
+  test("Fragebogen speichert eine vollständige Beobachtung mit offener Quelle und Codierung", async ({ page }) => {
+    await openDemo(page, QUESTIONNAIRE);
+    const form = questionnaire(page);
+    const step = (number) => form.locator(`[data-questionnaire-step="${number}"]`);
+    const advanceStep = () => form.locator("[data-questionnaire-step-next]").click();
     const title = "Rückfrage zunächst ohne Codierung";
     const description = "Die Pflegefachperson ruft wegen eines fehlenden Befunds zurück.";
 
-    await page.locator("#questionnaire-date").fill("2026-07-24");
-    await page.locator("#questionnaire-organization").selectOption("demo-org-elbesozial");
-    await advanceStep(step(1));
+    await form.locator("#questionnaire-date").fill("2026-07-24");
+    await form.locator("#questionnaire-organization").selectOption("demo-org-elbesozial");
+    await advanceStep();
     await expect(step(2)).toHaveAttribute("open", "");
-    await page.locator('input[name="questionnaireObservations[1][title]"]').fill(title);
-    await page.locator('textarea[name="questionnaireObservations[1][observation]"]').fill(description);
-    await advanceStep(step(2));
+    await form.locator('input[name="questionnaireObservations[1][title]"]').fill(title);
+    await form.locator('textarea[name="questionnaireObservations[1][observation]"]').fill(description);
+    await advanceStep();
     await expect(step(3)).toHaveAttribute("open", "");
     for (const field of ["evidenceType", "processPhase", "problemType", "impact", "observationType"]) {
       const control = step(3).locator(`select[name="questionnaireObservations[1][${field}]"]`);
       await expect(control).toHaveValue("");
       await expect(control).not.toHaveAttribute("required", "");
     }
-    await advanceStep(step(3));
+    await advanceStep();
     for (const number of [4, 5, 6]) {
       await expect(step(number)).toHaveAttribute("open", "");
-      await advanceStep(step(number));
+      await advanceStep();
     }
     await expect(step(7)).toHaveAttribute("open", "");
-    if (isMobile) await mobileNavigation.locator("[data-questionnaire-step-next]").click();
-    else await page.locator("[data-questionnaire-submit]").click();
-    await expect(page.locator("[data-questionnaire-save-status]")).toContainText("In Termin übernommen");
-    await page.locator("[data-questionnaire-open-container]").click();
+    await form.locator("[data-questionnaire-submit]").click();
+    await expect(form.locator("[data-questionnaire-save-status]")).toContainText("In Termin übernommen");
+    await form.locator("[data-questionnaire-open-container]").click();
     const drawer = page.locator("#hospitation-editor-drawer");
     await expect(drawer).toHaveClass(/is-open/);
     const saved = drawer.locator('[data-repeatable-card][data-repeatable-type="observation"]').first();
@@ -149,20 +139,22 @@ test.describe("Hospitations-Usability-Fixes", () => {
   });
 
   test("bestehender Termin übernimmt auch spät gelistete Kontaktperson", async ({ page }) => {
-    await openDemo(page, "#questionnaire");
-    await page.locator("#questionnaire-hospitation-container").selectOption("demo-hospitation-sozialdienst-rehaantrag");
+    await openDemo(page, QUESTIONNAIRE);
+    const form = questionnaire(page);
+    await form.locator("#questionnaire-hospitation-container").selectOption("demo-hospitation-sozialdienst-rehaantrag");
 
-    await expect(page.locator("#questionnaire-date")).toHaveValue("2026-07-24");
-    await expect(page.locator("#questionnaire-organization")).toHaveValue("demo-org-elbesozial");
-    await expect(page.locator("#questionnaire-contact")).toHaveValue("demo-contact-89");
-    await expect(page.locator('[data-select-type="questionnaire-contact"] .custom-select-trigger')).toContainText("Nele Hoffmann");
-    await expect(page.locator("#questionnaire-context-notes")).not.toHaveValue("");
+    await expect(form.locator("#questionnaire-date")).toHaveValue("2026-07-24");
+    await expect(form.locator("#questionnaire-organization")).toHaveValue("demo-org-elbesozial");
+    await expect(form.locator("#questionnaire-contact")).toHaveValue("demo-contact-89");
+    await expect(form.locator('[data-select-type="questionnaire-contact"] .custom-select-trigger')).toContainText("Nele Hoffmann");
+    await expect(form.locator("#questionnaire-context-notes")).not.toHaveValue("");
   });
 
   test("Terminwechsel übernimmt immer das Ziel des neu gewählten Termins", async ({ page }) => {
-    await openDemo(page, "#questionnaire");
-    const container = page.locator("#questionnaire-hospitation-container");
-    const contextGoal = page.locator("#questionnaire-context-notes");
+    await openDemo(page, QUESTIONNAIRE);
+    const form = questionnaire(page);
+    const container = form.locator("#questionnaire-hospitation-container");
+    const contextGoal = form.locator("#questionnaire-context-notes");
 
     await container.selectOption("demo-hospitation-medikationsabgleich-entlassung");
     await expect(contextGoal).toHaveValue(
@@ -176,39 +168,48 @@ test.describe("Hospitations-Usability-Fixes", () => {
 
     await container.selectOption("__new__");
     await expect(contextGoal).toHaveValue("");
-    await expect(page.locator("#questionnaire-date")).toHaveValue("");
-    await expect(page.locator("#questionnaire-setting")).toHaveValue("");
-    await expect(page.locator("#questionnaire-organization")).toHaveValue("");
-    await expect(page.locator("#questionnaire-contact")).toHaveValue("");
+    await expect(form.locator("#questionnaire-date")).toHaveValue("");
+    await expect(form.locator("#questionnaire-setting")).toHaveValue("");
+    await expect(form.locator("#questionnaire-organization")).toHaveValue("");
+    await expect(form.locator("#questionnaire-contact")).toHaveValue("");
   });
 
   test("Kalender verwendet in Jahresansicht und mobiler Agenda die Statusfarben", async ({ page }, testInfo) => {
-    await openDemo(page, "#hospitations");
-    await page.getByRole("button", { name: "Kalender" }).click();
-    const isMobile = testInfo.project.name.includes("mobile");
-    const events = isMobile
-      ? page.locator(".hospitation-mobile-agenda .hospitation-calendar-event")
-      : page.locator(".hospitation-calendar-year-event");
+    await openDemo(page, HOSPITATIONS);
+    await page.getByRole("button", { name: "Kalender", exact: true }).click();
+    const calendar = page.getByRole("region", { name: "Hospitationskalender" });
+    const month = calendar.locator("[data-hfc-month]");
 
-    if (isMobile) {
-      await expect(page.locator(".hospitation-mobile-agenda")).toBeVisible();
-      await expect(page.getByRole("button", { name: "Jahr" })).toHaveCount(0);
-      await expect(page.locator(".hospitation-calendar")).toHaveCount(0);
+    if (testInfo.project.name.includes("mobile")) {
+      const agenda = calendar.getByLabel("Terminagenda", { exact: true });
+      await expect(calendar.locator(".hfc-grid")).toBeHidden();
+
+      await month.fill("2026-07");
+      const documented = agenda.locator('.hfc-event[data-status="done"]').first();
+      await expect(documented).toBeVisible();
+      await expect(documented).toHaveCSS("border-left-color", "rgb(0, 255, 100)");
+
+      await month.fill("2026-08");
+      const open = agenda.locator('.hfc-event[data-status="open"]').first();
+      await expect(open).toBeVisible();
+      await expect(open).toHaveCSS("border-left-color", "rgb(0, 14, 82)");
     } else {
-      await page.getByRole("button", { name: "Jahr" }).click();
+      await calendar.getByRole("button", { name: "Jahr", exact: true }).click();
+      await calendar.locator("[data-hfc-year]").fill("2026");
+      const year = calendar.getByLabel("Monate im Jahr 2026", { exact: true });
+      const documented = year.locator('.hfc-event[data-status="done"]').first();
+      const open = year.locator('.hfc-event[data-status="open"]').first();
+      await expect(documented).toBeVisible();
+      await expect(open).toBeVisible();
+      await expect(documented).toHaveCSS("border-left-color", "rgb(0, 255, 100)");
+      await expect(open).toHaveCSS("border-left-color", "rgb(0, 14, 82)");
     }
-
-    await expect(events.first()).toBeVisible();
-    const tones = await events.evaluateAll((items) => items.map((item) => ({
-      className: item.className,
-      accent: getComputedStyle(item).getPropertyValue("--hospitation-event-accent").trim()
-    })));
-    expect(tones.find((item) => item.className.includes("documented"))?.accent).toBe("#16a34a");
-    expect(new Set(tones.map((item) => item.accent).filter(Boolean)).size).toBeGreaterThan(1);
   });
 
-  test("Fallvergleichsmatrix ist sichtbar horizontal bedienbar", async ({ page }) => {
-    await openDemo(page, "#hospitations:observations");
+  test("Fallvergleichsmatrix in der bisherigen Hospitationsdokumentation bleibt horizontal bedienbar", async ({ page }) => {
+    const viewport = page.viewportSize();
+    if (viewport.width > 700) await page.setViewportSize({ ...viewport, width: 700 });
+    await openDemo(page, "?standalone=hospitation-documentation#hospitations:observations");
     const panel = page.locator(".observation-analysis-panel");
     await panel.locator("summary").click();
     const matrix = panel.locator(".observation-matrix-wrap");
@@ -219,9 +220,22 @@ test.describe("Hospitations-Usability-Fixes", () => {
     await expect.poll(() => matrix.evaluate((node) => node.scrollLeft)).toBeGreaterThan(0);
   });
 
+  test("Beobachtungstabelle im Framework lässt sich horizontal per Tastatur verschieben", async ({ page }) => {
+    const viewport = page.viewportSize();
+    if (viewport.width > 1024) await page.setViewportSize({ ...viewport, width: 1024 });
+    await openDemo(page, OBSERVATIONS);
+
+    const grid = page.locator(".hs-table-scroll", { has: page.locator('[data-synthesis-table="observations"]') });
+    await expect(grid).toBeVisible();
+    await expect(grid).toHaveAttribute("tabindex", "0");
+    await expect.poll(() => grid.evaluate((node) => node.scrollWidth > node.clientWidth)).toBe(true);
+    await grid.press("ArrowRight");
+    await expect.poll(() => grid.evaluate((node) => node.scrollLeft)).toBeGreaterThan(0);
+  });
+
   test("Termineditor richtet alle vier Schritte in einer Zeile aus", async ({ page }, testInfo) => {
-    await openDemo(page, "#hospitations");
-    await page.getByRole("button", { name: "+ Neuer Termin" }).click();
+    await openDemo(page, HOSPITATIONS);
+    await page.getByRole("button", { name: "Hospitation planen", exact: true }).click();
     const stepper = page.locator("#hospitation-editor-steps");
     await expect(stepper).toBeVisible();
     await expect(stepper.locator(".import-step")).toHaveCount(4);
@@ -236,8 +250,8 @@ test.describe("Hospitations-Usability-Fixes", () => {
   });
 
   test("neuer Termin legt Kontakt und Organisation an und speichert nur Drawer-Felder", async ({ page }) => {
-    await openDemo(page, "#hospitations");
-    await page.getByRole("button", { name: "+ Neuer Termin" }).click();
+    await openDemo(page, HOSPITATIONS);
+    await page.getByRole("button", { name: "Hospitation planen", exact: true }).click();
     const drawer = page.locator("#hospitation-editor-drawer");
 
     await expect(drawer.locator("#hospitation-contact-name")).toHaveCount(0);
@@ -276,13 +290,14 @@ test.describe("Hospitations-Usability-Fixes", () => {
       messages: [{ text: "Bitte den Übergabeprozess besonders beachten." }]
     });
 
-    const row = page.locator(".hospitation-row", { hasText: "Ada Pflege" });
+    const row = page.locator('[data-synthesis-table="hospitations"] tbody tr', { hasText: "Ada Pflege" });
+    await expect(row).toHaveCount(1);
     await expect(row).toBeVisible();
-    await expect(row.locator(".hospitation-contact-match-indicator")).toHaveCount(0);
+    await expect(row.locator(".hs-main-link[data-synthesis-hospitation]")).toHaveAttribute("data-synthesis-hospitation", hospitation.id);
   });
 
   test("exakt eingetippter bestehender Kontakt wird ohne Optionsklick wiederverwendet", async ({ page }) => {
-    await openDemo(page, "#hospitations");
+    await openDemo(page, HOSPITATIONS);
     const candidate = await page.evaluate(() => {
       const snapshot = window.VersorgungsCompassDemoApi.snapshot();
       const activeContacts = snapshot.contacts.filter((item) => !["archived", "Archiviert"].includes(item.status));
@@ -305,7 +320,7 @@ test.describe("Hospitations-Usability-Fixes", () => {
       candidate
     );
 
-    await page.getByRole("button", { name: "+ Neuer Termin" }).click();
+    await page.getByRole("button", { name: "Hospitation planen", exact: true }).click();
     const drawer = page.locator("#hospitation-editor-drawer");
     await drawer.locator("#hospitation-contact").fill(candidate.name);
     await drawer.locator("#hospitation-editor-next").click();
@@ -331,13 +346,14 @@ test.describe("Hospitations-Usability-Fixes", () => {
   });
 
   test("Terminliste enthält nur echte Hospitationen und öffnet immer den Dokumentationsdrawer", async ({ page }) => {
-    await openDemo(page, "#hospitations");
-    const entryKeys = await page.locator("[data-open-hospitation-entry]").evaluateAll((nodes) =>
-      nodes.map((node) => node.getAttribute("data-open-hospitation-entry")).filter(Boolean)
-    );
-    expect(entryKeys.length).toBeGreaterThan(0);
-    expect(entryKeys.every((key) => key.startsWith("hospitation:"))).toBe(true);
-    await page.locator("[data-open-hospitation-entry]").first().click();
+    await openDemo(page, HOSPITATIONS);
+    const entries = page.locator(HOSPITATION_TITLE);
+    await expect(entries.first()).toBeVisible();
+    const visibleIds = await entries.evaluateAll((nodes) => nodes.map((node) => node.dataset.synthesisHospitation));
+    const visitIds = await page.evaluate(() => window.VersorgungsCompassDemoApi.snapshot().hospitations.map((item) => item.id));
+    expect(visibleIds.every((id) => visitIds.includes(id))).toBe(true);
+    expect(new Set(visibleIds).size).toBe(visibleIds.length);
+    await entries.first().click();
     const drawer = page.locator("#hospitation-editor-drawer");
     await expect(drawer).toHaveClass(/is-documentation-mode/);
     await expect(drawer.locator("#hospitation-editor-title")).not.toHaveText("Terminangebot bearbeiten");
@@ -346,9 +362,10 @@ test.describe("Hospitations-Usability-Fixes", () => {
 
   test("Dashboard und Framework zählen dieselben dokumentierten Beobachtungen", async ({ page }, testInfo) => {
     await openDemo(page, "#hospitations:dashboard");
-    const observationKpi = page.locator(".hospitation-dashboard-kpi-card", { hasText: "Beobachtungen" });
-    await expect(observationKpi.locator(".hospitation-dashboard-kpi-card__value")).toHaveText("69");
-    const frameworkNavigation = page.locator('[data-sidebar-section="planning"] [data-view-tab="framework"]');
+    const observationCount = page.locator("[data-open-observations] strong");
+    await expect(observationCount).toHaveText("69");
+    const dashboardCount = await observationCount.textContent();
+    const frameworkNavigation = page.locator('[data-sidebar-section="planning"] [data-view-tab="hospitations:synthesis"]');
     if (testInfo.project.name.includes("mobile")) {
       const shell = page.locator(".app-shell");
       await page.locator("#sidebar-collapse-button").click();
@@ -360,9 +377,8 @@ test.describe("Hospitations-Usability-Fixes", () => {
       await expect(frameworkNavigation).toBeVisible();
     }
     await frameworkNavigation.click();
-    await expect(page).toHaveURL(/#framework$/);
-    const frameworkModel = page.getByRole("region", { name: "Von Beobachtung zum nächsten Schritt" });
-    await expect(frameworkModel.locator("[data-framework-count]")).toHaveText(["69", "0", "0", "0"]);
-    await expect(frameworkModel.locator('[data-framework-count="patterns"]')).toHaveAttribute("aria-label", "0 Vergleichshinweise");
+    await expect(page).toHaveURL(/#hospitations:synthesis(?:\?|$)/);
+    const framework = page.getByRole("navigation", { name: "Auswertungsschritte" });
+    await expect(framework.locator('[data-synthesis-stage="observations"] .hs-step-count')).toHaveText(dashboardCount);
   });
 });
