@@ -1,6 +1,8 @@
 import assert from "node:assert/strict";
 import http from "node:http";
 import { once } from "node:events";
+import { createHash } from "node:crypto";
+import { gunzipSync } from "node:zlib";
 import { mkdtemp, mkdir, readFile, writeFile, rm, symlink } from "node:fs/promises";
 import vm from "node:vm";
 import os from "node:os";
@@ -12,6 +14,7 @@ import { validateIdentityConfiguration } from "../api/security-policy.mjs";
 import { createPasswordResetBroker } from "../api/password-reset-broker.mjs";
 import { renderGoogleServices } from "../deploy/google-hosting/render.mjs";
 import { addBinding } from "../deploy/google-hosting/google-api.mjs";
+import { demoAssetPaths, uploadDemoEntry, withDemoEntry } from "../deploy/google-hosting/hosting-demo-entry.mjs";
 
 const now = Date.parse("2026-09-21T12:00:00Z");
 const env = {
@@ -62,6 +65,37 @@ assert.equal(services.app.spec.template.metadata.annotations["autoscaling.knativ
 assert.equal(services.app.spec.template.metadata.annotations["run.googleapis.com/vpc-access-egress"], "private-ranges-only");
 assert.equal(services.hosting.rewrites[0].run.serviceId, deployment.resetService);
 assert.equal(services.hosting.rewrites[1].run.serviceId, deployment.appService);
+const demoHosting = withDemoEntry(services.hosting);
+assert.deepEqual(demoHosting.rewrites.slice(1), services.hosting.rewrites);
+assert.deepEqual(demoHosting.headers.slice(2), services.hosting.headers);
+assert.deepEqual(withDemoEntry(demoHosting), demoHosting);
+assert.throws(() => withDemoEntry({ rewrites: [{ glob: "/Demo", run: { serviceId: deployment.appService } }] }));
+assert.ok(demoHosting.headers.slice(0, 2).every(rule =>
+  rule.headers["Content-Security-Policy"].includes("frame-src https://timofrank.github.io/mitmachen/")));
+const testVersion = "sites/test-site/versions/test-version";
+const hostingApiBase = "https://firebasehosting.googleapis.com/v1beta1";
+const testUpload = `https://upload-firebasehosting.googleapis.com/upload/${testVersion}/files`;
+const retainedPath = "/__/firebase/init.js";
+const retainedHash = "f".repeat(64);
+let uploaded = false;
+const demoEntryPath = demoAssetPaths[0];
+await uploadDemoEntry(async (url, options) => {
+  if (url === `${hostingApiBase}/${testVersion}:populateFiles`) {
+    assert.equal(options.body.files[retainedPath], retainedHash);
+    return { uploadUrl: testUpload, uploadRequiredHashes: [options.body.files[demoEntryPath]] };
+  }
+  assert.equal(options.binary, true);
+  assert.equal(url, `${testUpload}/${createHash("sha256").update(options.body).digest("hex")}`);
+  const html = gunzipSync(options.body).toString("utf8");
+  assert.match(html, /<iframe[^>]+src="https:\/\/timofrank\.github\.io\/mitmachen\/"/u);
+  assert.match(html, /sandbox="[^"]*allow-same-origin/u);
+  assert.doesNotMatch(html, /allow-top-navigation|<style|<script\b/u);
+  uploaded = true;
+}, hostingApiBase, testVersion, { [retainedPath]: retainedHash });
+assert.ok(uploaded);
+await assert.rejects(uploadDemoEntry(async (_url, options) => ({
+  uploadUrl: "https://example.invalid/files", uploadRequiredHashes: [options.body.files[demoEntryPath]]
+}), hostingApiBase, testVersion), /unerwarteten Datei-Upload/u);
 for (const service of [services.app, services.reset]) {
   const memoryMi = service.spec.template.spec.containers.reduce((sum, container) => sum + Number.parseInt(container.resources.limits.memory, 10), 0);
   assert.ok(memoryMi >= 512, "Die zweite Cloud-Run-Ausführungsumgebung benötigt insgesamt mindestens 512 MiB.");

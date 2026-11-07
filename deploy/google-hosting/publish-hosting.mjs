@@ -1,5 +1,6 @@
 import fs from "node:fs";
 import { googleApi } from "./google-api.mjs";
+import { uploadDemoEntry, withDemoEntry } from "./hosting-demo-entry.mjs";
 import { renderGoogleServices } from "./render.mjs";
 
 const [filename, mode] = process.argv.slice(2);
@@ -27,8 +28,10 @@ if (!(await api(`${base}/${site}`, { allow404: true }))) {
 }
 // Keine privaten Frontend-Dateien auf das öffentliche CDN hochladen: jede
 // Anwendungsroute wird vom Cloud-Run-Sitzungsvertrag geschützt.
-const version = await api(`${base}/sites/${config.siteId}/versions`, { method: "POST", body: { config: hosting, labels: { "source-sha": config.revision } } });
-await api(`${base}/${version.name}:populateFiles`, { method: "POST", body: { files: {} } });
+const version = await api(`${base}/sites/${config.siteId}/versions`, {
+  method: "POST", body: { config: withDemoEntry(hosting), labels: { "source-sha": config.revision, "demo-entry-sha": config.revision } }
+});
+await uploadDemoEntry(api, base, version.name);
 await api(`${base}/${version.name}?updateMask=status`, { method: "PATCH", body: { status: "FINALIZED" } });
 const release = await api(`${base}/sites/${config.siteId}/releases?versionName=${encodeURIComponent(version.name)}`, { method: "POST", body: { message: `Google Hosting ${config.revision}` } });
 console.log(JSON.stringify({ site: config.siteId, version: version.name, release: release.name, domainChanged: false }));

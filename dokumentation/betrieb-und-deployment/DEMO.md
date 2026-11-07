@@ -4,7 +4,8 @@ Die Demo gibt einen schnellen Einblick in den Versorgungs-Kompass. CRM- und Fach
 
 ## Online ansehen
 
-- [Demo mit fiktiven CRM-/Fachdaten und öffentlichem Amtsträger-Verzeichnis öffnen](https://timofrank.github.io/mitmachen/)
+- [Öffentliche Demo öffnen](https://versorgungs-kompass.de/Demo)
+- [Demo direkt auf GitHub Pages öffnen](https://timofrank.github.io/mitmachen/)
 
 Die Demo verwendet dieselbe vollständige App-Oberfläche wie die geschützte Anwendung: Kontaktpflege, Karte, Auswertung, Stakeholder, Expertenkreis, Hospitationen, Fragebogen, Dashboard, Formate und Teams sind mit synthetischen Beispielen erlebbar. Im Politik-Modul zeigt Pages zusätzlich den feldminimierten öffentlichen Bundestags-Snapshot. Nur Datenquelle und Identität unterscheiden sich: Pages arbeitet anonym und lokal im Browser; die geschützte Anwendung nutzt Login und API. Ihre interne Ziel-URL wird nicht im öffentlichen Repository vorgegeben.
 
@@ -26,5 +27,7 @@ Danach öffnen:
 - Realanwendungsquelle: `http://localhost:4173/frontend/app/versorgungs-kompass.html` (benötigt eine geschützte API-Konfiguration)
 
 ## Technischer Hinweis
+
+Der Einstieg unter `/Demo` bindet die Demo von GitHub Pages in einem isolierten Frame ein. Die Adressen auf GitHub Pages bleiben gültig. Die Demo hat keinen Zugriff auf Sitzung oder Browserspeicher der geschützten Anwendung.
 
 Der Pages-Workflow baut die gemeinsame Oberfläche aus `frontend/app/`, `frontend/map/` und den öffentlichen Assets. Ausschließlich im Pages-Artefakt werden `frontend/data/public-politics-directory.js`, `frontend/data/demo-data.js` und `frontend/data/demo-api.js` vorgeschaltet. `npm run generate:public-politics-directory` ruft den aktuellen öffentlichen Bundestagsstand ab und synchronisiert anschließend denselben Datenstand reproduzierbar in `public/pages-demo/politik-offline.html`; der Pages-Build veröffentlicht diese Quelle weiterhin als `dist/pages/politik-offline.html`. Eingebettete Portrait- und Kartenartefakte bleiben nur erhalten, solange Ausschussbesetzung, Wahlkreiszuordnung und Bildrechte unverändert sind. Ändert sich eine dieser Grundlagen, stoppt der Generator fail-closed und verlangt eine erneute kuratierte Prüfung. Beim Build werden 38 Mitglieder, eine PLZ je Person, erlaubte Felder/Hosts sowie freigegebene Bildrechte geprüft. Ein Snapshot, dessen Abrufzeitpunkt mehr als 14 Tage zurückliegt oder unzulässig in der Zukunft liegt, wird fail-closed abgelehnt. Einstieg ist `dist/pages/versorgungs-kompass.html`; `dist/pages/` und die Online-Route `/demo/` leiten dorthin weiter. Es gibt keinen Login, kein Supabase und keinen Zugriff auf ein externes Fach-API. Frühere Cloud-Run-Demos sind nur noch historische Referenzen. Die Build-Trennung steht im [Deployment-Runbook](DEPLOYMENT_GEMATIK_K8S.md).
