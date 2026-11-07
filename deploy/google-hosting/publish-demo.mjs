@@ -20,7 +20,7 @@ const config = {
     glob: "**",
     headers: {
       "Cache-Control": "no-cache",
-      "Content-Security-Policy": "frame-ancestors https://versorgungs-kompass.de https://www.versorgungs-kompass.de",
+      "Content-Security-Policy": "frame-ancestors 'self' https://versorgungs-kompass.de https://www.versorgungs-kompass.de",
       "X-Robots-Tag": "noindex, nofollow"
     }
   }]
