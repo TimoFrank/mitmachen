@@ -669,79 +669,41 @@
           <section class="view-panel home-page" id="view-home" data-view-panel="home" aria-labelledby="home-welcome-title">
             <div class="home-scroller" data-home-scroller tabindex="0" aria-label="Startseiteninhalt">
               <header class="home-hero">
-                <img class="home-hero__brand" src="../../public/brand/mitmachen/flechtwerk-lockup-horizontal.svg" alt="#Mitmachen" />
                 <h1 class="home-welcome-heading" id="home-welcome-title">Willkommen.</h1>
-                <div class="home-compass-rotation" data-home-compass-rotation>
-                  <p class="visually-hidden">
-                    Zur Auswahl stehen Versorgungs-Kompass, Stakeholder-Kompass, Hospitations-Kompass und Format-Kompass.
-                  </p>
-                  <span class="home-compass-rotation__stage" aria-hidden="true">
+                <div class="home-compass-rotation" data-home-compass-rotation aria-hidden="true">
+                  <span class="home-compass-rotation__stage">
                     <span class="home-compass-rotation__item home-compass-rotation__item--care" data-home-compass-name>Versorgungs-Kompass</span>
                     <span class="home-compass-rotation__item home-compass-rotation__item--stakeholders" data-home-compass-name>Stakeholder-Kompass</span>
                     <span class="home-compass-rotation__item home-compass-rotation__item--planning" data-home-compass-name>Hospitations-Kompass</span>
                     <span class="home-compass-rotation__item home-compass-rotation__item--formats" data-home-compass-name>Format-Kompass</span>
                   </span>
                 </div>
-                <button class="home-scroll-cue" type="button" data-home-scroll-cue aria-controls="home-destinations">
-                  Bereiche ansehen
-                  <span aria-hidden="true">↓</span>
-                </button>
-                <noscript>
-                  <a class="home-scroll-cue" href="#home-destinations">
-                    Bereiche ansehen
-                    <span aria-hidden="true">↓</span>
-                  </a>
-                </noscript>
               </header>
-              <nav class="home-destinations-section" id="home-destinations" aria-label="Bereiche" tabindex="-1">
-                <p class="home-destinations__intro">Wähle den Kompass, in dem du weiterarbeiten möchtest.</p>
+              <nav class="home-destinations-section" id="home-destinations" aria-labelledby="home-destinations-title">
+                <h2 class="visually-hidden" id="home-destinations-title">Arbeitsbereiche</h2>
                 <ul class="home-destinations">
-                  <li class="home-destination-card">
-                    <a class="home-destination-link" data-home-module="care" data-route-link="care" href="#care">
-                      <span class="home-destination-link__top">
-                        <span class="home-destination-link__identity">
-                          <img class="home-destination-link__mark" src="../../public/brand/versorgungs-kompass/mark.svg" alt="" aria-hidden="true" />
-                        </span>
-                        <span aria-hidden="true">→</span>
-                      </span>
-                      <strong>Versorgungs-Kompass</strong>
-                      <span class="home-destination-link__copy">Versorgung regional verstehen.</span>
+                  <li>
+                    <a class="home-destination-link" data-home-module="care" data-route-link="map" href="#map">
+                      <img class="home-destination-link__mark" src="../../public/brand/versorgungs-kompass/mark.svg" alt="" />
+                      <strong class="home-destination-name">Versorgungs-Kompass</strong>
                     </a>
                   </li>
-                  <li class="home-destination-card">
+                  <li>
                     <a class="home-destination-link" data-home-module="stakeholders" data-route-link="stakeholders" href="#stakeholders">
-                      <span class="home-destination-link__top">
-                        <span class="home-destination-link__identity">
-                          <img class="home-destination-link__mark" src="../../public/brand/modules/stakeholder/mark.svg" alt="" aria-hidden="true" />
-                        </span>
-                        <span aria-hidden="true">→</span>
-                      </span>
-                      <strong>Stakeholder-Kompass</strong>
-                      <span class="home-destination-link__copy">Perspektiven gezielt verbinden.</span>
+                      <img class="home-destination-link__mark" src="../../public/brand/modules/stakeholder/mark.svg" alt="" />
+                      <strong class="home-destination-name">Stakeholder-Kompass</strong>
                     </a>
                   </li>
-                  <li class="home-destination-card">
+                  <li>
                     <a class="home-destination-link" data-home-module="planning" data-route-link="hospitation-overview" href="#hospitation-overview">
-                      <span class="home-destination-link__top">
-                        <span class="home-destination-link__identity">
-                          <img class="home-destination-link__mark" src="../../public/brand/modules/hospitation/mark.svg" alt="" aria-hidden="true" />
-                        </span>
-                        <span aria-hidden="true">→</span>
-                      </span>
-                      <strong>Hospitations-Kompass</strong>
-                      <span class="home-destination-link__copy">Von Beobachtung zu Evidenz.</span>
+                      <img class="home-destination-link__mark" src="../../public/brand/modules/hospitation/mark.svg" alt="" />
+                      <strong class="home-destination-name">Hospitations-Kompass</strong>
                     </a>
                   </li>
-                  <li class="home-destination-card">
+                  <li>
                     <a class="home-destination-link" data-home-module="formats" data-route-link="formats" href="#formats">
-                      <span class="home-destination-link__top">
-                        <span class="home-destination-link__identity">
-                          <img class="home-destination-link__mark" src="../../public/brand/modules/formate/mark.svg" alt="" aria-hidden="true" />
-                        </span>
-                        <span aria-hidden="true">→</span>
-                      </span>
-                      <strong>Format-Kompass</strong>
-                      <span class="home-destination-link__copy">Austausch wirksam gestalten.</span>
+                      <img class="home-destination-link__mark" src="../../public/brand/modules/formate/mark.svg" alt="" />
+                      <strong class="home-destination-name">Format-Kompass</strong>
                     </a>
                   </li>
                 </ul>
@@ -754,10 +716,10 @@
                 <section class="care-overview-map" aria-labelledby="care-overview-map-title">
                   <div class="care-overview-map__head">
                     <div>
-                      <span class="care-overview-map__kicker">Regionale Verteilung</span>
-                      <h2 id="care-overview-map-title">Versorgungs-Netzwerk</h2>
+                      <span class="care-overview-map__kicker">Kontakte nach Bundesland</span>
+                      <h2 id="care-overview-map-title">Deutschlandkarte</h2>
                     </div>
-                    <a class="care-overview-map__open" data-route-link="map" href="#map" aria-label="Regionale Verteilung im Versorgungs-Netzwerk – Karte öffnen">
+                    <a class="care-overview-map__open" data-route-link="map" href="#map" aria-label="Deutschlandkarte öffnen">
                       Karte öffnen
                       <span aria-hidden="true">→</span>
                     </a>
@@ -773,19 +735,15 @@
                       aria-hidden="true"
                       referrerpolicy="no-referrer"
                     ></iframe>
-                    <span class="care-overview-map__counter" id="care-overview-map-counter" data-state="loading" aria-live="polite" aria-atomic="true">
-                      <strong id="care-overview-map-count">–</strong>
-                      <span id="care-overview-map-count-label">Kontakte werden geladen</span>
-                    </span>
                     <div class="care-overview-map__meta">
-                      <span class="care-overview-map__legend" aria-label="Kontaktverteilung: von weniger bis mehr Kontakten">
-                        <span class="care-overview-map__legend-body" aria-hidden="true">
-                          <span class="care-overview-map__legend-endpoints">
-                            <span>mehr</span>
-                            <span>weniger</span>
-                          </span>
-                          <span class="care-overview-map__legend-scale"></span>
-                        </span>
+                      <span class="care-overview-map__counter" id="care-overview-map-counter" data-state="loading" aria-live="polite" aria-atomic="true">
+                        <strong id="care-overview-map-count">–</strong>
+                        <span id="care-overview-map-count-label">Kontakte werden geladen</span>
+                      </span>
+                      <span class="care-overview-map__legend" role="img" aria-label="Kontaktverteilung: von weniger bis mehr Kontakten">
+                        <span aria-hidden="true">weniger</span>
+                        <span class="care-overview-map__legend-scale" aria-hidden="true"></span>
+                        <span aria-hidden="true">mehr</span>
                       </span>
                     </div>
                   </div>
@@ -2900,9 +2858,11 @@
 
     </main>
         <footer class="versorgungs-app-footer">
-          <span>#Mitmachen – ein Angebot der gematik</span>
+          <span class="versorgungs-app-footer__desktop">#Mitmachen – ein Angebot der gematik</span>
           <a href="https://www.gematik.de/mitmachen" target="_blank" rel="noopener noreferrer">
-            gematik.de/mitmachen <span aria-hidden="true">↗</span>
+            <span class="versorgungs-app-footer__desktop">gematik.de/mitmachen</span>
+            <span class="versorgungs-app-footer__mobile">#Mitmachen, ein Angebot der gematik</span>
+            <span aria-hidden="true">↗</span>
           </a>
         </footer>
       </div>

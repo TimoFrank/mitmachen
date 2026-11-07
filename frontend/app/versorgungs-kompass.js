@@ -1407,7 +1407,6 @@
       const stakeholderOrganizationSubnav = document.querySelector('[data-sidebar-subnav="stakeholder-organizations"]');
       const stakeholderOrganizationSubnavToggle = stakeholderOrganizationSubnav?.querySelector(".sidebar-subnav__toggle");
       const homeScroller = document.querySelector("[data-home-scroller]");
-      const homeScrollCue = document.querySelector("[data-home-scroll-cue]");
       const homeDestinations = document.getElementById("home-destinations");
       const topbarViewTitle = document.getElementById("topbar-view-title");
       const topbarViewMeta = document.getElementById("topbar-view-meta");
@@ -11277,9 +11276,9 @@
           accent: "#168a78",
           motivation: "Regionale Zusammenhänge entdecken",
           title: "Deutschlandkarte: Versorgung regional verstehen",
-          body: "Punkte, Cluster und Heatmap zeigen regionale Schwerpunkte und Lücken. Filter grenzen die Perspektive nach Region, Sektor oder Owner ein.",
+          body: "Farbige Punkte zeigen die Sektoren. Die blauen Flächen zeigen, wie viele Kontakte je Bundesland erfasst sind. Filter grenzen die Karte und die Kontaktliste ein.",
           details: [
-            { title: "Ansichten", body: "Zwischen Punkten, Clustern und Heatmap wechseln." },
+            { title: "Ansichten", body: "Öffne in Sektoren einen Kontakt per Punkt. Wähle in Bundesländer eine Fläche, um die Kontaktliste zu filtern und grüne Standortpins einzublenden." },
             { title: "Filter", body: "Karte und Ergebnisliste gemeinsam eingrenzen." }
           ]
         },
@@ -40174,13 +40173,6 @@
         updateRouteHash(profileRouteForTab());
       }
 
-      function scrollHomeToDestinations() {
-        if (!homeScroller || !homeDestinations) return;
-        const behavior = window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth";
-        homeScroller.scrollTo({ top: homeDestinations.offsetTop, behavior });
-        homeDestinations.focus({ preventScroll: true });
-      }
-
       function resetHomeScrollPosition() {
         if (!homeScroller) return;
         const inlineScrollBehavior = homeScroller.style.scrollBehavior;
@@ -40504,6 +40496,7 @@
           panel.setAttribute("aria-hidden", panel.dataset.viewPanel === view ? "false" : "true");
         });
         if (appShell) appShell.dataset.activeView = view;
+        if (view !== "home") homeScroller?.removeAttribute("data-home-intro");
         if (view === "home" && (viewChanged || appShell?.classList.contains("is-initializing"))) {
           resetHomeScrollPosition();
         }
@@ -43812,7 +43805,6 @@
         appShell?.classList.remove("is-sidebar-collapsed");
         setMobileSidebarExpanded(false);
       }
-      homeScrollCue?.addEventListener("click", scrollHomeToDestinations);
       sidebarSectionToggles.forEach((toggle) => {
         toggle.addEventListener("click", () => {
           const group = toggle.dataset.sidebarSectionToggle || "";
@@ -45875,13 +45867,17 @@
       }
 
       function finishInitialLoading() {
-        if (activeView === "home") resetHomeScrollPosition();
+        if (activeView === "home") {
+          homeScroller?.setAttribute("data-home-intro", "");
+          resetHomeScrollPosition();
+        }
         appShell?.classList.remove("is-initializing");
         appShell?.removeAttribute("aria-busy");
         initialLoadingSkeleton?.setAttribute("aria-hidden", "true");
       }
 
       renderAccountProfile(null);
+      homeDestinations?.addEventListener("focusin", () => homeScroller?.removeAttribute("data-home-intro"));
       skipLink?.addEventListener("click", (event) => {
         event.preventDefault();
         mainContent?.focus({ preventScroll: true });

@@ -123,11 +123,16 @@
     document.body.classList.add("overview-preview-mode");
   }
 
+  function isInteractiveContactMap(){
+    return activeMapContext === "contacts" && !OVERVIEW_PREVIEW_MODE;
+  }
+
   const BASE_DATA = loadCompassContacts().map(toMapEntry).filter(Boolean);
   let currentEntries = BASE_DATA.slice();
   let activeMapContext = ALLOWED_MAP_MESSAGE_CHANNELS.has(MAP_MESSAGE_CHANNEL)
     ? MAP_MESSAGE_CHANNEL
     : "contacts";
+  document.body.classList.toggle("contacts-map-context", activeMapContext === "contacts");
   document.body.classList.toggle("politics-map-context", activeMapContext === "politics");
   let activeMapLabels = {};
   let activeCurrentOwner = null;
@@ -217,6 +222,22 @@
     }
   }
 
+  const neighborsPane = map.createPane("mapNeighbors");
+  neighborsPane.style.zIndex = "250";
+  neighborsPane.style.pointerEvents = "none";
+  const neighboringCountries = L.geoJSON(window.MAP_EUROPE_CONTEXT, {
+    pane: "mapNeighbors",
+    className: "map-neighbor-country",
+    attribution: "Natural Earth",
+    style: {
+      color: "#bac9c8",
+      weight: 1,
+      fillColor: "#e0e8e5",
+      fillOpacity: IS_PUBLIC_DEMO ? 0.95 : 0.35
+    },
+    interactive: false
+  });
+
   // ---- Build exact Germany mask (inverse polygon) ----
   function toLatLngs(ringLngLat){
     // ring is [ [lng,lat], ... ]
@@ -251,12 +272,14 @@
 
   // Germany outline and soft surface emphasis.
   const germanyLayer = L.geoJSON(DE_GEOJSON, {
-    style: {
-      color: OVERVIEW_PREVIEW_MODE ? 'rgba(222,245,255,0.78)' : 'rgba(23,39,95,0.30)',
-      weight: OVERVIEW_PREVIEW_MODE ? 1.4 : 1.15,
-      fillColor: OVERVIEW_PREVIEW_MODE ? '#0b2f74' : 'rgba(238,244,255,0.78)',
-      fillOpacity: OVERVIEW_PREVIEW_MODE ? 0.12 : 0.34
-    },
+    style: () => isInteractiveContactMap()
+      ? { color: "#87999e", weight: 1.25, fillColor: "#f8fafb", fillOpacity: 0.92 }
+      : {
+          color: OVERVIEW_PREVIEW_MODE ? 'rgba(222,245,255,0.78)' : 'rgba(23,39,95,0.30)',
+          weight: OVERVIEW_PREVIEW_MODE ? 1.4 : 1.15,
+          fillColor: OVERVIEW_PREVIEW_MODE ? '#0b2f74' : 'rgba(238,244,255,0.78)',
+          fillOpacity: OVERVIEW_PREVIEW_MODE ? 0.12 : 0.34
+        },
     interactive: false
   }).addTo(map);
 
@@ -292,7 +315,8 @@
   const stateHeatCountLayer = L.layerGroup();
   let stateInteractionLayer = null;
   let heatMapActive = OVERVIEW_PREVIEW_MODE;
-  let gematikMarkerModeActive = !OVERVIEW_PREVIEW_MODE;
+  let gematikMarkerModeActive = !OVERVIEW_PREVIEW_MODE && !isInteractiveContactMap();
+  let clusterModeActive = false;
   let selectedState = "";
   let stateCountsByKey = {};
   let stateCountMax = 0;
@@ -304,8 +328,33 @@
     map.fitBounds(bounds.pad(0.14), { animate: true });
   }
 
+  function isContactSectorMode(){
+    return isInteractiveContactMap() && !gematikMarkerModeActive && !heatMapActive && !clusterModeActive;
+  }
+
   function stateInteractionStyle(name, hover = false){
     const active = selectedState === name;
+    if (isContactSectorMode()) {
+      const total = stateCountsByKey[stateNameKey(name)] || 0;
+      return {
+        color: active ? "#00ff65" : "rgba(221,232,251,0.42)",
+        weight: active ? 2 : 0.8,
+        lineCap: "round",
+        lineJoin: "round",
+        fillColor: heatColor(total, stateCountMax),
+        fillOpacity: 1,
+        interactive: false
+      };
+    }
+    if (isInteractiveContactMap()) {
+      return {
+        color: active || hover ? "#13784a" : "#bac8ce",
+        weight: active ? 2 : (hover ? 1.5 : 0.8),
+        fillColor: "#20a86b",
+        fillOpacity: active ? 0.18 : (hover ? 0.1 : 0.01),
+        interactive: true
+      };
+    }
     if (gematikMarkerModeActive && !heatMapActive) {
       const total = stateCountsByKey[stateNameKey(name)] || 0;
       return {
@@ -344,7 +393,7 @@
   }
 
   function highlightContactState(name, highlighted){
-    if (!stateInteractionLayer || !name || heatMapActive) return;
+    if (!stateInteractionLayer || !name || heatMapActive || isContactSectorMode()) return;
     setStateLabelHover(name, highlighted);
     stateInteractionLayer.eachLayer((layer) => {
       if (layer.feature?.properties?.name !== name) return;
@@ -365,6 +414,7 @@
       pane: 'overlayPane',
       style: (feature) => stateInteractionStyle(feature.properties.name),
       onEachFeature: (feature, layer) => {
+        if (isContactSectorMode()) return;
         const name = feature.properties.name;
         const total = stateCountsByKey[stateNameKey(name)] || 0;
         layer.bindTooltip(stateHoverTooltipHtml(name, total), {
@@ -720,7 +770,7 @@
 
     // Keep the nationwide view legible on desktop; city labels take over when
     // users zoom in. Mobile stays deliberately free of the extra label layer.
-    if (!isMobileLayout() && z >= 6 && z < 7) {
+    if (!isContactSectorMode() && !isMobileLayout() && z >= 6 && z < 7) {
       if (!map.hasLayer(stateLabelLayer)) map.addLayer(stateLabelLayer);
     } else if (map.hasLayer(stateLabelLayer)) {
       map.removeLayer(stateLabelLayer);
@@ -981,7 +1031,6 @@
   let query = "";
   let activeMapContactId = "";
   let mapMovedForActiveContact = false;
-  let clusterModeActive = false;
   let currentListPage = 1;
   const mobileListPageSize = 5;
   let lastMobileLayout = window.matchMedia('(max-width: 760px)').matches;
@@ -999,6 +1048,7 @@
   const elMapPagination = document.getElementById('map-pagination');
   const elCount = document.getElementById('count');
   const elPanelTitle = document.querySelector('.panel-title');
+  if (isInteractiveContactMap()) document.getElementById('marker-toggle')?.remove();
   const elMarkerToggle = document.getElementById('marker-toggle');
   const elHeatMapToggle = document.getElementById('heatmap-toggle');
   const elPointsToggle = document.getElementById('points-toggle');
@@ -2432,10 +2482,27 @@
 
   }
 
+  function stateDensityLegendMarkup(){
+    const maximumStateCount = Math.max(0, stateCountMax);
+    const itemLabel = maximumStateCount === 1
+      ? mapLabel("itemSingular", "Kontakt")
+      : mapLabel("itemPlural", "Kontakte");
+    return `
+      <div class="map-density-legend">
+        <span class="map-density-legend__label">${escapeHtml(mapLabel("itemPlural", "Kontakte"))} je Bundesland</span>
+        <div class="map-distribution-legend" aria-label="Verteilung je Bundesland: 0 bis ${maximumStateCount} ${escapeHtml(itemLabel)}">
+          <span>0</span>
+          <span class="map-distribution-legend__scale" aria-hidden="true"></span>
+          <span>${maximumStateCount}</span>
+        </div>
+      </div>
+    `;
+  }
+
   function renderLegend(entries = filteredEntries()){
     if (!elMapLegendList) return;
     if (heatMapActive) {
-      elMapLegendList.innerHTML = `
+      elMapLegendList.innerHTML = isInteractiveContactMap() ? stateDensityLegendMarkup() : `
         <div class="map-distribution-legend" aria-label="Weniger bis mehr Kontakte">
           <span>weniger</span>
           <span class="map-distribution-legend__scale" aria-hidden="true"></span>
@@ -2448,23 +2515,12 @@
       const itemLabel = entries.length === 1
         ? mapLabel("itemSingular", "Kontakt")
         : mapLabel("itemPlural", "Kontakte");
-      const maximumStateCount = Math.max(0, stateCountMax);
-      const densityLabel = maximumStateCount === 1
-        ? mapLabel("itemSingular", "Kontakt")
-        : mapLabel("itemPlural", "Kontakte");
       elMapLegendList.innerHTML = `
         <div class="map-legend-item map-legend-item--contact">
           <span class="map-legend-pin">${gematikMarkerMarkup(false, "map-legend-marker")}</span>
           <span><strong>${entries.length}</strong> ${escapeHtml(itemLabel)}</span>
         </div>
-        <div class="map-density-legend">
-          <span class="map-density-legend__label">${escapeHtml(mapLabel("itemPlural", "Kontakte"))} je Bundesland</span>
-          <div class="map-distribution-legend" aria-label="Verteilung je Bundesland: 0 bis ${maximumStateCount} ${escapeHtml(densityLabel)}">
-            <span>0</span>
-            <span class="map-distribution-legend__scale" aria-hidden="true"></span>
-            <span>${maximumStateCount}</span>
-          </div>
-        </div>
+        ${isInteractiveContactMap() ? "" : stateDensityLegendMarkup()}
       `;
       return;
     }
@@ -2479,11 +2535,12 @@
       elMapLegendList.innerHTML = `<div class="map-legend-item"><span class="map-legend-swatch" style="background:${sectorRegistry.fallbackColor};"></span><span>Keine Treffer</span></div>`;
       return;
     }
-    const visibleRows = rows.slice(0, 8);
-    const remainingCount = rows.slice(8).reduce((sum, [, count]) => sum + count, 0);
+    const visibleRows = isContactSectorMode() ? rows : rows.slice(0, 8);
+    const remainingCount = rows.slice(visibleRows.length).reduce((sum, [, count]) => sum + count, 0);
     elMapLegendList.innerHTML = [
       ...visibleRows.map(([label]) => `<div class="map-legend-item"><span class="map-legend-swatch" style="background:${mapCategoryColor(label)};"></span><span>${escapeHtml(label)}</span></div>`),
-      remainingCount ? `<div class="map-legend-item"><span class="map-legend-swatch" style="background:${sectorRegistry.fallbackColor};"></span><span>Weitere</span></div>` : ""
+      remainingCount ? `<div class="map-legend-item"><span class="map-legend-swatch" style="background:${sectorRegistry.fallbackColor};"></span><span>Weitere</span></div>` : "",
+      isContactSectorMode() ? stateDensityLegendMarkup() : ""
     ].join("");
   }
 
@@ -2650,18 +2707,26 @@
     markerIndex = [];
 
     const filtered = filteredEntries();
+    const showStatePins = isInteractiveContactMap() && heatMapActive && Boolean(selectedState);
     if (activeMapContactId && !filtered.some((entry) => entry.id === activeMapContactId)) {
       activeMapContactId = "";
       mapMovedForActiveContact = false;
       renderMapDetail(null);
     }
+    if (isInteractiveContactMap()) {
+      if (!map.hasLayer(neighboringCountries)) neighboringCountries.addTo(map);
+    } else if (map.hasLayer(neighboringCountries)) {
+      neighboringCountries.remove();
+    }
+    germanyLayer.resetStyle();
     renderStateFilterMenu();
     buildStateHeatLayer(filtered);
     refreshStateInteractionLayer();
 
-    if (gematikMarkerModeActive && !heatMapActive) {
+    if ((gematikMarkerModeActive && !heatMapActive) || showStatePins) {
       filtered.forEach((entry, entryIndex) => {
         const marker = gematikMarkerFor(entry, {
+          compact: showStatePins,
           // Stable list order determines the pointer target for overlapping
           // icons without changing any geographic coordinate. Covered records
           // remain keyboard-addressable through their own Leaflet marker.
@@ -2669,7 +2734,7 @@
         });
         bindMapPointTooltip(marker, entry);
         const activateMarker = () => {
-          focusMapContact(entry);
+          focusMapContact(entry, { fitState: !showStatePins });
         };
         bindMapMarkerActivation(marker, activateMarker);
         markerIndex.push({
@@ -2714,14 +2779,20 @@
       }
     });
 
+    if (!heatMapActive || showStatePins) {
+      if (!map.hasLayer(markerLayer)) markerLayer.addTo(map);
+    } else if (map.hasLayer(markerLayer)) {
+      markerLayer.remove();
+    }
+
     if (heatMapActive) {
       stateSurfaceLayer.setStyle({ opacity: 0, fillOpacity: 0 });
-      if (map.hasLayer(markerLayer)) map.removeLayer(markerLayer);
       if (stateInteractionLayer && map.hasLayer(stateInteractionLayer)) map.removeLayer(stateInteractionLayer);
       if (stateHeatLayer && !map.hasLayer(stateHeatLayer)) stateHeatLayer.addTo(map);
     } else {
-      stateSurfaceLayer.setStyle(BASE_STATE_SURFACE_STYLE);
-      if (!map.hasLayer(markerLayer)) map.addLayer(markerLayer);
+      stateSurfaceLayer.setStyle(isInteractiveContactMap()
+        ? { opacity: 0, fillOpacity: 0 }
+        : BASE_STATE_SURFACE_STYLE);
       if (stateInteractionLayer && !map.hasLayer(stateInteractionLayer)) stateInteractionLayer.addTo(map);
       if (stateHeatLayer && map.hasLayer(stateHeatLayer)) map.removeLayer(stateHeatLayer);
       if (map.hasLayer(stateHeatCountLayer)) map.removeLayer(stateHeatCountLayer);
@@ -2869,13 +2940,15 @@
   window.addEventListener("message", (event) => {
     const message = sanitizeMapDataMessage(event);
     if (!message) return;
+    const keepStateSelection = message.context === activeMapContext && isInteractiveContactMap() && Boolean(selectedState);
     activeMapContext = message.context;
+    document.body.classList.toggle("contacts-map-context", activeMapContext === "contacts");
     document.body.classList.toggle("politics-map-context", activeMapContext === "politics");
     activeMapLabels = message.labels;
     activeCurrentOwner = message.currentOwner;
     showOwnerFilter = message.showOwnerFilter;
     currentEntries = message.contacts.map(toMapEntry).filter(Boolean);
-    selectedState = "";
+    if (!keepStateSelection) selectedState = "";
     activeMapContactId = "";
     mobilePreviewContactId = "";
     activeOwnerFilter = "";
@@ -2888,7 +2961,7 @@
     }
     if (elPanelTitle) elPanelTitle.textContent = mapLabel("listTitle", "Kontakte");
     renderMapDetail(null);
-    setMobileSheetState(isMobileLayout() ? 'full' : 'desktop');
+    if (!keepStateSelection) setMobileSheetState(isMobileLayout() ? 'full' : 'desktop');
     renderFilters();
     renderStateFilterMenu();
     render();

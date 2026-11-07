@@ -550,7 +550,6 @@ jobs:
             || !rootHtml.includes('data-view-panel="home"')
             || !/<noscript>[\s\S]*href="\.\/versorgungs-kompass-no-script\.css"[^>]*data-no-script-home[^>]*>[\s\S]*<\/noscript>/i.test(rootHtml)
             || !/\.view-panel\[data-view-panel="home"\]\s*\{[\s\S]*display:\s*block\s*!important/i.test(noScriptCss)
-            || !/button\[data-home-scroll-cue\]\s*\{[\s\S]*display:\s*none/i.test(noScriptCss)
             || !/<meta\s+name="robots"\s+content="noindex,\s*nofollow"\s*\/?>/i.test(rootHtml)
             || !rootHtml.includes('./data/public-politics-directory.js')
             || !rootHtml.includes('./data/demo-data.js')
@@ -560,8 +559,10 @@ jobs:
           ) {
             throw new Error("GitHub Pages startet nicht direkt in der App-Startseite.");
           }
+          const homeNavigation = rootHtml.match(/<nav\b[^>]*\bid="home-destinations"[^>]*>([\s\S]*?)<\/nav>/i)?.[1] || "";
+          const homeBrands = Array.from(homeNavigation.matchAll(/<(h3|strong)\b[^>]*>([^<]+)<\/\1>/g), match => match[2].trim());
           for (const brand of ["Versorgungs-Kompass", "Stakeholder-Kompass", "Hospitations-Kompass", "Format-Kompass"]) {
-            if (!rootHtml.includes(`<strong>${brand}</strong>`)) {
+            if (!homeBrands.includes(brand)) {
               throw new Error(`Die veröffentlichte Startseite enthält ${brand} nicht.`);
             }
           }

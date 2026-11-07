@@ -3745,6 +3745,167 @@
       object-position: center;
     }
 
+    :where(.contacts-map-context:not(.overview-preview-mode)) {
+      --contact-map-green: #13784a;
+      --contact-map-green-border: #b7ead6;
+      --contact-map-green-soft: #ecfdf5;
+    }
+
+    :where(.contacts-map-context:not(.overview-preview-mode)) .panel .hdr {
+      border-bottom: 3px solid var(--gematik-green);
+      background: var(--gematik-navy);
+      color: var(--surface);
+      font-size: var(--font-size-sm);
+      letter-spacing: 0;
+      text-transform: none;
+    }
+
+    :where(.contacts-map-context:not(.overview-preview-mode)) .panel-count {
+      border-color: var(--contact-map-green-border);
+      background: var(--contact-map-green-soft);
+      color: var(--contact-map-green);
+    }
+
+    :where(.contacts-map-context:not(.overview-preview-mode)) .map-list-toggle {
+      border-color: rgba(255, 255, 255, 0.42);
+      background: rgba(255, 255, 255, 0.12);
+      color: var(--surface);
+    }
+
+    :where(.contacts-map-context:not(.overview-preview-mode)) .map-list-toggle:focus-visible {
+      outline: 2px solid var(--gematik-green);
+      outline-offset: 2px;
+    }
+
+    :where(.contacts-map-context:not(.overview-preview-mode)) .map-search-field,
+    :where(.contacts-map-context:not(.overview-preview-mode)) .map-filter-trigger {
+      background: var(--surface);
+      color: var(--gematik-navy);
+    }
+
+    :where(.contacts-map-context:not(.overview-preview-mode)) .map-search-field:focus-within,
+    :where(.contacts-map-context:not(.overview-preview-mode)) .map-filter-dropdown.is-open .map-filter-trigger {
+      border-color: var(--contact-map-green);
+      box-shadow: 0 0 0 3px var(--contact-map-green-soft);
+    }
+
+    :where(.contacts-map-context:not(.overview-preview-mode)) :is(.map-filter-trigger, .map-toggle):focus-visible {
+      outline: 2px solid var(--contact-map-green);
+      outline-offset: 2px;
+    }
+
+    :where(.contacts-map-context:not(.overview-preview-mode)) .map-filter-option.is-active,
+    :where(.contacts-map-context:not(.overview-preview-mode)) .mobile-map-quick-filter.is-active .map-filter-trigger {
+      background: var(--contact-map-green-soft);
+      color: var(--contact-map-green);
+    }
+
+    :where(.contacts-map-context:not(.overview-preview-mode)) .item {
+      border: 0 !important;
+      border-bottom: 1px solid var(--border) !important;
+      border-radius: 0 !important;
+      background: var(--surface) !important;
+      box-shadow: none !important;
+    }
+
+    :where(.contacts-map-context:not(.overview-preview-mode)) .item:is(:hover, :focus-visible, .item-map-hover) {
+      background: var(--surface-muted) !important;
+    }
+
+    :where(.contacts-map-context:not(.overview-preview-mode)) .item-active {
+      background: var(--contact-map-green-soft) !important;
+      box-shadow: inset 3px 0 0 var(--contact-map-green) !important;
+    }
+
+    body.contacts-map-context:not(.overview-preview-mode) #map {
+      background: #eef3f7;
+    }
+
+    body.contacts-map-context:not(.overview-preview-mode) .map-mode-controls {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    body.contacts-map-context:not(.overview-preview-mode) .map-mode-controls .map-toggle {
+      border: 0 !important;
+      border-radius: var(--radius-sm) !important;
+      background: transparent !important;
+      color: var(--text-secondary) !important;
+      box-shadow: none !important;
+    }
+
+    body.contacts-map-context:not(.overview-preview-mode) .map-mode-controls .map-toggle:hover {
+      background: var(--surface-muted) !important;
+    }
+
+    body.contacts-map-context:not(.overview-preview-mode) .map-mode-controls .map-toggle[aria-pressed="true"] {
+      background: var(--surface-muted) !important;
+      color: var(--gematik-navy) !important;
+      box-shadow: inset 0 -3px var(--gematik-green) !important;
+    }
+
+    body.contacts-map-context:not(.overview-preview-mode) .map-density-legend:first-child {
+      border-top: 0;
+      margin-top: 0;
+      padding-top: 0;
+    }
+
+    body.contacts-map-context:not(.overview-preview-mode) .map-box:has(#points-toggle[aria-pressed="true"]) .map-legend {
+      min-width: 0;
+      max-width: 190px;
+      padding: 9px 11px;
+    }
+
+    body.contacts-map-context:not(.overview-preview-mode) .map-box:has(#points-toggle[aria-pressed="true"]) .map-legend-list {
+      gap: 5px;
+    }
+
+    body.contacts-map-context:not(.overview-preview-mode) .map-box:has(#points-toggle[aria-pressed="true"]) .map-legend-item {
+      grid-template-columns: 9px minmax(0, 1fr);
+      font-size: var(--font-size-xs) !important;
+      font-weight: 650;
+      line-height: 1.15;
+    }
+
+    body.contacts-map-context:not(.overview-preview-mode) .cat-marker {
+      box-shadow: 0 0 0 1px rgba(1, 14, 82, 0.26) !important;
+    }
+
+    body.contacts-map-context:not(.overview-preview-mode) .cat-marker-active {
+      box-shadow: 0 0 0 2px var(--gematik-navy), 0 0 0 4px var(--gematik-green) !important;
+    }
+
+    @media (min-width: 961px) {
+      body.contacts-map-context:not(.overview-preview-mode) .workspace:not(.map-list-collapsed):not(.has-map-detail) {
+        grid-template-columns: clamp(380px, 36.5%, 438px) minmax(0, 1fr);
+      }
+    }
+
+    @media (min-width: 761px) {
+      :where(.contacts-map-context:not(.overview-preview-mode)) .map-mode-controls {
+        width: min(300px, calc(100% - 144px));
+        gap: 4px;
+        padding: 4px;
+        border: 1px solid var(--border);
+        border-radius: var(--radius-lg);
+        background: var(--surface);
+      }
+
+      :where(.contacts-map-context:not(.overview-preview-mode)) .filter-list-separator {
+        display: none;
+      }
+    }
+
+    @media (max-width: 760px) {
+      :where(.contacts-map-context:not(.overview-preview-mode)) .mobile-map-filter-bar {
+        border-color: var(--contact-map-green-border);
+        background: var(--contact-map-green-soft);
+      }
+
+      :where(.contacts-map-context:not(.overview-preview-mode)) .mobile-map-filter-bar__title {
+        color: var(--contact-map-green);
+      }
+    }
+
     /* Read-only map surface used by the Versorgungs-Kompass overview. */
     html.overview-preview-mode,
     body.overview-preview-mode {

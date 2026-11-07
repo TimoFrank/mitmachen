@@ -69,7 +69,7 @@ function orientationContacts() {
   ];
 }
 
-async function openMap(page) {
+async function openMap(page, channel = "contacts") {
   await page.route("https://**.basemaps.cartocdn.com/**", async (route) => {
     await route.fulfill({
       contentType: "image/png",
@@ -79,7 +79,7 @@ async function openMap(page) {
       )
     });
   });
-  await gotoAuthenticated(page, "/frontend/map/versorgungs-kompass-map.html?embed=1&channel=contacts");
+  await gotoAuthenticated(page, `/frontend/map/versorgungs-kompass-map.html?embed=1&channel=${channel}`);
   await expect(page.locator("#map")).toBeVisible();
 }
 
@@ -120,7 +120,7 @@ test("Karte: Standortmarker behalten auch bei identischen Adressen exakt ihre Qu
   await page.setViewportSize(isMobile ? { width: 390, height: 844 } : { width: 1440, height: 1000 });
   const browserErrors = [];
   page.on("pageerror", (error) => browserErrors.push(error.message));
-  await openMap(page);
+  await openMap(page, "stakeholders");
 
   const contacts = markerStressContacts();
   const expectedPositions = expectedPositionSnapshot(contacts);
@@ -187,11 +187,12 @@ test("Karte: Standortmarker behalten auch bei identischen Adressen exakt ihre Qu
   expect(browserErrors).toEqual([]);
 });
 
-test("Karte: Desktop zeigt dezente Bundesland-Orientierung und die tatsächliche Dichteskala", async ({ page }, testInfo) => {
+test("Karte: Bundeslandwahl filtert Kontakte und zeigt ihre Standortpins", async ({ page }, testInfo) => {
   const isMobile = testInfo.project.name.includes("mobile");
   await page.setViewportSize(isMobile ? { width: 390, height: 844 } : { width: 1440, height: 1000 });
   await openMap(page);
-  await sendMapContacts(page, orientationContacts());
+  const contacts = orientationContacts();
+  await sendMapContacts(page, contacts);
 
   await page.locator("#map").evaluate(() => {
     const leafletMap = globalThis.eval("map");
@@ -201,23 +202,64 @@ test("Karte: Desktop zeigt dezente Bundesland-Orientierung und die tatsächliche
   });
 
   const densityLegend = page.locator(".map-density-legend");
-  await expect(densityLegend).toContainText("Kontakte je Bundesland");
+  await expect(page.locator(".map-neighbor-country")).toHaveCount(9);
+  await expect(page.locator("#marker-toggle")).toHaveCount(0);
+  await expect(page.locator("#points-toggle")).toHaveAttribute("aria-pressed", "true");
+  await expect(page.locator(".gematik-marker")).toHaveCount(0);
+  await expect(page.locator(".cat-marker").first()).toBeVisible();
+  await expect(page.locator(".state-label")).toHaveCount(0);
+  const sectorFills = await page.locator("#map").evaluate(() => globalThis.eval(
+    "stateInteractionLayer.getLayers().map((layer) => layer.options.fillColor)"
+  ));
   await expect(densityLegend.locator(".map-distribution-legend"))
     .toHaveAttribute("aria-label", "Verteilung je Bundesland: 0 bis 5 Kontakte");
 
+  const clickBavaria = async () => {
+    const { x, y } = await page.locator("#map").evaluate((element) => {
+      const map = globalThis.eval("map");
+      const point = map.latLngToContainerPoint([49.15, 11.5]);
+      const box = element.getBoundingClientRect();
+      return { x: box.left + point.x, y: box.top + point.y };
+    });
+    await page.mouse.click(x, y);
+  };
+  await clickBavaria();
+  await expect(page.locator("#count")).toHaveText("8 / 8");
+
+  await page.locator("#heatmap-toggle").click();
+  await expect(page.locator(".gematik-marker, .cat-marker, .map-cluster-marker")).toHaveCount(0);
+  await expect(densityLegend).toContainText("Kontakte je Bundesland");
+  await expect(densityLegend.locator(".map-distribution-legend"))
+    .toHaveAttribute("aria-label", "Verteilung je Bundesland: 0 bis 5 Kontakte");
+  const densityFills = await page.locator("#map").evaluate(() => globalThis.eval(
+    "stateHeatLayer.getLayers().map((layer) => layer.options.fillColor)"
+  ));
+  expect(densityFills).toHaveLength(16);
+  expect(sectorFills).toEqual(densityFills);
+  expect(new Set(densityFills).size).toBeGreaterThan(1);
+  await clickBavaria();
+  await expect(page.locator("#count")).toHaveText("2 / 8");
+  await expect(page.getByRole("button", { name: "Bayern", exact: true })).toBeVisible();
+  const pins = page.locator("#map .gematik-marker");
+  await expect(pins).toHaveCount(2);
+  await expect(pins.locator('path[fill="#00ff65"]')).toHaveCount(2);
+  await expect(page.locator("#map .cat-marker, #map .map-cluster-marker")).toHaveCount(0);
+  expect(await markerPositionSnapshot(page)).toEqual(
+    expectedPositionSnapshot(contacts.filter((contact) => contact.state === "Bayern"))
+  );
+
+  await page.locator('#map .gematik-marker[data-map-marker-id="orientation-bayern-0"]').click();
+  const contactTitle = page.locator("#map-detail-title");
+  await expect(contactTitle).toHaveText("Bayern Kontakt 1");
+  await expect(contactTitle).toBeVisible();
+  await page.getByRole("button", { name: "Details schließen" }).click();
+
+  await clickBavaria();
+  await expect(page.locator("#count")).toHaveText("8 / 8");
+  await expect(pins).toHaveCount(0);
   if (isMobile) {
-    await expect(page.locator(".state-label")).toHaveCount(0);
     await expect(page.locator(".map-legend")).toBeHidden();
-    return;
+  } else {
+    await expect(densityLegend).toBeVisible();
   }
-
-  await expect(page.locator(".map-legend")).toBeVisible();
-  await expect(densityLegend).toBeVisible();
-  await expect(page.locator(".state-label")).toHaveCount(16);
-
-  await page.locator("#map").evaluate(() => {
-    globalThis.eval("map").setZoom(7, { animate: false });
-    globalThis.eval("updateLabelVisibility()");
-  });
-  await expect(page.locator(".state-label")).toHaveCount(0);
 });

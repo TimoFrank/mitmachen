@@ -130,7 +130,7 @@ test("Phase 4: #Mitmachen führt in vier Module und Pages über die gemeinsame S
   await expect(page).toHaveTitle("Startseite · #Mitmachen");
   await expect(page.locator(".app-sidebar")).toBeVisible();
   await expect(page.locator('[data-view-panel="home"]')).toBeVisible();
-  await expect(page.locator(".home-destination-link strong")).toHaveText([
+  await expect(page.locator(".home-destination-name")).toHaveText([
     "Versorgungs-Kompass",
     "Stakeholder-Kompass",
     "Hospitations-Kompass",
@@ -150,12 +150,11 @@ test("Phase 4: #Mitmachen führt in vier Module und Pages über die gemeinsame S
   await expect(page.locator('script[src*="auth-"]')).toHaveCount(0);
   const removedEntryResponse = await request.get("/dist/pages/mitmachen/index.html");
   expect(removedEntryResponse.status()).toBe(404);
-  await page.locator('.home-destination-link[href="#care"]').click();
-  await expect(page).toHaveURL(/#care$/);
-  await expect(page.locator('[data-view-panel="careOverview"]')).toBeVisible();
-  await page.getByRole("link", { name: /Regionale Verteilung.*Karte öffnen/ }).click();
+  await page.locator('.home-destination-link[data-home-module="care"]').click();
   await expect(page).toHaveURL(/#map$/);
-  await expect(page.frameLocator('iframe[title="Karte des Versorgungs-Kompass"]').locator("#count")).toHaveText(/[1-9]\d*\s*\/\s*[1-9]\d*/);
+  const careMap = page.frameLocator("#map-view-frame");
+  await expect(careMap.getByRole("button", { name: "Sektoren", exact: true })).toHaveAttribute("aria-pressed", "true");
+  await expect(careMap.locator("#count")).toHaveText(/[1-9]\d*\s*\/\s*[1-9]\d*/);
   if (await page.locator("#sidebar-profile-button").isHidden()) {
     await page.locator("#sidebar-collapse-button").click();
     await expect(page.locator(".app-shell")).toHaveClass(/is-mobile-sidebar-expanded/);
@@ -192,22 +191,14 @@ test("Phase 4: die vier Module bleiben ohne JavaScript vollständig lesbar", asy
   const page = await context.newPage();
   await page.goto(`${baseURL}/dist/pages/index.html`);
   await expect(page.getByRole("heading", { level: 1 })).toHaveAccessibleName("Willkommen.");
-  await expect(page.locator("[data-home-compass-name]")).toHaveText([
+  await expect(page.getByRole("navigation", { name: "Arbeitsbereiche" })).toBeInViewport();
+  await expect(page.locator(".home-destination-name")).toHaveText([
     "Versorgungs-Kompass",
     "Stakeholder-Kompass",
     "Hospitations-Kompass",
     "Format-Kompass"
   ]);
-  const moduleLink = page.getByRole("link", { name: "Bereiche ansehen" });
-  await expect(moduleLink).toHaveAttribute("href", "#home-destinations");
-  await expect(page.locator(".home-destinations strong")).toHaveText([
-    "Versorgungs-Kompass",
-    "Stakeholder-Kompass",
-    "Hospitations-Kompass",
-    "Format-Kompass"
-  ]);
-  await moduleLink.click();
-  await expect(page.locator("#home-destinations")).toBeInViewport();
+  await expect(page.getByRole("link", { name: "Versorgungs-Kompass", exact: true })).toBeInViewport();
   await expect(page.locator("#registration-form")).toHaveCount(0);
   await expectNoHorizontalOverflow(page);
   await context.close();

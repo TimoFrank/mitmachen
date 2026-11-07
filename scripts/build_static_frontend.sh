@@ -301,6 +301,7 @@ window.VERSORGUNGS_COMPASS_CONFIG = {
 EOF
 
   cp "$FRONTEND_DIR/map/data/de-geojson.js" "$STAGE_DIR/deutschlandkarte-project/data/de-geojson.js"
+  cp "$FRONTEND_DIR/map/data/europe-context.js" "$STAGE_DIR/deutschlandkarte-project/data/europe-context.js"
   cp "$FRONTEND_DIR/map/data/city-labels.js" "$STAGE_DIR/deutschlandkarte-project/data/city-labels.js"
   cp "$FRONTEND_DIR/map/data/state-labels.js" "$STAGE_DIR/deutschlandkarte-project/data/state-labels.js"
   cp "$FRONTEND_DIR/map/data/state-polygons.js" "$STAGE_DIR/deutschlandkarte-project/data/state-polygons.js"
@@ -756,6 +757,7 @@ build_target() {
   done
 
   cp "$FRONTEND_DIR/map/data/de-geojson.js" "$STAGE_DIR/deutschlandkarte-project/data/de-geojson.js"
+  cp "$FRONTEND_DIR/map/data/europe-context.js" "$STAGE_DIR/deutschlandkarte-project/data/europe-context.js"
   cp "$FRONTEND_DIR/map/data/city-labels.js" "$STAGE_DIR/deutschlandkarte-project/data/city-labels.js"
   cp "$FRONTEND_DIR/map/data/state-labels.js" "$STAGE_DIR/deutschlandkarte-project/data/state-labels.js"
   cp "$FRONTEND_DIR/map/data/state-polygons.js" "$STAGE_DIR/deutschlandkarte-project/data/state-polygons.js"
