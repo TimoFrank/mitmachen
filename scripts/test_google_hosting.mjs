@@ -70,8 +70,21 @@ assert.deepEqual(demoHosting.rewrites.slice(1), services.hosting.rewrites);
 assert.deepEqual(demoHosting.headers.slice(2), services.hosting.headers);
 assert.deepEqual(withDemoEntry(demoHosting), demoHosting);
 assert.throws(() => withDemoEntry({ rewrites: [{ glob: "/Demo", run: { serviceId: deployment.appService } }] }));
+const demoOrigin = "https://versorgungs-kompass-demo.web.app/";
+const previousDemoOrigin = "https://timofrank.github.io/mitmachen/";
 assert.ok(demoHosting.headers.slice(0, 2).every(rule =>
-  rule.headers["Content-Security-Policy"].includes("frame-src https://timofrank.github.io/mitmachen/")));
+  rule.headers["Content-Security-Policy"].includes(`frame-src ${demoOrigin}`)));
+const previousDemoHeaders = demoHosting.headers.slice(0, 2).map(rule => ({
+  ...rule,
+  headers: {
+    ...rule.headers,
+    "Content-Security-Policy": rule.headers["Content-Security-Policy"].replace(demoOrigin, previousDemoOrigin)
+  }
+}));
+assert.deepEqual(withDemoEntry({ ...demoHosting, headers: [...previousDemoHeaders, ...services.hosting.headers] }), demoHosting);
+assert.throws(() => withDemoEntry({
+  headers: [{ ...previousDemoHeaders[0], headers: { ...previousDemoHeaders[0].headers, "Referrer-Policy": "origin" } }]
+}), /bereits anders belegt/u);
 const testVersion = "sites/test-site/versions/test-version";
 const hostingApiBase = "https://firebasehosting.googleapis.com/v1beta1";
 const testUpload = `https://upload-firebasehosting.googleapis.com/upload/${testVersion}/files`;
@@ -87,7 +100,7 @@ await uploadDemoEntry(async (url, options) => {
   assert.equal(options.binary, true);
   assert.equal(url, `${testUpload}/${createHash("sha256").update(options.body).digest("hex")}`);
   const html = gunzipSync(options.body).toString("utf8");
-  assert.match(html, /<iframe[^>]+src="https:\/\/timofrank\.github\.io\/mitmachen\/"/u);
+  assert.match(html, /<iframe[^>]+src="https:\/\/versorgungs-kompass-demo\.web\.app\/"/u);
   assert.match(html, /sandbox="[^"]*allow-same-origin/u);
   assert.doesNotMatch(html, /allow-top-navigation|<style|<script\b/u);
   uploaded = true;
