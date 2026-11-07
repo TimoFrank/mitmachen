@@ -3,7 +3,7 @@
 </p>
 
 <p align="center">
-  <a href="https://timofrank.github.io/mitmachen/"><strong>Öffentliche Demo ansehen</strong></a>
+  <a href="https://versorgungs-kompass.de/Demo"><strong>Öffentliche Demo ansehen</strong></a>
   · <a href="dokumentation/betrieb-und-deployment/GITLAB_SOFTWARE_FACTORY_UEBERGABE.md"><strong>Software-Factory-Übergabe</strong></a>
   · <a href="dokumentation/betrieb-und-deployment/POC_GEMATIK_DURCHSTICH.md">gematik-PoC</a>
 </p>
