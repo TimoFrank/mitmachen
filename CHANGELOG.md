@@ -8,6 +8,8 @@ Kompakte Zusammenfassung der wichtigsten Funktionssprünge des Versorgungs-Kompa
 
 Der Versorgungs-Kompass wird klarer, verlässlicher und leichter nutzbar. Die neuen Verbesserungen unterstützen das Netzwerk dabei, Wissen zu teilen und gemeinsam ins Handeln zu kommen.
 
+- **Hotfix v0.27.1:** Vier direkte Kompasseinstiege, Sektoren als erste Kartenansicht und grüne Pins nach Bundeslandwahl
+
 ### Hotfix v0.26.1
 
 Die Nutzerverwaltung fordert ihre Konten auch bei der initialen Ansicht an. Rollen- und Zugriffsschutz bleiben erhalten.
