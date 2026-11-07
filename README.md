@@ -133,7 +133,7 @@ Der Quellcode und die technische Dokumentation stehen unter der [Apache License 
 
 ## Aktueller Release
 
-- Version: [v0.27.0](https://github.com/TimoFrank/mitmachen/releases/tag/v0.27.0)
-- Stand: 4. November 2026
-- Kurznotiz: Übersicht und Navigation für alle vier Kompasse
+- Version: [v0.27.1](https://github.com/TimoFrank/mitmachen/releases/tag/v0.27.1)
+- Stand: 7. November 2026
+- Kurznotiz: Vier direkte Kompasseinstiege, Sektoren als erste Kartenansicht und grüne Pins nach Bundeslandwahl
 - Demo-Kanal: [GitHub Pages](https://timofrank.github.io/mitmachen/)
