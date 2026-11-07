@@ -6,7 +6,8 @@ import { gzipSync } from "node:zlib";
 const demoEntryPath = "/demo-entry.html";
 export const demoAssetPaths = [demoEntryPath, "/demo-entry.css"];
 const demoRoute = "/Demo";
-const demoOrigin = "https://timofrank.github.io/mitmachen/";
+const demoOrigin = "https://versorgungs-kompass-demo.web.app/";
+const previousDemoOrigin = "https://timofrank.github.io/mitmachen/";
 const redirects = ["/Demo/", "/demo", "/demo/"].map(glob => ({ glob, location: demoRoute, statusCode: 302 }));
 const rewrite = { glob: demoRoute, path: demoEntryPath };
 const assets = demoAssetPaths.map(path => {
@@ -14,19 +15,23 @@ const assets = demoAssetPaths.map(path => {
   const hash = createHash("sha256").update(content).digest("hex");
   return { path, content, hash };
 });
-const demoHeaders = [demoRoute, demoEntryPath].map(glob => ({
-  glob,
-  headers: {
-    "Content-Security-Policy": `default-src 'none'; style-src 'self'; frame-src ${demoOrigin}; base-uri 'none'; form-action 'none'; frame-ancestors 'none'`,
-    "Referrer-Policy": "no-referrer",
-    "X-Frame-Options": "DENY"
-  }
-}));
+function demoHeaders(origin) {
+  return [demoRoute, demoEntryPath].map(glob => ({
+    glob,
+    headers: {
+      "Content-Security-Policy": `default-src 'none'; style-src 'self'; frame-src ${origin}; base-uri 'none'; form-action 'none'; frame-ancestors 'none'`,
+      "Referrer-Policy": "no-referrer",
+      "X-Frame-Options": "DENY"
+    }
+  }));
+}
 
-function addRules(current = [], rules) {
+function addRules(current = [], rules, previousRules = []) {
   const additions = new Map(rules.map(rule => [rule.glob, rule]));
+  const previous = new Map(previousRules.map(rule => [rule.glob, rule]));
   for (const rule of current) {
-    if (additions.has(rule.glob) && !isDeepStrictEqual(rule, additions.get(rule.glob))) {
+    if (additions.has(rule.glob) && !isDeepStrictEqual(rule, additions.get(rule.glob))
+      && !isDeepStrictEqual(rule, previous.get(rule.glob))) {
       throw new Error(`Hosting-Regel für ${rule.glob} ist bereits anders belegt.`);
     }
   }
@@ -38,7 +43,7 @@ export function withDemoEntry(config) {
     ...config,
     redirects: addRules(config.redirects, redirects),
     rewrites: addRules(config.rewrites, [rewrite]),
-    headers: addRules(config.headers, demoHeaders)
+    headers: addRules(config.headers, demoHeaders(demoOrigin), demoHeaders(previousDemoOrigin))
   };
 }
 

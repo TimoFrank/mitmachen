@@ -30,6 +30,7 @@ daher gleiche Quelle, nicht baugleiche Artefakte.
 | Kanal | Profil | Identität und Daten | Build und Freigabe |
 | --- | --- | --- | --- |
 | Pages-Demo | `pages-demo` | öffentlich, anonym, synthetische Daten und freigegebenes öffentliches Verzeichnis | GitHub Actions baut `dist/pages/` und veröffentlicht über `github-pages` |
+| Direkte Demo unter `/Demo` | öffentlicher Pages-Build | öffentlich, anonym, synthetische Daten und freigegebenes öffentliches Verzeichnis | eigener Firebase Hosting Kanal für den aktuellen `main`-Commit mit grünen Pflichtchecks. [Betrieb](GOOGLE_BETRIEB.md#öffentlicher-einstieg-unter-demo) |
 | privates GKE | `pre-gematik` | IAP, persönliche GCP-Infrastruktur, getrennt freigegebener Datenstand | eigener GKE-Build, manuelle Freigabe über `pre-gematik` |
 | gematik-Zielpfad | `target` | OIDC, Zielplattformwerte und getrennt übernommener Datenstand | Die Software Factory baut Target-Frontend und API frisch aus dem signierten Produkt-Tag der führenden Quelle: GitHub bis Cutover, danach GitLab |
 

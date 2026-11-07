@@ -127,6 +127,7 @@
     "test:legacy-backend-decommission": "node scripts/test_legacy_backend_decommission.mjs",
     "deploy:preflight": "node scripts/preflight_target_deployment.mjs",
     "verify:publication": "node scripts/verify_publication_state.mjs",
+    "publish:demo": "node deploy/google-hosting/publish-demo.mjs",
     "security:api-gateway": "node scripts/audit_api_gateway.mjs",
     "security:audit": "npm audit --audit-level=high && node scripts/test_security_contracts.mjs",
     "security:contracts": "node scripts/test_security_contracts.mjs",

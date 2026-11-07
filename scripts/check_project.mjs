@@ -32,6 +32,8 @@ const syntaxFiles = [
   "frontend/login/auth-guard.js",
   "scripts/audit_api_gateway.mjs",
   "scripts/audit_public_assets.mjs",
+  "deploy/google-hosting/check-demo-source.mjs",
+  "deploy/google-hosting/publish-demo.mjs",
   "scripts/audit_target_assets.mjs",
   "scripts/audit_stakeholder_fields.mjs",
   "scripts/build_browser_vendor.mjs",

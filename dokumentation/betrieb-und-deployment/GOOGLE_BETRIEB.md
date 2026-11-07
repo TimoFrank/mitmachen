@@ -196,10 +196,25 @@ auf Firebase Hosting zu prüfen.
 
 ## Öffentlicher Einstieg unter /Demo
 
-Der Einstieg bindet das separat veröffentlichte GitHub Pages Artefakt ein.
-Eine eigene Inhaltsrichtlinie begrenzt den Frame auf GitHub Pages. Die
-geschützten Cloud Run Routen und die Passwortweiterleitung bleiben bestehen.
-Ein regulärer Aufruf von `publish-hosting.mjs` liefert den Einstieg mit aus.
+Der Einstieg bindet die statische Site `versorgungs-kompass-demo.web.app` ein.
+Die Demo verwendet den öffentlichen Build mit Beispieldaten. Ihre Site hat
+keine Cloud Run Weiterleitungen. Ein regulärer Aufruf von
+`publish-hosting.mjs` liefert den Einstieg mit aus.
+
+Für ein Demo-Update aus einem sauberen Checkout des aktuellen `origin/main`:
+
+```bash
+npm run publish:demo -- --apply
+```
+
+Der Befehl verwendet die vorhandenen Anmeldungen bei GitHub CLI und Google
+Cloud CLI. Er prüft beide Pflichtchecks am exakten Commit, baut und prüft die
+öffentlichen Dateien, lädt sie in die Demo-Site und gleicht die live
+ausgelieferten Dateien ab. `--plan` baut und prüft vorab, ohne Hosting zu ändern.
+Der erste Aufruf mit `--apply` kann die festgelegte Demo-Site anlegen.
+Produktversion und GitHub Pages laufen nach dem separaten Produktrelease-Prozess.
+Bei einem Fehler kann die in der Ausgabe genannte vorherige Version der
+Demo-Site über die Hosting-Konsole erneut aktiviert werden.
 
 Für eine Änderung ausschließlich am Einstieg gelten die Vollprüfung und die
 Integration per Pull Request. Danach aus einem sauberen Checkout des aktuellen
@@ -213,7 +228,7 @@ Die Versions-ID stammt aus dem aktiven Firebase Hosting Release. Den geprüften
 Aufruf mit `--apply` wiederholen. Er vergleicht die neue Hostingversion mit dem
 Plan und bricht bei Änderungen an der aktiven Version oder einem abweichenden
 Dateibestand ab. Cloud Run, Datenbank, Identität und DNS brauchen dafür keinen
-Rollout. Anschließend `/Demo` im Browser, die Erreichbarkeit von GitHub Pages,
+Rollout. Anschließend `/Demo` im Browser, die Erreichbarkeit der Demo-Site,
 `/readyz` sowie die anonyme Zugriffssperre der Anwendung und der API prüfen.
 Bei einem Fehler in Firebase Hosting die zuvor aktive Version erneut freigeben.
 
