@@ -260,6 +260,7 @@ const requiredFiles = new Set([
   "state-flags/saarland.svg",
   "state-flags/sachsen-anhalt.svg",
   "deutschlandkarte-project/data/de-geojson.js",
+  "deutschlandkarte-project/data/europe-context.js",
   "deutschlandkarte-project/data/city-labels.js",
   "deutschlandkarte-project/data/state-labels.js",
   "deutschlandkarte-project/data/state-polygons.js",
@@ -663,8 +664,10 @@ if (existsSync(appHtmlPath)) {
   assert(!/(?:auth-config|auth-guard|auth-login)\.js/i.test(appHtml), `${artifactLabel}/versorgungs-kompass.html referenziert Authentisierungscode`);
   assert(!/Willkommen,\s*Timo/i.test(appHtml), `${artifactLabel}/versorgungs-kompass.html enthaelt eine personenbezogene Begruessung`);
   assert(!/data-target-session|id=["']profile-logout["']|IAP-Anmeldung|Angemeldete Sitzung/i.test(appHtml), `${artifactLabel}/versorgungs-kompass.html enthaelt eine irrefuehrende Target-Sitzung`);
+  const homeNavigation = appHtml.match(/<nav\b[^>]*\bid="home-destinations"[^>]*>([\s\S]*?)<\/nav>/i)?.[1] || "";
+  const homeBrands = Array.from(homeNavigation.matchAll(/<(h3|strong)\b[^>]*>([^<]+)<\/\1>/g), match => match[2].trim());
   for (const brand of ["Versorgungs-Kompass", "Stakeholder-Kompass", "Hospitations-Kompass", "Format-Kompass"]) {
-    assert(appHtml.includes(`<strong>${brand}</strong>`), `${artifactLabel}/versorgungs-kompass.html enthaelt die Marke ${brand} nicht auf der Startseite`);
+    assert(homeBrands.includes(brand), `${artifactLabel}/versorgungs-kompass.html enthaelt die Marke ${brand} nicht auf der Startseite`);
   }
   for (const mark of [
     "public/brand/versorgungs-kompass/mark.svg",
@@ -693,8 +696,7 @@ if (existsSync(pagesRootPath) && existsSync(appHtmlPath)) {
   assert(/data-view-panel=["']home["']/.test(pagesRootHtml), `${artifactLabel}/index.html enthaelt nicht die Startseite`);
   assert(
     /<noscript>[\s\S]*href=["']\.\/versorgungs-kompass-no-script\.css["'][^>]*data-no-script-home[^>]*>[\s\S]*<\/noscript>/i.test(pagesRootHtml)
-      && /\.view-panel\[data-view-panel=["']home["']\]\s*\{[\s\S]*display:\s*block\s*!important/i.test(noScriptCss)
-      && /button\[data-home-scroll-cue\]\s*\{[\s\S]*display:\s*none/i.test(noScriptCss),
+      && /\.view-panel\[data-view-panel=["']home["']\]\s*\{[\s\S]*display:\s*block\s*!important/i.test(noScriptCss),
     `${artifactLabel}/index.html muss die Startseite auch ohne JavaScript sichtbar halten`
   );
   assert(

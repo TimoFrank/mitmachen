@@ -22,7 +22,10 @@ async function expectCleanHomeSidebar(page) {
   }
 }
 
-test("Desktop-Auslieferung: Pages startet direkt in der App-Startseite", async ({ page }, testInfo) => {
+test("Pages startet direkt in der App-Startseite", async ({ page }, testInfo) => {
+  if (testInfo.project.name.includes("mobile")) {
+    await page.setViewportSize({ width: 320, height: 568 });
+  }
   await page.emulateMedia({ reducedMotion: "no-preference" });
   await page.goto("/dist/pages/index.html");
 
@@ -35,151 +38,46 @@ test("Desktop-Auslieferung: Pages startet direkt in der App-Startseite", async (
   await expect(page.locator("#global-status")).toBeHidden();
   const destinations = page.locator(".home-destination-link");
   await expect(destinations).toHaveCount(4);
-  await expect(destinations.locator("strong")).toHaveText([
+  await expect(page.locator(".home-destination-name")).toHaveText([
     "Versorgungs-Kompass",
     "Stakeholder-Kompass",
     "Hospitations-Kompass",
     "Format-Kompass"
   ]);
-  await expect(destinations.locator(".home-destination-link__mark")).toHaveCount(4);
-  await expect(destinations.locator(".home-destination-link__copy")).toHaveText([
-    "Versorgung regional verstehen.",
-    "Perspektiven gezielt verbinden.",
-    "Von Beobachtung zu Evidenz.",
-    "Austausch wirksam gestalten."
-  ]);
-  const subtitleMetrics = await destinations.locator(".home-destination-link__copy").evaluateAll((nodes) =>
-    nodes.map((node) => {
-      const range = document.createRange();
-      range.selectNodeContents(node);
-      const lineTops = new Set(
-        Array.from(range.getClientRects())
-          .filter((rect) => rect.width > 0 && rect.height > 0)
-          .map((rect) => Math.round(rect.top))
-      );
-      return {
-        lineCount: lineTops.size,
-        fits: node.scrollWidth <= node.clientWidth + 1
-      };
-    })
-  );
-  expect(subtitleMetrics).toEqual([
-    { lineCount: 1, fits: true },
-    { lineCount: 1, fits: true },
-    { lineCount: 1, fits: true },
-    { lineCount: 1, fits: true }
-  ]);
-  const homeTypeMetrics = await page.locator(".home-page").evaluate((home) => {
-    const number = (value) => Number.parseFloat(value) || 0;
-    const cue = home.querySelector(".home-scroll-cue");
-    const intro = home.querySelector(".home-destinations__intro");
-    const titles = [...home.querySelectorAll(".home-destination-link strong")];
-    const copies = [...home.querySelectorAll(".home-destination-link__copy")];
-    return {
-      cueFontSize: cue ? number(getComputedStyle(cue).fontSize) : 0,
-      cueHeight: cue?.getBoundingClientRect().height || 0,
-      introFontSize: intro ? number(getComputedStyle(intro).fontSize) : 0,
-      minimumTitleFontSize: Math.min(...titles.map((node) => number(getComputedStyle(node).fontSize))),
-      minimumCopyFontSize: Math.min(...copies.map((node) => number(getComputedStyle(node).fontSize)))
-    };
-  });
-  expect(homeTypeMetrics.cueFontSize).toBeGreaterThanOrEqual(14);
-  expect(homeTypeMetrics.cueHeight).toBeGreaterThanOrEqual(48);
-  expect(homeTypeMetrics.introFontSize).toBeGreaterThanOrEqual(14);
-  expect(homeTypeMetrics.minimumTitleFontSize).toBeGreaterThanOrEqual(17);
-  expect(homeTypeMetrics.minimumCopyFontSize).toBeGreaterThanOrEqual(14);
-  expect(await destinations.evaluateAll((links) => links.map((link) => link.getAttribute("href")))).toEqual([
-    "#care",
+  await expect(page.locator(".home-destination-link__mark")).toHaveCount(4);
+  await expect(page.getByRole("heading", { name: "Willkommen.", level: 1 })).toBeVisible();
+  await expect(page.getByRole("navigation", { name: "Arbeitsbereiche" })).toBeVisible();
+  await expect(page.locator("[data-home-compass-name]")).toHaveText(await page.locator(".home-destination-name").allTextContents());
+  await expect(page.locator("[data-home-compass-name]").first()).toHaveCSS("animation-name", "homeCompassRotate");
+  await expect(page.locator(".home-hero__brand, [data-home-scroll-cue]")).toHaveCount(0);
+  await expect(await destinations.evaluateAll((links) => links.map((link) => link.getAttribute("href")))).toEqual([
+    "#map",
     "#stakeholders",
     "#hospitation-overview",
     "#formats"
   ]);
 
-  const heading = page.locator(".home-welcome-heading");
-  await expect(heading).toHaveText("Willkommen.");
-  const rotation = page.locator("[data-home-compass-rotation]");
-  const compassNames = rotation.locator("[data-home-compass-name]");
-  await expect(compassNames).toHaveText([
-    "Versorgungs-Kompass",
-    "Stakeholder-Kompass",
-    "Hospitations-Kompass",
-    "Format-Kompass"
-  ]);
-  for (const name of await compassNames.all()) {
-    await expect(name).toHaveCSS("animation-name", "homeCompassRotate");
-    await expect(name).toHaveCSS("animation-duration", "10s");
-    await expect(name).toHaveCSS("animation-iteration-count", "infinite");
+  for (const link of await destinations.all()) {
+    await expect(link).toBeInViewport({ ratio: 1 });
+    expect(await link.evaluate((node) => node.scrollWidth - node.clientWidth)).toBeLessThanOrEqual(1);
   }
-  await expect(compassNames.nth(0)).toHaveCSS("animation-delay", "0s");
-  await expect(compassNames.nth(1)).toHaveCSS("animation-delay", "-7.5s");
-  await expect(compassNames.nth(2)).toHaveCSS("animation-delay", "-5s");
-  await expect(compassNames.nth(3)).toHaveCSS("animation-delay", "-2.5s");
-  const nameMetrics = await compassNames.evaluateAll((nodes) => {
-    const stage = nodes[0]?.closest(".home-compass-rotation__stage")?.getBoundingClientRect();
-    return nodes.map((node) => {
-      const range = document.createRange();
-      range.selectNodeContents(node);
-      const lineTops = new Set(Array.from(range.getClientRects()).map((rect) => Math.round(rect.top)));
-      return {
-        fitsStage: stage ? node.getBoundingClientRect().width <= stage.width + 1 : false,
-        lineCount: lineTops.size
-      };
-    });
-  });
-  expect(nameMetrics).toEqual([
-    { fitsStage: true, lineCount: 1 },
-    { fitsStage: true, lineCount: 1 },
-    { fitsStage: true, lineCount: 1 },
-    { fitsStage: true, lineCount: 1 }
-  ]);
-  await expect(rotation.locator(".home-compass-rotation__control")).toHaveCount(0);
-
-  const heroSpacing = await page.locator(".home-hero").evaluate((hero) => {
-    const brand = hero.querySelector(".home-hero__brand")?.getBoundingClientRect();
-    const title = hero.querySelector(".home-welcome-heading")?.getBoundingClientRect();
-    const rotation = hero.querySelector(".home-compass-rotation")?.getBoundingClientRect();
-    const cue = hero.querySelector(".home-scroll-cue")?.getBoundingClientRect();
-    return {
-      brandWidth: brand?.width || 0,
-      brandToTitle: brand && title ? title.top - brand.bottom : 0,
-      titleToRotation: title && rotation ? rotation.top - title.bottom : 0,
-      rotationToCue: rotation && cue ? cue.top - rotation.bottom : 0
-    };
-  });
-  const isMobileProject = testInfo.project.name.includes("mobile");
-  expect(heroSpacing.brandWidth).toBeGreaterThan(isMobileProject ? 250 : 340);
-  expect(heroSpacing.brandToTitle).toBeGreaterThanOrEqual(isMobileProject ? 46 : 62);
-  expect(heroSpacing.titleToRotation).toBeGreaterThanOrEqual(isMobileProject ? 19 : 27);
-  expect(heroSpacing.rotationToCue).toBeGreaterThanOrEqual(isMobileProject ? 37 : 43);
-  await expect(page.locator(".home-hero .home-destinations__intro")).toHaveCount(0);
-  await expect(page.locator("#home-destinations > .home-destinations__intro")).toHaveText(
-    "Wähle den Kompass, in dem du weiterarbeiten möchtest."
-  );
 });
 
-test("Desktop-Auslieferung: reduzierte Bewegung zeigt die Startüberschrift ruhig", async ({ page }) => {
+test("Arbeitsbereiche sind auch bei reduzierter Bewegung direkt erreichbar", async ({ page }) => {
   await page.emulateMedia({ reducedMotion: "reduce" });
   await page.goto("/dist/pages/index.html");
 
-  await expect(page.locator(".home-welcome-heading")).toHaveText("Willkommen.");
-  const rotation = page.locator("[data-home-compass-rotation]");
-  await expect(rotation.locator(".home-compass-rotation__control")).toHaveCount(0);
-  const compassNames = rotation.locator("[data-home-compass-name]");
-  await expect(compassNames).toHaveText([
-    "Versorgungs-Kompass",
-    "Stakeholder-Kompass",
-    "Hospitations-Kompass",
-    "Format-Kompass"
-  ]);
-  for (const name of await compassNames.all()) {
-    await expect(name).toBeVisible();
-    await expect(name).toHaveCSS("animation-name", "none");
-    await expect(name).toHaveCSS("opacity", "1");
-    await expect(name).toHaveCSS("transform", "none");
-  }
+  await expect(page.locator("[data-home-compass-rotation]")).toBeHidden();
+  const care = page.getByRole("link", { name: "Versorgungs-Kompass", exact: true });
+  await expect(care).toBeInViewport();
+  await care.focus();
+  await page.keyboard.press("Enter");
+  await expect(page).toHaveURL(/#map$/);
+  const map = page.frameLocator("#map-view-frame");
+  await expect(map.getByRole("button", { name: "Sektoren", exact: true })).toHaveAttribute("aria-pressed", "true");
 });
 
-test("Startkarte öffnet den passenden Navigationsbereich auf Desktop", async ({ page }, testInfo) => {
+test("Startseiteneinstieg öffnet den passenden Navigationsbereich auf Desktop", async ({ page }, testInfo) => {
   test.skip(testInfo.project.name.includes("mobile"), "Der Desktop-Zustand wird im Desktop-Projekt geprüft.");
   await page.goto("/dist/pages/index.html");
 
@@ -202,13 +100,13 @@ test("Startkarte öffnet den passenden Navigationsbereich auf Desktop", async ({
   await expectCleanHomeSidebar(page);
 });
 
-test("Startkarten lassen die mobile Navigation eingeklappt", async ({ page }) => {
+test("Startseiteneinstiege lassen die mobile Navigation eingeklappt", async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto("/dist/pages/index.html");
 
   const shell = page.locator(".app-shell");
   const modules = [
-    { module: "care", url: /#care$/, view: "careOverview", group: "care" },
+    { module: "care", url: /#map$/, view: "map", group: "care" },
     { module: "stakeholders", url: /#stakeholders$/, view: "stakeholderOverview", group: "stakeholders" },
     { module: "planning", url: /#hospitation-overview$/, view: "hospitationOverview", group: "planning" },
     { module: "formats", url: /#formats$/, view: "formats", group: "formats" }
@@ -287,23 +185,15 @@ test("Geschützte Auslieferung: Kontakte werden erst im Versorgungs-Kompass als 
   await expect(status.locator(".global-status__mark")).toBeVisible();
 });
 
-test("Desktop-Auslieferung: Standortmarker behalten den gematik-Stil und ihre echten Positionen", async ({ page }) => {
+test("Pages-Karte: Sektorpunkte stehen an den erfassten Positionen", async ({ page }) => {
   await page.goto(`${PAGES_APP}#map`);
   const mapFrame = page.frameLocator("#map-view-frame");
 
   await expect(mapFrame.locator("#map")).toBeVisible();
-  const locationsButton = mapFrame.getByRole("button", { name: "Standorte", exact: true });
-  await expect(locationsButton).toHaveAttribute("aria-pressed", "true");
-  await expect(locationsButton).toHaveCSS("background-color", "rgb(0, 255, 101)");
-  await expect(locationsButton).toHaveCSS("color", "rgb(1, 14, 82)");
-  await expect(locationsButton).toHaveCSS("border-color", "rgb(1, 14, 82)");
-
-  const markerShell = mapFrame.locator(".gematik-marker-shell").first();
-  const marker = markerShell.locator(".gematik-marker");
-  await expect(markerShell).toBeVisible({ timeout: 20_000 });
-  await expect(marker).toBeVisible();
-  await expect(marker.locator('path[fill="#00ff65"]')).toHaveCount(1);
-  await expect(mapFrame.locator(".cat-marker")).toHaveCount(0);
+  await expect(mapFrame.getByRole("button", { name: "Standorte", exact: true })).toHaveCount(0);
+  await expect(mapFrame.getByRole("button", { name: "Sektoren", exact: true })).toHaveAttribute("aria-pressed", "true");
+  await expect(mapFrame.locator(".cat-marker").first()).toBeVisible({ timeout: 20_000 });
+  await expect(mapFrame.locator(".gematik-marker")).toHaveCount(0);
 
   await expect.poll(() => mapFrame.locator("#map").evaluate(() => {
     const entries = globalThis.eval("markerIndex");

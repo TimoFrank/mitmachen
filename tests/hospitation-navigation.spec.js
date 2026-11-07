@@ -74,7 +74,7 @@ test("Pages: #Mitmachen öffnet den Hospitationskompass mit eigener Sidebar", as
 });
 
 for (const [group, destination, tab] of [
-  ["care", "careOverview", "contacts"],
+  ["care", "map", "careOverview"],
   ["stakeholders", "stakeholderOverview", "patients"],
   ["formats", "formats", null]
 ]) {

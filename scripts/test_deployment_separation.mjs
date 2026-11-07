@@ -171,7 +171,6 @@ try {
   assert.match(pagesRootHtml, /data-view-panel="home"/);
   assert.match(pagesRootHtml, /<noscript>[\s\S]*href="\.\/versorgungs-kompass-no-script\.css"[^>]*data-no-script-home[^>]*>[\s\S]*<\/noscript>/i);
   assert.match(pagesNoScriptCss, /\.view-panel\[data-view-panel="home"\]\s*\{[\s\S]*display:\s*block\s*!important/i);
-  assert.match(pagesNoScriptCss, /button\[data-home-scroll-cue\]\s*\{[\s\S]*display:\s*none/i);
   assert.match(pagesRootHtml, /<meta\s+name="robots"\s+content="noindex,\s*nofollow"\s*\/?>/i);
   assert.match(pagesRootHtml, /<link rel="canonical" href="https:\/\/timofrank\.github\.io\/mitmachen\/" \/>/);
   assert.match(pagesRootHtml, /<meta property="og:title" content="#Mitmachen" \/>/);
@@ -200,7 +199,7 @@ try {
   assert.equal(pagesManifest.name, "#Mitmachen");
   for (const brand of ["Versorgungs-Kompass", "Stakeholder-Kompass", "Hospitations-Kompass", "Format-Kompass"]) {
     assert.match(pagesManifest.description, new RegExp(brand));
-    assert.match(pagesRootHtml, new RegExp(`<strong>${brand}</strong>`));
+    assert.match(pagesRootHtml, new RegExp(`<(h3|strong)\\b[^>]*class="home-destination-name"[^>]*>${brand}</\\1>`));
   }
   for (const mark of [
     "public/brand/versorgungs-kompass/mark.svg",

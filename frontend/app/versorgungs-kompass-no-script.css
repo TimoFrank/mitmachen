@@ -30,10 +30,6 @@
   display: block !important;
 }
 
-.app-shell.is-initializing button[data-home-scroll-cue] {
-  display: none;
-}
-
 .app-shell.is-initializing .app-initial-skeleton {
   display: none !important;
 }
