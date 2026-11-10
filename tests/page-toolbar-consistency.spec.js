@@ -6,7 +6,7 @@ const appPath = (route) => `/frontend/app/versorgungs-kompass.html#${route}`;
 const searchableRoutes = [
   { route: "contacts", title: "Kontakte", primary: "#new-contact-button" },
   { route: "organizations", title: "Organisationen", primary: "#new-organization-button" },
-  { route: "map", title: "Karte" },
+  { route: "map", title: "Übersicht" },
   { route: "activities", title: "Aktivitäten" },
   { route: "patients", title: "Patienten", primary: "#new-patient-contact-button", patientMode: "people" },
   { route: "politics", title: "Politik" },
@@ -227,7 +227,7 @@ test("Organisationen, Expertenkreis und Patienten integrieren den Filter in ihre
   }
 });
 
-test("Experten-, Patienten- und Auswertungsmodi erscheinen als kompakte Switcher im Inhaltsbereich", async ({ page }, testInfo) => {
+test("Experten- und Patientenmodi erscheinen als kompakte Switcher im Inhaltsbereich", async ({ page }, testInfo) => {
   await gotoAuthenticated(page, appPath("experts"), { role: "admin" });
 
   const assertCompactSwitcher = async ({ toolbar, switcher, count }) => {
@@ -287,22 +287,28 @@ test("Experten-, Patienten- und Auswertungsmodi erscheinen als kompakte Switcher
     expect(tabsStayInsideSwitcher).toBe(true);
   }
 
-  await page.goto(appPath("analytics"), { waitUntil: "load" });
-  await assertCompactSwitcher({
-    toolbar: "#analytics-view-mode-toolbar",
-    switcher: "#analytics-mode-actions",
-    count: 0
-  });
-  await expect(page.locator('[data-analytics-mode="analytics"]')).toHaveAttribute("aria-selected", "true");
+});
 
-  await page.locator('[data-analytics-mode="quality"]').click();
+test("Auswertungsmodi behalten Position und Tastaturfokus beim Wechsel", async ({ page }) => {
+  await gotoAuthenticated(page, appPath("analytics"), { role: "admin" });
+  const analyticsTab = page.locator('[data-analytics-mode="analytics"]');
+  const qualityTab = page.locator('[data-analytics-mode="quality"]');
+  const switcher = page.locator("#analytics-view-mode-toolbar > #analytics-mode-actions");
+  await expect(analyticsTab).toHaveAttribute("aria-selected", "true");
+  await expect(switcher).toBeVisible();
+  const initialPosition = await switcher.boundingBox();
+  await qualityTab.click();
   await expect(page).toHaveURL(/#quality$/);
-  await assertCompactSwitcher({
-    toolbar: "#quality-view-mode-toolbar",
-    switcher: "#analytics-mode-actions",
-    count: 0
-  });
-  await expect(page.locator('[data-analytics-mode="quality"]')).toHaveAttribute("aria-selected", "true");
+  await expect(switcher).toBeVisible();
+  await expect(qualityTab).toHaveAttribute("aria-selected", "true");
+  await expect(qualityTab).toBeFocused();
+  const qualityPosition = await switcher.boundingBox();
+  expect(qualityPosition.x).toBeCloseTo(initialPosition.x, 0);
+  expect(qualityPosition.y).toBeCloseTo(initialPosition.y, 0);
+
+  await qualityTab.press("ArrowLeft");
+  await expect(page).toHaveURL(/#analytics$/);
+  await expect(analyticsTab).toBeFocused();
 });
 
 test("Hospitationen bündeln Ergebniszahl, Export und Ansicht in einer Tabellenzeile", async ({ page }) => {

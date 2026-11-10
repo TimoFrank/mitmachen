@@ -59,7 +59,6 @@
         fallbackColor: "#64748b"
       };
       const defaultCategories = sectorRegistry.labels();
-      const coverageCategories = sectorRegistry.labels({ coverageOnly: true });
       const organizationLogoLimit = 100;
       const categoryEmoji = {
         Praxis: "PR",
@@ -92,12 +91,6 @@
         "ÖGD": "role-badge role--institution"
       };
       const categoryChartColors = Object.fromEntries(defaultCategories.map((category) => [category, sectorRegistry.colorFor(category)]));
-      const priorityChartColors = {
-        Hoch: "#e43d30",
-        Mittel: "#ff9f1c",
-        Niedrig: "#39a866",
-        Unbekannt: "#9aa6b8"
-      };
       const priorityEmoji = {
         Hoch: "H",
         Mittel: "M",
@@ -1331,25 +1324,6 @@
       const updatedFilterMeta = document.getElementById("updated-filter-meta");
       const sourceFilterMeta = document.getElementById("source-filter-meta");
       const mapViewFrame = document.getElementById("map-view-frame");
-      const careOverviewMapFrame = document.getElementById("care-overview-map-frame");
-      const careOverviewContactCount = document.getElementById("care-overview-contact-count");
-      const careOverviewContactCountValue = document.getElementById("care-overview-contact-count-value");
-      const careOverviewContactCountLabel = document.getElementById("care-overview-contact-count-label");
-      const careOverviewOrganizationCount = document.getElementById("care-overview-organization-count");
-      const careOverviewOrganizationCountValue = document.getElementById("care-overview-organization-count-value");
-      const careOverviewOrganizationCountLabel = document.getElementById("care-overview-organization-count-label");
-      const careOverviewSectorCount = document.getElementById("care-overview-sector-count");
-      const careOverviewSectorCountValue = document.getElementById("care-overview-sector-count-value");
-      const careOverviewSectorCountLabel = document.getElementById("care-overview-sector-count-label");
-      const careOverviewActivityCount = document.getElementById("care-overview-activity-count");
-      const careOverviewActivityCountValue = document.getElementById("care-overview-activity-count-value");
-      const careOverviewActivityCountLabel = document.getElementById("care-overview-activity-count-label");
-      const careOverviewLayout = document.querySelector(".care-overview-layout");
-      const careOverviewMapSection = careOverviewLayout?.querySelector(".care-overview-map");
-      const careOverviewMobileOrderQuery = window.matchMedia("(max-width: 600px)");
-      const careOverviewMapCounter = document.getElementById("care-overview-map-counter");
-      const careOverviewMapCount = document.getElementById("care-overview-map-count");
-      const careOverviewMapCountLabel = document.getElementById("care-overview-map-count-label");
       const MAP_MESSAGE_VERSION = 1;
       const MAP_MESSAGE_CHANNELS = new Set(["contacts", "stakeholders", "politics"]);
       const appShell = document.querySelector(".app-shell");
@@ -1407,6 +1381,7 @@
       const stakeholderOrganizationSubnav = document.querySelector('[data-sidebar-subnav="stakeholder-organizations"]');
       const stakeholderOrganizationSubnavToggle = stakeholderOrganizationSubnav?.querySelector(".sidebar-subnav__toggle");
       const homeScroller = document.querySelector("[data-home-scroller]");
+      const homeCompassRotation = homeScroller?.querySelector("[data-home-compass-rotation]");
       const homeDestinations = document.getElementById("home-destinations");
       const topbarViewTitle = document.getElementById("topbar-view-title");
       const topbarViewMeta = document.getElementById("topbar-view-meta");
@@ -1435,8 +1410,6 @@
       const sidebarUserRole = document.getElementById("sidebar-user-role");
       const sidebarAnalyticsButton = document.getElementById("sidebar-analytics-button");
       const sidebarActivitiesButton = document.getElementById("sidebar-activities-button");
-      const careOverviewAnalyticsLink = document.getElementById("care-overview-analytics-link");
-      const careOverviewActivitiesLink = document.getElementById("care-overview-activities-link");
       const sidebarNotificationsButton = document.getElementById("sidebar-notifications-button");
       const sidebarUserAdminButton = document.getElementById("sidebar-user-admin-button");
       const sidebarTeamButton = document.getElementById("sidebar-team-button");
@@ -1493,7 +1466,7 @@
       const pressTableToolbar = document.getElementById("press-table-toolbar");
       const formatsTableToolbar = document.getElementById("formats-table-toolbar");
       const analyticsViewModeToolbar = document.getElementById("analytics-view-mode-toolbar");
-      const qualityViewModeToolbar = document.getElementById("quality-view-mode-toolbar");
+      const analyticsIntros = [...document.querySelectorAll("[data-analytics-intro]")];
       const stakeholderModeActions = document.getElementById("stakeholder-mode-actions");
       const stakeholderHeaderSearch = document.getElementById("stakeholder-header-search");
       const stakeholderCommandActions = document.getElementById("stakeholder-command-actions");
@@ -1508,16 +1481,17 @@
       const newPatientOrganizationButton = document.getElementById("new-patient-organization-button");
       const expertDuplicatesButton = document.getElementById("expert-duplicates-button");
       const categoryChart = document.getElementById("category-chart");
+      const careKpiContacts = document.getElementById("care-kpi-contacts");
+      const careKpiSectors = document.getElementById("care-kpi-sectors");
       const stateChart = document.getElementById("state-chart");
-      const priorityChart = document.getElementById("priority-chart");
       const coverageMap = document.getElementById("coverage-map");
-      const gapAnalysis = document.getElementById("gap-analysis");
       const topRegions = document.getElementById("top-regions");
-      const analyticsQualityCard = document.getElementById("analytics-quality-card");
-      const analyticsQualitySummary = document.getElementById("analytics-quality-summary");
-      const qualityChart = document.getElementById("quality-chart");
       const careQueueCard = document.getElementById("care-queue-card");
       const careQueue = document.getElementById("care-queue");
+      const qualityKpiContacts = document.getElementById("quality-kpi-contacts");
+      const qualityKpiLists = document.getElementById("quality-kpi-lists");
+      const qualityCompletedList = document.getElementById("quality-completed-list");
+      const qualityArchiveList = document.getElementById("quality-archive-list");
       const careWorkbench = document.getElementById("care-workbench");
       const accountButton = document.getElementById("account-button");
       const accountMenu = document.getElementById("account-menu");
@@ -1544,6 +1518,7 @@
       const accountAvatar = document.getElementById("account-avatar");
       const sidebarProfileButton = document.getElementById("sidebar-profile-button");
       const sidebarTourButton = document.getElementById("sidebar-tour-button");
+      const homeTourButton = document.getElementById("home-tour-button");
       const accountProfileButton = document.getElementById("account-profile-button");
       const accountTourButton = document.getElementById("account-tour-button");
       const accountQualityButton = document.getElementById("account-quality-button");
@@ -1689,7 +1664,7 @@
       const organizationPrimarySystemsEditor = document.getElementById("organization-primary-systems-editor");
       const organizationPrimarySystemAdd = document.getElementById("organization-primary-system-add");
 
-      const careViewModes = ["careOverview", "contacts", "organizations", "map", "stakeholders"];
+      const careViewModes = ["contacts", "organizations", "map", "stakeholders"];
 
       let activeView = "home";
       let activeSettingsTab = "imports";
@@ -1926,8 +1901,6 @@
       let activitiesRequestKey = "";
       const activitiesPageSize = 100;
       const activitiesMaxAutoLoadPages = 100;
-      let careOverviewActivitySummaryState = "idle";
-      let careOverviewActivitySummaryCount = null;
       let notifications = [];
       let notificationsLoaded = false;
       let notificationsLoading = false;
@@ -2438,7 +2411,7 @@
 
       function sidebarGroupForView(view = activeView) {
         const normalizedView = sidebarNavigationView(view);
-        if (["careOverview", "map", "contacts", "organizations", "activities", "analytics", "quality", "onboarding"].includes(normalizedView)) return "care";
+        if (["map", "contacts", "organizations", "activities", "analytics", "quality", "onboarding"].includes(normalizedView)) return "care";
         if (["patients", "politics", "press", "experts", "stakeholderOverview", "stakeholders"].includes(normalizedView)) return "stakeholders";
         if (["hospitationOverview", "framework", "hospitations", "questionnaire"].includes(normalizedView)) return "planning";
         if (normalizedView === "formats") return "formats";
@@ -2599,12 +2572,9 @@
         if (!canAdministerData() && activeProfileTab === "imports") setProfileTab("profile");
         setRoleElementVisible(sidebarAnalyticsButton, canAdministerData());
         setRoleElementVisible(sidebarActivitiesButton, canAdministerData());
-        setRoleElementVisible(careOverviewAnalyticsLink, canAdministerData());
-        setRoleElementVisible(careOverviewActivitiesLink, canAdministerData());
         setRoleElementVisible(sidebarSettingsButton, true);
-        setRoleElementVisible(sidebarAboutButton, canAdministerData());
+        setRoleElementVisible(sidebarAboutButton, canAccessView("profile"));
         setRoleElementVisible(accountQualityButton, canAdministerData());
-        setRoleElementVisible(analyticsQualityCard, canAdministerData());
         setRoleElementVisible(careQueueCard, true);
         permissionBanner?.classList.remove("is-visible");
         if (permissionBannerText) permissionBannerText.textContent = "";
@@ -5870,7 +5840,6 @@
       let greetingLabel = "Gemeinsam Versorgung gestalten";
       const viewLabels = {
         home: { title: "Startseite", subtitle: "Dein Einstieg in Versorgungs-Kompass, Stakeholder-Kompass, Hospitations-Kompass und Format-Kompass." },
-        careOverview: { title: "Übersicht", subtitle: "Karte und verfügbare Arbeitsbereiche auf einen Blick." },
         contacts: { title: "Kontakte", subtitle: "Pflege und Suche der Versorgungskontakte." },
         organizations: { title: "Organisationen", subtitle: "Organisationen, Einrichtungen und Institutionen hinter den Versorgungskontakten." },
         activities: { title: "Aktivitäten", subtitle: "Fachlicher Verlauf von Stammdaten, Zuständigkeiten, Einwilligungen, Hospitationen, Formaten und Dokumenten." },
@@ -5886,7 +5855,7 @@
         formats: { title: "Formate", subtitle: "Einladungslisten für Roundtables, Fachgespräche und Veranstaltungen planen." },
         hospitations: { title: "Hospitationen", subtitle: "Termine planen und Versorgungskontakte dokumentieren." },
         questionnaire: { title: "Hospitations-Fragebogen", subtitle: "Beobachtungen Schritt für Schritt festhalten und einordnen." },
-        map: { title: "Karte", subtitle: "Regionale Verteilung und Standortkontext der aktuellen Auswahl." },
+        map: { title: "Übersicht", subtitle: "Regionale Verteilung und Standortkontext der aktuellen Auswahl." },
         analytics: { title: "Auswertung", subtitle: "Reporting, regionale Abdeckung und Netzwerktransparenz." },
         quality: { title: "Datenqualität", subtitle: "Pflegehinweise, Datenlücken und konkrete Arbeitslisten." },
         userAdmin: { title: "Nutzerverwaltung", subtitle: "Konten überblicken, Nutzer einladen und Zugänge verwalten." },
@@ -7779,15 +7748,15 @@
       }
 
       function placeWorkspaceModeControls() {
-        const analyticsTarget = activeView === "quality" ? qualityViewModeToolbar : analyticsViewModeToolbar;
-        if (analyticsTarget && analyticsModeActions?.parentElement !== analyticsTarget) analyticsTarget.append(analyticsModeActions);
         if (expertTableToolbar && expertModeActions?.parentElement !== expertTableToolbar) expertTableToolbar.append(expertModeActions);
         if (patientTableToolbar && patientModeActions?.parentElement !== patientTableToolbar) patientTableToolbar.append(patientModeActions);
       }
 
       function renderAnalyticsModeTabs() {
-        const active = isAnalyticsView(activeView) && canAdministerData();
-        if (analyticsModeActions) analyticsModeActions.hidden = !active;
+        const active = isAnalyticsView(activeView);
+        if (analyticsViewModeToolbar) analyticsViewModeToolbar.hidden = !active;
+        if (analyticsModeActions) analyticsModeActions.hidden = !active || !canAdministerData();
+        analyticsIntros.forEach((intro) => { intro.hidden = intro.dataset.analyticsIntro !== activeView; });
         analyticsModeButtons.forEach((button) => {
           const mode = button.dataset.analyticsMode || "analytics";
           const selected = activeView === mode;
@@ -11482,7 +11451,7 @@
           accent: "#1769d2",
           motivation: "Bereit zum #Mitmachen",
           title: "Bereit für den Versorgungs-Kompass",
-          body: "Damit endet der Rundgang. Dein vorheriger Arbeitskontext bleibt erhalten und die App-Tour ist jederzeit unter „Hilfe & Konto“ erneut erreichbar.",
+          body: "Damit endet der Rundgang. Dein vorheriger Arbeitskontext bleibt erhalten und die App-Tour ist jederzeit unter „App“ erneut erreichbar.",
           details: [
             { title: "Weiterarbeiten", body: "Kontakte, Beobachtungen und Formate verbinden." },
             { title: "Wiederholen", body: "Die Tour bleibt in Sidebar und Profil verfügbar." }
@@ -11490,8 +11459,137 @@
         }
       ];
 
-      function visibleProductTourSteps() {
-        return productTourSteps.filter((step) => {
+      const homeTourModules = [
+        { group: "care", title: "Versorgungs-Kompass", accent: "#1769d2", icon: "⌖", body: "Erkunde auf der Deutschlandkarte, wo Kontakte arbeiten und wie sich die Versorgungssektoren verteilen." },
+        { group: "stakeholders", title: "Stakeholder-Kompass", accent: "#087e76", icon: "◎", body: "Finde Organisationen und Ansprechpersonen aus verschiedenen Perspektiven im Gesundheitswesen." },
+        { group: "planning", title: "Hospitations-Kompass", accent: "#b7552a", icon: "⇢", body: "Plane Hospitationen und halte fest, welche Erkenntnisse und nächsten Schritte sich aus den Beobachtungen ergeben." },
+        { group: "formats", title: "Format-Kompass", accent: "#a44d91", icon: "✣", body: "Plane Austauschformate, behalte Teilnehmende im Blick und dokumentiere den Verlauf." }
+      ];
+
+      const contextualTourSteps = {
+        home: [
+          {
+            id: "home-welcome",
+            welcome: true,
+            title: "Willkommen bei #Mitmachen",
+            body: "Vier Kompasse unterstützen unterschiedliche Aufgaben. Lerne sie in einem kurzen Rundgang kennen."
+          },
+          ...homeTourModules.map(({ group, title, accent, icon, body }) => ({
+            id: `home-${group}`,
+            view: "home",
+            target: `[data-home-module="${group}"]`,
+            title,
+            accent,
+            icon,
+            body
+          }))
+        ],
+        care: [
+          "map",
+          {
+            id: "care-contacts",
+            view: "contacts",
+            target: "#contact-table-toolbar",
+            sidebarSection: "care",
+            sidebarView: "contacts",
+            title: "Kontakte finden",
+            body: "Suche nach Personen oder Organisationen. Filter helfen dir, die Kontakte nach Sektor und Zuständigkeit einzugrenzen."
+          },
+          "organizations"
+        ],
+        stakeholders: [
+          {
+            id: "stakeholder-perspectives",
+            view: "stakeholderOverview",
+            target: ".stakeholder-overview-intro",
+            sidebarSection: "stakeholders",
+            title: "Perspektiven im Gesundheitswesen",
+            body: "Die Übersicht zeigt acht Gruppen. Wähle eine Perspektive, um die zugehörigen Personen und Organisationen zu finden.",
+            accent: "#087e76"
+          },
+          {
+            id: "stakeholder-organizations",
+            view: "stakeholders",
+            target: "#stakeholder-organizations-table-head",
+            mobileTarget: "#stakeholder-organization-list > :first-child",
+            fallbackTarget: "#stakeholders-pagination-meta",
+            mobileFallbackTarget: "#stakeholders-pagination-meta",
+            sidebarSection: "stakeholders",
+            title: "Stakeholder im Verzeichnis finden",
+            body: "Im Verzeichnis findest du Organisationen. Öffne einen Eintrag, um zugehörige Personen und weitere Angaben zu sehen.",
+            accent: "#087e76"
+          }
+        ],
+        planning: [
+          {
+            id: "hospitation-overview",
+            view: "hospitationOverview",
+            overviewTab: "overview",
+            target: USE_INTEGRATED_HOSPITATION ? "#ho-visits-title" : ".hospitation-overview-next__copy",
+            sidebarSection: "planning",
+            title: "Hospitationen im Überblick",
+            body: USE_INTEGRATED_HOSPITATION
+              ? "Hier findest du die letzten Hospitationen, neue Beobachtungen und den Einstieg ins Dashboard."
+              : "Hier siehst du den nächsten Termin und welche Hospitationen Aufmerksamkeit brauchen.",
+            accent: "#b7552a"
+          },
+          {
+            id: "hospitation-dates",
+            view: "hospitations",
+            target: "#hospitation-table-toolbar",
+            hospitationTab: "appointments",
+            sidebarSection: "planning",
+            sidebarView: "hospitations",
+            title: "Hospitationstermine vorbereiten",
+            body: "In der Liste oder im Kalender siehst du Termine und ihren Status. Öffne einen Termin, um Vorbereitung und Beteiligte anzusehen.",
+            accent: "#b7552a"
+          },
+          {
+            id: "hospitation-method",
+            view: "framework",
+            target: USE_INTEGRATED_HOSPITATION ? "#ho-panel-framework .ho-method summary" : "#view-framework .framework-process-flow",
+            mobileTarget: USE_INTEGRATED_HOSPITATION ? "#ho-panel-framework .ho-method summary" : "#view-framework .framework-process-flow .hospitation-dashboard-funnel-step",
+            sidebarSection: "planning",
+            sidebarView: "framework",
+            title: "Von Beobachtung zum nächsten Schritt",
+            body: "Das Framework hilft dir, Beobachtungen festzuhalten, Muster zu erkennen und nächste Schritte abzuleiten.",
+            accent: "#b7552a"
+          }
+        ],
+        formats: [
+          {
+            id: "format-status",
+            view: "formats",
+            target: ".format-status-legend",
+            sidebarSection: "formats",
+            sidebarView: "formats",
+            title: "Formate nach Status finden",
+            body: "Die Statusfilter zeigen dir geplante, aktive und abgeschlossene Formate.",
+            accent: "#a44d91"
+          },
+          {
+            id: "format-workspace",
+            view: "formats",
+            target: "#format-detail-panel .format-detail-head",
+            fallbackTarget: "#format-detail-panel .format-empty-state",
+            sidebarSection: "formats",
+            sidebarView: "formats",
+            title: "Mit einem Format weiterarbeiten",
+            body: "Öffne ein Format, um Teilnehmende, Einladungen und Notizen einzusehen.",
+            accent: "#a44d91"
+          }
+        ]
+      };
+
+      function visibleProductTourSteps(source = "onboarding", view = activeView) {
+        const group = isHospitationWorkspace ? "planning" : sidebarGroupForView(view) || "home";
+        const contextual = isHospitationWorkspace || source === "sidebar" || source === "home";
+        const steps = contextual
+          ? contextualTourSteps[group].map((step) => typeof step === "string"
+            ? productTourSteps.find(({ id }) => id === step)
+            : step)
+          : productTourSteps;
+        return steps.filter((step) => {
           if (step.adminOnly && !canAdministerData()) return false;
           if (step.nonAdminOnly && canAdministerData()) return false;
           if (step.view === "quality") return canAdministerData();
@@ -11526,7 +11624,7 @@
       }
 
       function captureProductTourScrollState() {
-        const elements = [...document.querySelectorAll(".view-shell, .detail-panel, .app-sidebar, [data-view-panel]")]
+        const elements = [...document.querySelectorAll(".view-shell, .detail-panel, .app-sidebar, .sidebar-nav, [data-home-scroller], [data-view-panel]")]
           .map((element) => ({ element, top: element.scrollTop, left: element.scrollLeft }));
         return { x: window.scrollX, y: window.scrollY, elements };
       }
@@ -12081,15 +12179,19 @@
         if (productTourNext) productTourNext.textContent = productTourState.index === steps.length - 1 ? "Fertig" : step.welcome ? "Tour starten" : "Weiter";
         if (!isOverlayStep) {
           if (step.hospitationTab) activeHospitationTab = step.hospitationTab;
+          if (step.overviewTab) window.HospitationWorkspace?.showOverviewTab(step.overviewTab);
           setActiveView(step.view);
           updateView();
           prepareProductTourStep(step);
         }
+        const isCurrentStep = () => productTourState.open && currentProductTourSteps()[productTourState.index] === step;
         window.requestAnimationFrame(() => {
+          if (!isCurrentStep()) return;
           applyProductTourSidebarContext(step);
           const target = targetForProductTourStep(step);
           if (target) scrollProductTourTargetIntoView(target);
           window.requestAnimationFrame(() => {
+            if (!isCurrentStep()) return;
             setProductTourTarget(target);
             positionProductTourPanel(target, step);
             if (!target) retryProductTourTarget(step);
@@ -12101,7 +12203,7 @@
       }
 
       function isTrackedProductTourSource(source = "") {
-        return source === "onboarding" || source === "profile" || source === "sidebar";
+        return source === "onboarding" || (source === "profile" && !isHospitationWorkspace);
       }
 
       function captureProductTourDetailContext() {
@@ -12173,6 +12275,7 @@
         if (context.profileTab) setProfileTab(context.profileTab);
         if (context.settingsTab) setSettingsTab(context.settingsTab);
         if (context.hospitationTab) activeHospitationTab = context.hospitationTab;
+        if (context.overviewTab) window.HospitationWorkspace?.showOverviewTab(context.overviewTab);
         setActiveView(context.view);
         updateView();
         window.requestAnimationFrame(() => {
@@ -12229,11 +12332,13 @@
       }
 
       async function startProductTour(source = "manual") {
+        if (productTourState.open) return false;
         const returnContext = {
           view: activeView,
           profileTab: activeProfileTab,
           settingsTab: activeSettingsTab,
           hospitationTab: activeHospitationTab,
+          overviewTab: window.HospitationWorkspace?.getOverviewTab(),
           focusTarget: document.activeElement,
           detailContext: captureProductTourDetailContext(),
           sidebarState: captureProductTourSidebarState(),
@@ -12241,6 +12346,7 @@
         };
         closeMenus();
         closeMobileSidebar();
+        if (returnContext.view === "home") homeScroller?.removeAttribute("data-home-intro");
         if (source === "onboarding") {
           setOnboardingTourStatus("Arbeitsbereich wird für die Tour geladen …");
           try {
@@ -12254,7 +12360,7 @@
           onboardingReviewActive = false;
         }
         if (isTrackedProductTourSource(source)) await persistOnboardingState({ tourOfferedAt: onboardingPreferences().tourOfferedAt || new Date().toISOString() });
-        productTourState = { open: true, index: 0, source, target: null, steps: visibleProductTourSteps(), returnContext };
+        productTourState = { open: true, index: 0, source, target: null, steps: visibleProductTourSteps(source, returnContext.view), returnContext };
         productTour.hidden = false;
         productTour.setAttribute("aria-hidden", "false");
         document.body.classList.add("is-product-tour-open");
@@ -12638,7 +12744,7 @@
       function updateViewSelectLabel(label = "") {
         if (!viewSelectLabel) return;
         renderViewSelectStandardLabels();
-        const defaultLabel = activeView === "organizations" ? "Alle Organisationen" : activeView === "map" ? "Karte" : activeView === "analytics" ? "Auswertung" : "Alle Kontakte";
+        const defaultLabel = activeView === "organizations" ? "Alle Organisationen" : activeView === "map" ? "Übersicht" : activeView === "analytics" ? "Auswertung" : "Alle Kontakte";
         if (activeView === "contacts" || activeView === "organizations") {
           const ownerLabel = label || activeSavedViewName || defaultLabel;
           viewSelectLabel.textContent = ownerLabel === defaultLabel ? "Owner: Alle" : `Owner: ${ownerLabel.replace(/^Ohne Owner$/, "Ohne")}`;
@@ -13123,25 +13229,25 @@
         return avatarMarkup(activityUserProfile(group) || group.user || {});
       }
 
+      const activityDayFormat = new Intl.DateTimeFormat("de-DE", {
+        weekday: "long",
+        day: "2-digit",
+        month: "long",
+        year: "numeric"
+      });
+
       function activityDayLabel(value = "") {
         const parsed = new Date(value);
-        if (Number.isNaN(parsed.getTime())) return "Zeitpunkt offen";
-        return new Intl.DateTimeFormat("de-DE", {
-          weekday: "long",
-          day: "2-digit",
-          month: "long",
-          year: "numeric"
-        }).format(parsed);
+        return Number.isNaN(parsed.getTime()) ? "Zeitpunkt offen" : activityDayFormat.format(parsed);
       }
 
       function groupActivitiesByDay(groups = []) {
         const dayGroups = [];
         groups.forEach((group) => {
-          const parsed = new Date(group.changedAt);
-          const key = Number.isNaN(parsed.getTime()) ? "unknown" : parsed.toISOString().slice(0, 10);
+          const label = activityDayLabel(group.changedAt);
           let day = dayGroups[dayGroups.length - 1];
-          if (!day || day.key !== key) {
-            day = { key, label: activityDayLabel(group.changedAt), groups: [] };
+          if (!day || day.label !== label) {
+            day = { label, groups: [] };
             dayGroups.push(day);
           }
           day.groups.push(group);
@@ -13200,20 +13306,9 @@
         return `<span class="activity-category-badge">${escapeHtml(category.label)}</span>`;
       }
 
-      function activityContactContextMarkup(contact) {
-        return `
-          <span class="activity-contact-context">
-            <span class="activity-contact-avatar" aria-hidden="true">${contactAvatarMarkup(contact, "sm")}</span>
-            <span class="activity-contact-text">
-              <span class="activity-contact-name">${escapeHtml(contact.displayName || contact.name || "Kontakt")}</span>
-            </span>
-          </span>
-        `;
-      }
-
-      function activityObjectContextMarkup(semantic = {}) {
+      function activityObjectContextMarkup(semantic = {}, { namedOnly = false } = {}) {
         const object = semantic.object || {};
-        if (!object.type || object.type === "contact") return "";
+        if (!object.type || object.type === "contact" || (namedOnly && !object.label)) return "";
         const typeLabels = {
           organization: "Organisation",
           hospitation: "Hospitation",
@@ -13233,33 +13328,45 @@
           .filter((change) => change.fieldName && change.fieldName !== "updated_at" && change.fieldName !== "updated_by");
       }
 
-      function activityDetailTimeMarkup(value = "") {
+      const activityClockFormat = new Intl.DateTimeFormat("de-DE", {
+        hour: "2-digit",
+        minute: "2-digit"
+      });
+
+      const activityDateFormat = new Intl.DateTimeFormat("de-DE", {
+        day: "numeric",
+        month: "long",
+        year: "numeric"
+      });
+
+      function activityDetailFactMarkup(label, value, icon, className = "") {
+        return `
+          <div class="activity-detail-fact ${className}">
+            <dt><span class="activity-detail-fact-icon" aria-hidden="true">${icon}</span>${label}</dt>
+            <dd>${value}</dd>
+          </div>
+        `;
+      }
+
+      function activityDetailTimeMarkup(value = "", scope = "contact") {
         const parsed = new Date(value);
         if (Number.isNaN(parsed.getTime())) return "";
-        const dateLabel = new Intl.DateTimeFormat("de-DE", {
-          weekday: "long",
-          day: "2-digit",
-          month: "long",
-          year: "numeric"
-        }).format(parsed);
-        const timeLabel = new Intl.DateTimeFormat("de-DE", {
-          hour: "2-digit",
-          minute: "2-digit"
-        }).format(parsed);
+        const dateLabel = (scope === "global" ? activityDateFormat : activityDayFormat).format(parsed);
+        const timeLabel = activityClockFormat.format(parsed);
+        const icon = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="9"></circle><path d="M12 7v5l3.5 2"></path>
+        </svg>`;
+        const time = `<time datetime="${escapeHtml(value)}">
+          <span class="activity-detail-date">${escapeHtml(dateLabel)}</span>
+          <span class="activity-detail-clock">${escapeHtml(timeLabel)} Uhr</span>
+        </time>`;
+        if (scope === "global") return activityDetailFactMarkup("Zeitpunkt", time, icon, "activity-detail-time");
         return `
           <span class="activity-detail-meta-item activity-detail-time">
-            <span class="activity-detail-time-icon" aria-hidden="true">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-                <circle cx="12" cy="12" r="9"></circle>
-                <path d="M12 7v5l3.5 2"></path>
-              </svg>
-            </span>
+            <span class="activity-detail-time-icon" aria-hidden="true">${icon}</span>
             <span class="activity-detail-time-copy">
               <span class="history-value-label">Zeitpunkt</span>
-              <time datetime="${escapeHtml(value)}">
-                <span class="activity-detail-date">${escapeHtml(dateLabel)}</span>
-                <span class="activity-detail-clock">${escapeHtml(timeLabel)} Uhr</span>
-              </time>
+              ${time}
             </span>
           </span>
         `;
@@ -13291,27 +13398,25 @@
         const occurredAt = semantic.occurredAt || group.changedAt || "";
         const originLabel = semantic.origin?.label || window.ActivityModel?.origins?.[semantic.originKey]?.label || "";
         const showOrigin = semantic.originKey && !["manual", "legacy"].includes(semantic.originKey) && originLabel;
-        const contactContext = scope === "global" ? activityContactContextMarkup(contact) : "";
-        const objectContext = activityObjectContextMarkup(semantic);
-        const contextMarkup = contactContext || objectContext
-          ? `<div class="activity-context-row">${contactContext}${objectContext}</div>`
-          : "";
-        const actorMarkup = `
-          <span class="activity-actor-cell">
-            <span class="activity-actor-avatar" aria-hidden="true">${activityUserAvatarMarkup(group)}</span>
-            <span class="activity-actor-copy">
-              <span class="activity-actor-name">${escapeHtml(activityUserLabel(group))}</span>
-              <span class="activity-actor-team">${escapeHtml(activityUserTeamLabel(group))}</span>
-            </span>
-          </span>
-        `;
-        const categoryIconMarkup = `<span class="activity-category-icon" aria-hidden="true">${activityCategoryIcon(semantic.categoryKey)}</span>`;
-        const detailMetaMarkup = `
-          <div class="activity-detail-meta">
-            ${activityDetailTimeMarkup(occurredAt)}
-            ${showOrigin ? `<span class="activity-detail-meta-item activity-origin"><span class="history-value-label">Herkunft</span>${escapeHtml(originLabel)}</span>` : ""}
-          </div>
-        `;
+        const eventTitle = escapeHtml(semantic.title || "Aktivität");
+        const contactName = contact.id && contact.name === contact.id ? "Kontakt" : contact.displayName || contact.name;
+        const contactAvatar = { ...contact, initials: contactName === "Kontakt" ? "K" : contact.initials || initialsFromLabel(contactName) };
+        const hasContact = Boolean(contact.id || contactName !== "Kontakt");
+        const objectContext = activityObjectContextMarkup(semantic, { namedOnly: scope === "global" });
+        const actorAvatar = `<span class="activity-actor-avatar" aria-hidden="true">${activityUserAvatarMarkup(group)}</span>`;
+        const actorCopy = `<span class="activity-actor-copy">
+          <span class="activity-actor-name">${escapeHtml(activityUserLabel(group))}</span>
+          <span class="activity-actor-team">${escapeHtml(activityUserTeamLabel(group))}</span>
+        </span>`;
+        const actorMarkup = `<span class="activity-actor-cell">${actorAvatar}${actorCopy}</span>`;
+        const categoryLabel = escapeHtml(activityCategoryDefinition(semantic.categoryKey).label);
+        const categoryIconMarkup = `<span class="activity-category-icon" title="${categoryLabel}" aria-hidden="true">${activityCategoryIcon(semantic.categoryKey)}</span>`;
+        const timeMarkup = activityDetailTimeMarkup(occurredAt, scope);
+        const originMarkup = showOrigin ? `
+          <span class="activity-detail-meta-item activity-origin"><span class="history-value-label">Herkunft</span><span>${escapeHtml(originLabel)}</span></span>
+        ` : "";
+        const detailMetaMarkup = `<div class="activity-detail-meta">${timeMarkup}${originMarkup}</div>`;
+        const changesMarkup = activityChangesMarkup(visibleChanges);
         const hasDetails = Boolean(occurredAt || showOrigin || visibleChanges.length);
         const detailsButtonMarkup = `
           <div class="activity-entry-side">
@@ -13319,14 +13424,37 @@
           </div>
         `;
         const globalHeadMarkup = `
-          ${actorMarkup}
-          <div class="activity-title-cell">
+          <button class="activity-entry-head activity-details-toggle" type="button" data-activity-details-toggle="${escapeHtml(detailsId)}" aria-expanded="false" aria-controls="${escapeHtml(detailsId)}" aria-label="Details zu ${eventTitle}${hasContact ? ` für ${escapeHtml(contactName)}` : ""}">
             ${categoryIconMarkup}
-            <strong class="activity-title">${escapeHtml(semantic.title || "Aktivität")}</strong>
-          </div>
-          <div class="activity-subject-cell">${contactContext}</div>
-          <span class="activity-category-cell">${activityCategoryBadgeMarkup(semantic)}</span>
-          ${detailsButtonMarkup}
+            <span class="activity-row-heading">
+              <strong class="activity-title">${eventTitle}</strong>
+              ${hasContact ? `<span class="activity-row-mobile-contact">${escapeHtml(contactName)}</span>` : ""}
+            </span>
+            <span class="activity-row-contact">
+              ${hasContact ? `
+                <span class="activity-row-contact-avatar" aria-hidden="true">${contactAvatarMarkup(contactAvatar, "sm")}</span>
+                <span class="activity-contact-name">${escapeHtml(contactName)}</span>
+              ` : ""}
+            </span>
+            <span class="activity-row-detail-label">
+              <span>Details</span>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"></path></svg>
+            </span>
+          </button>
+        `;
+        const referenceIcon = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13.5a3.5 3.5 0 0 0 5 .4l4-4a3.5 3.5 0 0 0-5-5l-2 2m2 3.6a3.5 3.5 0 0 0-5-.4l-4 4a3.5 3.5 0 0 0 5 5l2-2"></path></svg>`;
+        const globalDetailsMarkup = `
+          ${visibleChanges.length ? `
+            <section class="activity-detail-changes">
+              <h4 class="activity-change-heading">Geänderte Felder</h4>
+              ${changesMarkup}
+            </section>
+          ` : ""}
+          <dl class="activity-detail-meta" aria-label="Zum Vorgang">
+            ${activityDetailFactMarkup("Bearbeitet von", actorCopy, activityCategoryIcon("ownership"))}
+            ${timeMarkup}
+            ${objectContext ? activityDetailFactMarkup("Bezug", objectContext, referenceIcon, "activity-detail-reference") : ""}
+          </dl>
         `;
         const contactHeadMarkup = `
           ${categoryIconMarkup}
@@ -13335,7 +13463,7 @@
               <strong class="activity-title">${escapeHtml(semantic.title || "Aktivität")}</strong>
               ${activityCategoryBadgeMarkup(semantic)}
             </div>
-            ${contextMarkup}
+            ${objectContext ? `<div class="activity-context-row">${objectContext}</div>` : ""}
             <div class="activity-meta-row">${actorMarkup}</div>
           </div>
           ${detailsButtonMarkup}
@@ -13343,8 +13471,8 @@
         return `
           <article class="activity-item activity-row activity-item--${escapeHtml(actionKey)} ${scope === "contact" ? "history-item activity-item--profile" : ""}" ${activitySemanticDataAttributes(semantic)}>
             <div class="activity-entry">
-              <div class="activity-entry-head">${scope === "global" ? globalHeadMarkup : contactHeadMarkup}</div>
-              ${hasDetails ? `<div class="activity-detail-panel" id="${escapeHtml(detailsId)}" hidden>${detailMetaMarkup}${activityChangesMarkup(visibleChanges)}</div>` : ""}
+              ${scope === "global" ? globalHeadMarkup : `<div class="activity-entry-head">${contactHeadMarkup}</div>`}
+              ${scope === "global" || hasDetails ? `<div class="activity-detail-panel" id="${escapeHtml(detailsId)}" hidden>${scope === "global" ? globalDetailsMarkup : detailMetaMarkup + changesMarkup}</div>` : ""}
             </div>
           </article>
         `;
@@ -13483,7 +13611,7 @@
           activitiesList.innerHTML = dayGroups
             .map((day) => `
               <section class="activity-day-group" aria-label="${escapeHtml(day.label)}">
-                <div class="activity-day-label">${escapeHtml(day.label)}</div>
+                <h3 class="activity-day-label">${activityCategoryIcon("hospitation")}${escapeHtml(day.label)}</h3>
                 <div class="activity-feed">
                   ${day.groups.map(activityGroupMarkup).join("")}
                 </div>
@@ -15799,7 +15927,7 @@
           return;
         }
 
-        if (activeView === "home" || activeView === "onboarding" || activeView === "careOverview" || activeView === "stakeholderOverview" || activeView === "hospitationOverview") {
+        if (activeView === "home" || activeView === "onboarding" || activeView === "stakeholderOverview" || activeView === "hospitationOverview") {
           if (summaryGrid) summaryGrid.innerHTML = "";
           return;
         }
@@ -37013,7 +37141,8 @@
             return normalized.replace(/[{}"]/g, "").replace(/,/g, ", ");
           }
         }
-        if (field === "status") return normalized === "archived" ? "Archiviert" : "Aktiv";
+        if (field === "status" && normalized === "archived") return "Archiviert";
+        if (field === "status" && normalized === "active") return "Aktiv";
         return normalized.length > 140 ? `${normalized.slice(0, 137)}...` : normalized;
       }
 
@@ -37587,11 +37716,11 @@
       }
 
       function distributionColor(share) {
-        if (share >= 20) return "#1f53c7";
-        if (share >= 10) return "#3f7df0";
-        if (share >= 5) return "#7da8f7";
-        if (share > 0) return "#b7cdfb";
-        return "#dbe5fb";
+        if (share >= 10) return "var(--care-map-density-high)";
+        if (share >= 8) return "var(--care-map-density-cobalt)";
+        if (share >= 6) return "color-mix(in srgb, var(--primary) 58%, var(--surface))";
+        if (share > 0) return "var(--care-overview-contacts-border)";
+        return "var(--care-map-density-empty)";
       }
 
       function polygonPoints(feature) {
@@ -37671,11 +37800,10 @@
 
         return `
           <svg class="category-donut" viewBox="0 0 200 200" aria-hidden="true">
-            <circle cx="100" cy="100" r="${radius}" fill="none" stroke="#edf1ff" stroke-width="22"></circle>
+            <circle cx="100" cy="100" r="${radius}" fill="none" stroke="var(--surface-muted)" stroke-width="22"></circle>
             ${segments}
-            <circle cx="100" cy="100" r="55" fill="#ffffff"></circle>
-            <text x="100" y="94" text-anchor="middle" font-size="14" font-weight="700" fill="#68708e">Kontakte</text>
-            <text x="100" y="118" text-anchor="middle" font-size="30" font-weight="800" fill="#1a2559">${total}</text>
+            <text x="100" y="100" text-anchor="middle" font-size="32" font-weight="800" fill="var(--text-primary)">${total}</text>
+            <text x="100" y="122" text-anchor="middle" font-size="14" font-weight="650" fill="var(--text-muted)">Kontakte</text>
           </svg>
         `;
       }
@@ -37700,37 +37828,28 @@
             return a.label.localeCompare(b.label, "de");
           });
 
-        {
-          const total = categoryCounts.reduce((sum, item) => sum + item.count, 0);
-          const maxCategoryCount = Math.max(...categoryCounts.map((item) => item.count), 1);
-          categoryChart.innerHTML = `
-            <div class="metric-bars">
+        const categoryTotal = categoryCounts.reduce((sum, item) => sum + item.count, 0);
+        categoryChart.innerHTML = categoryTotal ? `
+          <div class="care-analytics-sector-layout">
+            ${buildDonutChart(categoryCounts)}
+            <ul class="care-analytics-sector-list" aria-label="Anzahl und Anteil je Sektor">
               ${categoryCounts
                 .map(
                   (item) => `
-                    <div class="metric-row">
+                    <li class="care-analytics-sector-row${item.count ? "" : " is-empty"}">
                       <span class="metric-label">
-                        <span class="metric-dot" style="background:${item.color}"></span>
+                        <span class="metric-dot" style="background:${item.color}" aria-hidden="true"></span>
                         <span>${escapeHtml(item.label)}</span>
                       </span>
-                      <span class="metric-track">
-                        <span class="metric-fill" style="width:${(item.count / maxCategoryCount) * 100}%; background:${item.color}"></span>
-                      </span>
                       <span class="value-count-cell" aria-label="${item.count} Kontakte">${item.count}</span>
-                      <span class="metric-percent" aria-label="${formatPercent(item.count, total)} Anteil">${formatPercent(item.count, total)}</span>
-                    </div>
+                      <span class="care-analytics-share" aria-label="${formatPercent(item.count, categoryTotal)} Anteil">${formatPercent(item.count, categoryTotal)}</span>
+                    </li>
                   `
                 )
                 .join("")}
-            </div>
-            <div class="chart-total-row chart-total-row--metric">
-              <span class="chart-total-label">Gesamt</span>
-              <span></span>
-              <span class="chart-total-count">${total}</span>
-              <span></span>
-            </div>
-          `;
-        }
+            </ul>
+          </div>
+        ` : `<div class="dashboard-empty">Keine Kontakte mit dokumentiertem Sektor in der aktuellen Auswahl.</div>`;
 
         const states = [...new Map(items.map((contact) => [stateLabel(contact), stateLabel(contact)])).values()]
           .filter(Boolean)
@@ -37739,6 +37858,9 @@
             count: items.filter((contact) => stateLabel(contact) === label).length
           }))
           .sort((a, b) => (b.count - a.count) || a.label.localeCompare(b.label, "de"));
+
+        if (careKpiContacts) careKpiContacts.textContent = items.length.toLocaleString("de-DE");
+        if (careKpiSectors) careKpiSectors.textContent = categoryCounts.filter((item) => item.count > 0).length.toLocaleString("de-DE");
 
         if (!states.length) {
           stateChart.innerHTML = `<div class="dashboard-empty">Für die aktuelle Filterung sind keine Bundesländer auswertbar.</div>`;
@@ -37751,7 +37873,10 @@
                 .map(
                   (item) => `
                     <div class="state-row">
-                      <div class="state-name" title="${escapeHtml(item.label)}">${escapeHtml(item.label)}</div>
+                      <div class="state-name" title="${escapeHtml(item.label)}">
+                        <span class="metric-dot" style="background:${distributionColor(germanStates.includes(item.label) ? Math.round((item.count / items.length) * 100) : 0)}" aria-hidden="true"></span>
+                        <span>${escapeHtml(item.label)}</span>
+                      </div>
                       <div class="state-bar-track">
                         <div class="state-bar-fill" style="width:${(item.count / maxStateCount) * 100}%"></div>
                       </div>
@@ -37771,62 +37896,9 @@
           `;
         }
 
-        renderPriorityDistribution(items);
         renderCoverageModules(items);
-        renderGapAnalysis(items);
         renderTopRegions(items);
-        renderQualitySummary(items);
-        renderCareQueue(items);
-      }
-
-      function renderPriorityDistribution(items) {
-        const priorities = ["Hoch", "Mittel", "Niedrig", "Unbekannt"].map((priority) => ({
-          label: priority,
-          count: items.filter((contact) => (contact.priority || "Unbekannt") === priority).length,
-          color: priorityChartColors[priority]
-        }));
-        const total = priorities.reduce((sum, item) => sum + item.count, 0);
-        if (!total) {
-          priorityChart.innerHTML = `<div class="dashboard-empty">Keine Prioritäten in der aktuellen Auswahl.</div>`;
-          return;
-        }
-        priorityChart.innerHTML = `
-          <div class="priority-bars">
-            <div class="priority-stack" aria-label="100 Prozent Verteilung nach Priorität">
-              ${priorities
-                .map((item) => {
-                  const percent = total ? (item.count / total) * 100 : 0;
-                  return item.count
-                    ? `<span class="priority-stack-segment" style="width:${percent}%; background:${item.color}" title="${escapeHtml(item.label)}: ${item.count} · ${formatPercent(item.count, total)}"></span>`
-                    : "";
-                })
-                .join("")}
-            </div>
-            ${priorities
-              .map((item) => {
-                return `
-                  <div class="priority-row">
-                    <span class="priority-label">
-                      <span class="priority-dot" style="background:${item.color}"></span>
-                      <span>${escapeHtml(item.label)}</span>
-                    </span>
-                    <span class="priority-track">
-                      ${item.count ? `<span class="priority-fill" style="width:${(item.count / total) * 100}%; background:${item.color}"></span>` : ""}
-                    </span>
-                    <span class="value-count-cell" aria-label="${item.count} Kontakte">${item.count}</span>
-                    <span class="priority-percent" aria-label="${formatPercent(item.count, total)} Anteil">${formatPercent(item.count, total)}</span>
-                  </div>
-                `;
-              })
-              .join("")}
-          </div>
-          <div class="chart-total-row chart-total-row--priority">
-            <span class="chart-total-label">Gesamt</span>
-            <span></span>
-            <span class="chart-total-count">${total}</span>
-            <span></span>
-          </div>
-        `;
+        if (activeView === "quality") renderCareQueue(items);
       }
 
       function buildCoverageRows(items) {
@@ -37845,10 +37917,10 @@
         const rows = buildCoverageRows(items);
         const coverageByState = new Map(rows.map((row) => [row.state, row]));
         const legend = [
-          { label: "≥ 20 %", color: distributionColor(20) },
-          { label: "10–19 %", color: distributionColor(10) },
-          { label: "5–9 %", color: distributionColor(5) },
-          { label: "1–4 %", color: distributionColor(1) },
+          { label: "≥ 10 %", color: distributionColor(10) },
+          { label: "8–9 %", color: distributionColor(8) },
+          { label: "6–7 %", color: distributionColor(6) },
+          { label: "1–5 %", color: distributionColor(1) },
           { label: "0 %", color: distributionColor(0) }
         ];
         const features = window.MAP_STATE_POLYGONS?.features || [];
@@ -37870,82 +37942,13 @@
         coverageMap.innerHTML = `
           <div class="coverage-map">
             ${mapSvg}
-            <div class="coverage-legend">
+            <div class="coverage-legend" aria-label="Anteil der Kontakte nach Bundesland">
               ${legend
                 .map(
                   (item) => `
                     <div class="coverage-legend-row">
                       <span class="coverage-legend-swatch" style="background:${item.color}"></span>
                       <span>${item.label}</span>
-                      <span></span>
-                    </div>
-                  `
-                )
-                .join("")}
-            </div>
-          </div>
-        `;
-      }
-
-      function renderGapAnalysis(items) {
-        const total = Math.max(items.length, 1);
-        const sectorGaps = coverageCategories
-          .map((sector) => {
-            const count = items.filter((contact) => categoryLabel(contact) === sector).length;
-            return { label: sector, count, share: Math.round((count / total) * 100) };
-          })
-          .sort((a, b) => (a.count - b.count) || a.label.localeCompare(b.label, "de"))
-          .slice(0, 3);
-        const stateGaps = buildCoverageRows(items)
-          .sort((a, b) => (a.count - b.count) || a.state.localeCompare(b.state, "de"))
-          .slice(0, 3);
-
-        gapAnalysis.innerHTML = `
-          <div class="gap-panel">
-            <div class="gap-panel-head">
-              <span class="gap-panel-icon" aria-hidden="true">
-                <svg viewBox="0 0 24 24">
-                  <rect x="4" y="4" width="6" height="6" rx="1.5"></rect>
-                  <rect x="14" y="4" width="6" height="6" rx="1.5"></rect>
-                  <rect x="4" y="14" width="6" height="6" rx="1.5"></rect>
-                  <rect x="14" y="14" width="6" height="6" rx="1.5"></rect>
-                </svg>
-              </span>
-              <div>
-                <div class="gap-panel-title">Sektoren</div>
-                <div class="gap-panel-kicker">Niedrigster Anteil</div>
-              </div>
-            </div>
-            <div class="gap-item-list">
-              ${sectorGaps
-                .map(
-                  (item) => `
-                    <div class="gap-item">
-                      <span class="gap-item-name">${escapeHtml(item.label)}</span>
-                      <span class="gap-item-count">${item.count}</span>
-                      <span class="gap-item-share">${item.share} %</span>
-                    </div>
-                  `
-                )
-                .join("")}
-            </div>
-          </div>
-          <div class="gap-panel">
-            <div class="gap-panel-head">
-              <span class="gap-panel-icon gap-panel-icon--blue" aria-hidden="true">⌖</span>
-              <div>
-                <div class="gap-panel-title">Bundesländer</div>
-                <div class="gap-panel-kicker">Geringe regionale Präsenz</div>
-              </div>
-            </div>
-            <div class="gap-item-list">
-              ${stateGaps
-                .map(
-                  (item) => `
-                    <div class="gap-item">
-                      <span class="gap-item-name">${escapeHtml(item.state)}</span>
-                      <span class="gap-item-count">${item.count}</span>
-                      <span class="gap-item-share">${item.share} %</span>
                     </div>
                   `
                 )
@@ -37962,13 +37965,50 @@
           return `<svg viewBox="0 0 96 84" aria-hidden="true"><path ${common} d="M17 72V36l8-7 8 7v36M25 29V17M20 17h10M39 72V28h18v44M43 28v-8h10v8M47 20V11M62 72V38l7-6 7 6v34M69 32V19M65 19h8M11 72h74M23 46h5M23 57h5M45 39h7M45 51h7M67 48h4M67 59h4"/></svg>`;
         }
         if (normalized.includes("berlin")) {
-          return `<svg viewBox="0 0 96 84" aria-hidden="true"><path ${common} d="M48 73V23M42 23h12M45 17h6M48 11v6M40 73h16M37 34h22M40 46h16M43 58h10M29 73h38M34 73l4-39M62 73l-4-39"/></svg>`;
+          return `<svg viewBox="0 0 96 84" aria-hidden="true">
+          <circle cx="49" cy="37" r="28" class="city-icon-sky"/>
+          <path class="city-icon-base" d="M16 69V58h10v-8h9v19m27 0V52h9v7h10v10M12 69h73"/>
+          <path class="city-icon-base" d="M45 68h10l-3-28h-4z"/>
+          <path ${common} d="m45 68 3-29h4l3 29M50 17V8m-2 11h4"/>
+          <circle cx="50" cy="30" r="10" class="city-icon-landmark"/>
+          <path ${common} d="M41 31h18M44 35h12M39 69h22"/>
+          </svg>`;
         }
         if (normalized.includes("köln") || normalized.includes("cologne")) {
           return `<svg viewBox="0 0 96 84" aria-hidden="true"><path ${common} d="M20 72V30l9-13 9 13v42M58 72V30l9-13 9 13v42M29 17V8M67 17V8M24 40h10M62 40h10M24 53h10M62 53h10M39 72V45l9-10 9 10v27M15 72h66M44 52h8M44 62h8"/></svg>`;
         }
         if (normalized.includes("hamburg")) {
-          return `<svg viewBox="0 0 96 84" aria-hidden="true"><path ${common} d="M15 68h66M19 58h58l-8 10H27l-8-10ZM30 58V35h20v23M50 58V27h16v31M56 27v-9M50 35h16M36 44h8M36 52h8M66 44h6M66 52h6M20 58c7-8 16-12 28-12s21 4 28 12"/></svg>`;
+          return `<svg viewBox="0 0 96 84" aria-hidden="true">
+          <circle cx="50" cy="37" r="27" class="city-icon-sky"/>
+          <path class="city-icon-base" d="M16 57V24h54l-11 6H22v27z"/>
+          <path ${common} d="M16 57V24h54l-11 6H22v27m-6-25 6 6-6 6 6 6M22 24l6 6 6-6 6 6 6-6 6 6 6-6M55 30v12a3 3 0 1 1-6 0"/>
+          <path class="city-icon-landmark" d="M32 55h10v-8h12v8h11v-8h9v8h12l-9 11H36z"/>
+          <path class="city-icon-wave" d="M10 69c6 0 7-3 13-3s7 3 13 3 7-3 13-3 7 3 13 3 7-3 13-3 7 3 12 3M26 75c6 0 7-3 13-3s7 3 13 3 7-3 13-3 7 3 12 3"/>
+          </svg>`;
+        }
+        if (normalized.includes("saarbrücken")) {
+          return `<svg viewBox="0 0 96 84" aria-hidden="true">
+          <circle cx="47" cy="36" r="27" class="city-icon-sky"/>
+          <path class="city-icon-base" d="M27 48V33h15v15m-18-15 10.5-9L45 33m7 15V37h17v11"/>
+          <path class="city-icon-landmark" d="M11 48h74v17h-6c-1-5-4-8-8-8s-7 3-8 8h-8c-1-5-4-8-8-8s-7 3-8 8h-8c-1-5-4-8-8-8s-7 3-8 8h-4z"/>
+          <path class="city-icon-wave" d="M12 72c6 0 6-3 12-3s6 3 12 3 6-3 12-3 6 3 12 3 6-3 12-3 6 3 12 3"/>
+          </svg>`;
+        }
+        if (normalized.includes("bremen")) {
+          return `<svg viewBox="0 0 96 84" aria-hidden="true">
+          <circle cx="48" cy="37" r="27" class="city-icon-sky"/>
+          <path class="city-icon-base" d="M33 68V47l15-11 15 11v21z"/>
+          <path class="city-icon-landmark" d="M18 68V35l8-12 8 12v33zm44 0V35l8-12 8 12v33z"/>
+          <path ${common} d="M26 23v-7m44 7v-7M12 68h72M23 42h6m-6 9h6m38-9h6m-6 9h6M43 68V56a5 5 0 0 1 10 0v12"/>
+          </svg>`;
+        }
+        if (normalized.includes("dresden")) {
+          return `<svg viewBox="0 0 96 84" aria-hidden="true">
+          <circle cx="48" cy="37" r="28" class="city-icon-sky"/>
+          <path class="city-icon-base" d="M20 68V52h56v16z"/>
+          <path class="city-icon-landmark" d="M29 52V42h6c0-10 5-17 13-22 8 5 13 12 13 22h6v10z"/>
+          <path ${common} d="M48 20V11m-4 4h8M13 68h70M29 57v6m9-6v6m10-6v6m10-6v6m9-6v6"/>
+          </svg>`;
         }
         if (normalized.includes("frankfurt")) {
           return `<svg viewBox="0 0 96 84" aria-hidden="true"><path ${common} d="M13 72h70M20 72V42h10v30M36 72V26h13v46M55 72V34h10v38M70 72V48h9v24M39 34h7M39 43h7M39 52h7M39 61h7M58 43h4M58 53h4M23 50h4M23 59h4M73 56h3M73 64h3"/></svg>`;
@@ -37990,83 +38030,37 @@
         items.forEach((contact) => {
           const city = meaningfulOrEmpty(contact.city) || meaningfulOrEmpty(contact.location).replace(/^\d{5}\s*/, "") || "Unbekannt";
           const state = stateLabel(contact);
-          const label = `${city}${state && state !== "Unbekannt" ? `, ${stateAbbreviations[state] || state}` : ""}`;
-          grouped.set(label, (grouped.get(label) || 0) + 1);
+          const key = JSON.stringify([city, state]);
+          const group = grouped.get(key) || { city, state, count: 0 };
+          group.count += 1;
+          grouped.set(key, group);
         });
-        const rows = [...grouped.entries()].sort((a, b) => (b[1] - a[1]) || a[0].localeCompare(b[0], "de")).slice(0, 5);
+        const rows = [...grouped.values()]
+          .sort((a, b) => (b.count - a.count) || a.city.localeCompare(b.city, "de") || a.state.localeCompare(b.state, "de"))
+          .slice(0, 5);
         if (!rows.length) {
           topRegions.innerHTML = `<div class="dashboard-empty">Keine Regionen in der aktuellen Auswahl.</div>`;
           return;
         }
         topRegions.innerHTML = `
-          <div class="city-ranking">
+          <ol class="city-ranking" role="list">
             ${rows
               .map(
-                ([label, count], index) => `
-                  <div class="city-rank-row">
-                    <span class="city-rank-number">${index + 1}.</span>
-                    <span class="city-rank-icon">${cityIconSvg(label)}</span>
-                    <span class="city-rank-name">${escapeHtml(label)}</span>
-                    <span class="city-rank-count">${count}</span>
-                  </div>
+                ({ city, state, count }, index) => `
+                  <li class="city-rank-row">
+                    <span class="city-rank-number" aria-hidden="true">${String(index + 1).padStart(2, "0")}</span>
+                    <span class="city-rank-icon" aria-hidden="true">${cityIconSvg(city)}</span>
+                    <span class="city-rank-name"${state && state !== "Unbekannt" ? ` title="${escapeHtml(state)}"` : ""}>${escapeHtml(city)}</span>
+                    <span class="city-rank-count">
+                      <strong>${count.toLocaleString("de-DE")}</strong>
+                      <span>${count === 1 ? "Kontakt" : "Kontakte"}</span>
+                    </span>
+                  </li>
                 `
               )
               .join("")}
-          </div>
+          </ol>
         `;
-      }
-
-      function renderQualitySummary(items) {
-        if (!canAdministerData()) {
-          if (analyticsQualityCard) setRoleElementVisible(analyticsQualityCard, false);
-          if (analyticsQualitySummary) analyticsQualitySummary.innerHTML = "";
-          if (qualityChart) qualityChart.innerHTML = "";
-          return;
-        }
-        if (analyticsQualityCard) setRoleElementVisible(analyticsQualityCard, true);
-        const total = items.length;
-        const activeItems = contacts.filter((contact) => contact.status !== "archived");
-        const duplicateItems = duplicateSuspects(activeItems);
-        const checks = [
-          { key: "missing-phone", label: "Telefon", hint: "fehlt", iconClass: "quality-icon--purple", contacts: items.filter((contact) => !contactChannelsRestricted(contact) && !hasMeaningfulValue(accessibleContactPhone(contact))) },
-          { key: "missing-specialty", label: "Fachrichtung", hint: "fehlt", iconClass: "", contacts: items.filter((contact) => !hasMeaningfulValue(contact.specialty)) },
-          { key: "missing-email", label: "E-Mail", hint: "fehlt", iconClass: "", contacts: items.filter((contact) => !contactChannelsRestricted(contact) && !hasMeaningfulValue(accessibleContactEmail(contact))) },
-          { key: "unclear-name", label: "Kontaktnamen", hint: "prüfen", iconClass: "", contacts: items.filter(isUnclearName) },
-          { key: "unclear-organization", label: "Organisationen", hint: "prüfen", iconClass: "quality-icon--amber", contacts: items.filter(isUnclearOrganization) },
-          { key: "missing-owner", label: "Owner", hint: "fehlt", iconClass: "quality-icon--amber", contacts: items.filter(isMissingOwner) },
-          { key: "missing-location", label: "Standort", hint: "fehlt", iconClass: "quality-icon--amber", contacts: items.filter(isMissingLocation) },
-          { key: "duplicates", label: "Dubletten", hint: "prüfen", iconClass: "quality-icon--purple", contacts: duplicateItems.filter((contact) => items.some((item) => item.id === contact.id)) },
-          { key: "stale", label: "Aktualität", hint: "prüfen", iconClass: "", contacts: items.filter((contact) => isContactStale(contact)) }
-        ];
-        const openChecks = checks.filter((item) => item.contacts.length > 0);
-        const visibleChecks = openChecks
-          .sort((left, right) => right.contacts.length - left.contacts.length)
-          .slice(0, 3);
-        const affectedIds = new Set();
-        checks.forEach((check) => check.contacts.forEach((contact) => affectedIds.add(contact.id)));
-        if (analyticsQualitySummary) {
-          analyticsQualitySummary.innerHTML = `
-            <div class="analytics-quality-link">
-              <div class="analytics-quality-link__metric">
-                <strong>${affectedIds.size}</strong>
-                <span>Kontakte mit Prüfhinweisen</span>
-              </div>
-              <button class="analytics-quality-link__button" type="button" id="analytics-quality-open">Datenqualität prüfen</button>
-            </div>
-          `;
-        }
-        if (qualityChart) {
-          qualityChart.innerHTML = `
-            <div class="quality-summary">
-              <div class="quality-summary-main">
-                <span class="quality-icon">${qualityIconSvg("summary")}</span>
-                <span class="quality-summary-copy">
-                  <strong>${affectedIds.size ? `${affectedIds.size} Kontakte brauchen Prüfung` : "Alles sieht gut aus"}</strong>
-                </span>
-              </div>
-            </div>
-          `;
-        }
       }
 
       function qualityIconSvg(key) {
@@ -38100,14 +38094,6 @@
           .replace(/[\u0300-\u036f]/g, "")
           .replace(/[^a-z0-9]+/g, " ")
           .trim();
-      }
-
-      function isMissingOwner(contact) {
-        return contactOwnerValues(contact).length === 0;
-      }
-
-      function isMissingLocation(contact) {
-        return !hasMeaningfulValue(contact.postalCode) || !hasMeaningfulValue(contact.city);
       }
 
       function hasOwner(contact) {
@@ -38412,14 +38398,19 @@
           careQueue.innerHTML = `<div class="dashboard-empty">Arbeitslisten können von Editor- und Admin-Nutzern geöffnet werden.</div>`;
           return;
         }
-        const queueItems = buildCareQueueItems(items);
-        const visibleItems = queueItems.filter((item) => item.contacts.length > 0 || item.showWhenEmpty);
-        careQueue.innerHTML = `
+        const focusedQueueKey = document.activeElement?.dataset.careOpen;
+        const queueItems = buildCareQueueItems(items).filter((item) => item.contacts.length > 0 || item.showWhenEmpty);
+        const isOpen = (item) => item.state === "critical" || item.state === "open";
+        const checks = queueItems.filter((item) => item.key !== "archived");
+        const openChecks = checks.filter(isOpen);
+        const affectedIds = new Set(openChecks.flatMap((item) => item.contacts.map((contact) => contact.id)));
+        if (qualityKpiContacts) qualityKpiContacts.textContent = affectedIds.size.toLocaleString("de-DE");
+        if (qualityKpiLists) qualityKpiLists.textContent = openChecks.length.toLocaleString("de-DE");
+
+        const renderQueueGroup = (entries) => `
           <div class="care-queue-grid">
-            ${visibleItems.length
-              ? visibleItems
-              .map((item) => {
-                const resolved = item.state === "done" || item.state === "complete" || item.state === "checked";
+            ${entries.map((item) => {
+                const resolved = !isOpen(item);
                 const expanded = activeCareQueueKey === item.key;
                 const cardClass = item.state === "critical" ? "care-queue-card--critical" : resolved ? `care-queue-card--${item.state === "checked" ? "done" : item.state}` : "care-queue-card--todo";
                 return `
@@ -38441,10 +38432,23 @@
                   </section>
                 `;
               })
-              .join("")
-              : `<div class="dashboard-empty">Aktuell gibt es keine offenen Arbeitslisten.</div>`}
+              .join("")}
           </div>
         `;
+        careQueue.innerHTML = openChecks.length
+          ? renderQueueGroup(openChecks)
+          : '<div class="dashboard-empty">Aktuell gibt es keine offenen Arbeitslisten.</div>';
+        [
+          [qualityCompletedList, checks.filter((item) => !isOpen(item))],
+          [qualityArchiveList, queueItems.filter((item) => item.key === "archived" && item.contacts.length)]
+        ].forEach(([container, entries]) => {
+          if (!container) return;
+          container.parentElement.hidden = entries.length === 0;
+          container.innerHTML = entries.length ? renderQueueGroup(entries) : "";
+        });
+        if (focusedQueueKey) {
+          careQueueCard?.querySelector(`[data-care-open="${CSS.escape(focusedQueueKey)}"]`)?.focus({ preventScroll: true });
+        }
       }
 
       function careQueueItemByKey(key) {
@@ -40144,6 +40148,17 @@
         return "profile";
       }
 
+      function syncSidebarProfileNavigation(view = activeView) {
+        const aboutIsActive = view === "profile" && activeProfileTab === "about";
+        const profileIsActive = view === "profile" && !aboutIsActive;
+        sidebarAboutButton?.classList.toggle("is-active", aboutIsActive);
+        sidebarProfileButton?.classList.toggle("is-active", profileIsActive);
+        if (aboutIsActive) sidebarAboutButton?.setAttribute("aria-current", "page");
+        else sidebarAboutButton?.removeAttribute("aria-current");
+        if (profileIsActive) sidebarProfileButton?.setAttribute("aria-current", "page");
+        else sidebarProfileButton?.removeAttribute("aria-current");
+      }
+
       function setProfileTab(tab = "profile") {
         activeProfileTab = normalizeProfileTab(tab);
         if (profileModal) profileModal.dataset.activeProfileTab = activeProfileTab;
@@ -40158,7 +40173,7 @@
           panel.hidden = !active;
         });
         sidebarSettingsButton?.classList.toggle("is-active", activeView === "profile");
-        sidebarProfileButton?.classList.toggle("is-active", activeView === "profile");
+        syncSidebarProfileNavigation();
         sidebarNotificationsButton?.classList.toggle("is-active", activeView === "profile" && activeProfileTab === "notifications");
         if (profileEditActions) profileEditActions.hidden = activeProfileTab !== "profile" || !profileDirty;
         if (activeProfileTab === "imports") setSettingsTab(activeSettingsTab);
@@ -40286,7 +40301,6 @@
         if (routeView === "hospitations" || String(routeView).startsWith("hospitations:")) {
           return hospitationRouteForTab(String(routeView).split(":")[1] || activeHospitationTab);
         }
-        if (routeView === "careOverview") return "care";
         if (USE_INTEGRATED_HOSPITATION) {
           if (["framework", "planning", "questionnaire"].includes(routeView)) return `hospitation-overview?tab=${routeView === "questionnaire" ? "questionnaire" : "framework"}`;
           if (String(routeView).startsWith("hospitation-overview")) return routeView;
@@ -40325,7 +40339,7 @@
 
       function searchContextForView(view = activeView) {
         if (["contacts", "organizations", "map"].includes(view)) return "care";
-        if (["personProfile", "organizationProfile", "profile", "settings", "quality", "analytics", "careOverview", "stakeholderOverview", "hospitationOverview"].includes(view)) return "";
+        if (["personProfile", "organizationProfile", "profile", "settings", "quality", "analytics", "stakeholderOverview", "hospitationOverview"].includes(view)) return "";
         return view || "";
       }
 
@@ -40481,12 +40495,9 @@
         else sidebarUserAdminButton?.removeAttribute("aria-current");
         sidebarTeamButton?.classList.toggle("is-active", view === "team");
         sidebarSettingsButton?.classList.toggle("is-active", view === "profile");
-        sidebarAboutButton?.classList.toggle("is-active", view === "about");
-        sidebarProfileButton?.classList.toggle("is-active", view === "profile");
+        syncSidebarProfileNavigation(view);
         if (view === "team") sidebarTeamButton?.setAttribute("aria-current", "page");
         else sidebarTeamButton?.removeAttribute("aria-current");
-        if (view === "profile") sidebarProfileButton?.setAttribute("aria-current", "page");
-        else sidebarProfileButton?.removeAttribute("aria-current");
         syncActiveSidebarSection(activeNavigationView);
         window.HospitationWorkspace?.sync(activeNavigationView,
           activeNavigationView === "hospitationOverview" ? window.HospitationWorkspace.getOverviewTab() : undefined,
@@ -40521,63 +40532,8 @@
         if (view === "map") {
           syncMapFrame(mapContacts());
         }
-        if (viewChanged) resetWorkspaceNavigationPosition();
+        if (viewChanged) resetWorkspaceNavigationPosition({ focus: !(isAnalyticsView(previousView) && isAnalyticsView(view)) });
         return true;
-      }
-
-      function careOverviewContacts() {
-        return contacts.filter((contact) => !["archived", "archiviert"].includes(String(contact.status || "").trim().toLowerCase()));
-      }
-
-      function careOverviewOrganizations() {
-        return organizations.filter((organization) => !["archived", "archiviert"].includes(String(organization.status || "").trim().toLowerCase()));
-      }
-
-      function careOverviewSectorTotal(items = careOverviewContacts()) {
-        return new Set(items
-          .map((contact) => categoryLabel(contact))
-          .map((label) => String(label || "").trim())
-          .filter((label) => label && !["Nicht dokumentiert", "Unbekannt"].includes(label)))
-          .size;
-      }
-
-      function syncCareOverviewDomOrder() {
-        if (!careOverviewLayout || !careOverviewMapSection) return;
-        const firstDestination = careOverviewLayout.querySelector(".care-overview-destination");
-        if (careOverviewMobileOrderQuery.matches) {
-          if (careOverviewLayout.lastElementChild !== careOverviewMapSection) {
-            careOverviewLayout.append(careOverviewMapSection);
-          }
-          return;
-        }
-        if (firstDestination && careOverviewMapSection.nextElementSibling !== firstDestination) {
-          careOverviewLayout.insertBefore(careOverviewMapSection, firstDestination);
-        }
-      }
-
-      if (typeof careOverviewMobileOrderQuery.addEventListener === "function") {
-        careOverviewMobileOrderQuery.addEventListener("change", syncCareOverviewDomOrder);
-      } else {
-        careOverviewMobileOrderQuery.addListener(syncCareOverviewDomOrder);
-      }
-      syncCareOverviewDomOrder();
-
-      function startCareOverviewEntrance() {
-        if (!careOverviewLayout || careOverviewLayout.dataset.entranceState) return;
-        if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
-          careOverviewLayout.dataset.entranceState = "complete";
-          return;
-        }
-        careOverviewLayout.dataset.entranceState = "pending";
-        window.requestAnimationFrame(() => {
-          if (!careOverviewLayout.isConnected) return;
-          careOverviewLayout.dataset.entranceState = "playing";
-          window.setTimeout(() => {
-            if (careOverviewLayout.dataset.entranceState === "playing") {
-              careOverviewLayout.dataset.entranceState = "complete";
-            }
-          }, 560);
-        });
       }
 
       function isValidMapCoordinatePair(lat, lon) {
@@ -40589,223 +40545,16 @@
           && Number.isFinite(longitude) && longitude >= -180 && longitude <= 180;
       }
 
-      function hasValidMapCoordinates(entry) {
-        return isValidMapCoordinatePair(entry?.lat ?? entry?.latitude, entry?.lon ?? entry?.longitude);
-      }
-
-      function careOverviewMapSummary(items = careOverviewContacts()) {
-        const activeOrganizations = careOverviewOrganizations();
-        const organizationById = new Map(activeOrganizations.map((organization) => [String(organization.id || ""), organization]));
-        const organizationByName = new Map(activeOrganizations.map((organization) => [normalizeOrganizationName(organization.name), organization]));
-        let mappedCount = 0;
-        items.forEach((contact) => {
-          if (!String(contact?.id || "").trim()) return;
-          const organization = organizationById.get(String(contact.organizationId || ""))
-            || organizationByName.get(normalizeOrganizationName(contact.organization));
-          const usesContactPosition = hasValidMapCoordinates(contact);
-          if (!usesContactPosition && !hasValidMapCoordinates(organization)) return;
-          mappedCount += 1;
-        });
-        return { mappedCount };
-      }
-
-      function setCareOverviewMapCounter(value, label, state = "ready") {
-        if (careOverviewMapCounter) careOverviewMapCounter.dataset.state = state;
-        if (careOverviewMapCount) careOverviewMapCount.textContent = value;
-        if (careOverviewMapCountLabel) careOverviewMapCountLabel.textContent = label;
-      }
-
-      function setCareOverviewDestinationCount(container, valueNode, labelNode, value, label, state = "ready", accessibleLabel = "") {
-        if (container) container.dataset.state = state;
-        if (container && accessibleLabel) container.setAttribute("aria-label", accessibleLabel);
-        if (valueNode) valueNode.textContent = value;
-        if (labelNode) labelNode.textContent = label;
-      }
-
-      function renderCareOverviewActivityMetric() {
-        if (!careOverviewActivityCount) return;
-        if (careOverviewActivitySummaryState === "ready" && Number.isSafeInteger(careOverviewActivitySummaryCount)) {
-          const activityLabel = careOverviewActivitySummaryCount === 1 ? "Aktivität" : "Aktivitäten";
-          setCareOverviewDestinationCount(
-            careOverviewActivityCount,
-            careOverviewActivityCountValue,
-            careOverviewActivityCountLabel,
-            String(careOverviewActivitySummaryCount),
-            "letzte 30 Tage",
-            "ready",
-            `${careOverviewActivitySummaryCount} ${activityLabel} in den letzten 30 Tagen`
-          );
-          return;
-        }
-        if (careOverviewActivitySummaryState === "error") {
-          setCareOverviewDestinationCount(
-            careOverviewActivityCount,
-            careOverviewActivityCountValue,
-            careOverviewActivityCountLabel,
-            "–",
-            "letzte 30 Tage · nicht verfügbar",
-            "error",
-            "Aktivitäten der letzten 30 Tage sind nicht verfügbar"
-          );
-          return;
-        }
-        setCareOverviewDestinationCount(
-          careOverviewActivityCount,
-          careOverviewActivityCountValue,
-          careOverviewActivityCountLabel,
-          "–",
-          "letzte 30 Tage · wird geladen",
-          "loading",
-          "Aktivitäten der letzten 30 Tage werden geladen"
-        );
-      }
-
-      async function loadCareOverviewActivitySummary() {
-        if (!canAdministerData() || !window.dataService?.getActivitySummary) return;
-        if (["loading", "ready", "error"].includes(careOverviewActivitySummaryState)) return;
-        careOverviewActivitySummaryState = "loading";
-        renderCareOverviewActivityMetric();
-        const from = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
-        try {
-          const summary = await window.dataService.getActivitySummary({ from });
-          const count = Number(summary?.count);
-          if (!Number.isSafeInteger(count) || count < 0) throw new Error("Der Aktivitätszähler ist ungültig.");
-          careOverviewActivitySummaryCount = count;
-          careOverviewActivitySummaryState = "ready";
-        } catch (error) {
-          careOverviewActivitySummaryCount = null;
-          careOverviewActivitySummaryState = "error";
-          console.error("Aktivitätsübersicht konnte nicht geladen werden.", error);
-        }
-        renderCareOverviewActivityMetric();
-      }
-
-      function renderCareOverview() {
-        startCareOverviewEntrance();
-        const activeContacts = careOverviewContacts();
-        const activeOrganizations = careOverviewOrganizations();
-        if (canAdministerData()) {
-          renderCareOverviewActivityMetric();
-          void loadCareOverviewActivitySummary();
-        }
-        if (initialCareDataState === "error") {
-          setCareOverviewDestinationCount(
-            careOverviewContactCount,
-            careOverviewContactCountValue,
-            careOverviewContactCountLabel,
-            "–",
-            "nicht verfügbar",
-            "error",
-            "Kontakte sind nicht verfügbar"
-          );
-          setCareOverviewDestinationCount(
-            careOverviewOrganizationCount,
-            careOverviewOrganizationCountValue,
-            careOverviewOrganizationCountLabel,
-            "–",
-            "nicht verfügbar",
-            "error",
-            "Organisationen sind nicht verfügbar"
-          );
-          setCareOverviewDestinationCount(
-            careOverviewSectorCount,
-            careOverviewSectorCountValue,
-            careOverviewSectorCountLabel,
-            "–",
-            "nicht verfügbar",
-            "error",
-            "Sektoren mit Kontakten sind nicht verfügbar"
-          );
-          setCareOverviewMapCounter("–", "Kartendaten nicht verfügbar", "error");
-          syncMapFrame([], careOverviewMapFrame);
-          return;
-        }
-        if (isInitialDataLoading || initialCareDataState === "loading") {
-          setCareOverviewDestinationCount(
-            careOverviewContactCount,
-            careOverviewContactCountValue,
-            careOverviewContactCountLabel,
-            "–",
-            "wird geladen",
-            "loading",
-            "Kontakte werden geladen"
-          );
-          setCareOverviewDestinationCount(
-            careOverviewOrganizationCount,
-            careOverviewOrganizationCountValue,
-            careOverviewOrganizationCountLabel,
-            "–",
-            "wird geladen",
-            "loading",
-            "Organisationen werden geladen"
-          );
-          setCareOverviewDestinationCount(
-            careOverviewSectorCount,
-            careOverviewSectorCountValue,
-            careOverviewSectorCountLabel,
-            "–",
-            "wird geladen",
-            "loading",
-            "Sektoren mit Kontakten werden geladen"
-          );
-          setCareOverviewMapCounter("–", "Kontakte werden geladen", "loading");
-        } else {
-          setCareOverviewDestinationCount(
-            careOverviewContactCount,
-            careOverviewContactCountValue,
-            careOverviewContactCountLabel,
-            String(activeContacts.length),
-            "",
-            "ready",
-            `${activeContacts.length} ${activeContacts.length === 1 ? "Kontakt" : "Kontakte"}`
-          );
-          const organizationsAreDerived = ["derived", "fallback"].includes(organizationDataState);
-          setCareOverviewDestinationCount(
-            careOverviewOrganizationCount,
-            careOverviewOrganizationCountValue,
-            careOverviewOrganizationCountLabel,
-            String(activeOrganizations.length),
-            organizationsAreDerived ? "aus Kontakten abgeleitet" : "",
-            "ready",
-            `${activeOrganizations.length} ${activeOrganizations.length === 1 ? "Organisation" : "Organisationen"}${organizationsAreDerived ? ", aus Kontakten abgeleitet" : ""}`
-          );
-          const sectorCount = careOverviewSectorTotal(activeContacts);
-          setCareOverviewDestinationCount(
-            careOverviewSectorCount,
-            careOverviewSectorCountValue,
-            careOverviewSectorCountLabel,
-            String(sectorCount),
-            sectorCount === 1 ? "Sektor mit Kontakten" : "Sektoren mit Kontakten",
-            "ready",
-            `${sectorCount} ${sectorCount === 1 ? "Sektor" : "Sektoren"} mit Kontakten`
-          );
-          const mapSummary = careOverviewMapSummary(activeContacts);
-          setCareOverviewMapCounter(
-            String(mapSummary.mappedCount),
-            mapSummary.mappedCount === 1 ? "Kontakt" : "Kontakte"
-          );
-        }
-        syncMapFrame(activeContacts, careOverviewMapFrame);
-      }
-
       function mapContacts() {
         if (searchContextForView(activeView) === "care") return filteredContacts();
         return contacts.filter((contact) => contact.status !== "archived");
       }
 
-      function syncMapFrame(items = mapContacts(), targetFrame = mapViewFrame) {
-        if (!targetFrame) return;
-        const deferredSource = String(targetFrame.dataset.deferredSrc || "").trim();
-        if (deferredSource && targetFrame.dataset.deferredSourceLoaded !== "true") {
-          targetFrame.dataset.deferredSourceLoaded = "true";
-          targetFrame.src = deferredSource;
-          return;
-        }
-        if (!targetFrame.contentWindow) return;
-        const organizationSource = targetFrame === careOverviewMapFrame ? careOverviewOrganizations() : organizations;
-        const organizationById = new Map(organizationSource.map((organization) => [String(organization.id || ""), organization]));
-        const organizationByName = new Map(organizationSource.map((organization) => [normalizeOrganizationName(organization.name), organization]));
-        targetFrame.contentWindow.postMessage(
+      function syncMapFrame(items = mapContacts()) {
+        if (!mapViewFrame?.contentWindow) return;
+        const organizationById = new Map(organizations.map((organization) => [String(organization.id || ""), organization]));
+        const organizationByName = new Map(organizations.map((organization) => [normalizeOrganizationName(organization.name), organization]));
+        mapViewFrame.contentWindow.postMessage(
           {
             type: "versorgungs-kompass-map-data",
             version: MAP_MESSAGE_VERSION,
@@ -42332,6 +42081,7 @@
 
       function closeDetail(options = {}) {
         const closingPoliticsProfile = detailPanel.dataset.detailKind === "politics";
+        const returnToMapPreview = detailProfileReturnTo === "map" && detailDrawer.classList.contains("is-open");
         const politicsReturnFocus = closingPoliticsProfile ? politicsProfileReturnFocus : null;
         const politicsReturnFocusMemberId = closingPoliticsProfile
           ? politicsProfileReturnFocusMemberId
@@ -42384,6 +42134,15 @@
               : Array.from(document.querySelectorAll("[data-open-politics-profile]"))
                 .find((element) => element.dataset.openPoliticsProfile === politicsReturnFocusMemberId);
             focusTarget?.focus({ preventScroll: true });
+          });
+        }
+        if (returnToMapPreview) {
+          window.requestAnimationFrame(() => {
+            if (activeView !== "map" || detailDrawer.classList.contains("is-open")) return;
+            const mapAction = mapViewFrame?.contentDocument?.querySelector(
+              "#map-contact-preview:not([hidden]) .map-contact-preview-open"
+            );
+            (mapAction || mapViewFrame)?.focus({ preventScroll: true });
           });
         }
       }
@@ -42850,12 +42609,10 @@
         const isPatientsView = activeView === "patients";
         const isPoliticsView = activeView === "politics";
         const isPressView = activeView === "press";
-        const isCareOverviewView = activeView === "careOverview";
         const isStakeholderOverviewView = activeView === "stakeholderOverview";
         const isHospitationOverviewView = activeView === "hospitationOverview";
-        const isCompassOverviewView = isCareOverviewView || isStakeholderOverviewView || isHospitationOverviewView;
+        const isCompassOverviewView = isStakeholderOverviewView || isHospitationOverviewView;
         placeWorkspaceModeControls();
-        if (isCareOverviewView) renderCareOverview();
         if (isPatientsView && !["people", "organizations", "indications"].includes(activePatientMode)) activePatientMode = "indications";
         const isPatientOrganizationsMode = isPatientsView && activePatientMode === "organizations";
         const isPatientPeopleMode = isPatientsView && activePatientMode === "people";
@@ -43514,9 +43271,6 @@
       mapViewFrame.addEventListener("load", () => {
         syncMapFrame(mapContacts());
       });
-      careOverviewMapFrame?.addEventListener("load", () => {
-        syncMapFrame(careOverviewContacts(), careOverviewMapFrame);
-      });
       stakeholderMapFrame?.addEventListener("load", () => {
         syncStakeholderMapFrame(stakeholderMapPeople());
       });
@@ -43891,6 +43645,11 @@
       sidebarAboutButton?.addEventListener("click", () => {
         closeMenus();
         closeMobileSidebar();
+        if (activeView === "profile") {
+          setProfileTab("about");
+          updateRouteHash(profileRouteForTab());
+          return;
+        }
         openProfileTab("about");
       });
 
@@ -43932,12 +43691,12 @@
       sidebarTourButton?.addEventListener("click", async () => {
         if (profileDirty) {
           closeMobileSidebar();
-          openProfileTab("profile");
           setProfileStatus("Bitte speichere oder verwirf deine Profiländerungen, bevor du die App-Tour startest.", true);
           return;
         }
         await startProductTour("sidebar");
       });
+      homeTourButton?.addEventListener("click", () => startProductTour("home"));
       accountProfileButton?.addEventListener("click", () => openProfileTab("profile"));
       profileCancel?.addEventListener("click", closeProfileModal);
       profileForm?.addEventListener("submit", saveProfileForm);
@@ -44346,7 +44105,7 @@
         }
         updateView();
       });
-      careQueue?.addEventListener("click", async (event) => {
+      careQueueCard?.addEventListener("click", async (event) => {
         const openButton = event.target.closest("[data-care-open]");
         if (openButton) {
           activeCareQueueKey = activeCareQueueKey === openButton.dataset.careOpen ? "" : openButton.dataset.careOpen;
@@ -44368,7 +44127,7 @@
         if (!button) return;
         openCareQueueContact(button.dataset.careContact, button.dataset.careArchived === "true");
       });
-      careQueue?.addEventListener("keydown", (event) => {
+      careQueueCard?.addEventListener("keydown", (event) => {
         if (event.key !== "Enter" && event.key !== " ") return;
         const openButton = event.target.closest("[data-care-open]");
         if (!openButton) return;
@@ -44499,13 +44258,6 @@
         updateView();
       });
 
-      document.addEventListener("click", (event) => {
-        if (!event.target.closest("#analytics-quality-open")) return;
-        closeMenus();
-        setActiveView("quality");
-        updateRouteHash("quality");
-        updateView();
-      });
       document.addEventListener("keydown", (event) => {
         if (event.key !== "Escape") return;
         if (productTourState.open) {
@@ -44520,9 +44272,9 @@
 
       window.addEventListener("message", (event) => {
         if (event.origin !== window.location.origin || !event.data || typeof event.data !== "object" || Array.isArray(event.data)) return;
-        const sourceFrame = [mapViewFrame, careOverviewMapFrame, stakeholderMapFrame, politicsMapFrame].find((frame) => frame?.contentWindow === event.source);
+        const sourceFrame = [mapViewFrame, stakeholderMapFrame, politicsMapFrame].find((frame) => frame?.contentWindow === event.source);
         if (!sourceFrame) return;
-        const expectedChannel = sourceFrame === mapViewFrame || sourceFrame === careOverviewMapFrame
+        const expectedChannel = sourceFrame === mapViewFrame
           ? "contacts"
           : sourceFrame === politicsMapFrame
             ? "politics"
@@ -44548,6 +44300,10 @@
           return;
         }
         openDetail(messageId, mapContacts(), { scope: "care", mode: "preview", returnTo: "map" });
+        if (detailDrawer.classList.contains("is-open")) {
+          detailPanel.tabIndex = -1;
+          detailPanel.focus({ preventScroll: true });
+        }
       });
 
       csvFileInput.addEventListener("change", async (event) => {
@@ -45072,6 +44828,17 @@
 
       document.addEventListener("click", (event) => {
         const clickTarget = event.target instanceof Element ? event.target : null;
+        if (activeView === "map" && !detailDrawer.classList.contains("is-open") && !clickTarget?.closest("#detail-drawer")) {
+          mapViewFrame?.contentWindow?.postMessage({
+            type: "versorgungs-kompass-map-dismiss-preview",
+            version: MAP_MESSAGE_VERSION,
+            channel: "contacts"
+          }, window.location.origin);
+        }
+      }, true);
+
+      document.addEventListener("click", (event) => {
+        const clickTarget = event.target instanceof Element ? event.target : null;
         if (isMobileLayout() && appShell?.classList.contains("is-mobile-sidebar-expanded") && !clickTarget?.closest(".app-sidebar")) {
           closeMobileSidebar();
         }
@@ -45147,7 +44914,7 @@
           if (activePatientMode !== "organizations") activatePatientMode("organizations");
           return "patients";
         }
-        if (hashView === "care") return "careOverview";
+        if (hashView === "care" || hashView === "careOverview") return "map";
         if (hashView === "stakeholders") return "stakeholderOverview";
         if (USE_INTEGRATED_HOSPITATION && (/^hospitation-overview(?:\?|$)/.test(hashView) || ["framework", "planning", "questionnaire"].includes(hashView))) {
           window.HospitationWorkspace?.showOverviewTab(hashView === "questionnaire" ? "questionnaire"
@@ -45634,7 +45401,7 @@
           const careContactProfileActive = activeView === "personProfile" && activePersonProfile.kind === "contact";
           const careContactDrawerActive = activeView === "contacts" && Boolean(activeId);
           if (dataKind === "organizations") {
-            return ["careOverview", "organizations", "map"].includes(activeView)
+            return ["organizations", "map"].includes(activeView)
               || (activeView === "organizationProfile" && activeOrganizationProfile.kind === "care");
           }
           if (dataKind === "formats") return activeView === "formats" || careContactProfileActive || careContactDrawerActive;
@@ -45868,7 +45635,9 @@
 
       function finishInitialLoading() {
         if (activeView === "home") {
-          homeScroller?.setAttribute("data-home-intro", "");
+          if (window.matchMedia("(prefers-reduced-motion: no-preference)").matches) {
+            homeScroller?.setAttribute("data-home-intro", "");
+          }
           resetHomeScrollPosition();
         }
         appShell?.classList.remove("is-initializing");
@@ -45877,6 +45646,13 @@
       }
 
       renderAccountProfile(null);
+      const finishHomeIntro = (event) => {
+        if (event.target === homeCompassRotation && event.animationName === "homeCompassDismiss") {
+          homeScroller?.removeAttribute("data-home-intro");
+        }
+      };
+      homeCompassRotation?.addEventListener("animationend", finishHomeIntro);
+      homeCompassRotation?.addEventListener("animationcancel", finishHomeIntro);
       homeDestinations?.addEventListener("focusin", () => homeScroller?.removeAttribute("data-home-intro"));
       skipLink?.addEventListener("click", (event) => {
         event.preventDefault();

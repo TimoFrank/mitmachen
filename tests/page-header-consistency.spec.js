@@ -6,7 +6,7 @@ const routeGroups = [
     ["care", "Übersicht"],
     ["contacts", "Kontakte"],
     ["organizations", "Organisationen"],
-    ["map", "Karte"],
+    ["map", "Übersicht"],
     ["analytics", "Auswertung"],
     ["quality", "Datenqualität"],
     ["activities", "Aktivitäten"]

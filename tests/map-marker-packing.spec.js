@@ -187,14 +187,16 @@ test("Karte: Standortmarker behalten auch bei identischen Adressen exakt ihre Qu
   expect(browserErrors).toEqual([]);
 });
 
-test("Karte: Bundeslandwahl filtert Kontakte und zeigt ihre Standortpins", async ({ page }, testInfo) => {
+test("Karte: Bundeslandwahl wechselt von Orientierungspins zur Kontaktvorschau", async ({ page }, testInfo) => {
   const isMobile = testInfo.project.name.includes("mobile");
   await page.setViewportSize(isMobile ? { width: 390, height: 844 } : { width: 1440, height: 1000 });
+  await page.emulateMedia({ reducedMotion: "reduce" });
   await openMap(page);
   const contacts = orientationContacts();
   await sendMapContacts(page, contacts);
 
-  await page.locator("#map").evaluate(() => {
+  const mapElement = page.locator("#map");
+  await mapElement.evaluate(() => {
     const leafletMap = globalThis.eval("map");
     leafletMap.stop();
     leafletMap.setView([51.2, 10.4], 6, { animate: false });
@@ -202,10 +204,14 @@ test("Karte: Bundeslandwahl filtert Kontakte und zeigt ihre Standortpins", async
   });
 
   const densityLegend = page.locator(".map-density-legend");
-  await expect(page.locator(".map-neighbor-country")).toHaveCount(9);
+  const overviewPins = mapElement.locator(".map-state-overview-pin");
+  const contactPins = mapElement.locator(".gematik-marker[data-map-marker-id]");
+  await expect(mapElement.locator(".map-state-boundaries")).toHaveCount(1);
+  expect(await mapElement.evaluate(() => globalThis.eval("map.hasLayer(europeLandContext)"))).toBe(true);
   await expect(page.locator("#marker-toggle")).toHaveCount(0);
   await expect(page.locator("#points-toggle")).toHaveAttribute("aria-pressed", "true");
-  await expect(page.locator(".gematik-marker")).toHaveCount(0);
+  await expect(overviewPins).toHaveCount(0);
+  await expect(contactPins).toHaveCount(0);
   await expect(page.locator(".cat-marker").first()).toBeVisible();
   await expect(page.locator(".state-label")).toHaveCount(0);
   const sectorFills = await page.locator("#map").evaluate(() => globalThis.eval(
@@ -227,7 +233,15 @@ test("Karte: Bundeslandwahl filtert Kontakte und zeigt ihre Standortpins", async
   await expect(page.locator("#count")).toHaveText("8 / 8");
 
   await page.locator("#heatmap-toggle").click();
-  await expect(page.locator(".gematik-marker, .cat-marker, .map-cluster-marker")).toHaveCount(0);
+  await expect(overviewPins).toHaveCount(contacts.length);
+  await expect(overviewPins.locator('path[fill="#00ff65"]')).toHaveCount(contacts.length);
+  await expect(mapElement.locator(".map-state-overview-pin:is(.leaflet-interactive, [tabindex])")).toHaveCount(0);
+  await expect(contactPins).toHaveCount(0);
+  await expect(mapElement.locator(".cat-marker, .map-cluster-marker")).toHaveCount(0);
+  const overviewPinWidths = await overviewPins.locator(".gematik-marker").evaluateAll((markers) =>
+    markers.map((marker) => marker.getBoundingClientRect().width)
+  );
+  expect(overviewPinWidths[0]).toBeLessThan(overviewPinWidths.at(-1));
   await expect(densityLegend).toContainText("Kontakte je Bundesland");
   await expect(densityLegend.locator(".map-distribution-legend"))
     .toHaveAttribute("aria-label", "Verteilung je Bundesland: 0 bis 5 Kontakte");
@@ -237,26 +251,39 @@ test("Karte: Bundeslandwahl filtert Kontakte und zeigt ihre Standortpins", async
   expect(densityFills).toHaveLength(16);
   expect(sectorFills).toEqual(densityFills);
   expect(new Set(densityFills).size).toBeGreaterThan(1);
+  const zoom = () => mapElement.evaluate(() => globalThis.eval("map.getZoom()"));
+  const germanyZoom = await zoom();
   await clickBavaria();
   await expect(page.locator("#count")).toHaveText("2 / 8");
-  await expect(page.getByRole("button", { name: "Bayern", exact: true })).toBeVisible();
-  const pins = page.locator("#map .gematik-marker");
-  await expect(pins).toHaveCount(2);
-  await expect(pins.locator('path[fill="#00ff65"]')).toHaveCount(2);
-  await expect(page.locator("#map .cat-marker, #map .map-cluster-marker")).toHaveCount(0);
+  await expect(page.locator("#map-state-selection-label")).toHaveText("Bayern");
+  await expect.poll(zoom).toBeGreaterThan(germanyZoom);
+  await expect(overviewPins).toHaveCount(0);
+  await expect(contactPins).toHaveCount(2);
+  await expect(contactPins.locator('path[fill="#00ff65"]')).toHaveCount(2);
+  await expect(mapElement.locator(".cat-marker, .map-cluster-marker")).toHaveCount(0);
   expect(await markerPositionSnapshot(page)).toEqual(
     expectedPositionSnapshot(contacts.filter((contact) => contact.state === "Bayern"))
   );
 
-  await page.locator('#map .gematik-marker[data-map-marker-id="orientation-bayern-0"]').click();
+  const bayernZoom = await zoom();
+  await mapElement.locator('[data-map-marker-id="orientation-bayern-0"]').click();
+  const preview = page.getByRole("region", { name: "Kontaktvorschau" });
+  await expect(preview).toContainText("Bayern Kontakt 1");
+  await expect(preview).toBeVisible();
   const contactTitle = page.locator("#map-detail-title");
+  await expect(contactTitle).toBeHidden();
+  expect(await zoom()).toBe(bayernZoom);
+  await preview.getByRole("button", { name: "Kontaktdetails öffnen" }).click();
   await expect(contactTitle).toHaveText("Bayern Kontakt 1");
   await expect(contactTitle).toBeVisible();
   await page.getByRole("button", { name: "Details schließen" }).click();
 
-  await clickBavaria();
+  await page.locator("#map-state-selection-reset").click();
   await expect(page.locator("#count")).toHaveText("8 / 8");
-  await expect(pins).toHaveCount(0);
+  await expect(page.locator("#map-state-selection")).toBeHidden();
+  await expect.poll(zoom).toBeLessThan(bayernZoom);
+  await expect(contactPins).toHaveCount(0);
+  await expect(overviewPins).toHaveCount(contacts.length);
   if (isMobile) {
     await expect(page.locator(".map-legend")).toBeHidden();
   } else {

@@ -165,6 +165,7 @@ test.describe("GitHub-Pages-Demo: Owner-Sichtbarkeit der Kontaktkanäle", () => 
     const restrictedContact = mapFrame.locator('[data-map-contact-id="demo-contact-02"]');
     await expect(restrictedContact).toBeVisible();
     await restrictedContact.click();
+    await mapFrame.getByRole("button", { name: "Kontaktdetails öffnen" }).click();
 
     const drawer = page.locator("#detail-drawer");
     await expect(drawer).toHaveAttribute("aria-hidden", "false");

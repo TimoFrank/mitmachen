@@ -61,6 +61,8 @@ test("Pages startet direkt in der App-Startseite", async ({ page }, testInfo) =>
     await expect(link).toBeInViewport({ ratio: 1 });
     expect(await link.evaluate((node) => node.scrollWidth - node.clientWidth)).toBeLessThanOrEqual(1);
   }
+  await expect(page.locator("[data-home-compass-rotation]")).toBeHidden({ timeout: 9_000 });
+  await expect(page.getByRole("heading", { name: "Willkommen.", level: 1 })).toBeVisible();
 });
 
 test("Arbeitsbereiche sind auch bei reduzierter Bewegung direkt erreichbar", async ({ page }) => {

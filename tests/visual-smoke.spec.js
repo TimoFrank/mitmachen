@@ -1,5 +1,4 @@
 import { expect, test } from "@playwright/test";
-import { createHash } from "node:crypto";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { gotoAuthenticated } from "./helpers/app-test-session.js";
@@ -1052,7 +1051,7 @@ test("Kontakte: Liste und Filtertoolbar rendern", async ({ page }, testInfo) => 
   await expect(page.locator('[data-sidebar-section="planning"]')).toHaveAttribute("aria-label", "Hospitations-Kompass");
   await expect(page.locator('[data-sidebar-section-toggle="admin"]')).toHaveCount(0);
   const careTabOrder = await page.locator("#sidebar-section-care-content [data-view-tab]").evaluateAll((nodes) => nodes.map((node) => node.querySelector("span:not(.notification-count-indicator)")?.textContent.trim()));
-  expect(careTabOrder).toEqual(["Übersicht", "Karte", "Kontakte", "Organisationen", "Auswertung", "Aktivitäten"]);
+  expect(careTabOrder).toEqual(["Übersicht", "Kontakte", "Organisationen", "Auswertung", "Aktivitäten"]);
   await expect(page.locator('[data-sidebar-section="care"]')).toHaveClass(/is-expanded/);
   await expect(page.locator('[data-sidebar-section-toggle="care"]')).toHaveAttribute("aria-expanded", "true");
   const stakeholderTabOrder = await page.locator('[data-sidebar-section="stakeholders"] [data-view-tab]').evaluateAll((nodes) => nodes.map((node) => node.querySelector("span:not(.notification-count-indicator)")?.textContent.trim()));
@@ -1083,7 +1082,7 @@ test("Kontakte: Liste und Filtertoolbar rendern", async ({ page }, testInfo) => 
   await expect(page.locator('[data-profile-tab="imports"]')).toHaveText("Importe");
   await expect(page.locator('[data-sidebar-section="care"]')).toHaveClass(/is-active-section/);
   await expect(page.locator('[data-sidebar-section="hospitations"]')).toHaveCount(0);
-  await expect(page.locator('[data-view-tab="map"]')).toContainText("Karte");
+  await expect(page.locator('[data-view-tab="map"]')).toHaveText("Übersicht");
   await expect(page.locator('[data-view-tab="contacts"]')).toContainText("Kontakte");
   await expect(page.locator('[data-view-tab="organizations"]')).toContainText("Organisationen");
   await expect(page.locator('[data-view-tab="hospitationOverview"]')).toContainText("Übersicht");
@@ -3749,52 +3748,28 @@ test("Aktivitäten: globaler Kontaktverlauf rendert aufgeräumt und lädt vollst
   await expect(page.locator("#activities-list .activity-title")).toHaveCount(36);
   await expect(page.locator("#activities-list .activity-title").first()).toHaveText("Kontaktdaten aktualisiert");
   await expect(page.locator("#activities-list .activity-category-icon").first()).toBeVisible();
-  await expect(page.locator("#activities-list .activity-category-badge").first()).toHaveText("Stammdaten");
-  await expect(page.locator('#activities-list [data-activity-origin="legacy"] .activity-origin')).toHaveCount(0);
-  await expect(page.locator("#activities-list")).not.toContainText("Herkunft: Altdaten");
-  await expect(page.locator('#activities-list [data-activity-origin="data_import"] .activity-origin').first()).toHaveText(/Herkunft\s*Datenimport/);
+  await expect(page.locator("#activities-list .activity-category-icon").first()).toHaveAttribute("title", "Stammdaten");
+  await expect(page.locator("#activities-list .activity-origin")).toHaveCount(0);
   await expect(page.locator("#activities-list .activity-entry-head time")).toHaveCount(0);
+  await expect(page.getByRole("heading", { name: "Verlauf", exact: true })).toBeVisible();
   await expect(page.locator("#activities-list .activity-detail-meta time")).toHaveCount(36);
   await expect(page.locator(".activity-contact-button")).toHaveCount(0);
-  await expect(page.locator("#activities-list .activity-actor-cell").first()).toBeVisible();
-  await expect(page.locator("#activities-list .activity-actor-team").first()).toHaveText("Versorgung");
-  const allOwnerTeamBadgesAreFullyVisible = await page.locator("#activities-list .activity-actor-team").evaluateAll((nodes) => nodes.every((node) => {
-    const style = getComputedStyle(node);
-    return node.scrollWidth <= node.clientWidth + 1
-      && node.scrollHeight <= node.clientHeight + 1
-      && style.borderRadius !== "0px"
-      && style.textOverflow === "clip";
-  }));
-  expect(allOwnerTeamBadgesAreFullyVisible).toBe(true);
-  await expect(page.locator("#activities-list .activity-contact-avatar").first()).toBeVisible();
-  await expect(page.locator("#activities-list .activity-contact-context").first()).toBeVisible();
-  await expect(page.locator("#activities-list .activity-contact-meta")).toHaveCount(0);
-  await expect(page.locator("#activities-list .activity-subject-cell .activity-object-context")).toHaveCount(0);
-  await expect(page.locator("#activities-list")).not.toContainText("MVZ Aktiv Nord");
-  await expect(page.locator("#activities-list .activity-contact-name").first()).toHaveText("Aktivitätskontakt 1");
-  const firstActivityUsesCompactTableOrder = await page.locator("#activities-list .activity-item").first().evaluate((node) => {
-    const actor = node.querySelector(".activity-actor-cell")?.getBoundingClientRect();
-    const title = node.querySelector(".activity-title-cell")?.getBoundingClientRect();
-    const subject = node.querySelector(".activity-subject-cell")?.getBoundingClientRect();
-    const icon = node.querySelector(".activity-title-cell .activity-category-icon")?.getBoundingClientRect();
-    const contactAvatar = node.querySelector(".activity-subject-cell .activity-contact-avatar")?.getBoundingClientRect();
-    const category = node.querySelector(".activity-category-cell")?.getBoundingClientRect();
-    const details = node.querySelector(".activity-entry-side")?.getBoundingClientRect();
-    if (!actor || !title || !subject || !icon || !contactAvatar || !category || !details) return false;
-    const usesTwoContentRows = title.bottom <= subject.top;
-    const iconsShareVerticalAxis = Math.abs(icon.left - contactAvatar.left) <= 1
-      && Math.abs(icon.width - contactAvatar.width) <= 1
-      && icon.bottom <= contactAvatar.top;
-    if (window.innerWidth <= 760) return actor.bottom <= title.top && usesTwoContentRows && iconsShareVerticalAxis && details.right < category.left;
-    return actor.right < title.left && usesTwoContentRows && iconsShareVerticalAxis && subject.right < category.left && category.right < details.left;
-  });
-  expect(firstActivityUsesCompactTableOrder).toBe(true);
-  const firstCollapsedActivityHeight = await page.locator("#activities-list .activity-entry").first().evaluate((node) => node.getBoundingClientRect().height);
-  if (page.viewportSize()?.width > 760) {
-    expect(firstCollapsedActivityHeight).toBeGreaterThan(76);
-    expect(firstCollapsedActivityHeight).toBeLessThan(104);
+  await expect(page.locator("#activities-list .activity-entry-head .activity-actor-cell")).toHaveCount(0);
+  await expect(page.locator("#activities-list .activity-entry-head .activity-category-badge")).toHaveCount(0);
+  await expect(page.locator("#activities-list .activity-entry-head .activity-contact-name").first()).toHaveText("Aktivitätskontakt 1");
+  const firstContactName = page.locator("#activities-list .activity-entry-head .activity-contact-name").first();
+  if (testInfo.project.name.includes("mobile")) {
+    await expect(firstContactName).toBeHidden();
+  } else {
+    await expect(firstContactName).toBeVisible();
   }
-  await expect(page.locator("#activities-list .activity-time-chip")).toHaveCount(0);
+  await expect(page.locator("#activities-list .activity-row-contact-avatar .avatar").first()).toBeVisible();
+  const eventAndAvatarShareOneLine = await page.locator("#activities-list .activity-entry-head").first().evaluate((row) => {
+    const title = row.querySelector(".activity-title").getBoundingClientRect();
+    const avatar = row.querySelector(".activity-row-contact-avatar").getBoundingClientRect();
+    return title.right <= avatar.left && Math.abs((title.top + title.bottom) / 2 - (avatar.top + avatar.bottom) / 2) <= 2;
+  });
+  expect(eventAndAvatarShareOneLine).toBe(true);
   const firstDetailsButton = page.locator("#activities-list .activity-details-toggle").first();
   await expect(firstDetailsButton).toBeVisible();
   await expect(firstDetailsButton).toHaveAttribute("aria-expanded", "false");
@@ -3804,18 +3779,24 @@ test("Aktivitäten: globaler Kontaktverlauf rendert aufgeräumt und lädt vollst
   await expect(page.locator("#activities-list .activity-detail-panel").first()).toBeVisible();
   await expect(page.locator("#activities-list .activity-detail-meta time").first()).toBeVisible();
   await expect(page.locator("#activities-list .activity-detail-time").first()).toBeVisible();
-  await expect(page.locator("#activities-list .activity-detail-time-icon").first()).toBeVisible();
   await expect(page.locator("#activities-list .activity-detail-date").first()).toContainText("2026");
   await expect(page.locator("#activities-list .activity-detail-clock").first()).toContainText("Uhr");
-  await expect(page.locator("#activities-list .activity-detail-title")).toHaveCount(0);
+  await expect(page.locator("#activities-list .activity-detail-panel .activity-contact-name")).toHaveCount(0);
+  await expect(page.locator("#activities-list .activity-detail-meta[aria-label='Zum Vorgang']").first()).toBeVisible();
+  const mobileContact = page.locator("#activities-list .activity-row-mobile-contact").first();
+  if (testInfo.project.name.includes("mobile")) {
+    await expect(mobileContact).toBeVisible();
+    await expect(mobileContact).toHaveText("Aktivitätskontakt 1");
+  } else {
+    await expect(mobileContact).toBeHidden();
+  }
+  await expect(page.locator("#activities-list .activity-actor-team").first()).toBeVisible();
+  await expect(page.locator("#activities-list .activity-actor-team").first()).toHaveText("Versorgung");
+  await expect(page.locator("#activities-list .activity-change-heading").first()).toHaveText("Geänderte Felder");
   await expect(page.locator("#activities-list .history-change").first()).toBeVisible();
   await page.locator("#activities-list .activity-item").first().click();
   await expect(page.locator(".app-shell")).toHaveAttribute("data-active-view", "activities");
   await expect(page).toHaveURL(/#activities$/);
-  const badgeBackgrounds = await page.locator("#activities-list .activity-category-badge").evaluateAll((nodes) => (
-    [...new Set(nodes.map((node) => getComputedStyle(node).backgroundColor))]
-  ));
-  expect(badgeBackgrounds.length).toBeGreaterThanOrEqual(2);
 
   await attachScreenshot(page, testInfo, "aktivitaeten");
 
@@ -3824,7 +3805,7 @@ test("Aktivitäten: globaler Kontaktverlauf rendert aufgeräumt und lädt vollst
   await expect(page.locator("#activity-kind-filter")).toHaveValue("ownership");
   await expect(page.locator("#activities-list .activity-item").first()).toBeVisible();
   await expect(page.locator('#activities-list .activity-item:not([data-activity-category="ownership"])')).toHaveCount(0);
-  await expect(page.locator("#activities-list .activity-category-badge").first()).toHaveText("Zuständigkeit");
+  await expect(page.locator("#activities-list .activity-category-icon").first()).toHaveAttribute("title", "Zuständigkeit");
   await expect(page.locator("#activities-list .activity-details-toggle").first()).toBeVisible();
   await expectNoHorizontalOverflow(page);
 });
@@ -3994,15 +3975,14 @@ test("Aktivitäten: kanonischer Read-Pfad speist globalen und kontaktbezogenen V
   const withoutChangesItem = page.locator('#activities-list .activity-item[data-activity-event-key="format.invitation.created"]');
   await expect(withoutChangesItem).toBeVisible();
   await expect(withoutChangesItem.locator(".activity-title")).toHaveText("Zu Format eingeladen");
-  await expect(withoutChangesItem.locator(".activity-category-badge")).toHaveText("Format");
+  await expect(withoutChangesItem.locator(".activity-category-icon")).toHaveAttribute("title", "Format");
   await expect(withoutChangesItem.locator(".activity-category-icon")).toBeVisible();
   await expect(withoutChangesItem.locator(".activity-details-toggle")).toBeEnabled();
   await expect(withoutChangesItem.locator(".history-change")).toHaveCount(0);
   await withoutChangesItem.locator(".activity-details-toggle").click();
   await expect(withoutChangesItem.locator(".activity-detail-meta time")).toBeVisible();
   const globalHospitationVisual = await page.locator('#activities-list .activity-row[data-activity-event-key="hospitation.created"]').evaluate((node) => ({
-    accent: getComputedStyle(node.querySelector(".activity-entry")).borderLeftColor,
-    badge: getComputedStyle(node.querySelector(".activity-category-badge")).color,
+    accent: getComputedStyle(node.querySelector(".activity-category-icon")).color,
     icon: node.querySelector(".activity-category-icon svg")?.innerHTML || ""
   }));
   const categoryVisuals = await page.locator("#activities-list .activity-row").evaluateAll((nodes) => {
@@ -4011,8 +3991,8 @@ test("Aktivitäten: kanonischer Read-Pfad speist globalen und kontaktbezogenen V
       const key = node.getAttribute("data-activity-category") || "unknown";
       if (!byCategory.has(key)) {
         byCategory.set(key, {
-          label: node.querySelector(".activity-category-badge")?.textContent?.trim() || "",
-          accent: getComputedStyle(node.querySelector(".activity-entry")).borderLeftColor,
+          label: node.querySelector(".activity-category-icon")?.title || "",
+          accent: getComputedStyle(node.querySelector(".activity-category-icon")).color,
           hasIcon: Boolean(node.querySelector(".activity-category-icon svg"))
         });
       }
@@ -4043,8 +4023,7 @@ test("Aktivitäten: kanonischer Read-Pfad speist globalen und kontaktbezogenen V
   await expect(profileHospitation.locator(".activity-category-badge")).toHaveText("Hospitation");
   await expect(profileHospitation.locator(".activity-category-icon")).toBeVisible();
   const profileHospitationVisual = await profileHospitation.evaluate((node) => ({
-    accent: getComputedStyle(node.querySelector(".activity-entry")).borderLeftColor,
-    badge: getComputedStyle(node.querySelector(".activity-category-badge")).color,
+    accent: getComputedStyle(node.querySelector(".activity-category-icon")).color,
     icon: node.querySelector(".activity-category-icon svg")?.innerHTML || ""
   }));
   expect(profileHospitationVisual).toEqual(globalHospitationVisual);
@@ -6947,7 +6926,11 @@ test("Karte: Kartenansicht und Controls rendern", async ({ page }, testInfo) => 
     await expect(mapFrame.locator("#filters .map-filter-dropdown")).toHaveCount(3);
     await expect(mapFrame.locator("#filters .map-filter-trigger").first()).toBeVisible();
     await visibleMapMarker.hover();
-    await expect(mapFrame.locator(".map-point-tooltip")).toBeVisible();
+    const tooltip = mapFrame.locator(".map-point-tooltip");
+    await expect(tooltip).toBeVisible();
+    await expect(tooltip.locator(".map-point-tooltip__avatar")).toBeVisible();
+    await expect(tooltip.locator(".map-point-tooltip__header .map-point-tooltip__name")).not.toBeEmpty();
+    await expect(tooltip.locator(".map-point-tooltip__badges, .map-point-tooltip__details")).toHaveCount(0);
   }
   await expect(mapFrame.locator(".panel")).toBeVisible();
 
@@ -6975,17 +6958,112 @@ test("Karte: Deutschland bleibt mobil vollständig sichtbar", async ({ page }, t
   await attachScreenshot(page, testInfo, "karte-mobile-vollstaendig", { fullPage: false });
 });
 
-test("Karte: Marker öffnet nur die fokussierte Vorschau", async ({ page }, testInfo) => {
+test("Karte: Kontaktvorschau bleibt beim Ausschnitt und öffnet Details erst auf Wunsch", async ({ page }, testInfo) => {
   const isMobile = testInfo.project.name.includes("mobile");
   await page.setViewportSize(isMobile ? { width: 390, height: 844 } : { width: 1440, height: 760 });
   await gotoAuthenticated(page, "/frontend/app/versorgungs-kompass.html#map");
   const mapFrame = page.frameLocator("#map-view-frame");
+  const mapElement = mapFrame.locator("#map");
   const mapMarker = mapFrame.locator(".gematik-marker, .cat-marker").first();
 
   await expect(mapMarker).toBeVisible({ timeout: 20_000 });
+  const camera = () => mapElement.evaluate(() => {
+    const leafletMap = globalThis.eval("map");
+    const { lat, lng } = leafletMap.getCenter();
+    return { lat, lng, zoom: leafletMap.getZoom() };
+  });
+  await mapElement.evaluate(() => globalThis.eval("map").stop());
+  const initialCamera = await camera();
   await mapMarker.click();
 
   const drawer = page.locator("#detail-drawer");
+  const preview = mapFrame.getByRole("region", { name: "Kontaktvorschau" });
+  await expect(preview).toBeVisible();
+  await expect(preview).toHaveClass(/is-marker-preview/);
+  const badges = preview.locator(".map-contact-preview-badges > *");
+  await expect(badges).toHaveCount(3);
+  await expect(badges.nth(0)).toHaveClass(/--location/);
+  await expect(badges.nth(1)).toHaveClass(/--organization/);
+  await expect(badges.nth(2)).toHaveClass(/__sector/);
+  await expect(mapFrame.locator(".map-point-tooltip")).toBeHidden();
+  await expect(mapMarker.locator("..")).toHaveAttribute("aria-pressed", "true");
+  await expect(drawer).not.toHaveClass(/is-open/);
+  expect(await camera()).toEqual(initialCamera);
+  const [mapBox, markerBox, previewBox] = await Promise.all([
+    mapElement.boundingBox(), mapMarker.locator("..").boundingBox(), preview.boundingBox()
+  ]);
+  expect(previewBox.x).toBeGreaterThanOrEqual(mapBox.x);
+  expect(previewBox.x + previewBox.width).toBeLessThanOrEqual(mapBox.x + mapBox.width);
+  expect(previewBox.y).toBeGreaterThanOrEqual(mapBox.y);
+  expect(previewBox.y + previewBox.height).toBeLessThanOrEqual(mapBox.y + mapBox.height);
+  const gapX = Math.max(0, markerBox.x - previewBox.x - previewBox.width, previewBox.x - markerBox.x - markerBox.width);
+  const gapY = Math.max(0, markerBox.y - previewBox.y - previewBox.height, previewBox.y - markerBox.y - markerBox.height);
+  expect(Math.hypot(gapX, gapY)).toBeLessThanOrEqual(12);
+
+  const footer = preview.locator(".map-contact-preview-footer");
+  const footerLayout = await footer.evaluate((element) => {
+    const style = getComputedStyle(element);
+    const contentWidth = element.clientWidth - parseFloat(style.paddingLeft) - parseFloat(style.paddingRight);
+    return {
+      widthDelta: Math.abs(contentWidth - element.querySelector("button").getBoundingClientRect().width),
+      divider: parseFloat(style.borderTopWidth)
+    };
+  });
+  expect(footerLayout.widthDelta).toBeLessThanOrEqual(1);
+  expect(footerLayout.divider).toBeGreaterThan(0);
+
+  const mapBackground = await mapElement.evaluate((element) => {
+    const bounds = element.getBoundingClientRect();
+    for (const [xRatio, yRatio] of [[0.2, 0.5], [0.45, 0.6], [0.6, 0.25], [0.8, 0.3]]) {
+      const x = bounds.width * xRatio;
+      const y = bounds.height * yRatio;
+      const target = document.elementFromPoint(bounds.left + x, bounds.top + y);
+      if (target && element.contains(target) && !target.closest(".leaflet-interactive, .leaflet-control, .leaflet-tooltip")) {
+        return { x, y };
+      }
+    }
+    return null;
+  });
+  expect(mapBackground).not.toBeNull();
+  await mapElement.click({ position: mapBackground });
+  await expect(preview).toBeHidden();
+  await expect(mapMarker.locator("..")).toHaveAttribute("aria-pressed", "false");
+  expect(await camera()).toEqual(initialCamera);
+  await mapMarker.click();
+  await expect(preview).toBeVisible();
+  const sectorFilter = mapFrame.locator(isMobile ? "#mobile-sector-filter" : "#filters .map-filter-trigger").first();
+  await sectorFilter.click();
+  await expect(preview).toBeHidden();
+  await expect(sectorFilter).toHaveAttribute("aria-expanded", "true");
+  await sectorFilter.click();
+  await mapMarker.click();
+  await expect(preview).toBeVisible();
+  await page.locator("#workspace-view-title").click();
+  await expect(preview).toBeHidden();
+  await mapMarker.click();
+  await expect(preview).toBeVisible();
+
+  if (isMobile) {
+    const listContact = mapFrame.locator("#list [data-map-contact-id]").last();
+    await listContact.click();
+    await expect(listContact).toHaveAttribute("aria-pressed", "true");
+    await expect(listContact.locator("xpath=following-sibling::*[1]")).toHaveAttribute("id", "map-contact-preview");
+    await expect(preview).toBeInViewport({ ratio: 0.8 });
+    expect(await camera()).toEqual(initialCamera);
+  }
+
+  const openDetails = preview.getByRole("button", { name: "Kontaktdetails öffnen" });
+  await openDetails.click();
+  await expect(drawer.locator("#detail-panel")).toBeFocused();
+  await drawer.getByRole("button", { name: "Details schließen" }).click();
+  await expect(drawer).toHaveAttribute("aria-hidden", "true");
+  await expect(openDetails).toBeFocused();
+  await openDetails.click();
+  await expect(drawer.locator("#detail-panel")).toBeFocused();
+  await page.keyboard.press("Escape");
+  await expect(drawer).toHaveAttribute("aria-hidden", "true");
+  await expect(openDetails).toBeFocused();
+  await openDetails.click();
   await expect(page.locator(".app-shell")).toHaveAttribute("data-active-view", "map");
   await expect(page).toHaveURL(/#map$/);
   await expect(drawer).toHaveClass(/is-open/);
@@ -7149,7 +7227,7 @@ test("Mein Profil: Einstellungen sind als Profil-Reiter erreichbar", async ({ pa
 
   await expect(page.locator('[data-view-panel="profile"]')).toBeVisible();
   await expect(page.locator("#sidebar-settings-button")).toHaveCount(0);
-  await expect(page.locator("#sidebar-about-button")).toHaveCount(0);
+  await expect(page.locator("#sidebar-about-button")).not.toHaveAttribute("aria-current", "page");
   await expect(page.locator('[data-profile-tab="settings"]')).toHaveAttribute("aria-selected", "true");
   await expect(page.locator("#profile-tab-settings")).toBeVisible();
   await expect(page.locator("#profile-tab-settings .settings-wip-note")).toBeVisible();
@@ -7157,8 +7235,8 @@ test("Mein Profil: Einstellungen sind als Profil-Reiter erreichbar", async ({ pa
   await attachScreenshot(page, testInfo, "profil-einstellungen");
 });
 
-test("Mein Profil: Über die App ist als Profil-Reiter erreichbar", async ({ page }, testInfo) => {
-  await gotoAuthenticated(page, "/frontend/app/versorgungs-kompass.html#profile-about", { role: "admin" });
+test("Sidebar: Über die App ist über den App-Bereich und die bestehende URL erreichbar", async ({ page }, testInfo) => {
+  await gotoAuthenticated(page, "/frontend/app/versorgungs-kompass.html#profile-about", { role: "viewer" });
 
   await expect(page.locator('[data-view-panel="profile"]')).toBeVisible();
   await expect(page.locator('[data-profile-tab="about"]')).toHaveAttribute("aria-selected", "true");
@@ -7166,6 +7244,22 @@ test("Mein Profil: Über die App ist als Profil-Reiter erreichbar", async ({ pag
   await expect(page.locator("#profile-tab-about .about-intro__highlight")).toContainText("verbindet Menschen");
   await expect(page.locator("#profile-tab-about .about-topic")).toHaveCount(6);
   await expect(page.locator("#profile-tab-about")).not.toContainText("Changelog");
+
+  const appGroup = page.getByRole("group", { name: "App", exact: true });
+  const profileButton = page.locator("#sidebar-profile-button");
+  const aboutButton = page.locator("#sidebar-about-button");
+  await expect(aboutButton).toHaveAttribute("aria-current", "page");
+  await expect(profileButton).not.toHaveAttribute("aria-current", "page");
+  await openMobileSidebarIfNeeded(page);
+  await expect(appGroup.getByRole("button", { name: "App-Tour starten" })).toBeVisible();
+  await profileButton.click();
+  await expect(profileButton).toHaveAttribute("aria-current", "page");
+  await openMobileSidebarIfNeeded(page);
+  await appGroup.getByRole("button", { name: "Über die App" }).click();
+  await expect(page).toHaveURL(/#profile-about$/);
+  await expect(page.locator("#workspace-view-title")).toHaveText("Über die App");
+  await expect(aboutButton).toHaveAttribute("aria-current", "page");
+  await expect(profileButton).not.toHaveAttribute("aria-current", "page");
 
   await attachScreenshot(page, testInfo, "profil-about");
 });
@@ -7231,59 +7325,64 @@ for (const role of ["admin", "editor", "viewer"]) {
   });
 }
 
-test("Produkttour: Sidebar-Einstieg startet mit #Mitmachen und bewahrt den Arbeitskontext", async ({ page }, testInfo) => {
-  await gotoAuthenticated(page, "/frontend/app/versorgungs-kompass.html#framework", { role: "editor" });
-
-  await expect(page.locator('[data-view-panel="framework"]')).toBeVisible();
-  await openMobileSidebarIfNeeded(page);
-  await page.locator("#sidebar-tour-button").click();
-
-  await expect(page.locator("#product-tour-title")).toHaveText("Willkommen bei #Mitmachen");
-  await expect(page.locator("#product-tour-copy")).toContainText("Menschen, Beobachtungen und Wissen");
-  await expect(page.locator("#product-tour-details")).toContainText("Vernetzen");
-  await expect(page.locator("#product-tour-details")).toContainText("Verstehen");
-  await expect(page.locator("#product-tour-details")).toContainText("Gestalten");
-  await expect(page.locator("#product-tour-details li")).toHaveCount(3);
-  await expect(page.locator(".product-tour__brand-copy")).toContainText("Versorgungs-Kompass");
-  await expect(page.locator("#product-tour-step-icon")).toHaveText("✦");
-  await expect(page.locator("#product-tour")).toHaveClass(/is-welcome/);
-  const welcomeBackdropFilter = await page.locator("#product-tour-backdrop").evaluate((element) => getComputedStyle(element).backdropFilter || getComputedStyle(element).webkitBackdropFilter);
-  expect(welcomeBackdropFilter).toContain("blur(18px)");
-  await expect(page.locator(".product-tour-highlight")).toHaveCount(0);
-  await expect(page).toHaveURL(/#framework$/);
-  await attachScreenshot(page, testInfo, "product-tour-welcome", { fullPage: false });
-
+test("Produkttour: Die Startseite stellt alle vier Kompasse einzeln vor", async ({ page }, testInfo) => {
+  await gotoAuthenticated(page, "/frontend/app/versorgungs-kompass.html#home", { role: "viewer" });
+  await page.locator("#home-tour-button").click();
+  const tour = page.locator("#product-tour");
+  await expect(tour).toHaveAttribute("data-tour-step-id", "home-welcome");
+  await expect(page.locator("#product-tour-meta")).toHaveText("Willkommen · Schritt 1 von 5");
   await page.keyboard.press("Shift+Tab");
   await expect(page.locator("#product-tour-next")).toBeFocused();
   await page.keyboard.press("Tab");
   await expect(page.locator("#product-tour-skip")).toBeFocused();
 
-  await page.locator("#product-tour-next").click();
-  await expect(page.locator("#product-tour-title")).toHaveText("Dein Profil ist der Ausgangspunkt");
-  await expect(page.locator("#product-tour")).toHaveAttribute("data-tour-step-id", "profile");
-  await expect(page.locator('[data-view-panel="profile"]')).toBeVisible();
-  await expect(page.locator('[data-sidebar-section="account"]')).toHaveClass(/product-tour-sidebar-section/);
-  await expect(page.locator("#sidebar-profile-button")).toHaveClass(/product-tour-sidebar-page/);
-  await expect(page.locator("#product-tour-details li")).toHaveCount(2);
-  await expect(page.locator("#product-tour")).not.toHaveClass(/is-welcome/);
-  await expect(page.locator(".product-tour-highlight")).toHaveCount(1);
-  await page.locator("#product-tour-next").click();
-  await expect(page.locator("#product-tour-title")).toHaveText("Orientierung in der Sidebar");
-  await expect(page.locator("#product-tour")).toHaveAttribute("data-tour-step-id", "sidebar-orientation");
-  await expect(page.locator("#product-tour-copy")).toContainText("Hospitation");
-  await expect(page.locator(".product-tour-highlight")).toHaveCount(1);
-  await expect(page.locator('[data-sidebar-section="care"]')).toHaveClass(/product-tour-sidebar-section/);
-  await page.locator("#product-tour-next").click();
-  await expect(page.locator("#product-tour-title")).toHaveText("Teamprofile machen Zusammenarbeit transparent");
-  await expect(page.locator('[data-view-panel="team"]')).toBeVisible();
-  await expect(page.locator("#product-tour-copy")).toContainText("Ansprechperson");
-  await expect(page).toHaveURL(/#framework$/);
+  for (const [group, title] of [
+    ["care", "Versorgungs-Kompass"],
+    ["stakeholders", "Stakeholder-Kompass"],
+    ["planning", "Hospitations-Kompass"],
+    ["formats", "Format-Kompass"]
+  ]) {
+    await page.locator("#product-tour-next").click();
+    await expect(tour).toHaveAttribute("data-tour-step-id", `home-${group}`);
+    await expect(page.locator("#product-tour-title")).toHaveText(title);
+    await expect(page.locator(`[data-home-module="${group}"]`)).toHaveClass(/product-tour-highlight/);
+    await expect(page.locator("#view-home")).toBeVisible();
+    await expectTourPanelInsideViewport(page);
+  }
 
-  await page.locator("#product-tour-skip").click();
-  await expect(page.locator("#product-tour")).toBeHidden();
-  await expect(page.locator('[data-view-panel="framework"]')).toBeVisible();
-  await expect(page).toHaveURL(/#framework$/);
+  await attachScreenshot(page, testInfo, "product-tour-home", { fullPage: false });
+  await page.locator("#product-tour-next").click();
+  await expect(tour).toBeHidden();
+  await expect(page.locator("#view-home")).toBeVisible();
+  await expect(page.locator("#home-tour-button")).toBeFocused();
 });
+
+for (const { name, route, view, steps } of [
+  { name: "Versorgung", route: "contacts", view: "contacts", steps: ["map", "care-contacts", "organizations"] },
+  { name: "Stakeholder", route: "stakeholders", view: "stakeholderOverview", steps: ["stakeholder-perspectives", "stakeholder-organizations"] },
+  { name: "Hospitation", route: "framework", view: "framework", steps: ["hospitation-overview", "hospitation-dates", "hospitation-method"] },
+  { name: "Formate", route: "formats", view: "formats", steps: ["format-status", "format-workspace"] }
+]) {
+  test(`Produkttour: ${name} bleibt im gewählten Kompass und stellt den Ausgangspunkt wieder her`, async ({ page }) => {
+    await gotoAuthenticated(page, `/frontend/app/versorgungs-kompass.html#${route}`, { role: "viewer" });
+    const initialUrl = page.url();
+    const tour = page.locator("#product-tour");
+    await openMobileSidebarIfNeeded(page);
+    await page.locator("#sidebar-tour-button").click();
+
+    for (const [index, step] of steps.entries()) {
+      await expect(tour).toHaveAttribute("data-tour-step-id", step);
+      await expect(page.locator("#product-tour-meta")).toHaveText(`Schritt ${index + 1} von ${steps.length}`);
+      await expectTourPanelInsideViewport(page);
+      await expect(page).toHaveURL(initialUrl);
+      await page.locator("#product-tour-next").click();
+    }
+
+    await expect(tour).toBeHidden();
+    await expect(page.locator(`[data-view-panel="${view}"]`)).toBeVisible();
+    await expect(page).toHaveURL(initialUrl);
+  });
+}
 
 test("Produkttour: Admin-Schritte bleiben sichtbar und bedienbar", async ({ page }) => {
   test.slow();
@@ -7403,9 +7502,8 @@ test("Produkttour: Admin-Schritte bleiben sichtbar und bedienbar", async ({ page
 
 for (const role of ["editor", "viewer"]) {
   test(`Produkttour: ${role} durchläuft alle freigegebenen Schritte`, async ({ page }) => {
-    await gotoAuthenticated(page, "/frontend/app/versorgungs-kompass.html#contacts", { role });
-    await openMobileSidebarIfNeeded(page);
-    await page.locator("#sidebar-tour-button").click();
+    await gotoAuthenticated(page, "/frontend/app/versorgungs-kompass.html#profile", { role });
+    await page.locator("#profile-tour-start").click();
     const expectedIds = [
       "welcome",
       "profile",
@@ -7437,7 +7535,7 @@ for (const role of ["editor", "viewer"]) {
     }
 
     await expect(page.locator("#product-tour")).toBeHidden();
-    await expect(page.locator('[data-view-panel="contacts"]')).toBeVisible();
+    await expect(page.locator('[data-view-panel="profile"]')).toBeVisible();
   });
 }
 
@@ -7455,9 +7553,8 @@ test("Produkttour: alle Schritte bleiben bei 320 px, Tablet und Desktop kollisio
     { width: 1440, height: 900 }
   ]) {
     await page.setViewportSize(viewport);
-    await gotoAuthenticated(page, "/frontend/app/versorgungs-kompass.html#framework", { role: "admin" });
-    await openMobileSidebarIfNeeded(page);
-    await page.locator("#sidebar-tour-button").click();
+    await gotoAuthenticated(page, "/frontend/app/versorgungs-kompass.html#profile", { role: "admin" });
+    await page.locator("#profile-tour-start").click();
     for (const [index, stepId] of expectedIds.entries()) {
       await expect(page.locator("#product-tour")).toHaveAttribute("data-tour-step-id", stepId);
       await expectTourPanelInsideViewport(page);
@@ -7475,9 +7572,8 @@ test("Produkttour: alle Schritte bleiben bei 320 px, Tablet und Desktop kollisio
 });
 
 test("Produkttour: fehlendes und verspätet geladenes Ziel werden robust behandelt", async ({ page }) => {
-  await gotoAuthenticated(page, "/frontend/app/versorgungs-kompass.html#contacts", { role: "viewer" });
-  await openMobileSidebarIfNeeded(page);
-  await page.locator("#sidebar-tour-button").click();
+  await gotoAuthenticated(page, "/frontend/app/versorgungs-kompass.html#profile", { role: "viewer" });
+  await page.locator("#profile-tour-start").click();
   await page.evaluate(() => {
     const target = document.querySelector("#profile-tab-profile .profile-hero");
     if (!target) return;
@@ -7500,7 +7596,7 @@ test("Produkttour: fehlendes und verspätet geladenes Ziel werden robust behande
   await expect(page.locator("#product-tour")).toHaveAttribute("data-tour-step-id", "profile");
   await page.locator("#product-tour-skip").click();
   await expect(page.locator("#product-tour")).toBeHidden();
-  await expect(page.locator('[data-view-panel="contacts"]')).toBeVisible();
+  await expect(page.locator('[data-view-panel="profile"]')).toBeVisible();
 });
 
 test("Produkttour: geöffnetes Kontaktprofil, Reiter und Scrollposition werden wiederhergestellt", async ({ page }, testInfo) => {
@@ -7518,8 +7614,7 @@ test("Produkttour: geöffnetes Kontaktprofil, Reiter und Scrollposition werden w
   });
 
   await page.locator("#sidebar-tour-button").click({ force: true });
-  await page.locator("#product-tour-next").click();
-  await expect(page.locator("#product-tour")).toHaveAttribute("data-tour-step-id", "profile");
+  await expect(page.locator("#product-tour")).toHaveAttribute("data-tour-step-id", "map");
   await expect(page.locator("#detail-drawer")).not.toHaveClass(/is-open/);
   await page.locator("#product-tour-skip").click();
 
@@ -7533,12 +7628,12 @@ test("Produkttour: geöffnetes Kontaktprofil, Reiter und Scrollposition werden w
 test("Produkttour: 200 Prozent Schriftgröße bleibt in allen Schritten kollisionsfrei", async ({ page }, testInfo) => {
   test.skip(testInfo.project.name.includes("mobile"), "Die starke Schriftvergrößerung wird einmal vollständig im Desktop-Projekt geprüft.");
   await page.setViewportSize({ width: 1440, height: 1000 });
-  await gotoAuthenticated(page, "/frontend/app/versorgungs-kompass.html", { role: "admin" });
+  await gotoAuthenticated(page, "/frontend/app/versorgungs-kompass.html#profile", { role: "admin" });
   await page.evaluate(() => {
     document.documentElement.style.fontSize = "200%";
     window.dispatchEvent(new Event("resize"));
   });
-  await page.locator("#sidebar-tour-button").click();
+  await page.locator("#profile-tour-start").click();
   const stepCount = 17;
   for (let index = 0; index < stepCount; index += 1) {
     await expectTourPanelInsideViewport(page);
@@ -7685,428 +7780,35 @@ test("Importe: geschützte Registrierungen lassen sich zurückstellen", async ({
   await expect(page.locator("#registrations-list .registration-row")).toHaveCount(1);
 });
 
-test("Versorgungs-Kompass: Übersicht verbindet Kartenvorschau und Arbeitsbereiche", async ({ page }, testInfo) => {
-  await gotoAuthenticated(page, "/frontend/app/versorgungs-kompass.html#care", { role: "admin" });
-
-  const overview = page.locator('[data-view-panel="careOverview"]');
-  const mapPreview = overview.locator(".care-overview-map");
-  const mapOpenLink = mapPreview.locator(".care-overview-map__open");
-  const destinations = overview.locator(".care-overview-destination:visible");
-  const previewFrame = page.frameLocator("#care-overview-map-frame");
-  await expect(page.locator(".app-shell")).toHaveAttribute("data-active-view", "careOverview");
-  await expect(page).toHaveURL(/#care$/);
-  await expect(page.locator("#workspace-view-title")).toHaveText("Übersicht");
-  await expect(page.locator('[data-view-tab="careOverview"]')).toHaveAttribute("aria-current", "page");
-  await expect(overview).toBeVisible();
-  await expect(mapOpenLink).toHaveAttribute("href", "#map");
-  await expect(mapPreview.locator(".care-overview-map__hitarea")).toHaveCount(0);
-  await expect(overview.locator(".care-overview-intro")).toHaveCount(0);
-  await expect(page.locator(".crm-shell > .controls")).toBeHidden();
-  await expect(destinations).toHaveCount(4);
-  await expect(destinations.locator(".care-overview-destination__copy > strong")).toHaveText(["Kontakte", "Organisationen", "Auswertung", "Aktivitäten"]);
-  await expect(destinations.locator(".care-overview-destination__copy > span:last-child")).toHaveText([
-    "Ansprechpersonen und Kontaktwege finden.",
-    "Einrichtungen im Netzwerk einordnen.",
-    "Struktur und Verteilung auswerten.",
-    "Änderungen und Vorgänge nachvollziehen."
-  ]);
-  await expect(page.locator("#care-overview-contact-count-value")).toHaveText(/\d+/);
-  await expect(page.locator("#care-overview-contact-count-label")).toBeEmpty();
-  await expect(page.locator("#care-overview-organization-count-value")).toHaveText(/\d+/);
-  await expect(page.locator("#care-overview-organization-count-label")).toHaveText(/^(?:aus Kontakten abgeleitet)?$/);
-  await expect(overview).not.toContainText("im Bestand");
-  await expect(overview.locator(".care-overview-map__kicker")).toHaveText("Kontakte nach Bundesland");
-  await expect(page.locator("#care-overview-map-title")).toHaveText("Deutschlandkarte");
-  await expect(page.locator("#care-overview-sector-count-value")).toHaveText(/\d+/);
-  await expect(page.locator("#care-overview-sector-count-label")).toHaveText(/Sektor(?:en)? mit Kontakten/);
-  await expect(page.locator("#care-overview-activity-count")).toHaveAttribute("data-state", "ready");
-  await expect(page.locator("#care-overview-activity-count-value")).toHaveText(/\d+/);
-  await expect(page.locator("#care-overview-activity-count-label")).toHaveText("letzte 30 Tage");
-  await expect(page.locator("#care-overview-map-counter")).toHaveAttribute("data-state", "ready");
-  await expect(page.locator("#care-overview-map-count")).toHaveText(/\d+/);
-  await expect(page.locator("#care-overview-map-count-label")).toHaveText(/Kontakte?/);
-  await expect(mapPreview.locator(".care-overview-map__meta #care-overview-map-counter")).toBeVisible();
-  await expect(overview.locator(".care-overview-map__meta")).not.toContainText("räumlich zugeordnet");
-  await expect(overview.locator(".care-overview-map__meta")).not.toContainText("Bundesländer");
-  await expect(mapPreview).toBeVisible();
-  await expect(mapPreview.locator("a")).toHaveCount(1);
-  await expect(mapOpenLink).toHaveAccessibleName("Deutschlandkarte öffnen");
-  await expect(previewFrame.locator("body")).toHaveClass(/overview-preview-mode/);
-  await expect(previewFrame.locator("#map")).toBeVisible();
-  await expect(previewFrame.locator("#map")).toHaveCSS("background-image", "none");
-  const compassMotif = previewFrame.locator(".care-overview-compass-motif");
-  await expect(compassMotif).toBeVisible();
-  await expect(compassMotif).toHaveAttribute("aria-hidden", "true");
-  await expect(compassMotif.locator("svg")).toBeVisible();
-  expect(await compassMotif.evaluate((node) => Number.parseInt(getComputedStyle(node).zIndex, 10))).toBe(700);
-  await expect(mapPreview.locator(".care-overview-map__head")).toHaveCSS("background-color", "rgb(1, 14, 82)");
-  await expect(mapPreview.locator(".care-overview-map__head")).toHaveCSS("border-bottom-width", "3px");
-  await expect(previewFrame.locator(".sidebar")).toBeHidden();
-  await expect(previewFrame.locator(".map-search-shell")).toBeHidden();
-  await expect(previewFrame.locator(".map-mode-controls")).toBeHidden();
-  const previewLegend = page.locator(".care-overview-map__legend");
-  const previewLegendScale = previewLegend.locator(".care-overview-map__legend-scale");
-  await expect(mapPreview.locator(".care-overview-map__preview > .care-overview-map__meta")).toBeVisible();
-  await expect(previewLegend).toBeVisible();
-  await expect(previewLegend).toHaveAccessibleName("Kontaktverteilung: von weniger bis mehr Kontakten");
-  await expect(previewLegend.locator(".care-overview-map__legend-caption")).toHaveCount(0);
-  await expect(previewLegend).not.toContainText("Kontakte nach Bundesland");
-  await expect(previewLegend).toHaveText(/weniger\s*mehr/);
-  await expect(previewLegendScale).toHaveCSS("background-image", /linear-gradient/);
-  await expect(page.locator(".care-overview-map__note")).toHaveCount(0);
-  const previewLegendPalette = await page.evaluate(() => [
-    "--care-map-density-empty",
-    "--care-map-density-low",
-    "--care-map-density-mid",
-    "--care-map-density-cobalt",
-    "--care-map-density-high"
-  ].map((property) => getComputedStyle(document.documentElement).getPropertyValue(property).trim()));
-  expect(previewLegendPalette).toEqual(["#dbe4ef", "#737aa0", "#4d5686", "#27346b", "#010e52"]);
-  await expect(previewFrame.locator(".map-cluster-marker")).toHaveCount(0);
-  await expect(previewFrame.locator(".gematik-marker")).toHaveCount(0);
-  const mappedSummaryCount = Number.parseInt((await page.locator("#care-overview-map-count").textContent()) || "", 10);
-  expect(Number.isFinite(mappedSummaryCount)).toBe(true);
-  expect(await page.evaluate(() => globalThis.eval(
-    'careOverviewMapSummary([{ id: "invalid-map-position", lat: 91, lon: 8 }]).mappedCount'
-  ))).toBe(0);
-  await expect.poll(() => previewFrame.locator("#map").evaluate(() =>
-    globalThis.eval("currentEntries.length")
-  )).toBe(mappedSummaryCount);
-  await expect.poll(() => previewFrame.locator("#map").evaluate(() =>
-    globalThis.eval("heatMapActive && stateHeatLayer && map.hasLayer(stateHeatLayer)")
-  )).toBe(true);
-  const schematicStates = previewFrame.locator(".care-overview-schematic-map__state");
-  const schematicMap = previewFrame.locator(".care-overview-schematic-map");
-  await expect(schematicMap).toBeVisible();
-  expect(await schematicMap.evaluate((node) => Number.parseInt(getComputedStyle(node).zIndex, 10))).toBeLessThan(700);
-  await expect(schematicMap).toHaveAttribute("viewBox", "0 0 652 848");
-  await expect(schematicMap).toHaveAttribute("data-path-sha256", "be97ff28fe33663eab2e813a0644a92d6f5acea8218c50f508bd9db182d19220");
-  await expect(previewFrame.locator("body")).toHaveClass(/has-overview-schematic-map/);
-  await expect(schematicStates).toHaveCount(16);
-  await expect(previewFrame.locator(".care-overview-schematic-map__state-group")).toHaveCount(16);
-  await expect(previewFrame.locator(".care-overview-schematic-map__label")).toHaveCount(16);
-  await expect(previewFrame.locator(".care-overview-state-tooltip")).toHaveCount(0);
-  await expect(schematicStates.first()).toHaveCSS("cursor", "default");
-  await expect(page.locator("#care-overview-map-frame")).toHaveCSS(
-    "pointer-events",
-    testInfo.project.name === "chromium-desktop" ? "auto" : "none"
-  );
-  await expect(previewFrame.locator('.care-overview-schematic-map__state[data-geometry="area"]')).toHaveCount(12);
-  await expect(previewFrame.locator('.care-overview-schematic-map__state[data-geometry="compact"]')).toHaveCount(4);
-  const previewGeometryState = await schematicStates.evaluateAll((paths) => ({
-    stateNames: paths.map((path) => path.dataset.state),
-    referenceIds: paths.map((path) => path.dataset.referenceId),
-    pathData: paths.map((path) => path.getAttribute("d"))
-  }));
-  expect(previewGeometryState.stateNames).toEqual([
-    "Bayern", "Baden-Württemberg", "Thüringen", "Hessen", "Rheinland-Pfalz", "Nordrhein-Westfalen",
-    "Niedersachsen", "Bremen", "Saarland", "Brandenburg", "Sachsen", "Sachsen-Anhalt",
-    "Mecklenburg-Vorpommern", "Schleswig-Holstein", "Hamburg", "Berlin"
-  ]);
-  expect(previewGeometryState.referenceIds).toEqual([
-    "bayern", "bawue", "thue", "hessen", "rheinpf", "nrw", "nieders", "bremen",
-    "saar", "brandenburg", "sachs", "sachan", "mcpom", "schlehol", "hamburg", "berlin"
-  ]);
-  expect(createHash("sha256").update(previewGeometryState.referenceIds
-    .map((referenceId, index) => `${referenceId}=${previewGeometryState.pathData[index]}`)
-    .join("\n")).digest("hex"))
-    .toBe("be97ff28fe33663eab2e813a0644a92d6f5acea8218c50f508bd9db182d19220");
-  await expect(previewFrame.locator(".leaflet-map-pane")).toHaveCSS("visibility", "hidden");
-  expect(await previewFrame.locator("#map").evaluate(() => globalThis.eval(`
-    Array.from(document.querySelectorAll(".care-overview-schematic-map__state")).every((path) => {
-      const total = stateCountsByKey[stateNameKey(path.dataset.state)] || 0;
-      return path.getAttribute("fill") === heatColor(total, stateCountMax);
-    })
-  `))).toBe(true);
-  if (testInfo.project.name === "chromium-desktop") {
-    const northRhineWestphaliaGroup = previewFrame.locator('.care-overview-schematic-map__state-group[data-state="Nordrhein-Westfalen"]');
-    const northRhineWestphalia = previewFrame.locator('.care-overview-schematic-map__state[data-state="Nordrhein-Westfalen"]');
-    const stateLabel = northRhineWestphaliaGroup.locator(".care-overview-schematic-map__label");
-    const stateMetric = stateLabel.locator(".care-overview-schematic-map__label-metric");
-    const stateName = stateLabel.locator(".care-overview-schematic-map__label-name");
-    const stateCount = Number.parseInt(await northRhineWestphalia.getAttribute("data-contact-count") || "0", 10);
-    await expect(northRhineWestphalia.locator("title")).toHaveCount(0);
-    await expect(stateLabel).toHaveCSS("fill", "rgb(255, 255, 255)");
-    await expect(stateLabel).toHaveCSS("font-size", "28px");
-    await expect(stateLabel).toHaveCSS("opacity", "0");
-    await expect(stateName).toHaveText("Nordrhein-Westfalen");
-    await expect(stateName).toHaveCSS("font-size", "20px");
-    await expect(stateMetric).toHaveText(`${stateCount} ${stateCount === 1 ? "Kontakt" : "Kontakte"}`);
-    await northRhineWestphalia.hover();
-    await expect(stateLabel).toHaveCSS("opacity", "1");
-    await expect(page.locator("#care-overview-map-frame")).toHaveCSS("transform", "none");
-    await northRhineWestphalia.click();
-    await expect(page).toHaveURL(/#care$/);
-    expect(await previewFrame.locator("#map").evaluate(() => globalThis.eval("selectedState"))).toBe("");
-    await page.mouse.move(0, 0);
-    await expect(stateLabel).toHaveCSS("opacity", "0");
-    await northRhineWestphalia.hover();
-    await expect(stateLabel).toHaveCSS("opacity", "1");
-    await attachScreenshot(page, testInfo, "versorgungs-kompass-uebersicht-bundesland-hover");
-    await page.mouse.move(0, 0);
-    await expect(stateLabel).toHaveCSS("opacity", "0");
-  } else {
-    await expect(previewFrame.locator(".care-overview-schematic-map__label").first()).toHaveCSS("opacity", "0");
-  }
-  const previewHeatScale = await previewFrame.locator("#map").evaluate(() =>
-    globalThis.eval("[0, 1, 2, 4].map((value) => heatColor(value, 4))")
-  );
-  const [previewFrameBox, previewMapBox] = await Promise.all([
-    page.locator("#care-overview-map-frame").boundingBox(),
-    previewFrame.locator("#map").boundingBox()
-  ]);
-  expect(previewFrameBox).not.toBeNull();
-  expect(previewMapBox).not.toBeNull();
-  expect(Math.abs(previewMapBox.height - previewFrameBox.height)).toBeLessThanOrEqual(2);
-  const previewStateBounds = await previewFrame.locator(".care-overview-schematic-map__states").evaluate((node) => {
-    const box = node.getBoundingClientRect();
-    return { top: box.top, right: box.right, bottom: box.bottom, left: box.left };
-  });
-  const mapRows = await mapPreview.evaluate((node) => {
-    const bounds = (selector) => {
-      const element = node.querySelector(selector);
-      const box = element?.getBoundingClientRect();
-      return box ? {
-        top: box.top,
-        right: box.right,
-        bottom: box.bottom,
-        left: box.left,
-        width: box.width,
-        height: box.height
-      } : null;
-    };
-    return {
-      head: bounds(".care-overview-map__head"),
-      preview: bounds(".care-overview-map__preview"),
-      frame: bounds(".care-overview-map__frame"),
-      meta: bounds(".care-overview-map__meta"),
-      counter: bounds(".care-overview-map__counter"),
-      legend: bounds(".care-overview-map__legend"),
-      legendScale: bounds(".care-overview-map__legend-scale"),
-      legendMore: bounds(".care-overview-map__legend > span:last-child"),
-      legendLess: bounds(".care-overview-map__legend > span:first-child")
-    };
-  });
-  expect(mapRows.head.bottom).toBeLessThanOrEqual(mapRows.preview.top + 1);
-  expect(mapRows.meta.top).toBeGreaterThanOrEqual(mapRows.frame.bottom);
-  expect(Math.abs(mapRows.meta.bottom - mapRows.preview.bottom)).toBeLessThanOrEqual(1);
-  expect(mapRows.counter.left).toBeGreaterThanOrEqual(mapRows.meta.left);
-  expect(mapRows.legend.right).toBeLessThanOrEqual(mapRows.meta.right);
-  expect(mapRows.counter.right).toBeLessThanOrEqual(mapRows.legend.left);
-  expect(mapRows.legendLess.right).toBeLessThanOrEqual(mapRows.legendScale.left);
-  expect(mapRows.legendMore.left).toBeGreaterThanOrEqual(mapRows.legendScale.right);
-  expect(mapRows.legendScale.width).toBeGreaterThan(mapRows.legendScale.height);
-  expect(mapRows.legendScale.height).toBeLessThanOrEqual(12);
-  expect(previewStateBounds.top).toBeGreaterThanOrEqual(-1);
-  expect(previewStateBounds.bottom).toBeLessThanOrEqual(previewFrameBox.height + 1);
-  await expect.poll(() => previewFrame.locator("#map").evaluate(() => {
-    const mapBounds = globalThis.eval("map.getBounds()");
-    const germanyBounds = globalThis.eval("L.geoJSON(DE_GEOJSON).getBounds()");
-    return mapBounds.contains(germanyBounds);
-  })).toBe(true);
-  await expectNoHorizontalOverflow(page);
-
-  if (testInfo.project.name === "chromium-desktop") {
-    const mapVisualStateBeforeHover = await mapPreview.evaluate((node) => ({
-      boxShadow: getComputedStyle(node).boxShadow,
-      frameTransform: getComputedStyle(node.querySelector(".care-overview-map__frame")).transform,
-      actionBackground: getComputedStyle(node.querySelector(".care-overview-map__open")).backgroundColor
-    }));
-    await mapPreview.locator(".care-overview-map__head h2").hover();
-    await expect(mapPreview).toHaveCSS("box-shadow", mapVisualStateBeforeHover.boxShadow);
-    await expect(mapPreview.locator(".care-overview-map__frame")).toHaveCSS("transform", mapVisualStateBeforeHover.frameTransform);
-    await expect(mapOpenLink).toHaveCSS("background-color", mapVisualStateBeforeHover.actionBackground);
-    await mapOpenLink.hover();
-    await expect.poll(() => mapPreview.locator(".care-overview-map__open").evaluate((node) => getComputedStyle(node).backgroundColor))
-      .not.toBe(mapVisualStateBeforeHover.actionBackground);
-    await expect(mapPreview.locator(".care-overview-map__frame")).toHaveCSS("transform", mapVisualStateBeforeHover.frameTransform);
-    await page.mouse.move(0, 0);
-  }
-
-  const geometry = await overview.evaluate((panel) => {
-    const rectangle = (selector) => {
-      const node = panel.querySelector(selector);
-      const bounds = node?.getBoundingClientRect();
-      return bounds ? { top: bounds.top, right: bounds.right, bottom: bounds.bottom, left: bounds.left } : null;
-    };
-    return {
-      map: rectangle(".care-overview-map"),
-      contacts: rectangle(".care-overview-destination--contacts"),
-      analytics: rectangle(".care-overview-destination--analytics"),
-      activities: rectangle(".care-overview-destination--activities"),
-      viewportWidth: window.innerWidth
-    };
-  });
-  if (geometry.viewportWidth > 1180) {
-    expect(geometry.map.left).toBeGreaterThanOrEqual(geometry.contacts.right);
-    expect(geometry.analytics.left).toBeGreaterThanOrEqual(geometry.map.right);
-    const contactDestination = overview.locator(".care-overview-destination--contacts");
-    const connectorOpacityBeforeHover = Number.parseFloat(await contactDestination.evaluate((node) =>
-      getComputedStyle(node, "::after").opacity
-    ));
-    const iconTransformBeforeHover = await contactDestination.locator(".care-overview-destination__icon").evaluate((node) =>
-      getComputedStyle(node).transform
-    );
-    await contactDestination.hover();
-    await expect.poll(() => contactDestination.evaluate((node) =>
-      Number.parseFloat(getComputedStyle(node, "::after").opacity)
-    )).toBeGreaterThan(connectorOpacityBeforeHover);
-    await expect.poll(() => contactDestination.locator(".care-overview-destination__icon").evaluate((node) =>
-      getComputedStyle(node).transform
-    )).not.toBe(iconTransformBeforeHover);
-    await page.mouse.move(0, 0);
-  } else if (geometry.viewportWidth <= 600) {
-    expect(Math.max(geometry.contacts.bottom, geometry.analytics.bottom, geometry.activities.bottom))
-      .toBeLessThanOrEqual(geometry.map.top);
-    expect(await overview.locator("a:visible").evaluateAll((links) => links.map((link) => link.dataset.routeLink)))
-      .toEqual(["contacts", "organizations", "analytics", "activities", "map"]);
-  } else {
-    expect(geometry.map.bottom).toBeLessThanOrEqual(geometry.contacts.top);
-  }
-
-  await attachScreenshot(page, testInfo, "versorgungs-kompass-uebersicht");
-  await mapOpenLink.click();
-  await expect(page).toHaveURL(/#map$/);
-  await expect(page.locator(".app-shell")).toHaveAttribute("data-active-view", "map");
-  const fullMapFrame = page.frameLocator("#map-view-frame");
-  await expect(fullMapFrame.locator(".sidebar")).toBeVisible();
-  await expect(fullMapFrame.locator(".care-overview-schematic-map")).toHaveCount(0);
-  const fullMapHeatScale = await fullMapFrame.locator("#map").evaluate(() =>
-    globalThis.eval("[0, 1, 2, 4].map((value) => heatColor(value, 4))")
-  );
-  expect(fullMapHeatScale).toEqual(previewHeatScale);
-  const fullMapLegendPalette = await fullMapFrame.locator("html").evaluate(() => [
-    "--care-map-density-empty",
-    "--care-map-density-low",
-    "--care-map-density-mid",
-    "--care-map-density-cobalt",
-    "--care-map-density-high"
-  ].map((property) => getComputedStyle(document.documentElement).getPropertyValue(property).trim()));
-  expect(fullMapLegendPalette).toEqual(previewLegendPalette);
-  expect(await fullMapFrame.locator("#map").evaluate(() =>
-    globalThis.eval("stateHeatLayer.options.smoothFactor")
-  )).toBe(0.35);
-  if (testInfo.project.name === "chromium-desktop") {
-    await expect(fullMapFrame.locator(".map-distribution-legend__scale")).toBeVisible();
-    await fullMapFrame.locator("#heatmap-toggle").click();
-    await expect(fullMapFrame.locator(".map-distribution-legend__scale")).toBeVisible();
-  }
-  await page.goBack();
-  await expect(page).toHaveURL(/#care$/);
-  await expect(overview).toBeVisible();
-});
-
-test("Versorgungs-Kompass: Übersicht bleibt bei reduzierter Bewegung statisch", async ({ page }, testInfo) => {
-  test.skip(testInfo.project.name !== "chromium-desktop", "Reduced Motion wird einmal im Desktop-Projekt geprüft.");
-  await page.emulateMedia({ reducedMotion: "reduce" });
-  await gotoAuthenticated(page, "/frontend/app/versorgungs-kompass.html#care", { role: "admin" });
-
-  const overview = page.locator('[data-view-panel="careOverview"]');
-  await expect(overview).toBeVisible();
-  await expect(overview.locator(".care-overview-layout")).toHaveAttribute("data-entrance-state", "complete");
-  const motionState = await overview.locator(".care-overview-destination--contacts").evaluate((node) => {
-    const cardStyle = getComputedStyle(node);
-    const iconStyle = getComputedStyle(node.querySelector(".care-overview-destination__icon"));
-    return {
-      animationName: cardStyle.animationName,
-      cardTransition: cardStyle.transitionDuration,
-      iconTransition: iconStyle.transitionDuration,
-    };
-  });
-  expect(motionState.animationName).toBe("none");
-  expect(motionState.cardTransition).toBe("0s");
-  expect(motionState.iconTransition).toBe("0s");
-  const mapMotionState = await overview.locator(".care-overview-map").evaluate((node) => ({
-    mapTransition: getComputedStyle(node).transitionDuration,
-    frameTransition: getComputedStyle(node.querySelector(".care-overview-map__frame")).transitionDuration
-  }));
-  expect(mapMotionState.mapTransition).toBe("0s");
-  expect(mapMotionState.frameTransition).toBe("0s");
-  await overview.locator(".care-overview-map").hover();
-  await expect(overview.locator(".care-overview-map__frame")).toHaveCSS("transform", "none");
-});
-
-test("Versorgungs-Kompass: Übersicht spiegelt die Viewer-Rechte", async ({ page }) => {
+test("Versorgungs-Kompass: bisherige Übersicht öffnet die interaktive Karte", async ({ page }) => {
   await gotoAuthenticated(page, "/frontend/app/versorgungs-kompass.html#care", { role: "viewer" });
 
-  const overview = page.locator('[data-view-panel="careOverview"]');
-  await expect(overview).toBeVisible();
-  await expect(overview.locator(".care-overview-map")).toBeVisible();
-  await expect(overview.locator(".care-overview-destination:visible")).toHaveCount(2);
-  await expect(overview.locator(".care-overview-destination--contacts")).toBeVisible();
-  await expect(overview.locator(".care-overview-destination--organizations")).toBeVisible();
-  await expect(overview.locator(".care-overview-destination--analytics")).toBeHidden();
-  await expect(overview.locator(".care-overview-destination--activities")).toBeHidden();
-  await expect(overview.locator(".care-overview-kicker")).toHaveCount(0);
-  await expect(page.locator("#workspace-view-subtitle")).toHaveText("Karte und verfügbare Arbeitsbereiche auf einen Blick.");
-  await expectNoHorizontalOverflow(page);
+  await expect(page.locator(".app-shell")).toHaveAttribute("data-active-view", "map");
+  await expect(page.locator("#workspace-view-title")).toHaveText("Übersicht");
+  await expect(page.locator("#view-care-overview")).toHaveCount(0);
+  const mapFrame = page.frameLocator("#map-view-frame");
+  await expect(mapFrame.locator("#map")).toBeVisible();
+  await expect(mapFrame.locator(".care-overview-schematic-map")).toHaveCount(0);
 
-  await expect(overview.locator(".care-overview-layout")).toHaveAttribute("data-entrance-state", "complete");
-  const viewerGeometry = await overview.evaluate((panel) => {
-    const layout = panel.querySelector(".care-overview-layout")?.getBoundingClientRect();
-    const cards = [...panel.querySelectorAll(".care-overview-destination")]
-      .filter((node) => getComputedStyle(node).display !== "none")
-      .map((node) => node.getBoundingClientRect());
-    const map = panel.querySelector(".care-overview-map")?.getBoundingClientRect();
-    return {
-      layoutBottom: layout?.bottom || 0,
-      lastVisibleBottom: Math.max(map?.bottom || 0, ...cards.map((card) => card.bottom))
-    };
-  });
-  expect(Math.abs(viewerGeometry.layoutBottom - viewerGeometry.lastVisibleBottom)).toBeLessThanOrEqual(2);
-
-  await page.evaluate(() => { window.location.hash = "#activities"; });
+  await openMobileSidebarIfNeeded(page);
+  const navigation = page.locator("#sidebar-section-care-content");
+  await expect(navigation.getByRole("button", { name: "Übersicht", exact: true })).toHaveAttribute("aria-current", "page");
+  await expect(navigation.getByRole("button", { name: "Karte", exact: true })).toHaveCount(0);
+  await expect(navigation.getByRole("button", { name: "Auswertung", exact: true })).toBeHidden();
+  await navigation.getByRole("button", { name: "Kontakte", exact: true }).click();
   await expect(page).toHaveURL(/#contacts$/);
-  await expect(page.locator(".app-shell")).toHaveAttribute("data-active-view", "contacts");
+  await page.goBack();
+  await expect(page.locator(".app-shell")).toHaveAttribute("data-active-view", "map");
 });
 
-test("Versorgungs-Kompass: Übersicht bleibt in der kompakten Tabletbreite lesbar", async ({ page }, testInfo) => {
-  test.skip(testInfo.project.name !== "chromium-desktop", "Die Zwischenbreite wird einmal im Desktop-Projekt geprüft.");
-  await page.setViewportSize({ width: 820, height: 930 });
-  await gotoAuthenticated(page, "/frontend/app/versorgungs-kompass.html#care", { role: "admin" });
-
-  const overview = page.locator('[data-view-panel="careOverview"]');
-  const cards = overview.locator(".care-overview-destination:visible");
-  await expect(cards).toHaveCount(4);
-  await expect(overview.locator(".care-overview-layout")).toHaveAttribute("data-entrance-state", "complete");
-  await expectNoHorizontalOverflow(page);
-  const cardRects = await cards.evaluateAll((items) => items.map((item) => {
-    const rect = item.getBoundingClientRect();
-    return { left: rect.left, right: rect.right, top: rect.top, bottom: rect.bottom };
-  }));
-  expect(Math.abs(cardRects[0].top - cardRects[1].top)).toBeLessThanOrEqual(2);
-  expect(Math.abs(cardRects[2].top - cardRects[3].top)).toBeLessThanOrEqual(2);
-  expect(cardRects[2].top).toBeGreaterThanOrEqual(cardRects[0].bottom - 1);
-  expect(cardRects[3].top).toBeGreaterThanOrEqual(cardRects[1].bottom - 1);
-  expect(cardRects.every((rect) => rect.right <= 820 && rect.left >= 0)).toBe(true);
-  const mapGeometry = await overview.locator(".care-overview-map").evaluate((map) => {
-    const bounds = (selector) => map.querySelector(selector).getBoundingClientRect().toJSON();
-    return {
-      frame: bounds(".care-overview-map__frame"),
-      meta: bounds(".care-overview-map__meta"),
-      counter: bounds(".care-overview-map__counter"),
-      legend: bounds(".care-overview-map__legend")
-    };
-  });
-  expect(mapGeometry.frame.bottom).toBeLessThanOrEqual(mapGeometry.meta.top);
-  expect(mapGeometry.counter.right).toBeLessThanOrEqual(mapGeometry.legend.left);
-  expect(mapGeometry.legend.right).toBeLessThanOrEqual(mapGeometry.meta.right);
-  await attachScreenshot(page, testInfo, "versorgungs-kompass-uebersicht-tablet");
-});
-
-test("Versorgungs-Kompass: kanonische Übersicht und Karte bleiben getrennte Routen", async ({ page }, testInfo) => {
+test("Versorgungs-Kompass: bisherige Übersichtsadresse führt zur Kartenübersicht", async ({ page }, testInfo) => {
   test.skip(testInfo.project.name !== "chromium-desktop", "Der Clean-URL-Vertrag wird einmal im Desktop-Projekt geprüft.");
   await installTargetLikeCleanUrlShell(page);
   await gotoAuthenticated(page, "/versorgung", { role: "admin", cleanUrls: true });
 
-  await expect(page).toHaveURL(/\/versorgung$/);
-  await expect(page.locator(".app-shell")).toHaveAttribute("data-active-view", "careOverview");
-  await page.locator(".care-overview-map__open").click();
   await expect(page).toHaveURL(/\/versorgung\/karte$/);
   await expect(page.locator(".app-shell")).toHaveAttribute("data-active-view", "map");
-  await page.goBack();
-  await expect(page).toHaveURL(/\/versorgung$/);
-  await expect(page.locator(".app-shell")).toHaveAttribute("data-active-view", "careOverview");
+  await expect(page.locator("#workspace-view-title")).toHaveText("Übersicht");
 });
 
 test("Stakeholder-Kompass: Übersicht zeigt acht gleichrangige Bereiche", async ({ page }, testInfo) => {
@@ -8400,12 +8102,14 @@ test("Stakeholder: Bereich ist im eigenen Sidebar-Abschnitt ohne obere Modus-Rei
 
 test("Auswertung: Analytics-View rendern", async ({ page }, testInfo) => {
   await gotoAuthenticated(page, "/frontend/app/versorgungs-kompass.html");
+  await expect(page.locator(".app-shell")).not.toHaveClass(/is-initializing/);
 
   await expandSidebarSectionIfNeeded(page, "care");
   await page.locator("#sidebar-analytics-button:visible").click();
 
   await expect(page.locator('[data-view-panel="analytics"]')).toBeVisible();
   await expect(page.locator("#view-analytics .dashboard-grid")).toBeVisible();
+  await expect(page.locator("#view-analytics").getByRole("heading", { name: "Wenig vertretene Bereiche" })).toHaveCount(0);
   await expect(page.locator("#workspace-view-title")).toHaveText("Auswertung");
   await expect(page.locator("#workspace-view-subtitle")).toBeHidden();
   await expect(page.locator("#view-analytics .analytics-head")).toHaveCount(0);
