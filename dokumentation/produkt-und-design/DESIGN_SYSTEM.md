@@ -15,7 +15,6 @@ Der Versorgungs-Kompass ist eine operative CRM-App. Das Designsystem priorisiert
 - `--border: #dce3f5`, `--border-strong: #b8c7e8`.
 - `--text-primary: #17275f`, `--text-secondary: #334155`, `--text-muted: #64748b`.
 - Status: `--success: #16a34a`, `--warning: #b7791f`, `--danger: #dc2626`, `--info: #2563eb`.
-- Die Versorgungs-Kompass-Übersicht besitzt vier ausschließlich dort verwendete Akzentfamilien aus jeweils starkem Vordergrund, heller Fläche und Kontur: `--care-overview-contacts-*`, `--care-overview-organizations-*`, `--care-overview-analytics-*` und `--care-overview-activities-*`.
 - Die gemeinsame Karten-Dichteskala nutzt `--care-map-density-empty`, `--care-map-density-low`, `--care-map-density-mid`, `--care-map-density-cobalt` und `--care-map-density-high` in dieser Reihenfolge. Ihre entsättigte, dunkelblaue Abstufung orientiert sich am Navy-Verlauf der TI-Pflegekarte.
 
 ### Stakeholder-Gruppen
@@ -36,7 +35,7 @@ Diese Farben kennzeichnen ausschließlich die fachliche Gruppe. Größe, Abstand
 ### Regeln
 
 - Primärblau ist die einzige dominante Aktionsfarbe.
-- Gradients sind für CRM-Komponenten nicht erlaubt, außer in bestehenden Markenassets, sequenziellen Datenlegenden und der dokumentierten Atlasbühne der Versorgungs-Kompass-Übersicht. Primärbuttons und Navigationskarten bleiben flach.
+- Gradients sind für CRM-Komponenten nicht erlaubt, außer in bestehenden Markenassets und sequenziellen Datenlegenden. Primärbuttons und Navigationskarten bleiben flach.
 - Statusfarben werden nur für Status, Datenqualität, Gefahr oder Validierung genutzt.
 - Admin-/Betriebshinweise sind neutral oder dezent blau, nie dominant.
 - Kartenfarben dürfen fachliche Kategorien abbilden, müssen aber in Legende und Listen gleich bleiben.
@@ -141,15 +140,8 @@ Die Erfassung verwendet das [Codebuch für Beobachtungen](HOSPITATION_CODEBUCH.m
 
 ### Modulübersichten
 
-- Eine Modulübersicht ist eine Orientierungsansicht ohne globale Suche, Filtertoolbar oder primäre Pflegeaktion.
-- Der Versorgungs-Kompass nutzt eine reduzierte Live-Karte als räumlichen Anker. Die Vorschau übernimmt für alle 16 Bundesländer exakt das Pfadlayout der gematik-Pflegeseite in deren originaler Reihenfolge und `viewBox`; die vollständige Kartenansicht behält dagegen ihre geografisch präzisen GeoJSON-Flächen. Vorschau und Vollansicht verwenden dieselbe mengenabhängige Bundesland-Farbskala. Die Vorschau zeigt keine Marker oder Clusterzahlen. Eine eigenständige Windrose steht rein dekorativ und gut sichtbar in der freien linken oberen Ecke oberhalb der Kartenebene, ohne die Deutschlandgeometrie zu verdecken. Die Deutschlandgeometrie wahrt ober- und unterhalb eine ruhige Innenreserve. Die Kopfzeile bleibt eine eigene Rasterzeile. Der Kontaktzähler sitzt oben rechts auf der Kartenbühne und verwendet einen Blauton der gemeinsamen Dichteskala; die Verlaufslegende bleibt unten rechts. Auf Desktop stehen „mehr“ und „weniger“ über beziehungsweise unter der vertikalen Skala. Auf Mobile bleibt der Zähler oben rechts, während die horizontale Skala eine eigene Fußzeile unterhalb der Kartenfläche bildet und die Deutschlandgeometrie nicht verdeckt. Die Skala benötigt keine zusätzliche sichtbare Beschriftung; technische Zuordnungsangaben gehören nicht in die Übersicht.
-- Die vollständige Karte bleibt ein eigener Arbeitsbereich; die Vorschau erhält keine Kontaktliste, Suche oder Kartensteuerung. Gedrehte, einfarbige Iconflächen dürfen das Versorgungs-Kompass-Signet aufgreifen, ohne die Navigationsziele unterschiedlich zu gewichten.
-- Navigationsflächen bleiben in Größe, Informationshierarchie und Gewicht gleich behandelt. Kontakte, Organisationen, Auswertung und Aktivitäten dürfen zur schnelleren Orientierung je eine dokumentierte Akzentfamilie als sehr helle Fläche, solide Seitenkante, Icon-Raute und Aktionsfarbe verwenden. Icon und Text benennen das Ziel immer zusätzlich; die Farben codieren weder Status, Priorität noch reale Beziehungen. Rollenabhängig nicht zugängliche Ziele werden wie in der Sidebar vollständig ausgeblendet.
-- Nur die explizite Aktion `Karte öffnen` navigiert zur vollständigen Karte. Die Bundeslandflächen der Vorschau sind nicht klickbar und zeigen auf Geräten mit präzisem Zeiger beim Hover die Kontaktanzahl groß und den Bundeslandnamen kleiner direkt als weiße Schrift in der Fläche. Es erscheint keine zusätzliche Tooltip-Karte; die Kartenebene bleibt unbewegt. Hover und Fokus der Kartenaktion verstärken ausschließlich deren Kontur und Farbfläche. Das Kompassmotiv und die Hoverreaktion stellen keine Datenbeziehung dar.
-- Große Kennzahlen nennen Kontakte und Organisationen im sichtbaren Bestand, die Zahl belegter Sektoren sowie für Admins die exakt serverseitig gezählten Aktivitäten der letzten 30 Tage. `0` ist ein gültiger Wert; Laden oder Fehler werden mit `–` und einem eindeutigen Textzustand dargestellt. Farbe ist nie das einzige Unterscheidungsmerkmal.
-- Die zentrale Vorschau darf als zusammenhängende hellblaue bis hell indigofarbene Atlasbühne mit einmaliger kurzer Einstiegsmotion erscheinen. Eine statische Windrose in einer freien Randzone bleibt rein dekorativ und zurückhaltend. Dauerbewegung, pulsierende Regionen, künstliche Netzwerkbögen oder datensemantisch missverständliche Effekte sind ausgeschlossen; `prefers-reduced-motion` und Forced Colors erhalten einen statischen Fallback.
-- Auf kleinen Smartphone-Viewports stehen die verfügbaren Navigationsziele vor der Karten-Vorschau, damit die Modulübersicht ihren Orientierungszweck behält.
-- Kennzahlen zeigen nur ungefilterte, nicht archivierte und rollenbezogen projizierte Bestände. In der Oberfläche werden sie neutral als `Kontakte` und `Organisationen` bezeichnet; Lade-, Fallback- und Fehlerzustände dürfen nicht als Nullbestand erscheinen.
+- Eigene Orientierungsansichten kommen ohne globale Suche, Filtertoolbar oder primäre Pflegeaktion aus.
+- Im Versorgungs-Kompass ist die interaktive Deutschlandkarte selbst die Übersicht. Sie verwendet die präzisen GeoJSON-Flächen und die mengenabhängige Farbskala für Bundesländer. Suche und Kartenfilter grenzen die angezeigten Kontakte ein.
 
 ### Tabellen
 

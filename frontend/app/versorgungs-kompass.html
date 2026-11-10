@@ -75,23 +75,13 @@
               </svg>
             </button>
             <div class="sidebar-section-content" id="sidebar-section-care-content">
-              <button class="primary-tab" type="button" data-view-tab="careOverview" title="Versorgungs-Übersicht">
-                <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                  <rect x="3" y="3" width="7" height="7" rx="1"></rect>
-                  <rect x="14" y="3" width="7" height="7" rx="1"></rect>
-                  <rect x="3" y="14" width="7" height="7" rx="1"></rect>
-                  <path d="M17.5 13.5c-2.2 0-4 1.8-4 4 0 2.8 4 5.5 4 5.5s4-2.7 4-5.5c0-2.2-1.8-4-4-4Z"></path>
-                  <circle cx="17.5" cy="17.5" r="1.2"></circle>
-                </svg>
-                <span>Übersicht</span>
-              </button>
-              <button class="primary-tab" type="button" data-view-tab="map" title="Karte">
+              <button class="primary-tab" type="button" data-view-tab="map" title="Übersicht">
                 <svg viewBox="0 0 24 24" fill="none" stroke-width="2" aria-hidden="true">
                   <path d="M9 18l-6 3V6l6-3 6 3 6-3v15l-6 3-6-3Z"></path>
                   <path d="M9 3v15"></path>
                   <path d="M15 6v15"></path>
                 </svg>
-                <span>Karte</span>
+                <span>Übersicht</span>
               </button>
               <button class="primary-tab" type="button" data-view-tab="contacts" title="Kontakte">
                 <svg viewBox="0 0 24 24" fill="none" stroke-width="2" aria-hidden="true">
@@ -366,8 +356,25 @@
               </button>
             </div>
           </div>
+          <div class="sidebar-app-section" role="group" aria-labelledby="sidebar-app-label">
+            <span class="sidebar-section-label" id="sidebar-app-label">App</span>
+            <button class="sidebar-link" type="button" id="sidebar-tour-button" aria-label="App-Tour starten" title="App-Tour starten">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <circle cx="12" cy="12" r="9"></circle>
+                <path d="m10 8 6 4-6 4Z"></path>
+              </svg>
+              <span>App-Tour</span>
+            </button>
+            <button class="sidebar-link" type="button" id="sidebar-about-button" title="Über die App">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <circle cx="12" cy="12" r="9"></circle>
+                <path d="M12 11v5m0-8h.01"></path>
+              </svg>
+              <span>Über die App</span>
+            </button>
+          </div>
         </nav>
-        <div class="sidebar-account-section" aria-label="App-Tour, Teams und Profil" data-sidebar-section="account">
+        <div class="sidebar-account-section" role="group" aria-labelledby="sidebar-account-label" data-sidebar-section="account">
           <a class="sidebar-link" id="hospitation-other-apps" href="#home" title="Weitere Anwendungen" hidden>
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
               <rect x="3" y="3" width="7" height="7" rx="1"></rect>
@@ -377,14 +384,7 @@
             </svg>
             <span>Weitere Anwendungen</span>
           </a>
-          <span class="sidebar-section-label">Hilfe &amp; Konto</span>
-          <button class="sidebar-link" type="button" id="sidebar-tour-button" aria-label="App-Tour starten" title="App-Tour starten">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-              <circle cx="12" cy="12" r="9"></circle>
-              <path d="m10 8 6 4-6 4Z"></path>
-            </svg>
-            <span>App-Tour</span>
-          </button>
+          <span class="sidebar-section-label" id="sidebar-account-label">Hilfe &amp; Konto</span>
           <button class="sidebar-link sidebar-team-link" type="button" id="sidebar-team-button" title="Teams">
             <span class="sidebar-team-icon" aria-hidden="true">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
@@ -501,16 +501,6 @@
               <source id="workspace-brand-source" media="(max-width: 760px)" srcset="../../public/brand/versorgungs-kompass/mark.svg" />
               <img id="workspace-brand-image" src="../../public/brand/versorgungs-kompass/lockup-horizontal.svg" alt="Versorgungs-Kompass" />
             </picture>
-          </div>
-          <div class="workspace-expert-switcher" id="analytics-mode-actions" hidden>
-            <div class="settings-tab-nav experts-mode-nav experts-mode-nav--header" role="tablist" aria-label="Auswertung">
-              <button class="settings-tab-button is-active" type="button" role="tab" data-analytics-mode="analytics" aria-selected="true" aria-controls="view-analytics">
-                <span class="experts-mode-label">Auswertung</span>
-              </button>
-              <button class="settings-tab-button" type="button" role="tab" data-analytics-mode="quality" aria-selected="false" aria-controls="view-quality">
-                <span class="experts-mode-label">Datenqualität</span>
-              </button>
-            </div>
           </div>
           <div class="workspace-expert-switcher" id="expert-mode-actions" hidden>
             <div class="settings-tab-nav experts-mode-nav experts-mode-nav--header" role="tablist" aria-label="Expertenkreis-Listen">
@@ -710,120 +700,6 @@
               </nav>
             </div>
           </section>
-          <section class="view-panel" id="view-care-overview" data-view-panel="careOverview">
-            <div class="care-overview-workspace">
-              <nav class="care-overview-layout" aria-label="Arbeitsbereiche im Versorgungs-Kompass">
-                <section class="care-overview-map" aria-labelledby="care-overview-map-title">
-                  <div class="care-overview-map__head">
-                    <div>
-                      <span class="care-overview-map__kicker">Kontakte nach Bundesland</span>
-                      <h2 id="care-overview-map-title">Deutschlandkarte</h2>
-                    </div>
-                    <a class="care-overview-map__open" data-route-link="map" href="#map" aria-label="Deutschlandkarte öffnen">
-                      Karte öffnen
-                      <span aria-hidden="true">→</span>
-                    </a>
-                  </div>
-                  <div class="care-overview-map__preview">
-                    <iframe
-                      class="map-embed-frame care-overview-map__frame"
-                      id="care-overview-map-frame"
-                      title="Kontaktverteilung nach Bundesland – Hover-Vorschau"
-                      data-deferred-src="../map/versorgungs-kompass-map.html?embed=1&amp;channel=contacts&amp;preview=1"
-                      data-message-channel="contacts"
-                      tabindex="-1"
-                      aria-hidden="true"
-                      referrerpolicy="no-referrer"
-                    ></iframe>
-                    <div class="care-overview-map__meta">
-                      <span class="care-overview-map__counter" id="care-overview-map-counter" data-state="loading" aria-live="polite" aria-atomic="true">
-                        <strong id="care-overview-map-count">–</strong>
-                        <span id="care-overview-map-count-label">Kontakte werden geladen</span>
-                      </span>
-                      <span class="care-overview-map__legend" role="img" aria-label="Kontaktverteilung: von weniger bis mehr Kontakten">
-                        <span aria-hidden="true">weniger</span>
-                        <span class="care-overview-map__legend-scale" aria-hidden="true"></span>
-                        <span aria-hidden="true">mehr</span>
-                      </span>
-                    </div>
-                  </div>
-                </section>
-
-                <a class="care-overview-destination care-overview-destination--contacts" data-route-link="contacts" href="#contacts">
-                  <span class="care-overview-destination__icon" aria-hidden="true">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                      <circle cx="12" cy="8" r="4"></circle>
-                      <path d="M4 21a8 8 0 0 1 16 0"></path>
-                    </svg>
-                  </span>
-                  <span class="care-overview-destination__copy">
-                    <strong>Kontakte</strong>
-                    <span class="care-overview-destination__metric care-overview-destination__metric--count" id="care-overview-contact-count" data-state="loading" aria-label="Kontakte werden geladen">
-                      <strong id="care-overview-contact-count-value">–</strong>
-                      <span id="care-overview-contact-count-label">wird geladen</span>
-                    </span>
-                    <span>Ansprechpersonen und Kontaktwege finden.</span>
-                  </span>
-                  <span class="care-overview-destination__action">Öffnen <span aria-hidden="true">→</span></span>
-                </a>
-
-                <a class="care-overview-destination care-overview-destination--organizations" data-route-link="organizations" href="#organizations">
-                  <span class="care-overview-destination__icon" aria-hidden="true">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                      <path d="M4 21V6a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v15"></path>
-                      <path d="M16 9h2a2 2 0 0 1 2 2v10"></path>
-                      <path d="M8 8h4M8 12h4M8 16h4M2 21h20"></path>
-                    </svg>
-                  </span>
-                  <span class="care-overview-destination__copy">
-                    <strong>Organisationen</strong>
-                    <span class="care-overview-destination__metric care-overview-destination__metric--count" id="care-overview-organization-count" data-state="loading" aria-label="Organisationen werden geladen">
-                      <strong id="care-overview-organization-count-value">–</strong>
-                      <span id="care-overview-organization-count-label">wird geladen</span>
-                    </span>
-                    <span>Einrichtungen im Netzwerk einordnen.</span>
-                  </span>
-                  <span class="care-overview-destination__action">Öffnen <span aria-hidden="true">→</span></span>
-                </a>
-
-                <a class="care-overview-destination care-overview-destination--analytics" id="care-overview-analytics-link" data-route-link="analytics" href="#analytics">
-                  <span class="care-overview-destination__icon" aria-hidden="true">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                      <path d="M4 19h16"></path>
-                      <path d="M7 16V9M12 16V5M17 16v-4"></path>
-                    </svg>
-                  </span>
-                  <span class="care-overview-destination__copy">
-                    <strong>Auswertung</strong>
-                    <span class="care-overview-destination__metric care-overview-destination__metric--count" id="care-overview-sector-count" data-state="loading" aria-label="Sektoren mit Kontakten werden geladen">
-                      <strong id="care-overview-sector-count-value">–</strong>
-                      <span id="care-overview-sector-count-label">wird geladen</span>
-                    </span>
-                    <span>Struktur und Verteilung auswerten.</span>
-                  </span>
-                  <span class="care-overview-destination__action">Öffnen <span aria-hidden="true">→</span></span>
-                </a>
-
-                <a class="care-overview-destination care-overview-destination--activities" id="care-overview-activities-link" data-route-link="activities" href="#activities">
-                  <span class="care-overview-destination__icon" aria-hidden="true">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                      <circle cx="12" cy="12" r="9"></circle>
-                      <path d="M12 7v5l3 2"></path>
-                    </svg>
-                  </span>
-                  <span class="care-overview-destination__copy">
-                    <strong>Aktivitäten</strong>
-                    <span class="care-overview-destination__metric care-overview-destination__metric--count" id="care-overview-activity-count" data-state="loading" aria-label="Aktivitäten der letzten 30 Tage werden geladen">
-                      <strong id="care-overview-activity-count-value">–</strong>
-                      <span id="care-overview-activity-count-label">letzte 30 Tage · wird geladen</span>
-                    </span>
-                    <span>Änderungen und Vorgänge nachvollziehen.</span>
-                  </span>
-                  <span class="care-overview-destination__action">Öffnen <span aria-hidden="true">→</span></span>
-                </a>
-              </nav>
-            </div>
-          </section>
           <section class="view-panel" id="view-contacts" data-view-panel="contacts">
             <div class="view-card">
               <div class="table-command-row table-command-row--contacts" id="contact-table-toolbar">
@@ -989,9 +865,6 @@
 
           <section class="view-panel" id="view-activities" data-view-panel="activities">
             <div class="view-card activities-workspace">
-              <div class="dataset-toolbar activities-toolbar">
-                <div class="dataset-toolbar__meta activities-meta" id="activities-meta">Aktivitäten werden geladen</div>
-              </div>
               <div class="activities-command-row">
                 <div class="activities-filters" aria-label="Aktivitäten filtern">
                   <label class="activities-filter-field" data-custom-select data-select-type="activity-category">
@@ -1025,6 +898,10 @@
                 </div>
               </div>
               <div class="activities-feed-shell">
+                <div class="activities-toolbar">
+                  <h2>Verlauf</h2>
+                  <span class="activities-meta" id="activities-meta">Aktivitäten werden geladen</span>
+                </div>
                 <div class="activities-timeline" id="activities-list" aria-live="polite">
                   <div class="history-loading">Aktivitäten werden geladen...</div>
                 </div>
@@ -2281,109 +2158,119 @@
             </div>
           </section>
 
+          <div id="analytics-view-mode-toolbar" class="view-mode-command-row care-analytics-header" hidden>
+            <header class="care-analytics-intro" data-analytics-intro="analytics">
+              <h2>Kontaktbestand im Überblick</h2>
+              <p>Die Zahlen beziehen sich auf die aktuelle Kontaktauswahl.</p>
+            </header>
+            <header class="care-analytics-intro" data-analytics-intro="quality" hidden>
+              <h2>Kontakte zur Prüfung</h2>
+              <p>Fehlende und unklare Angaben prüfen.</p>
+            </header>
+            <div class="workspace-expert-switcher" id="analytics-mode-actions" hidden>
+              <div class="settings-tab-nav experts-mode-nav experts-mode-nav--header" role="tablist" aria-label="Auswertungsansicht">
+                <button class="settings-tab-button is-active" id="analytics-mode-overview" type="button" role="tab" data-analytics-mode="analytics" aria-selected="true" aria-controls="view-analytics">
+                  <span class="experts-mode-label">Auswertung</span>
+                </button>
+                <button class="settings-tab-button" id="analytics-mode-quality" type="button" role="tab" data-analytics-mode="quality" aria-selected="false" aria-controls="view-quality">
+                  <span class="experts-mode-label">Datenqualität</span>
+                </button>
+              </div>
+            </div>
+          </div>
           <section class="view-panel" id="view-analytics" data-view-panel="analytics">
-            <div class="view-card analytics-shell">
-              <div class="view-mode-command-row" id="analytics-view-mode-toolbar" aria-label="Auswertungsansicht"></div>
-              <div class="dashboard-grid">
-                <div class="dashboard-cluster-title">Verteilung</div>
-                <article class="dashboard-card dashboard-card--distribution-main">
+            <div class="view-card analytics-shell care-analytics">
+              <div class="care-analytics-kpis">
+                <dl class="care-analytics-kpi care-analytics-kpi--primary">
+                  <dt>
+                    <svg class="care-analytics-kpi-icon" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true">
+                      <circle cx="12" cy="8" r="4"></circle>
+                      <path d="M4 21a8 8 0 0 1 16 0"></path>
+                    </svg>
+                    Kontakte
+                  </dt>
+                  <dd id="care-kpi-contacts">…</dd>
+                </dl>
+                <dl class="care-analytics-kpi care-analytics-kpi--sector">
+                  <dt>
+                    <svg class="care-analytics-kpi-icon" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
+                      <rect x="3" y="3" width="7" height="7" rx="1"></rect>
+                      <rect x="14" y="3" width="7" height="7" rx="1"></rect>
+                      <rect x="3" y="14" width="7" height="7" rx="1"></rect>
+                      <rect x="14" y="14" width="7" height="7" rx="1"></rect>
+                    </svg>
+                    Sektoren
+                  </dt>
+                  <dd id="care-kpi-sectors">…</dd>
+                </dl>
+              </div>
+              <div class="dashboard-grid care-analytics-grid">
+                <article class="dashboard-card care-analytics-card--regions">
                   <div class="dashboard-card-head">
                     <div>
-                      <h4>Kontakte nach Sektor</h4>
+                      <h3>Kontakte nach Bundesland</h3>
+                      <p>Nach Anzahl der Kontakte sortiert.</p>
                     </div>
-                    <span class="dashboard-info" tabindex="0" aria-label="Statistik Kontakte nach Sektor erklären">i<span class="dashboard-info__popup" role="tooltip">Diese Statistik zeigt, aus welchen Versorgungsbereichen die Kontakte in der aktuellen Auswahl stammen. Die Zahl im Balken ist die Anzahl der Kontakte, der Prozentwert zeigt den Anteil an allen ausgewählten Kontakten.</span></span>
+                    <span class="dashboard-info" tabindex="0" aria-label="Regionale Verteilung erklären">i<span class="dashboard-info__popup" role="tooltip">Dunklere Flächen zeigen, in welchen Bundesländern ein größerer Anteil der ausgewählten Kontakte liegt.</span></span>
+                  </div>
+                  <div class="care-analytics-region">
+                    <div id="coverage-map"></div>
+                    <div id="state-chart"></div>
+                  </div>
+                </article>
+                <article class="dashboard-card care-analytics-card--sectors">
+                  <div class="dashboard-card-head">
+                    <div>
+                      <h3>Kontakte nach Sektor</h3>
+                      <p>Kontakte mit dokumentiertem Sektor.</p>
+                    </div>
+                    <span class="dashboard-info" tabindex="0" aria-label="Statistik Kontakte nach Sektor erklären">i<span class="dashboard-info__popup" role="tooltip">Der Prozentwert bezieht sich auf die ausgewählten Kontakte mit dokumentiertem Sektor.</span></span>
                   </div>
                   <div id="category-chart"></div>
                 </article>
-                <article class="dashboard-card dashboard-card--distribution-side">
+                <article class="dashboard-card care-analytics-card--cities">
                   <div class="dashboard-card-head">
                     <div>
-                      <h4>Prioritätsverteilung</h4>
+                      <h3>Städte mit den meisten Kontakten</h3>
                     </div>
-                    <span class="dashboard-info" tabindex="0" aria-label="Statistik Prioritätsverteilung erklären">i<span class="dashboard-info__popup" role="tooltip">Diese Statistik zeigt, wie viele Kontakte in der aktuellen Auswahl welcher Priorität zugeordnet sind. Die Zahl im Balken ist die Anzahl, der Prozentwert rechts ist der Anteil an der Auswahl.</span></span>
-                  </div>
-                  <div id="priority-chart"></div>
-                </article>
-
-                <div class="dashboard-cluster-title">Regionale Verteilung</div>
-                <article class="dashboard-card dashboard-card--geo-map">
-                  <div class="dashboard-card-head">
-                    <div>
-                      <h4>Regionale Verteilung</h4>
-                    </div>
-                    <span class="dashboard-info" tabindex="0" aria-label="Regionale Verteilung erklären">i<span class="dashboard-info__popup" role="tooltip">Diese Heatmap zeigt, wie sich die Kontakte der aktuellen Auswahl auf die Bundesländer verteilen. Dunklere Flächen bedeuten: In diesem Bundesland liegt ein größerer Anteil der ausgewählten Kontakte.</span></span>
-                  </div>
-                  <div id="coverage-map"></div>
-                </article>
-                <article class="dashboard-card dashboard-card--geo-bars">
-                  <div class="dashboard-card-head">
-                    <div>
-                      <h4>Kontakte nach Bundesland</h4>
-                      <p>Sortiert nach Anzahl der Kontakte.</p>
-                    </div>
-                  </div>
-                  <div id="state-chart"></div>
-                </article>
-                <article class="dashboard-card dashboard-card--geo-top">
-                  <div class="dashboard-card-head">
-                    <div>
-                      <h4>Top Städte nach Kontakten</h4>
-                      <p>Regionale Schwerpunkte der aktuellen Auswahl.</p>
-                    </div>
-                    <span class="dashboard-info" title="Nach Ort und Bundesland gruppiert">i</span>
+                    <span class="dashboard-info" tabindex="0" aria-label="Städtevergleich erklären">i<span class="dashboard-info__popup" role="tooltip">Die Kontakte werden nach Ort und Bundesland gruppiert.</span></span>
                   </div>
                   <div id="top-regions"></div>
-                </article>
-
-                <div class="dashboard-cluster-title">Reporting-Hinweise</div>
-                <article class="dashboard-card dashboard-card--insight">
-                  <div class="dashboard-card-head">
-                    <div>
-                      <h4>Unterrepräsentierte Bereiche</h4>
-                      <p>Bereiche mit wenigen Kontakten in der aktuellen Auswahl.</p>
-                    </div>
-                    <span class="dashboard-info" tabindex="0" aria-label="Unterrepräsentierte Bereiche erklären">i<span class="dashboard-info__popup" role="tooltip">Diese Hinweise zeigen Sektoren und Bundesländer, die im aktuellen Datenbestand nur schwach vertreten sind. Das ist eine Verteilungsbetrachtung und kein Abgleich mit externen Referenzwerten.</span></span>
-                  </div>
-                  <div id="gap-analysis"></div>
-                </article>
-                <article class="dashboard-card dashboard-card--quality-link dashboard-card--subtle" id="analytics-quality-card">
-                  <div class="dashboard-card-head">
-                    <div>
-                      <h4>Datenqualität</h4>
-                      <p>Offene Datenpflege im Blick.</p>
-                    </div>
-                    <span class="dashboard-info" title="Datenqualität ist als eigener Arbeitsbereich verfügbar">i</span>
-                  </div>
-                  <div id="analytics-quality-summary"></div>
                 </article>
               </div>
             </div>
           </section>
 
           <section class="view-panel" id="view-quality" data-view-panel="quality">
-            <div class="analytics-shell quality-workspace">
-              <div class="view-mode-command-row" id="quality-view-mode-toolbar" aria-label="Auswertungsansicht"></div>
-              <div class="quality-workspace-grid">
-                <article class="dashboard-card dashboard-card--quality-overview">
-                  <div class="dashboard-card-head">
-                    <div>
-                      <h4>Daten prüfen</h4>
-                      <p>Die wichtigsten offenen Punkte in den Kontakten.</p>
-                    </div>
-                  </div>
-                  <div id="quality-chart"></div>
-                </article>
-                <article class="dashboard-card dashboard-card--care-queue dashboard-card--subtle" id="care-queue-card">
-                  <div class="dashboard-card-head">
-                    <div>
-                      <h4>Arbeitslisten</h4>
-                      <p>Öffne eine Liste und ergänze die fehlenden Angaben Schritt für Schritt.</p>
-                    </div>
-                  </div>
-                  <div id="care-queue"></div>
-                  <div class="care-workbench" id="care-workbench" tabindex="-1" hidden></div>
-                </article>
+            <div class="view-card analytics-shell care-analytics">
+              <div class="care-analytics-kpis">
+                <dl class="care-analytics-kpi care-analytics-kpi--primary">
+                  <dt>Kontakte mit Prüfbedarf</dt>
+                  <dd id="quality-kpi-contacts">…</dd>
+                </dl>
+                <dl class="care-analytics-kpi care-analytics-kpi--sector">
+                  <dt>Offene Arbeitslisten</dt>
+                  <dd id="quality-kpi-lists">…</dd>
+                </dl>
               </div>
+              <article class="dashboard-card care-quality-card" id="care-queue-card">
+                <div class="dashboard-card-head">
+                  <div>
+                    <h3>Offene Arbeitslisten</h3>
+                    <p>Öffne eine Liste, um die betroffenen Kontakte zu prüfen.</p>
+                  </div>
+                </div>
+                <div id="care-queue"></div>
+                <div class="care-workbench" id="care-workbench" tabindex="-1" hidden></div>
+                <details class="care-quality-extra" id="quality-completed" hidden>
+                  <summary>Ergebnisse abgeschlossener Prüfungen</summary>
+                  <div id="quality-completed-list"></div>
+                </details>
+                <details class="care-quality-extra" id="quality-archive" hidden>
+                  <summary>Archiv</summary>
+                  <div id="quality-archive-list"></div>
+                </details>
+              </article>
             </div>
           </section>
 
@@ -2864,6 +2751,13 @@
             <span class="versorgungs-app-footer__mobile">#Mitmachen, ein Angebot der gematik</span>
             <span aria-hidden="true">↗</span>
           </a>
+          <button class="home-tour-button" id="home-tour-button" type="button">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <circle cx="12" cy="12" r="9"></circle>
+              <path d="m10 8 6 4-6 4Z"></path>
+            </svg>
+            App-Tour
+          </button>
         </footer>
       </div>
     </div>

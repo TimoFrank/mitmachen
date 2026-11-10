@@ -74,7 +74,7 @@ test("Pages: #Mitmachen öffnet den Hospitationskompass mit eigener Sidebar", as
 });
 
 for (const [group, destination, tab] of [
-  ["care", "map", "careOverview"],
+  ["care", "map", "contacts"],
   ["stakeholders", "stakeholderOverview", "patients"],
   ["formats", "formats", null]
 ]) {
@@ -100,6 +100,7 @@ for (const [group, destination, tab] of [
       await expect(shell).toHaveAttribute("data-active-view", tab);
     }
     await page.reload();
+    await expect(shell).toHaveAttribute("data-active-view", tab || destination);
     await openMenu(page);
     await expect(activeSection).toHaveAttribute("data-sidebar-group", group);
     await expect(activeSection.locator('[aria-current="page"]')).toBeVisible();

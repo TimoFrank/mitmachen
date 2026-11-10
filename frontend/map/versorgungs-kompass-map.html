@@ -118,6 +118,11 @@
           </aside>
           <p class="visually-hidden" id="map-accessibility-help">Die Kontaktmarker dienen der räumlichen Orientierung. Alle Kontakte können in der Kontaktliste links mit der Tastatur geöffnet werden.</p>
           <div id="map" role="region" aria-label="Kontaktkarte Deutschland" aria-describedby="map-accessibility-help"></div>
+          <div id="map-state-selection" class="map-state-selection" hidden>
+            <span id="map-state-selection-label" aria-live="polite"></span>
+            <button id="map-state-selection-reset" type="button"><span aria-hidden="true">←</span> Deutschland</button>
+          </div>
+          <section id="map-contact-preview" class="map-contact-preview" aria-label="Kontaktvorschau" hidden></section>
           <div class="care-overview-compass-motif" aria-hidden="true">
             <svg viewBox="0 0 100 100" focusable="false">
               <circle class="care-overview-compass-motif__ring" cx="50" cy="50" r="44"></circle>
