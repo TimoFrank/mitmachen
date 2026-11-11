@@ -157,15 +157,26 @@ function initializeDataSource() {
   return appSource.slice(start, end);
 }
 
+function aboutRouteGuardSource() {
+  const source = appSource.match(/      function isAboutAppRoute\(route = routeTokenFromLocation\(\)\) \{[\s\S]*?\n      \}/u)?.[0];
+  assert.ok(source, "Die About-Routenprüfung wurde im App-Bundle nicht gefunden.");
+  return source;
+}
+
 function createInitializeHarness({
+  cleanUrlsEnabled = false,
   coreError = null,
   corePromise = null,
   profilePromise = null,
+  routeToken = "",
+  routeView = "home",
   settingsPromise,
   shouldRequireOnboarding = () => false
 }) {
   const finished = deferred();
   const state = {
+    aboutOpenCalls: 0,
+    aboutOpenedAfterShell: false,
     appliedSettings: [],
     finishCalls: 0,
     finishOnboardingCalls: 0,
@@ -173,6 +184,7 @@ function createInitializeHarness({
     loginCleared: false,
     onboardingOpenCalls: 0,
     redirect: "",
+    routeUpdates: [],
     resumedOnboardingStep: "",
     storageStatus: "",
     updateViewCalls: 0
@@ -183,7 +195,8 @@ function createInitializeHarness({
     warn() {}
   };
   const context = {
-    CLEAN_URLS_ENABLED: false,
+    CLEAN_URLS_ENABLED: cleanUrlsEnabled,
+    activePoliticsMemberId: "",
     activeView: "home",
     console: quietConsole,
     contacts: [ { id: "existing" } ],
@@ -215,6 +228,10 @@ function createInitializeHarness({
     onboardingReviewActive: false,
     onboardingPreferences: () => context.userSettings?.preferences?.onboarding || {},
     onboardingResumeStep: (onboarding = {}) => onboarding.currentStep || "welcome",
+    openAboutApp() {
+      state.aboutOpenCalls += 1;
+      state.aboutOpenedAfterShell = state.finishCalls === 1;
+    },
     openOnboarding: async () => {
       state.onboardingOpenCalls += 1;
       context.onboardingActive = true;
@@ -224,8 +241,8 @@ function createInitializeHarness({
       context.currentProfile = profile;
     },
     restoreSidebarState() {},
-    routeTokenFromLocation: () => "",
-    routeViewFromLocation: () => "home",
+    routeTokenFromLocation: () => routeToken,
+    routeViewFromLocation: () => routeView,
     scheduleDeferredInitialData() {},
     setActiveView(view) {
       state.activeView = view;
@@ -241,7 +258,9 @@ function createInitializeHarness({
     transientInitialHomeSidebarCollapse: false,
     userSettings: null,
     userSettingsWriteRevision: 0,
-    updateRouteHash() {},
+    updateRouteHash(view, options) {
+      state.routeUpdates.push({ view, ...options });
+    },
     updateView() {
       state.updateViewCalls += 1;
     },
@@ -269,7 +288,7 @@ function createInitializeHarness({
     }
   };
   vm.runInNewContext(
-    `${initializeDataSource()}\nglobalThis.__initializeData = initializeData;`,
+    `${aboutRouteGuardSource()}\n${initializeDataSource()}\nglobalThis.__initializeData = initializeData;`,
     context,
     { filename: "initialize-data-contract.js" }
   );
@@ -327,6 +346,34 @@ async function assertQuickSettingsKeepSkeletonUntilCriticalData() {
   core.resolve();
   await initialization;
   assert.equal(harness.state.finishCalls, 1);
+}
+
+async function assertAboutRoutesOpenAfterShellWithoutReplacingDeepLink() {
+  for (const routeToken of ["about", "profile-about"]) {
+    for (const cleanUrlsEnabled of [false, true]) {
+      const harness = createInitializeHarness({
+        cleanUrlsEnabled,
+        routeToken,
+        settingsPromise: Promise.resolve()
+      });
+      await harness.initialize();
+      assert.equal(harness.state.finishCalls, 1);
+      assert.equal(harness.state.criticalLoadCalls, 1);
+      assert.equal(harness.state.aboutOpenCalls, 1);
+      assert.equal(harness.state.aboutOpenedAfterShell, true);
+      assert.equal(harness.state.activeView, "home");
+      assert.equal(harness.state.routeUpdates.length, 0, "Der About-Link muss bis zum Schließen des Fensters erhalten bleiben.");
+    }
+  }
+  const ordinaryRoute = createInitializeHarness({
+    cleanUrlsEnabled: true,
+    routeToken: "contacts",
+    routeView: "contacts",
+    settingsPromise: Promise.resolve()
+  });
+  await ordinaryRoute.initialize();
+  assert.equal(ordinaryRoute.state.aboutOpenCalls, 0);
+  assert.deepEqual(ordinaryRoute.state.routeUpdates, [{ view: "contacts", replace: true }]);
 }
 
 async function assertSettingsFailuresFallBackWithoutDiscardingCoreData() {
@@ -559,6 +606,7 @@ function assertPublicLoginBootstrapContract() {
 await assertApiRequestErrorContract();
 await assertSettingsDoNotBlockShell();
 await assertQuickSettingsKeepSkeletonUntilCriticalData();
+await assertAboutRoutesOpenAfterShellWithoutReplacingDeepLink();
 await assertSettingsFailuresFallBackWithoutDiscardingCoreData();
 await assertLateSettingsResumeOnboarding();
 await assertLateCompletedSettingsCloseFallbackOnboarding();

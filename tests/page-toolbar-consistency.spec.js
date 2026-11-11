@@ -403,7 +403,7 @@ test("Presse, Politik und Aktivitäten nutzen kompakte Inhaltszeilen ohne zweite
   await expect(page.locator("#view-stakeholders .table-command-row--stakeholders")).toHaveCount(0);
 });
 
-test("Beobachtungen und Teams verwenden dieselbe sichtbare Suchfeld-Geometrie", async ({ page }) => {
+test("Beobachtungen zeigen die Suche und Teams kommen ohne Suchfeld aus", async ({ page }) => {
   await gotoAuthenticated(page, appPath("hospitations:observations"), { role: "admin" });
   const observationPanel = page.locator("#hospitation-observations-panel:not([hidden])");
   const observationSearch = observationPanel.locator(".observation-header-search");
@@ -430,23 +430,12 @@ test("Beobachtungen und Teams verwenden dieselbe sichtbare Suchfeld-Geometrie", 
   }
 
   await page.goto(appPath("team"), { waitUntil: "load" });
-  const teamSearch = page.locator(".team-search");
-  await expect(teamSearch).toBeVisible();
-  const teamGeometry = await teamSearch.evaluate((element) => {
-    const icon = element.querySelector("svg")?.getBoundingClientRect();
-    const input = element.querySelector("input")?.getBoundingClientRect();
-    const rect = element.getBoundingClientRect();
-    return {
-      height: rect.height,
-      iconRight: icon?.right || Number.POSITIVE_INFINITY,
-      inputLeft: input?.left || 0,
-      overflow: document.documentElement.scrollWidth - document.documentElement.clientWidth
-    };
-  });
-  expect(teamGeometry.height).toBeGreaterThanOrEqual(46);
-  expect(teamGeometry.height).toBeLessThanOrEqual(58);
-  expect(teamGeometry.iconRight).toBeLessThan(teamGeometry.inputLeft);
-  expect(teamGeometry.overflow).toBeLessThanOrEqual(1);
+  await expect(page.locator("#team-account-list")).toBeVisible();
+  await expect(page.locator(".team-search")).toHaveCount(0);
+  const teamOverflow = await page.evaluate(() =>
+    document.documentElement.scrollWidth - document.documentElement.clientWidth
+  );
+  expect(teamOverflow).toBeLessThanOrEqual(1);
 });
 
 test("sichtbare Systemhinweise verwenden kein öffentliches-Demo-Framing", async ({ page }) => {

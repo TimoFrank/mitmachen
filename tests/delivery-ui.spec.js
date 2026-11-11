@@ -47,6 +47,12 @@ test("Pages startet direkt in der App-Startseite", async ({ page }, testInfo) =>
   await expect(page.locator(".home-destination-link__mark")).toHaveCount(4);
   await expect(page.getByRole("heading", { name: "Willkommen.", level: 1 })).toBeVisible();
   await expect(page.getByRole("navigation", { name: "Arbeitsbereiche" })).toBeVisible();
+  const footer = page.locator(".versorgungs-app-footer");
+  await expect(footer).toBeVisible();
+  await expect(footer.getByRole("link", { name: "#Mitmachen", exact: true })).toHaveAttribute("href", "https://www.gematik.de/mitmachen");
+  await expect(footer.getByRole("link")).toHaveCount(1);
+  await expect(footer.locator("span")).toHaveText("- ein Angebot der gematik");
+  await expect(page.locator("#home-tour-button")).toHaveCount(0);
   await expect(page.locator("[data-home-compass-name]")).toHaveText(await page.locator(".home-destination-name").allTextContents());
   await expect(page.locator("[data-home-compass-name]").first()).toHaveCSS("animation-name", "homeCompassRotate");
   await expect(page.locator(".home-hero__brand, [data-home-scroll-cue]")).toHaveCount(0);
@@ -150,10 +156,10 @@ test("Mobile-Auslieferung: Startklar-Hinweis erscheint erst im Versorgungs-Kompa
   await expect(status).toHaveAttribute("role", "status");
   await expect(status).toHaveAttribute("aria-live", "polite");
 
-  const [statusBox, footerBox] = await Promise.all([status.boundingBox(), footer.boundingBox()]);
+  await expect(footer).toBeHidden();
+  const statusBox = await status.boundingBox();
   expect(statusBox).not.toBeNull();
-  expect(footerBox).not.toBeNull();
-  expect(statusBox.y + statusBox.height).toBeLessThanOrEqual(footerBox.y - 8);
+  expect(statusBox.y + statusBox.height).toBeLessThanOrEqual(844);
   expect(statusBox.x).toBeGreaterThanOrEqual(0);
   expect(statusBox.x + statusBox.width).toBeLessThanOrEqual(390);
   await page.screenshot({ path: testInfo.outputPath("pages-startklar-versorgungs-kompass.png"), fullPage: false });
@@ -205,4 +211,29 @@ test("Pages-Karte: Sektorpunkte stehen an den erfassten Positionen", async ({ pa
         && Math.abs(latLng.lng - Number(data.lon)) < 1e-7;
     });
   })).toBe(true);
+});
+
+test("Startseiten-Fußzeile bleibt mobil einzeilig und fließt bei großer Schrift um", async ({ page }) => {
+  await page.setViewportSize({ width: 320, height: 568 });
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  await page.goto("/dist/pages/index.html");
+  const footer = page.locator(".versorgungs-app-footer");
+  await expect(footer).toBeVisible();
+  const defaultLayout = await footer.evaluate((root) => {
+    const link = root.querySelector("a").getBoundingClientRect();
+    const text = root.querySelector("span").getBoundingClientRect();
+    return { rowDelta: Math.abs(link.top - text.top), overflow: root.scrollWidth - root.clientWidth };
+  });
+  expect(defaultLayout.rowDelta).toBeLessThanOrEqual(1);
+  expect(defaultLayout.overflow).toBeLessThanOrEqual(1);
+  await page.addStyleTag({ content: "html { font-size: 200%; }" });
+  const largeLayout = await footer.evaluate((root) => ({
+    overflow: root.scrollWidth - root.clientWidth,
+    childrenFit: [...root.children].every((child) => {
+      const rect = child.getBoundingClientRect();
+      return rect.left >= 0 && rect.right <= innerWidth;
+    })
+  }));
+  expect(largeLayout.overflow).toBeLessThanOrEqual(1);
+  expect(largeLayout.childrenFit).toBe(true);
 });

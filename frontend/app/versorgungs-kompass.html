@@ -365,7 +365,7 @@
               </svg>
               <span>App-Tour</span>
             </button>
-            <button class="sidebar-link" type="button" id="sidebar-about-button" title="Über die App">
+            <button class="sidebar-link" type="button" id="sidebar-about-button" title="Über die App" aria-haspopup="dialog" aria-controls="about-app" aria-expanded="false">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                 <circle cx="12" cy="12" r="9"></circle>
                 <path d="M12 11v5m0-8h.01"></path>
@@ -2160,8 +2160,7 @@
 
           <div id="analytics-view-mode-toolbar" class="view-mode-command-row care-analytics-header" hidden>
             <header class="care-analytics-intro" data-analytics-intro="analytics">
-              <h2>Kontaktbestand im Überblick</h2>
-              <p>Die Zahlen beziehen sich auf die aktuelle Kontaktauswahl.</p>
+              <h2>Netzwerk im Überblick</h2>
             </header>
             <header class="care-analytics-intro" data-analytics-intro="quality" hidden>
               <h2>Kontakte zur Prüfung</h2>
@@ -2330,32 +2329,29 @@
             <div class="team-workspace">
               <section class="team-directory" aria-label="Teamverzeichnis">
                 <header class="team-directory__header">
-                  <div class="team-search" role="search">
-                    <label class="visually-hidden" for="team-search-input">Team oder Person suchen</label>
-                    <span class="team-search__icon" aria-hidden="true">
-                      <svg viewBox="0 0 24 24">
-                        <circle cx="11" cy="11" r="7"></circle>
-                        <path d="m20 20-4-4"></path>
-                      </svg>
-                    </span>
-                    <input id="team-search-input" type="search" placeholder="Team oder Person suchen" autocomplete="off">
-                    <button class="team-search__clear" id="team-search-clear" type="button" aria-label="Teamsuche leeren" hidden>×</button>
-                  </div>
                   <dl class="team-metrics" aria-label="Team-Kennzahlen">
                     <div>
-                      <dt>Aktive Nutzer</dt>
-                      <dd id="team-user-count">–</dd>
+                      <dt>Personen</dt>
+                      <dd>
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="9" cy="7" r="3"></circle><path d="M3 20v-2a6 6 0 0 1 12 0v2M16 4a3 3 0 0 1 0 6M21 20v-2a6 6 0 0 0-3-5.2"></path></svg>
+                        <span id="team-user-count">–</span>
+                      </dd>
                     </div>
                     <div>
                       <dt>Teams</dt>
-                      <dd id="team-group-count">–</dd>
+                      <dd>
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="8" y="3" width="8" height="6" rx="1"></rect><path d="M12 9v4M5 16v-3h14v3"></path><rect x="2" y="16" width="6" height="5" rx="1"></rect><rect x="16" y="16" width="6" height="5" rx="1"></rect></svg>
+                        <span id="team-group-count">–</span>
+                      </dd>
                     </div>
                     <div>
                       <dt>Betreute Kontakte</dt>
-                      <dd id="team-contact-count">–</dd>
+                      <dd>
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5" y="3" width="15" height="18" rx="2"></rect><path d="M3 7h4M3 12h4M3 17h4"></path><circle cx="13" cy="9" r="2"></circle><path d="M9.5 16a3.5 3.5 0 0 1 7 0"></path></svg>
+                        <span id="team-contact-count">–</span>
+                      </dd>
                     </div>
                   </dl>
-                  <p class="team-directory__result" id="team-directory-result" aria-live="polite" hidden></p>
                 </header>
                 <div class="team-account-list" id="team-account-list" aria-label="Nutzer nach Teams" aria-busy="true">
                   <div class="saved-view-empty">Nutzer werden nach dem Laden des Profils angezeigt.</div>
@@ -2745,19 +2741,8 @@
 
     </main>
         <footer class="versorgungs-app-footer">
-          <span class="versorgungs-app-footer__desktop">#Mitmachen – ein Angebot der gematik</span>
-          <a href="https://www.gematik.de/mitmachen" target="_blank" rel="noopener noreferrer">
-            <span class="versorgungs-app-footer__desktop">gematik.de/mitmachen</span>
-            <span class="versorgungs-app-footer__mobile">#Mitmachen, ein Angebot der gematik</span>
-            <span aria-hidden="true">↗</span>
-          </a>
-          <button class="home-tour-button" id="home-tour-button" type="button">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-              <circle cx="12" cy="12" r="9"></circle>
-              <path d="m10 8 6 4-6 4Z"></path>
-            </svg>
-            App-Tour
-          </button>
+          <a href="https://www.gematik.de/mitmachen" target="_blank" rel="noopener noreferrer">#Mitmachen</a>
+          <span>- ein Angebot der gematik</span>
         </footer>
       </div>
     </div>
@@ -2772,15 +2757,13 @@
               <button class="settings-tab-button" type="button" role="tab" aria-selected="false" aria-controls="profile-tab-imports" data-profile-tab="imports">Importe</button>
               <button class="settings-tab-button" type="button" role="tab" aria-selected="false" aria-controls="profile-tab-settings" data-profile-tab="settings" hidden>Einstellungen</button>
               <button class="settings-tab-button" type="button" role="tab" aria-selected="false" aria-controls="profile-tab-changelog" data-profile-tab="changelog">Changelog</button>
-              <button class="settings-tab-button" type="button" role="tab" aria-selected="false" aria-controls="profile-tab-about" data-profile-tab="about">Über die App</button>
             </div>
             <div class="profile-tab-panel" id="profile-tab-profile" role="tabpanel" data-profile-tab-panel="profile">
               <section class="profile-section">
                 <div class="profile-hero">
-                  <div class="profile-photo-action">
-                    <div class="profile-avatar" id="profile-avatar-preview">VK</div>
-                    <button class="action-button" type="button" id="profile-photo-open">Foto ändern</button>
-                  </div>
+                  <button class="profile-photo-action" type="button" id="profile-photo-open" aria-label="Profilfoto ändern" title="Profilfoto ändern" aria-haspopup="dialog" aria-controls="profile-photo-modal">
+                    <span class="profile-avatar" id="profile-avatar-preview" aria-hidden="true">VK</span>
+                  </button>
                   <div class="profile-identity-copy">
                     <h3 id="profile-display-title">Nutzerprofil</h3>
                     <div class="profile-team-line" id="profile-team-line">Ohne Team</div>
@@ -2794,15 +2777,8 @@
                 <a class="action-button" id="profile-mac-sync-link">Verbundene Macs verwalten</a>
               </section>
               <section class="profile-section profile-guidance-section" aria-labelledby="profile-guidance-title">
-                <div class="profile-guidance-heading">
-                  <h3 id="profile-guidance-title">Dein Einstieg</h3>
-                  <p>Prüfe deine persönliche Einrichtung oder entdecke die wichtigsten Arbeitsbereiche in der App-Tour.</p>
-                </div>
-                <div class="profile-guidance-list">
-                  <article class="profile-guidance-item">
-                    <span class="profile-guidance-index" aria-hidden="true">1</span>
-                    <div class="profile-guidance-copy">
-                      <h4>Profil-Onboarding</h4>
+                <div class="profile-guidance-copy">
+                      <h3 id="profile-guidance-title">Profil-Onboarding</h3>
                       <div
                         class="profile-guidance-progress"
                         id="profile-onboarding-progress"
@@ -2814,22 +2790,8 @@
                         aria-valuetext="0 von 6 Schritten abgeschlossen"
                       ><span id="profile-onboarding-progress-value"></span></div>
                       <div class="profile-onboarding-status" id="profile-onboarding-status" role="status" aria-live="polite" aria-atomic="true">Onboarding-Status wird geladen.</div>
-                    </div>
-                    <div class="profile-guidance-actions">
-                      <button class="action-button action-button--primary" type="button" id="profile-onboarding-start" aria-describedby="profile-onboarding-status">Onboarding fortsetzen</button>
-                    </div>
-                  </article>
-                  <article class="profile-guidance-item">
-                    <span class="profile-guidance-index" aria-hidden="true">2</span>
-                    <div class="profile-guidance-copy">
-                      <h4>App-Tour</h4>
-                      <div class="profile-onboarding-status" id="profile-tour-status" role="status" aria-live="polite" aria-atomic="true">Tour-Status wird geladen.</div>
-                    </div>
-                    <div class="profile-guidance-actions">
-                      <button class="action-button" type="button" id="profile-tour-start" aria-describedby="profile-tour-status">Tour starten</button>
-                    </div>
-                  </article>
                 </div>
+                <button class="action-button" type="button" id="profile-onboarding-start" aria-describedby="profile-onboarding-status">Onboarding fortsetzen</button>
               </section>
               <section class="profile-section">
                 <h3>Basisdaten</h3>
@@ -2867,36 +2829,16 @@
                 </details>
               </section>
               <section class="profile-section">
-                <h3>Rolle &amp; Berechtigungen</h3>
-                <div class="profile-role-card">
-                  <div class="profile-role-card__copy">
-                    <div class="profile-role-label">Deine Rolle im System</div>
-                    <div class="profile-setting__note" id="profile-role-description">Rollenrechte werden geladen.</div>
-                  </div>
+                <div class="profile-role-heading">
+                  <h3>Meine Rolle</h3>
                   <span class="account-role-pill" id="profile-role-display">Nutzer</span>
-                  <details class="profile-permission-details" id="profile-permission-details">
-                    <summary id="profile-permissions-summary">Berechtigungen anzeigen</summary>
-                    <div class="profile-permission-list" id="profile-permissions-list" aria-label="Rollenbasierte Berechtigungen"></div>
-                  </details>
                 </div>
-                <div class="role-matrix-workspace" aria-labelledby="role-matrix-title" aria-describedby="role-matrix-context">
-                  <div class="role-matrix-heading">
-                    <div>
-                      <span class="role-matrix-eyebrow">Standardrollen</span>
-                      <h4 id="role-matrix-title">Admin, Editor und Viewer im Vergleich</h4>
-                      <p id="role-matrix-context">Die Matrix zeigt auf einen Blick, welche Funktionen im regulären Zielbetrieb freigeschaltet sind.</p>
-                    </div>
-                    <div class="role-matrix-legend" aria-label="Legende">
-                      <span><span class="role-matrix-status role-matrix-status--allowed" aria-hidden="true">
-                        <svg viewBox="0 0 24 24"><path d="m5 12 4 4 10-10"></path></svg>
-                      </span>Erlaubt</span>
-                      <span><span class="role-matrix-status role-matrix-status--unavailable" aria-hidden="true">&ndash;</span>Nicht erlaubt</span>
-                    </div>
-                  </div>
-                  <div class="role-matrix-role-overview" id="role-matrix-role-overview" aria-label="Rollen im Überblick"></div>
+                <details class="profile-permission-details" id="profile-permission-details">
+                  <summary id="profile-permissions-summary">Funktionen und Berechtigungen</summary>
+                  <div class="role-matrix-workspace">
                   <div class="role-matrix-table-wrap" role="region" aria-label="Rollen- und Berechtigungsmatrix" tabindex="0">
                     <table class="role-matrix-table">
-                      <caption class="visually-hidden">Berechtigungen der Rollen Admin, Editor und Viewer</caption>
+                      <caption class="visually-hidden">Standardrechte der Rollen Admin, Editor und Viewer</caption>
                       <colgroup>
                         <col class="role-matrix-permission-column" />
                         <col span="3" class="role-matrix-role-column" />
@@ -2904,19 +2846,19 @@
                       <thead>
                         <tr>
                           <th scope="col">Funktion</th>
-                          <th scope="col" data-role-matrix-heading="admin"><span class="account-role-pill account-role-pill--admin">Admin</span></th>
-                          <th scope="col" data-role-matrix-heading="editor"><span class="account-role-pill account-role-pill--editor">Editor</span></th>
-                          <th scope="col" data-role-matrix-heading="viewer"><span class="account-role-pill account-role-pill--viewer">Viewer</span></th>
+                          <th scope="col" data-role-matrix-heading="admin">Admin</th>
+                          <th scope="col" data-role-matrix-heading="editor">Editor</th>
+                          <th scope="col" data-role-matrix-heading="viewer">Viewer</th>
                         </tr>
                       </thead>
                       <tbody id="role-matrix-body"></tbody>
                     </table>
                   </div>
                   <div class="role-matrix-notes" aria-label="Hinweise zur Rollenmatrix">
-                    <p><strong>Zusätzliche Schutzregeln:</strong> Owner-Zuordnung, Datenschutz und Testbereiche können einzelne Aktionen weiter einschränken.</p>
-                    <p><strong>Rollenvergabe:</strong> Rollen werden über einen geschützten Betriebsprozess vergeben und nicht in dieser Übersicht geändert.</p>
+                    <p><strong>Rollenvergabe:</strong> zentral verwaltet.</p>
                   </div>
-                </div>
+                  </div>
+                </details>
               </section>
               <section class="profile-section" data-target-session>
                 <h3>Sitzung</h3>
@@ -2930,6 +2872,19 @@
               </section>
             </div>
             <div class="profile-tab-panel" id="profile-tab-notifications" role="tabpanel" data-profile-tab-panel="notifications" hidden>
+              <section class="profile-section" id="profile-notification-channels">
+                <h3>Benachrichtigungskanäle</h3>
+                <div class="profile-setting-toggle profile-setting-toggle--disabled">
+                  <label class="profile-switch" for="profile-notifications">
+                    <input id="profile-notifications" name="notificationsEnabled" type="checkbox" disabled />
+                    <span></span>
+                  </label>
+                  <div>
+                    <div class="profile-setting__label">Benachrichtigungen per E-Mail erhalten</div>
+                    <div class="profile-setting__note">Diese Funktion ist noch nicht verfügbar.</div>
+                  </div>
+                </div>
+              </section>
               <section class="profile-section">
                 <div class="notifications-workspace profile-notifications-workspace">
                   <div class="notifications-command-row">
@@ -2965,9 +2920,8 @@
                         <span class="notification-filter__label">Produkt</span>
                       </button>
                     </div>
-                    <p class="notifications-filter-note">Zähler zeigen ungelesene Benachrichtigungen.</p>
                     <div class="notifications-command-actions">
-                      <div class="notifications-meta" id="notifications-meta"></div>
+                      <div class="notifications-meta" id="notifications-meta" role="group" aria-live="polite" aria-atomic="true" aria-label="Benachrichtigungen in der aktuellen Auswahl"></div>
                       <button class="action-button action-button--compact" type="button" id="notifications-mark-all-read">Alle als gelesen</button>
                     </div>
                   </div>
@@ -2976,19 +2930,6 @@
                     <div class="notifications-load-more-row" id="notifications-load-more-row" hidden>
                       <button class="action-button notifications-load-more" type="button" id="notifications-load-more">Mehr laden</button>
                     </div>
-                  </div>
-                </div>
-              </section>
-              <section class="profile-section">
-                <h3>Benachrichtigungskanäle</h3>
-                <div class="profile-setting-toggle profile-setting-toggle--disabled">
-                  <label class="profile-switch" for="profile-notifications">
-                    <input id="profile-notifications" name="notificationsEnabled" type="checkbox" disabled />
-                    <span></span>
-                  </label>
-                  <div>
-                    <div class="profile-setting__label">Benachrichtigungen per E-Mail erhalten</div>
-                    <div class="profile-setting__note">Diese Funktion ist noch nicht verfügbar.</div>
                   </div>
                 </div>
               </section>
@@ -3048,43 +2989,6 @@
                 </div>
               </section>
             </div>
-            <div class="profile-tab-panel" id="profile-tab-about" role="tabpanel" data-profile-tab-panel="about" hidden>
-              <div class="about-workspace">
-                <section class="about-intro">
-                  <div>
-                    <h3>#Mitmachen</h3>
-                    <div class="about-intro__highlight">Versorgungs-Kompass verbindet Menschen, Organisationen, Hospitationen und Formate im Kontext von #Mitmachen.</div>
-                    <p>Das gemeinsame Arbeitswerkzeug hilft Versorgungsteams dabei, Kontakte, Organisationen, Hospitationen, Beobachtungen und Formate an einem Ort nachvollziehbar zu verbinden.</p>
-                  </div>
-                </section>
-                <div class="about-topic-list" aria-label="Funktionen des Versorgungs-Kompass">
-                  <section class="about-topic">
-                    <h3>Kontakte und Organisationen</h3>
-                    <p>Du sammelst wichtige Kontakte, Einrichtungen und Netzwerke strukturiert und findest schnell, wer wofür zuständig ist.</p>
-                  </section>
-                  <section class="about-topic">
-                    <h3>Suchen und filtern</h3>
-                    <p>Filter, Tabellen und gespeicherte Arbeitslogik helfen dir, relevante Kontakte nach Region, Thema, Owner oder Datenqualität einzugrenzen.</p>
-                  </section>
-                  <section class="about-topic">
-                    <h3>Profile</h3>
-                    <p>Kontakt- und Organisationsprofile zeigen erst die wichtigsten Informationen im Lesemodus. Bearbeiten bleibt eine bewusste Aktion.</p>
-                  </section>
-                  <section class="about-topic">
-                    <h3>Karte und Auswertung</h3>
-                    <p>Regionale Versorgung wird sichtbar, damit Teams Lücken, Schwerpunkte und Netzwerke besser einschätzen können.</p>
-                  </section>
-                  <section class="about-topic">
-                    <h3>Formate und Zusammenarbeit</h3>
-                    <p>Formate unterstützen Planung, Teilnehmende und nächste Schritte. Owner und Teams behalten ihre Aufgaben im Blick.</p>
-                  </section>
-                  <section class="about-topic">
-                    <h3>Benachrichtigungen und Profil</h3>
-                    <p>Benachrichtigungen zeigen persönliche Hinweise zu relevanten Änderungen. Im Profil verwaltest du deine Angaben, Rolle und App-Informationen.</p>
-                  </section>
-                </div>
-              </div>
-            </div>
             <div class="profile-tab-panel" id="profile-tab-changelog" role="tabpanel" data-profile-tab-panel="changelog" hidden>
               <div class="about-workspace" aria-label="Versionsverlauf">
                 <div class="about-version-list" id="about-version-list" aria-label="Versionsverlauf"></div>
@@ -3143,6 +3047,40 @@
           <button class="action-button action-button--danger" type="button" id="profile-photo-remove">Entfernen</button>
         </div>
         <div class="profile-notice"><span aria-hidden="true">i</span><span>Quadratische Bilder werden automatisch rund zugeschnitten. Die Initialen werden angezeigt, wenn kein Foto hinterlegt ist.</span></div>
+      </section>
+    </aside>
+
+    <aside class="about-app" id="about-app" aria-hidden="true" hidden>
+      <div class="about-app__backdrop" id="about-app-backdrop"></div>
+      <section class="about-app__panel" role="dialog" aria-modal="true" aria-labelledby="about-app-title" aria-describedby="about-app-intro" tabindex="-1">
+        <header class="about-app__header">
+          <div class="about-app__identity">
+            <img class="about-app__brand" src="../../public/brand/mitmachen/flechtwerk-lockup-horizontal.svg" alt="#Mitmachen" />
+            <h2 id="about-app-title">Über die App</h2>
+          </div>
+          <button class="action-button" id="about-app-close" type="button" aria-label="Über die App schließen"><span class="about-app__close-label">Schließen</span><span class="about-app__close-icon" aria-hidden="true">×</span></button>
+        </header>
+        <div class="about-app__intro">
+          <p id="about-app-intro">#Mitmachen bringt Erfahrungen aus der Versorgung in die Gestaltung digitaler Gesundheit ein. Der Versorgungs-Kompass verbindet dazu Kontakte, Organisationen und Beteiligung in einem gemeinsamen Arbeitswerkzeug.</p>
+        </div>
+        <div class="about-app__modules" aria-label="Die vier Module">
+          <details class="about-app__module" name="about-modules" data-about-module="care">
+            <summary><img src="../../public/brand/versorgungs-kompass/mark.svg" alt="" /><span><strong>Versorgungs-Kompass</strong><small>Kontakte und Versorgung im Blick</small></span><span class="about-app__chevron" aria-hidden="true">⌄</span></summary>
+            <p>Finde Kontakte und Organisationen über Suche und Filter. Profile bündeln Kontaktwege und Hintergründe. Karte und Auswertung zeigen regionale Verteilung und Schwerpunkte.</p>
+          </details>
+          <details class="about-app__module" name="about-modules" data-about-module="stakeholders">
+            <summary><img src="../../public/brand/modules/stakeholder/mark.svg" alt="" /><span><strong>Stakeholder-Kompass</strong><small>Perspektiven und Netzwerke verbinden</small></span><span class="about-app__chevron" aria-hidden="true">⌄</span></summary>
+            <p>Ordne Personen und Organisationen aus Patientenvertretung, Politik, Presse und weiteren Netzwerken ein. Ihre Profile machen Zuständigkeiten und Verbindungen nachvollziehbar.</p>
+          </details>
+          <details class="about-app__module" name="about-modules" data-about-module="planning">
+            <summary><img src="../../public/brand/modules/hospitation/mark.svg" alt="" /><span><strong>Hospitations-Kompass</strong><small>Versorgung erleben und verstehen</small></span><span class="about-app__chevron" aria-hidden="true">⌄</span></summary>
+            <p>Bereite Hospitationen vor, halte Beobachtungen fest und werte sie gemeinsam aus. Das Framework hilft, Erfahrungen zu strukturieren und übergreifende Muster zu erkennen.</p>
+          </details>
+          <details class="about-app__module" name="about-modules" data-about-module="formats">
+            <summary><img src="../../public/brand/modules/formate/mark.svg" alt="" /><span><strong>Format-Kompass</strong><small>Beteiligung gemeinsam gestalten</small></span><span class="about-app__chevron" aria-hidden="true">⌄</span></summary>
+            <p>Plane Formate, verbinde Teilnehmende und halte nächste Schritte fest. Owner und Teams koordinieren die Zusammenarbeit und behalten den Stand im Blick.</p>
+          </details>
+        </div>
       </section>
     </aside>
 

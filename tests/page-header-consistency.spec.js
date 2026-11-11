@@ -37,8 +37,7 @@ const routeGroups = [
     ["profile-imports:onlineEntry", "Online-Erfassung"],
     ["profile-imports:importHistory", "Importhistorie"],
     ["profile-settings", "Einstellungen"],
-    ["profile-changelog", "Changelog"],
-    ["profile-about", "Über die App"]
+    ["profile-changelog", "Changelog"]
   ]
 ];
 
@@ -47,15 +46,44 @@ function appPath(route) {
 }
 
 async function expectUnifiedHeader(page, route, title) {
-  await expect(page.locator(".workspace-header.workspace-header--unified")).toBeVisible();
   await expect(page.locator("#workspace-view-title")).toHaveText(title);
   await expect(page.locator("#workspace-view-subtitle")).not.toHaveText("");
   await expect(page.locator("#workspace-view-subtitle")).toBeHidden();
   await expect(page.locator("h1:visible")).toHaveCount(1);
   await expect(page.locator("[data-workspace-brand]:visible")).toHaveCount(1);
-  await expect(page.locator(".workspace-heading-row")).toBeVisible();
   await expect(page.locator(".workspace-header--unified #summary-grid")).toHaveCount(0);
   await expect(page).toHaveTitle(`${title} · #Mitmachen`);
+
+  const careRoute = ["care", "contacts", "organizations", "map", "analytics", "quality", "activities"].includes(route);
+  if (careRoute) {
+    await expect(page.locator(".app-shell")).toHaveClass(/is-care-toolbar-layout/);
+    await expect(page.locator(".workspace-header--unified")).toHaveCSS("display", "contents");
+    await expect(page.locator(".workspace-heading-row")).toHaveCSS("display", "contents");
+    await expect(page.locator(".workspace-copy")).toHaveCSS("clip-path", "inset(50%)");
+    await expect(page.locator("main")).toHaveAttribute("aria-label", title);
+    const host = ["analytics", "quality"].includes(route)
+      ? page.locator("#analytics-view-mode-toolbar")
+      : page.locator(".crm-shell > .controls");
+    await expect(host.locator(":scope > [data-workspace-brand]")).toBeVisible();
+    const geometry = await host.evaluate((root) => {
+      const brand = root.querySelector(":scope > [data-workspace-brand]").getBoundingClientRect();
+      const search = root.querySelector(".search-shell")?.getBoundingClientRect();
+      const rect = root.getBoundingClientRect();
+      return { brandLeft: brand.left, brandRight: brand.right, hostRight: rect.right,
+        searchRight: search?.right, searchCenter: search && search.top + search.height / 2,
+        brandCenter: brand.top + brand.height / 2,
+        overflow: document.documentElement.scrollWidth - document.documentElement.clientWidth };
+    });
+    expect(geometry.brandRight).toBeLessThanOrEqual(geometry.hostRight + 1);
+    if (geometry.searchRight) {
+      expect(geometry.brandLeft).toBeGreaterThanOrEqual(geometry.searchRight + 8);
+      expect(Math.abs(geometry.brandCenter - geometry.searchCenter)).toBeLessThanOrEqual(2);
+    }
+    expect(geometry.overflow).toBeLessThanOrEqual(1);
+    return;
+  }
+  await expect(page.locator(".workspace-header.workspace-header--unified")).toBeVisible();
+  await expect(page.locator(".workspace-heading-row")).toBeVisible();
 
   if (route === "framework") await expect(page.locator("#view-framework .framework-header")).toHaveCount(0);
   if (route === "hospitations") await expect(page.locator("#hospitation-command-row")).toHaveCount(0);
@@ -123,4 +151,21 @@ routeGroups.forEach((routes, groupIndex) => {
       await expectUnifiedHeader(page, route, title);
     }
   });
+});
+
+test("Modulwechsel stellt die Markenposition im selben Dokument wieder her", async ({ page }) => {
+  await gotoAuthenticated(page, appPath("contacts"), { role: "admin" });
+  for (const [route, host] of [
+    ["contacts", ".controls"],
+    ["framework", ".workspace-heading-row"],
+    ["analytics", "#analytics-view-mode-toolbar"],
+    ["quality", "#analytics-view-mode-toolbar"],
+    ["formats", ".workspace-heading-row"],
+    ["map", ".controls"],
+    ["profile", ".workspace-heading-row"]
+  ]) {
+    await page.evaluate((hash) => { window.location.hash = hash; }, route);
+    await expect(page.locator(`${host} > [data-workspace-brand]`)).toBeVisible();
+    await expect(page.locator("[data-workspace-brand]")).toHaveCount(1);
+  }
 });

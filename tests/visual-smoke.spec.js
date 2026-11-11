@@ -71,6 +71,20 @@ async function openMobileSidebarIfNeeded(page) {
   await expect(shell).toHaveClass(/is-mobile-sidebar-expanded/);
 }
 
+async function startFullOnboardingTour(page) {
+  await page.locator("#profile-onboarding-start").click();
+  await page.locator("#onboarding-welcome-next").click();
+  await page.locator("#onboarding-profile-submit").click();
+  await page.locator("#onboarding-identity-confirm").check();
+  await page.locator("#onboarding-identity-submit").click();
+  await page.locator("#onboarding-team").selectOption("Stabsstelle Versorgung");
+  await page.locator("#onboarding-team-submit").click();
+  await page.locator("#onboarding-access-confirm").check();
+  await page.locator("#onboarding-access-submit").click();
+  await page.locator("#onboarding-summary-submit").click();
+  await page.locator("#onboarding-tour-start").click();
+}
+
 async function expandSidebarSectionIfNeeded(page, section) {
   await openMobileSidebarIfNeeded(page);
   const shell = page.locator(".app-shell");
@@ -1786,38 +1800,7 @@ test("Hospitation: Framework-Modul rendern", async ({ page }, testInfo) => {
   });
   expect(frameworkFirstView.overviewHeight).toBeGreaterThanOrEqual(frameworkFirstView.viewportHeight - 1);
   expect(frameworkFirstView.firstAccordionTop).toBeGreaterThanOrEqual(frameworkFirstView.viewportHeight);
-  const appFooter = page.locator(".versorgungs-app-footer");
-  const isMobile = testInfo.project.name.includes("mobile");
-  await expect(appFooter).toBeVisible();
-  const mitmachenFooterLink = appFooter.getByRole("link", {
-    name: isMobile ? "#Mitmachen, ein Angebot der gematik" : "gematik.de/mitmachen"
-  });
-  await expect(mitmachenFooterLink).toHaveAttribute("href", "https://www.gematik.de/mitmachen");
-  await expect(mitmachenFooterLink).toHaveAttribute("target", "_blank");
-  await expect(mitmachenFooterLink).toHaveAttribute("rel", /noopener/);
-  await expect(appFooter).toHaveCSS("justify-content", "center");
-  if (isMobile) {
-    await expect(appFooter.locator(".versorgungs-app-footer__desktop").first()).toBeHidden();
-    const footerMetrics = await mitmachenFooterLink.evaluate((link) => {
-      const footer = link.closest("footer");
-      const style = getComputedStyle(footer);
-      const label = link.querySelector(".versorgungs-app-footer__mobile");
-      const labelRange = document.createRange();
-      labelRange.selectNodeContents(label);
-      return {
-        lines: labelRange.getClientRects().length,
-        paddingTop: Number.parseFloat(style.paddingTop),
-        paddingBottom: Number.parseFloat(style.paddingBottom),
-        contentBottomGap: footer.getBoundingClientRect().bottom - link.getBoundingClientRect().bottom
-      };
-    });
-    expect(footerMetrics.lines).toBe(1);
-    expect(footerMetrics.paddingTop).toBeGreaterThanOrEqual(8);
-    expect(footerMetrics.paddingBottom).toBeGreaterThanOrEqual(14);
-    expect(footerMetrics.contentBottomGap).toBeGreaterThanOrEqual(14);
-  } else {
-    await expect(appFooter.locator(".versorgungs-app-footer__desktop").first()).toHaveText("#Mitmachen – ein Angebot der gematik");
-  }
+  await expect(page.locator(".versorgungs-app-footer")).toBeHidden();
   await attachScreenshot(page, testInfo, "planung-framework-erster-blick", { fullPage: false });
   await expect(frameworkView.locator(".framework-step-explainer, .framework-step-card, .framework-source-link")).toHaveCount(0);
   await expect(modelSection).not.toContainText("Epic-Kandidaten");
@@ -2833,7 +2816,7 @@ test("Sidebar: Aktiver Bereich startet offen und beim Modulwechsel bleibt nur ei
   await expect(formatsSection).toHaveClass(/is-collapsed/);
   await expect(page.locator('[data-sidebar-section="admin"]')).toHaveCount(0);
   await expect(collapseButton.locator(".sidebar-collapse-label")).toHaveText("Menü einklappen");
-  await expect(collapseButton.locator(".sidebar-collapse-label")).toBeVisible();
+  await expect(collapseButton.locator(".sidebar-collapse-label")).toBeHidden();
 
   await page.locator('[data-sidebar-section-toggle="planning"]').click();
   await expect(shell).toHaveAttribute("data-active-view", "contacts");
@@ -2922,11 +2905,9 @@ test("Sidebar: Aktiver Bereich startet offen und beim Modulwechsel bleibt nur ei
   const collapsedCollapseBox = await collapseButton.boundingBox();
   expect(expandedCollapseBox).not.toBeNull();
   expect(collapsedCollapseBox).not.toBeNull();
-  expect(expandedCollapseBox.width).toBeGreaterThan(collapsedCollapseBox.width);
-  expect(collapsedCollapseBox.width).toBe(40);
-  expect(collapsedCollapseBox.height).toBe(40);
-  expect(Math.abs(collapsedCollapseBox.x - expandedCollapseBox.x)).toBeLessThanOrEqual(1);
-  expect(Math.abs(collapsedCollapseBox.y - expandedCollapseBox.y)).toBeLessThanOrEqual(1);
+  expect(expandedCollapseBox.width).toBe(32);
+  expect(collapsedCollapseBox.width).toBe(32);
+  expect(collapsedCollapseBox.height).toBe(32);
 
   await attachScreenshot(page, testInfo, "sidebar-section-first-page");
 });
@@ -3008,224 +2989,46 @@ test("Sidebar: Stakeholder-Personen und -Organisationen sind kompakt und routens
   await expect(stakeholderSection.locator(":scope > .sidebar-section-toggle .sidebar-module-icon img")).toBeVisible();
 });
 
-test("Sidebar: Desktop-Schalter bleibt ganz unten unter Konto und Profil", async ({ page }, testInfo) => {
-  test.skip(testInfo.project.name.includes("mobile"), "Die feste Desktop-Position wird separat geprüft.");
-  await page.setViewportSize({ width: 1440, height: 1000 });
+test("Sidebar: Kompakter Pfeil steht rechts neben dem Startlink", async ({ page }, testInfo) => {
+  test.skip(testInfo.project.name.includes("mobile"), "Die mobile Navigation behält den Kopfbereich.");
   await gotoAuthenticated(page, "/frontend/app/versorgungs-kompass.html#contacts", { role: "admin" });
-
   const shell = page.locator(".app-shell");
-  const sidebar = page.locator(".app-sidebar");
-  const collapseButton = page.locator("#sidebar-collapse-button");
-  if (await shell.evaluate((element) => element.classList.contains("is-sidebar-collapsed"))) {
-    await collapseButton.click();
+  const toggle = page.locator("#sidebar-collapse-button");
+  const home = page.locator(".sidebar-home-entry [data-view-tab='home']");
+  for (const viewport of [{ width: 1440, height: 1000 }, { width: 1280, height: 720 }]) {
+    await page.setViewportSize(viewport);
+    if (await shell.evaluate(node => node.classList.contains("is-sidebar-collapsed"))) await toggle.click();
+    await expect(toggle).toHaveCSS("width", "32px");
+    await expect(toggle.locator(".sidebar-collapse-label")).toBeHidden();
+    const homeBox = await home.boundingBox();
+    const toggleBox = await toggle.boundingBox();
+    expect(toggleBox.x).toBeGreaterThanOrEqual(homeBox.x + homeBox.width);
+    expect(Math.abs(toggleBox.y + toggleBox.height / 2 - homeBox.y - homeBox.height / 2)).toBeLessThanOrEqual(1);
+    await toggle.click();
+    await expect(shell).toHaveClass(/is-sidebar-collapsed/);
+    await expect(toggle).toBeVisible();
+    await expect(toggle).toHaveAttribute("aria-expanded", "false");
+    await toggle.click();
     await expect(shell).not.toHaveClass(/is-sidebar-collapsed/);
   }
-
-  const readLayout = () => page.evaluate(() => {
-    const toggleElement = document.querySelector("#sidebar-collapse-button");
-    const accountElement = document.querySelector(".sidebar-account-section");
-    const sidebarElement = document.querySelector(".app-sidebar");
-    const toggle = toggleElement?.getBoundingClientRect();
-    const icon = toggleElement?.querySelector("svg")?.getBoundingClientRect();
-    const account = accountElement?.getBoundingClientRect();
-    const sidebarBox = sidebarElement?.getBoundingClientRect();
-    const label = toggleElement?.querySelector(".sidebar-collapse-label");
-    return {
-      x: toggle?.x || 0,
-      y: toggle?.y || 0,
-      width: toggle?.width || 0,
-      height: toggle?.height || 0,
-      bottom: toggle?.bottom || 0,
-      iconCenterX: icon ? (icon.left + icon.right) / 2 : 0,
-      accountBottom: account?.bottom || 0,
-      sidebarBottom: sidebarBox?.bottom || 0,
-      sidebarPaddingBottom: sidebarElement ? Number.parseFloat(getComputedStyle(sidebarElement).paddingBottom) : 0,
-      labelDisplay: label ? getComputedStyle(label).display : "none",
-      labelText: label?.textContent?.trim() || "",
-      followsAccountInDom: accountElement?.nextElementSibling === toggleElement,
-      position: toggleElement ? getComputedStyle(toggleElement).position : ""
-    };
-  });
-  const expectDockedLayout = (layout, { expanded, gap }) => {
-    expect(Math.abs(layout.x - 18)).toBeLessThanOrEqual(1);
-    expect(Math.abs(layout.iconCenterX - 38)).toBeLessThanOrEqual(1);
-    expect(layout.height).toBe(40);
-    expect(Math.abs(layout.y - layout.accountBottom - gap)).toBeLessThanOrEqual(1);
-    expect(Math.abs(layout.sidebarBottom - layout.bottom - layout.sidebarPaddingBottom)).toBeLessThanOrEqual(1);
-    expect(layout.followsAccountInDom).toBe(true);
-    expect(layout.position).toBe("static");
-    if (expanded) {
-      expect(layout.width).toBeGreaterThan(200);
-      expect(layout.labelDisplay).not.toBe("none");
-      expect(layout.labelText).toBe("Menü einklappen");
-    } else {
-      expect(layout.width).toBe(40);
-      expect(layout.labelDisplay).toBe("none");
-    }
-  };
-
-  const expandedNormal = await readLayout();
-  expectDockedLayout(expandedNormal, { expanded: true, gap: 10 });
-  const immediateCollapsedNormal = await page.evaluate(() => {
-    const toggle = document.querySelector("#sidebar-collapse-button");
-    const before = toggle?.getBoundingClientRect();
-    const beforeIcon = toggle?.querySelector("svg")?.getBoundingClientRect();
-    toggle?.click();
-    const after = toggle?.getBoundingClientRect();
-    const afterIcon = toggle?.querySelector("svg")?.getBoundingClientRect();
-    return {
-      beforeX: before?.x || 0,
-      beforeY: before?.y || 0,
-      beforeBottom: before?.bottom || 0,
-      beforeIconCenterX: beforeIcon ? (beforeIcon.left + beforeIcon.right) / 2 : 0,
-      afterX: after?.x || 0,
-      afterY: after?.y || 0,
-      afterBottom: after?.bottom || 0,
-      afterIconCenterX: afterIcon ? (afterIcon.left + afterIcon.right) / 2 : 0
-    };
-  });
-  expect(immediateCollapsedNormal.afterX).toBe(immediateCollapsedNormal.beforeX);
-  expect(immediateCollapsedNormal.afterY).toBe(immediateCollapsedNormal.beforeY);
-  expect(immediateCollapsedNormal.afterBottom).toBe(immediateCollapsedNormal.beforeBottom);
-  expect(immediateCollapsedNormal.afterIconCenterX).toBe(immediateCollapsedNormal.beforeIconCenterX);
-  await expect(shell).toHaveClass(/is-sidebar-collapsed/);
-  const collapsedNormal = await readLayout();
-  expectDockedLayout(collapsedNormal, { expanded: false, gap: 10 });
-  expect(Math.abs(collapsedNormal.y - expandedNormal.y)).toBeLessThanOrEqual(1);
-  await expect(sidebar).toHaveCSS("width", "76px");
-
-  await page.setViewportSize({ width: 1280, height: 720 });
-  await expect(sidebar).toHaveCSS("padding-bottom", "18px");
-  const collapsedShort = await readLayout();
-  expectDockedLayout(collapsedShort, { expanded: false, gap: 8 });
-  await collapseButton.click();
-  await expect(shell).not.toHaveClass(/is-sidebar-collapsed/);
-  await expect(sidebar).toHaveCSS("width", "248px");
-  const expandedShort = await readLayout();
-  expectDockedLayout(expandedShort, { expanded: true, gap: 8 });
-  expect(Math.abs(expandedShort.x - collapsedShort.x)).toBeLessThanOrEqual(1);
-  expect(Math.abs(expandedShort.y - collapsedShort.y)).toBeLessThanOrEqual(1);
-  expect(Math.abs(expandedShort.iconCenterX - collapsedShort.iconCenterX)).toBeLessThanOrEqual(1);
 });
 
-test("Sidebar: Kurzer Desktop hält den breiten Menüschalter fest am unteren Rand", async ({ page }, testInfo) => {
-  test.skip(testInfo.project.name.includes("mobile"), "Der höhenadaptive Desktop-Modus wird separat geprüft.");
+test("Sidebar: Navigation und Konto bleiben bei kurzer Höhe erreichbar", async ({ page }, testInfo) => {
+  test.skip(testInfo.project.name.includes("mobile"), "Die mobile Navigation wird separat geprüft.");
   await page.setViewportSize({ width: 1280, height: 720 });
   await gotoAuthenticated(page, "/frontend/app/versorgungs-kompass.html#contacts", { role: "admin" });
-
-  const sidebarNav = page.locator(".sidebar-nav");
-  const accountSection = page.locator(".sidebar-account-section");
-  const shell = page.locator(".app-shell");
-  const collapseButton = page.locator("#sidebar-collapse-button");
-  const activeTab = page.locator('[data-view-tab="contacts"]');
-  const inactiveTab = page.locator('[data-view-tab="map"]');
-  const careToggle = page.locator('[data-sidebar-section-toggle="care"]');
-
-  await expect(careToggle).toHaveCSS("text-transform", "none");
-  await expect(careToggle).toHaveCSS("font-weight", "600");
-  await expect(careToggle).toHaveCSS("border-left-width", "3px");
-  const moduleAccentColors = await page.locator("[data-sidebar-section] > .sidebar-section-toggle").evaluateAll((toggles) =>
-    toggles.map((toggle) => getComputedStyle(toggle).borderLeftColor)
-  );
-  expect(new Set(moduleAccentColors).size).toBe(4);
-  const moduleAccentAlphas = moduleAccentColors.map((color) => {
-    const channels = color.match(/rgba?\(([^)]+)\)/)?.[1]?.split(",").map((value) => Number.parseFloat(value.trim())) || [];
-    return channels.length > 3 ? channels[3] : 1;
-  });
-  expect(Math.min(...moduleAccentAlphas)).toBeGreaterThanOrEqual(0.9);
-  await expect(page.locator('[data-sidebar-section="stakeholders"]')).toHaveCSS("border-top-width", "0px");
-  await expect(page.locator("#sidebar-administration-section")).toHaveCount(0);
-  await expect(activeTab).toHaveCSS("min-height", "38px");
-  await expect(collapseButton).toHaveCSS("position", "static");
-  await expect(collapseButton.locator(".sidebar-collapse-label")).toBeVisible();
-
-  const metrics = await page.evaluate(() => {
-    const sidebar = document.querySelector(".app-sidebar");
-    const nav = document.querySelector(".sidebar-nav");
-    const account = document.querySelector(".sidebar-account-section");
-    const collapse = document.querySelector("#sidebar-collapse-button");
-    const active = document.querySelector('[data-view-tab="contacts"]');
-    const inactive = document.querySelector('[data-view-tab="map"]');
-    const rect = (element) => element?.getBoundingClientRect();
-    return {
-      accountHeight: rect(account)?.height || 0,
-      accountTop: rect(account)?.top || 0,
-      accountBottom: rect(account)?.bottom || 0,
-      accountBottomInset: (rect(sidebar)?.bottom || 0) - (rect(account)?.bottom || 0),
-      accountPaddingBottom: account ? Number.parseFloat(getComputedStyle(account).paddingBottom) : 0,
-      accountRowGap: account ? Number.parseFloat(getComputedStyle(account).rowGap) : 0,
-      activeBackground: active ? getComputedStyle(active).backgroundColor : "",
-      activeOpacity: active ? Number(getComputedStyle(active).opacity) : 0,
-      collapseBottom: rect(collapse)?.bottom || 0,
-      collapseLeft: rect(collapse)?.left || 0,
-      collapseTop: rect(collapse)?.top || 0,
-      collapseWidth: rect(collapse)?.width || 0,
-      inactiveBackground: inactive ? getComputedStyle(inactive).backgroundColor : "",
-      inactiveOpacity: inactive ? Number(getComputedStyle(inactive).opacity) : 0,
-      navClientHeight: nav?.clientHeight || 0,
-      navRowGap: nav ? Number.parseFloat(getComputedStyle(nav).rowGap) : 0,
-      navScrollHeight: nav?.scrollHeight || 0,
-      navBottom: rect(nav)?.bottom || 0,
-      navOverflowY: nav ? getComputedStyle(nav).overflowY : "",
-      sidebarBottom: rect(sidebar)?.bottom || 0,
-      sidebarPaddingBottom: sidebar ? Number.parseFloat(getComputedStyle(sidebar).paddingBottom) : 0
-    };
-  });
-
-  expect(metrics.navScrollHeight).toBeGreaterThanOrEqual(metrics.navClientHeight);
-  expect(metrics.navOverflowY).toBe("auto");
-  expect(metrics.navRowGap).toBeGreaterThanOrEqual(6);
-  expect(metrics.accountHeight).toBeLessThan(165);
-  expect(metrics.accountRowGap).toBeGreaterThanOrEqual(4);
-  expect(metrics.accountPaddingBottom).toBeGreaterThanOrEqual(6);
-  expect(metrics.accountBottomInset).toBeGreaterThanOrEqual(17);
-  expect(metrics.collapseWidth).toBeGreaterThan(200);
-  expect(Math.abs(metrics.navBottom - metrics.accountTop)).toBeLessThanOrEqual(1);
-  expect(Math.abs(metrics.collapseTop - metrics.accountBottom - 8)).toBeLessThanOrEqual(1);
-  expect(Math.abs(metrics.sidebarBottom - metrics.collapseBottom - metrics.sidebarPaddingBottom)).toBeLessThanOrEqual(1);
-  expect(metrics.activeOpacity).toBeGreaterThan(metrics.inactiveOpacity);
-  expect(metrics.activeBackground).not.toBe(metrics.inactiveBackground);
-
-  await attachScreenshot(page, testInfo, "sidebar-calm-desktop");
-
-  await collapseButton.click();
-  await expect(shell).toHaveClass(/is-sidebar-collapsed/);
-  await expect(collapseButton).toHaveCSS("position", "static");
-  await expect(collapseButton.locator(".sidebar-collapse-label")).toBeHidden();
-  const collapsedControlPosition = await collapseButton.evaluate((element) => {
-    const rect = element.getBoundingClientRect();
-    const nav = document.querySelector(".sidebar-nav")?.getBoundingClientRect();
-    const account = document.querySelector(".sidebar-account-section")?.getBoundingClientRect();
-    const sidebar = document.querySelector(".app-sidebar");
-    const sidebarRect = sidebar?.getBoundingClientRect();
-    return {
-      left: rect.left,
-      top: rect.top,
-      bottom: rect.bottom,
-      width: rect.width,
-      navBottom: nav?.bottom || 0,
-      accountTop: account?.top || 0,
-      accountBottom: account?.bottom || 0,
-      sidebarBottom: sidebarRect?.bottom || 0,
-      sidebarPaddingBottom: sidebar ? Number.parseFloat(getComputedStyle(sidebar).paddingBottom) : 0
-    };
-  });
-  expect(Math.abs(collapsedControlPosition.left - metrics.collapseLeft)).toBeLessThanOrEqual(1);
-  expect(Math.abs(collapsedControlPosition.top - metrics.collapseTop)).toBeLessThanOrEqual(1);
-  expect(collapsedControlPosition.width).toBe(40);
-  expect(Math.abs(collapsedControlPosition.navBottom - collapsedControlPosition.accountTop)).toBeLessThanOrEqual(1);
-  expect(Math.abs(collapsedControlPosition.top - collapsedControlPosition.accountBottom - 8)).toBeLessThanOrEqual(1);
-  expect(Math.abs(collapsedControlPosition.sidebarBottom - collapsedControlPosition.bottom - collapsedControlPosition.sidebarPaddingBottom)).toBeLessThanOrEqual(1);
-
-  await collapseButton.click();
+  const toggle = page.locator("#sidebar-collapse-button");
+  await expect(page.locator("#sidebar-profile-button")).toBeVisible();
+  await expect(toggle).toBeInViewport();
   await page.locator('[data-sidebar-section-toggle="planning"]').click();
   await page.locator('[data-view-tab="hospitations:dashboard"]').click();
   await expect(page.locator('[data-view-tab="hospitations:dashboard"]')).toHaveAttribute("aria-current", "page");
-  await expect.poll(async () => page.evaluate(() => {
-    const nav = document.querySelector(".sidebar-nav")?.getBoundingClientRect();
-    const active = document.querySelector('.sidebar-nav [aria-current="page"]')?.getBoundingClientRect();
-    return Boolean(nav && active && active.top >= nav.top - 1 && active.bottom <= nav.bottom + 1);
+  await expect.poll(() => page.evaluate(() => {
+    const nav = document.querySelector(".sidebar-nav").getBoundingClientRect();
+    const current = document.querySelector('.sidebar-nav [aria-current="page"]').getBoundingClientRect();
+    return current.top >= nav.top - 1 && current.bottom <= nav.bottom + 1;
   })).toBe(true);
+  await attachScreenshot(page, testInfo, "sidebar-compact-desktop");
 });
 
 test("Sidebar: Mobiles Profilavatar entspricht der Größe der Kontoaktionen", async ({ page }, testInfo) => {
@@ -3325,7 +3128,7 @@ test("Sidebar: Mobiles Profilavatar entspricht der Größe der Kontoaktionen", a
   expect(await page.evaluate(() => {
     const toggle = document.querySelector("#sidebar-collapse-button");
     const account = document.querySelector(".sidebar-account-section");
-    return account?.nextElementSibling === toggle;
+    return toggle?.parentElement?.classList.contains("sidebar-home-entry");
   })).toBe(true);
   await expect(collapseButton).toHaveAttribute("aria-label", "Seitenleiste ausklappen");
   await expect(collapseButton).toHaveAttribute("aria-expanded", "false");
@@ -3619,17 +3422,15 @@ test("Onboarding: abgeschlossener neuer Account landet direkt in Zielansicht", a
   await expect(page.locator('[data-view-panel="contacts"]')).toBeVisible();
   await openMobileSidebarIfNeeded(page);
   await page.locator("#sidebar-profile-button").click();
-  await expect(page.locator("#profile-guidance-title")).toHaveText("Dein Einstieg");
+  await expect(page.locator("#profile-guidance-title")).toHaveText("Profil-Onboarding");
   await expect(page.locator("#profile-onboarding-status")).toContainText("Einrichtung abgeschlossen");
   await expect(page.locator("#profile-onboarding-progress")).toHaveAttribute("aria-valuenow", "6");
   await expect(page.locator("#profile-onboarding-progress")).toHaveAttribute("aria-valuetext", "6 von 6 Schritten abgeschlossen");
   await expect(page.locator("#profile-onboarding-start")).toHaveText("Onboarding ansehen");
-  await expect(page.locator("#profile-tour-status")).toContainText("Zuletzt übersprungen");
-  await expect(page.locator("#profile-tour-start")).toHaveText("Tour nachholen");
-  await expect(page.locator("#profile-tour-start")).toHaveClass(/action-button--primary/);
+  await expect(page.locator("#profile-tour-status, #profile-tour-start")).toHaveCount(0);
   await expect(page.locator("#profile-onboarding-start")).not.toHaveClass(/action-button--primary/);
   await expectNoHorizontalOverflow(page);
-  await attachScreenshot(page, testInfo, "profil-onboarding-und-tour");
+  await attachScreenshot(page, testInfo, "profil-onboarding");
 
   await page.locator("#profile-onboarding-start").click();
   await expect(page.locator('[data-view-panel="onboarding"]')).toBeVisible();
@@ -4173,6 +3974,32 @@ test("Benachrichtigungen: Glocke öffnet Vorschau und Profil-Reiter rendert Inbo
   await expect(page.locator("#sidebar-notifications-button")).toHaveClass(/is-active/);
   await expect(page.locator("#notifications-list .notification-item").first()).toBeVisible();
   await expect(page.locator("#profile-tab-notifications .profile-setting-toggle")).toBeVisible();
+  await expect(page.locator("#profile-tab-notifications > .profile-section").first()).toHaveAttribute("id", "profile-notification-channels");
+  await expect(page.locator("#profile-notifications")).toBeDisabled();
+  await expect(page.locator("#notifications-meta [data-notifications-total]")).toHaveText("2");
+  await expect(page.locator("#notifications-meta [data-notifications-unread]")).toHaveText("2");
+  const notificationToolbar = await page.locator(".notifications-filters").evaluate((filters) => {
+    const buttons = [...filters.querySelectorAll(".notification-filter")];
+    const actions = document.querySelector(".notifications-command-actions");
+    const feed = document.querySelector(".notifications-feed-shell");
+    return {
+      topPositions: buttons.map((button) => button.getBoundingClientRect().top),
+      fontSizes: buttons.map((button) => Number.parseFloat(getComputedStyle(button).fontSize)),
+      clientWidth: filters.clientWidth,
+      scrollWidth: filters.scrollWidth,
+      actionsBottom: actions.getBoundingClientRect().bottom,
+      feedTop: feed.getBoundingClientRect().top
+    };
+  });
+  expect(Math.max(...notificationToolbar.topPositions) - Math.min(...notificationToolbar.topPositions)).toBeLessThanOrEqual(1);
+  expect(Math.min(...notificationToolbar.fontSizes)).toBeGreaterThanOrEqual(13);
+  expect(notificationToolbar.actionsBottom).toBeLessThanOrEqual(notificationToolbar.feedTop);
+  if (testInfo.project.name.includes("mobile")) {
+    expect(notificationToolbar.scrollWidth).toBeGreaterThan(notificationToolbar.clientWidth);
+  } else {
+    expect(notificationToolbar.scrollWidth).toBeLessThanOrEqual(notificationToolbar.clientWidth + 1);
+  }
+  await expectNoHorizontalOverflow(page);
   await expect(page.locator("#profile-tab-settings .profile-setting-toggle")).toHaveCount(0);
   await expect(page.locator("#search")).toBeHidden();
   await expect(page.locator("#summary-grid")).toBeHidden();
@@ -4266,8 +4093,12 @@ test("Benachrichtigungen: Glocke öffnet Vorschau und Profil-Reiter rendert Inbo
   await page.locator('[data-notification-filter="hospitations"]').click();
   await expect(page.locator('#notifications-list [data-notification-id="visual-notification-hospitation-upcoming"]')).toBeVisible();
   await expect(page.locator("#notifications-list .notification-item")).toHaveCount(1);
+  await expect(page.locator("#notifications-meta [data-notifications-total]")).toHaveText("1");
+  await expect(page.locator("#notifications-meta [data-notifications-unread]")).toHaveText("1");
   await page.locator('[data-notification-filter="all"]').click();
   await expect(page.locator("#notifications-list .notification-item")).toHaveCount(3);
+  await expect(page.locator("#notifications-meta [data-notifications-total]")).toHaveText("3");
+  await expect(page.locator("#notifications-meta [data-notifications-unread]")).toHaveText("2");
   await expect(page.locator("#notifications-list")).not.toContainText("Backend-Produktmeldung");
   const readOrganizationItem = page.locator('#notifications-list [data-notification-id="visual-notification-organization-read"]');
   await expect(readOrganizationItem.locator(".notification-item__compass-mark")).toHaveAttribute("src", "../../public/brand/versorgungs-kompass/mark.svg");
@@ -4293,6 +4124,8 @@ test("Benachrichtigungen: Glocke öffnet Vorschau und Profil-Reiter rendert Inbo
   expect(backendFixture.notifications.find((item) => item.id === "visual-notification-backend-product")?.readAt).toBe("");
   await expect(page.locator("#notifications-list .notifications-empty")).toBeVisible();
   await expect(page.locator("#notification-count-total")).toBeHidden();
+  await expect(page.locator("#notifications-meta [data-notifications-total]")).toHaveText("0");
+  await expect(page.locator("#notifications-meta [data-notifications-unread]")).toHaveText("0");
   await page.locator('[data-notification-filter="all"]').click();
   const readContactNotification = page.locator('#notifications-list [data-notification-id="visual-notification-contact-update"]');
   await expect(readContactNotification).toBeVisible();
@@ -4306,6 +4139,8 @@ test("Benachrichtigungen: Glocke öffnet Vorschau und Profil-Reiter rendert Inbo
   await expect(readContactNotification.locator("[data-open-notification]")).toBeVisible();
   await expect(readContactNotification.locator("[data-open-notification]")).toHaveAccessibleName("Benachrichtigung „Kontaktdaten aktualisiert“ öffnen");
   await expect(page.locator("#notifications-mark-all-read")).toBeDisabled();
+  await expect(page.locator("#notifications-meta [data-notifications-total]")).toHaveText("3");
+  await expect(page.locator("#notifications-meta [data-notifications-unread]")).toHaveText("0");
   await page.locator('[data-notification-filter="unread"]').click();
   await expect(page.locator("#notifications-list .notifications-empty")).toBeVisible();
   await expect(page.locator("#notifications-list .notification-empty-state__icon")).toBeVisible();
@@ -7038,7 +6873,7 @@ test("Karte: Kontaktvorschau bleibt beim Ausschnitt und öffnet Details erst auf
   await sectorFilter.click();
   await mapMarker.click();
   await expect(preview).toBeVisible();
-  await page.locator("#workspace-view-title").click();
+  await page.locator(".controls > [data-workspace-brand]").click();
   await expect(preview).toBeHidden();
   await mapMarker.click();
   await expect(preview).toBeVisible();
@@ -7238,30 +7073,67 @@ test("Mein Profil: Einstellungen sind als Profil-Reiter erreichbar", async ({ pa
 test("Sidebar: Über die App ist über den App-Bereich und die bestehende URL erreichbar", async ({ page }, testInfo) => {
   await gotoAuthenticated(page, "/frontend/app/versorgungs-kompass.html#profile-about", { role: "viewer" });
 
-  await expect(page.locator('[data-view-panel="profile"]')).toBeVisible();
-  await expect(page.locator('[data-profile-tab="about"]')).toHaveAttribute("aria-selected", "true");
-  await expect(page.locator("#profile-tab-about")).toBeVisible();
-  await expect(page.locator("#profile-tab-about .about-intro__highlight")).toContainText("verbindet Menschen");
-  await expect(page.locator("#profile-tab-about .about-topic")).toHaveCount(6);
-  await expect(page.locator("#profile-tab-about")).not.toContainText("Changelog");
-
+  const overlay = page.locator("#about-app");
+  const dialog = overlay.getByRole("dialog", { name: "Über die App", exact: true });
+  const closeButton = page.getByRole("button", { name: "Über die App schließen" });
+  const modules = overlay.locator(".about-app__module");
   const appGroup = page.getByRole("group", { name: "App", exact: true });
   const profileButton = page.locator("#sidebar-profile-button");
   const aboutButton = page.locator("#sidebar-about-button");
-  await expect(aboutButton).toHaveAttribute("aria-current", "page");
-  await expect(profileButton).not.toHaveAttribute("aria-current", "page");
-  await openMobileSidebarIfNeeded(page);
-  await expect(appGroup.getByRole("button", { name: "App-Tour starten" })).toBeVisible();
-  await profileButton.click();
-  await expect(profileButton).toHaveAttribute("aria-current", "page");
+
+  await expect(dialog).toBeVisible();
+  await expect(page.locator(".app-shell")).toHaveAttribute("data-active-view", "home");
+  await expect(page.locator('[data-profile-tab="about"]')).toHaveCount(0);
+  await expect(overlay.getByRole("img", { name: "#Mitmachen", exact: true })).toBeVisible();
+  await expect(overlay.locator(".about-app__header #about-app-title")).toBeVisible();
+  await expect(overlay).not.toContainText("Für alle Module");
+  await expect(modules).toHaveCount(4);
+  await expect(modules.locator("summary img")).toHaveCount(4);
+  await expect(overlay.locator("details[open]")).toHaveCount(0);
+  await expect(aboutButton).toHaveAttribute("aria-expanded", "true");
+  await expect(closeButton).toBeFocused();
+  expect(await page.locator(".app-shell").evaluate((element) => element.inert)).toBe(true);
+  expect(await page.evaluate(() => document.body.style.overflow)).toBe("hidden");
+  await page.keyboard.press("Shift+Tab");
+  await expect(modules.last().locator("summary")).toBeFocused();
+  await page.keyboard.press("Tab");
+  await expect(closeButton).toBeFocused();
+  await page.keyboard.press("Tab");
+  await page.keyboard.press("Enter");
+  await expect(modules.first()).toHaveAttribute("open", "");
+  await expect(modules.first().locator("p")).toContainText("Suche und Filter");
+  await modules.nth(1).locator("summary").click();
+  await expect(modules.first()).not.toHaveAttribute("open");
+  await expect(modules.nth(1)).toHaveAttribute("open", "");
+  await expect(overlay.locator("details[open]")).toHaveCount(1);
+  await attachScreenshot(page, testInfo, "ueber-die-app");
+  await page.keyboard.press("Escape");
+  await expect(overlay).toBeHidden();
+  await expect(page).toHaveURL(/#home$/);
+  await expect(aboutButton).toHaveAttribute("aria-expanded", "false");
+  expect(await page.locator(".app-shell").evaluate((element) => element.inert)).toBe(false);
+  expect(await page.evaluate(() => document.body.style.overflow)).toBe("");
+
   await openMobileSidebarIfNeeded(page);
   await appGroup.getByRole("button", { name: "Über die App" }).click();
-  await expect(page).toHaveURL(/#profile-about$/);
-  await expect(page.locator("#workspace-view-title")).toHaveText("Über die App");
-  await expect(aboutButton).toHaveAttribute("aria-current", "page");
-  await expect(profileButton).not.toHaveAttribute("aria-current", "page");
+  await expect(dialog).toBeVisible();
+  await expect(page).toHaveURL(/#home$/);
+  await closeButton.click();
+  await expect(overlay).toBeHidden();
+  await expect(page.locator(testInfo.project.name === "chromium-mobile" ? "#sidebar-collapse-button" : "#sidebar-about-button")).toBeFocused();
 
-  await attachScreenshot(page, testInfo, "profil-about");
+  await openMobileSidebarIfNeeded(page);
+  await profileButton.click();
+  await expect(profileButton).toHaveAttribute("aria-current", "page");
+  const profileRoute = page.url();
+  await openMobileSidebarIfNeeded(page);
+  await aboutButton.click();
+  await expect(dialog).toBeVisible();
+  await expect(page).toHaveURL(profileRoute);
+  await expect(page.locator(".app-shell")).toHaveAttribute("data-active-view", "profile");
+  await page.locator("#about-app-backdrop").click({ position: { x: 1, y: 1 } });
+  await expect(overlay).toBeHidden();
+  await expect(profileButton).toHaveAttribute("aria-current", "page");
 });
 
 test("Mein Profil: Changelog ist als Profil-Reiter erreichbar", async ({ page }, testInfo) => {
@@ -7294,7 +7166,7 @@ test("Hospitation: kompatible Planungsroute bleibt erhalten", async ({ page }) =
 });
 
 for (const role of ["admin", "editor", "viewer"]) {
-  test(`Mein Profil: Onboarding-Tour ist für ${role} startbar`, async ({ page }) => {
+  test(`Mein Profil: kompakte Einstellungen und Sidebar-Tour sind für ${role} erreichbar`, async ({ page }) => {
     await gotoAuthenticated(page, "/frontend/app/versorgungs-kompass.html", { role });
     const expectedAllowedPermissions = role === "admin" ? 9 : role === "editor" ? 5 : 2;
 
@@ -7308,16 +7180,37 @@ for (const role of ["admin", "editor", "viewer"]) {
     await expect(page.locator("#profile-tab-profile")).toBeVisible();
     await expect(page.locator("#profile-tab-profile")).not.toContainText("Die Tour zeigt die wichtigsten Arbeitsbereiche direkt in der Oberfläche: Sidebar, Versorgung, Filter, CRM-Profile, Planung, Admin, Team und Profil.");
     await expect(page.locator("#profile-onboarding-status")).toBeVisible();
-    await expect(page.locator("#profile-tour-start")).toBeVisible();
+    await expect(page.locator("#profile-tour-start")).toHaveCount(0);
+    const photoButton = page.getByRole("button", { name: "Profilfoto ändern", exact: true });
+    await expect(photoButton.locator("#profile-avatar-preview")).toBeVisible();
+    const draftDisplayName = `Demo-Profilentwurf ${role}`;
+    await page.locator("#profile-display-name").fill(draftDisplayName);
+    await expect(page.locator("#profile-save")).toBeVisible();
+    await photoButton.focus();
+    await page.keyboard.press("Enter");
+    await expect(page.locator("#profile-photo-modal")).toBeVisible();
+    await page.keyboard.press("Escape");
+    await expect(page.locator("#profile-photo-modal")).toBeHidden();
+    await expect(photoButton).toBeFocused();
+    await expect(page.locator("#profile-display-name")).toHaveValue(draftDisplayName);
+    await expect(page.locator("#profile-save")).toBeVisible();
+    expect(await page.evaluate(() => document.body.style.overflow)).toBe("");
+    await page.locator("#profile-save").click();
+    await expect(page.locator("#profile-status")).toHaveText("Gespeichert.");
+    await expect(page.locator("#profile-save")).toBeHidden();
+    await expect.poll(() => page.evaluate(async () => (await window.dataService.getCurrentProfile()).display_name)).toBe(draftDisplayName);
+    await expect(page.locator("#profile-permission-details")).not.toHaveAttribute("open");
+    await expect(page.locator(".role-matrix-workspace")).toBeHidden();
     await page.locator("#profile-permissions-summary").click();
-    await expect(page.locator("#profile-permissions-list .profile-permission-item")).toHaveCount(9);
-    await expect(page.locator("#profile-permissions-list .profile-permission-item.is-allowed")).toHaveCount(expectedAllowedPermissions);
-    await expect(page.locator("#profile-permissions-list .profile-permission-item.is-unavailable")).toHaveCount(9 - expectedAllowedPermissions);
+    await expect(page.locator("#role-matrix-body tr")).toHaveCount(9);
+    await expect(page.locator(`#role-matrix-body [data-role-matrix-role="${role}"].is-allowed`)).toHaveCount(expectedAllowedPermissions);
+    await expect(page.locator(`#role-matrix-body [data-role-matrix-role="${role}"].is-unavailable`)).toHaveCount(9 - expectedAllowedPermissions);
 
-    await page.locator("#profile-tour-start").click();
+    await openMobileSidebarIfNeeded(page);
+    await page.locator("#sidebar-tour-button").click();
     await expect(page.locator("#product-tour")).toBeVisible();
-    await expect(page.locator("#product-tour-meta")).toHaveText(`Willkommen · Schritt 1 von ${role === "admin" ? 17 : 15}`);
-    await expect(page.locator("#product-tour")).toHaveAttribute("data-tour-step-id", "welcome");
+    await expect(page.locator("#product-tour-meta")).toHaveText("Willkommen · Schritt 1 von 5");
+    await expect(page.locator("#product-tour")).toHaveAttribute("data-tour-step-id", "home-welcome");
     await expect(page.locator("#product-tour-title")).toHaveText("Willkommen bei #Mitmachen");
     await expectTourPanelInteractive(page);
     await page.locator("#product-tour-skip").click();
@@ -7325,9 +7218,10 @@ for (const role of ["admin", "editor", "viewer"]) {
   });
 }
 
-test("Produkttour: Die Startseite stellt alle vier Kompasse einzeln vor", async ({ page }, testInfo) => {
-  await gotoAuthenticated(page, "/frontend/app/versorgungs-kompass.html#home", { role: "viewer" });
-  await page.locator("#home-tour-button").click();
+test("Produkttour: Allgemeiner Rundgang stellt alle vier Kompasse einzeln vor", async ({ page }, testInfo) => {
+  await gotoAuthenticated(page, "/frontend/app/versorgungs-kompass.html#profile", { role: "viewer" });
+  await openMobileSidebarIfNeeded(page);
+  await page.locator("#sidebar-tour-button").click();
   const tour = page.locator("#product-tour");
   await expect(tour).toHaveAttribute("data-tour-step-id", "home-welcome");
   await expect(page.locator("#product-tour-meta")).toHaveText("Willkommen · Schritt 1 von 5");
@@ -7353,8 +7247,8 @@ test("Produkttour: Die Startseite stellt alle vier Kompasse einzeln vor", async 
   await attachScreenshot(page, testInfo, "product-tour-home", { fullPage: false });
   await page.locator("#product-tour-next").click();
   await expect(tour).toBeHidden();
-  await expect(page.locator("#view-home")).toBeVisible();
-  await expect(page.locator("#home-tour-button")).toBeFocused();
+  await expect(page.locator("#profile-page")).toBeVisible();
+  await expect(page.locator("#sidebar-tour-button")).toBeFocused();
 });
 
 for (const { name, route, view, steps } of [
@@ -7389,7 +7283,7 @@ test("Produkttour: Admin-Schritte bleiben sichtbar und bedienbar", async ({ page
   await gotoAuthenticated(page, "/frontend/app/versorgungs-kompass.html", { role: "admin" });
   await openMobileSidebarIfNeeded(page);
   await page.locator("#sidebar-profile-button").click();
-  await page.locator("#profile-tour-start").click();
+  await startFullOnboardingTour(page);
 
   const expectedTitles = [
     "Willkommen bei #Mitmachen",
@@ -7503,7 +7397,7 @@ test("Produkttour: Admin-Schritte bleiben sichtbar und bedienbar", async ({ page
 for (const role of ["editor", "viewer"]) {
   test(`Produkttour: ${role} durchläuft alle freigegebenen Schritte`, async ({ page }) => {
     await gotoAuthenticated(page, "/frontend/app/versorgungs-kompass.html#profile", { role });
-    await page.locator("#profile-tour-start").click();
+    await startFullOnboardingTour(page);
     const expectedIds = [
       "welcome",
       "profile",
@@ -7554,7 +7448,7 @@ test("Produkttour: alle Schritte bleiben bei 320 px, Tablet und Desktop kollisio
   ]) {
     await page.setViewportSize(viewport);
     await gotoAuthenticated(page, "/frontend/app/versorgungs-kompass.html#profile", { role: "admin" });
-    await page.locator("#profile-tour-start").click();
+    await startFullOnboardingTour(page);
     for (const [index, stepId] of expectedIds.entries()) {
       await expect(page.locator("#product-tour")).toHaveAttribute("data-tour-step-id", stepId);
       await expectTourPanelInsideViewport(page);
@@ -7573,7 +7467,7 @@ test("Produkttour: alle Schritte bleiben bei 320 px, Tablet und Desktop kollisio
 
 test("Produkttour: fehlendes und verspätet geladenes Ziel werden robust behandelt", async ({ page }) => {
   await gotoAuthenticated(page, "/frontend/app/versorgungs-kompass.html#profile", { role: "viewer" });
-  await page.locator("#profile-tour-start").click();
+  await startFullOnboardingTour(page);
   await page.evaluate(() => {
     const target = document.querySelector("#profile-tab-profile .profile-hero");
     if (!target) return;
@@ -7633,7 +7527,7 @@ test("Produkttour: 200 Prozent Schriftgröße bleibt in allen Schritten kollisio
     document.documentElement.style.fontSize = "200%";
     window.dispatchEvent(new Event("resize"));
   });
-  await page.locator("#profile-tour-start").click();
+  await startFullOnboardingTour(page);
   const stepCount = 17;
   for (let index = 0; index < stepCount; index += 1) {
     await expectTourPanelInsideViewport(page);

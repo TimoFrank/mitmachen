@@ -242,22 +242,21 @@ test("Phase 4: Teams zeigen offene Bereiche mit Mitgliedern im direkten Kontext 
   await expect(page.locator("#team-user-count")).toHaveText("36");
   await expect(page.locator("#team-group-count")).toHaveText("3");
   await expect(page.locator("#team-directory-title")).toHaveCount(0);
-  await expect(page.locator("#team-directory-result")).toBeHidden();
+  await expect(page.locator("#team-directory-result, #team-search-input")).toHaveCount(0);
   await expect(page.locator(".team-toolbar")).toHaveCount(0);
   const isMobile = (page.viewportSize()?.width || 1440) < 760;
   const workspaceWidth = await page.locator(".team-workspace").evaluate((element) => Math.round(element.getBoundingClientRect().width));
-  expect(workspaceWidth).toBeGreaterThan(isMobile ? 320 : 760);
-  expect(workspaceWidth).toBeLessThanOrEqual(isMobile ? 390 : 1120);
-  await expect(page.locator('.app-shell[data-active-view="team"] .workspace-header')).toHaveCSS("border-top-width", "1px");
+  expect(workspaceWidth).toBeGreaterThan(isMobile ? 320 : 600);
+  expect(workspaceWidth).toBeLessThanOrEqual(isMobile ? 390 : 760);
+  await expect(page.locator('.app-shell[data-active-view="team"] .workspace-header')).toHaveCSS("border-top-width", "0px");
 
-  const searchBox = await page.locator(".team-search").boundingBox();
   const metricsBox = await page.locator(".team-metrics").boundingBox();
-  expect(searchBox).not.toBeNull();
   expect(metricsBox).not.toBeNull();
-  if (!isMobile) {
-    const searchCenterY = searchBox.y + searchBox.height / 2;
-    const metricsCenterY = metricsBox.y + metricsBox.height / 2;
-    expect(Math.abs(searchCenterY - metricsCenterY)).toBeLessThanOrEqual(1);
+  await expect(page.locator(".team-metrics dd svg")).toHaveCount(3);
+  if (isMobile) {
+    const headerBox = await page.locator(".workspace-header").boundingBox();
+    const mobileBarBox = await page.locator(".app-sidebar").boundingBox();
+    expect(Math.abs(headerBox.y - (mobileBarBox.y + mobileBarBox.height))).toBeLessThanOrEqual(1);
   }
 
   const teamCards = page.locator("#team-account-list .team-board-card");
@@ -270,9 +269,11 @@ test("Phase 4: Teams zeigen offene Bereiche mit Mitgliedern im direkten Kontext 
   const teamGridColumns = await page.locator(".team-board-grid").evaluate((element) =>
     getComputedStyle(element).gridTemplateColumns.split(" ").filter(Boolean).length
   );
-  expect(teamGridColumns).toBe(isMobile ? 1 : 2);
+  expect(teamGridColumns).toBe(1);
   const teamGridBox = await page.locator(".team-board-grid").boundingBox();
-  expect(teamGridBox.y - Math.max(searchBox.y + searchBox.height, metricsBox.y + metricsBox.height)).toBeGreaterThanOrEqual(24);
+  expect(teamGridBox.y - (metricsBox.y + metricsBox.height)).toBeGreaterThanOrEqual(24);
+  expect(Math.abs(teamGridBox.x - metricsBox.x)).toBeLessThanOrEqual(1);
+  expect(Math.abs(teamGridBox.width - metricsBox.width)).toBeLessThanOrEqual(1);
   if (!isMobile) {
     const teamCardWidths = await teamCards.evaluateAll((elements) =>
       elements.map((element) => Math.round(element.getBoundingClientRect().width))
@@ -287,6 +288,8 @@ test("Phase 4: Teams zeigen offene Bereiche mit Mitgliedern im direkten Kontext 
   await expect(firstTeam.locator(".team-board-card__member-count")).toContainText("9");
   await expect(firstTeam.locator(".team-account-card")).toHaveCount(9);
   await expect(page.locator("#team-account-list .team-account-card")).toHaveCount(36);
+  await expect(firstTeam.locator(".team-account-card__contact-count")).toHaveCount(0);
+  await expect(firstTeam.locator("summary.team-account-card__header")).toHaveCount(9);
   await expect(firstTeam.getByText("Profil ansehen")).toHaveCount(0);
   await expect(firstTeam.locator(".team-account-responsibilities")).toHaveCount(0);
 
@@ -299,6 +302,7 @@ test("Phase 4: Teams zeigen offene Bereiche mit Mitgliedern im direkten Kontext 
   expect(responsibilityDetailsBox).not.toBeNull();
   expect(responsibilityDetailsBox.width).toBeGreaterThan(responsibilityCardBox.width - 40);
   await responsibilityDetails.locator("summary").click();
+  await expect(responsibilityDetails).toHaveAttribute("open", "");
   await expect(responsibilityDetails.locator(".profile-owner-contact")).toHaveCount(1);
   await expect(responsibilityDetails).not.toContainText("Kontakte werden erst beim Öffnen geladen.");
 
@@ -330,6 +334,37 @@ for (const role of ["viewer", "editor", "admin"]) {
     await expect(firstTeam.getByText(/Kontakte? öffnen/).first()).toBeVisible();
   });
 }
+
+test("Teams: öffentliche Demo zeigt die drei Konten des Profilwechsels mit ihren Teams", async ({ page }) => {
+  await page.goto("/dist/pages/versorgungs-kompass.html?demoProfile=demo-profile-admin#team");
+
+  const directory = page.locator("#team-account-list");
+  await expect(directory.locator(".team-board-card")).toHaveCount(3);
+  await expect(directory.locator(".team-account-card")).toHaveCount(3);
+  await expect(directory.locator(".team-account-copy > strong")).toHaveText([
+    "Nora Demir", "Mara Stein", "Tobias Nguyen"
+  ]);
+  await expect(directory.locator(".team-account-role")).toHaveText(["Viewer", "Admin", "Editor"]);
+  await expect(page.locator("#team-user-count")).toHaveText("3");
+  await expect(page.locator("#team-group-count")).toHaveText("3");
+
+  const demoState = await page.evaluate(() => window.VersorgungsCompassDemoApi.snapshot());
+  expect(demoState.profiles.map((profile) => profile.id)).toEqual(expect.arrayContaining([
+    "demo-profile-hospitation", "demo-profile-formate"
+  ]));
+  const directoryOwners = new Set(["demo-profile-admin", "demo-profile-editor", "demo-profile-viewer"]);
+  const ownedContacts = demoState.contacts.filter((contact) =>
+    contact.status !== "archived"
+      && [contact.ownerId, ...(contact.ownerIds || [])].some((id) => directoryOwners.has(id))
+  );
+  await expect(page.locator("#team-contact-count")).toHaveText(String(ownedContacts.length));
+
+  await expect(page.getByRole("searchbox", { name: "Team oder Person suchen" })).toHaveCount(0);
+  const teamIcons = await directory.locator(".team-icon svg").evaluateAll((icons) =>
+    icons.map((icon) => icon.innerHTML)
+  );
+  expect(new Set(teamIcons).size).toBe(3);
+});
 
 test.describe("Hospitations-Kompass als eigener Einstieg", () => {
   const focusedApp = "/frontend/app/versorgungs-kompass.html?workspace=hospitation";

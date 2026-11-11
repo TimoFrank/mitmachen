@@ -67,7 +67,7 @@ Stand: 2026-08-03. Analysebasis sind die aktuellen HTML-Einstiegspunkte mit ihre
 - Politik: `#politics-map-open` wechselt von der Ausschussliste zur eingebetteten Politik-Deutschlandkarte. Die Karte nutzt das bestehende VK-Kartenmuster, fraktionsfarbige Personenmarker und repräsentative Innenpunkte der gebündelten Wahlkreisgeometrien der Bundeswahlleiterin.
 - Sidebar-Administration/Pflege: Datenqualität, Importe.
 - Sidebar unten: Der Abschnitt `App` enthält `App-Tour` und `Über die App`. `Hilfe & Konto` führt zum Profil, zu Benachrichtigungen, Teams und zur rollenabhängigen Nutzerverwaltung. Einstellungen behalten ihren bestehenden Direktlink.
-- Die App-Tour aus der Sidebar bleibt im geöffneten Kompass. Die Startseite bietet in der Fußzeile einen Überblick über die vier Kompasse. Die ausführliche Einführung ist im Onboarding und im Profil erreichbar.
+- Die App-Tour aus der Sidebar bleibt im geöffneten Kompass. Aus dem Profilbereich startet sie einen allgemeinen Rundgang durch die vier Kompasse. Die ausführliche Einführung ist zum Abschluss des Onboardings erreichbar.
 - Topbar: ruhig halten. Kontextuelle Hauptaktionen wie `Neuer Kontakt`, `Organisation anlegen` und bei Bedarf Archiv liegen in den jeweiligen Workspace-/Tabellen-Command-Rows. Kein dauerhafter Kontaktimport in der Topbar.
 - Import-Startseite: `.imports-workspace`, `.import-start-grid`, bestehende `.import-format-card` und `.import-profile-card`.
 
