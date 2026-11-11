@@ -1,7 +1,7 @@
 import { expect, test } from "@playwright/test";
 import { gotoAuthenticated } from "./helpers/app-test-session.js";
 
-function teamSearchFixtureScript() {
+function teamDirectoryFixtureScript() {
   return `
     (() => {
       const now = "2026-07-28T08:00:00.000Z";
@@ -93,21 +93,17 @@ function teamSearchFixtureScript() {
   `;
 }
 
-test("Teamsuche filtert live und zählt betreute Kontakte eindeutig", async ({ page }) => {
+test("Teamverzeichnis zählt gemeinsam betreute Kontakte eindeutig und öffnet Zuständigkeiten", async ({ page }) => {
   await gotoAuthenticated(page, "/frontend/app/versorgungs-kompass.html#team", {
     role: "admin",
-    backendFixtureScript: teamSearchFixtureScript()
+    backendFixtureScript: teamDirectoryFixtureScript()
   });
 
   await expect(page.locator('[data-view-panel="team"]')).toBeVisible();
   await expect(page.locator("#team-user-count")).toHaveText("2");
   await expect(page.locator("#team-contact-count")).toHaveText("2");
-  await expect(page.locator("#team-directory-result")).toBeHidden();
-
-  const search = page.getByRole("searchbox", { name: "Team oder Person suchen" });
-  await search.fill("Berta");
-  await expect(page.locator("#team-directory-result")).toHaveText("1 Treffer in 1 Team");
-  await expect(page.locator("#team-account-list [data-team-group]")).toHaveCount(1);
+  await expect(page.locator("#team-directory-result, #team-search-input")).toHaveCount(0);
+  await expect(page.locator("#team-account-list [data-team-group]")).toHaveCount(2);
   const resultTeam = page.locator('#team-account-list [data-team-group="Kommunikation"]');
   await expect(resultTeam.locator(".team-board-card__member-count")).toContainText("1");
   await expect(resultTeam.getByText("Berta Berg", { exact: true })).toBeVisible();
@@ -118,10 +114,6 @@ test("Teamsuche filtert live und zählt betreute Kontakte eindeutig", async ({ p
   await expect(ownerDetails.locator("[data-team-owner-list]")).toContainText("Kontakte werden erst beim Öffnen geladen");
   await ownerDetails.locator("summary").click();
   await expect(ownerDetails.locator("[data-team-owner-list]")).toContainText("Gemeinsam betreuter Kontakt");
-
-  await page.getByRole("button", { name: "Teamsuche leeren" }).click();
-  await expect(search).toHaveValue("");
-  await expect(page.locator("#team-directory-result")).toBeHidden();
 
   const stabsstelleCard = page.locator('[data-team-group="Stabsstelle Versorgung"]');
   await expect(stabsstelleCard).toContainText("Anna Adler");

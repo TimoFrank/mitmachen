@@ -99,7 +99,6 @@
       let ownerOptions = [];
       let ownerProfiles = [];
       let teamDirectoryState = "loading";
-      let teamSearchQuery = "";
       const germanStates = [
         "Baden-Württemberg",
         "Bayern",
@@ -996,8 +995,7 @@
         { id: "notifications", title: "Benachrichtigungen", subtitle: "Persönliche Hinweise zu Änderungen, Team und Produkt." },
         { id: "imports", title: "Importe", subtitle: "Registrierungen, Dateiimporte und Importhistorie verwalten." },
         { id: "settings", title: "Einstellungen", subtitle: "Persönliche Arbeits- und Benachrichtigungsvorgaben." },
-        { id: "changelog", title: "Changelog", subtitle: "Versionsverlauf und sichtbare Produktänderungen." },
-        { id: "about", title: "Über die App", subtitle: "Ziele, Funktionen und Nutzung des Versorgungs-Kompass kurz erklärt." }
+        { id: "changelog", title: "Changelog", subtitle: "Versionsverlauf und sichtbare Produktänderungen." }
       ];
       const rolePermissionItems = [
         {
@@ -1415,6 +1413,9 @@
       const sidebarTeamButton = document.getElementById("sidebar-team-button");
       const sidebarSettingsButton = document.getElementById("sidebar-settings-button");
       const sidebarAboutButton = document.getElementById("sidebar-about-button");
+      const aboutApp = document.getElementById("about-app");
+      const aboutAppClose = document.getElementById("about-app-close");
+      const aboutAppBackdrop = document.getElementById("about-app-backdrop");
       const notificationCountTotal = document.getElementById("notification-count-total");
       const aboutVersionList = document.getElementById("about-version-list");
       const personProfilePage = document.getElementById("person-profile-page");
@@ -1512,13 +1513,9 @@
       const teamUserCount = document.getElementById("team-user-count");
       const teamGroupCount = document.getElementById("team-group-count");
       const teamContactCount = document.getElementById("team-contact-count");
-      const teamDirectoryResult = document.getElementById("team-directory-result");
-      const teamSearchInput = document.getElementById("team-search-input");
-      const teamSearchClearButton = document.getElementById("team-search-clear");
       const accountAvatar = document.getElementById("account-avatar");
       const sidebarProfileButton = document.getElementById("sidebar-profile-button");
       const sidebarTourButton = document.getElementById("sidebar-tour-button");
-      const homeTourButton = document.getElementById("home-tour-button");
       const accountProfileButton = document.getElementById("account-profile-button");
       const accountTourButton = document.getElementById("account-tour-button");
       const accountQualityButton = document.getElementById("account-quality-button");
@@ -1561,9 +1558,6 @@
       const profileEmailLabel = document.getElementById("profile-email-label");
       const profileRolePill = document.getElementById("profile-role-pill");
       const profileRoleDisplay = document.getElementById("profile-role-display");
-      const profileRoleDescription = document.getElementById("profile-role-description");
-      const profilePermissionsList = document.getElementById("profile-permissions-list");
-      const roleMatrixRoleOverview = document.getElementById("role-matrix-role-overview");
       const roleMatrixBody = document.getElementById("role-matrix-body");
       const roleMatrixHeadings = [...document.querySelectorAll("[data-role-matrix-heading]")];
       const profilePhotoOpen = document.getElementById("profile-photo-open");
@@ -1580,8 +1574,6 @@
       const profileOnboardingProgress = document.getElementById("profile-onboarding-progress");
       const profileOnboardingProgressValue = document.getElementById("profile-onboarding-progress-value");
       const profileOnboardingStart = document.getElementById("profile-onboarding-start");
-      const profileTourStatus = document.getElementById("profile-tour-status");
-      const profileTourStart = document.getElementById("profile-tour-start");
       const onboardingPersistenceStatus = document.getElementById("onboarding-persistence-status");
       const onboardingWelcomeStatus = document.getElementById("onboarding-welcome-status");
       const onboardingWelcomeNext = document.getElementById("onboarding-welcome-next");
@@ -9525,13 +9517,20 @@
             if (!shouldOpen) return;
             switcher.classList.add("is-avatar-open");
             trigger.setAttribute("aria-expanded", "true");
-            window.requestAnimationFrame(() => switcher.querySelector("select")?.focus({ preventScroll: true }));
+            window.requestAnimationFrame(() => {
+              const selectedChoice = switcher.querySelector('[data-demo-profile-choice][aria-pressed="true"]');
+              const firstChoice = switcher.querySelector("[data-demo-profile-choice]");
+              (selectedChoice || firstChoice)?.focus({ preventScroll: true });
+            });
           });
         }
-        const profiles = ownerProfiles.filter((profile) => !["archived", "inactive", "disabled"].includes(profile.status));
+        const demoAccountIds = ["demo-profile-admin", "demo-profile-editor", "demo-profile-viewer"];
+        const profiles = demoAccountIds
+          .map((id) => ownerProfiles.find((profile) => profile.id === id))
+          .filter((profile) => profile && !["archived", "inactive", "disabled"].includes(profile.status));
         const requestedProfileId = new URL(window.location.href).searchParams.get("demoProfile") || "";
         const selectedProfileId = currentProfile?.id || requestedProfileId;
-        const selectedProfile = profiles.find((profile) => profile.id === selectedProfileId);
+        const selectedProfile = ownerProfiles.find((profile) => profile.id === selectedProfileId);
         trigger.hidden = profiles.length < 2;
         trigger.setAttribute(
           "aria-label",
@@ -9548,19 +9547,31 @@
         if (trigger.hidden) closeDemoProfileSwitcher();
         switcher.innerHTML = `
           <h3 class="demo-profile-switcher-title" id="demo-profile-switcher-title">Ansicht wechseln</h3>
-          <div class="demo-profile-select-shell">
-            <label class="visually-hidden" for="demo-profile-select">Profil</label>
-            <select id="demo-profile-select">
-              ${profiles.map((profile) => `<option value="${escapeHtml(profile.id)}" ${profile.id === selectedProfileId ? "selected" : ""}>${escapeHtml(`${profile.label} · ${roleLabel(profile.role)}`)}</option>`).join("")}
-            </select>
+          <div class="demo-profile-choices">
+            ${profiles.map((profile) => `
+              <button class="demo-profile-choice" type="button" data-demo-profile-choice="${escapeHtml(profile.id)}" aria-pressed="${profile.id === selectedProfileId}">
+                <span class="demo-profile-choice__avatar" aria-hidden="true">${avatarMarkup({ ...profile, display_name: profile.label })}</span>
+                <span class="demo-profile-choice__copy">
+                  <strong>${escapeHtml(profile.label)}</strong>
+                  <span>${escapeHtml(roleLabel(profile.role))}</span>
+                </span>
+                ${profile.id === selectedProfileId ? '<span class="demo-profile-choice__current" aria-hidden="true">✓</span>' : ""}
+              </button>
+            `).join("")}
           </div>
         `;
-        switcher.querySelector("select")?.addEventListener("change", (event) => {
-          const profileId = String(event.currentTarget.value || "").trim();
-          if (!profiles.some((profile) => profile.id === profileId)) return;
-          const nextUrl = new URL(window.location.href);
-          nextUrl.searchParams.set("demoProfile", profileId);
-          window.location.replace(nextUrl.toString());
+        switcher.querySelectorAll("[data-demo-profile-choice]").forEach((choice) => {
+          choice.addEventListener("click", () => {
+            const profileId = choice.dataset.demoProfileChoice;
+            if (!profiles.some((profile) => profile.id === profileId)) return;
+            if (profileId === selectedProfileId) {
+              closeDemoProfileSwitcher({ restoreFocus: true });
+              return;
+            }
+            const nextUrl = new URL(window.location.href);
+            nextUrl.searchParams.set("demoProfile", profileId);
+            window.location.replace(nextUrl.toString());
+          });
         });
       }
 
@@ -9736,31 +9747,6 @@
         return role || "Nutzer";
       }
 
-      function renderProfilePermissions(role = currentRole()) {
-        if (!profilePermissionsList) return;
-        const normalizedRole = ["admin", "editor", "viewer"].includes(role) ? role : "viewer";
-        profilePermissionsList.innerHTML = rolePermissionItems
-          .map((item) => {
-            const allowed = item.roles.includes(normalizedRole);
-            return `
-              <div class="profile-permission-item ${allowed ? "is-allowed" : "is-unavailable"}">
-                <span class="profile-permission-icon" aria-label="${allowed ? "Berechtigt" : "Keine Berechtigung"}">
-                  ${
-                    allowed
-                      ? `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="m5 12 4 4 10-10"></path></svg>`
-                      : `<span aria-hidden="true">&ndash;</span>`
-                  }
-                </span>
-                <span class="profile-permission-copy">
-                  <strong>${escapeHtml(item.title)}</strong>
-                  <span>${escapeHtml(item.body)}</span>
-                </span>
-              </div>
-            `;
-          })
-          .join("");
-      }
-
       function renderRoleMatrix(role = currentRole()) {
         const normalizedRole = ["admin", "editor", "viewer"].includes(role) ? role : "viewer";
         roleMatrixHeadings.forEach((heading) => {
@@ -9769,32 +9755,12 @@
           if (current) heading.setAttribute("aria-current", "true");
           else heading.removeAttribute("aria-current");
         });
-        if (roleMatrixRoleOverview) {
-          roleMatrixRoleOverview.innerHTML = roleMatrixRoles
-            .map((matrixRole) => {
-              const current = matrixRole.id === normalizedRole;
-              const allowedCount = rolePermissionItems.filter((item) => item.roles.includes(matrixRole.id)).length;
-              return `
-                <article class="role-matrix-role-summary ${current ? "is-current-role" : ""}" data-role-matrix-role-card="${matrixRole.id}" ${current ? 'aria-current="true"' : ""}>
-                  <div class="role-matrix-role-summary__head">
-                    <span class="account-role-pill account-role-pill--${matrixRole.id}">${escapeHtml(matrixRole.label)}</span>
-                    ${current ? '<span class="role-matrix-current-label">Deine Rolle</span>' : ""}
-                  </div>
-                  <strong>${escapeHtml(matrixRole.summary)}</strong>
-                  <p>${escapeHtml(matrixRole.detail)}</p>
-                  <span class="role-matrix-role-count">${allowedCount} von ${rolePermissionItems.length} Standardrechten</span>
-                </article>
-              `;
-            })
-            .join("");
-        }
         if (roleMatrixBody) {
           roleMatrixBody.innerHTML = rolePermissionItems
             .map((item) => `
               <tr>
                 <th scope="row">
                   <strong>${escapeHtml(item.title)}</strong>
-                  <span>${escapeHtml(item.body)}</span>
                 </th>
                 ${roleMatrixRoles.map((matrixRole) => {
                   const allowed = item.roles.includes(matrixRole.id);
@@ -10012,6 +9978,15 @@
       }
 
       function teamIconMarkup(team = "") {
+        if (team === "Analyse und Einblicke") {
+          return `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 3v17h17"></path><path d="M8 16v-4M13 16V8M18 16V4"></path></svg>`;
+        }
+        if (team === "Programmsteuerung") {
+          return `<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="4" width="16" height="17" rx="2"></rect><path d="M9 2h6v4H9zM8 11l1 1 2-2M14 11h3M8 16l1 1 2-2M14 16h3"></path></svg>`;
+        }
+        if (team === "Versorgungsredaktion") {
+          return `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M13 3H5v18h14v-8M8 8h3M8 12h2M12 14l1-4 6-6a2 2 0 0 1 3 3l-6 6-4 1Z"></path></svg>`;
+        }
         const icon =
           teamDefinitions.find((entry) => entry.name === team)?.icon ||
           (team === TEAM_UNASSIGNED_LABEL ? "unassigned" : "team");
@@ -10098,22 +10073,18 @@
       function teamAccountCardMarkup(profile, contactIndex) {
         const ownerCount = contactIndex.get(profile.id)?.length || 0;
         const role = String(profile.role || "viewer").toLowerCase();
-        const roleClass = ["admin", "editor", "viewer"].includes(role) ? role : "viewer";
         const profileName = teamProfileDisplayLabel(profile);
         return `
           <article class="team-account-card" role="listitem">
-            <header class="team-account-card__header">
-              <span class="team-account-avatar" aria-hidden="true">${avatarMarkup(profile)}</span>
-              <div class="team-account-copy">
-                <strong>${escapeHtml(profileName)}</strong>
-                <span class="team-account-card__contact-count">${ownerCount} ${ownerCount === 1 ? "betreuter Kontakt" : "betreute Kontakte"}</span>
-              </div>
-              <span class="team-account-role">
-                <span class="account-role-pill account-role-pill--${roleClass}">${escapeHtml(roleLabel(role))}</span>
-              </span>
-            </header>
             <details class="profile-owner-details team-contact-details" data-team-owner-profile="${escapeHtml(profile.id)}">
-              <summary><span class="profile-owner-summary-label"><span class="profile-owner-count">${ownerCount}</span> ${ownerCount === 1 ? "Kontakt öffnen" : "Kontakte öffnen"}</span></summary>
+              <summary class="team-account-card__header">
+                <span class="team-account-avatar" aria-hidden="true">${avatarMarkup(profile)}</span>
+                <span class="team-account-copy">
+                  <strong>${escapeHtml(profileName)}</strong>
+                  <span class="team-account-role">${escapeHtml(roleLabel(role))}</span>
+                </span>
+                <span class="profile-owner-summary-label"><span class="profile-owner-count">${ownerCount}</span> ${ownerCount === 1 ? "Kontakt öffnen" : "Kontakte öffnen"}</span>
+              </summary>
               <div class="profile-owner-list" data-team-owner-list>
                 <div class="profile-owner-empty">Kontakte werden erst beim Öffnen geladen.</div>
               </div>
@@ -10136,28 +10107,16 @@
               <div class="team-board-card__heading">
                 <h4 id="${groupId}">${escapeHtml(group.name)}</h4>
               </div>
-              <span class="team-board-card__member-count" aria-label="${group.accounts.length} Nutzer">
+              <span class="team-board-card__member-count">
                 <strong>${group.accounts.length}</strong>
-                <span>Nutzer</span>
+                <span>${group.accounts.length === 1 ? "Mitglied" : "Mitglieder"}</span>
               </span>
             </header>
-            <div class="team-board-card__members" role="list" aria-label="Nutzer im Team ${escapeHtml(group.name)}">
+            <div class="team-board-card__members" role="list" aria-label="Mitglieder im Team ${escapeHtml(group.name)}">
               ${accountCards}
             </div>
           </section>
         `;
-      }
-
-      function teamProfileMatchesSearch(profile, query = "") {
-        if (!query) return true;
-        return normalizeTeamLookup([
-          teamProfileDisplayLabel(profile),
-          profile?.display_name,
-          profile?.displayName,
-          profile?.email,
-          profile?.initials,
-          roleLabel(String(profile?.role || "viewer").toLowerCase())
-        ].filter(Boolean).join(" ")).includes(query);
       }
 
       let renderedTeamViewSignature = "";
@@ -10165,7 +10124,6 @@
       function teamViewRenderSignature(profiles = []) {
         return JSON.stringify([
           teamDirectoryState,
-          normalizeTeamLookup(teamSearchQuery),
           profiles.map((profile) => [
             profile.id,
             profile.label,
@@ -10195,7 +10153,11 @@
 
       function renderTeamView() {
         if (!teamAccountList) return;
-        const profiles = teamProfiles();
+        const profiles = teamProfiles().filter((profile) => !IS_PUBLIC_DEMO_PROFILE || [
+          "demo-profile-admin",
+          "demo-profile-editor",
+          "demo-profile-viewer"
+        ].includes(profile.id));
         const renderSignature = teamViewRenderSignature(profiles);
         if (renderSignature === renderedTeamViewSignature) return;
 
@@ -10203,10 +10165,6 @@
           if (teamUserCount) teamUserCount.textContent = "–";
           if (teamGroupCount) teamGroupCount.textContent = "–";
           if (teamContactCount) teamContactCount.textContent = "–";
-          if (teamDirectoryResult) {
-            teamDirectoryResult.textContent = "";
-            teamDirectoryResult.hidden = true;
-          }
           teamAccountList.setAttribute("aria-busy", "true");
           teamAccountList.innerHTML = `<div class="team-directory-state"><strong>Teams werden geladen</strong><span>Profile und Zuständigkeiten werden vorbereitet.</span></div>`;
           renderedTeamViewSignature = renderSignature;
@@ -10217,10 +10175,6 @@
           if (teamUserCount) teamUserCount.textContent = "–";
           if (teamGroupCount) teamGroupCount.textContent = "–";
           if (teamContactCount) teamContactCount.textContent = "–";
-          if (teamDirectoryResult) {
-            teamDirectoryResult.textContent = "";
-            teamDirectoryResult.hidden = true;
-          }
           teamAccountList.setAttribute("aria-busy", "false");
           teamAccountList.innerHTML = `<div class="team-directory-state team-directory-state--error" role="alert"><strong>Teamdaten sind gerade nicht verfügbar</strong><span>Bitte lade die Ansicht neu oder prüfe die Verbindung.</span></div>`;
           renderedTeamViewSignature = renderSignature;
@@ -10236,62 +10190,16 @@
         teamAccountList.setAttribute("aria-busy", "false");
 
         if (!profiles.length) {
-          if (teamDirectoryResult) {
-            teamDirectoryResult.textContent = "";
-            teamDirectoryResult.hidden = true;
-          }
           teamAccountList.innerHTML = `<div class="team-directory-state"><strong>Noch keine Nutzer vorhanden</strong><span>Sobald Profile eingerichtet sind, erscheinen sie hier nach Teams gruppiert.</span></div>`;
           renderedTeamViewSignature = teamViewRenderSignature(profiles);
           return;
         }
 
-        const searchQuery = normalizeTeamLookup(teamSearchQuery);
-        const allGroups = groupedTeamProfiles(profiles);
-        const groups = searchQuery
-          ? allGroups
-              .map((group) => {
-                const teamDefinition = teamDefinitions.find((entry) => entry.name === group.name);
-                const teamText = normalizeTeamLookup([group.name, teamDefinition?.description || ""].join(" "));
-                return {
-                  ...group,
-                  accounts: teamText.includes(searchQuery)
-                    ? group.accounts
-                    : group.accounts.filter((profile) => teamProfileMatchesSearch(profile, searchQuery))
-                };
-              })
-              .filter((group) => group.accounts.length)
-          : allGroups;
-        const visibleMemberCount = groups.reduce((sum, group) => sum + group.accounts.length, 0);
-        if (teamDirectoryResult) {
-          teamDirectoryResult.textContent = searchQuery
-            ? `${visibleMemberCount} Treffer in ${groups.length} ${groups.length === 1 ? "Team" : "Teams"}`
-            : "";
-          teamDirectoryResult.hidden = !searchQuery;
-        }
-
-        if (!groups.length) {
-          teamAccountList.innerHTML = `
-            <div class="team-directory-state">
-              <strong>Keine Nutzer gefunden</strong>
-              <span>Prüfe den Suchbegriff oder zeige wieder alle Teams an.</span>
-              <button class="action-button action-button--ghost action-button--compact" type="button" data-team-search-reset>Suche zurücksetzen</button>
-            </div>
-          `;
-          teamAccountList.querySelector("[data-team-search-reset]")?.addEventListener("click", () => {
-            teamSearchQuery = "";
-            if (teamSearchInput) teamSearchInput.value = "";
-            if (teamSearchClearButton) teamSearchClearButton.hidden = true;
-            renderTeamView();
-            teamSearchInput?.focus();
-          });
-          renderedTeamViewSignature = renderSignature;
-          return;
-        }
-
+        const groups = groupedTeamProfiles(profiles);
         const teamCards = groups.map((group, groupIndex) => teamBoardCardMarkup(group, groupIndex, contactIndex)).join("");
 
         teamAccountList.innerHTML = `
-          <div class="team-board-grid" aria-label="Offene Teamübersicht">
+          <div class="team-board-grid" aria-label="Teams und Mitglieder">
             ${teamCards}
           </div>
         `;
@@ -10302,20 +10210,6 @@
         });
         renderedTeamViewSignature = teamViewRenderSignature(profiles);
       }
-
-      teamSearchInput?.addEventListener("input", () => {
-        teamSearchQuery = teamSearchInput.value;
-        if (teamSearchClearButton) teamSearchClearButton.hidden = !teamSearchQuery.trim();
-        renderTeamView();
-      });
-
-      teamSearchClearButton?.addEventListener("click", () => {
-        teamSearchQuery = "";
-        if (teamSearchInput) teamSearchInput.value = "";
-        teamSearchClearButton.hidden = true;
-        renderTeamView();
-        teamSearchInput?.focus();
-      });
 
       function renderProfileOwnerSummary() {
         if (!profileOwnerSummary) return;
@@ -10428,8 +10322,6 @@
           element.textContent = `${roleLabel(role)}${isTestAccess() ? " · Testbereich" : ""}`;
           element.className = `account-role-pill account-role-pill--${role}`;
         });
-        if (profileRoleDescription) profileRoleDescription.textContent = permissionText(role);
-        renderProfilePermissions(role);
         renderRoleMatrix(role);
         if (!profileForm) return;
         profileForm.elements.displayName.value = displayName;
@@ -10466,7 +10358,7 @@
       }
 
       function openProfilePhotoModal() {
-        renderProfileForm();
+        updateAvatarElement(profilePhotoPreview, currentProfile);
         setProfilePhotoStatus("");
         profilePhotoModal?.classList.add("is-open");
         profilePhotoModal?.setAttribute("aria-hidden", "false");
@@ -10477,6 +10369,7 @@
         profilePhotoModal?.classList.remove("is-open");
         profilePhotoModal?.setAttribute("aria-hidden", "true");
         setProfilePhotoStatus("");
+        syncBodyScrollLock();
       }
 
       async function saveProfileForm(event) {
@@ -10523,8 +10416,9 @@
           setProfilePhotoStatus("Foto wird hochgeladen...");
           const updatedProfile = await window.dataService.uploadCurrentProfileImage(file);
           renderAccountProfile(updatedProfile);
+          updateAvatarElement(profileAvatarPreview, updatedProfile);
+          updateAvatarElement(profilePhotoPreview, updatedProfile);
           applyProfiles(await window.dataService.getProfiles());
-          renderProfileForm();
           updateView();
           setProfilePhotoStatus("Foto gespeichert.");
         } catch (error) {
@@ -10544,8 +10438,9 @@
         try {
           const updatedProfile = await window.dataService.removeCurrentProfileImage();
           renderAccountProfile(updatedProfile);
+          updateAvatarElement(profileAvatarPreview, updatedProfile);
+          updateAvatarElement(profilePhotoPreview, updatedProfile);
           applyProfiles(await window.dataService.getProfiles());
-          renderProfileForm();
           updateView();
           setProfilePhotoStatus("Foto entfernt.");
         } catch (error) {
@@ -10661,20 +10556,19 @@
         if (missing.length) {
           setProfileGuidanceStatus(
             profileOnboardingStatus,
-            `Profil noch unvollständig: ${missing.join(" und ")} ${missing.length === 1 ? "fehlt" : "fehlen"}. Das Foto bleibt optional.`,
+            `${missing.join(" und ")} ${missing.length === 1 ? "fehlt" : "fehlen"}.`,
             "missing"
           );
         } else if (!onboardingComplete) {
           setProfileGuidanceStatus(
             profileOnboardingStatus,
-            `${completedSteps} von ${ONBOARDING_SETUP_STEPS.length} Schritten abgeschlossen · Weiter bei „${currentStepLabel}“.`,
+            `${completedSteps} von ${ONBOARDING_SETUP_STEPS.length} Schritten. Weiter bei „${currentStepLabel}“.`,
             "missing"
           );
         } else {
-          const completedAt = state.completedAt || legacyOnboardingCompletedAt(state);
           setProfileGuidanceStatus(
             profileOnboardingStatus,
-            `Einrichtung abgeschlossen${completedAt ? ` · ${formatDateTimeLabel(completedAt)}` : ""}. Profil, Team und Berechtigungen können erneut geprüft werden.`,
+            "Einrichtung abgeschlossen.",
             "ready"
           );
         }
@@ -10684,39 +10578,6 @@
           profileOnboardingStart.classList.toggle("action-button--primary", !setupComplete);
         }
 
-        if (state.tourCompletedAt) {
-          setProfileGuidanceStatus(
-            profileTourStatus,
-            `Zuletzt abgeschlossen: ${formatDateTimeLabel(state.tourCompletedAt) || "Zeitpunkt offen"}. Du kannst die Tour jederzeit wiederholen.`,
-            "ready"
-          );
-        } else if (state.tourSkippedAt) {
-          setProfileGuidanceStatus(
-            profileTourStatus,
-            `Zuletzt übersprungen: ${formatDateTimeLabel(state.tourSkippedAt) || "Zeitpunkt offen"}. Du kannst sie jederzeit nachholen.`
-          );
-        } else if (state.tourOfferedAt) {
-          setProfileGuidanceStatus(
-            profileTourStatus,
-            `Bereit seit ${formatDateTimeLabel(state.tourOfferedAt) || "dem Abschluss der Einrichtung"}. Die Tour bleibt freiwillig.`
-          );
-        } else {
-          setProfileGuidanceStatus(
-            profileTourStatus,
-            setupComplete
-              ? "Deine Einrichtung ist abgeschlossen. Die App-Tour ist bereit."
-              : "Die App-Tour ist freiwillig und kann schon jetzt oder nach dem Onboarding gestartet werden."
-          );
-        }
-
-        if (profileTourStart) {
-          profileTourStart.textContent = state.tourCompletedAt
-            ? "Tour wiederholen"
-            : state.tourSkippedAt
-              ? "Tour nachholen"
-              : "Tour starten";
-          profileTourStart.classList.toggle("action-button--primary", setupComplete);
-        }
       }
 
       function isProtectedOnboardingMode() {
@@ -12203,7 +12064,7 @@
       }
 
       function isTrackedProductTourSource(source = "") {
-        return source === "onboarding" || (source === "profile" && !isHospitationWorkspace);
+        return source === "onboarding";
       }
 
       function captureProductTourDetailContext() {
@@ -14168,7 +14029,7 @@
         }
         if (notificationsMeta) {
           const unread = notifications.filter((item) => item.unread).length;
-          notificationsMeta.textContent = `${notifications.length} ${notifications.length === 1 ? "Benachrichtigung" : "Benachrichtigungen"}${unread ? ` · ${unread} ungelesen` : ""}`;
+          notificationsMeta.innerHTML = `<span>Gesamt <strong data-notifications-total>${notifications.length}</strong></span><span>Ungelesen <strong data-notifications-unread>${unread}</strong></span>`;
         }
         if (notificationsMarkAllRead) {
           notificationsMarkAllRead.hidden = !notifications.length || activeNotificationFilter === "product";
@@ -40085,8 +39946,17 @@
         if (workspaceViewSubtitle) workspaceViewSubtitle.textContent = view.subtitle;
         const brand = workspaceBrandConfig(activeView);
         if (workspaceBrand) workspaceBrand.hidden = activeView === "home";
-        const workspaceHeader = workspaceBrand?.closest(".workspace-header--unified");
+        const workspaceHeader = workspaceViewTitle?.closest(".workspace-header--unified");
         if (workspaceHeader) workspaceHeader.dataset.workspaceModule = brand.group;
+        const careToolbarLayout = !isHospitationWorkspace && !isHospitationDocumentationStandalone
+          && ["contacts", "organizations", "map", "analytics", "quality", "activities"].includes(activeView);
+        appShell?.classList.toggle("is-care-toolbar-layout", careToolbarLayout);
+        const brandHost = careToolbarLayout
+          ? isAnalyticsView(activeView)
+            ? document.getElementById("analytics-view-mode-toolbar")
+            : controlsRoot
+          : workspaceHeader?.querySelector(".workspace-heading-row");
+        if (workspaceBrand && brandHost && workspaceBrand.parentElement !== brandHost) brandHost.append(workspaceBrand);
         if (workspaceBrandSource) workspaceBrandSource.srcset = brand.mark;
         if (workspaceBrandImage) {
           workspaceBrandImage.src = brand.lockup;
@@ -40143,18 +40013,13 @@
         if (tab === "notifications") return "profile-notifications";
         if (tab === "imports") return `profile-imports:${activeSettingsTab}`;
         if (tab === "settings") return "profile-settings";
-        if (tab === "about") return "profile-about";
         if (tab === "changelog") return "profile-changelog";
         return "profile";
       }
 
       function syncSidebarProfileNavigation(view = activeView) {
-        const aboutIsActive = view === "profile" && activeProfileTab === "about";
-        const profileIsActive = view === "profile" && !aboutIsActive;
-        sidebarAboutButton?.classList.toggle("is-active", aboutIsActive);
+        const profileIsActive = view === "profile";
         sidebarProfileButton?.classList.toggle("is-active", profileIsActive);
-        if (aboutIsActive) sidebarAboutButton?.setAttribute("aria-current", "page");
-        else sidebarAboutButton?.removeAttribute("aria-current");
         if (profileIsActive) sidebarProfileButton?.setAttribute("aria-current", "page");
         else sidebarProfileButton?.removeAttribute("aria-current");
       }
@@ -40183,9 +40048,40 @@
       }
 
       function openProfileTab(tab = "profile") {
+        if (tab === "about") {
+          openAboutApp();
+          return;
+        }
         setProfileTab(tab);
         openProfileModal();
         updateRouteHash(profileRouteForTab());
+      }
+
+      function isAboutAppRoute(route = routeTokenFromLocation()) {
+        return route === "about" || route === "profile-about";
+      }
+
+      function openAboutApp() {
+        if (!aboutApp || !aboutApp.hidden) return;
+        const returnFocus = isMobileLayout() && appShell?.classList.contains("is-mobile-sidebar-expanded")
+          ? sidebarCollapseButton
+          : document.activeElement;
+        closeMenus();
+        closeMobileSidebar();
+        lastFocusOutsideModal = returnFocus instanceof HTMLElement ? returnFocus : sidebarAboutButton;
+        aboutApp.hidden = false;
+        aboutApp.setAttribute("aria-hidden", "false");
+        sidebarAboutButton?.setAttribute("aria-expanded", "true");
+        syncBodyScrollLock();
+      }
+
+      function closeAboutApp({ restoreRoute = true } = {}) {
+        if (!aboutApp || aboutApp.hidden) return;
+        aboutApp.hidden = true;
+        aboutApp.setAttribute("aria-hidden", "true");
+        sidebarAboutButton?.setAttribute("aria-expanded", "false");
+        syncBodyScrollLock();
+        if (restoreRoute && isAboutAppRoute()) updateRouteHash(activeView, { replace: true });
       }
 
       function resetHomeScrollPosition() {
@@ -40245,12 +40141,13 @@
       }
 
       function syncSidebarCollapseButtonPlacement() {
-        if (!appSidebar || !sidebarCollapseButton || !sidebarBrandLink || !sidebarAccountSection) return;
+        const homeEntry = appSidebar?.querySelector(".sidebar-home-entry");
+        if (!appSidebar || !sidebarCollapseButton || !sidebarBrandLink || !homeEntry) return;
         if (sidebarLayoutMediaQuery.matches) {
           appSidebar.insertBefore(sidebarCollapseButton, sidebarBrandLink);
           return;
         }
-        sidebarAccountSection.insertAdjacentElement("afterend", sidebarCollapseButton);
+        homeEntry.append(sidebarCollapseButton);
       }
 
       function restoreSidebarState() {
@@ -40634,7 +40531,8 @@
           hospitationEditorDrawer?.classList.contains("is-open") ||
           observationDetailDrawer?.classList.contains("is-open") ||
           document.getElementById("synthesis-detail-drawer")?.classList.contains("is-open") ||
-          profilePhotoModal?.classList.contains("is-open");
+          profilePhotoModal?.classList.contains("is-open") ||
+          Boolean(aboutApp && !aboutApp.hidden);
         document.body.style.overflow = overlayOpen ? "hidden" : "";
       }
 
@@ -43643,15 +43541,19 @@
       bindRovingTablist(profileTabButtons);
       bindRovingTablist(notificationFilterButtons);
       sidebarAboutButton?.addEventListener("click", () => {
-        closeMenus();
-        closeMobileSidebar();
-        if (activeView === "profile") {
-          setProfileTab("about");
-          updateRouteHash(profileRouteForTab());
-          return;
-        }
-        openProfileTab("about");
+        openAboutApp();
       });
+      aboutAppClose?.addEventListener("click", () => closeAboutApp());
+      aboutAppBackdrop?.addEventListener("click", () => closeAboutApp());
+      if (!("name" in document.createElement("details"))) {
+        aboutApp?.addEventListener("toggle", (event) => {
+          const openedModule = event.target;
+          if (!(openedModule instanceof HTMLDetailsElement) || !openedModule.open) return;
+          aboutApp.querySelectorAll(".about-app__module[open]").forEach((module) => {
+            if (module !== openedModule) module.open = false;
+          });
+        }, true);
+      }
 
       moreActionsButton?.addEventListener("click", (event) => {
         event.stopPropagation();
@@ -43696,7 +43598,6 @@
         }
         await startProductTour("sidebar");
       });
-      homeTourButton?.addEventListener("click", () => startProductTour("home"));
       accountProfileButton?.addEventListener("click", () => openProfileTab("profile"));
       profileCancel?.addEventListener("click", closeProfileModal);
       profileForm?.addEventListener("submit", saveProfileForm);
@@ -43717,14 +43618,6 @@
         }
         setProfileStatus("");
         await openOnboardingReview("profile");
-      });
-      profileTourStart?.addEventListener("click", async () => {
-        if (profileDirty) {
-          setProfileStatus("Bitte speichere oder verwirf deine Profiländerungen, bevor du die Tour startest.", true);
-          return;
-        }
-        setProfileStatus("");
-        await startProductTour("profile");
       });
       onboardingProfileForm?.addEventListener("submit", saveOnboardingProfile);
       onboardingDisplayName?.addEventListener("input", () => {
@@ -44248,8 +44141,7 @@
       });
       accountTourButton?.addEventListener("click", () => {
         closeMenus();
-        openProfileTab("profile");
-        profileTourStart?.focus();
+        sidebarTourButton?.click();
       });
       accountQualityButton?.addEventListener("click", () => {
         closeMenus();
@@ -44260,6 +44152,11 @@
 
       document.addEventListener("keydown", (event) => {
         if (event.key !== "Escape") return;
+        if (aboutApp && !aboutApp.hidden) {
+          event.preventDefault();
+          closeAboutApp();
+          return;
+        }
         if (productTourState.open) {
           closeProductTour({ skipped: true });
           return;
@@ -44986,8 +44883,7 @@
           return "profile";
         }
         if (hashView === "about" || hashView === "profile-about") {
-          setProfileTab("about");
-          return "profile";
+          return activeView;
         }
         if (hashView === "changelog" || hashView === "profile-changelog") {
           setProfileTab("changelog");
@@ -45017,6 +44913,11 @@
         const previousStage = window.HospitationSynthesis?.getSelection().stage;
         const previousOverviewTab = window.HospitationWorkspace?.getOverviewTab();
         const routeToken = routeTokenFromLocation();
+        if (isAboutAppRoute(routeToken) && !onboardingActive) {
+          openAboutApp();
+          return;
+        }
+        closeAboutApp({ restoreRoute: false });
         const nextView = routeViewFromToken(routeToken) || "home";
         if (routeToken === "onboarding" && !onboardingActive && !onboardingReviewActive) {
           void openOnboardingReview(activeView === "onboarding" ? "profile" : activeView);
@@ -45615,7 +45516,7 @@
           return;
         }
         try {
-          if (CLEAN_URLS_ENABLED || initialTargetView === "stakeholders" || initialTargetView === "patients") {
+          if (!isAboutAppRoute(initialRouteToken) && (CLEAN_URLS_ENABLED || initialTargetView === "stakeholders" || initialTargetView === "patients")) {
             updateRouteHash(
               activePoliticsMemberId
                 ? personProfileRoute("politics", activePoliticsMemberId, { returnTo: "politics" })
@@ -45630,6 +45531,7 @@
           revealInitialShell();
         }
         if (initialDataAvailable) updateView();
+        if (isAboutAppRoute(initialRouteToken)) openAboutApp();
         reconcileLateSettings();
       }
 
