@@ -571,7 +571,7 @@ test("Politik bleibt auf mobilen Viewports ohne horizontalen Seiten-Overflow les
   await expect(drawer.locator(".politics-constituency-preview")).toBeVisible();
   await expect(drawer.locator(".politics-postal-code")).toHaveText("10100");
 
-  const drawerBounds = await drawer.boundingBox();
+  const drawerBounds = await drawer.locator(".detail-panel--politics").boundingBox();
   const viewport = page.viewportSize();
   expect(drawerBounds).not.toBeNull();
   expect(viewport).not.toBeNull();

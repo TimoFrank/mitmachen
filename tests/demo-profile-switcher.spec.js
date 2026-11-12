@@ -22,17 +22,16 @@ async function revealProfileSwitcher(page) {
 
   if (desktopLayout) {
     if (await shell.evaluate((element) => element.classList.contains("is-sidebar-collapsed"))) {
-      await page.locator("#sidebar-collapse-button").click();
+      await page.locator("#sidebar-resize-handle").click();
     }
-    await expect(trigger).toBeVisible();
-    await trigger.click();
-  } else {
-    if (!(await shell.evaluate((element) => element.classList.contains("is-mobile-sidebar-expanded")))) {
-      await page.locator("#sidebar-collapse-button").click();
-    }
-    await expect(page.locator("[data-demo-profile-switcher-trigger]")).toBeHidden();
+  } else if (!(await shell.evaluate((element) => element.classList.contains("is-mobile-sidebar-expanded")))) {
+    await page.locator("#sidebar-collapse-button").click();
   }
-
+  await expect(trigger).toBeVisible();
+  await expect(switcher).toBeHidden();
+  await expect(trigger).toHaveAttribute("aria-expanded", "false");
+  await trigger.click();
+  await expect(trigger).toHaveAttribute("aria-expanded", "true");
   await expect(switcher).toBeVisible();
   await expect(switcher).toHaveAttribute("aria-labelledby", "demo-profile-switcher-title");
   await expect(page.getByRole("group", { name: "Ansicht wechseln" })).toBeVisible();
@@ -131,19 +130,18 @@ test.describe("Pages-Profilwechsel", () => {
     await revealProfileSwitcher(page);
 
     const navigation = page.locator(".sidebar-nav.primary-nav");
-    const accounts = page.locator('[data-sidebar-section="account"]');
     const navigationBox = await navigation.boundingBox();
     expect(navigationBox?.height).toBeGreaterThanOrEqual(80);
-    expect(await accounts.evaluate((element) => element.scrollHeight > element.clientHeight)).toBe(true);
-
+    const choices = page.locator("#demo-profile-switcher [data-demo-profile-choice]");
+    await expect(choices).toHaveCount(3);
+    for (const choice of await choices.all()) {
+      await expect(choice).toBeInViewport({ ratio: 1 });
+    }
+    await expect(page.locator("#sidebar-profile-button")).toBeInViewport();
     const viewerChoice = page.getByRole("button", { name: "Nora Demir Viewer", exact: true });
-    await viewerChoice.scrollIntoViewIfNeeded();
-    await expect(viewerChoice).toBeInViewport();
-
-    const profileButton = page.locator("#sidebar-profile-button");
-    await profileButton.scrollIntoViewIfNeeded();
-    await expect(profileButton).toBeInViewport();
-    expect(await accounts.evaluate((element) => element.scrollTop)).toBeGreaterThan(0);
+    await viewerChoice.click();
+    await expect(page).toHaveURL((url) => url.searchParams.get("demoProfile") === PROFILE_VIEWER);
+    await expect(page.locator("#sidebar-user-role")).toHaveText("Viewer");
   });
 
   test("geschützte Anwendung bietet keine Demo-Kontowahl", async ({ page }) => {
@@ -159,7 +157,7 @@ test.describe("Pages-Profilwechsel", () => {
     await page.goto(pagesUrl(PROFILE_ADMIN));
     const shell = page.locator(".app-shell");
     if (await shell.evaluate((element) => element.classList.contains("is-sidebar-collapsed"))) {
-      await page.locator("#sidebar-collapse-button").click();
+      await page.locator("#sidebar-resize-handle").click();
     }
 
     const trigger = page.getByRole("button", { name: /Profil wechseln/ });

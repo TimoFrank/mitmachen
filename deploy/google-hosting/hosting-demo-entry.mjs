@@ -5,18 +5,21 @@ import { gzipSync } from "node:zlib";
 
 const demoEntryPath = "/demo-entry.html";
 export const demoAssetPaths = [demoEntryPath, "/demo-entry.css"];
-const demoRoute = "/Demo";
+export const demoRoute = "/demo";
+const previousDemoRoute = "/Demo";
 const demoOrigin = "https://versorgungs-kompass-demo.web.app/";
 const previousDemoOrigin = "https://timofrank.github.io/mitmachen/";
-const redirects = ["/Demo/", "/demo", "/demo/"].map(glob => ({ glob, location: demoRoute, statusCode: 302 }));
+const redirects = [previousDemoRoute, "/Demo/", "/demo/"].map(glob => ({ glob, location: demoRoute, statusCode: 302 }));
+const previousRedirects = ["/Demo/", demoRoute, "/demo/"].map(glob => ({ glob, location: previousDemoRoute, statusCode: 302 }));
 const rewrite = { glob: demoRoute, path: demoEntryPath };
+const previousRewrite = { glob: previousDemoRoute, path: demoEntryPath };
 const assets = demoAssetPaths.map(path => {
   const content = gzipSync(readFileSync(new URL(`.${path}`, import.meta.url)));
   const hash = createHash("sha256").update(content).digest("hex");
   return { path, content, hash };
 });
-function demoHeaders(origin) {
-  return [demoRoute, demoEntryPath].map(glob => ({
+function demoHeaders(origin, route = demoRoute) {
+  return [route, demoEntryPath].map(glob => ({
     glob,
     headers: {
       "Content-Security-Policy": `default-src 'none'; style-src 'self'; frame-src ${origin}; base-uri 'none'; form-action 'none'; frame-ancestors 'none'`,
@@ -24,6 +27,17 @@ function demoHeaders(origin) {
       "X-Frame-Options": "DENY"
     }
   }));
+}
+
+function removeKnownRules(current = [], rules) {
+  const managedGlobs = new Set(rules.map(rule => rule.glob));
+  return current.filter(rule => {
+    if (!managedGlobs.has(rule.glob)) return true;
+    if (!rules.some(previous => isDeepStrictEqual(rule, previous))) {
+      throw new Error(`Hosting-Regel für ${rule.glob} ist bereits anders belegt.`);
+    }
+    return false;
+  });
 }
 
 function addRules(current = [], rules, previousRules = []) {
@@ -39,11 +53,22 @@ function addRules(current = [], rules, previousRules = []) {
 }
 
 export function withDemoEntry(config) {
+  const currentRedirects = removeKnownRules(config.redirects, previousRedirects.filter(rule => rule.glob === demoRoute));
+  const currentRewrites = removeKnownRules(config.rewrites, [previousRewrite]);
+  for (const rule of currentRewrites) {
+    if (redirects.some(redirect => redirect.glob === rule.glob)) {
+      throw new Error(`Hosting-Regel für ${rule.glob} ist bereits anders belegt.`);
+    }
+  }
+  const currentHeaders = removeKnownRules(config.headers, [
+    demoHeaders(demoOrigin, previousDemoRoute)[0],
+    demoHeaders(previousDemoOrigin, previousDemoRoute)[0]
+  ]);
   return {
     ...config,
-    redirects: addRules(config.redirects, redirects),
-    rewrites: addRules(config.rewrites, [rewrite]),
-    headers: addRules(config.headers, demoHeaders(demoOrigin), demoHeaders(previousDemoOrigin))
+    redirects: addRules(currentRedirects, redirects, previousRedirects),
+    rewrites: addRules(currentRewrites, [rewrite]),
+    headers: addRules(currentHeaders, demoHeaders(demoOrigin), demoHeaders(previousDemoOrigin))
   };
 }
 

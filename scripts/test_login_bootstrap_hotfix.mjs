@@ -163,6 +163,12 @@ function aboutRouteGuardSource() {
   return source;
 }
 
+function changelogRouteGuardSource() {
+  const source = appSource.match(/      function isChangelogRoute\(route = routeTokenFromLocation\(\)\) \{[\s\S]*?\n      \}/u)?.[0];
+  assert.ok(source, "Die Changelog-Routenprüfung wurde im App-Bundle nicht gefunden.");
+  return source;
+}
+
 function createInitializeHarness({
   cleanUrlsEnabled = false,
   coreError = null,
@@ -177,6 +183,8 @@ function createInitializeHarness({
   const state = {
     aboutOpenCalls: 0,
     aboutOpenedAfterShell: false,
+    changelogOpenCalls: 0,
+    changelogOpenedAfterShell: false,
     appliedSettings: [],
     finishCalls: 0,
     finishOnboardingCalls: 0,
@@ -231,6 +239,10 @@ function createInitializeHarness({
     openAboutApp() {
       state.aboutOpenCalls += 1;
       state.aboutOpenedAfterShell = state.finishCalls === 1;
+    },
+    openChangelog() {
+      state.changelogOpenCalls += 1;
+      state.changelogOpenedAfterShell = state.finishCalls === 1;
     },
     openOnboarding: async () => {
       state.onboardingOpenCalls += 1;
@@ -288,7 +300,7 @@ function createInitializeHarness({
     }
   };
   vm.runInNewContext(
-    `${aboutRouteGuardSource()}\n${initializeDataSource()}\nglobalThis.__initializeData = initializeData;`,
+    `${aboutRouteGuardSource()}\n${changelogRouteGuardSource()}\n${initializeDataSource()}\nglobalThis.__initializeData = initializeData;`,
     context,
     { filename: "initialize-data-contract.js" }
   );
@@ -373,6 +385,35 @@ async function assertAboutRoutesOpenAfterShellWithoutReplacingDeepLink() {
   });
   await ordinaryRoute.initialize();
   assert.equal(ordinaryRoute.state.aboutOpenCalls, 0);
+  assert.deepEqual(ordinaryRoute.state.routeUpdates, [{ view: "contacts", replace: true }]);
+}
+
+async function assertChangelogRoutesOpenAfterShellWithoutReplacingDeepLink() {
+  for (const routeToken of ["changelog", "profile-changelog"]) {
+    for (const cleanUrlsEnabled of [false, true]) {
+      const harness = createInitializeHarness({
+        cleanUrlsEnabled,
+        routeToken,
+        settingsPromise: Promise.resolve()
+      });
+      await harness.initialize();
+      assert.equal(harness.state.finishCalls, 1);
+      assert.equal(harness.state.criticalLoadCalls, 1);
+      assert.equal(harness.state.changelogOpenCalls, 1);
+      assert.equal(harness.state.changelogOpenedAfterShell, true);
+      assert.equal(harness.state.aboutOpenCalls, 0);
+      assert.equal(harness.state.activeView, "home");
+      assert.equal(harness.state.routeUpdates.length, 0, "Der Changelog-Link muss bis zum Schließen des Fensters erhalten bleiben.");
+    }
+  }
+  const ordinaryRoute = createInitializeHarness({
+    cleanUrlsEnabled: true,
+    routeToken: "contacts",
+    routeView: "contacts",
+    settingsPromise: Promise.resolve()
+  });
+  await ordinaryRoute.initialize();
+  assert.equal(ordinaryRoute.state.changelogOpenCalls, 0);
   assert.deepEqual(ordinaryRoute.state.routeUpdates, [{ view: "contacts", replace: true }]);
 }
 
@@ -607,6 +648,7 @@ await assertApiRequestErrorContract();
 await assertSettingsDoNotBlockShell();
 await assertQuickSettingsKeepSkeletonUntilCriticalData();
 await assertAboutRoutesOpenAfterShellWithoutReplacingDeepLink();
+await assertChangelogRoutesOpenAfterShellWithoutReplacingDeepLink();
 await assertSettingsFailuresFallBackWithoutDiscardingCoreData();
 await assertLateSettingsResumeOnboarding();
 await assertLateCompletedSettingsCloseFallbackOnboarding();

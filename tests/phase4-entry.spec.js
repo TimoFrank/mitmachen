@@ -233,10 +233,12 @@ test("Phase 4: Teams zeigen offene Bereiche mit Mitgliedern im direkten Kontext 
     backendFixtureScript: teamDirectoryBackendFixtureScript()
   });
 
-  await expect(page.locator('[data-view-panel="team"]')).toBeVisible();
+  await expect(page.locator('[data-view-panel="profile"]')).toBeVisible();
+  await expect(page.locator("#profile-tab-team")).toBeVisible();
+  await expect(page.locator('[data-profile-tab="team"]')).toHaveAttribute("aria-selected", "true");
   await expect(page.locator("#team-overview-title")).toHaveCount(0);
   await expect(page.locator("#workspace-view-title")).toHaveText("Teams");
-  await expect(page.locator("#workspace-view-subtitle")).toHaveText("Finde Nutzer, Rollen und Zuständigkeiten, ohne lange Kontaktlisten durchsuchen zu müssen.");
+  await expect(page.locator("#workspace-view-subtitle")).toHaveText("Personen, Teams und Zuständigkeiten im Überblick.");
   await expect(page.locator('[data-workspace-brand]')).toBeVisible();
   await expect(page.locator("#workspace-brand-image")).toHaveAttribute("alt", "#Mitmachen");
   await expect(page.locator("#team-user-count")).toHaveText("36");
@@ -246,9 +248,11 @@ test("Phase 4: Teams zeigen offene Bereiche mit Mitgliedern im direkten Kontext 
   await expect(page.locator(".team-toolbar")).toHaveCount(0);
   const isMobile = (page.viewportSize()?.width || 1440) < 760;
   const workspaceWidth = await page.locator(".team-workspace").evaluate((element) => Math.round(element.getBoundingClientRect().width));
-  expect(workspaceWidth).toBeGreaterThan(isMobile ? 320 : 600);
+  expect(workspaceWidth).toBeGreaterThan(isMobile ? 280 : 600);
   expect(workspaceWidth).toBeLessThanOrEqual(isMobile ? 390 : 760);
-  await expect(page.locator('.app-shell[data-active-view="team"] .workspace-header')).toHaveCSS("border-top-width", "0px");
+  const panelWidth = await page.locator("#profile-tab-team").evaluate((element) => element.getBoundingClientRect().width);
+  expect(workspaceWidth).toBeLessThanOrEqual(panelWidth + 1);
+  await expect(page.locator("#profile-tab-team > .team-workspace")).toBeVisible();
 
   const metricsBox = await page.locator(".team-metrics").boundingBox();
   expect(metricsBox).not.toBeNull();
@@ -256,7 +260,9 @@ test("Phase 4: Teams zeigen offene Bereiche mit Mitgliedern im direkten Kontext 
   if (isMobile) {
     const headerBox = await page.locator(".workspace-header").boundingBox();
     const mobileBarBox = await page.locator(".app-sidebar").boundingBox();
-    expect(Math.abs(headerBox.y - (mobileBarBox.y + mobileBarBox.height))).toBeLessThanOrEqual(1);
+    const headerGap = headerBox.y - (mobileBarBox.y + mobileBarBox.height);
+    expect(headerGap).toBeGreaterThanOrEqual(0);
+    expect(headerGap).toBeLessThanOrEqual(16);
   }
 
   const teamCards = page.locator("#team-account-list .team-board-card");

@@ -403,7 +403,7 @@ test("Presse, Politik und Aktivitäten nutzen kompakte Inhaltszeilen ohne zweite
   await expect(page.locator("#view-stakeholders .table-command-row--stakeholders")).toHaveCount(0);
 });
 
-test("Beobachtungen zeigen die Suche und Teams kommen ohne Suchfeld aus", async ({ page }) => {
+test("Beobachtungen zeigen die Suche und der Profilreiter Teams kommt ohne Suchfeld aus", async ({ page }) => {
   await gotoAuthenticated(page, appPath("hospitations:observations"), { role: "admin" });
   const observationPanel = page.locator("#hospitation-observations-panel:not([hidden])");
   const observationSearch = observationPanel.locator(".observation-header-search");
@@ -430,6 +430,8 @@ test("Beobachtungen zeigen die Suche und Teams kommen ohne Suchfeld aus", async 
   }
 
   await page.goto(appPath("team"), { waitUntil: "load" });
+  await expect(page.locator("#profile-tab-team")).toBeVisible();
+  await expect(page.locator('[data-profile-tab="team"]')).toHaveAttribute("aria-selected", "true");
   await expect(page.locator("#team-account-list")).toBeVisible();
   await expect(page.locator(".team-search")).toHaveCount(0);
   const teamOverflow = await page.evaluate(() =>

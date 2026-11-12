@@ -925,14 +925,15 @@
           : context === "operational"
             ? item.context !== "product"
             : item.context === context;
-        return (!unreadOnly || unread) && contextMatches;
+        return !(item.dismissedAt || item.dismissed_at) && (!unreadOnly || unread) && contextMatches;
       });
       return json({ items: rows.slice(offset, offset + limit), nextOffset: Math.min(rows.length, offset + limit), hasMore: rows.length > offset + limit });
     }
     if (method === "GET" && path === "/api/notifications/summary") {
-      const unread = state.notifications.filter((item) => item.context !== "product" && item.unread !== false && !(item.readAt || item.read_at));
+      const operational = state.notifications.filter((item) => item.context !== "product" && !(item.dismissedAt || item.dismissed_at));
+      const unread = operational.filter((item) => item.unread !== false && !(item.readAt || item.read_at));
       const byContext = unread.reduce((result, item) => ({ ...result, [item.context]: (result[item.context] || 0) + 1 }), {});
-      return json({ unreadTotal: unread.length, byContext });
+      return json({ totalCount: operational.length, unreadTotal: unread.length, byContext });
     }
     if (method === "PATCH" && (path === "/api/notifications/read" || /^\/api\/notifications\/[^/]+\/read$/.test(path))) {
       const ids = path === "/api/notifications/read" ? (body.ids || []) : [decodeURIComponent(path.split("/").at(-2))];

@@ -985,17 +985,17 @@
         return { tab: legacyTab === "dashboard" ? "dashboard" : "synthesis", stage };
       }
       const settingsTabItems = [
-        { id: "registrations", title: "Registrierungskonzept", subtitle: "Beispieleingänge aus dem Zukunftsszenario prüfen; kein aktueller gematik-Prozess." },
         { id: "imports", title: "Dateiimport", subtitle: "Kontakte per Datei hochladen, zuordnen und geprüft importieren." },
         { id: "onlineEntry", title: "Online-Erfassung", subtitle: "Mehrere Kontakte direkt in einer Tabelle erfassen und gemeinsam speichern." },
+        { id: "registrations", title: "Registrierung", subtitle: "Beispieleingänge aus einem möglichen künftigen Prozess prüfen." },
         { id: "importHistory", title: "Importhistorie", subtitle: "Abgeschlossene Importe und Ergebnisse nachvollziehen." }
       ];
       const profileTabItems = [
         { id: "profile", title: "Mein Profil", subtitle: "Persönliche Informationen und Zuständigkeiten verwalten." },
+        { id: "team", title: "Teams", subtitle: "Personen, Teams und Zuständigkeiten im Überblick." },
         { id: "notifications", title: "Benachrichtigungen", subtitle: "Persönliche Hinweise zu Änderungen, Team und Produkt." },
         { id: "imports", title: "Importe", subtitle: "Registrierungen, Dateiimporte und Importhistorie verwalten." },
-        { id: "settings", title: "Einstellungen", subtitle: "Persönliche Arbeits- und Benachrichtigungsvorgaben." },
-        { id: "changelog", title: "Changelog", subtitle: "Versionsverlauf und sichtbare Produktänderungen." }
+        { id: "settings", title: "Einstellungen", subtitle: "Persönliche Arbeits- und Benachrichtigungsvorgaben." }
       ];
       const rolePermissionItems = [
         {
@@ -1090,7 +1090,7 @@
       const activityRangeFilter = document.getElementById("activity-range-filter");
       const notificationsList = document.getElementById("notifications-list");
       const notificationsMeta = document.getElementById("notifications-meta");
-      const notificationFilterButtons = [...document.querySelectorAll("[data-notification-filter]")];
+      const notificationsFilterSelect = document.getElementById("notifications-filter-select");
       const notificationsFilterPanel = document.getElementById("notifications-filter-panel");
       const notificationsMarkAllRead = document.getElementById("notifications-mark-all-read");
       const notificationsLoadMoreRow = document.getElementById("notifications-load-more-row");
@@ -1100,10 +1100,6 @@
       const notificationPopoverMeta = document.getElementById("notification-popover-meta");
       const notificationPopoverClose = document.getElementById("notification-popover-close");
       const notificationPopoverAll = document.getElementById("notification-popover-all");
-      const notificationFilterCountNodes = new Map(
-        [...document.querySelectorAll("[data-notification-filter-count]")]
-          .map((node) => [node.dataset.notificationFilterCount, node])
-      );
       const formatDetailPanel = document.getElementById("format-detail-panel");
       const newFormatButton = document.getElementById("new-format-button");
       const formatContactFilter = document.getElementById("format-contact-filter");
@@ -1410,9 +1406,15 @@
       const sidebarActivitiesButton = document.getElementById("sidebar-activities-button");
       const sidebarNotificationsButton = document.getElementById("sidebar-notifications-button");
       const sidebarUserAdminButton = document.getElementById("sidebar-user-admin-button");
-      const sidebarTeamButton = document.getElementById("sidebar-team-button");
       const sidebarSettingsButton = document.getElementById("sidebar-settings-button");
       const sidebarAboutButton = document.getElementById("sidebar-about-button");
+      const sidebarChangelogButton = document.getElementById("sidebar-changelog-button");
+      const appChangelog = document.getElementById("app-changelog");
+      const appChangelogClose = document.getElementById("app-changelog-close");
+      const appChangelogBackdrop = document.getElementById("app-changelog-backdrop");
+      const sidebarResizeHandle = document.getElementById("sidebar-resize-handle");
+      const sidebarWidthLimits = { min: 220, max: 360, default: 248 };
+      let sidebarResizeSession = null;
       const aboutApp = document.getElementById("about-app");
       const aboutAppClose = document.getElementById("about-app-close");
       const aboutAppBackdrop = document.getElementById("about-app-backdrop");
@@ -1452,6 +1454,9 @@
       const contactListSwitcher = document.getElementById("contact-list-switcher");
       const contactListModeButtons = [...document.querySelectorAll("[data-contact-list-mode]")];
       const favoriteContactCount = document.getElementById("favorite-contact-count");
+      const organizationListSwitcher = document.getElementById("organization-list-switcher");
+      const organizationListModeButtons = [...document.querySelectorAll("[data-organization-list-mode]")];
+      const favoriteOrganizationCount = document.getElementById("favorite-organization-count");
       const organizationColumnActions = document.getElementById("organization-column-actions");
       const organizationSecondaryActions = document.getElementById("organization-secondary-actions");
       const expertModeActions = document.getElementById("expert-mode-actions");
@@ -1509,6 +1514,9 @@
       const profileImportsTabPanel = document.getElementById("profile-tab-imports");
       const settingsWorkspace = document.querySelector("#view-settings > .settings-workspace");
       if (profileImportsTabPanel && settingsWorkspace) profileImportsTabPanel.append(settingsWorkspace);
+      const profileTeamTabPanel = document.getElementById("profile-tab-team");
+      const teamWorkspace = document.querySelector("#view-team > .team-workspace");
+      if (profileTeamTabPanel && teamWorkspace) profileTeamTabPanel.append(teamWorkspace);
       const teamAccountList = document.getElementById("team-account-list");
       const teamUserCount = document.getElementById("team-user-count");
       const teamGroupCount = document.getElementById("team-group-count");
@@ -1535,12 +1543,7 @@
       const registrationsSummary = document.getElementById("registrations-summary");
       const registrationsList = document.getElementById("registrations-list");
       const registrationsRefresh = document.getElementById("registrations-refresh");
-      const registrationsSearch = document.getElementById("registrations-search");
       const registrationsStatusFilter = document.getElementById("registrations-status-filter");
-      const registrationMetricNew = document.getElementById("registration-metric-new");
-      const registrationMetricComplete = document.getElementById("registration-metric-complete");
-      const registrationMetricDuplicates = document.getElementById("registration-metric-duplicates");
-      const registrationMetricConsent = document.getElementById("registration-metric-consent");
       const importsHistorySection = document.getElementById("imports-history-section");
       const csvFileInput = document.getElementById("csv-file-input");
       const stakeholderFileInput = document.getElementById("stakeholder-file-input");
@@ -1734,8 +1737,7 @@
       let registrationsLoaded = false;
       let registrationsLoading = false;
       let lastRegistrationsRefreshAt = 0;
-      let registrationSearchQuery = "";
-      let registrationStatusView = "open";
+      let registrationStatusView = "all";
       let activeFormatId = null;
       let editingFormatId = null;
       let formatActiveTab = "overview";
@@ -1847,8 +1849,9 @@
       let pendingFilterDraft = null;
       let activeSavedViewName = "";
       let favoriteContactsOnly = false;
+      let favoriteOrganizationsOnly = false;
       let currentPage = 1;
-      let pageSize = 20;
+      let pageSize = 25;
       const patientStateByMode = {
         people: {
           query: "",
@@ -1914,7 +1917,7 @@
       }
 
       function applyPageSize(nextPageSize) {
-        pageSize = Number(nextPageSize) || 20;
+        pageSize = Number(nextPageSize) || 25;
         currentPage = 1;
         syncPageSizeSelects();
         persistUserSettingPatch({ pageSize });
@@ -1953,6 +1956,7 @@
       let userSettingsInitialLoadPromise = null;
       let userSettingsWriteRevision = 0;
       let favoriteContactIds = new Set();
+      let favoriteOrganizationIds = new Set();
       const favoriteContactSavePending = new Set();
       let onboardingActive = false;
       let onboardingReviewActive = false;
@@ -2964,27 +2968,6 @@
         return status === registrationStatusView;
       }
 
-      function registrationMatchesSearch(registration) {
-        if (!registrationSearchQuery) return true;
-        const haystack = [
-          registrationDisplayName(registration),
-          registration.email,
-          registration.organization,
-          registration.sector,
-          registration.role,
-          registration.professionalGroup || registration.professional_group,
-          registration.city,
-          registrationPostalCode(registration)
-        ].join(" ").toLowerCase();
-        return haystack.includes(registrationSearchQuery);
-      }
-
-      function updateRegistrationMetrics() {
-        if (registrationMetricNew) registrationMetricNew.textContent = String(backendRegistrations.filter((item) => item.status === "neu").length);
-        if (registrationMetricComplete) registrationMetricComplete.textContent = String(backendRegistrations.filter((item) => ["profile_complete", "verified"].includes(item.onboardingStage || item.onboarding_stage)).length);
-        if (registrationMetricDuplicates) registrationMetricDuplicates.textContent = String(backendRegistrations.filter(registrationHasPossibleDuplicate).length);
-        if (registrationMetricConsent) registrationMetricConsent.textContent = String(backendRegistrations.filter((item) => item.consentContactAcceptedAt || item.consent_contact_accepted_at).length);
-      }
 
       async function loadRegistrations({ scroll = false } = {}) {
         if (!canAdministerData()) {
@@ -3027,7 +3010,7 @@
         if (!registrationsList || !registrationsSummary) return;
         if (registrationsLoading) {
           registrationsSummary.textContent = "Beispieleingänge werden geladen.";
-          registrationsList.innerHTML = `<div class="imports-history-empty">Beispieleingänge des Registrierungsszenarios werden geladen.</div>`;
+          registrationsList.innerHTML = `<div class="imports-history-empty">Registrierungen werden geladen.</div>`;
           return;
         }
         if (!registrationsLoaded) {
@@ -3035,71 +3018,32 @@
           registrationsList.innerHTML = `<div class="imports-history-empty">Öffne die Registrierungen, um neue Eingänge zu prüfen.</div>`;
           return;
         }
-        updateRegistrationMetrics();
-        const rows = backendRegistrations
-          .filter(registrationMatchesStatusView)
-          .filter(registrationMatchesSearch);
-        registrationsSummary.textContent = backendRegistrations.length
-          ? `${rows.length} von ${backendRegistrations.length} Registrierung${backendRegistrations.length === 1 ? "" : "en"} angezeigt.`
-          : "Keine Registrierungen vorhanden.";
+        const rows = backendRegistrations.filter(registrationMatchesStatusView);
+        registrationsSummary.textContent = `${rows.length} ${rows.length === 1 ? "Registrierung" : "Registrierungen"}`;
         registrationsList.innerHTML = rows.length
           ? `<div class="registrations-table">
               <div class="registration-table-head" aria-hidden="true">
-                <div>Kontakt</div>
-                <div>Einrichtung</div>
-                <div>Status</div>
-                <div>Profilstand</div>
-                <div>Einwilligung</div>
-                <div>Aktionen</div>
+                <div>Kontakt</div><div>Status</div><div>Aktion</div>
               </div>
               ${rows.map((registration) => {
-              const name = registrationDisplayName(registration);
-              const location = registrationLocationLabel(registration);
-              const postalCode = registrationPostalCode(registration);
-              const sectorLine = registration.sector || "Offen";
-              const locationLine = location || postalCode || "Standort offen";
-              const submitted = formatDateTimeLabel(registration.submittedAt || registration.submitted_at) || "Zeitpunkt offen";
-              const profileLabel = registrationProfileLabel(registration);
-              const duplicateLabel = registrationHasPossibleDuplicate(registration) ? "Dublette prüfen" : "Kein Treffer";
-              const contactConsentProvided = registration.consentContactAcceptedAt || registration.consent_contact_accepted_at;
-              const consentLabel = contactConsentProvided
-                ? registrationEmailIsConfirmed(registration) ? "#Mitmachen bestätigt" : "#Mitmachen vorgemerkt"
-                : "Nur Registrierung";
-              const isOpen = ["neu", "in_pruefung", "zurueckgestellt"].includes(registration.status || "neu");
-              const avatarMarkup = `<span class="avatar avatar-fallback avatar-sm avatar--network" aria-hidden="true">${escapeHtml(initialsFromLabel(name))}</span>`;
-              return `
-                <article class="registration-row" data-registration-id="${escapeHtml(registration.id)}">
-                  <div class="registration-row__preview" data-label="Kontakt" data-registration-preview="${escapeHtml(registration.id)}" tabindex="0" role="button" aria-label="${escapeHtml(registrationRowLabel(registration))}">
-                    ${avatarMarkup}
-                    <div class="registration-row__identity">
+                const name = registrationDisplayName(registration);
+                const isOpen = ["neu", "in_pruefung", "zurueckgestellt"].includes(registration.status || "neu");
+                return `
+                  <article class="registration-row" data-registration-id="${escapeHtml(registration.id)}">
+                    <div class="registration-row__preview" data-registration-preview="${escapeHtml(registration.id)}" tabindex="0" role="button" aria-label="${escapeHtml(registrationRowLabel(registration))}">
                       <strong>${escapeHtml(name)}</strong>
-                      <small>${escapeHtml(registration.email || "E-Mail offen")}</small>
                     </div>
-                  </div>
-                  <div class="registration-row__meta" data-label="Einrichtung">
-                    <strong>${escapeHtml(registration.organization || "Einrichtung offen")}</strong>
-                    <small>${escapeHtml([sectorLine, locationLine].filter(Boolean).join(" · "))}</small>
-                  </div>
-                  <div class="registration-row__status" data-label="Status">
-                    <span class="status-pill status-pill--review">${escapeHtml(registrationStatusLabel(registration.status))}</span>
-                    <small>${escapeHtml(submitted)}</small>
-                  </div>
-                  <div class="registration-row__meta" data-label="Profilstand">
-                    <strong>${escapeHtml(profileLabel)}</strong>
-                    <small>${escapeHtml(duplicateLabel)}</small>
-                  </div>
-                  <div class="registration-row__meta" data-label="Einwilligung">
-                    <strong>${escapeHtml(consentLabel)}</strong>
-                    <small>${escapeHtml(registrationPrivacyLabel(registration.privacyCheckStatus || registration.privacy_check_status))}</small>
-                  </div>
-                  <div class="registration-row__actions" data-label="Aktion">
-                    <button class="import-row-action" type="button" data-registration-preview="${escapeHtml(registration.id)}">${isOpen ? "Prüfen" : "Ansehen"}</button>
-                  </div>
-                </article>
-              `;
+                    <div class="registration-row__status">
+                      <span class="status-pill status-pill--review">${escapeHtml(registrationStatusLabel(registration.status))}</span>
+                    </div>
+                    <div class="registration-row__actions">
+                      <button class="import-row-action" type="button" data-registration-preview="${escapeHtml(registration.id)}">${isOpen ? "Prüfen" : "Ansehen"}</button>
+                    </div>
+                  </article>
+                `;
               }).join("")}
             </div>`
-          : `<div class="imports-history-empty">Für die aktuelle Suche und Statusauswahl wurden keine Registrierungen gefunden.</div>`;
+          : `<div class="imports-history-empty">Für diesen Status wurden keine Registrierungen gefunden.</div>`;
       }
 
       function updateRegistrationInList(updated) {
@@ -7520,7 +7464,7 @@
               const mapped = field === "organization" ? "contacts" : field === "specialty" ? "sector" : field;
               return missingFields.includes(mapped);
             });
-          return matchesSearch && matchesSector && matchesState && matchesCity && matchesOwner && matchesContactRange && matchesUpdated && matchesSource && matchesQuality && matchesMissing;
+          return (!favoriteOrganizationsOnly || isFavoriteOrganization(organization)) && matchesSearch && matchesSector && matchesState && matchesCity && matchesOwner && matchesContactRange && matchesUpdated && matchesSource && matchesQuality && matchesMissing;
         });
       }
 
@@ -7575,10 +7519,11 @@
             <div class="organization-cell">
               ${organizationLogoMarkup(organization, "sm", "", { sectorRing: true })}
               <div class="contact-meta">
-                <span class="entity-name-with-marker">
+                <div class="contact-name__line">
                   <button class="organization-name-button" type="button" data-open-organization="${escapeHtml(organization.id)}">${escapeHtml(organization.name)}</button>
                   ${testMarkerMarkup(organization)}
-                </span>
+                  ${favoriteOrganizationButtonMarkup(organization)}
+                </div>
               </div>
             </div>
           `;
@@ -7617,7 +7562,9 @@
         renderColumnMenu();
         if (!items.length) {
           renderOrganizationsTableHead(columns);
-          organizationList.innerHTML = `<div class="empty">Keine Organisationen im aktuellen Filter. Passe Suche oder Filter an.</div>`;
+          organizationList.innerHTML = favoriteOrganizationsOnly
+            ? `<div class="empty">Keine Organisationen in dieser Favoritenansicht. Markiere Organisationen mit dem Stern oder wechsle zu Alle.</div>`
+            : `<div class="empty">Keine Organisationen im aktuellen Filter. Passe Suche oder Filter an.</div>`;
           organizationsPaginationMeta.textContent = "0-0 von 0 Organisationen";
           organizationsPagination.innerHTML = "";
           return;
@@ -7642,6 +7589,7 @@
                         <button class="organization-contact-link" type="button" data-open-organization="${escapeHtml(organization.id)}">${contactCount} ${contactCount === 1 ? "Kontakt" : "Kontakte"}</button>
                       </div>
                     </div>
+                    ${favoriteOrganizationButtonMarkup(organization, { variant: "mobile" })}
                     <span class="mobile-contact-chevron" aria-hidden="true">›</span>
                   </div>
                 </article>
@@ -7663,6 +7611,7 @@
           }),
           `<button class="pagination-button" type="button" data-org-page-nav="next" ${currentPage === totalPages ? "disabled" : ""} aria-label="Nächste Seite">›</button>`
         ].join("");
+        bindFavoriteOrganizationButtons(organizationList);
         organizationList.querySelectorAll("[data-organization-id]").forEach((row) => {
           row.addEventListener("click", (event) => {
             if (event.target.closest("button, input, label, a, select, textarea")) return;
@@ -10035,7 +9984,10 @@
 
       function openTeamOwnerContact(contactId = "") {
         if (!contactId) return;
-        setActiveView("contacts");
+        if (setActiveView("contacts") === false) {
+          blockedRouteUpdate = false;
+          return;
+        }
         updateRouteHash("contacts");
         updateView();
         openPersonProfile("contact", contactId, { returnTo: "team" });
@@ -10342,7 +10294,7 @@
 
       function openProfileModal() {
         closeMenus();
-        renderProfileForm();
+        if (!profileDirty) renderProfileForm();
         setProfileStatus("");
         setProfileTab(activeProfileTab);
         setActiveView("profile");
@@ -11063,12 +11015,13 @@
           view: "map",
           target: ".app-sidebar",
           mobileTarget: "#sidebar-collapse-button",
+          mobileTargetMaxWidth: 760,
           sidebarSection: "care",
           icon: "↗",
           accent: "#1769d2",
           motivation: "Ein Wegweiser durch alle Bereiche",
           title: "Orientierung in der Sidebar",
-          body: "Die Sidebar bündelt Versorgung, Stakeholder, Hospitation und Formate. Hilfe, Team und Profil findest du dauerhaft im unteren Bereich.",
+          body: "Die Sidebar bündelt Versorgung, Stakeholder, Hospitation und Formate. App-Informationen und dein Konto findest du unten. Im Profil erreichst du auch deine Teams.",
           details: [
             { title: "Schnell wechseln", body: "Das Menü öffnet die Bereiche; aktiv bleibt der aktuelle." },
             { title: "Rollenbewusst", body: "Du siehst nur freigegebene Werkzeuge." }
@@ -11076,12 +11029,13 @@
         },
         {
           id: "team",
-          view: "team",
+          view: "profile",
+          profileTab: "team",
           target: "#team-account-list .team-board-card",
           narrowTarget: "#team-account-list .team-board-card__header",
           fallbackTarget: "#team-account-list",
           sidebarSection: "account",
-          sidebarTarget: "#sidebar-team-button",
+          sidebarTarget: "#sidebar-profile-button",
           icon: "●●",
           accent: "#8b4fc7",
           motivation: "Wissen wächst im Team",
@@ -11557,7 +11511,7 @@
       function targetForProductTourStep(step) {
         if (!step || step.welcome || step.overlay) return null;
         const useNarrowTarget = window.matchMedia("(max-width: 480px)").matches;
-        const useCompactTarget = window.matchMedia("(max-width: 900px)").matches;
+        const useCompactTarget = window.matchMedia(`(max-width: ${step.mobileTargetMaxWidth || 900}px)`).matches;
         const targetSelector = useNarrowTarget && step.narrowTarget
           ? step.narrowTarget
           : useCompactTarget && step.mobileTarget
@@ -12278,7 +12232,8 @@
           sources: selectedSources,
           organizationCities: selectedOrganizationCities,
           organizationContactRanges: selectedOrganizationContactRanges,
-          favoriteContactsOnly
+          favoriteContactsOnly,
+          favoriteOrganizationsOnly
         };
       }
 
@@ -12305,9 +12260,9 @@
           0
         );
         if (view.searchQuery) chips.push(`Suche: ${view.searchQuery}`);
-        if (filters.favoriteContactsOnly) chips.push("Favoriten");
+        if (view.viewType === "organizations" ? filters.favoriteOrganizationsOnly : filters.favoriteContactsOnly) chips.push("Favoriten");
         if (filterCount) chips.push(`${filterCount} Filter`);
-        chips.push(`${view.pageSize || 20} pro Seite`);
+        chips.push(`${view.pageSize || 25} pro Seite`);
         return chips.join(" · ");
       }
 
@@ -12322,7 +12277,7 @@
           searchQuery: view.searchQuery || "",
           sortKey: view.sortKey || "updated_at",
           sortDirection: view.sortDirection || "desc",
-          pageSize: Number(view.pageSize || 20),
+          pageSize: Number(view.pageSize || 25),
           isDefault: Boolean(view.isDefault),
           createdAt: view.createdAt || new Date().toISOString(),
           updatedAt: view.updatedAt || new Date().toISOString()
@@ -12347,6 +12302,7 @@
 
       function syncFavoriteContactsFromSettings(settings = userSettings) {
         favoriteContactIds = new Set(normalizedFavoriteContactIds(settings?.preferences?.favoriteContactIds));
+        favoriteOrganizationIds = new Set(normalizedFavoriteContactIds(settings?.preferences?.favoriteOrganizationIds));
       }
 
       function isFavoriteContact(contactOrId) {
@@ -12398,6 +12354,128 @@
         });
       }
 
+      function isFavoriteOrganization(organizationOrId) {
+        const id = typeof organizationOrId === "object" ? organizationOrId?.id : organizationOrId;
+        return Boolean(id) && favoriteOrganizationIds.has(String(id));
+      }
+
+      function favoriteOrganizationButtonMarkup(organization, { variant = "table" } = {}) {
+        const active = isFavoriteOrganization(organization);
+        const pending = favoriteContactSavePending.size > 0;
+        const name = organization.displayName || organization.name || "Organisation";
+        const actionLabel = active ? "Aus Favoriten entfernen" : "Zu Favoriten hinzufügen";
+        return `
+          <button
+            class="favorite-star favorite-star--${escapeHtml(variant)} ${active ? "is-active" : ""} ${pending ? "is-pending" : ""}"
+            type="button"
+            data-favorite-organization="${escapeHtml(organization.id)}"
+            aria-pressed="${active ? "true" : "false"}"
+            aria-label="${escapeHtml(`${name}: ${actionLabel}`)}"
+            title="${escapeHtml(actionLabel)}"
+            ${pending ? "disabled" : ""}
+          >
+            <svg viewBox="0 0 24 24" fill="${active ? "currentColor" : "none"}" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="m12 3 2.8 5.7 6.2.9-4.5 4.4 1.1 6.2-5.6-2.9-5.6 2.9 1.1-6.2L3 9.6l6.2-.9L12 3Z"></path>
+            </svg>
+          </button>
+        `;
+      }
+
+
+      function syncFavoriteOrganizationButtons(root = document) {
+        root.querySelectorAll("[data-favorite-organization]").forEach((button) => {
+          const id = button.dataset.favoriteOrganization || "";
+          const organization = organizations.find((item) => item.id === id);
+          const active = isFavoriteOrganization(id);
+          const pending = favoriteContactSavePending.size > 0;
+          const name = organization?.displayName || organization?.name || "Organisation";
+          const actionLabel = active ? "Aus Favoriten entfernen" : "Zu Favoriten hinzufügen";
+          button.classList.toggle("is-active", active);
+          button.classList.toggle("is-pending", pending);
+          button.disabled = pending;
+          button.setAttribute("aria-pressed", String(active));
+          button.setAttribute("aria-label", `${name}: ${actionLabel}`);
+          button.title = actionLabel;
+          button.querySelector("svg")?.setAttribute("fill", active ? "currentColor" : "none");
+        });
+      }
+
+
+      async function toggleFavoriteOrganization(id) {
+        const normalizedId = String(id || "").trim();
+        if (!normalizedId || favoriteContactSavePending.size > 0) return false;
+        const organization = organizations.find((item) => item.id === normalizedId);
+        if (!organization) return false;
+        const pendingKey = `organization:${normalizedId}`;
+        favoriteContactSavePending.add(pendingKey);
+        let previousIds = null;
+        let wasFavorite = false;
+        syncFavoriteContactButtons();
+        syncFavoriteOrganizationButtons();
+        try {
+          await ensureUserSettingsHydratedForWrite();
+          previousIds = new Set(favoriteOrganizationIds);
+          wasFavorite = favoriteOrganizationIds.has(normalizedId);
+          if (wasFavorite) favoriteOrganizationIds.delete(normalizedId);
+          else favoriteOrganizationIds.add(normalizedId);
+          updateView();
+          if (!window.dataService?.upsertUserSettings) throw new Error("Geschützte API für persönliche Einstellungen fehlt.");
+          const preferences = {
+            ...(userSettings?.preferences || {}),
+            favoriteContactIds: [...favoriteContactIds],
+            favoriteOrganizationIds: [...favoriteOrganizationIds]
+          };
+          const fallbackSettings = { ...(userSettings || {}), preferences };
+          userSettingsWriteRevision += 1;
+          const saved = await window.dataService.upsertUserSettings(userSettingsWritePayload(fallbackSettings));
+          userSettings = {
+            ...fallbackSettings, ...(saved || {}),
+            preferences: { ...preferences, ...(saved?.preferences || {}) }
+          };
+          syncFavoriteContactsFromSettings();
+          setStorageStatus(wasFavorite ? `${organization.name} aus Favoriten entfernt` : `${organization.name} zu Favoriten hinzugefügt`);
+          return true;
+        } catch (error) {
+          console.error("Organisationsfavorit konnte nicht gespeichert werden.", error);
+          if (previousIds) favoriteOrganizationIds = previousIds;
+          setStorageStatus("Fehler: Favorit konnte nicht gespeichert werden.");
+          return false;
+        } finally {
+          favoriteContactSavePending.delete(pendingKey);
+          updateView();
+          syncFavoriteContactButtons();
+          syncFavoriteOrganizationButtons();
+        }
+      }
+
+      function bindFavoriteOrganizationButtons(root = document) {
+        root.querySelectorAll("[data-favorite-organization]").forEach((button) => {
+          button.addEventListener("click", (event) => {
+            event.preventDefault();
+            event.stopPropagation();
+            void toggleFavoriteOrganization(button.dataset.favoriteOrganization);
+          });
+        });
+      }
+
+      function renderOrganizationListModeSwitcher() {
+        if (favoriteOrganizationCount) favoriteOrganizationCount.textContent = String(organizations.filter(isFavoriteOrganization).length);
+        organizationListModeButtons.forEach((button) => {
+          const active = (button.dataset.organizationListMode === "favorites") === favoriteOrganizationsOnly;
+          button.classList.toggle("is-active", active);
+          button.setAttribute("aria-pressed", String(active));
+        });
+      }
+
+      function setOrganizationListMode(mode = "all") {
+        favoriteOrganizationsOnly = mode === "favorites";
+        activeCareDuplicateView = "";
+        activeSavedViewName = "";
+        currentPage = 1;
+        closeMenus();
+        updateView();
+      }
+
       function userSettingsWritePayload(settings = {}) {
         return {
           defaultViewId: settings.defaultViewId || "",
@@ -12405,7 +12483,7 @@
           tableDensity: settings.tableDensity || "comfortable",
           theme: settings.theme || "system",
           fontScale: Number(settings.fontScale || 1),
-          pageSize: Number(settings.pageSize || pageSize || 20),
+          pageSize: Number(settings.pageSize || pageSize || 25),
           preferences: settings.preferences && typeof settings.preferences === "object" ? settings.preferences : {}
         };
       }
@@ -12415,51 +12493,48 @@
         if (!normalizedId || favoriteContactSavePending.size > 0) return false;
         const contact = contacts.find((item) => item.id === normalizedId);
         if (!contact) return false;
-
-        const previousIds = new Set(favoriteContactIds);
-        const wasFavorite = favoriteContactIds.has(normalizedId);
-        if (wasFavorite) favoriteContactIds.delete(normalizedId);
-        else favoriteContactIds.add(normalizedId);
-        favoriteContactSavePending.add(normalizedId);
-        updateView();
+        const pendingKey = `contact:${normalizedId}`;
+        favoriteContactSavePending.add(pendingKey);
+        let previousIds = null;
+        let wasFavorite = false;
         syncFavoriteContactButtons();
-
+        syncFavoriteOrganizationButtons();
         try {
-          if (!window.dataService?.upsertUserSettings) {
-            throw new Error("Geschützte API für persönliche Einstellungen fehlt.");
-          }
+          await ensureUserSettingsHydratedForWrite();
+          previousIds = new Set(favoriteContactIds);
+          wasFavorite = favoriteContactIds.has(normalizedId);
+          if (wasFavorite) favoriteContactIds.delete(normalizedId);
+          else favoriteContactIds.add(normalizedId);
+          updateView();
+          if (!window.dataService?.upsertUserSettings) throw new Error("Geschützte API für persönliche Einstellungen fehlt.");
           const preferences = {
             ...(userSettings?.preferences || {}),
-            favoriteContactIds: [...favoriteContactIds]
+            favoriteContactIds: [...favoriteContactIds],
+            favoriteOrganizationIds: [...favoriteOrganizationIds]
           };
-          const fallbackSettings = {
-            ...(userSettings || {}),
-            preferences
-          };
+          const fallbackSettings = { ...(userSettings || {}), preferences };
           userSettingsWriteRevision += 1;
           const saved = await window.dataService.upsertUserSettings(userSettingsWritePayload(fallbackSettings));
           userSettings = {
-            ...fallbackSettings,
-            ...(saved || {}),
-            preferences: {
-              ...preferences,
-              ...(saved?.preferences || {})
-            }
+            ...fallbackSettings, ...(saved || {}),
+            preferences: { ...preferences, ...(saved?.preferences || {}) }
           };
           syncFavoriteContactsFromSettings();
-          setStorageStatus(wasFavorite ? `${contact.displayName || contact.name} aus Favoriten entfernt` : `${contact.displayName || contact.name} zu Favoriten hinzugefügt`);
+          setStorageStatus(wasFavorite ? `${contact.name} aus Favoriten entfernt` : `${contact.name} zu Favoriten hinzugefügt`);
           return true;
         } catch (error) {
           console.error("Favorit konnte nicht gespeichert werden.", error);
-          favoriteContactIds = previousIds;
+          if (previousIds) favoriteContactIds = previousIds;
           setStorageStatus("Fehler: Favorit konnte nicht gespeichert werden.");
           return false;
         } finally {
-          favoriteContactSavePending.delete(normalizedId);
+          favoriteContactSavePending.delete(pendingKey);
           updateView();
           syncFavoriteContactButtons();
+          syncFavoriteOrganizationButtons();
         }
       }
+
 
       function bindFavoriteContactButtons(root = document) {
         root.querySelectorAll("[data-favorite-contact]").forEach((button) => {
@@ -12587,12 +12662,12 @@
         const allButton = viewSelectMenu?.querySelector('[data-standard-view="all"]');
         if (allButton) allButton.textContent = viewSelectAllLabel();
         const unownedButton = viewSelectMenu?.querySelector('[data-standard-view="unowned"]');
-        const allActive = !favoriteContactsOnly
+        const allActive = !(activeView === "organizations" ? favoriteOrganizationsOnly : favoriteContactsOnly)
           && !showingArchive
           && !activeSavedViewName
           && !searchInput.value.trim()
           && filterSelectionCount() === 0;
-        const unownedActive = !favoriteContactsOnly
+        const unownedActive = !(activeView === "organizations" ? favoriteOrganizationsOnly : favoriteContactsOnly)
           && !showingArchive
           && selectedOwners.length === 1
           && selectedOwners[0] === "__none__";
@@ -12665,6 +12740,7 @@
         activeSavedViewName = "";
         clearAllFilters({ clearSearch: true });
         favoriteContactsOnly = false;
+        favoriteOrganizationsOnly = false;
         showingArchive = false;
         if (key === "mine" && currentProfile?.id) selectedOwners = [currentProfile.id];
         if (key === "unowned") selectedOwners = ["__none__"];
@@ -12681,6 +12757,7 @@
         activeSavedViewName = "";
         clearAllFilters({ clearSearch: true });
         favoriteContactsOnly = false;
+        favoriteOrganizationsOnly = false;
         showingArchive = false;
         selectedOwners = [owner];
         currentPage = 1;
@@ -12711,11 +12788,12 @@
         selectedOrganizationCities = Array.isArray(filters.organizationCities) ? filters.organizationCities : [];
         selectedOrganizationContactRanges = Array.isArray(filters.organizationContactRanges) ? filters.organizationContactRanges : [];
         favoriteContactsOnly = (view.viewType || "contacts") === "contacts" && Boolean(filters.favoriteContactsOnly);
+        favoriteOrganizationsOnly = view.viewType === "organizations" && Boolean(filters.favoriteOrganizationsOnly);
         contactSort = view.sortKey === "consent_availability"
           ? { key: "consent", direction: view.sortDirection === "asc" ? "asc" : "desc" }
           : { key: "", direction: "" };
         searchInput.value = view.searchQuery || "";
-        pageSize = Number(view.pageSize || 20);
+        pageSize = Number(view.pageSize || 25);
         syncPageSizeSelects();
         currentPage = 1;
         setActiveView(view.viewType || "contacts");
@@ -13548,43 +13626,31 @@
         return count === 1 ? "1 ungelesene Benachrichtigung" : `${count} ungelesene Benachrichtigungen`;
       }
 
-      function notificationFilterAccessibleName(filter, label, value) {
-        if (filter === "all") return "Alle Benachrichtigungen";
-        if (filter === "product") return "Produktinformationen";
-        if (filter === "unread") {
-          return `Ungelesen – ${unreadNotificationLabel(value, "keine Benachrichtigungen")}`;
-        }
-        return `${label} – ${unreadNotificationLabel(value, "keine ungelesenen Benachrichtigungen")}`;
+      function syncNotificationFilterSelect(summary = notificationSummary) {
+        if (!notificationsFilterSelect) return;
+        const unread = Math.max(0, Number(summary?.unreadTotal) || 0);
+        const suppliedTotal = summary?.totalCount;
+        const total = suppliedTotal !== null && suppliedTotal !== undefined && Number.isFinite(Number(suppliedTotal))
+          ? Math.max(0, Number(suppliedTotal))
+          : activeNotificationFilter === "all" && notificationsLoaded && !notificationsHasMore ? notifications.length : null;
+        [...notificationsFilterSelect.options].forEach((option) => {
+          const labels = { contacts: "Kontakte", organizations: "Organisationen", hospitations: "Hospitationen", formats: "Formate", team: "Team", product: "Produkt" };
+          option.textContent = option.value === "unread" ? `Ungelesen (${unread})`
+            : option.value === "all" ? total === null ? "Alle" : `Alle (${total})`
+            : labels[option.value] || option.value;
+        });
+        notificationsFilterSelect.value = activeNotificationFilter;
+        syncCustomSelect(notificationsFilterSelect);
       }
 
       function renderNotificationCounts(summary = notificationSummary) {
-        const byContext = { ...(summary?.byContext || {}) };
         const unreadTotal = Math.max(0, Number(summary?.unreadTotal) || 0);
-        const filterValues = {
-          unread: unreadTotal,
-          contacts: byContext.contacts || 0,
-          organizations: byContext.organizations || 0,
-          hospitations: byContext.hospitations || 0,
-          formats: byContext.formats || 0,
-          team: byContext.team || 0
-        };
         if (notificationCountTotal) {
           const hasUnread = unreadTotal > 0;
           notificationCountTotal.textContent = hasUnread ? (unreadTotal > 99 ? "99+" : String(unreadTotal)) : "";
           notificationCountTotal.hidden = !hasUnread;
         }
-        notificationFilterButtons.forEach((button) => {
-          const filter = button.dataset.notificationFilter || "all";
-          const label = button.querySelector(".notification-filter__label")?.textContent?.trim() || filter;
-          const value = Math.max(0, Number(filterValues[filter]) || 0);
-          const countNode = notificationFilterCountNodes.get(filter);
-          if (countNode) {
-            const hasUnread = value > 0;
-            countNode.textContent = hasUnread ? (value > 99 ? "99+" : String(value)) : "";
-            countNode.hidden = !hasUnread;
-          }
-          button.setAttribute("aria-label", notificationFilterAccessibleName(filter, label, value));
-        });
+        syncNotificationFilterSelect(summary);
         const unreadLabel = unreadNotificationLabel(unreadTotal);
         const bellLabel = `Benachrichtigungen öffnen – ${unreadTotal ? unreadLabel : "alles gelesen"}`;
         if (sidebarNotificationsButton) {
@@ -13709,10 +13775,6 @@
 
       function notificationItemMarkup(notification) {
         const occurredAt = notification.occurredAt || notification.createdAt || "";
-        const meta = [
-          notification.context === "product" ? "Produkt" : notification.actor?.displayName || "",
-          formatDateTimeLabel(occurredAt)
-        ].filter(Boolean).join(" · ");
         const detailsId = notificationDetailsId(notification);
         const expanded = expandedNotificationId === String(notification.id || "");
         const title = notification.title || "Benachrichtigung";
@@ -13744,10 +13806,8 @@
               </button>
             </h3>
             <div class="notification-item__details" id="${escapeHtml(detailsId)}" ${expanded ? "" : "hidden"}>
-              <span class="notification-item__icon" aria-hidden="true">${notificationIconMarkup(notification.context)}</span>
               <div class="notification-item__body">
                 ${notification.body ? `<div class="notification-item__text">${escapeHtml(notification.body)}</div>` : ""}
-                <div class="notification-item__meta">${escapeHtml(meta || "Zeitpunkt offen")}</div>
               </div>
               <div class="notification-item__actions">
                 <button class="action-button action-button--compact" type="button" data-open-notification="${escapeHtml(notification.id)}" aria-label="Benachrichtigung „${escapeHtml(title)}“ öffnen">Öffnen</button>
@@ -14003,16 +14063,13 @@
 
       function renderNotificationsView() {
         if (!isNotificationsWorkspaceActive() || !notificationsList) return;
-        notificationFilterButtons.forEach((button) => {
-          const active = button.dataset.notificationFilter === activeNotificationFilter;
-          button.classList.toggle("is-active", active);
-          button.setAttribute("role", "tab");
-          button.setAttribute("aria-selected", String(active));
-          button.removeAttribute("aria-pressed");
-          button.tabIndex = active ? 0 : -1;
-        });
-        const activeFilterButton = notificationFilterButtons.find((button) => button.dataset.notificationFilter === activeNotificationFilter);
-        if (activeFilterButton?.id) notificationsFilterPanel?.setAttribute("aria-labelledby", activeFilterButton.id);
+        syncNotificationFilterSelect();
+        const heading = document.getElementById("notifications-heading");
+        if (heading) heading.textContent = ({
+          unread: "Alle Benachrichtigungen", all: "Alle Benachrichtigungen",
+          contacts: "Kontakte", organizations: "Organisationen", hospitations: "Hospitationen",
+          formats: "Formate", team: "Team", product: "Produkt"
+        })[activeNotificationFilter] || "Alle Benachrichtigungen";
         if (!notificationsLoaded || notificationRequestKey() !== notificationsRequestKey) {
           notificationsRequestKey = notificationRequestKey();
           loadNotifications({ reset: true });
@@ -14029,7 +14086,7 @@
         }
         if (notificationsMeta) {
           const unread = notifications.filter((item) => item.unread).length;
-          notificationsMeta.innerHTML = `<span>Gesamt <strong data-notifications-total>${notifications.length}</strong></span><span>Ungelesen <strong data-notifications-unread>${unread}</strong></span>`;
+          notificationsMeta.innerHTML = `<span>Angezeigt <strong data-notifications-total>${notifications.length}</strong></span><span>Ungelesen <strong data-notifications-unread>${unread}</strong></span>`;
         }
         if (notificationsMarkAllRead) {
           notificationsMarkAllRead.hidden = !notifications.length || activeNotificationFilter === "product";
@@ -15431,7 +15488,7 @@
       }
 
       function hasActiveSearchOrFilters() {
-        return Boolean(searchInput.value.trim()) || filterSelectionCount() > 0 || favoriteContactsOnly;
+        return Boolean(searchInput.value.trim()) || filterSelectionCount() > 0 || (activeView === "organizations" ? favoriteOrganizationsOnly : favoriteContactsOnly);
       }
 
       function hasActiveFilters() {
@@ -33570,7 +33627,23 @@
         instance.panel.style.maxHeight = `${Math.max(44, Math.min(360, opensAbove ? above : below))}px`;
       }
 
+      function positionProfileFilterSelect(select) {
+        const instance = customSelectInstances.get(select);
+        if (!instance || !instance.shell.classList.contains("is-open") || instance.panel.hidden) return;
+        const trigger = instance.trigger.getBoundingClientRect();
+        const viewport = window.visualViewport;
+        const top = Math.max(viewport?.offsetTop || 0, isMobileLayout() ? Math.min(60, appSidebar?.getBoundingClientRect().bottom || 0) : 0);
+        const bottom = viewport ? viewport.offsetTop + viewport.height : window.innerHeight;
+        const above = Math.max(0, trigger.top - top - 12);
+        const below = Math.max(0, bottom - trigger.bottom - 12);
+        const opensAbove = below < Math.min(360, instance.panel.scrollHeight) && above > below;
+        instance.shell.classList.toggle("is-opening-up", opensAbove);
+        instance.panel.style.maxHeight = `${Math.max(44, Math.min(360, opensAbove ? above : below))}px`;
+      }
+
       function positionOpenObservationSelects() {
+        positionProfileFilterSelect(registrationsStatusFilter);
+        positionProfileFilterSelect(notificationsFilterSelect);
         observationDetailBody?.querySelectorAll("[data-custom-select].is-open select").forEach((select) => {
           positionObservationCustomSelect(customSelectInstances.get(select));
         });
@@ -34036,6 +34109,7 @@
             searchInput?.select?.();
           }
           positionObservationCustomSelect(instance);
+          if (select === registrationsStatusFilter || select === notificationsFilterSelect) positionProfileFilterSelect(select);
         });
 
         const focusCustomSelectOption = (direction = 0) => {
@@ -39974,12 +40048,13 @@
         }
       }
 
-      function normalizeSettingsTab(tab = "registrations") {
-        return settingsTabItems.some((item) => item.id === tab) ? tab : "registrations";
+      function normalizeSettingsTab(tab = "imports") {
+        return settingsTabItems.some((item) => item.id === tab) ? tab : "imports";
       }
 
-      function setSettingsTab(tab = "registrations") {
+      function setSettingsTab(tab = "imports") {
         activeSettingsTab = normalizeSettingsTab(tab);
+        if (profileModal) profileModal.dataset.activeSettingsTab = activeSettingsTab;
         settingsTabButtons.forEach((button) => {
           const active = button.dataset.settingsTab === activeSettingsTab;
           button.classList.toggle("is-active", active);
@@ -39995,7 +40070,7 @@
         }
       }
 
-      function openSettingsTab(tab = "registrations") {
+      function openSettingsTab(tab = "imports") {
         if (!canAdministerData()) {
           showPermissionDenied("Nur Admins dürfen Importe und Registrierungen verwalten.");
           return;
@@ -40013,7 +40088,7 @@
         if (tab === "notifications") return "profile-notifications";
         if (tab === "imports") return `profile-imports:${activeSettingsTab}`;
         if (tab === "settings") return "profile-settings";
-        if (tab === "changelog") return "profile-changelog";
+        if (tab === "team") return "team";
         return "profile";
       }
 
@@ -40042,14 +40117,15 @@
         sidebarNotificationsButton?.classList.toggle("is-active", activeView === "profile" && activeProfileTab === "notifications");
         if (profileEditActions) profileEditActions.hidden = activeProfileTab !== "profile" || !profileDirty;
         if (activeProfileTab === "imports") setSettingsTab(activeSettingsTab);
-        if (activeProfileTab === "changelog") renderAboutApp();
+        if (activeProfileTab === "team") renderTeamView();
         if (activeProfileTab === "notifications") renderNotificationsView();
         if (activeView === "profile") renderViewChrome();
       }
 
       function openProfileTab(tab = "profile") {
-        if (tab === "about") {
-          openAboutApp();
+        if (tab === "about" || tab === "changelog") {
+          if (tab === "changelog") openChangelog();
+          else openAboutApp();
           return;
         }
         setProfileTab(tab);
@@ -40063,6 +40139,7 @@
 
       function openAboutApp() {
         if (!aboutApp || !aboutApp.hidden) return;
+        closeChangelog({ restoreRoute: false });
         const returnFocus = isMobileLayout() && appShell?.classList.contains("is-mobile-sidebar-expanded")
           ? sidebarCollapseButton
           : document.activeElement;
@@ -40082,6 +40159,35 @@
         sidebarAboutButton?.setAttribute("aria-expanded", "false");
         syncBodyScrollLock();
         if (restoreRoute && isAboutAppRoute()) updateRouteHash(activeView, { replace: true });
+      }
+
+      function isChangelogRoute(route = routeTokenFromLocation()) {
+        return route === "changelog" || route === "profile-changelog";
+      }
+
+      function openChangelog() {
+        if (!appChangelog || !appChangelog.hidden) return;
+        closeAboutApp({ restoreRoute: false });
+        const returnFocus = isMobileLayout() && appShell?.classList.contains("is-mobile-sidebar-expanded")
+          ? sidebarCollapseButton
+          : document.activeElement;
+        closeMenus();
+        closeMobileSidebar();
+        lastFocusOutsideModal = returnFocus instanceof HTMLElement ? returnFocus : sidebarChangelogButton;
+        renderAboutApp();
+        appChangelog.hidden = false;
+        appChangelog.setAttribute("aria-hidden", "false");
+        sidebarChangelogButton?.setAttribute("aria-expanded", "true");
+        syncBodyScrollLock();
+      }
+
+      function closeChangelog({ restoreRoute = true } = {}) {
+        if (!appChangelog || appChangelog.hidden) return;
+        appChangelog.hidden = true;
+        appChangelog.setAttribute("aria-hidden", "true");
+        sidebarChangelogButton?.setAttribute("aria-expanded", "false");
+        syncBodyScrollLock();
+        if (restoreRoute && isChangelogRoute()) updateRouteHash(activeView, { replace: true });
       }
 
       function resetHomeScrollPosition() {
@@ -40132,12 +40238,68 @@
           const label = sidebarCollapseButton.querySelector(".sidebar-collapse-label");
           if (label) label.textContent = collapsed ? "Menü ausklappen" : "Menü einklappen";
         }
+        syncSidebarResizeHandle();
         if (!persist) return;
         try {
           window.localStorage.setItem("versorgungs-kompass-sidebar-collapsed", collapsed ? "true" : "false");
         } catch (error) {
           console.warn("Sidebar-Zustand konnte nicht gespeichert werden.", error);
         }
+      }
+
+      function preferredSidebarWidth() {
+        return Number.parseFloat(appShell?.style.getPropertyValue("--sidebar-width")) || sidebarWidthLimits.default;
+      }
+
+      function syncSidebarResizeHandle() {
+        const collapsed = appShell?.classList.contains("is-sidebar-collapsed");
+        const width = collapsed ? 76 : preferredSidebarWidth();
+        sidebarResizeHandle?.setAttribute("aria-valuenow", String(width));
+        sidebarResizeHandle?.setAttribute("aria-valuetext", collapsed ? "Eingeklappt. Klicken zum Ausklappen." : `${width} Pixel. Klicken zum Einklappen oder ziehen.`);
+      }
+
+      function setSidebarWidth(width, { persist = true } = {}) {
+        const value = Math.round(Math.max(sidebarWidthLimits.min, Math.min(sidebarWidthLimits.max, width)));
+        appShell?.style.setProperty("--sidebar-width", `${value}px`);
+        syncSidebarResizeHandle();
+        if (persist) {
+          try {
+            window.localStorage.setItem("versorgungs-kompass-sidebar-width", String(value));
+          } catch {
+            // The adjusted width remains usable when browser storage is unavailable.
+          }
+        }
+        return value;
+      }
+
+      function restoreSidebarWidth() {
+        let width = sidebarWidthLimits.default;
+        try {
+          const stored = Number(window.localStorage.getItem("versorgungs-kompass-sidebar-width"));
+          if (Number.isFinite(stored) && stored >= sidebarWidthLimits.min && stored <= sidebarWidthLimits.max) width = stored;
+        } catch {
+          // Keep the standard width when browser storage is unavailable.
+        }
+        setSidebarWidth(width, { persist: false });
+      }
+
+      function finishSidebarResize({ cancel = false } = {}) {
+        if (!sidebarResizeSession) return;
+        const session = sidebarResizeSession;
+        sidebarResizeSession = null;
+        appShell?.classList.remove("is-sidebar-resizing");
+        if (cancel) {
+          setSidebarWidth(session.initialWidth, { persist: false });
+          setSidebarCollapsed(session.wasCollapsed, { persist: false });
+        } else if (session.moved) {
+          setSidebarWidth(preferredSidebarWidth());
+          setSidebarCollapsed(false);
+        } else {
+          setSidebarCollapsed(!session.wasCollapsed);
+        }
+        if (sidebarResizeHandle?.hasPointerCapture(session.pointerId)) sidebarResizeHandle.releasePointerCapture(session.pointerId);
+        scheduleProductTourLayout();
+        positionNotificationPopover();
       }
 
       function syncSidebarCollapseButtonPlacement() {
@@ -40151,6 +40313,7 @@
       }
 
       function restoreSidebarState() {
+        restoreSidebarWidth();
         try {
           setSidebarCollapsed(window.localStorage.getItem("versorgungs-kompass-sidebar-collapsed") === "true", { persist: false });
         } catch (error) {
@@ -40159,6 +40322,7 @@
       }
 
       function setMobileSidebarExpanded(expanded) {
+        if (!expanded) closeDemoProfileSwitcher();
         appShell?.classList.toggle("is-mobile-sidebar-expanded", expanded);
         if (sidebarCollapseButton && isMobileLayout()) {
           sidebarCollapseButton.setAttribute("aria-expanded", String(expanded));
@@ -40265,6 +40429,10 @@
       }
 
       function setActiveView(view) {
+        if (view === "team") {
+          setProfileTab("team");
+          view = "profile";
+        }
         if (isHospitationWorkspace && view === "home") view = "hospitationOverview";
         if (USE_INTEGRATED_HOSPITATION && ["framework", "planning", "questionnaire"].includes(view)) {
           window.HospitationWorkspace?.showOverviewTab(view === "questionnaire" ? "questionnaire" : "framework");
@@ -40390,11 +40558,8 @@
         sidebarUserAdminButton?.classList.toggle("is-active", view === "userAdmin");
         if (view === "userAdmin") sidebarUserAdminButton?.setAttribute("aria-current", "page");
         else sidebarUserAdminButton?.removeAttribute("aria-current");
-        sidebarTeamButton?.classList.toggle("is-active", view === "team");
         sidebarSettingsButton?.classList.toggle("is-active", view === "profile");
         syncSidebarProfileNavigation(view);
-        if (view === "team") sidebarTeamButton?.setAttribute("aria-current", "page");
-        else sidebarTeamButton?.removeAttribute("aria-current");
         syncActiveSidebarSection(activeNavigationView);
         window.HospitationWorkspace?.sync(activeNavigationView,
           activeNavigationView === "hospitationOverview" ? window.HospitationWorkspace.getOverviewTab() : undefined,
@@ -40411,12 +40576,11 @@
         renderViewChrome();
         renderAnalyticsModeTabs();
         if (view === "profile") {
-          renderProfileForm();
+          if (!profileDirty) renderProfileForm();
           setProfileTab(activeProfileTab);
         }
         if (view === "personProfile") renderPersonProfilePage();
         if (view === "organizationProfile") renderOrganizationProfilePage();
-        if (view === "team") renderTeamView();
         if (view === "userAdmin" && (viewChanged || appShell?.classList.contains("is-initializing"))) void window.VKUserAdministration?.open();
         if (view === "experts") renderExpertTablesVisibility();
         if (view === "stakeholders") {
@@ -40532,7 +40696,8 @@
           observationDetailDrawer?.classList.contains("is-open") ||
           document.getElementById("synthesis-detail-drawer")?.classList.contains("is-open") ||
           profilePhotoModal?.classList.contains("is-open") ||
-          Boolean(aboutApp && !aboutApp.hidden);
+          Boolean(aboutApp && !aboutApp.hidden) ||
+          Boolean(appChangelog && !appChangelog.hidden);
         document.body.style.overflow = overlayOpen ? "hidden" : "";
       }
 
@@ -42575,6 +42740,8 @@
               : isContactsDuplicatesMode ? filteredExpertMatchCandidates("contact") : filteredContacts();
         if (contactListSwitcher) contactListSwitcher.hidden = !isContactsView || isContactsDuplicatesMode;
         renderContactListModeSwitcher();
+        if (organizationListSwitcher) organizationListSwitcher.hidden = !isOrganizationsView || isOrganizationsDuplicatesMode;
+        renderOrganizationListModeSwitcher();
         const currentResultLabel = isInitialDataLoading && isContactsView ? "Kontakte werden geladen" : hitCountLabel(items);
         resultsCount.textContent = currentResultLabel;
         const hasCanonicalResultCounter =
@@ -42773,7 +42940,7 @@
         renderSavedViews();
         syncMapFrame(mapContacts());
         renderProfileOwnerSummary();
-        if (activeView === "team") renderTeamView();
+        if (activeView === "profile" && activeProfileTab === "team") renderTeamView();
         renderAboutApp();
         renderNotificationCounts();
 
@@ -42997,15 +43164,12 @@
         if (!button || !activitiesList.contains(button)) return;
         toggleActivityDetails(button);
       });
-      notificationFilterButtons.forEach((button) => {
-        button.addEventListener("click", () => {
-          expandedNotificationId = "";
-          activeNotificationFilter = button.dataset.notificationFilter || "unread";
-          notificationsLoaded = false;
-          notificationsRequestKey = "";
-          updateView();
-          button.scrollIntoView({ block: "nearest", inline: "nearest" });
-        });
+      notificationsFilterSelect?.addEventListener("change", () => {
+        expandedNotificationId = "";
+        activeNotificationFilter = notificationsFilterSelect.value || "unread";
+        notificationsLoaded = false;
+        notificationsRequestKey = "";
+        updateView();
       });
       notificationsLoadMoreButton?.addEventListener("click", () => {
         loadNotifications({ reset: false });
@@ -43445,16 +43609,20 @@
       });
       const initialSidebarRouteView = routeViewFromLocation() || "home";
       syncSidebarCollapseButtonPlacement();
-      sidebarLayoutMediaQuery.addEventListener?.("change", syncSidebarCollapseButtonPlacement);
+      sidebarLayoutMediaQuery.addEventListener?.("change", () => {
+        closeDemoProfileSwitcher();
+        syncSidebarCollapseButtonPlacement();
+      });
       if (appShell) appShell.dataset.activeView = initialSidebarRouteView;
       const transientInitialHomeSidebarCollapse = !isMobileLayout() && initialSidebarRouteView === "home";
       if (transientInitialHomeSidebarCollapse) {
+        restoreSidebarWidth();
         setSidebarCollapsed(true, { persist: false });
       } else {
         restoreSidebarState();
       }
       if (isMobileLayout()) {
-        appShell?.classList.remove("is-sidebar-collapsed");
+        setSidebarCollapsed(false, { persist: false });
         setMobileSidebarExpanded(false);
       }
       sidebarSectionToggles.forEach((toggle) => {
@@ -43496,6 +43664,55 @@
         stakeholderOrganizationSubnav.open = true;
         syncStakeholderOrganizationSubnavToggle();
       });
+      sidebarResizeHandle?.addEventListener("pointerdown", (event) => {
+        if (event.button !== 0 || isMobileLayout()) return;
+        event.preventDefault();
+        sidebarResizeHandle.focus({ preventScroll: true });
+        sidebarResizeSession = {
+          pointerId: event.pointerId,
+          initialX: event.clientX,
+          initialWidth: preferredSidebarWidth(),
+          wasCollapsed: appShell?.classList.contains("is-sidebar-collapsed"),
+          moved: false
+        };
+        sidebarResizeHandle.setPointerCapture(event.pointerId);
+      });
+      sidebarResizeHandle?.addEventListener("pointermove", (event) => {
+        const session = sidebarResizeSession;
+        if (!session || event.pointerId !== session.pointerId) return;
+        const delta = event.clientX - session.initialX;
+        if (!session.moved && Math.abs(delta) < 6) return;
+        if (!session.moved) {
+          session.moved = true;
+          setSidebarCollapsed(false, { persist: false });
+          appShell?.classList.add("is-sidebar-resizing");
+        }
+        setSidebarWidth(session.initialWidth + delta, { persist: false });
+      });
+      sidebarResizeHandle?.addEventListener("pointerup", (event) => {
+        if (event.pointerId === sidebarResizeSession?.pointerId) finishSidebarResize();
+      });
+      sidebarResizeHandle?.addEventListener("pointercancel", () => finishSidebarResize({ cancel: true }));
+      sidebarResizeHandle?.addEventListener("lostpointercapture", () => finishSidebarResize({ cancel: true }));
+      sidebarResizeHandle?.addEventListener("click", (event) => {
+        if (event.detail === 0 && !isMobileLayout()) setSidebarCollapsed(!appShell?.classList.contains("is-sidebar-collapsed"));
+      });
+      sidebarResizeHandle?.addEventListener("keydown", (event) => {
+        if (isMobileLayout()) return;
+        if (["Enter", " "].includes(event.key)) {
+          event.preventDefault();
+          setSidebarCollapsed(!appShell?.classList.contains("is-sidebar-collapsed"));
+          return;
+        }
+        const width = preferredSidebarWidth();
+        const next = { ArrowLeft: width - 16, ArrowRight: width + 16, Home: sidebarWidthLimits.min, End: sidebarWidthLimits.max }[event.key];
+        if (next === undefined) return;
+        event.preventDefault();
+        setSidebarCollapsed(false);
+        setSidebarWidth(next);
+        scheduleProductTourLayout();
+        positionNotificationPopover();
+      });
       sidebarCollapseButton?.addEventListener("click", () => {
         if (isMobileLayout()) {
           setMobileSidebarExpanded(!appShell?.classList.contains("is-mobile-sidebar-expanded"));
@@ -43507,13 +43724,6 @@
         closeMobileSidebar();
         setActiveView("userAdmin");
         updateRouteHash("userAdmin");
-      });
-      sidebarTeamButton?.addEventListener("click", () => {
-        closeMenus();
-        closeMobileSidebar();
-        setActiveView("team");
-        updateRouteHash("team");
-        updateView();
       });
       sidebarNotificationsButton?.addEventListener("click", () => {
         toggleNotificationPopover();
@@ -43539,10 +43749,12 @@
       });
       bindRovingTablist(settingsTabButtons);
       bindRovingTablist(profileTabButtons);
-      bindRovingTablist(notificationFilterButtons);
       sidebarAboutButton?.addEventListener("click", () => {
         openAboutApp();
       });
+      sidebarChangelogButton?.addEventListener("click", () => openChangelog());
+      appChangelogClose?.addEventListener("click", () => closeChangelog());
+      appChangelogBackdrop?.addEventListener("click", () => closeChangelog());
       aboutAppClose?.addEventListener("click", () => closeAboutApp());
       aboutAppBackdrop?.addEventListener("click", () => closeAboutApp());
       if (!("name" in document.createElement("details"))) {
@@ -43585,6 +43797,9 @@
       });
       contactListModeButtons.forEach((button) => {
         button.addEventListener("click", () => setContactListMode(button.dataset.contactListMode || "all"));
+      });
+      organizationListModeButtons.forEach((button) => {
+        button.addEventListener("click", () => setOrganizationListMode(button.dataset.organizationListMode || "all"));
       });
       sidebarProfileButton?.addEventListener("click", () => {
         closeMobileSidebar();
@@ -44078,12 +44293,8 @@
       registrationsRefresh?.addEventListener("click", () => {
         loadRegistrations({ scroll: false });
       });
-      registrationsSearch?.addEventListener("input", () => {
-        registrationSearchQuery = String(registrationsSearch.value || "").trim().toLowerCase();
-        renderRegistrations();
-      });
       registrationsStatusFilter?.addEventListener("change", () => {
-        registrationStatusView = registrationsStatusFilter.value || "open";
+        registrationStatusView = registrationsStatusFilter.value || "all";
         renderRegistrations();
       });
       window.addEventListener("focus", () => {
@@ -44152,6 +44363,16 @@
 
       document.addEventListener("keydown", (event) => {
         if (event.key !== "Escape") return;
+        if (sidebarResizeSession) {
+          event.preventDefault();
+          finishSidebarResize({ cancel: true });
+          return;
+        }
+        if (appChangelog && !appChangelog.hidden) {
+          event.preventDefault();
+          closeChangelog();
+          return;
+        }
         if (aboutApp && !aboutApp.hidden) {
           event.preventDefault();
           closeAboutApp();
@@ -44757,6 +44978,7 @@
       window.visualViewport?.addEventListener("resize", positionOpenObservationSelects);
       window.visualViewport?.addEventListener("resize", positionOpenObservationHints);
       window.addEventListener("resize", () => {
+        if (sidebarResizeSession && isMobileLayout()) finishSidebarResize({ cancel: true });
         positionOpenObservationSelects();
         positionOpenObservationHints();
         if (filterPanel.hidden) document.body.classList.remove("mobile-filter-open");
@@ -44772,7 +44994,7 @@
         lastViewportMobileLayout = nextMobileLayout;
         if (viewportModeChanged && nextMobileLayout) {
           clearContextualSelections();
-          appShell?.classList.remove("is-sidebar-collapsed");
+          setSidebarCollapsed(false, { persist: false });
           setMobileSidebarExpanded(false);
         }
         else if (viewportModeChanged) {
@@ -44870,7 +45092,7 @@
         }
         const profileImportsRoute = /^profile-imports(?::(registrations|imports|onlineEntry|importHistory))?$/.exec(hashView);
         if (profileImportsRoute) {
-          setSettingsTab(profileImportsRoute[1] || "registrations");
+          setSettingsTab(profileImportsRoute[1] || "imports");
           setProfileTab("imports");
           return "profile";
         }
@@ -44885,8 +45107,9 @@
         if (hashView === "about" || hashView === "profile-about") {
           return activeView;
         }
-        if (hashView === "changelog" || hashView === "profile-changelog") {
-          setProfileTab("changelog");
+        if (isChangelogRoute(hashView)) return activeView;
+        if (hashView === "team" || hashView === "profile-team") {
+          setProfileTab("team");
           return "profile";
         }
         if (hashView === "profile") {
@@ -44917,7 +45140,12 @@
           openAboutApp();
           return;
         }
+        if (isChangelogRoute(routeToken) && !onboardingActive) {
+          openChangelog();
+          return;
+        }
         closeAboutApp({ restoreRoute: false });
+        closeChangelog({ restoreRoute: false });
         const nextView = routeViewFromToken(routeToken) || "home";
         if (routeToken === "onboarding" && !onboardingActive && !onboardingReviewActive) {
           void openOnboardingReview(activeView === "onboarding" ? "profile" : activeView);
@@ -45516,7 +45744,7 @@
           return;
         }
         try {
-          if (!isAboutAppRoute(initialRouteToken) && (CLEAN_URLS_ENABLED || initialTargetView === "stakeholders" || initialTargetView === "patients")) {
+          if (!isAboutAppRoute(initialRouteToken) && !isChangelogRoute(initialRouteToken) && (CLEAN_URLS_ENABLED || initialTargetView === "stakeholders" || initialTargetView === "patients")) {
             updateRouteHash(
               activePoliticsMemberId
                 ? personProfileRoute("politics", activePoliticsMemberId, { returnTo: "politics" })
@@ -45532,6 +45760,7 @@
         }
         if (initialDataAvailable) updateView();
         if (isAboutAppRoute(initialRouteToken)) openAboutApp();
+        if (isChangelogRoute(initialRouteToken)) openChangelog();
         reconcileLateSettings();
       }
 

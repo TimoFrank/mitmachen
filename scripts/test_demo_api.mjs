@@ -866,10 +866,11 @@ assert.equal(initialNotificationSummaryResponse.status, 200);
 assert.deepEqual(
   await initialNotificationSummaryResponse.json(),
   {
+    totalCount: 12,
     unreadTotal: 7,
     byContext: { contacts: 3, organizations: 2, hospitations: 1, formats: 1 }
   },
-  "Die Demo-Zusammenfassung muss ausschließlich operative ungelesene Hinweise zählen."
+  "Die Demo-Zusammenfassung muss Gesamtzahl und ungelesene operative Hinweise getrennt zählen."
 );
 for (const [notificationContext, expectedCount] of Object.entries({
   contacts: 3,
@@ -904,6 +905,7 @@ const updatedNotificationSummaryResponse = await window.fetch("/api/notification
 assert.deepEqual(
   await updatedNotificationSummaryResponse.json(),
   {
+    totalCount: 12,
     unreadTotal: 6,
     byContext: { organizations: 2, hospitations: 1, formats: 1, contacts: 2 }
   },

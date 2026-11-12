@@ -372,6 +372,10 @@
               </svg>
               <span>Über die App</span>
             </button>
+            <button class="sidebar-link" type="button" id="sidebar-changelog-button" title="Changelog" aria-haspopup="dialog" aria-controls="app-changelog" aria-expanded="false">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 12a9 9 0 1 0 3-6.7M3 4v5h5M12 7v5l3 2"></path></svg>
+              <span>Changelog</span>
+            </button>
           </div>
         </nav>
         <div class="sidebar-account-section" role="group" aria-labelledby="sidebar-account-label" data-sidebar-section="account">
@@ -384,18 +388,7 @@
             </svg>
             <span>Weitere Anwendungen</span>
           </a>
-          <span class="sidebar-section-label" id="sidebar-account-label">Hilfe &amp; Konto</span>
-          <button class="sidebar-link sidebar-team-link" type="button" id="sidebar-team-button" title="Teams">
-            <span class="sidebar-team-icon" aria-hidden="true">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
-                <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path>
-                <circle cx="9" cy="7" r="4"></circle>
-                <path d="M22 21v-2a4 4 0 0 0-3-3.87"></path>
-                <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
-              </svg>
-            </span>
-            <span class="sidebar-team-label">Teams</span>
-          </button>
+          <span class="sidebar-section-label" id="sidebar-account-label">Konto</span>
           <button class="sidebar-link" type="button" id="sidebar-user-admin-button" title="Nutzerverwaltung" hidden>
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="9" cy="7" r="4"></circle><path d="M2 21v-2a4 4 0 0 1 4-4h6a4 4 0 0 1 4 4v2M19 8v6m-3-3h6"></path></svg>
             <span>Nutzerverwaltung</span>
@@ -430,6 +423,7 @@
             </div>
           </div>
         </div>
+        <div class="sidebar-resize-handle" id="sidebar-resize-handle" role="separator" aria-label="Seitenleiste ein- oder ausklappen, zum Anpassen der Breite ziehen" aria-orientation="vertical" aria-valuemin="76" aria-valuemax="360" aria-valuenow="248" tabindex="0" title="Klicken zum Ein- oder Ausklappen. Ziehen zum Anpassen der Breite."></div>
       </aside>
 
       <div class="app-main">
@@ -797,22 +791,23 @@
                 </section>
               </div>
               <div class="table-footer">
+              <div class="table-secondary-actions" id="contact-secondary-actions">
+                <button class="action-button" type="button" id="archive-view-button">Archiv</button>
+                <button class="action-button" type="button" id="contact-matching-worklist-button">Dubletten</button>
+              </div>
                 <div class="table-footer__meta" id="pagination-meta">0–0 von 0 Kontakten</div>
                 <div class="table-footer__controls">
                   <div class="pagination" id="pagination"></div>
                   <label class="select-shell page-size-shell" data-custom-select data-select-variant="compact">
                     <select id="page-size-select" aria-label="Kontakte pro Seite anzeigen">
                       <option value="10">10 pro Seite</option>
-                      <option value="20" selected>20 pro Seite</option>
+                      <option value="20">20 pro Seite</option>
+                      <option value="25" selected>25 pro Seite</option>
                       <option value="50">50 pro Seite</option>
                       <option value="100">100 pro Seite</option>
                     </select>
                   </label>
                 </div>
-              </div>
-              <div class="table-secondary-actions" id="contact-secondary-actions">
-                <button class="action-button" type="button" id="archive-view-button">Archiv</button>
-                <button class="action-button" type="button" id="contact-matching-worklist-button">Dubletten</button>
               </div>
             </div>
           </section>
@@ -820,6 +815,13 @@
           <section class="view-panel" id="view-organizations" data-view-panel="organizations">
             <div class="view-card organizations-workspace">
               <div class="table-command-row table-command-row--organizations" id="organization-table-toolbar">
+                <div class="contact-list-switcher" id="organization-list-switcher" role="group" aria-label="Organisationsliste auswählen">
+                  <button class="contact-list-switcher__button is-active" type="button" data-organization-list-mode="all" aria-pressed="true">Alle</button>
+                  <button class="contact-list-switcher__button" type="button" data-organization-list-mode="favorites" aria-pressed="false">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m12 3 2.8 5.7 6.2.9-4.5 4.4 1.1 6.2-5.6-2.9-5.6 2.9 1.1-6.2L3 9.6l6.2-.9L12 3Z"></path></svg>
+                    <span>Favoriten</span><span class="contact-list-switcher__count" id="favorite-organization-count">0</span>
+                  </button>
+                </div>
                 <div class="table-command-actions organization-column-actions" id="organization-column-actions"></div>
               </div>
               <div class="table-wrap">
@@ -852,13 +854,13 @@
                 </section>
               </div>
               <div class="table-footer">
+              <div class="table-secondary-actions" id="organization-secondary-actions">
+                <button class="action-button" type="button" id="organization-matching-worklist-button">Dubletten</button>
+              </div>
                 <div class="table-footer__meta" id="organizations-pagination-meta">0-0 von 0 Organisationen</div>
                 <div class="table-footer__controls">
                   <div class="pagination" id="organizations-pagination"></div>
                 </div>
-              </div>
-              <div class="table-secondary-actions" id="organization-secondary-actions">
-                <button class="action-button" type="button" id="organization-matching-worklist-button">Dubletten</button>
               </div>
             </div>
           </section>
@@ -961,7 +963,8 @@
                   <label class="select-shell page-size-shell" data-custom-select data-select-variant="compact">
                     <select id="experts-page-size-select" aria-label="Einträge im Expertenkreis pro Seite anzeigen">
                       <option value="10">10 pro Seite</option>
-                      <option value="20" selected>20 pro Seite</option>
+                      <option value="20">20 pro Seite</option>
+                      <option value="25" selected>25 pro Seite</option>
                       <option value="50">50 pro Seite</option>
                       <option value="100">100 pro Seite</option>
                     </select>
@@ -1005,7 +1008,8 @@
                   <label class="select-shell page-size-shell" data-custom-select data-select-variant="compact">
                     <select id="patients-page-size-select" aria-label="Einträge im Patientenbereich pro Seite anzeigen">
                       <option value="10">10 pro Seite</option>
-                      <option value="20" selected>20 pro Seite</option>
+                      <option value="20">20 pro Seite</option>
+                      <option value="25" selected>25 pro Seite</option>
                       <option value="50">50 pro Seite</option>
                       <option value="100">100 pro Seite</option>
                     </select>
@@ -1174,7 +1178,8 @@
                   <label class="select-shell page-size-shell" data-custom-select data-select-variant="compact">
                     <select id="press-page-size-select" aria-label="Pressekontakte pro Seite anzeigen">
                       <option value="10">10 pro Seite</option>
-                      <option value="20" selected>20 pro Seite</option>
+                      <option value="20">20 pro Seite</option>
+                      <option value="25" selected>25 pro Seite</option>
                       <option value="50">50 pro Seite</option>
                       <option value="100">100 pro Seite</option>
                     </select>
@@ -1334,7 +1339,8 @@
                   <label class="select-shell page-size-shell" data-custom-select data-select-variant="compact">
                     <select id="stakeholders-page-size-select" aria-label="Stakeholder pro Seite anzeigen">
                       <option value="10">10 pro Seite</option>
-                      <option value="20" selected>20 pro Seite</option>
+                      <option value="20">20 pro Seite</option>
+                      <option value="25" selected>25 pro Seite</option>
                       <option value="50">50 pro Seite</option>
                       <option value="100">100 pro Seite</option>
                     </select>
@@ -2164,7 +2170,6 @@
             </header>
             <header class="care-analytics-intro" data-analytics-intro="quality" hidden>
               <h2>Kontakte zur Prüfung</h2>
-              <p>Fehlende und unklare Angaben prüfen.</p>
             </header>
             <div class="workspace-expert-switcher" id="analytics-mode-actions" hidden>
               <div class="settings-tab-nav experts-mode-nav experts-mode-nav--header" role="tablist" aria-label="Auswertungsansicht">
@@ -2571,87 +2576,56 @@
           <section class="view-panel" id="view-settings" data-view-panel="settings">
             <div class="settings-workspace">
               <div class="settings-tab-nav" role="tablist" aria-label="Importbereiche">
-                <button class="settings-tab-button is-active" type="button" role="tab" aria-selected="true" aria-controls="settings-tab-registrations" data-settings-tab="registrations">Registrierungskonzept</button>
-                <button class="settings-tab-button" type="button" role="tab" aria-selected="false" aria-controls="settings-tab-imports" data-settings-tab="imports">Dateiimport</button>
+                <button class="settings-tab-button is-active" type="button" role="tab" aria-selected="true" aria-controls="settings-tab-imports" data-settings-tab="imports">Dateiimport</button>
                 <button class="settings-tab-button" type="button" role="tab" aria-selected="false" aria-controls="settings-tab-online-entry" data-settings-tab="onlineEntry">Online-Erfassung</button>
+                <button class="settings-tab-button" type="button" role="tab" aria-selected="false" aria-controls="settings-tab-registrations" data-settings-tab="registrations">Registrierung</button>
                 <button class="settings-tab-button" type="button" role="tab" aria-selected="false" aria-controls="settings-tab-import-history" data-settings-tab="importHistory">Historie</button>
               </div>
-              <div class="settings-tab-panel" id="settings-tab-registrations" role="tabpanel" data-settings-tab-panel="registrations">
+              <div class="settings-tab-panel" id="settings-tab-registrations" role="tabpanel" data-settings-tab-panel="registrations" hidden>
                 <div class="imports-workspace">
-                  <header class="registration-page-head">
-                    <div>
-                      <span class="registration-page-kicker">#Mitmachen · Konzept</span>
-                      <h3>Registrierungsszenario</h3>
-                      <p>Diese Ansicht zeigt beispielhaft, wie Eingänge aus einem später freigegebenen gematik-Prozess geprüft und mit Kontakten oder Organisationen verbunden werden könnten.</p>
-                    </div>
-                    <a class="action-button action-button--primary" id="public-registration-link" href="../pages/mitmachen/versorgungs-netzwerk.html" target="_blank" rel="noreferrer">Konzeptdemo öffnen</a>
-                  </header>
-
-                  <section class="registration-process-guide" aria-labelledby="registration-process-title">
-                    <div class="registration-process-guide__head">
-                      <div>
-                        <span class="registration-page-kicker">Prozessanleitung</span>
-                        <h4 id="registration-process-title">Vom Eingang zum aktiven Netzwerkprofil</h4>
-                      </div>
-                      <span class="status-pill status-pill--review">Konzept · nicht produktiv</span>
-                    </div>
-                    <p>Jeder Eingang bleibt zunächst vom Kontaktbestand getrennt. Erst nach Prüfung werden bestehende Daten ergänzt oder neue Datensätze angelegt. Unsichere Treffer werden nie automatisch zusammengeführt.</p>
-                    <ol class="registration-process-flow">
-                      <li><span>1</span><strong>Kurz anmelden</strong><small>Name und E-Mail genügen für den Start.</small></li>
-                      <li><span>2</span><strong>E-Mail bestätigen</strong><small>Double-Opt-in schützt vor Fremdanmeldungen.</small></li>
-                      <li><span>3</span><strong>Profil ergänzen</strong><small>Rolle, Einrichtung und Arbeitsumgebung erfassen.</small></li>
-                      <li><span>4</span><strong>Prüfen &amp; zuordnen</strong><small>Dubletten klären, Kontakt und Organisation verknüpfen.</small></li>
-                      <li><span>5</span><strong>Passend einladen</strong><small>Nur geeignete Befragungen und Formate auswählen.</small></li>
-                    </ol>
-                    <p class="registration-process-note"><strong>Konzeptstatus:</strong> Die gezeigten Eingänge sind Beispieldaten. Der reale öffentliche Prozess liegt auf der gematik-Website; eine spätere technische Kopplung benötigt eine eigenständige fachliche, rechtliche und betriebliche Freigabe.</p>
-                  </section>
-
-                  <div class="registration-metrics" aria-label="Registrierungskennzahlen">
-                    <div><strong id="registration-metric-new">0</strong><span>Neue Eingänge</span></div>
-                    <div><strong id="registration-metric-complete">0</strong><span>Profile vollständig</span></div>
-                    <div><strong id="registration-metric-duplicates">0</strong><span>Dubletten prüfen</span></div>
-                    <div><strong id="registration-metric-consent">0</strong><span>#Mitmachen vorgemerkt</span></div>
-                  </div>
-
                   <section class="import-profile-card registrations-card" id="registrations-section" tabindex="-1">
                     <div class="dashboard-card-head">
                       <div>
-                        <h4>Beispieleingänge</h4>
-                        <p>Serverseitige Eingänge prüfen und nachvollziehbar bearbeiten.</p>
+                        <h4>Eingänge</h4>
+                        <button class="action-button action-button--compact registrations-refresh" type="button" id="registrations-refresh" aria-label="Registrierungen aktualisieren" title="Aktualisieren">
+                          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M20 7v5h-5M4 17v-5h5"/><path d="M6.1 7a7 7 0 0 1 11.6-1L20 9M4 15l2.3 3A7 7 0 0 0 18 17"/></svg>
+                        </button>
                       </div>
+                      <div class="registrations-summary" id="registrations-summary" role="status" aria-live="polite">Registrierungen werden geladen.</div>
                     </div>
-                    <div class="registrations-toolbar">
-                      <div class="registrations-summary" id="registrations-summary">Beispieleingänge werden geladen.</div>
-                      <div class="registrations-toolbar__actions">
-                        <button class="action-button action-button--ghost" type="button" id="registrations-refresh">Aktualisieren</button>
+                    <div class="registrations-overview-row">
+                      <div class="registrations-overview-actions">
+                        <label class="registrations-status-filter"><span class="visually-hidden">Status</span>
+                          <span class="select-shell" data-custom-select data-select-variant="compact"><select id="registrations-status-filter" aria-label="Status">
+                            <option value="all">Alle Status</option><option value="open">Offene Eingänge</option><option value="neu">Neu</option><option value="in_pruefung">In Prüfung</option><option value="zurueckgestellt">Zurückgestellt</option><option value="completed">Abgeschlossen</option><option value="abgelehnt">Abgelehnt</option><option value="widerrufen">Widerrufen</option>
+                          </select></span>
+                        </label>
                       </div>
-                    </div>
-                    <div class="registrations-filterbar">
-                      <label class="registrations-search">
-                        <span class="sr-only">Registrierungen durchsuchen</span>
-                        <input id="registrations-search" type="search" placeholder="Name, E-Mail oder Einrichtung suchen" autocomplete="off" />
-                      </label>
-                      <label class="registrations-status-filter">
-                        <span>Status</span>
-                        <select id="registrations-status-filter">
-                          <option value="open">Offene Eingänge</option>
-                          <option value="all">Alle Status</option>
-                          <option value="neu">Neu</option>
-                          <option value="in_pruefung">In Prüfung</option>
-                          <option value="zurueckgestellt">Zurückgestellt</option>
-                          <option value="completed">Abgeschlossen</option>
-                          <option value="abgelehnt">Abgelehnt</option>
-                          <option value="widerrufen">Widerrufen</option>
-                        </select>
-                      </label>
                     </div>
                     <div class="registrations-list" id="registrations-list">
                       <div class="imports-history-empty">Noch keine Registrierungen geladen.</div>
                     </div>
                   </section>
+                  <p class="registration-demo-note">Demo mit Beispieldaten. Das Formular zeigt ein Konzept.</p>
+                  <details class="registration-process-guide" id="registration-process-details">
+                    <summary class="registration-process-guide__head">Ablauf und Hintergründe</summary>
+                    <h4 id="registration-process-title">Vom Eingang zum Netzwerkprofil</h4>
+                    <p>Eingänge prüfen und anschließend dem Netzwerk zuordnen.</p>
+                    <ol class="registration-process-flow">
+                      <li><span>1</span><strong>Kurz anmelden</strong><small>Name und E-Mail angeben.</small></li>
+                      <li><span>2</span><strong>E-Mail bestätigen</strong><small>Adresse per Double-Opt-in bestätigen.</small></li>
+                      <li><span>3</span><strong>Profil ergänzen</strong><small>Rolle und Einrichtung ergänzen.</small></li>
+                      <li><span>4</span><strong>Prüfen &amp; zuordnen</strong><small>Treffer und Dubletten prüfen.</small></li>
+                      <li><span>5</span><strong>Passend einladen</strong><small>Geeignete Formate anbieten.</small></li>
+                    </ol>
+                    <p class="registration-process-note"><strong>Konzept:</strong> Beispieldaten ohne reale Anbindung. Eine technische Kopplung benötigt eine gesonderte Freigabe.</p>
+
+                    <a class="registration-demo-link" id="public-registration-link" href="../pages/mitmachen/versorgungs-netzwerk.html" target="_blank" rel="noreferrer">Formular ansehen <span aria-hidden="true">↗</span></a>
+                  </details>
+
                 </div>
               </div>
-              <div class="settings-tab-panel" id="settings-tab-imports" role="tabpanel" data-settings-tab-panel="imports" hidden>
+              <div class="settings-tab-panel" id="settings-tab-imports" role="tabpanel" data-settings-tab-panel="imports">
                 <div class="imports-workspace">
                   <div class="import-start-grid">
                     <article class="import-format-card">
@@ -2666,21 +2640,13 @@
                       <p>Kontakte aus CSV, Excel, Word oder PDF importieren.</p>
                       <button class="action-button action-button--primary" type="button" id="imports-start-file">Import starten</button>
                     </article>
-                    <article class="import-format-card">
-                      <div class="import-start-icon" aria-hidden="true">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                          <path d="M3 21h18"></path>
-                          <path d="M5 21V7l7-4 7 4v14"></path>
-                          <path d="M9 21v-7h6v7"></path>
-                          <path d="M8 10h.01"></path>
-                          <path d="M12 10h.01"></path>
-                          <path d="M16 10h.01"></path>
-                        </svg>
+                    <details class="import-additional-options" id="imports-additional-options">
+                      <summary><span>Stakeholder importieren</span><span class="import-disclosure-arrow" aria-hidden="true">⌄</span></summary>
+                      <div class="import-additional-options__body">
+                        <p>Stakeholder-Organisationen und Kontakte aus CSV oder Excel übernehmen.</p>
+                        <button class="action-button" type="button" id="imports-start-stakeholder">Stakeholder importieren</button>
                       </div>
-                      <h3>Stakeholder-Import</h3>
-                      <p>Stakeholder-Organisationen und Kontakte aus CSV oder Excel übernehmen.</p>
-                      <button class="action-button" type="button" id="imports-start-stakeholder">Stakeholder importieren</button>
-                    </article>
+                    </details>
                   </div>
                 </div>
               </div>
@@ -2753,10 +2719,10 @@
           <div class="profile-panel__body">
             <div class="settings-tab-nav" role="tablist" aria-label="Profilbereiche">
               <button class="settings-tab-button is-active" type="button" role="tab" aria-selected="true" aria-controls="profile-tab-profile" data-profile-tab="profile">Profil</button>
+              <button class="settings-tab-button" type="button" role="tab" aria-selected="false" aria-controls="profile-tab-team" data-profile-tab="team">Teams</button>
               <button class="settings-tab-button" type="button" role="tab" aria-selected="false" aria-controls="profile-tab-notifications" data-profile-tab="notifications">Benachrichtigungen</button>
               <button class="settings-tab-button" type="button" role="tab" aria-selected="false" aria-controls="profile-tab-imports" data-profile-tab="imports">Importe</button>
               <button class="settings-tab-button" type="button" role="tab" aria-selected="false" aria-controls="profile-tab-settings" data-profile-tab="settings" hidden>Einstellungen</button>
-              <button class="settings-tab-button" type="button" role="tab" aria-selected="false" aria-controls="profile-tab-changelog" data-profile-tab="changelog">Changelog</button>
             </div>
             <div class="profile-tab-panel" id="profile-tab-profile" role="tabpanel" data-profile-tab-panel="profile">
               <section class="profile-section">
@@ -2871,6 +2837,7 @@
                 </div>
               </section>
             </div>
+            <div class="profile-tab-panel" id="profile-tab-team" role="tabpanel" data-profile-tab-panel="team" hidden></div>
             <div class="profile-tab-panel" id="profile-tab-notifications" role="tabpanel" data-profile-tab-panel="notifications" hidden>
               <section class="profile-section" id="profile-notification-channels">
                 <h3>Benachrichtigungskanäle</h3>
@@ -2886,46 +2853,20 @@
                 </div>
               </section>
               <section class="profile-section">
+                <h3 id="notifications-heading">Alle Benachrichtigungen</h3>
                 <div class="notifications-workspace profile-notifications-workspace">
                   <div class="notifications-command-row">
-                    <div class="notifications-filters" role="tablist" aria-label="Benachrichtigungen filtern">
-                      <button class="notification-filter is-active" id="notification-filter-unread" type="button" role="tab" data-notification-filter="unread" aria-selected="true" aria-controls="notifications-filter-panel" tabindex="0">
-                        <span class="notification-filter__label">Ungelesen</span>
-                        <span class="notification-filter__count" data-notification-filter-count="unread" aria-hidden="true" hidden>0</span>
-                      </button>
-                      <button class="notification-filter" id="notification-filter-all" type="button" role="tab" data-notification-filter="all" aria-selected="false" aria-controls="notifications-filter-panel" tabindex="-1">
-                        <span class="notification-filter__label">Alle</span>
-                      </button>
-                      <button class="notification-filter" id="notification-filter-contacts" type="button" role="tab" data-notification-filter="contacts" aria-selected="false" aria-controls="notifications-filter-panel" tabindex="-1">
-                        <span class="notification-filter__label">Kontakte</span>
-                        <span class="notification-filter__count" data-notification-filter-count="contacts" aria-hidden="true" hidden>0</span>
-                      </button>
-                      <button class="notification-filter" id="notification-filter-organizations" type="button" role="tab" data-notification-filter="organizations" aria-selected="false" aria-controls="notifications-filter-panel" tabindex="-1">
-                        <span class="notification-filter__label">Organisationen</span>
-                        <span class="notification-filter__count" data-notification-filter-count="organizations" aria-hidden="true" hidden>0</span>
-                      </button>
-                      <button class="notification-filter" id="notification-filter-hospitations" type="button" role="tab" data-notification-filter="hospitations" aria-selected="false" aria-controls="notifications-filter-panel" tabindex="-1">
-                        <span class="notification-filter__label">Hospitationen</span>
-                        <span class="notification-filter__count" data-notification-filter-count="hospitations" aria-hidden="true" hidden>0</span>
-                      </button>
-                      <button class="notification-filter" id="notification-filter-formats" type="button" role="tab" data-notification-filter="formats" aria-selected="false" aria-controls="notifications-filter-panel" tabindex="-1">
-                        <span class="notification-filter__label">Formate</span>
-                        <span class="notification-filter__count" data-notification-filter-count="formats" aria-hidden="true" hidden>0</span>
-                      </button>
-                      <button class="notification-filter" id="notification-filter-team" type="button" role="tab" data-notification-filter="team" aria-selected="false" aria-controls="notifications-filter-panel" tabindex="-1">
-                        <span class="notification-filter__label">Team</span>
-                        <span class="notification-filter__count" data-notification-filter-count="team" aria-hidden="true" hidden>0</span>
-                      </button>
-                      <button class="notification-filter notification-filter--product" id="notification-filter-product" type="button" role="tab" data-notification-filter="product" aria-selected="false" aria-controls="notifications-filter-panel" tabindex="-1">
-                        <span class="notification-filter__label">Produkt</span>
-                      </button>
-                    </div>
+                    <label class="notifications-filter-field"><span class="visually-hidden">Benachrichtigungen filtern</span>
+                      <span class="select-shell" data-custom-select><select id="notifications-filter-select" aria-label="Benachrichtigungen filtern">
+                        <option value="unread">Ungelesen</option><option value="all">Alle</option><option value="contacts">Kontakte</option><option value="organizations">Organisationen</option><option value="hospitations">Hospitationen</option><option value="formats">Formate</option><option value="team">Team</option><option value="product">Produkt</option>
+                      </select></span>
+                    </label>
                     <div class="notifications-command-actions">
                       <div class="notifications-meta" id="notifications-meta" role="group" aria-live="polite" aria-atomic="true" aria-label="Benachrichtigungen in der aktuellen Auswahl"></div>
                       <button class="action-button action-button--compact" type="button" id="notifications-mark-all-read">Alle als gelesen</button>
                     </div>
                   </div>
-                  <div class="notifications-feed-shell" id="notifications-filter-panel" role="tabpanel" aria-labelledby="notification-filter-unread" tabindex="0">
+                  <div class="notifications-feed-shell" id="notifications-filter-panel" role="region" aria-labelledby="notifications-heading" tabindex="0">
                     <div class="notifications-list" id="notifications-list" aria-live="polite"></div>
                     <div class="notifications-load-more-row" id="notifications-load-more-row" hidden>
                       <button class="action-button notifications-load-more" type="button" id="notifications-load-more">Mehr laden</button>
@@ -2989,11 +2930,6 @@
                 </div>
               </section>
             </div>
-            <div class="profile-tab-panel" id="profile-tab-changelog" role="tabpanel" data-profile-tab-panel="changelog" hidden>
-              <div class="about-workspace" aria-label="Versionsverlauf">
-                <div class="about-version-list" id="about-version-list" aria-label="Versionsverlauf"></div>
-              </div>
-            </div>
           </div>
           <div class="profile-panel__footer" id="profile-edit-actions" hidden>
             <button class="action-button" type="button" id="profile-cancel">Änderungen verwerfen</button>
@@ -3047,6 +2983,21 @@
           <button class="action-button action-button--danger" type="button" id="profile-photo-remove">Entfernen</button>
         </div>
         <div class="profile-notice"><span aria-hidden="true">i</span><span>Quadratische Bilder werden automatisch rund zugeschnitten. Die Initialen werden angezeigt, wenn kein Foto hinterlegt ist.</span></div>
+      </section>
+    </aside>
+
+    <aside class="about-app" id="app-changelog" aria-hidden="true" hidden>
+      <div class="about-app__backdrop" id="app-changelog-backdrop"></div>
+      <section class="about-app__panel app-changelog__panel" role="dialog" aria-modal="true" aria-labelledby="app-changelog-title" aria-describedby="app-changelog-intro" tabindex="-1">
+        <header class="about-app__header">
+          <div class="about-app__identity">
+            <img class="about-app__brand" src="../../public/brand/mitmachen/flechtwerk-lockup-horizontal.svg" alt="#Mitmachen" />
+            <h2 id="app-changelog-title">Changelog</h2>
+          </div>
+          <button class="action-button" id="app-changelog-close" type="button" aria-label="Changelog schließen"><span class="about-app__close-label">Schließen</span><span class="about-app__close-icon" aria-hidden="true">×</span></button>
+        </header>
+        <div class="about-app__intro"><p id="app-changelog-intro">Neue Funktionen und Verbesserungen im Überblick.</p></div>
+        <div class="about-version-list" id="about-version-list" aria-label="Versionsverlauf"></div>
       </section>
     </aside>
 

@@ -894,20 +894,21 @@ export async function installProtectedBackend(page, fixture) {
           : context === "operational"
             ? item.context !== "product"
             : item.context === context;
-        return (!unreadOnly || unread) && contextMatches;
+        return !(item.dismissedAt || item.dismissed_at) && (!unreadOnly || unread) && contextMatches;
       });
       await fulfillJson(route, { items: clone(rows.slice(offset, offset + limit)), nextOffset: Math.min(rows.length, offset + limit), hasMore: rows.length > offset + limit });
       return;
     }
     if (method === "GET" && path === "/api/notifications/summary") {
-      const unread = fixture.notifications
+      const operational = fixture.notifications
         .map(notificationDto)
-        .filter((item) => item.context !== "product" && item.unread);
+        .filter((item) => item.context !== "product" && !(item.dismissedAt || item.dismissed_at));
+      const unread = operational.filter((item) => item.unread);
       const byContext = unread.reduce((result, item) => {
         result[item.context] = (result[item.context] || 0) + 1;
         return result;
       }, {});
-      await fulfillJson(route, { unreadTotal: unread.length, byContext });
+      await fulfillJson(route, { totalCount: operational.length, unreadTotal: unread.length, byContext });
       return;
     }
     if (method === "PATCH" && (path === "/api/notifications/read" || /^\/api\/notifications\/[^/]+\/read$/.test(path))) {

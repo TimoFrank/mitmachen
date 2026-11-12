@@ -14,7 +14,7 @@ import { validateIdentityConfiguration } from "../api/security-policy.mjs";
 import { createPasswordResetBroker } from "../api/password-reset-broker.mjs";
 import { renderGoogleServices } from "../deploy/google-hosting/render.mjs";
 import { addBinding } from "../deploy/google-hosting/google-api.mjs";
-import { demoAssetPaths, uploadDemoEntry, withDemoEntry } from "../deploy/google-hosting/hosting-demo-entry.mjs";
+import { demoAssetPaths, demoRoute, uploadDemoEntry, withDemoEntry } from "../deploy/google-hosting/hosting-demo-entry.mjs";
 
 const now = Date.parse("2026-09-21T12:00:00Z");
 const env = {
@@ -66,6 +66,12 @@ assert.equal(services.app.spec.template.metadata.annotations["run.googleapis.com
 assert.equal(services.hosting.rewrites[0].run.serviceId, deployment.resetService);
 assert.equal(services.hosting.rewrites[1].run.serviceId, deployment.appService);
 const demoHosting = withDemoEntry(services.hosting);
+assert.equal(demoRoute, "/demo");
+assert.deepEqual(demoHosting.rewrites[0], { glob: "/demo", path: "/demo-entry.html" });
+assert.deepEqual(demoHosting.redirects, ["/Demo", "/Demo/", "/demo/"].map(glob => ({
+  glob, location: "/demo", statusCode: 302
+})));
+assert.equal(demoHosting.redirects.some(rule => rule.glob === demoRoute), false);
 assert.deepEqual(demoHosting.rewrites.slice(1), services.hosting.rewrites);
 assert.deepEqual(demoHosting.headers.slice(2), services.hosting.headers);
 assert.deepEqual(withDemoEntry(demoHosting), demoHosting);
@@ -85,6 +91,35 @@ assert.deepEqual(withDemoEntry({ ...demoHosting, headers: [...previousDemoHeader
 assert.throws(() => withDemoEntry({
   headers: [{ ...previousDemoHeaders[0], headers: { ...previousDemoHeaders[0].headers, "Referrer-Policy": "origin" } }]
 }), /bereits anders belegt/u);
+const retainedRedirect = { glob: "/hilfe", location: "/kontakt", statusCode: 302 };
+const expectedMigratedHosting = withDemoEntry({ ...services.hosting, redirects: [retainedRedirect] });
+for (const origin of [demoOrigin, previousDemoOrigin]) {
+  const legacyConfig = {
+    ...services.hosting,
+    redirects: ["/Demo/", "/demo", "/demo/"].map(glob => ({ glob, location: "/Demo", statusCode: 302 })).concat(retainedRedirect),
+    rewrites: [{ glob: "/Demo", path: "/demo-entry.html" }, ...services.hosting.rewrites],
+    headers: demoHosting.headers.slice(0, 2).map(rule => ({
+      ...rule,
+      glob: rule.glob === demoRoute ? "/Demo" : rule.glob,
+      headers: { ...rule.headers, "Content-Security-Policy": rule.headers["Content-Security-Policy"].replace(demoOrigin, origin) }
+    })).concat(services.hosting.headers)
+  };
+  const unchangedLegacyConfig = structuredClone(legacyConfig);
+  const migratedHosting = withDemoEntry(legacyConfig);
+  assert.deepEqual(migratedHosting, expectedMigratedHosting);
+  assert.deepEqual(legacyConfig, unchangedLegacyConfig);
+  assert.deepEqual(withDemoEntry(migratedHosting), migratedHosting);
+  assert.equal(migratedHosting.rewrites.some(rule => rule.glob === "/Demo"), false);
+  assert.equal(migratedHosting.headers.some(rule => rule.glob === "/Demo"), false);
+}
+for (const conflict of [
+  { redirects: [{ glob: "/demo", location: "/anderes-ziel", statusCode: 302 }] },
+  { redirects: [{ glob: "/Demo/", location: "/Demo", statusCode: 301 }] },
+  { rewrites: [{ glob: "/demo", run: { serviceId: deployment.appService } }] },
+  { rewrites: [{ glob: "/Demo/", run: { serviceId: deployment.appService } }] },
+  { rewrites: [{ glob: "/demo/", run: { serviceId: deployment.appService } }] },
+  { headers: [{ ...demoHosting.headers[0], glob: "/Demo", headers: { ...demoHosting.headers[0].headers, "Referrer-Policy": "origin" } }] }
+]) assert.throws(() => withDemoEntry(conflict), /bereits anders belegt/u);
 const testVersion = "sites/test-site/versions/test-version";
 const hostingApiBase = "https://firebasehosting.googleapis.com/v1beta1";
 const testUpload = `https://upload-firebasehosting.googleapis.com/upload/${testVersion}/files`;

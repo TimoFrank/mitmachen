@@ -30,14 +30,14 @@ const routeGroups = [
   ],
   [
     ["team", "Teams"],
+    ["profile-team", "Teams"],
     ["profile", "Mein Profil"],
     ["profile-notifications", "Benachrichtigungen"],
-    ["profile-imports:registrations", "Registrierungskonzept"],
+    ["profile-imports:registrations", "Registrierung"],
     ["profile-imports:imports", "Dateiimport"],
     ["profile-imports:onlineEntry", "Online-Erfassung"],
     ["profile-imports:importHistory", "Importhistorie"],
-    ["profile-settings", "Einstellungen"],
-    ["profile-changelog", "Changelog"]
+    ["profile-settings", "Einstellungen"]
   ]
 ];
 
@@ -167,5 +167,22 @@ test("Modulwechsel stellt die Markenposition im selben Dokument wieder her", asy
     await page.evaluate((hash) => { window.location.hash = hash; }, route);
     await expect(page.locator(`${host} > [data-workspace-brand]`)).toBeVisible();
     await expect(page.locator("[data-workspace-brand]")).toHaveCount(1);
+  }
+});
+
+
+test("Changelog-Direktlinks öffnen einen Dialog statt eines eigenen Seitenheaders", async ({ page }) => {
+  await gotoAuthenticated(page, appPath("profile"), { role: "admin" });
+  for (const route of ["changelog", "profile-changelog"]) {
+    await page.evaluate((hash) => { window.location.hash = hash; }, route);
+    const overlay = page.locator("#app-changelog");
+    await expect(overlay.getByRole("dialog", { name: "Changelog", exact: true })).toBeVisible();
+    await expect(overlay.getByRole("heading", { name: "Changelog", exact: true })).toHaveCount(1);
+    await expect(page.locator(".app-shell")).toHaveAttribute("data-active-view", "profile");
+    await expect(page.locator("#workspace-view-title")).toHaveText("Mein Profil");
+    await expect(page).toHaveTitle("Mein Profil · #Mitmachen");
+    await page.keyboard.press("Escape");
+    await expect(overlay).toBeHidden();
+    await expect(page.locator("#profile-tab-profile")).toBeVisible();
   }
 });

@@ -2133,10 +2133,13 @@
     loadNotifications: loadNotifications,
     getNotificationSummary: async function() {
       profileCache.size || await loadProfiles();
-      if (!supportsNotifications) return { unreadTotal: 0, byContext: {} };
+      if (!supportsNotifications) return { totalCount: null, unreadTotal: 0, byContext: {} };
       const payload = await apiGet("/api/notifications/summary");
       const byContext = payload?.byContext && typeof payload.byContext === "object" ? payload.byContext : {};
       return {
+        totalCount: typeof payload?.totalCount === "number" && Number.isFinite(payload.totalCount)
+          ? Math.max(0, payload.totalCount)
+          : null,
         unreadTotal: Math.max(0, Number(payload?.unreadTotal) || 0),
         byContext
       };

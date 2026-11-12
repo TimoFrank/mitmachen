@@ -1,7 +1,7 @@
 import { execFileSync } from "node:child_process";
 import { isDeepStrictEqual } from "node:util";
 import { googleApi } from "./google-api.mjs";
-import { demoAssetPaths, uploadDemoEntry, withDemoEntry } from "./hosting-demo-entry.mjs";
+import { demoAssetPaths, demoRoute, uploadDemoEntry, withDemoEntry } from "./hosting-demo-entry.mjs";
 
 const [project, site, expectedVersion, mode, ...extra] = process.argv.slice(2);
 if (!/^[a-z][a-z0-9-]{4,29}$/u.test(project || "") || !/^[a-z][a-z0-9-]{4,29}$/u.test(site || "")
@@ -39,7 +39,7 @@ const previousFiles = await filesFor(previous.name);
 // Firebase fügt diese reservierten Systemdateien selbst hinzu.
 const reusableFiles = Object.fromEntries(Object.entries(previousFiles).filter(([path]) => !systemFiles.includes(path)));
 const config = withDemoEntry(previous.config);
-const plan = { domain, site, previous: previous.name, revision, path: "/Demo" };
+const plan = { domain, site, previous: previous.name, revision, path: demoRoute };
 if (mode === "--plan") {
   console.log(JSON.stringify(plan));
 } else {

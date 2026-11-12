@@ -64,8 +64,8 @@ function assertTeamViewIsLazyAndStable() {
   );
   assert.match(
     updateViewSource,
-    /if \(activeView === "team"\) renderTeamView\(\);/u,
-    "Globale Ansichtsupdates dürfen die Teamansicht nur rendern, wenn sie sichtbar ist."
+    /if \(activeView === "profile" && activeProfileTab === "team"\) renderTeamView\(\);/u,
+    "Globale Ansichtsupdates dürfen Teams nur im aktiven Profilreiter rendern."
   );
   assert.match(
     source,
