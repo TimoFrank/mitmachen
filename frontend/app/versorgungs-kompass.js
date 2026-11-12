@@ -5804,6 +5804,25 @@
         onboarding: { title: "Willkommen", subtitle: "Profil, Team und Berechtigungen gemeinsam einrichten." }
       };
 
+      const appDemoUpdates = [
+        {
+          baselineVersion: "0.27.0",
+          badge: "Demo",
+          date: "12. November 2026",
+          title: "Übersichtlicher durch die Demo",
+          summary: "Start, Karte, Listen und Kontobereiche sind übersichtlicher aufgebaut. Der Eintrag fasst die zuletzt veröffentlichten Demo-Änderungen zusammen.",
+          items: [
+            "Start und Navigation: Schnellere Begrüßung mit vier Kompasseinstiegen. Die Sidebar lässt sich am Griff einklappen und in der Breite anpassen.",
+            "Übersicht: Deutschlandkarte mit Sektorpunkten, geschlossenen Bundeslandgrenzen und flüssigerem Zoom. Kontaktdetails öffnen auf Wunsch.",
+            "Auswertung und Aktivitäten: Klarere Kennzahlen und Stadtansichten. Tagesabschnitte und kompakte Vorgänge zeigen die Änderungen übersichtlicher.",
+            "Konto und Teams: Teams stehen neben dem Profil. Drei Beispielkonten und kompakte Benachrichtigungsdetails erleichtern den Einstieg.",
+            "Importe und Registrierung: Dateiimport steht zuerst. Die Registrierung zeigt alle zehn Beispieleingänge mit einem einfachen Statusfilter.",
+            "Kontakte und Organisationen: Persönliche Favoriten, 25 Einträge pro Seite und eine Fußzeile direkt unter der letzten Zeile. Ein Außenklick schließt geöffnete Details.",
+            "App-Informationen und Demo-Adresse: Changelog und Über die App öffnen als Overlay. Die aktuelle Adresse ist /demo. /Demo leitet weiter."
+          ]
+        }
+      ];
+
       const appVersionHistory = [
         {
           version: "0.27.0",
@@ -33337,14 +33356,18 @@
 
       function renderAboutApp() {
         if (!aboutVersionList) return;
-        aboutVersionList.innerHTML = appVersionHistory
+        const history = appVersionHistory.flatMap((release) => [
+          ...(IS_PUBLIC_DEMO_PROFILE ? appDemoUpdates.filter((update) => update.baselineVersion === release.version) : []),
+          release
+        ]);
+        aboutVersionList.innerHTML = history
           .map(
             (release) => `
               <details class="about-version">
                 <summary>
                   <span class="about-version__title">
                     <span class="about-version__meta">
-                      <span class="about-version__badge">${escapeHtml(compactVersion(release.version))}</span>
+                      <span class="about-version__badge">${escapeHtml(release.badge || compactVersion(release.version))}</span>
                       <span class="about-version__date">${escapeHtml(release.date)}</span>
                     </span>
                     <strong>${escapeHtml(release.title)}</strong>

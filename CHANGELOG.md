@@ -2,6 +2,18 @@
 
 Kompakte Zusammenfassung der wichtigsten Funktionssprünge des Versorgungs-Kompass.
 
+## Demo vom 12. November 2026
+
+Start, Karte, Listen und Kontobereiche sind übersichtlicher aufgebaut. Der Eintrag fasst die zuletzt veröffentlichten Demo-Änderungen zusammen. Die Produktversion bleibt 0.27.1. Grundlage sind die integrierten Änderungen aus #299 bis #303.
+
+- **Start und Navigation:** Schnellere Begrüßung mit vier Kompasseinstiegen. Die Sidebar lässt sich am Griff einklappen und in der Breite anpassen.
+- **Übersicht:** Deutschlandkarte mit Sektorpunkten, geschlossenen Bundeslandgrenzen und flüssigerem Zoom. Kontaktdetails öffnen auf Wunsch.
+- **Auswertung und Aktivitäten:** Klarere Kennzahlen und Stadtansichten. Tagesabschnitte und kompakte Vorgänge zeigen die Änderungen übersichtlicher.
+- **Konto und Teams:** Teams stehen neben dem Profil. Drei Beispielkonten und kompakte Benachrichtigungsdetails erleichtern den Einstieg.
+- **Importe und Registrierung:** Dateiimport steht zuerst. Die Registrierung zeigt alle zehn Beispieleingänge mit einem einfachen Statusfilter.
+- **Kontakte und Organisationen:** Persönliche Favoriten, 25 Einträge pro Seite und eine Fußzeile direkt unter der letzten Zeile. Ein Außenklick schließt geöffnete Details.
+- **App-Informationen und Demo-Adresse:** Changelog und Über die App öffnen als Overlay. Die aktuelle Adresse ist /demo. /Demo leitet weiter.
+
 ## Version 0.27 - Übersicht und Navigation für alle vier Kompasse
 
 4. November 2026

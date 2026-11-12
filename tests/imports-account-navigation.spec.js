@@ -89,7 +89,7 @@ for (const route of ["team", "profile-team"]) {
   });
 }
 
-test("Changelog öffnet aus dem App-Bereich als Dialog und erhält den Seitenkontext", async ({ page }) => {
+test("Demo-Changelog zeigt den datierten Demo-Stand vor der Produktversion und erhält den Seitenkontext", async ({ page }) => {
   await page.goto(`${DEMO_APP}#profile`);
   await expect(page.locator("#profile-tab-profile")).toBeVisible();
   await expect(page.locator('[data-profile-tab="changelog"]')).toHaveCount(0);
@@ -103,7 +103,22 @@ test("Changelog öffnet aus dem App-Bereich als Dialog und erhält den Seitenkon
   await expect(overlay).toBeVisible();
   await expect(dialog).toHaveAttribute("aria-modal", "true");
   await expect(dialog).toHaveAccessibleName("Changelog");
-  await expect(page.locator("#about-version-list")).not.toBeEmpty();
+  const history = page.locator("#about-version-list");
+  await expect(history).not.toBeEmpty();
+  const cards = history.locator(".about-version");
+  const demoCard = cards.filter({ has: page.getByText("Übersichtlicher durch die Demo", { exact: true }) });
+  await expect(demoCard).toHaveCount(1);
+  await expect(demoCard.locator(".about-version__badge")).toHaveText("Demo");
+  await expect(demoCard.locator(".about-version__date")).toHaveText("12. November 2026");
+  const badges = (await cards.locator(".about-version__badge").allTextContents()).map((value) => value.trim());
+  const demoIndex = badges.indexOf("Demo");
+  expect(demoIndex).toBeGreaterThanOrEqual(0);
+  expect(badges.indexOf("0.27")).toBe(demoIndex + 1);
+  await expect(demoCard).not.toHaveAttribute("open");
+  await demoCard.locator(":scope > summary").click();
+  await expect(demoCard.locator(".about-version__body")).toBeVisible();
+  await expect(demoCard.locator(".about-version__summary")).not.toBeEmpty();
+  await expect(demoCard.locator(".about-version__body li").first()).toBeVisible();
   const dialogLayout = await dialog.evaluate((element) => ({
     height: element.getBoundingClientRect().height,
     viewportHeight: window.innerHeight,
@@ -135,7 +150,11 @@ test("Geschützte Viewer können Teams und Changelog ohne Importberechtigung nut
   await expect(page.locator('[data-profile-tab="imports"]')).toBeHidden();
   await revealSidebar(page);
   await page.locator("#sidebar-changelog-button").click();
-  await expect(page.locator("#app-changelog")).toBeVisible();
+  const changelog = page.locator("#app-changelog");
+  await expect(changelog).toBeVisible();
+  await expect(changelog.locator(".about-version__badge").filter({ hasText: /^Demo$/ })).toHaveCount(0);
+  await expect(changelog.getByText("Übersichtlicher durch die Demo", { exact: true })).toHaveCount(0);
+  await expect(changelog.locator(".about-version__badge").filter({ hasText: /^0\.27$/ })).toHaveCount(1);
   await page.keyboard.press("Escape");
   await expect(page.locator("#profile-tab-team")).toBeVisible();
 });
