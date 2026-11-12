@@ -9891,13 +9891,39 @@ async function listNotifications(request, url) {
 }
 
 async function getNotificationSummary(request) {
-  const payload = await listNotifications(request, new URL("http://local/api/notifications?unreadOnly=true&context=operational&limit=100"));
-  const byContext = {};
-  (payload.items || []).forEach((item) => {
-    byContext[item.context] = (byContext[item.context] || 0) + 1;
-  });
-  const unreadTotal = Object.values(byContext).reduce((sum, count) => sum + count, 0);
-  return { unreadTotal, byContext };
+  await loadProfiles(request);
+  const userId = userIdFromToken(request);
+  const empty = { totalCount: 0, unreadTotal: 0, byContext: {} };
+  if (!userId) return empty;
+  try {
+    const result = await getPool().query(
+      `select events.entity_type, events.event_type,
+              count(*)::int as total_count,
+              count(*) filter (where recipients.read_at is null)::int as unread_count
+         from notification_recipients recipients
+         join notification_events events on events.id = recipients.event_id
+        where recipients.user_id = $1
+          and recipients.dismissed_at is null
+        group by events.entity_type, events.event_type`,
+      [userId]
+    );
+    let totalCount = 0;
+    let unreadTotal = 0;
+    const byContext = {};
+    for (const row of result.rows) {
+      const context = notificationContext(row.entity_type, row.event_type);
+      if (context === "product") continue;
+      const count = Math.max(0, Number(row.total_count) || 0);
+      const unreadCount = Math.max(0, Number(row.unread_count) || 0);
+      totalCount += count;
+      unreadTotal += unreadCount;
+      if (unreadCount) byContext[context] = (byContext[context] || 0) + unreadCount;
+    }
+    return { totalCount, unreadTotal, byContext };
+  } catch (error) {
+    if (isMissingNotificationsError(error)) return empty;
+    throw error;
+  }
 }
 
 async function markNotificationRead(request, id) {

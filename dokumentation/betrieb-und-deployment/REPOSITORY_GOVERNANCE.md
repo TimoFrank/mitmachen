@@ -42,7 +42,7 @@ Zielbetrieb-Deploy aus.
 - Deployment-Branch ist auf `main` beschränkt.
 - Keine GCP-, Datenbank-, historischen Supabase-Service-Role- oder Zielbetriebs-Secrets hinterlegen.
 - Pages bleibt die öffentliche Auslieferung des signierten Produktreleases und ist kein Freigabenachweis für GKE.
-- Der öffentliche Einstieg unter `/Demo` lädt eine eigene Firebase Hosting Site.
+- Der öffentliche Einstieg unter `/demo` lädt eine eigene Firebase Hosting Site.
   Der direkte [Demo-Kanal](GOOGLE_BETRIEB.md#öffentlicher-einstieg-unter-demo)
   veröffentlicht nur einen sauberen aktuellen Commit von `main` mit beiden
   erfolgreichen Pflichtchecks. Er nutzt den geprüften öffentlichen Build und

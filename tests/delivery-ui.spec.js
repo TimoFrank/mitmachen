@@ -95,7 +95,8 @@ test("Startseiteneinstieg öffnet den passenden Navigationsbereich auf Desktop",
 
   await expect(page).toHaveURL(/#hospitation-overview$/);
   await expect(shell).not.toHaveClass(/is-sidebar-collapsed/);
-  await expect(page.locator(".sidebar-collapse")).toBeVisible();
+  await expect(page.locator("#sidebar-collapse-button")).toBeHidden();
+  await expect(page.locator("#sidebar-resize-handle")).toBeInViewport();
   await expect(page.locator(".sidebar-nav")).toBeVisible();
   await expect(page.locator(".sidebar-account-section")).toBeVisible();
   await expect(page.locator(".sidebar-brand-word")).toBeVisible();
@@ -173,12 +174,14 @@ test("Geschützte Auslieferung: Kontakte werden erst im Versorgungs-Kompass als 
 
   const shell = page.locator(".app-shell");
   await expect(shell).not.toHaveClass(/is-public-demo-profile/);
-  await expect(page.locator(".sidebar-collapse")).toBeVisible();
+  await expect(page.locator("#sidebar-resize-handle")).toBeHidden();
   await expect(page.locator(".sidebar-brand-word")).toBeVisible();
   if ((page.viewportSize()?.width || 0) <= 760) {
+    await expect(page.locator("#sidebar-collapse-button")).toBeVisible();
     await expect(page.locator(".sidebar-nav")).toBeHidden();
     await expect(page.locator(".sidebar-account-section")).toBeHidden();
   } else {
+    await expect(page.locator("#sidebar-collapse-button")).toBeHidden();
     await expect(page.locator(".sidebar-nav")).toBeVisible();
     await expect(page.locator(".sidebar-account-section")).toBeVisible();
   }

@@ -42,7 +42,7 @@ Exporte, Bilder und alte Dienstkonfigurationen bleiben unverändert.
 
 Firebase Hosting leitet die geschützte Anwendung weiter. Private Anwendungsdateien
 werden nicht auf das öffentliche CDN hochgeladen. Nur der öffentliche Einstieg
-unter `/Demo` wird als statische Seite ausgeliefert. Der erste Cloud-Run-Dienst
+unter `/demo` wird als statische Seite ausgeliefert. Der erste Cloud-Run-Dienst
 liefert die Anwendung und API aus, der zweite nur den Passwortdienst. Beide
 starten ohne Mindestinstanzen, mit höchstens zwei Instanzen und
 anfragebezogener Abrechnung. Die bestehende zonale Cloud-SQL-Instanz bleibt
@@ -194,7 +194,12 @@ Dadurch kann dasselbe geprüfte Image von der Abnahme auf die Hauptdomain
 erhalten; vor DNS-Umschaltung ist auch deren reservierter `/__/auth`-Pfad
 auf Firebase Hosting zu prüfen.
 
-## Öffentlicher Einstieg unter /Demo
+## Öffentlicher Einstieg unter /demo
+
+`/demo` ist die kanonische Adresse. Die bisherigen Schreibweisen `/Demo`,
+`/Demo/` und `/demo/` leiten darauf um. Bei bestehenden Hostingversionen
+werden nur die bekannten bisherigen Demo-Regeln ersetzt. Abweichende Regeln
+blockieren die Umstellung.
 
 Der Einstieg bindet die statische Site `versorgungs-kompass-demo.web.app` ein.
 Die Demo verwendet den öffentlichen Build mit Beispieldaten. Ihre Site hat
@@ -228,7 +233,7 @@ Die Versions-ID stammt aus dem aktiven Firebase Hosting Release. Den geprüften
 Aufruf mit `--apply` wiederholen. Er vergleicht die neue Hostingversion mit dem
 Plan und bricht bei Änderungen an der aktiven Version oder einem abweichenden
 Dateibestand ab. Cloud Run, Datenbank, Identität und DNS brauchen dafür keinen
-Rollout. Anschließend `/Demo` im Browser, die Erreichbarkeit der Demo-Site,
+Rollout. Anschließend `/demo` im Browser, die Erreichbarkeit der Demo-Site,
 `/readyz` sowie die anonyme Zugriffssperre der Anwendung und der API prüfen.
 Bei einem Fehler in Firebase Hosting die zuvor aktive Version erneut freigeben.
 

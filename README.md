@@ -3,7 +3,7 @@
 </p>
 
 <p align="center">
-  <a href="https://versorgungs-kompass.de/Demo"><strong>Öffentliche Demo ansehen</strong></a>
+  <a href="https://versorgungs-kompass.de/demo"><strong>Öffentliche Demo ansehen</strong></a>
   · <a href="dokumentation/betrieb-und-deployment/GITLAB_SOFTWARE_FACTORY_UEBERGABE.md"><strong>Software-Factory-Übergabe</strong></a>
   · <a href="dokumentation/betrieb-und-deployment/POC_GEMATIK_DURCHSTICH.md">gematik-PoC</a>
 </p>
@@ -64,12 +64,12 @@ Der #Mitmachen Versorgungs-Kompass ist eine interne Anwendung.
 
 | Zugang | Status | Inhalt |
 | --- | --- | --- |
-| [Öffentliche Demo](https://versorgungs-kompass.de/Demo) | Direkter Demo-Kanal | Geprüfter Stand aus `main` mit fiktiven Beispieldaten |
+| [Öffentliche Demo](https://versorgungs-kompass.de/demo) | Direkter Demo-Kanal | Geprüfter Stand aus `main` mit fiktiven Beispieldaten |
 | [GitHub Pages](https://timofrank.github.io/mitmachen/) | Produktrelease | Signierter Stand mit fiktiven Beispieldaten |
 | [GKE-Cluster](https://versorgungs-kompass.de/) | Pre-Integration | Geschützte Referenzumgebung, nicht Zielbetrieb |
 | gematik-PoC | RC.5 | Providerneutraler OIDC-Release-Candidate als Übergabe |
 
-Updates für `/Demo` folgen dem [direkten Demo-Kanal](dokumentation/betrieb-und-deployment/GOOGLE_BETRIEB.md#öffentlicher-einstieg-unter-demo).
+Updates für `/demo` folgen dem [direkten Demo-Kanal](dokumentation/betrieb-und-deployment/GOOGLE_BETRIEB.md#öffentlicher-einstieg-unter-demo).
 
 RC.5 ist mit dem unveränderlichen Remote-Tag
 `poc-v0.1.0-rc.5` auf Commit

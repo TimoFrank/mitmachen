@@ -99,7 +99,9 @@ test("Teamverzeichnis zählt gemeinsam betreute Kontakte eindeutig und öffnet Z
     backendFixtureScript: teamDirectoryFixtureScript()
   });
 
-  await expect(page.locator('[data-view-panel="team"]')).toBeVisible();
+  await expect(page.locator('[data-view-panel="profile"]')).toBeVisible();
+  await expect(page.locator("#profile-tab-team")).toBeVisible();
+  await expect(page.locator('[data-profile-tab="team"]')).toHaveAttribute("aria-selected", "true");
   await expect(page.locator("#team-user-count")).toHaveText("2");
   await expect(page.locator("#team-contact-count")).toHaveText("2");
   await expect(page.locator("#team-directory-result, #team-search-input")).toHaveCount(0);
@@ -121,7 +123,7 @@ test("Teamverzeichnis zählt gemeinsam betreute Kontakte eindeutig und öffnet Z
   expect(horizontalOverflow).toBeLessThanOrEqual(1);
 });
 
-test("Benachrichtigungsfilter sind Tabs mit roving tabindex", async ({ page }) => {
+test("Benachrichtigungsfilter ist als Dropdown per Tastatur und mit Rückfokus bedienbar", async ({ page }) => {
   await gotoAuthenticated(page, "/frontend/app/versorgungs-kompass.html#profile-notifications", {
     role: "admin",
     localNotifications: [
@@ -138,17 +140,24 @@ test("Benachrichtigungsfilter sind Tabs mit roving tabindex", async ({ page }) =
     ]
   });
 
-  const tablist = page.getByRole("tablist", { name: "Benachrichtigungen filtern" });
-  await expect(tablist).toBeVisible();
-  const unread = tablist.getByRole("tab", { name: "Ungelesen – 1 ungelesene Benachrichtigung" });
-  const all = tablist.getByRole("tab", { name: "Alle Benachrichtigungen", exact: true });
-  const hospitations = tablist.getByRole("tab", { name: "Hospitationen – keine ungelesenen Benachrichtigungen" });
-  const product = tablist.getByRole("tab", { name: "Produktinformationen" });
-  await expect(hospitations).toBeVisible();
-  await expect(unread).toHaveAttribute("aria-selected", "true");
-  await expect(unread).toHaveAttribute("tabindex", "0");
-  await expect(all).toHaveAttribute("tabindex", "-1");
-  await expect(unread).not.toHaveAttribute("aria-pressed", /.*/);
+  const select = page.locator("#notifications-filter-select");
+  const shell = select.locator("..");
+  const trigger = shell.locator(".custom-select-trigger");
+  const panel = shell.locator(".custom-select-panel");
+  await expect(trigger).toBeVisible();
+  await expect(trigger).toHaveAttribute("aria-haspopup", "listbox");
+  await expect(trigger).toHaveAttribute("aria-expanded", "false");
+  await expect(select).toHaveValue("unread");
+  await expect(select.locator("option")).toHaveCount(8);
+  expect(await select.locator("option").evaluateAll((options) => options.map((option) => option.value))).toEqual([
+    "unread", "all", "contacts", "organizations", "hospitations", "formats", "team", "product"
+  ]);
+  await expect(select.locator('option[value="unread"]')).toHaveText(/^Ungelesen\s*\(1\)$/);
+  await expect(select.locator('option[value="all"]')).toHaveText(/^Alle\s*\(1\)$/);
+  await expect(page.locator("[data-notification-filter]")).toHaveCount(0);
+  await expect(page.locator("#notifications-heading")).toHaveText("Alle Benachrichtigungen");
+  await expect(page.locator("#notifications-filter-panel")).toHaveAttribute("role", "region");
+  await expect(page.locator("#notifications-filter-panel")).toHaveAttribute("aria-labelledby", "notifications-heading");
 
   const notificationItem = page.locator('[data-notification-id="notification-contact"]');
   const notificationToggle = notificationItem.getByRole("button", { name: "Kontaktdaten aktualisiert. Kategorie: Kontakte. Datum: 28.07.2026. Status: Ungelesen" });
@@ -183,19 +192,33 @@ test("Benachrichtigungsfilter sind Tabs mit roving tabindex", async ({ page }) =
   await expect(notificationToggle).toHaveAttribute("aria-expanded", "false");
   await expect(notificationDetails).toBeHidden();
 
-  await unread.focus();
-  await page.keyboard.press("ArrowRight");
+  await trigger.focus();
+  await page.keyboard.press("ArrowDown");
+  await expect(panel).toBeVisible();
+  const all = panel.locator('[data-option-value="all"]');
   await expect(all).toBeFocused();
-  await expect(all).toHaveAttribute("aria-selected", "true");
-  await expect(unread).toHaveAttribute("tabindex", "-1");
-  await expect(page.locator("#notifications-filter-panel")).toHaveAttribute("aria-labelledby", "notification-filter-all");
+  await page.keyboard.press("Enter");
+  await expect(select).toHaveValue("all");
+  await expect(panel).toBeHidden();
+  await expect(trigger).toBeFocused();
 
   await page.keyboard.press("End");
+  const product = panel.locator('[data-option-value="product"]');
   await expect(product).toBeFocused();
-  await expect(product).toHaveAttribute("aria-selected", "true");
+  await page.keyboard.press("Enter");
+  await expect(select).toHaveValue("product");
+  await expect(trigger).toBeFocused();
+  await expect(page.locator("#notifications-heading")).toHaveText("Produkt");
   await page.keyboard.press("Home");
-  await expect(unread).toBeFocused();
-  await expect(unread).toHaveAttribute("aria-selected", "true");
+  await expect(panel.locator('[data-option-value="unread"]')).toBeFocused();
+  await page.keyboard.press("Enter");
+  await expect(select).toHaveValue("unread");
+  await expect(page.locator("#notifications-heading")).toHaveText("Alle Benachrichtigungen");
+  await trigger.click();
+  await expect(panel).toBeVisible();
+  await page.keyboard.press("Escape");
+  await expect(panel).toBeHidden();
+  await expect(trigger).toBeFocused();
 });
 
 test("Experten-, alle Patientenmodi und Stakeholderlisten haben eine dynamische ARIA-Tabellenstruktur", async ({ page }, testInfo) => {

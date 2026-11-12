@@ -89,7 +89,7 @@ async function expandSidebarSectionIfNeeded(page, section) {
   await openMobileSidebarIfNeeded(page);
   const shell = page.locator(".app-shell");
   if (await shell.evaluate((element) => element.classList.contains("is-sidebar-collapsed"))) {
-    await page.locator("#sidebar-collapse-button").click();
+    await page.locator("#sidebar-resize-handle").click();
     await expect(shell).not.toHaveClass(/is-sidebar-collapsed/);
   }
   const toggle = page.locator(`[data-sidebar-section-toggle="${section}"]`);
@@ -2808,15 +2808,15 @@ test("Sidebar: Aktiver Bereich startet offen und beim Modulwechsel bleibt nur ei
   const stakeholderSection = page.locator('[data-sidebar-section="stakeholders"]');
   const planningSection = page.locator('[data-sidebar-section="planning"]');
   const formatsSection = page.locator('[data-sidebar-section="formats"]');
-  const collapseButton = page.locator("#sidebar-collapse-button");
+  const handle = page.locator("#sidebar-resize-handle");
   await expect(shell).toHaveAttribute("data-active-view", "contacts");
   await expect(careSection).toHaveClass(/is-expanded/);
   await expect(stakeholderSection).toHaveClass(/is-collapsed/);
   await expect(planningSection).toHaveClass(/is-collapsed/);
   await expect(formatsSection).toHaveClass(/is-collapsed/);
   await expect(page.locator('[data-sidebar-section="admin"]')).toHaveCount(0);
-  await expect(collapseButton.locator(".sidebar-collapse-label")).toHaveText("Menü einklappen");
-  await expect(collapseButton.locator(".sidebar-collapse-label")).toBeHidden();
+  await expect(page.locator("#sidebar-collapse-button")).toBeHidden();
+  await expect(handle).toBeVisible();
 
   await page.locator('[data-sidebar-section-toggle="planning"]').click();
   await expect(shell).toHaveAttribute("data-active-view", "contacts");
@@ -2889,25 +2889,17 @@ test("Sidebar: Aktiver Bereich startet offen und beim Modulwechsel bleibt nur ei
   await expect(formatsSection).toHaveClass(/is-collapsed/);
   await expect(page).toHaveURL(/#analytics$/);
 
-  const expandedCollapseBox = await collapseButton.boundingBox();
-  await collapseButton.click();
+  await handle.click();
   await expect(shell).toHaveClass(/is-sidebar-collapsed/);
-  await expect(collapseButton).toHaveAttribute("aria-label", "Seitenleiste ausklappen");
-  await expect(collapseButton.locator(".sidebar-collapse-label")).toHaveText("Menü ausklappen");
-  await expect(collapseButton.locator(".sidebar-collapse-label")).toBeHidden();
-  await expect(collapseButton).toHaveCSS("position", "static");
-  await expect(collapseButton).toBeInViewport();
+  await expect(handle).toBeInViewport();
+  await expect(handle).toHaveAttribute("aria-valuenow", "76");
+  await expect(handle).toHaveAttribute("aria-valuetext", /^Eingeklappt\./);
+  await expect(page.locator("#sidebar-collapse-button")).toBeHidden();
   await expect(page.locator(".sidebar-nav > .sidebar-section:visible")).toHaveCount(1);
   await expect(careSection).toBeVisible();
   await expect(stakeholderSection).toBeHidden();
   await expect(planningSection).toBeHidden();
   await expect(formatsSection).toBeHidden();
-  const collapsedCollapseBox = await collapseButton.boundingBox();
-  expect(expandedCollapseBox).not.toBeNull();
-  expect(collapsedCollapseBox).not.toBeNull();
-  expect(expandedCollapseBox.width).toBe(32);
-  expect(collapsedCollapseBox.width).toBe(32);
-  expect(collapsedCollapseBox.height).toBe(32);
 
   await attachScreenshot(page, testInfo, "sidebar-section-first-page");
 });
@@ -2980,7 +2972,7 @@ test("Sidebar: Stakeholder-Personen und -Organisationen sind kompakt und routens
     return;
   }
 
-  await page.locator("#sidebar-collapse-button").click();
+  await page.locator("#sidebar-resize-handle").click();
   await expect(shell).toHaveClass(/is-sidebar-collapsed/);
   await expect(personToggle).toBeHidden();
   await expect(organizationToggle).toBeHidden();
@@ -2989,27 +2981,28 @@ test("Sidebar: Stakeholder-Personen und -Organisationen sind kompakt und routens
   await expect(stakeholderSection.locator(":scope > .sidebar-section-toggle .sidebar-module-icon img")).toBeVisible();
 });
 
-test("Sidebar: Kompakter Pfeil steht rechts neben dem Startlink", async ({ page }, testInfo) => {
+test("Sidebar: Der sichtbare Ziehgriff übernimmt das Einklappen auf Desktop", async ({ page }, testInfo) => {
   test.skip(testInfo.project.name.includes("mobile"), "Die mobile Navigation behält den Kopfbereich.");
   await gotoAuthenticated(page, "/frontend/app/versorgungs-kompass.html#contacts", { role: "admin" });
   const shell = page.locator(".app-shell");
-  const toggle = page.locator("#sidebar-collapse-button");
-  const home = page.locator(".sidebar-home-entry [data-view-tab='home']");
+  const handle = page.locator("#sidebar-resize-handle");
   for (const viewport of [{ width: 1440, height: 1000 }, { width: 1280, height: 720 }]) {
     await page.setViewportSize(viewport);
-    if (await shell.evaluate(node => node.classList.contains("is-sidebar-collapsed"))) await toggle.click();
-    await expect(toggle).toHaveCSS("width", "32px");
-    await expect(toggle.locator(".sidebar-collapse-label")).toBeHidden();
-    const homeBox = await home.boundingBox();
-    const toggleBox = await toggle.boundingBox();
-    expect(toggleBox.x).toBeGreaterThanOrEqual(homeBox.x + homeBox.width);
-    expect(Math.abs(toggleBox.y + toggleBox.height / 2 - homeBox.y - homeBox.height / 2)).toBeLessThanOrEqual(1);
-    await toggle.click();
+    if (await shell.evaluate(node => node.classList.contains("is-sidebar-collapsed"))) await handle.click();
+    await expect(page.locator("#sidebar-collapse-button")).toBeHidden();
+    await expect(handle).toBeInViewport();
+    const expandedWidth = Number(await handle.getAttribute("aria-valuenow"));
+    expect(expandedWidth).toBeGreaterThanOrEqual(220);
+    expect(expandedWidth).toBeLessThanOrEqual(360);
+    await expect.poll(() => page.locator(".app-sidebar").evaluate(node => Math.round(node.getBoundingClientRect().width))).toBe(expandedWidth);
+    await handle.click();
     await expect(shell).toHaveClass(/is-sidebar-collapsed/);
-    await expect(toggle).toBeVisible();
-    await expect(toggle).toHaveAttribute("aria-expanded", "false");
-    await toggle.click();
+    await expect(handle).toBeInViewport();
+    await expect(handle).toHaveAttribute("aria-valuenow", "76");
+    await handle.focus();
+    await page.keyboard.press("Enter");
     await expect(shell).not.toHaveClass(/is-sidebar-collapsed/);
+    await expect(handle).toHaveAttribute("aria-valuenow", String(expandedWidth));
   }
 });
 
@@ -3017,7 +3010,7 @@ test("Sidebar: Navigation und Konto bleiben bei kurzer Höhe erreichbar", async 
   test.skip(testInfo.project.name.includes("mobile"), "Die mobile Navigation wird separat geprüft.");
   await page.setViewportSize({ width: 1280, height: 720 });
   await gotoAuthenticated(page, "/frontend/app/versorgungs-kompass.html#contacts", { role: "admin" });
-  const toggle = page.locator("#sidebar-collapse-button");
+  const toggle = page.locator("#sidebar-resize-handle");
   await expect(page.locator("#sidebar-profile-button")).toBeVisible();
   await expect(toggle).toBeInViewport();
   await page.locator('[data-sidebar-section-toggle="planning"]').click();
@@ -3125,13 +3118,9 @@ test("Sidebar: Mobiles Profilavatar entspricht der Größe der Kontoaktionen", a
 
   await page.setViewportSize({ width: 1440, height: 1000 });
   await expect(shell).toHaveClass(/is-sidebar-collapsed/);
-  expect(await page.evaluate(() => {
-    const toggle = document.querySelector("#sidebar-collapse-button");
-    const account = document.querySelector(".sidebar-account-section");
-    return toggle?.parentElement?.classList.contains("sidebar-home-entry");
-  })).toBe(true);
-  await expect(collapseButton).toHaveAttribute("aria-label", "Seitenleiste ausklappen");
-  await expect(collapseButton).toHaveAttribute("aria-expanded", "false");
+  await expect(collapseButton).toBeHidden();
+  await expect(page.locator("#sidebar-resize-handle")).toBeVisible();
+  await expect(page.locator("#sidebar-resize-handle")).toHaveAttribute("aria-valuenow", "76");
 });
 
 test("Suche: Versorgung filtert Karte und wird beim Modulwechsel geloescht", async ({ page }, testInfo) => {
@@ -3407,8 +3396,10 @@ test("Onboarding: freiwilliger Wiedereinstieg sperrt bei Ladefehler nicht die Na
   await page.locator("#onboarding-tour-skip").click();
   await expect(page.locator("#onboarding-tour-status")).toContainText("noch nicht geladen");
 
-  await page.locator("#sidebar-team-button").click();
-  await expect(page.locator('[data-view-panel="team"]')).toBeVisible();
+  await page.locator("#sidebar-profile-button").click();
+  await page.locator('[data-profile-tab="team"]').click();
+  await expect(page.locator("#profile-tab-team")).toBeVisible();
+  await expect(page.locator('[data-view-panel="profile"]')).toBeVisible();
   await expect(page).toHaveURL(/\/teams$/);
 });
 
@@ -3978,27 +3969,25 @@ test("Benachrichtigungen: Glocke öffnet Vorschau und Profil-Reiter rendert Inbo
   await expect(page.locator("#profile-notifications")).toBeDisabled();
   await expect(page.locator("#notifications-meta [data-notifications-total]")).toHaveText("2");
   await expect(page.locator("#notifications-meta [data-notifications-unread]")).toHaveText("2");
-  const notificationToolbar = await page.locator(".notifications-filters").evaluate((filters) => {
-    const buttons = [...filters.querySelectorAll(".notification-filter")];
-    const actions = document.querySelector(".notifications-command-actions");
-    const feed = document.querySelector(".notifications-feed-shell");
-    return {
-      topPositions: buttons.map((button) => button.getBoundingClientRect().top),
-      fontSizes: buttons.map((button) => Number.parseFloat(getComputedStyle(button).fontSize)),
-      clientWidth: filters.clientWidth,
-      scrollWidth: filters.scrollWidth,
-      actionsBottom: actions.getBoundingClientRect().bottom,
-      feedTop: feed.getBoundingClientRect().top
-    };
+  await expect(page.locator("#notifications-heading")).toHaveText("Alle Benachrichtigungen");
+  const notificationSelect = page.locator("#notifications-filter-select");
+  const notificationSelectTrigger = notificationSelect.locator("..").locator(".custom-select-trigger");
+  await expect(notificationSelectTrigger).toBeVisible();
+  await expect(notificationSelect).toHaveValue("unread");
+  await expect(notificationSelect.locator("option")).toHaveCount(8);
+  await expect(notificationSelect.locator('option[value="unread"]')).toHaveText(/^Ungelesen\s*\(2\)$/);
+  await expect(notificationSelect.locator('option[value="all"]')).toHaveText(/^Alle\s*\(3\)$/);
+  await expect(page.locator("[data-notification-filter]")).toHaveCount(0);
+  const notificationToolbar = await notificationSelectTrigger.evaluate((trigger) => {
+    const rect = trigger.getBoundingClientRect();
+    const actions = document.querySelector(".notifications-command-actions").getBoundingClientRect();
+    const feed = document.querySelector(".notifications-feed-shell").getBoundingClientRect();
+    return { left: rect.left, right: rect.right, fontSize: Number.parseFloat(getComputedStyle(trigger).fontSize), viewport: window.innerWidth, actionsBottom: actions.bottom, feedTop: feed.top };
   });
-  expect(Math.max(...notificationToolbar.topPositions) - Math.min(...notificationToolbar.topPositions)).toBeLessThanOrEqual(1);
-  expect(Math.min(...notificationToolbar.fontSizes)).toBeGreaterThanOrEqual(13);
+  expect(notificationToolbar.fontSize).toBeGreaterThanOrEqual(13);
+  expect(notificationToolbar.left).toBeGreaterThanOrEqual(0);
+  expect(notificationToolbar.right).toBeLessThanOrEqual(notificationToolbar.viewport);
   expect(notificationToolbar.actionsBottom).toBeLessThanOrEqual(notificationToolbar.feedTop);
-  if (testInfo.project.name.includes("mobile")) {
-    expect(notificationToolbar.scrollWidth).toBeGreaterThan(notificationToolbar.clientWidth);
-  } else {
-    expect(notificationToolbar.scrollWidth).toBeLessThanOrEqual(notificationToolbar.clientWidth + 1);
-  }
   await expectNoHorizontalOverflow(page);
   await expect(page.locator("#profile-tab-settings .profile-setting-toggle")).toHaveCount(0);
   await expect(page.locator("#search")).toBeHidden();
@@ -4006,11 +3995,10 @@ test("Benachrichtigungen: Glocke öffnet Vorschau und Profil-Reiter rendert Inbo
   await expect(page.locator("#notifications-list .notifications-loading")).toHaveCount(0);
   await expect(page.locator("#notifications-meta")).not.toHaveText("Benachrichtigungen werden geladen");
   await expect(page.locator("#notifications-list")).not.toContainText(/synthetisch/i);
-  await expect(page.locator('[data-notification-filter]').last()).toHaveText("Produkt");
-  await expect(page.locator('[data-notification-filter="unread"]')).toHaveAttribute("aria-label", "Ungelesen – 2 ungelesene Benachrichtigungen");
-  await expect(page.locator('[data-notification-filter="contacts"]')).toHaveAttribute("aria-label", "Kontakte – 1 ungelesene Benachrichtigung");
-  await expect(page.locator('[data-notification-filter="hospitations"]')).toHaveAttribute("aria-label", "Hospitationen – 1 ungelesene Benachrichtigung");
-  await expect(page.locator('[data-notification-filter="team"]')).toHaveAttribute("aria-label", "Team – keine ungelesenen Benachrichtigungen");
+  await expect(notificationSelect.locator('option[value="product"]')).toHaveText("Produkt");
+  await expect(notificationSelect.locator('option[value="contacts"]')).toHaveText("Kontakte");
+  await expect(notificationSelect.locator('option[value="hospitations"]')).toHaveText("Hospitationen");
+  await expect(notificationSelect.locator('option[value="team"]')).toHaveText("Team");
   await expect(page.locator("#notifications-list .notification-item")).toHaveCount(2);
   const contactItem = page.locator('#notifications-list [data-notification-id="visual-notification-contact-update"]');
   const hospitationItem = page.locator('#notifications-list [data-notification-id="visual-notification-hospitation-upcoming"]');
@@ -4077,6 +4065,9 @@ test("Benachrichtigungen: Glocke öffnet Vorschau und Profil-Reiter rendert Inbo
   await expect(contactToggle).toHaveAttribute("aria-expanded", "true");
   await expect(contactItem.locator(".notification-item__details")).toBeVisible();
   await expect(contactItem.locator(".notification-item__text")).toHaveText("Telefonnummer und Zuständigkeit wurden aktualisiert.");
+  await expect(contactItem.locator(".notification-item__details .notification-item__meta")).toHaveCount(0);
+  await expect(contactItem.locator(".notification-item__details time")).toHaveCount(0);
+  await expect(contactItem.locator(".notification-item__details .notification-item__icon")).toHaveCount(0);
   await expect(contactItem.locator("[data-open-notification]")).toBeVisible();
   expect(backendFixture.notifications.find((item) => item.id === "visual-notification-contact-update")?.readAt).toBe("");
   await expect(page.locator("#notification-count-total")).toHaveText("2");
@@ -4090,12 +4081,14 @@ test("Benachrichtigungen: Glocke öffnet Vorschau und Profil-Reiter rendert Inbo
   await expect(hospitationItem.locator(".notification-item__summary-date")).toHaveText("11.06.2026");
   await hospitationToggle.click();
   await expect(hospitationToggle).toHaveAttribute("aria-expanded", "false");
-  await page.locator('[data-notification-filter="hospitations"]').click();
+  await page.locator("#notifications-filter-select").selectOption("hospitations");
+  await expect(page.locator("#notifications-heading")).toHaveText("Hospitationen");
   await expect(page.locator('#notifications-list [data-notification-id="visual-notification-hospitation-upcoming"]')).toBeVisible();
   await expect(page.locator("#notifications-list .notification-item")).toHaveCount(1);
   await expect(page.locator("#notifications-meta [data-notifications-total]")).toHaveText("1");
   await expect(page.locator("#notifications-meta [data-notifications-unread]")).toHaveText("1");
-  await page.locator('[data-notification-filter="all"]').click();
+  await page.locator("#notifications-filter-select").selectOption("all");
+  await expect(page.locator("#notifications-heading")).toHaveText("Alle Benachrichtigungen");
   await expect(page.locator("#notifications-list .notification-item")).toHaveCount(3);
   await expect(page.locator("#notifications-meta [data-notifications-total]")).toHaveText("3");
   await expect(page.locator("#notifications-meta [data-notifications-unread]")).toHaveText("2");
@@ -4105,7 +4098,8 @@ test("Benachrichtigungen: Glocke öffnet Vorschau und Profil-Reiter rendert Inbo
   await expect(readOrganizationItem.locator(".notification-item__category")).toHaveText("Organisationen");
   await expect(readOrganizationItem.locator(".notification-item__summary-status")).toHaveText("Gelesen");
   await expect(readOrganizationItem.locator(".notification-item__summary-date")).toHaveText("10.06.2026");
-  await page.locator('[data-notification-filter="product"]').click();
+  await page.locator("#notifications-filter-select").selectOption("product");
+  await expect(page.locator("#notifications-heading")).toHaveText("Produkt");
   const firstProductItem = page.locator("#notifications-list .notification-item").first();
   await expect(firstProductItem).toBeVisible();
   await expect(page.locator("#notifications-list .notification-item.is-unread")).toHaveCount(0);
@@ -4116,7 +4110,7 @@ test("Benachrichtigungen: Glocke öffnet Vorschau und Profil-Reiter rendert Inbo
   await expect(firstProductItem.locator(".notification-item__summary-date")).toHaveText(/^\d{2}\.\d{2}\.\d{4}$/);
   await expect(page.locator("#notifications-list")).not.toContainText("Backend-Produktmeldung");
   await expect(page.locator("#notifications-mark-all-read")).toBeHidden();
-  await page.locator('[data-notification-filter="unread"]').click();
+  await page.locator("#notifications-filter-select").selectOption("unread");
 
   await page.locator("#notifications-mark-all-read").click();
   await expect.poll(() => backendFixture.notifications.find((item) => item.id === "visual-notification-contact-update")?.readAt).toBeTruthy();
@@ -4126,7 +4120,9 @@ test("Benachrichtigungen: Glocke öffnet Vorschau und Profil-Reiter rendert Inbo
   await expect(page.locator("#notification-count-total")).toBeHidden();
   await expect(page.locator("#notifications-meta [data-notifications-total]")).toHaveText("0");
   await expect(page.locator("#notifications-meta [data-notifications-unread]")).toHaveText("0");
-  await page.locator('[data-notification-filter="all"]').click();
+  await expect(page.locator('#notifications-filter-select option[value="all"]')).toHaveText(/^Alle\s*\(3\)$/);
+  await expect(page.locator('#notifications-filter-select option[value="unread"]')).toHaveText(/^Ungelesen\s*\(0\)$/);
+  await page.locator("#notifications-filter-select").selectOption("all");
   const readContactNotification = page.locator('#notifications-list [data-notification-id="visual-notification-contact-update"]');
   await expect(readContactNotification).toBeVisible();
   await expect(readContactNotification).not.toHaveClass(/is-unread/);
@@ -4141,7 +4137,7 @@ test("Benachrichtigungen: Glocke öffnet Vorschau und Profil-Reiter rendert Inbo
   await expect(page.locator("#notifications-mark-all-read")).toBeDisabled();
   await expect(page.locator("#notifications-meta [data-notifications-total]")).toHaveText("3");
   await expect(page.locator("#notifications-meta [data-notifications-unread]")).toHaveText("0");
-  await page.locator('[data-notification-filter="unread"]').click();
+  await page.locator("#notifications-filter-select").selectOption("unread");
   await expect(page.locator("#notifications-list .notifications-empty")).toBeVisible();
   await expect(page.locator("#notifications-list .notification-empty-state__icon")).toBeVisible();
   await expect(page.locator("#notifications-mark-all-read")).toBeHidden();
@@ -5446,6 +5442,12 @@ test("Detaildrawer schliesst beim Wechsel zwischen Hauptbereichen", async ({ pag
     await page.locator("#person-profile-body [data-person-profile-back]").click();
   }
   await openMobileSidebarIfNeeded(page);
+  if (!isMobile) {
+    const target = await page.locator('[data-view-tab="organizations"]').boundingBox();
+    await page.mouse.click(target.x + target.width / 2, target.y + target.height / 2);
+    await expect(page.locator("#detail-drawer")).not.toHaveClass(/is-open/);
+    await expect(page).toHaveURL(/#contacts$/);
+  }
   await page.locator('[data-view-tab="organizations"]').click();
   await expect(page.locator("#detail-drawer")).toHaveAttribute("aria-hidden", "true");
   await expect(page.locator("#detail-drawer")).not.toHaveClass(/is-open/);
@@ -5460,6 +5462,10 @@ test("Detaildrawer schliesst beim Wechsel zwischen Hauptbereichen", async ({ pag
     await page.locator("#organization-profile-body [data-organization-profile-back]").click();
   } else {
     await expect(page.locator("#detail-drawer.is-open")).toBeVisible();
+    const target = await page.locator('[data-view-tab="contacts"]').boundingBox();
+    await page.mouse.click(target.x + target.width / 2, target.y + target.height / 2);
+    await expect(page.locator("#detail-drawer")).not.toHaveClass(/is-open/);
+    await expect(page).toHaveURL(/#organizations$/);
     await page.locator('[data-view-tab="contacts"]').click();
   }
   await expect(page.locator("#detail-drawer")).toHaveAttribute("aria-hidden", "true");
@@ -6966,17 +6972,17 @@ test("Rollen: Admin sieht Import und Archiv", async ({ page }, testInfo) => {
   await attachScreenshot(page, testInfo, "admin-rolle");
 });
 
-test("Sidebar: Team und Profil bleiben bei kurzer Höhe erreichbar", async ({ page }, testInfo) => {
+test("Sidebar: Konto und Profilreiter Teams bleiben bei kurzer Höhe erreichbar", async ({ page }, testInfo) => {
   const isMobile = testInfo.project.name.includes("mobile");
   await page.setViewportSize(isMobile
     ? { width: 390, height: 460 }
     : { width: 1440, height: 460 });
-  await gotoAuthenticated(page, "/frontend/app/versorgungs-kompass.html", { role: "admin" });
+  await gotoAuthenticated(page, "/frontend/app/versorgungs-kompass.html#contacts", { role: "admin" });
 
   const sidebar = page.locator(".app-sidebar");
   const sidebarNav = page.locator(".sidebar-nav");
   const accountSection = page.locator(".sidebar-account-section");
-  const collapseButton = page.locator("#sidebar-collapse-button");
+  const collapseButton = page.locator(isMobile ? "#sidebar-collapse-button" : "#sidebar-resize-handle");
   await expect(sidebar).toBeVisible();
 
   if (isMobile) {
@@ -6992,6 +6998,8 @@ test("Sidebar: Team und Profil bleiben bei kurzer Höhe erreichbar", async ({ pa
     expect(mobileScrollMetrics.scrollHeight).toBeGreaterThan(mobileScrollMetrics.clientHeight);
     await expect(accountSection).toBeInViewport();
   } else {
+    await collapseButton.click();
+    await expect(page.locator(".app-shell")).toHaveClass(/is-sidebar-collapsed/);
     const scrollMetrics = await sidebarNav.evaluate((element) => {
       element.scrollTop = 0;
       const scrollHeight = element.scrollHeight;
@@ -7012,16 +7020,17 @@ test("Sidebar: Team und Profil bleiben bei kurzer Höhe erreichbar", async ({ pa
     await expect(collapseButton).toBeInViewport();
   }
 
+  await expect(page.locator("#sidebar-account-label")).toHaveText("Konto");
   await expect(page.locator("#sidebar-profile-button")).toBeInViewport();
   await page.locator("#sidebar-profile-button").click();
   await expect(page.locator('[data-view-panel="profile"]')).toBeVisible();
 
-  if (isMobile) {
-    await page.locator("#sidebar-collapse-button").click();
-  }
-  await expect(page.locator("#sidebar-team-button")).toBeInViewport();
-  await page.locator("#sidebar-team-button").click();
-  await expect(page.locator('[data-view-panel="team"]')).toBeVisible();
+  const teamTab = page.locator('[data-profile-tab="team"]');
+  await expect(teamTab).toBeInViewport();
+  await teamTab.click();
+  await expect(page.locator("#profile-tab-team")).toBeVisible();
+  await expect(teamTab).toHaveAttribute("aria-selected", "true");
+  await expect(page.locator("#sidebar-team-button")).toHaveCount(0);
 
   await attachScreenshot(page, testInfo, "sidebar-scroll");
 });
@@ -7037,8 +7046,8 @@ test("Mein Profil: Importe sind als eigener Admin-Reiter erreichbar", async ({ p
   await expect(page.locator('[data-settings-tab="registrations"]')).toHaveAttribute("aria-selected", "true");
   await expect(page.locator("#registrations-section")).toBeVisible();
   await expect(page.locator("#sidebar-import-button")).toHaveCount(0);
-  await expect(page.locator("#workspace-view-title")).toHaveText("Registrierungskonzept");
-  await expect(page).toHaveTitle("Registrierungskonzept · #Mitmachen");
+  await expect(page.locator("#workspace-view-title")).toHaveText("Registrierung");
+  await expect(page).toHaveTitle("Registrierung · #Mitmachen");
 
   await page.locator('[data-settings-tab="imports"]').click();
   await expect(page).toHaveURL(/#profile-imports:imports$/);
@@ -7136,12 +7145,14 @@ test("Sidebar: Über die App ist über den App-Bereich und die bestehende URL er
   await expect(profileButton).toHaveAttribute("aria-current", "page");
 });
 
-test("Mein Profil: Changelog ist als Profil-Reiter erreichbar", async ({ page }, testInfo) => {
+test("App: Changelog bleibt über seinen bisherigen Direktlink als Overlay erreichbar", async ({ page }, testInfo) => {
   await gotoAuthenticated(page, "/frontend/app/versorgungs-kompass.html#profile-changelog", { role: "admin" });
 
-  await expect(page.locator('[data-view-panel="profile"]')).toBeVisible();
-  await expect(page.locator('[data-profile-tab="changelog"]')).toHaveAttribute("aria-selected", "true");
-  await expect(page.locator("#profile-tab-changelog")).toBeVisible();
+  const overlay = page.locator("#app-changelog");
+  await expect(overlay.getByRole("dialog", { name: "Changelog", exact: true })).toBeVisible();
+  await expect(page.locator('[data-profile-tab="changelog"]')).toHaveCount(0);
+  await expect(page.locator("#profile-tab-changelog")).toHaveCount(0);
+  await expect(page.locator(".app-shell")).toHaveAttribute("data-active-view", "home");
   const latestRelease = page.locator("#about-version-list .about-version").first();
   await expect(latestRelease).toBeVisible();
   const productVersion = JSON.parse(readFileSync(new URL("../config/release.json", import.meta.url), "utf8")).productVersion;
@@ -7154,7 +7165,10 @@ test("Mein Profil: Changelog ist als Profil-Reiter erreichbar", async ({ page },
   await latestRelease.locator("summary").click();
   await expect(latestRelease.locator(".about-version__body")).toContainText("Was sich für Anwender geändert hat");
 
-  await attachScreenshot(page, testInfo, "profil-changelog");
+  await attachScreenshot(page, testInfo, "app-changelog");
+  await page.keyboard.press("Escape");
+  await expect(overlay).toBeHidden();
+  await expect(page.locator('[data-view-panel="home"]')).toBeVisible();
 });
 
 test("Hospitation: kompatible Planungsroute bleibt erhalten", async ({ page }) => {
@@ -7341,6 +7355,12 @@ test("Produkttour: Admin-Schritte bleiben sichtbar und bedienbar", async ({ page
       await expectTourTargetDescribed(page, expectedIds[index]);
     }
 
+    if (expectedIds[index] === "team") {
+      await expect(page.locator('[data-view-panel="profile"]')).toBeVisible();
+      await expect(page.locator('[data-profile-tab="team"]')).toHaveAttribute("aria-selected", "true");
+      await expect(page.locator("#profile-tab-team .team-metrics")).toBeVisible();
+    }
+
     if (title === "Deutschlandkarte: Versorgung regional verstehen") {
       await expect(page.locator('[data-view-panel="map"]')).toBeVisible();
       await expect(page.frameLocator("#map-view-frame").locator("#map")).toBeVisible();
@@ -7459,6 +7479,9 @@ test("Produkttour: alle Schritte bleiben bei 320 px, Tablet und Desktop kollisio
       if (viewport.width === 320 && ["team", "map", "contacts-table", "hospitation-framework", "format-detail"].includes(stepId)) {
         await attachScreenshot(page, testInfo, `product-tour-${stepId}-320`, { fullPage: false });
       }
+      if (viewport.width === 768 && stepId === "sidebar-orientation") {
+        await attachScreenshot(page, testInfo, "product-tour-sidebar-768", { fullPage: false });
+      }
       await page.locator("#product-tour-next").click();
     }
     await expect(page.locator("#product-tour")).toBeHidden();
@@ -7493,7 +7516,7 @@ test("Produkttour: fehlendes und verspätet geladenes Ziel werden robust behande
   await expect(page.locator('[data-view-panel="profile"]')).toBeVisible();
 });
 
-test("Produkttour: geöffnetes Kontaktprofil, Reiter und Scrollposition werden wiederhergestellt", async ({ page }, testInfo) => {
+test("Produkttour: programmgesteuerter Start stellt geöffnetes Kontaktprofil, Reiter und Scrollposition wieder her", async ({ page }, testInfo) => {
   test.skip(testInfo.project.name.includes("mobile"), "Mobile Kontakte öffnen als eigene Profilseite statt im Drawer.");
   await page.setViewportSize({ width: 1440, height: 760 });
   await gotoAuthenticated(page, "/frontend/app/versorgungs-kompass.html#contacts", { role: "editor" });
@@ -7507,7 +7530,8 @@ test("Produkttour: geöffnetes Kontaktprofil, Reiter und Scrollposition werden w
     return panel.scrollTop;
   });
 
-  await page.locator("#sidebar-tour-button").click({ force: true });
+  // Der echte Außenklick schließt den Drawer. Dieser Start prüft gezielt die interne Zustandswiederherstellung.
+  await page.locator("#sidebar-tour-button").dispatchEvent("click");
   await expect(page.locator("#product-tour")).toHaveAttribute("data-tour-step-id", "map");
   await expect(page.locator("#detail-drawer")).not.toHaveClass(/is-open/);
   await page.locator("#product-tour-skip").click();
@@ -7545,19 +7569,33 @@ test("Importe: Registrierungs-Inbox rendert Backend-Eingaenge", async ({ page },
 
   await expect(page.locator('[data-view-panel="profile"]')).toBeVisible();
   await expect(page.locator('[data-profile-tab="imports"]')).toHaveAttribute("aria-selected", "true");
-  await expect(page.locator("#workspace-view-title")).toHaveText("Registrierungskonzept");
-  await expect(page.locator('[data-settings-tab="registrations"]')).toHaveText("Registrierungskonzept");
+  await expect(page.locator("#workspace-view-title")).toHaveText("Registrierung");
+  await expect(page.locator('[data-settings-tab="registrations"]')).toHaveText("Registrierung");
   await expect(page.locator('[data-settings-tab="imports"]')).toHaveText("Dateiimport");
   await expect(page.locator('[data-settings-tab="onlineEntry"]')).toHaveText("Online-Erfassung");
   await expect(page.locator('[data-settings-tab="registrations"]')).toHaveAttribute("aria-selected", "true");
-  await expect(page.locator(".registration-page-head")).toContainText("Registrierungsszenario");
-  await expect(page.locator(".registration-page-head")).toContainText("später freigegebenen gematik-Prozess");
+  await expect(page.locator(".registration-page-head h3")).toHaveCount(0);
+  await expect(page.locator("h1:visible")).toHaveCount(1);
+  await expect(page.locator("#workspace-view-title")).toHaveText("Registrierung");
+  await expect(page.locator(".registration-page-head .registration-page-kicker")).toHaveCount(0);
   await expect(page.locator(".registration-process-flow li")).toHaveCount(5);
   await expect(page.locator(".registration-process-guide")).toContainText("Double-Opt-in");
-  await expect(page.locator("#registration-metric-new")).toHaveText("2");
-  await expect(page.locator("#registrations-status-filter")).toHaveValue("open");
+  await expect(page.locator("#registration-process-details")).not.toHaveAttribute("open");
+  await expect(page.locator("#registrations-search")).toHaveCount(0);
+  await expect(page.locator("#registrations-summary")).toHaveText("2 Registrierungen");
+  await expect(page.locator(".registration-page-head")).toHaveCount(0);
+  const processBelowList = await page.locator("#registration-process-details").evaluate((process) =>
+    Boolean(document.querySelector("#registrations-list").compareDocumentPosition(process) & Node.DOCUMENT_POSITION_FOLLOWING)
+  );
+  expect(processBelowList).toBe(true);
+  await expect(page.locator("#registrations-status-filter")).toHaveValue("all");
   await expect(page.locator("#registrations-section")).toBeVisible();
   await expect(page.locator("#registrations-list .registration-row").first()).toBeVisible();
+  await expect(page.locator("#registrations-list .registration-table-head > div")).toHaveCount(3);
+  await expect(page.locator("#registrations-list .registration-row").first().locator(":scope > *")).toHaveCount(3);
+  await expect(page.locator("#registrations-list .avatar")).toHaveCount(0);
+  await expect(page.locator("#registrations-list .registration-row").first()).not.toContainText("Profil vollständig");
+  await expect(page.locator("#registrations-list .registration-row").first()).not.toContainText("#Mitmachen");
   await expect(page.locator("#registrations-list [data-registration-preview]").first()).toBeVisible();
   await expect(page.locator("#registrations-reset-demo")).toBeHidden();
   await page.locator("[data-registration-preview]").first().click();
@@ -7579,6 +7617,47 @@ test("Importe: Registrierungs-Inbox rendert Backend-Eingaenge", async ({ page },
   await expect(page.locator(".detail-section-title", { hasText: "Notizen" })).toBeVisible();
 
   await attachScreenshot(page, testInfo, "registrierungen");
+});
+
+test("Importe: Statusauswahl bleibt bei leerer Registrierungsliste vollständig bedienbar", async ({ page }) => {
+  const backendFixture = createProtectedBackendFixture({ role: "admin", registrations: [] });
+  await page.setViewportSize({ width: page.viewportSize()?.width || 1440, height: 560 });
+  await gotoAuthenticated(page, "/frontend/app/versorgungs-kompass.html#registrations", { role: "admin", backendFixture });
+  await expect(page.locator("#registrations-list .registration-row")).toHaveCount(0);
+  await expect(page.locator("#registrations-summary")).toHaveText("0 Registrierungen");
+  const filterBarHeight = await page.locator(".registrations-overview-row").evaluate((element) => element.getBoundingClientRect().height);
+  expect(filterBarHeight).toBeLessThan(180);
+  const shell = page.locator(".registrations-status-filter [data-custom-select]");
+  const trigger = shell.locator(".custom-select-trigger");
+  await trigger.click();
+  const panel = shell.locator(".custom-select-panel");
+  await expect(panel).toBeVisible();
+  const lastOption = panel.locator(".custom-select-option").last();
+  await lastOption.scrollIntoViewIfNeeded();
+  const bounds = await panel.evaluate((element) => {
+    const rect = element.getBoundingClientRect();
+    const option = element.querySelector(".custom-select-option:last-child");
+    const target = option.getBoundingClientRect();
+    const topmost = document.elementFromPoint(target.left + target.width / 2, target.top + target.height / 2);
+    return {
+      top: rect.top,
+      bottom: rect.bottom,
+      viewportHeight: window.innerHeight,
+      lastOptionReceivesPointer: Boolean(topmost && option.contains(topmost))
+    };
+  });
+  expect(bounds.top).toBeGreaterThanOrEqual(0);
+  expect(bounds.bottom).toBeLessThanOrEqual(bounds.viewportHeight);
+  expect(bounds.lastOptionReceivesPointer).toBe(true);
+  await lastOption.click();
+  await expect(page.locator("#registrations-status-filter")).toHaveValue("widerrufen");
+  await expect(panel).toBeHidden();
+  await trigger.click();
+  await expect(panel).toBeVisible();
+  await page.keyboard.press("Escape");
+  await expect(panel).toBeHidden();
+  await expect(trigger).toBeFocused();
+  await expectNoHorizontalOverflow(page);
 });
 
 test("Importe: optionale #Mitmachen-Einwilligung wird strukturiert übernommen", async ({ page }) => {
@@ -7638,7 +7717,13 @@ test("Importe: geöffneter Registrierungs-Reiter aktualisiert neue geschützte A
   backendFixture.registrations.push(incoming);
   await page.locator("#registrations-refresh").click();
   await expect(page.locator("#registrations-list .registration-row")).toHaveCount(1);
-  await expect(page.locator("#registrations-list")).toContainText("Demo-Praxis Registrierung");
+  const incomingRow = page.locator("#registrations-list .registration-row").first();
+  await expect(incomingRow.locator(".registration-row__preview strong")).toHaveText([incoming.title, incoming.first_name, incoming.last_name].filter(Boolean).join(" "));
+  await expect(incomingRow).not.toContainText(incoming.organization);
+  await incomingRow.locator("[data-registration-preview]").last().click();
+  await expect(page.locator(".detail-panel--registration")).toBeVisible();
+  await page.locator('[data-registration-detail-tab="organization"]').click();
+  await expect(page.locator("#registration-organization")).toContainText(incoming.organization);
 });
 
 test("#Mitmachen-Registrierungsdemo erlaubt den inerten Ablauf ohne Beispielprofil", async ({ page }) => {
@@ -7663,6 +7748,7 @@ test("#Mitmachen-Registrierungsdemo erlaubt den inerten Ablauf ohne Beispielprof
 
 test("Importe: geschützte Registrierungen lassen sich zurückstellen", async ({ page }) => {
   await gotoAuthenticated(page, "/frontend/app/versorgungs-kompass.html#registrations", { role: "admin" });
+  await page.locator("#registrations-status-filter").selectOption("open");
 
   await expect(page.locator("#registrations-list .registration-row")).toHaveCount(2);
   await expect(page.locator("#registrations-reset-demo")).toBeHidden();
@@ -7995,7 +8081,7 @@ test("Stakeholder: Bereich ist im eigenen Sidebar-Abschnitt ohne obere Modus-Rei
 });
 
 test("Auswertung: Analytics-View rendern", async ({ page }, testInfo) => {
-  await gotoAuthenticated(page, "/frontend/app/versorgungs-kompass.html");
+  await gotoAuthenticated(page, "/frontend/app/versorgungs-kompass.html#contacts");
   await expect(page.locator(".app-shell")).not.toHaveClass(/is-initializing/);
 
   await expandSidebarSectionIfNeeded(page, "care");
@@ -8016,6 +8102,7 @@ test("Auswertung: Analytics-View rendern", async ({ page }, testInfo) => {
   await page.locator('#analytics-mode-actions [data-analytics-mode="quality"]').click();
   await expect(page.locator('[data-view-panel="quality"]')).toBeVisible();
   await expect(page.locator("#workspace-view-title")).toHaveText("Datenqualität");
+  await expect(page.locator('[data-view-panel="quality"]')).not.toContainText("Fehlende und unklare Angaben prüfen");
   await expect(page.locator("#workspace-view-subtitle")).toHaveText("Pflegehinweise, Datenlücken und konkrete Arbeitslisten.");
   await expect(page.locator('#analytics-mode-actions [data-analytics-mode="quality"]')).toHaveAttribute("aria-selected", "true");
   await expect(page.locator("#sidebar-analytics-button")).toHaveClass(/is-active/);

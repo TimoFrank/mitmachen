@@ -2273,7 +2273,7 @@
     searchQuery: "",
     sortKey: "updated_at",
     sortDirection: "desc",
-    pageSize: 20,
+    pageSize: 25,
     isDefault: index === 0,
     createdAt: now,
     updatedAt: now
@@ -2314,7 +2314,7 @@
       tableDensity: "comfortable",
       theme: "system",
       fontScale: 1,
-      pageSize: 20,
+      pageSize: 25,
       preferences: {
         favoriteContactIds: ["demo-contact-01", "demo-contact-04", "demo-contact-09"],
         onboarding: {
