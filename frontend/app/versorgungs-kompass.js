@@ -5825,6 +5825,21 @@
 
       const appVersionHistory = [
         {
+          version: "0.28.0",
+          date: "13. November 2026",
+          title: "Menschen und Versorgung im Blick",
+          icon: "start",
+          summary: "Kontakte, Organisationen und ihr regionaler Kontext werden noch leichter sichtbar. Das hilft #Mitmachen, Verbindungen zu stärken und nächste Schritte gezielt zu planen.",
+          items: [
+            "Hotfix v0.27.1: Vier direkte Kompasseinstiege, Sektoren als erste Kartenansicht und grüne Pins nach Bundeslandwahl",
+            "Demo-Änderungen im Changelog nachtragen (#304): Die Änderung macht den Bereich Versorgungs-Kompass klarer und leichter nutzbar. Die wichtigsten Schritte sind schneller nachvollziehbar. So bleibt mehr Zeit für die gemeinsame Arbeit im Versorgungsnetzwerk.",
+            "Demo-Navigation vereinfachen und Einstieg auf /demo umstellen (#303): Die Änderung macht den Bereich Versorgungs-Kompass klarer und leichter nutzbar. Die wichtigsten Schritte sind schneller nachvollziehbar. So bleibt mehr Zeit für die gemeinsame Arbeit im Versorgungsnetzwerk.",
+            "Navigation, Teams und Profil der Demo vereinfachen (#302): Die Änderung macht den Bereich Versorgungs-Kompass klarer und leichter nutzbar. Die wichtigsten Schritte sind schneller nachvollziehbar. So bleibt mehr Zeit für die gemeinsame Arbeit im Versorgungsnetzwerk.",
+            "Versorgungs-Kompass aus der Vorschau für die Demo übernehmen (#301): Die Änderung macht den Bereich Versorgungs-Kompass klarer und leichter nutzbar. Die wichtigsten Schritte sind schneller nachvollziehbar. So bleibt mehr Zeit für die gemeinsame Arbeit im Versorgungsnetzwerk.",
+            "Kartenframe im direkten Demo-Kanal erlauben (#300): Die Änderung macht den Bereich Karte klarer und leichter nutzbar. Die wichtigsten Schritte sind schneller nachvollziehbar. So bleibt mehr Zeit für die gemeinsame Arbeit im Versorgungsnetzwerk."
+          ]
+        },
+        {
           version: "0.27.0",
           date: "4. November 2026",
           title: "Übersicht und Navigation für alle vier Kompasse",
