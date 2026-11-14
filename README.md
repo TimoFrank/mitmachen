@@ -135,7 +135,7 @@ Der Quellcode und die technische Dokumentation stehen unter der [Apache License 
 
 ## Aktueller Release
 
-- Version: [v0.27.1](https://github.com/TimoFrank/mitmachen/releases/tag/v0.27.1)
-- Stand: 7. November 2026
-- Kurznotiz: Vier direkte Kompasseinstiege, Sektoren als erste Kartenansicht und grüne Pins nach Bundeslandwahl
+- Version: [v0.28.0](https://github.com/TimoFrank/mitmachen/releases/tag/v0.28.0)
+- Stand: 13. November 2026
+- Kurznotiz: Menschen und Versorgung im Blick
 - Demo-Kanal: [GitHub Pages](https://timofrank.github.io/mitmachen/)
