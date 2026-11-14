@@ -18,6 +18,8 @@
 > [!IMPORTANT]
 > Diese öffentliche Demo arbeitet mit fiktiven Daten. Verbindliche Informationen zu [#Mitmachen](https://www.gematik.de/mitmachen) und dem [Versorgungs-Netzwerk](https://www.gematik.de/mitmachen/versorgungs-netzwerk) stehen auf gematik.de.
 
+**[Kurzanleitung als PDF](dokumentation/nutzung/Nutzerhandbuch.pdf)** und [bearbeitbare Word-Fassung](dokumentation/nutzung/Nutzerhandbuch.docx). Die gematik-Fassung erklärt Versorgungs-Kompass und Hospitations-Kompass auf 15 Seiten. Stand 14. November 2026, Fassung 6.
+
 ## Vier Kompasse
 
 <table>

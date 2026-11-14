@@ -2,6 +2,10 @@
 
 Die Dokumentation ist nach Zweck gegliedert. Führende Frontend-Quellen liegen unter [`frontend/`](../frontend/); generierte Buildausgaben sind keine Quellen.
 
+## Nutzung
+
+- [Aktuelle Kurzanleitung](nutzung/README.md): bebilderte gematik-Fassung für Versorgungs-Kompass und Hospitations-Kompass als PDF und Word
+
 ## Privater Google-Betrieb
 
 - [Google-Betriebsplan](betrieb-und-deployment/GOOGLE_BETRIEBSPLAN.md): Entscheidung für Cloud Run und Firebase Hosting statt Einzelserver, Erhalt von Cloud SQL, Anmeldung und Sicherungen sowie offene Umsetzung und Umschaltung
