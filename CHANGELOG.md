@@ -14,6 +14,24 @@ Start, Karte, Listen und Kontobereiche sind übersichtlicher aufgebaut. Der Eint
 - **Kontakte und Organisationen:** Persönliche Favoriten, 25 Einträge pro Seite und eine Fußzeile direkt unter der letzten Zeile. Ein Außenklick schließt geöffnete Details.
 - **App-Informationen und Demo-Adresse:** Changelog und Über die App öffnen als Overlay. Die aktuelle Adresse ist /demo. /Demo leitet weiter.
 
+## Version 0.29 - Neues in Version 0.29
+
+20. November 2026
+
+Der Versorgungs-Kompass wird klarer, verlässlicher und leichter nutzbar. Die neuen Verbesserungen unterstützen das Netzwerk dabei, Wissen zu teilen und gemeinsam ins Handeln zu kommen.
+
+### Gemeinsame Linkvorschau für Hauptseite und Demo veröffentlichen (#311)
+
+Die Änderung macht den Bereich Versorgungs-Kompass klarer und leichter nutzbar. Die wichtigsten Schritte sind schneller nachvollziehbar. So bleibt mehr Zeit für die gemeinsame Arbeit im Versorgungsnetzwerk.
+
+### Demo-Link mit Teilen-Banner und Rundkompass ausstatten (#310)
+
+Die Änderung macht den Bereich Versorgungs-Kompass klarer und leichter nutzbar. Die wichtigsten Schritte sind schneller nachvollziehbar. So bleibt mehr Zeit für die gemeinsame Arbeit im Versorgungsnetzwerk.
+
+### Modulkreise der veröffentlichten Pages-Demo passend zur Version prüfen (#309)
+
+Die Änderung macht den Bereich Versorgungs-Kompass klarer und leichter nutzbar. Die wichtigsten Schritte sind schneller nachvollziehbar. So bleibt mehr Zeit für die gemeinsame Arbeit im Versorgungsnetzwerk.
+
 ## Version 0.28 - Vier Modulzeichen und die neue Kartenübersicht
 
 20. November 2026
