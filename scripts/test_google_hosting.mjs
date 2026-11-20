@@ -73,35 +73,35 @@ assert.deepEqual(demoHosting.redirects, ["/Demo", "/Demo/", "/demo/"].map(glob =
 })));
 assert.equal(demoHosting.redirects.some(rule => rule.glob === demoRoute), false);
 assert.deepEqual(demoHosting.rewrites.slice(1), services.hosting.rewrites);
-assert.deepEqual(demoHosting.headers.slice(2), services.hosting.headers);
+assert.deepEqual(demoHosting.headers[2], { glob: "/demo/manifest.webmanifest", headers: { "Content-Type": "application/manifest+json" } });
+assert.deepEqual(demoHosting.headers.slice(3), services.hosting.headers);
 assert.deepEqual(withDemoEntry(demoHosting), demoHosting);
 assert.throws(() => withDemoEntry({ rewrites: [{ glob: "/Demo", run: { serviceId: deployment.appService } }] }));
 const demoOrigin = "https://versorgungs-kompass-demo.web.app/";
 const previousDemoOrigin = "https://timofrank.github.io/mitmachen/";
-assert.ok(demoHosting.headers.slice(0, 2).every(rule =>
-  rule.headers["Content-Security-Policy"].includes(`frame-src ${demoOrigin}`)));
-const previousDemoHeaders = demoHosting.headers.slice(0, 2).map(rule => ({
-  ...rule,
-  headers: {
-    ...rule.headers,
-    "Content-Security-Policy": rule.headers["Content-Security-Policy"].replace(demoOrigin, previousDemoOrigin)
-  }
-}));
-assert.deepEqual(withDemoEntry({ ...demoHosting, headers: [...previousDemoHeaders, ...services.hosting.headers] }), demoHosting);
-assert.throws(() => withDemoEntry({
-  headers: [{ ...previousDemoHeaders[0], headers: { ...previousDemoHeaders[0].headers, "Referrer-Policy": "origin" } }]
-}), /bereits anders belegt/u);
+const entryPaths = [demoRoute, "/demo-entry.html"];
+const entryCsp = `default-src 'none'; style-src 'self'; img-src 'self'; manifest-src 'self'; frame-src ${demoOrigin}; base-uri 'none'; form-action 'none'; frame-ancestors 'none'`;
+assert.deepEqual(demoHosting.headers.slice(0, 2).map(rule => rule.glob), entryPaths);
+assert.ok(demoHosting.headers.slice(0, 2).every(rule => rule.headers["Content-Security-Policy"] === entryCsp));
 const retainedRedirect = { glob: "/hilfe", location: "/kontakt", statusCode: 302 };
 const expectedMigratedHosting = withDemoEntry({ ...services.hosting, redirects: [retainedRedirect] });
 for (const origin of [demoOrigin, previousDemoOrigin]) {
+  const previousDemoHeaders = entryPaths.map(glob => ({
+    glob,
+    headers: {
+      "Content-Security-Policy": `default-src 'none'; style-src 'self'; frame-src ${origin}; base-uri 'none'; form-action 'none'; frame-ancestors 'none'`,
+      "Referrer-Policy": "no-referrer",
+      "X-Frame-Options": "DENY"
+    }
+  }));
+  assert.deepEqual(withDemoEntry({ ...demoHosting, headers: [...previousDemoHeaders, ...services.hosting.headers] }), demoHosting);
   const legacyConfig = {
     ...services.hosting,
     redirects: ["/Demo/", "/demo", "/demo/"].map(glob => ({ glob, location: "/Demo", statusCode: 302 })).concat(retainedRedirect),
     rewrites: [{ glob: "/Demo", path: "/demo-entry.html" }, ...services.hosting.rewrites],
-    headers: demoHosting.headers.slice(0, 2).map(rule => ({
+    headers: previousDemoHeaders.map(rule => ({
       ...rule,
-      glob: rule.glob === demoRoute ? "/Demo" : rule.glob,
-      headers: { ...rule.headers, "Content-Security-Policy": rule.headers["Content-Security-Policy"].replace(demoOrigin, origin) }
+      glob: rule.glob === demoRoute ? "/Demo" : rule.glob
     })).concat(services.hosting.headers)
   };
   const unchangedLegacyConfig = structuredClone(legacyConfig);
@@ -115,9 +115,13 @@ for (const origin of [demoOrigin, previousDemoOrigin]) {
 for (const conflict of [
   { redirects: [{ glob: "/demo", location: "/anderes-ziel", statusCode: 302 }] },
   { redirects: [{ glob: "/Demo/", location: "/Demo", statusCode: 301 }] },
+  { redirects: [{ glob: "/demo/medien/teilen-v3.png", location: "/anderes-ziel", statusCode: 302 }] },
   { rewrites: [{ glob: "/demo", run: { serviceId: deployment.appService } }] },
   { rewrites: [{ glob: "/Demo/", run: { serviceId: deployment.appService } }] },
   { rewrites: [{ glob: "/demo/", run: { serviceId: deployment.appService } }] },
+  { rewrites: [{ glob: "/demo/manifest.webmanifest", run: { serviceId: deployment.appService } }] },
+  { headers: [{ ...demoHosting.headers[0], headers: { ...demoHosting.headers[0].headers, "Referrer-Policy": "origin" } }] },
+  { headers: [{ glob: "/demo/manifest.webmanifest", headers: { "Content-Type": "text/html" } }] },
   { headers: [{ ...demoHosting.headers[0], glob: "/Demo", headers: { ...demoHosting.headers[0].headers, "Referrer-Policy": "origin" } }] }
 ]) assert.throws(() => withDemoEntry(conflict), /bereits anders belegt/u);
 const testVersion = "sites/test-site/versions/test-version";
@@ -125,22 +129,58 @@ const hostingApiBase = "https://firebasehosting.googleapis.com/v1beta1";
 const testUpload = `https://upload-firebasehosting.googleapis.com/upload/${testVersion}/files`;
 const retainedPath = "/__/firebase/init.js";
 const retainedHash = "f".repeat(64);
-let uploaded = false;
-const demoEntryPath = demoAssetPaths[0];
+const demoEntryPath = "/demo-entry.html";
+const manifestPath = "/demo/manifest.webmanifest";
+const bannerPath = "/demo/medien/teilen-v3.png";
+const markPath = "/demo/medien/rundkompass.svg";
+const pngSizes = { "32": 32, "180": 180, "192": 192, "512": 512, "maskable-512": 512 };
+const pngPath = name => `/demo/medien/rundkompass-${name}.png`;
+assert.deepEqual(new Set(demoAssetPaths), new Set([
+  demoEntryPath, "/demo-entry.css", manifestPath, bannerPath, markPath, ...Object.keys(pngSizes).map(pngPath)
+]));
+const uploads = new Map();
+const pathsByHash = new Map();
 await uploadDemoEntry(async (url, options) => {
   if (url === `${hostingApiBase}/${testVersion}:populateFiles`) {
     assert.equal(options.body.files[retainedPath], retainedHash);
-    return { uploadUrl: testUpload, uploadRequiredHashes: [options.body.files[demoEntryPath]] };
+    for (const file of demoAssetPaths) pathsByHash.set(options.body.files[file], file);
+    return { uploadUrl: testUpload, uploadRequiredHashes: [...pathsByHash.keys()] };
   }
   assert.equal(options.binary, true);
-  assert.equal(url, `${testUpload}/${createHash("sha256").update(options.body).digest("hex")}`);
-  const html = gunzipSync(options.body).toString("utf8");
-  assert.match(html, /<iframe[^>]+src="https:\/\/versorgungs-kompass-demo\.web\.app\/"/u);
-  assert.match(html, /sandbox="[^"]*allow-same-origin/u);
-  assert.doesNotMatch(html, /allow-top-navigation|<style|<script\b/u);
-  uploaded = true;
+  const hash = createHash("sha256").update(options.body).digest("hex");
+  assert.equal(url, `${testUpload}/${hash}`);
+  uploads.set(pathsByHash.get(hash), gunzipSync(options.body));
 }, hostingApiBase, testVersion, { [retainedPath]: retainedHash });
-assert.ok(uploaded);
+assert.deepEqual(new Set(uploads.keys()), new Set(demoAssetPaths));
+const html = uploads.get(demoEntryPath).toString("utf8");
+assert.match(html, /<iframe[^>]+src="https:\/\/versorgungs-kompass-demo\.web\.app\/"/u);
+assert.match(html, /sandbox="[^"]*allow-same-origin/u);
+assert.doesNotMatch(html, /allow-top-navigation|<style|<script\b/u);
+const tags = Array.from(html.matchAll(/<(?:meta|link)\s+([^>]+)>/gu), ([, attributes]) =>
+  Object.fromEntries(Array.from(attributes.matchAll(/([\w:-]+)="([^"]*)"/gu), ([, key, value]) => [key, value])));
+const meta = key => tags.find(tag => tag.property === key || tag.name === key)?.content;
+const domain = "https://versorgungs-kompass.de";
+assert.equal(meta("og:url"), domain + demoRoute);
+assert.equal(meta("og:image"), domain + bannerPath);
+assert.equal(meta("twitter:image"), domain + bannerPath);
+assert.equal(meta("twitter:card"), "summary_large_image");
+for (const [rel, file] of [["manifest", manifestPath], ["icon", markPath], ["icon", pngPath("32")], ["apple-touch-icon", pngPath("180")]]) {
+  assert.ok(tags.some(tag => tag.rel === rel && new URL(tag.href, domain + demoRoute).href === domain + file), file);
+}
+const manifest = JSON.parse(uploads.get(manifestPath));
+assert.deepEqual([manifest.id, manifest.start_url, manifest.scope, manifest.display], [demoRoute, demoRoute, demoRoute, "standalone"]);
+for (const [name, purpose] of [["192", "any"], ["512", "any"], ["maskable-512", "maskable"]]) {
+  const size = pngSizes[name];
+  assert.ok(manifest.icons.some(icon => new URL(icon.src, domain + manifestPath).href === domain + pngPath(name)
+    && icon.sizes === `${size}x${size}` && (icon.purpose || "any") === purpose && icon.type === "image/png"), name);
+}
+for (const [name, size] of Object.entries(pngSizes)) {
+  const png = uploads.get(pngPath(name));
+  assert.equal(png.subarray(0, 8).toString("hex"), "89504e470d0a1a0a");
+  assert.deepEqual([png.readUInt32BE(16), png.readUInt32BE(20)], [size, size]);
+}
+assert.deepEqual(uploads.get(bannerPath), await readFile(new URL("../public/media/social/mitmachen-share-v3.png", import.meta.url)));
+assert.deepEqual(uploads.get(markPath), await readFile(new URL("../frontend/pages/brand/versorgungs-kompass/mark.svg", import.meta.url)));
 await assert.rejects(uploadDemoEntry(async (_url, options) => ({
   uploadUrl: "https://example.invalid/files", uploadRequiredHashes: [options.body.files[demoEntryPath]]
 }), hostingApiBase, testVersion), /unerwarteten Datei-Upload/u);

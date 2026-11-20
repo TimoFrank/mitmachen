@@ -4,7 +4,20 @@ import { isDeepStrictEqual } from "node:util";
 import { gzipSync } from "node:zlib";
 
 const demoEntryPath = "/demo-entry.html";
-export const demoAssetPaths = [demoEntryPath, "/demo-entry.css"];
+const demoManifestPath = "/demo/manifest.webmanifest";
+const demoAssetSources = {
+  [demoEntryPath]: "./demo-entry.html",
+  "/demo-entry.css": "./demo-entry.css",
+  [demoManifestPath]: "./demo-manifest.webmanifest",
+  "/demo/medien/teilen-v3.png": "../../public/media/social/mitmachen-share-v3.png",
+  "/demo/medien/rundkompass.svg": "../../frontend/pages/brand/versorgungs-kompass/mark.svg",
+  "/demo/medien/rundkompass-32.png": "./demo-icons/rundkompass-32.png",
+  "/demo/medien/rundkompass-180.png": "./demo-icons/rundkompass-180.png",
+  "/demo/medien/rundkompass-192.png": "./demo-icons/rundkompass-192.png",
+  "/demo/medien/rundkompass-512.png": "./demo-icons/rundkompass-512.png",
+  "/demo/medien/rundkompass-maskable-512.png": "./demo-icons/rundkompass-maskable-512.png"
+};
+export const demoAssetPaths = Object.keys(demoAssetSources);
 export const demoRoute = "/demo";
 const previousDemoRoute = "/Demo";
 const demoOrigin = "https://versorgungs-kompass-demo.web.app/";
@@ -13,16 +26,16 @@ const redirects = [previousDemoRoute, "/Demo/", "/demo/"].map(glob => ({ glob, l
 const previousRedirects = ["/Demo/", demoRoute, "/demo/"].map(glob => ({ glob, location: previousDemoRoute, statusCode: 302 }));
 const rewrite = { glob: demoRoute, path: demoEntryPath };
 const previousRewrite = { glob: previousDemoRoute, path: demoEntryPath };
-const assets = demoAssetPaths.map(path => {
-  const content = gzipSync(readFileSync(new URL(`.${path}`, import.meta.url)));
+const assets = Object.entries(demoAssetSources).map(([path, source]) => {
+  const content = gzipSync(readFileSync(new URL(source, import.meta.url)));
   const hash = createHash("sha256").update(content).digest("hex");
   return { path, content, hash };
 });
-function demoHeaders(origin, route = demoRoute) {
+function demoHeaders(origin, route, assetDirectives = "") {
   return [route, demoEntryPath].map(glob => ({
     glob,
     headers: {
-      "Content-Security-Policy": `default-src 'none'; style-src 'self'; frame-src ${origin}; base-uri 'none'; form-action 'none'; frame-ancestors 'none'`,
+      "Content-Security-Policy": `default-src 'none'; style-src 'self'; ${assetDirectives}frame-src ${origin}; base-uri 'none'; form-action 'none'; frame-ancestors 'none'`,
       "Referrer-Policy": "no-referrer",
       "X-Frame-Options": "DENY"
     }
@@ -42,10 +55,9 @@ function removeKnownRules(current = [], rules) {
 
 function addRules(current = [], rules, previousRules = []) {
   const additions = new Map(rules.map(rule => [rule.glob, rule]));
-  const previous = new Map(previousRules.map(rule => [rule.glob, rule]));
   for (const rule of current) {
     if (additions.has(rule.glob) && !isDeepStrictEqual(rule, additions.get(rule.glob))
-      && !isDeepStrictEqual(rule, previous.get(rule.glob))) {
+      && !previousRules.some(previous => isDeepStrictEqual(rule, previous))) {
       throw new Error(`Hosting-Regel für ${rule.glob} ist bereits anders belegt.`);
     }
   }
@@ -55,6 +67,9 @@ function addRules(current = [], rules, previousRules = []) {
 export function withDemoEntry(config) {
   const currentRedirects = removeKnownRules(config.redirects, previousRedirects.filter(rule => rule.glob === demoRoute));
   const currentRewrites = removeKnownRules(config.rewrites, [previousRewrite]);
+  for (const rule of [...currentRedirects, ...currentRewrites]) {
+    if (demoAssetPaths.includes(rule.glob)) throw new Error(`Hosting-Regel für ${rule.glob} ist bereits anders belegt.`);
+  }
   for (const rule of currentRewrites) {
     if (redirects.some(redirect => redirect.glob === rule.glob)) {
       throw new Error(`Hosting-Regel für ${rule.glob} ist bereits anders belegt.`);
@@ -64,11 +79,18 @@ export function withDemoEntry(config) {
     demoHeaders(demoOrigin, previousDemoRoute)[0],
     demoHeaders(previousDemoOrigin, previousDemoRoute)[0]
   ]);
+  const entryHeaders = [
+    ...demoHeaders(demoOrigin, demoRoute, "img-src 'self'; manifest-src 'self'; "),
+    { glob: demoManifestPath, headers: { "Content-Type": "application/manifest+json" } }
+  ];
   return {
     ...config,
     redirects: addRules(currentRedirects, redirects, previousRedirects),
     rewrites: addRules(currentRewrites, [rewrite]),
-    headers: addRules(currentHeaders, demoHeaders(demoOrigin), demoHeaders(previousDemoOrigin))
+    headers: addRules(currentHeaders, entryHeaders, [
+      ...demoHeaders(demoOrigin, demoRoute),
+      ...demoHeaders(previousDemoOrigin, demoRoute)
+    ])
   };
 }
 
