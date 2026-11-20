@@ -1,0 +1,75 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=1200, initial-scale=1">
+  <link rel="icon" href="data:,">
+  <title>Versorgungs-Kompass</title>
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      color: white;
+      font-family: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Arial, sans-serif;
+    }
+    main {
+      display: grid;
+      place-content: center;
+      width: 1200px;
+      height: 630px;
+      overflow: hidden;
+      background:
+        radial-gradient(ellipse 415px 398px at 77% 50%, #89afc9 0%, #6086a9 34%, rgb(42 75 117 / 75%) 66%, transparent 100%),
+        linear-gradient(116deg, #091950 5%, #142e60 57%, #24446c);
+    }
+    .composition {
+      display: grid;
+      grid-template-columns: 498px 215px;
+      align-items: center;
+      gap: 25px;
+    }
+    header {
+      display: flex;
+      align-items: center;
+      gap: 15px;
+      font-size: 29px;
+      font-weight: 600;
+    }
+    header img {
+      width: 54px;
+      height: 54px;
+      border-radius: 50%;
+      background: #dae6f3;
+    }
+    h1 {
+      margin: 45px 0 0;
+      font-size: 50px;
+      font-weight: 500;
+      line-height: 1.21;
+      letter-spacing: normal;
+      word-spacing: 1px;
+    }
+    h1 span { color: #00ff65; }
+    .map {
+      display: block;
+      width: 100%;
+      height: auto;
+      filter: drop-shadow(0 6px 8px rgb(5 22 63 / 18%));
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <div class="composition">
+      <div>
+        <header>
+          <img src="../../../frontend/pages/brand/versorgungs-kompass/mark.svg" alt="">
+          <span>Versorgungs-Kompass</span>
+        </header>
+        <h1>Gemeinsam mit der<br><span>Versorgung</span> arbeiten.</h1>
+      </div>
+      <img class="map" src="karte-deutschland-demo.png" alt="Deutschlandkarte mit fiktiven Kontaktorten">
+    </div>
+  </main>
+</body>
+</html>

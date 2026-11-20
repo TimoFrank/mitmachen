@@ -4,13 +4,15 @@ import crypto from "node:crypto";
 import vm from "node:vm";
 import { fileURLToPath } from "node:url";
 import { execFileSync } from "node:child_process";
+import { parseArgs } from "node:util";
 
 const root = fileURLToPath(new URL("../", import.meta.url));
-const output = path.join(root, "dist/google-hosting");
+const { values } = parseArgs({ options: { output: { type: "string", default: "dist/google-hosting" } } });
+const output = path.resolve(root, values.output);
 const origin = process.env.API_BASE_URL || "";
 const apiKey = process.env.IAP_EXTERNAL_AUTH_API_KEY || "";
 const projectId = process.env.IAP_GCIP_PROJECT_ID || "";
-execFileSync("bash", ["scripts/build_static_frontend.sh", "--profile", "target", "--output", "dist/google-hosting", "--api-base-url", origin, "--auth-mode", "iap", "--identity-platform-api-key", apiKey, "--identity-platform-project-id", projectId], {
+execFileSync("bash", ["scripts/build_static_frontend.sh", "--profile", "target", "--output", output, "--google-share-card", "--api-base-url", origin, "--auth-mode", "iap", "--identity-platform-api-key", apiKey, "--identity-platform-project-id", projectId], {
   cwd: root, stdio: "inherit", env: { ...process.env, IAP_IDENTITY_MODE: "external", IAP_EXTERNAL_LOGIN_PAGE_URI: `${origin}/anmelden` }
 });
 

@@ -41,8 +41,9 @@ Exporte, Bilder und alte Dienstkonfigurationen bleiben unverändert.
 ## Laufzeit und unveränderte Daten
 
 Firebase Hosting leitet die geschützte Anwendung weiter. Private Anwendungsdateien
-werden nicht auf das öffentliche CDN hochgeladen. Nur der öffentliche Einstieg
-unter `/demo` wird als statische Seite ausgeliefert. Der erste Cloud-Run-Dienst
+werden nicht auf das öffentliche CDN hochgeladen. Firebase liefert die öffentliche
+Startseite unter `/`, den Demo-Einstieg unter `/demo` und deren Medien statisch aus.
+Der erste Cloud-Run-Dienst
 liefert die Anwendung und API aus, der zweite nur den Passwortdienst. Beide
 starten ohne Mindestinstanzen, mit höchstens zwei Instanzen und
 anfragebezogener Abrechnung. Die bestehende zonale Cloud-SQL-Instanz bleibt
@@ -194,7 +195,14 @@ Dadurch kann dasselbe geprüfte Image von der Abnahme auf die Hauptdomain
 erhalten; vor DNS-Umschaltung ist auch deren reservierter `/__/auth`-Pfad
 auf Firebase Hosting zu prüfen.
 
-## Öffentlicher Einstieg unter /demo
+## Öffentliche Startseite und Demo-Einstieg
+
+Die exakte Adresse `/` verwendet die öffentliche Startseite aus
+`frontend/public-entry/` mit denselben Metadaten und demselben HTML wie der Google-Build.
+Firebase liefert sie auch unter `/public/medien/versorgungs-startseite.html`
+mit den Sicherheitsheadern der öffentlichen Startseite aus. Die Anmeldung,
+die Anwendungsrouten, `/index.html` und die API laufen weiterhin über Cloud Run.
+Beide öffentlichen Einstiege verwenden dieselbe versionierte Bildadresse für Linkvorschauen.
 
 `/demo` ist die kanonische Adresse. Die bisherigen Schreibweisen `/Demo`,
 `/Demo/` und `/demo/` leiten darauf um. Bei bestehenden Hostingversionen
@@ -221,7 +229,7 @@ Produktversion und GitHub Pages laufen nach dem separaten Produktrelease-Prozess
 Bei einem Fehler kann die in der Ausgabe genannte vorherige Version der
 Demo-Site über die Hosting-Konsole erneut aktiviert werden.
 
-Für eine Änderung ausschließlich am Einstieg gelten die Vollprüfung und die
+Für eine Änderung der öffentlichen Einstiege gelten die Vollprüfung und die
 Integration per Pull Request. Danach aus einem sauberen Checkout des aktuellen
 `origin/main` zuerst den Plan ausführen:
 
@@ -230,10 +238,14 @@ node deploy/google-hosting/publish-demo-entry.mjs <Projekt> <Site> <Live-Version
 ```
 
 Die Versions-ID stammt aus dem aktiven Firebase Hosting Release. Den geprüften
-Aufruf mit `--apply` wiederholen. Er vergleicht die neue Hostingversion mit dem
+Aufruf mit `--preview` auf einem einstündigen Vorschaukanal prüfen. Vor der
+ersten Übernahme von `/` den sichtbaren HTML-Inhalt und die Sicherheitsheader
+mit der bisherigen Hauptseite vergleichen. Im Vorschaukanal beide Titel, das Banner
+und die Weiterleitung von `/index.html` und `/start` zur Anmeldung prüfen. Erst
+danach denselben Aufruf mit `--apply` ausführen. Er vergleicht die neue Hostingversion mit dem
 Plan und bricht bei Änderungen an der aktiven Version oder einem abweichenden
 Dateibestand ab. Cloud Run, Datenbank, Identität und DNS brauchen dafür keinen
-Rollout. Anschließend `/demo` im Browser, die Erreichbarkeit der Demo-Site,
+Rollout. Anschließend `/` und `/demo` im Browser, die www-Weiterleitung, die Erreichbarkeit der Demo-Site,
 `/readyz` sowie die anonyme Zugriffssperre der Anwendung und der API prüfen.
 Bei einem Fehler in Firebase Hosting die zuvor aktive Version erneut freigeben.
 

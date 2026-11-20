@@ -31,7 +31,7 @@ if (!(await api(`${base}/${site}`, { allow404: true }))) {
 const version = await api(`${base}/sites/${config.siteId}/versions`, {
   method: "POST", body: { config: withDemoEntry(hosting), labels: { "source-sha": config.revision, "demo-entry-sha": config.revision } }
 });
-await uploadDemoEntry(api, base, version.name);
+await uploadDemoEntry(api, base, version.name, {}, config.origin);
 await api(`${base}/${version.name}?updateMask=status`, { method: "PATCH", body: { status: "FINALIZED" } });
 const release = await api(`${base}/sites/${config.siteId}/releases?versionName=${encodeURIComponent(version.name)}`, { method: "POST", body: { message: `Google Hosting ${config.revision}` } });
 console.log(JSON.stringify({ site: config.siteId, version: version.name, release: release.name, domainChanged: false }));
