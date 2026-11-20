@@ -5825,6 +5825,21 @@
 
       const appVersionHistory = [
         {
+          version: "0.28.0",
+          date: "20. November 2026",
+          title: "Vier Modulzeichen und die neue Kartenübersicht",
+          icon: "start",
+          summary: "Kontakte, Organisationen und ihr regionaler Kontext werden noch leichter sichtbar. Das hilft #Mitmachen, Verbindungen zu stärken und nächste Schritte gezielt zu planen.",
+          items: [
+            "Hotfix v0.27.1: Vier direkte Kompasseinstiege, Sektoren als erste Kartenansicht und grüne Pins nach Bundeslandwahl",
+            "Vier Modulzeichen und die volle Kontaktliste in der Pages-Demo zeigen (#308): Die Änderung macht den Bereich Kontakte klarer und leichter nutzbar. Die wichtigsten Schritte sind schneller nachvollziehbar. So bleibt mehr Zeit für die gemeinsame Arbeit im Versorgungsnetzwerk.",
+            "TYPO3-Konnektor aktualisieren und Pflichtprüfungen absichern (#307): Die Änderung macht den Bereich Versorgungs-Kompass klarer und leichter nutzbar. Die wichtigsten Schritte sind schneller nachvollziehbar. So bleibt mehr Zeit für die gemeinsame Arbeit im Versorgungsnetzwerk.",
+            "Kurzanleitung als PDF und Word verlinken (#306): Die Änderung macht den Bereich Versorgungs-Kompass klarer und leichter nutzbar. Die wichtigsten Schritte sind schneller nachvollziehbar. So bleibt mehr Zeit für die gemeinsame Arbeit im Versorgungsnetzwerk.",
+            "Demo-Änderungen im Changelog nachtragen (#304): Die Änderung macht den Bereich Versorgungs-Kompass klarer und leichter nutzbar. Die wichtigsten Schritte sind schneller nachvollziehbar. So bleibt mehr Zeit für die gemeinsame Arbeit im Versorgungsnetzwerk.",
+            "Demo-Navigation vereinfachen und Einstieg auf /demo umstellen (#303): Die Änderung macht den Bereich Versorgungs-Kompass klarer und leichter nutzbar. Die wichtigsten Schritte sind schneller nachvollziehbar. So bleibt mehr Zeit für die gemeinsame Arbeit im Versorgungsnetzwerk."
+          ]
+        },
+        {
           version: "0.27.0",
           date: "4. November 2026",
           title: "Übersicht und Navigation für alle vier Kompasse",
