@@ -10,6 +10,7 @@ PROFILE=""
 OUTPUT_ARG=""
 API_BASE_URL=""
 AUTH_MODE=""
+GOOGLE_SHARE_CARD=0
 IDENTITY_PLATFORM_API_KEY="${IDENTITY_PLATFORM_API_KEY:-${IAP_EXTERNAL_AUTH_API_KEY:-}}"
 IDENTITY_PLATFORM_PROJECT_ID="${IDENTITY_PLATFORM_PROJECT_ID:-${IAP_GCIP_PROJECT_ID:-}}"
 
@@ -22,7 +23,7 @@ Usage:
   bash scripts/build_static_frontend.sh --profile target --output dist/target \
     --api-base-url https://example.invalid --auth-mode iap \
     --identity-platform-api-key "$IDENTITY_PLATFORM_API_KEY" \
-    --identity-platform-project-id example-project
+    --identity-platform-project-id example-project [--google-share-card]
 
 Profiles:
   pages   Oeffentliche, anonyme Demo mit synthetischen Fachdaten und
@@ -58,6 +59,10 @@ while [ "$#" -gt 0 ]; do
       AUTH_MODE="$2"
       shift 2
       ;;
+    --google-share-card)
+      GOOGLE_SHARE_CARD=1
+      shift
+      ;;
     --identity-platform-api-key)
       [ "$#" -ge 2 ] || fail "--identity-platform-api-key benoetigt einen Wert."
       IDENTITY_PLATFORM_API_KEY="$2"
@@ -80,6 +85,9 @@ done
 
 [ "$PROFILE" = "pages" ] || [ "$PROFILE" = "target" ] || fail "--profile muss pages oder target sein."
 [ -n "$OUTPUT_ARG" ] || fail "--output fehlt."
+if [ "$GOOGLE_SHARE_CARD" = 1 ] && { [ "$PROFILE" != target ] || [ "$AUTH_MODE" != iap ]; }; then
+  fail "--google-share-card ist nur für den Google-Hosting-Build mit IAP zulässig."
+fi
 
 if [ "$PROFILE" = "pages" ]; then
   [ -z "$API_BASE_URL" ] || fail "--api-base-url ist nur fuer das target-Profil zulaessig."
@@ -702,7 +710,7 @@ build_target() {
   if [ "$AUTH_MODE" = "iap" ]; then
     build_identity_portal
   fi
-  cp "$FRONTEND_DIR/public-entry/index.html" "$STAGE_DIR/public-index.html"
+  node "$ROOT_DIR/scripts/render_public_entry.mjs" "$API_BASE_URL" "$GOOGLE_SHARE_CARD" > "$STAGE_DIR/public-index.html"
   cp "$FRONTEND_DIR/pages/mitmachen/index.html" "$STAGE_DIR/index.html"
   cp "$FRONTEND_DIR/login/login.html" "$STAGE_DIR/login.html"
   cp "$FRONTEND_DIR/login/login.css" "$STAGE_DIR/login.css"
@@ -764,6 +772,9 @@ build_target() {
   done
   cp "$ROOT_DIR/public/media/demo/mitmachen/versorgungs-netzwerk-concept.svg" "$STAGE_DIR/public/media/demo/mitmachen/versorgungs-netzwerk-concept.svg"
   cp "$ROOT_DIR/public/media/social/mitmachen-share-v3.png" "$STAGE_DIR/public/media/social/mitmachen-share-v3.png"
+  if [ "$GOOGLE_SHARE_CARD" = 1 ]; then
+    cp "$ROOT_DIR/deploy/google-hosting/share/versorgungs-kompass-v1.png" "$STAGE_DIR/public/media/social/versorgungs-kompass-v1.png"
+  fi
   cp "$ROOT_DIR/public/manifest.webmanifest" "$STAGE_DIR/manifest.webmanifest"
   for asset in mitmachen-hospitations-framework.docx mitmachen-hospitations-framework.pdf hospitations-framework-ausfuellbar.pdf; do
     if [ -f "$ROOT_DIR/public/hospitation/$asset" ]; then
@@ -778,111 +789,6 @@ build_target() {
   cp "$FRONTEND_DIR/map/data/state-polygons.js" "$STAGE_DIR/deutschlandkarte-project/data/state-polygons.js"
   cp "$FRONTEND_DIR/map/data/state-polygons-overview.js" "$STAGE_DIR/deutschlandkarte-project/data/state-polygons-overview.js"
   cp "$FRONTEND_DIR/map/data/constituency-polygons.js" "$STAGE_DIR/deutschlandkarte-project/data/constituency-polygons.js"
-
-  node - \
-    "$FRONTEND_DIR/public-entry/public-entry.css" \
-    "$STAGE_DIR/public-index.html" <<'NODE'
-const fs = require("node:fs");
-
-const [stylePath, ...documentPaths] = process.argv.slice(2);
-const style = fs.readFileSync(stylePath, "utf8").trim();
-const markerPattern = /<link rel="stylesheet" href="\.\/public-entry\.css" data-inline-public-styles\s*\/>/g;
-
-if (!style || /@import|url\s*\(/i.test(style) || /<\/style/i.test(style)) {
-  throw new Error("Public-Entry-Styles muessen eigenstaendig und sicher inline-faehig sein.");
-}
-
-for (const documentPath of documentPaths) {
-  const source = fs.readFileSync(documentPath, "utf8");
-  const markers = source.match(markerPattern) || [];
-  if (markers.length !== 1) {
-    throw new Error(`Public-Entry-Dokument erwartet genau einen Style-Marker: ${documentPath}`);
-  }
-  const rendered = source.replace(
-    markerPattern,
-    `<style data-public-entry-styles>\n${style}\n    </style>`
-  );
-  fs.writeFileSync(documentPath, rendered);
-}
-NODE
-
-  node - \
-    "$STAGE_DIR/public-index.html" \
-    "$API_BASE_URL" \
-    "$ROOT_DIR" <<'NODE'
-const fs = require("node:fs");
-const path = require("node:path");
-
-const [documentPath, targetBaseUrl, repositoryRoot] = process.argv.slice(2);
-const {
-  parseHtmlAttributes,
-  scanHtmlStartTags
-} = require(path.join(repositoryRoot, "scripts", "html_metadata_tags.cjs"));
-
-function escapeAttribute(value) {
-  return String(value)
-    .replaceAll("&", "&amp;")
-    .replaceAll('"', "&quot;")
-    .replaceAll("<", "&lt;")
-    .replaceAll(">", "&gt;");
-}
-
-function injectShareMetadata(html, metadata) {
-  const existingTags = scanHtmlStartTags(html, ["link", "meta"])
-    .map((tag) => parseHtmlAttributes(tag));
-  const unsafeTag = existingTags.find((parsed) =>
-    parsed.duplicateNames.length > 0 || parsed.structuralCharacterReferenceNames.length > 0
-  );
-  if (unsafeTag) {
-    throw new Error(`Target-Build fand mehrdeutige Share-Metadaten fuer ${metadata.url}.`);
-  }
-  const alreadyHasShareMetadata = existingTags.some((attributes) => {
-    attributes = attributes.values;
-    const rel = String(attributes.rel || "").toLowerCase().split(/\s+/);
-    const property = String(attributes.property || "").toLowerCase();
-    const name = String(attributes.name || "").toLowerCase();
-    return rel.includes("canonical") || property.startsWith("og:") || name.startsWith("twitter:");
-  });
-  if (alreadyHasShareMetadata) {
-    throw new Error(`Target-Build fand bereits Share-Metadaten fuer ${metadata.url}.`);
-  }
-
-  const tags = [
-    `<link rel="canonical" href="${escapeAttribute(metadata.url)}" />`,
-    '<meta property="og:type" content="website" />',
-    '<meta property="og:locale" content="de_DE" />',
-    '<meta property="og:site_name" content="#Mitmachen" />',
-    `<meta property="og:title" content="${escapeAttribute(metadata.title)}" />`,
-    `<meta property="og:description" content="${escapeAttribute(metadata.description)}" />`,
-    `<meta property="og:url" content="${escapeAttribute(metadata.url)}" />`,
-    `<meta property="og:image" content="${escapeAttribute(metadata.image)}" />`,
-    `<meta property="og:image:secure_url" content="${escapeAttribute(metadata.image)}" />`,
-    '<meta property="og:image:type" content="image/png" />',
-    '<meta property="og:image:width" content="1200" />',
-    '<meta property="og:image:height" content="630" />',
-    `<meta property="og:image:alt" content="${escapeAttribute(metadata.imageAlt)}" />`,
-    '<meta name="twitter:card" content="summary_large_image" />',
-    `<meta name="twitter:title" content="${escapeAttribute(metadata.title)}" />`,
-    `<meta name="twitter:description" content="${escapeAttribute(metadata.description)}" />`,
-    `<meta name="twitter:image" content="${escapeAttribute(metadata.image)}" />`,
-    `<meta name="twitter:image:alt" content="${escapeAttribute(metadata.imageAlt)}" />`
-  ];
-
-  return html.replace(/\s*<\/head>/, `\n    ${tags.join("\n    ")}\n  </head>`);
-}
-
-const shareUrl = `${targetBaseUrl}/`;
-const shareImage = `${targetBaseUrl}/public/media/social/mitmachen-share-v3.png`;
-const metadata = {
-  url: shareUrl,
-  title: "#Mitmachen",
-  description: "Deine Plattform für Austausch, Wissen und Vernetzung.",
-  image: shareImage,
-  imageAlt: "#Mitmachen Demo: Zusammenarbeit in der Versorgung auf einen Blick – zentriertes Banner auf dunkelblauem Hintergrund."
-};
-const source = fs.readFileSync(documentPath, "utf8");
-fs.writeFileSync(documentPath, injectShareMetadata(source, metadata));
-NODE
 
   perl -0pi -e 's#\.\./login/auth-#./auth-#g; s#\.\./map/versorgungs-kompass-#./versorgungs-kompass-#g; s#\.\./map/data/#./deutschlandkarte-project/data/#g; s#\.\./data/#./data/#g; s#\.\./vendor/#./vendor/#g; s#\.\./login/login\.html#./login.html#g' "$STAGE_DIR/versorgungs-kompass.html" "$STAGE_DIR/versorgungs-kompass.js"
   perl -0pi -e 's#\.\./\.\./public/#./public/#g' "$STAGE_DIR/versorgungs-kompass.js"

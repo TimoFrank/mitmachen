@@ -11,7 +11,8 @@ const publicFiles = new Map([
   ["/anmelden", "public/auth/index.html"],
   ["/konto/passwort-festlegen", "public/auth/konto/passwort-festlegen/index.html"],
   ...["portal-config.js", "assets/app.js", "assets/app.css", "assets/action.js", "assets/action.css", "brand/versorgungs-kompass.svg"].map((name) => [`/public/auth/${name}`, `public/auth/${name}`]),
-  ["/public/media/social/mitmachen-share-v3.png", "public/media/social/mitmachen-share-v3.png"]
+  ["/public/media/social/mitmachen-share-v3.png", "public/media/social/mitmachen-share-v3.png"],
+  ["/public/media/social/versorgungs-kompass-v1.png", "public/media/social/versorgungs-kompass-v1.png"]
 ]);
 const appRoutes = [
   /^\/administration\/nutzer\/?$/u,

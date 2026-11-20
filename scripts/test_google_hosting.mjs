@@ -1,12 +1,14 @@
 import assert from "node:assert/strict";
 import http from "node:http";
+import { execFileSync } from "node:child_process";
 import { once } from "node:events";
 import { createHash } from "node:crypto";
 import { gunzipSync } from "node:zlib";
 import { mkdtemp, mkdir, readFile, writeFile, rm, symlink } from "node:fs/promises";
 import vm from "node:vm";
-import os from "node:os";
+import { fileURLToPath } from "node:url";
 import path from "node:path";
+import { parseHtmlAttributes, scanHtmlStartTags } from "./html_metadata_tags.cjs";
 import { createGoogleStateStore } from "../api/google-state.mjs";
 import { createGoogleSessions, sessionCookie, assertGoogleBrowserMutation, assertGoogleHostingEnvironment } from "../api/google-session.mjs";
 import { createGoogleHostingHandler, safeReturnPath } from "../api/google-hosting.mjs";
@@ -66,15 +68,20 @@ assert.equal(services.app.spec.template.metadata.annotations["run.googleapis.com
 assert.equal(services.hosting.rewrites[0].run.serviceId, deployment.resetService);
 assert.equal(services.hosting.rewrites[1].run.serviceId, deployment.appService);
 const demoHosting = withDemoEntry(services.hosting);
+const rootEntryPath = "/public/medien/versorgungs-startseite.html";
 assert.equal(demoRoute, "/demo");
 assert.deepEqual(demoHosting.rewrites[0], { glob: "/demo", path: "/demo-entry.html" });
+assert.deepEqual(demoHosting.rewrites[1], { glob: "/", path: rootEntryPath });
 assert.deepEqual(demoHosting.redirects, ["/Demo", "/Demo/", "/demo/"].map(glob => ({
   glob, location: "/demo", statusCode: 302
 })));
 assert.equal(demoHosting.redirects.some(rule => rule.glob === demoRoute), false);
-assert.deepEqual(demoHosting.rewrites.slice(1), services.hosting.rewrites);
+assert.deepEqual(demoHosting.rewrites.slice(2), services.hosting.rewrites);
 assert.deepEqual(demoHosting.headers[2], { glob: "/demo/manifest.webmanifest", headers: { "Content-Type": "application/manifest+json" } });
-assert.deepEqual(demoHosting.headers.slice(3), services.hosting.headers);
+const rootHeaderRules = demoHosting.headers.slice(3, 5);
+assert.deepEqual(rootHeaderRules.map(rule => rule.glob), ["/", rootEntryPath]);
+assert.deepEqual(rootHeaderRules[0].headers, rootHeaderRules[1].headers);
+assert.deepEqual(demoHosting.headers.slice(5), services.hosting.headers);
 assert.deepEqual(withDemoEntry(demoHosting), demoHosting);
 assert.throws(() => withDemoEntry({ rewrites: [{ glob: "/Demo", run: { serviceId: deployment.appService } }] }));
 const demoOrigin = "https://versorgungs-kompass-demo.web.app/";
@@ -113,6 +120,12 @@ for (const origin of [demoOrigin, previousDemoOrigin]) {
   assert.equal(migratedHosting.headers.some(rule => rule.glob === "/Demo"), false);
 }
 for (const conflict of [
+  { redirects: [{ glob: "/", location: "/woanders", statusCode: 302 }] },
+  { redirects: [{ glob: rootEntryPath, location: "/woanders", statusCode: 302 }] },
+  { rewrites: [{ glob: "/", run: { serviceId: deployment.appService } }] },
+  { rewrites: [{ glob: rootEntryPath, path: "/woanders.html" }] },
+  { headers: [{ glob: "/", headers: { "Cache-Control": "public" } }] },
+  { headers: [{ glob: rootEntryPath, headers: { "Content-Security-Policy": "default-src *" } }] },
   { redirects: [{ glob: "/demo", location: "/anderes-ziel", statusCode: 302 }] },
   { redirects: [{ glob: "/Demo/", location: "/Demo", statusCode: 301 }] },
   { redirects: [{ glob: "/demo/medien/teilen-v3.png", location: "/anderes-ziel", statusCode: 302 }] },
@@ -131,13 +144,15 @@ const retainedPath = "/__/firebase/init.js";
 const retainedHash = "f".repeat(64);
 const demoEntryPath = "/demo-entry.html";
 const manifestPath = "/demo/manifest.webmanifest";
-const bannerPath = "/demo/medien/teilen-v3.png";
+const previousBannerPath = "/demo/medien/teilen-v3.png";
+const bannerPath = "/public/media/social/versorgungs-kompass-v1.png";
 const markPath = "/demo/medien/rundkompass.svg";
 const pngSizes = { "32": 32, "180": 180, "192": 192, "512": 512, "maskable-512": 512 };
 const pngPath = name => `/demo/medien/rundkompass-${name}.png`;
 assert.deepEqual(new Set(demoAssetPaths), new Set([
-  demoEntryPath, "/demo-entry.css", manifestPath, bannerPath, markPath, ...Object.keys(pngSizes).map(pngPath)
+  rootEntryPath, demoEntryPath, "/demo-entry.css", manifestPath, previousBannerPath, bannerPath, markPath, ...Object.keys(pngSizes).map(pngPath)
 ]));
+assert.equal(demoAssetPaths.includes("/index.html"), false);
 const uploads = new Map();
 const pathsByHash = new Map();
 await uploadDemoEntry(async (url, options) => {
@@ -150,7 +165,7 @@ await uploadDemoEntry(async (url, options) => {
   const hash = createHash("sha256").update(options.body).digest("hex");
   assert.equal(url, `${testUpload}/${hash}`);
   uploads.set(pathsByHash.get(hash), gunzipSync(options.body));
-}, hostingApiBase, testVersion, { [retainedPath]: retainedHash });
+}, hostingApiBase, testVersion, { [retainedPath]: retainedHash }, deployment.origin);
 assert.deepEqual(new Set(uploads.keys()), new Set(demoAssetPaths));
 const html = uploads.get(demoEntryPath).toString("utf8");
 assert.match(html, /<iframe[^>]+src="https:\/\/versorgungs-kompass-demo\.web\.app\/"/u);
@@ -160,9 +175,15 @@ const tags = Array.from(html.matchAll(/<(?:meta|link)\s+([^>]+)>/gu), ([, attrib
   Object.fromEntries(Array.from(attributes.matchAll(/([\w:-]+)="([^"]*)"/gu), ([, key, value]) => [key, value])));
 const meta = key => tags.find(tag => tag.property === key || tag.name === key)?.content;
 const domain = "https://versorgungs-kompass.de";
+const demoTitle = "Versorgungs-Kompass | Demo";
+assert.ok(html.includes(`<title>${demoTitle}</title>`));
+assert.equal(meta("og:title"), demoTitle);
+assert.equal(meta("twitter:title"), demoTitle);
 assert.equal(meta("og:url"), domain + demoRoute);
 assert.equal(meta("og:image"), domain + bannerPath);
 assert.equal(meta("twitter:image"), domain + bannerPath);
+assert.equal(meta("og:image:alt"), "Versorgungs-Kompass. Gemeinsam mit der Versorgung arbeiten. Rechts die Deutschlandkarte mit Kontaktorten.");
+assert.equal(meta("twitter:image:alt"), meta("og:image:alt"));
 assert.equal(meta("twitter:card"), "summary_large_image");
 for (const [rel, file] of [["manifest", manifestPath], ["icon", markPath], ["icon", pngPath("32")], ["apple-touch-icon", pngPath("180")]]) {
   assert.ok(tags.some(tag => tag.rel === rel && new URL(tag.href, domain + demoRoute).href === domain + file), file);
@@ -179,7 +200,11 @@ for (const [name, size] of Object.entries(pngSizes)) {
   assert.equal(png.subarray(0, 8).toString("hex"), "89504e470d0a1a0a");
   assert.deepEqual([png.readUInt32BE(16), png.readUInt32BE(20)], [size, size]);
 }
-assert.deepEqual(uploads.get(bannerPath), await readFile(new URL("../public/media/social/mitmachen-share-v3.png", import.meta.url)));
+assert.deepEqual(uploads.get(previousBannerPath), await readFile(new URL("../public/media/social/mitmachen-share-v3.png", import.meta.url)));
+const banner = uploads.get(bannerPath);
+assert.deepEqual(banner, await readFile(new URL("../deploy/google-hosting/share/versorgungs-kompass-v1.png", import.meta.url)));
+assert.equal(banner.subarray(0, 8).toString("hex"), "89504e470d0a1a0a");
+assert.deepEqual([banner.readUInt32BE(16), banner.readUInt32BE(20)], [1200, 630]);
 assert.deepEqual(uploads.get(markPath), await readFile(new URL("../frontend/pages/brand/versorgungs-kompass/mark.svg", import.meta.url)));
 await assert.rejects(uploadDemoEntry(async (_url, options) => ({
   uploadUrl: "https://example.invalid/files", uploadRequiredHashes: [options.body.files[demoEntryPath]]
@@ -306,7 +331,9 @@ await Promise.race([started, new Promise((_, reject) => setTimeout(() => reject(
 assert.equal(completed, false, "Cloud Run darf nicht vor Ende des Versands antworten.");
 finishDelivery(); await delivery; assert.equal(completed, true);
 
-const directory = await mkdtemp(path.join(os.tmpdir(), "vk-google-test-"));
+const dist = fileURLToPath(new URL("../dist/", import.meta.url));
+await mkdir(dist, { recursive: true });
+const directory = await mkdtemp(path.join(dist, ".google-hosting-test-"));
 const cartoBasemapApiKey = 'synthetic-key-";window.injected=true;//';
 assert.throws(() => createGoogleHostingHandler({ root: directory, origin: "https://example.invalid", cutoverMode: "open" }));
 const server = http.createServer(createGoogleHostingHandler({
@@ -315,18 +342,60 @@ const server = http.createServer(createGoogleHostingHandler({
   root: directory, origin: "https://example.invalid", cutoverMode: "open", cartoBasemapApiKey
 }));
 try {
-  await writeFile(path.join(directory, "public-index.html"), "public-entry");
+  execFileSync(process.execPath, [fileURLToPath(new URL("./build_google_hosting.mjs", import.meta.url)), "--output", directory], {
+    env: { ...process.env, ...env, API_BASE_URL: deployment.origin }
+  });
   await writeFile(path.join(directory, "versorgungs-kompass.html"), "protected-app");
   await writeFile(path.join(directory, "mac-sync.html"), "protected-mac-pairing");
-  await mkdir(path.join(directory, "data"));
   const runtimeFile = path.join(directory, "data/runtime-config.js");
   const originalRuntime = 'window.VERSORGUNGS_COMPASS_CONFIG = Object.freeze({dataMode:"api", requireApiGateway:true});';
   await writeFile(runtimeFile, originalRuntime);
   await symlink("/etc/passwd", path.join(directory, "escape.txt"));
   server.listen(0, "127.0.0.1"); await once(server, "listening");
   const base = `http://127.0.0.1:${server.address().port}`;
-  const publicResponse = await fetch(base); assert.equal(await publicResponse.text(), "public-entry");
+  const publicResponse = await fetch(base);
+  assert.equal(publicResponse.status, 200);
   assert.match(publicResponse.headers.get("cache-control"), /no-store/u);
+  const publicHtml = await publicResponse.text();
+  assert.equal(uploads.get(rootEntryPath).toString("utf8"), publicHtml);
+  const firebaseRootHeaders = new Headers(rootHeaderRules[0].headers);
+  assert.deepEqual([...firebaseRootHeaders.keys()], ["cache-control", "content-security-policy", "cross-origin-opener-policy",
+    "cross-origin-resource-policy", "permissions-policy", "referrer-policy", "strict-transport-security",
+    "vary", "x-content-type-options"]);
+  for (const [name, value] of firebaseRootHeaders) {
+    if (name === "vary") {
+      const tokens = publicResponse.headers.get(name).split(",").map(token => token.trim().toLowerCase());
+      const firebaseTokens = value.split(",").map(token => token.trim().toLowerCase());
+      assert.deepEqual(new Set(firebaseTokens), new Set([...tokens, "need-authorization", "x-fh-requested-host"]));
+    } else {
+      assert.equal(publicResponse.headers.get(name), value, name);
+    }
+  }
+  assert.match(publicHtml, /<title>Versorgungs-Kompass<\/title>/u);
+  assert.match(publicHtml, /<body data-public-entry="home">/u);
+  const rootTags = scanHtmlStartTags(publicHtml, ["meta", "link"]).map(tag => parseHtmlAttributes(tag).values);
+  const rootUrl = new URL("/", deployment.origin).href;
+  const imageUrl = new URL(bannerPath, deployment.origin).href;
+  assert.deepEqual(rootTags.filter(tag => tag.rel === "canonical").map(tag => tag.href), [rootUrl]);
+  for (const [key, expected] of Object.entries({
+    description: "Kontakte finden und Hospitationen planen.", "og:url": rootUrl,
+    "og:site_name": "Versorgungs-Kompass", "og:title": "Versorgungs-Kompass", "twitter:title": "Versorgungs-Kompass",
+    "og:description": "Kontakte finden und Hospitationen planen.", "twitter:description": "Kontakte finden und Hospitationen planen.",
+    "og:image": imageUrl, "og:image:secure_url": imageUrl, "twitter:image": imageUrl,
+    "og:image:alt": meta("og:image:alt"), "twitter:image:alt": meta("og:image:alt")
+  })) {
+    assert.deepEqual(rootTags.filter(tag => tag.name === key || tag.property === key).map(tag => tag.content), [expected], key);
+  }
+  const imageResponse = await fetch(base + bannerPath);
+  assert.equal(imageResponse.status, 200);
+  assert.equal(imageResponse.headers.get("content-type"), "image/png");
+  assert.deepEqual(Buffer.from(await imageResponse.arrayBuffer()), banner);
+  for (const route of ["/", bannerPath]) {
+    const head = await fetch(base + route, { method: "HEAD", redirect: "manual" });
+    assert.equal(head.status, 200);
+    assert.ok(Number(head.headers.get("content-length")) > 0);
+    assert.equal(await head.text(), "");
+  }
   const denied = await fetch(base + "/start", { redirect: "manual", headers: { "x-goog-iap-jwt-assertion": token, "x-auth-request-user": "admin" } });
   assert.equal(denied.status, 302);
   assert.match(denied.headers.get("location"), /^\/anmelden\?/u);
