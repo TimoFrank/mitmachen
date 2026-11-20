@@ -2133,6 +2133,7 @@ jobs:
                     | select(type == "string")
                   ];
                 matcher_names_for($canonical_host) as $canonical_matchers
+                | [.pathMatchers[]? | select(.name == $canonical_matchers[0])] as $canonical
                 | ($canonical_matchers | length) == 1
                 and (
                   [
@@ -2152,10 +2153,7 @@ jobs:
                   ]
                   | length
                 ) == 0
-                and (
-                  [.pathMatchers[]? | select(.name == $canonical_matchers[0])]
-                ) as $canonical
-                | ($canonical | length) == 1
+                and ($canonical | length) == 1
                 and exact_paths_for($canonical[0]; $public_suffix) == (
                   if $contract == "legacy"
                   then ["/", "/anmelden"]
@@ -2188,12 +2186,10 @@ jobs:
                     ) == 0
                   else
                     matcher_names_for($root_alias_host) as $alias_matchers
+                    | [.pathMatchers[]? | select(.name == $alias_matchers[0])] as $alias
                     | ($alias_matchers | length) == 1
                     and ($alias_matchers[0] != $canonical_matchers[0])
-                    and (
-                      [.pathMatchers[]? | select(.name == $alias_matchers[0])]
-                    ) as $alias
-                    | ($alias | length) == 1
+                    and ($alias | length) == 1
                     and exact_paths_for($alias[0]; $public_suffix) == ["/"]
                     and (prefix_paths_for($alias[0]; $public_suffix) | length) == 0
                     and (
@@ -2240,6 +2236,7 @@ jobs:
                   ]
                   | unique
                 ) as $canonical_matchers
+                | [.pathMatchers[]? | select(.name == $canonical_matchers[0])] as $canonical
                 | ($canonical_matchers | length) == 1
                 and (
                   [
@@ -2250,10 +2247,7 @@ jobs:
                   | unique
                   | sort
                 ) == [$canonical_host]
-                and (
-                  [.pathMatchers[]? | select(.name == $canonical_matchers[0])]
-                ) as $canonical
-                | ($canonical | length) == 1
+                and ($canonical | length) == 1
                 and (
                   [
                     .pathMatchers[]?
@@ -2709,11 +2703,9 @@ jobs:
                   ]
                   | unique
                 ) as $canonical_matchers
+                | [.pathMatchers[]? | select(.name == $canonical_matchers[0])] as $canonical
                 | ($canonical_matchers | length) == 1
-                and (
-                  [.pathMatchers[]? | select(.name == $canonical_matchers[0])]
-                ) as $canonical
-                | ($canonical | length) == 1
+                and ($canonical | length) == 1
                 and (
                   $canonical[0]
                   | service_refs($frontend_suffix)

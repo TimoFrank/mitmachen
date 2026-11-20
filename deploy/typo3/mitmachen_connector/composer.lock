@@ -65,15 +65,15 @@
             "name": "christian-riesen/base32",
             "version": "2.0.1",
             "source": {
-                "url": "https://github.com/ChristianRiesen/base32.git",
                 "type": "git",
+                "url": "https://github.com/ChristianRiesen/base32.git",
                 "reference": "be07b4a4a2d6056975934d71e111c64e7d8babf9"
             },
             "dist": {
-                "url": "https://api.github.com/repos/ChristianRiesen/base32/zipball/be07b4a4a2d6056975934d71e111c64e7d8babf9",
                 "type": "zip",
-                "shasum": "",
-                "reference": "be07b4a4a2d6056975934d71e111c64e7d8babf9"
+                "url": "https://api.github.com/repos/ChristianRiesen/base32/zipball/be07b4a4a2d6056975934d71e111c64e7d8babf9",
+                "reference": "be07b4a4a2d6056975934d71e111c64e7d8babf9",
+                "shasum": ""
             },
             "require": {
                 "php": "^8.1"
@@ -895,26 +895,28 @@
         },
         {
             "name": "guzzlehttp/guzzle",
-            "version": "7.15.2",
+            "version": "8.5.2",
             "source": {
                 "type": "git",
                 "url": "https://github.com/guzzle/guzzle.git",
-                "reference": "744101956d78b7c1384d0cbf379db13e859167bf"
+                "reference": "8e893188e1ac92b457eca35ddf2b574024b66280"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/guzzle/guzzle/zipball/744101956d78b7c1384d0cbf379db13e859167bf",
-                "reference": "744101956d78b7c1384d0cbf379db13e859167bf",
+                "url": "https://api.github.com/repos/guzzle/guzzle/zipball/8e893188e1ac92b457eca35ddf2b574024b66280",
+                "reference": "8e893188e1ac92b457eca35ddf2b574024b66280",
                 "shasum": ""
             },
             "require": {
                 "ext-json": "*",
-                "guzzlehttp/promises": "^2.5.1",
-                "guzzlehttp/psr7": "^2.13",
-                "php": "^7.2.5 || ^8.0",
+                "guzzlehttp/promises": "^3.1",
+                "guzzlehttp/psr7": "^3.4",
+                "php": "^7.4 || ^8.0",
                 "psr/http-client": "^1.0",
+                "psr/http-factory": "^1.0",
                 "symfony/deprecation-contracts": "^2.5 || ^3.0",
-                "symfony/polyfill-php80": "^1.25"
+                "symfony/polyfill-php80": "^1.25",
+                "symfony/polyfill-php82": "^1.27"
             },
             "provide": {
                 "psr/http-client-implementation": "1.0"
@@ -922,10 +924,10 @@
             "require-dev": {
                 "bamarni/composer-bin-plugin": "^1.8.2",
                 "ext-curl": "*",
-                "guzzle/client-integration-tests": "3.0.3",
-                "guzzlehttp/test-server": "^0.7",
+                "guzzle/client-integration-tests": "4.0.1",
+                "guzzlehttp/test-server": "^1.1",
                 "php-http/message-factory": "^1.1",
-                "phpunit/phpunit": "^8.5.52 || ^9.6.34",
+                "phpunit/phpunit": "^9.6.34",
                 "psr/log": "^1.1 || ^2.0 || ^3.0"
             },
             "suggest": {
@@ -941,9 +943,6 @@
                 }
             },
             "autoload": {
-                "files": [
-                    "src/functions_include.php"
-                ],
                 "psr-4": {
                     "GuzzleHttp\\": "src/"
                 }
@@ -1003,7 +1002,7 @@
             ],
             "support": {
                 "issues": "https://github.com/guzzle/guzzle/issues",
-                "source": "https://github.com/guzzle/guzzle/tree/7.15.2"
+                "source": "https://github.com/guzzle/guzzle/tree/8.5.2"
             },
             "funding": [
                 {
@@ -1019,29 +1018,29 @@
                     "type": "tidelift"
                 }
             ],
-            "time": "2026-07-26T23:23:20+00:00"
+            "time": "2026-11-17T16:24:00+00:00"
         },
         {
             "name": "guzzlehttp/promises",
-            "version": "2.5.1",
+            "version": "3.1.1",
             "source": {
                 "type": "git",
                 "url": "https://github.com/guzzle/promises.git",
-                "reference": "9ad1e4fc607446a055b95870c7f668e93b5cff29"
+                "reference": "863d10526fe8232e79a8005220472ea553fd0b82"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/guzzle/promises/zipball/9ad1e4fc607446a055b95870c7f668e93b5cff29",
-                "reference": "9ad1e4fc607446a055b95870c7f668e93b5cff29",
+                "url": "https://api.github.com/repos/guzzle/promises/zipball/863d10526fe8232e79a8005220472ea553fd0b82",
+                "reference": "863d10526fe8232e79a8005220472ea553fd0b82",
                 "shasum": ""
             },
             "require": {
-                "php": "^7.2.5 || ^8.0",
+                "php": "^7.4 || ^8.0",
                 "symfony/deprecation-contracts": "^2.5 || ^3.0"
             },
             "require-dev": {
                 "bamarni/composer-bin-plugin": "^1.8.2",
-                "phpunit/phpunit": "^8.5.52 || ^9.6.34"
+                "phpunit/phpunit": "^9.6.34"
             },
             "type": "library",
             "extra": {
@@ -1087,7 +1086,7 @@
             ],
             "support": {
                 "issues": "https://github.com/guzzle/promises/issues",
-                "source": "https://github.com/guzzle/promises/tree/2.5.1"
+                "source": "https://github.com/guzzle/promises/tree/3.1.1"
             },
             "funding": [
                 {
@@ -1103,41 +1102,43 @@
                     "type": "tidelift"
                 }
             ],
-            "time": "2026-07-08T15:48:39+00:00"
+            "time": "2026-11-20T00:03:31+00:00"
         },
         {
             "name": "guzzlehttp/psr7",
-            "version": "2.13.0",
+            "version": "3.5.1",
             "source": {
                 "type": "git",
                 "url": "https://github.com/guzzle/psr7.git",
-                "reference": "dad89620b7a6edb60c15858442eb2e408b45d8f4"
+                "reference": "ef2058cc884d864affa6ef7cd23a68d45e015c2f"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/guzzle/psr7/zipball/dad89620b7a6edb60c15858442eb2e408b45d8f4",
-                "reference": "dad89620b7a6edb60c15858442eb2e408b45d8f4",
+                "url": "https://api.github.com/repos/guzzle/psr7/zipball/ef2058cc884d864affa6ef7cd23a68d45e015c2f",
+                "reference": "ef2058cc884d864affa6ef7cd23a68d45e015c2f",
                 "shasum": ""
             },
             "require": {
-                "php": "^7.2.5 || ^8.0",
-                "psr/http-factory": "^1.0",
-                "psr/http-message": "^1.1 || ^2.0",
-                "ralouphie/getallheaders": "^3.0",
+                "php": "^7.4 || ^8.0",
+                "psr/http-factory": "^1.1",
+                "psr/http-message": "^2.0",
                 "symfony/deprecation-contracts": "^2.5 || ^3.0",
-                "symfony/polyfill-php80": "^1.25"
+                "symfony/polyfill-php80": "^1.25",
+                "symfony/polyfill-php82": "^1.27"
             },
             "provide": {
-                "psr/http-factory-implementation": "1.0",
-                "psr/http-message-implementation": "1.0"
+                "psr/http-factory-implementation": "1.1",
+                "psr/http-message-implementation": "2.0"
             },
             "require-dev": {
                 "bamarni/composer-bin-plugin": "^1.8.2",
                 "http-interop/http-factory-tests": "1.1.0",
                 "jshttp/mime-db": "1.54.0.1",
-                "phpunit/phpunit": "^8.5.52 || ^9.6.34"
+                "php-http/psr7-integration-tests": "^1.5.1",
+                "phpunit/phpunit": "^9.6.34"
             },
             "suggest": {
+                "ext-intl": "Convert internationalized hosts with Idna",
                 "laminas/laminas-httphandlerrunner": "Emit PSR-7 responses"
             },
             "type": "library",
@@ -1206,7 +1207,7 @@
             ],
             "support": {
                 "issues": "https://github.com/guzzle/psr7/issues",
-                "source": "https://github.com/guzzle/psr7/tree/2.13.0"
+                "source": "https://github.com/guzzle/psr7/tree/3.5.1"
             },
             "funding": [
                 {
@@ -1222,36 +1223,53 @@
                     "type": "tidelift"
                 }
             ],
-            "time": "2026-07-16T22:23:49+00:00"
+            "time": "2026-11-19T20:35:18+00:00"
         },
         {
             "name": "in2code/powermail",
             "version": "13.2.1",
             "source": {
-                "url": "https://github.com/in2code-de/powermail.git",
                 "type": "git",
+                "url": "https://github.com/in2code-de/powermail.git",
                 "reference": "4a16eb3c5fed6eac50eca2eb4610dcfe30cd82ac"
             },
             "dist": {
-                "url": "https://api.github.com/repos/in2code-de/powermail/zipball/4a16eb3c5fed6eac50eca2eb4610dcfe30cd82ac",
                 "type": "zip",
-                "shasum": "",
-                "reference": "4a16eb3c5fed6eac50eca2eb4610dcfe30cd82ac"
+                "url": "https://api.github.com/repos/in2code-de/powermail/zipball/4a16eb3c5fed6eac50eca2eb4610dcfe30cd82ac",
+                "reference": "4a16eb3c5fed6eac50eca2eb4610dcfe30cd82ac",
+                "shasum": ""
             },
             "require": {
-                "php": "^8.2",
-                "typo3/cms-core": "^13.4",
-                "ext-json": "*",
-                "ext-gd": "*",
-                "ext-fileinfo": "*",
                 "ext-curl": "*",
+                "ext-fileinfo": "*",
+                "ext-gd": "*",
+                "ext-json": "*",
+                "php": "^8.2",
                 "phpoffice/phpspreadsheet": "^5.0",
-                "symfony/rate-limiter": "^7.2"
+                "symfony/rate-limiter": "^7.2",
+                "typo3/cms-core": "^13.4"
             },
             "replace": {
                 "typo3-ter/powermail": "self.version"
             },
             "require-dev": {
+                "behat/behat": "^3.8",
+                "behat/mink-selenium2-driver": "^1.5",
+                "drevops/behat-screenshot": "^1.1",
+                "friends-of-behat/mink-browserkit-driver": "^1.5",
+                "friends-of-behat/mink-extension": "^2.5",
+                "friendsofphp/php-cs-fixer": "^3.10",
+                "helmich/typo3-typoscript-lint": "^3.1",
+                "mikey179/vfsstream": "^1.6",
+                "phpmd/phpmd": "^2.8",
+                "phpstan/phpstan": "^2.1",
+                "se/selenium-server-standalone": "^3.141",
+                "squizlabs/php_codesniffer": "^3.5",
+                "symfony/config": "^7.1",
+                "typo3/cms-adminpanel": "^13.4",
+                "typo3/cms-belog": "^13.4",
+                "typo3/cms-beuser": "^13.4",
+                "typo3/cms-dashboard": "^13.4",
                 "typo3/cms-extbase": "^13.4",
                 "typo3/cms-extensionmanager": "^13.4",
                 "typo3/cms-felogin": "^13.4",
@@ -1260,31 +1278,14 @@
                 "typo3/cms-frontend": "^13.4",
                 "typo3/cms-info": "^13.4",
                 "typo3/cms-install": "^13.4",
+                "typo3/cms-lowlevel": "^13.4",
                 "typo3/cms-recordlist": "^13.4",
                 "typo3/cms-rte-ckeditor": "^13.4",
                 "typo3/cms-scheduler": "^13.4",
                 "typo3/cms-setup": "^13.4",
                 "typo3/cms-t3editor": "^13.4",
                 "typo3/cms-tstemplate": "^13.4",
-                "typo3/cms-lowlevel": "^13.4",
-                "helmich/typo3-typoscript-lint": "^3.1",
-                "mikey179/vfsstream": "^1.6",
-                "friendsofphp/php-cs-fixer": "^3.10",
-                "squizlabs/php_codesniffer": "^3.5",
-                "phpmd/phpmd": "^2.8",
-                "behat/behat": "^3.8",
-                "se/selenium-server-standalone": "^3.141",
-                "symfony/config": "^7.1",
-                "friends-of-behat/mink-extension": "^2.5",
-                "behat/mink-selenium2-driver": "^1.5",
-                "typo3/cms-adminpanel": "^13.4",
-                "typo3/cms-belog": "^13.4",
-                "typo3/cms-beuser": "^13.4",
-                "typo3/cms-dashboard": "^13.4",
-                "friends-of-behat/mink-browserkit-driver": "^1.5",
-                "drevops/behat-screenshot": "^1.1",
-                "typo3/testing-framework": "^8.0",
-                "phpstan/phpstan": "^2.1"
+                "typo3/testing-framework": "^8.0"
             },
             "type": "typo3-cms-extension",
             "extra": {
@@ -1328,9 +1329,9 @@
             "homepage": "https://github.com/einpraegsam/powermail",
             "keywords": [
                 "form",
-                "typo3",
                 "mailform",
-                "spamprevention"
+                "spamprevention",
+                "typo3"
             ],
             "support": {
                 "issues": "https://github.com/in2code-de/powermail/issues",
@@ -1590,24 +1591,25 @@
         },
         {
             "name": "masterminds/html5",
-            "version": "2.10.1",
+            "version": "2.12.0",
             "source": {
                 "type": "git",
                 "url": "https://github.com/Masterminds/html5-php.git",
-                "reference": "fd5018f6815fff903946d0564977b44ce8010e29"
+                "reference": "15e16663bd6f512352209d0e3a789c0a691c0d9b"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/Masterminds/html5-php/zipball/fd5018f6815fff903946d0564977b44ce8010e29",
-                "reference": "fd5018f6815fff903946d0564977b44ce8010e29",
+                "url": "https://api.github.com/repos/Masterminds/html5-php/zipball/15e16663bd6f512352209d0e3a789c0a691c0d9b",
+                "reference": "15e16663bd6f512352209d0e3a789c0a691c0d9b",
                 "shasum": ""
             },
             "require": {
                 "ext-dom": "*",
-                "php": ">=5.3.0"
+                "ext-mbstring": "*",
+                "php": ">=7.4"
             },
             "require-dev": {
-                "phpunit/phpunit": "^4.8.35 || ^5.7.21 || ^6 || ^7 || ^8 || ^9 || ^10"
+                "phpunit/phpunit": "^6 || ^7 || ^8 || ^9 || ^10"
             },
             "type": "library",
             "extra": {
@@ -1651,9 +1653,9 @@
             ],
             "support": {
                 "issues": "https://github.com/Masterminds/html5-php/issues",
-                "source": "https://github.com/Masterminds/html5-php/tree/2.10.1"
+                "source": "https://github.com/Masterminds/html5-php/tree/2.12.0"
             },
-            "time": "2026-06-23T18:43:15+00:00"
+            "time": "2026-10-25T08:57:58+00:00"
         },
         {
             "name": "phpdocumentor/reflection-common",
@@ -2563,50 +2565,6 @@
             "time": "2021-10-29T13:26:27+00:00"
         },
         {
-            "name": "ralouphie/getallheaders",
-            "version": "3.0.3",
-            "source": {
-                "type": "git",
-                "url": "https://github.com/ralouphie/getallheaders.git",
-                "reference": "120b605dfeb996808c31b6477290a714d356e822"
-            },
-            "dist": {
-                "type": "zip",
-                "url": "https://api.github.com/repos/ralouphie/getallheaders/zipball/120b605dfeb996808c31b6477290a714d356e822",
-                "reference": "120b605dfeb996808c31b6477290a714d356e822",
-                "shasum": ""
-            },
-            "require": {
-                "php": ">=5.6"
-            },
-            "require-dev": {
-                "php-coveralls/php-coveralls": "^2.1",
-                "phpunit/phpunit": "^5 || ^6.5"
-            },
-            "type": "library",
-            "autoload": {
-                "files": [
-                    "src/getallheaders.php"
-                ]
-            },
-            "notification-url": "https://packagist.org/downloads/",
-            "license": [
-                "MIT"
-            ],
-            "authors": [
-                {
-                    "name": "Ralph Khattar",
-                    "email": "ralph.khattar@gmail.com"
-                }
-            ],
-            "description": "A polyfill for getallheaders.",
-            "support": {
-                "issues": "https://github.com/ralouphie/getallheaders/issues",
-                "source": "https://github.com/ralouphie/getallheaders/tree/develop"
-            },
-            "time": "2019-03-08T08:55:37+00:00"
-        },
-        {
             "name": "symfony/cache",
             "version": "v7.4.15",
             "source": {
@@ -3047,16 +3005,16 @@
         },
         {
             "name": "symfony/dependency-injection",
-            "version": "v7.4.15",
+            "version": "v7.4.23",
             "source": {
                 "type": "git",
                 "url": "https://github.com/symfony/dependency-injection.git",
-                "reference": "b7825671c553af46a98c744e23f37f972aee6427"
+                "reference": "4df0d83a8253d95b222c2f136b9dca3a1a9451a7"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/symfony/dependency-injection/zipball/b7825671c553af46a98c744e23f37f972aee6427",
-                "reference": "b7825671c553af46a98c744e23f37f972aee6427",
+                "url": "https://api.github.com/repos/symfony/dependency-injection/zipball/4df0d83a8253d95b222c2f136b9dca3a1a9451a7",
+                "reference": "4df0d83a8253d95b222c2f136b9dca3a1a9451a7",
                 "shasum": ""
             },
             "require": {
@@ -3107,7 +3065,7 @@
             "description": "Allows you to standardize and centralize the way objects are constructed in your application",
             "homepage": "https://symfony.com",
             "support": {
-                "source": "https://github.com/symfony/dependency-injection/tree/v7.4.15"
+                "source": "https://github.com/symfony/dependency-injection/tree/v7.4.23"
             },
             "funding": [
                 {
@@ -3127,7 +3085,7 @@
                     "type": "tidelift"
                 }
             ],
-            "time": "2026-07-22T08:40:50+00:00"
+            "time": "2026-11-01T17:38:00+00:00"
         },
         {
             "name": "symfony/deprecation-contracts",
@@ -4574,6 +4532,86 @@
             "time": "2026-04-10T16:19:22+00:00"
         },
         {
+            "name": "symfony/polyfill-php82",
+            "version": "v1.43.0",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/symfony/polyfill-php82.git",
+                "reference": "843bbe8b2a7934307b749751eede0f111f5d1cfc"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://api.github.com/repos/symfony/polyfill-php82/zipball/843bbe8b2a7934307b749751eede0f111f5d1cfc",
+                "reference": "843bbe8b2a7934307b749751eede0f111f5d1cfc",
+                "shasum": ""
+            },
+            "require": {
+                "php": ">=7.2"
+            },
+            "type": "library",
+            "extra": {
+                "thanks": {
+                    "url": "https://github.com/symfony/polyfill",
+                    "name": "symfony/polyfill"
+                }
+            },
+            "autoload": {
+                "files": [
+                    "bootstrap.php"
+                ],
+                "psr-4": {
+                    "Symfony\\Polyfill\\Php82\\": ""
+                },
+                "classmap": [
+                    "Resources/stubs"
+                ]
+            },
+            "notification-url": "https://packagist.org/downloads/",
+            "license": [
+                "MIT"
+            ],
+            "authors": [
+                {
+                    "name": "Nicolas Grekas",
+                    "email": "p@tchwork.com"
+                },
+                {
+                    "name": "Symfony Community",
+                    "homepage": "https://symfony.com/contributors"
+                }
+            ],
+            "description": "Symfony polyfill backporting some PHP 8.2+ features to lower PHP versions",
+            "homepage": "https://symfony.com",
+            "keywords": [
+                "compatibility",
+                "polyfill",
+                "portable",
+                "shim"
+            ],
+            "support": {
+                "source": "https://github.com/symfony/polyfill-php82/tree/v1.43.0"
+            },
+            "funding": [
+                {
+                    "url": "https://symfony.com/sponsor",
+                    "type": "custom"
+                },
+                {
+                    "url": "https://github.com/fabpot",
+                    "type": "github"
+                },
+                {
+                    "url": "https://github.com/nicolas-grekas",
+                    "type": "github"
+                },
+                {
+                    "url": "https://tidelift.com/funding/github/packagist/symfony/symfony",
+                    "type": "tidelift"
+                }
+            ],
+            "time": "2026-09-25T15:50:05+00:00"
+        },
+        {
             "name": "symfony/polyfill-php83",
             "version": "v1.41.0",
             "source": {
@@ -5044,16 +5082,16 @@
         },
         {
             "name": "symfony/property-info",
-            "version": "v7.4.15",
+            "version": "v7.4.23",
             "source": {
                 "type": "git",
                 "url": "https://github.com/symfony/property-info.git",
-                "reference": "fce3f4d9cfeb4ddc674c357b5a4c3a23ccf408ad"
+                "reference": "1eeaa666bcd1864b883b98cad9e5188064ddac26"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/symfony/property-info/zipball/fce3f4d9cfeb4ddc674c357b5a4c3a23ccf408ad",
-                "reference": "fce3f4d9cfeb4ddc674c357b5a4c3a23ccf408ad",
+                "url": "https://api.github.com/repos/symfony/property-info/zipball/1eeaa666bcd1864b883b98cad9e5188064ddac26",
+                "reference": "1eeaa666bcd1864b883b98cad9e5188064ddac26",
                 "shasum": ""
             },
             "require": {
@@ -5110,7 +5148,7 @@
                 "validator"
             ],
             "support": {
-                "source": "https://github.com/symfony/property-info/tree/v7.4.15"
+                "source": "https://github.com/symfony/property-info/tree/v7.4.23"
             },
             "funding": [
                 {
@@ -5130,7 +5168,7 @@
                     "type": "tidelift"
                 }
             ],
-            "time": "2026-07-28T07:09:44+00:00"
+            "time": "2026-11-02T10:56:49+00:00"
         },
         {
             "name": "symfony/rate-limiter",
@@ -5956,16 +5994,16 @@
         },
         {
             "name": "typo3/cms-core",
-            "version": "v13.4.37",
+            "version": "v13.4.40",
             "source": {
                 "type": "git",
                 "url": "https://github.com/TYPO3-CMS/core.git",
-                "reference": "a3435e1d44539cd9b5e8f78bb2df84d1e46d4339"
+                "reference": "7e187c168fb62037c2a7a965b5946743f2b9692c"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/TYPO3-CMS/core/zipball/a3435e1d44539cd9b5e8f78bb2df84d1e46d4339",
-                "reference": "a3435e1d44539cd9b5e8f78bb2df84d1e46d4339",
+                "url": "https://api.github.com/repos/TYPO3-CMS/core/zipball/7e187c168fb62037c2a7a965b5946743f2b9692c",
+                "reference": "7e187c168fb62037c2a7a965b5946743f2b9692c",
                 "shasum": ""
             },
             "require": {
@@ -5989,11 +6027,11 @@
                 "ext-tokenizer": "*",
                 "ext-xml": "*",
                 "firebase/php-jwt": "^6.10.2 || ^7.0.2",
-                "guzzlehttp/guzzle": "^7.15.2 || ^8.0",
-                "guzzlehttp/promises": "^2.0.3 || ^3.0",
-                "guzzlehttp/psr7": "^2.10.2 || ^3.0",
+                "guzzlehttp/guzzle": "^7.16.0 || ^8.3.0",
+                "guzzlehttp/promises": "^2.6.0 || ^3.1.0",
+                "guzzlehttp/psr7": "^2.13.1 || ^3.1.0",
                 "lolli42/finediff": "^1.1.1",
-                "masterminds/html5": "^2.10.0",
+                "masterminds/html5": "^2.11.0",
                 "php": "^8.2",
                 "psr/container": "^2.0",
                 "psr/event-dispatcher": "^1.0",
@@ -6003,31 +6041,31 @@
                 "psr/http-server-handler": "^1.0",
                 "psr/http-server-middleware": "^1.0",
                 "psr/log": "^3.0.1",
-                "symfony/config": "^7.4",
+                "symfony/config": "^7.4.23",
                 "symfony/console": "^7.4",
-                "symfony/dependency-injection": "^7.4",
+                "symfony/dependency-injection": "^7.4.17",
                 "symfony/doctrine-messenger": "^7.4",
                 "symfony/event-dispatcher-contracts": "^3.1",
                 "symfony/expression-language": "^7.4.21",
-                "symfony/filesystem": "^7.4",
+                "symfony/filesystem": "^7.4.23",
                 "symfony/finder": "^7.4",
-                "symfony/http-foundation": "^7.4.19",
+                "symfony/http-foundation": "^7.4.23",
                 "symfony/mailer": "^7.4.12",
                 "symfony/messenger": "^7.4",
-                "symfony/mime": "^7.4.12",
+                "symfony/mime": "^7.4.22",
                 "symfony/options-resolver": "^7.4",
                 "symfony/polyfill-php83": "^1.31",
                 "symfony/polyfill-php84": "^1.38",
                 "symfony/polyfill-php85": "^1.38",
                 "symfony/process": "^7.4",
                 "symfony/rate-limiter": "^7.4",
-                "symfony/routing": "^7.4.13",
+                "symfony/routing": "^7.4.23",
                 "symfony/uid": "^7.4",
-                "symfony/yaml": "^7.4.18",
+                "symfony/yaml": "^7.4.23",
                 "typo3/class-alias-loader": "^1.2",
                 "typo3/cms-cli": "^3.1.1",
                 "typo3/cms-composer-installers": "^5.0.2",
-                "typo3/html-sanitizer": "^2.3.2",
+                "typo3/html-sanitizer": "^2.4.0",
                 "typo3fluid/fluid": "^4.6.1"
             },
             "conflict": {
@@ -6100,30 +6138,30 @@
                 "issues": "https://forge.typo3.org",
                 "source": "https://github.com/typo3/typo3"
             },
-            "time": "2026-10-22T08:52:17+00:00"
+            "time": "2026-11-17T10:46:35+00:00"
         },
         {
             "name": "typo3/cms-extbase",
-            "version": "v13.4.37",
+            "version": "v13.4.40",
             "source": {
                 "type": "git",
                 "url": "https://github.com/TYPO3-CMS/extbase.git",
-                "reference": "6be4469f191381b479305d55fe0f304a26b5532b"
+                "reference": "791643714ba3ecb0004a6cfba622adc934ced688"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/TYPO3-CMS/extbase/zipball/6be4469f191381b479305d55fe0f304a26b5532b",
-                "reference": "6be4469f191381b479305d55fe0f304a26b5532b",
+                "url": "https://api.github.com/repos/TYPO3-CMS/extbase/zipball/791643714ba3ecb0004a6cfba622adc934ced688",
+                "reference": "791643714ba3ecb0004a6cfba622adc934ced688",
                 "shasum": ""
             },
             "require": {
                 "doctrine/instantiator": "^1.5 || ^2.0",
                 "phpdocumentor/reflection-docblock": "^5.6.5",
                 "phpdocumentor/type-resolver": "^1.8.2",
-                "symfony/dependency-injection": "^7.4",
+                "symfony/dependency-injection": "^7.4.17",
                 "symfony/property-access": "^7.4",
-                "symfony/property-info": "^7.4.15",
-                "typo3/cms-core": "13.4.37"
+                "symfony/property-info": "^7.4.23",
+                "typo3/cms-core": "13.4.40"
             },
             "conflict": {
                 "typo3/cms": "*"
@@ -6170,25 +6208,25 @@
                 "issues": "https://forge.typo3.org",
                 "source": "https://github.com/typo3/typo3"
             },
-            "time": "2026-10-22T08:52:17+00:00"
+            "time": "2026-11-17T10:46:35+00:00"
         },
         {
             "name": "typo3/html-sanitizer",
-            "version": "v2.3.2",
+            "version": "v2.4.0",
             "source": {
                 "type": "git",
                 "url": "https://github.com/TYPO3/html-sanitizer.git",
-                "reference": "8b5d0be44ded457ca993ec9ca93d859941c63764"
+                "reference": "f44e6cafa58404936bdfc00966367c629711bd55"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/TYPO3/html-sanitizer/zipball/8b5d0be44ded457ca993ec9ca93d859941c63764",
-                "reference": "8b5d0be44ded457ca993ec9ca93d859941c63764",
+                "url": "https://api.github.com/repos/TYPO3/html-sanitizer/zipball/f44e6cafa58404936bdfc00966367c629711bd55",
+                "reference": "f44e6cafa58404936bdfc00966367c629711bd55",
                 "shasum": ""
             },
             "require": {
                 "ext-dom": "*",
-                "masterminds/html5": "^2.7.6",
+                "masterminds/html5": "^2.11.0",
                 "php": "^7.2 || ^8.0",
                 "psr/log": "^1.0 || ^2.0 || ^3.0"
             },
@@ -6219,9 +6257,9 @@
             "description": "HTML sanitizer aiming to provide XSS-safe markup based on explicitly allowed tags, attributes and values.",
             "support": {
                 "issues": "https://github.com/TYPO3/html-sanitizer/issues",
-                "source": "https://github.com/TYPO3/html-sanitizer/tree/v2.3.2"
+                "source": "https://github.com/TYPO3/html-sanitizer/tree/v2.4.0"
             },
-            "time": "2026-06-08T15:19:36+00:00"
+            "time": "2026-11-15T09:13:12+00:00"
         },
         {
             "name": "typo3fluid/fluid",
