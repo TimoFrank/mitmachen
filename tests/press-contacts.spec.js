@@ -398,8 +398,8 @@ test("Die öffentliche Presse-Demo zeigt ausschließlich synthetische Kontakte u
 
   await expect(page.locator(PRESS_VIEW)).toBeVisible();
   await expect(page.locator("#press-data-notice")).toBeHidden();
-  await expect(page.locator("#workspace-brand-image")).toBeVisible();
-  expect(await page.locator("#workspace-brand-image").evaluate((image) => image.naturalWidth)).toBeGreaterThan(0);
+  await expect(page.locator("#workspace-brand-image")).toBeHidden();
+  await expect(page.locator("#brand-home-link .brand-mark")).toBeVisible();
   await expect(page.locator("#press-contact-count")).toHaveText("26 Pressekontakte");
 
   await page.locator("#press-page-size-select").selectOption("100");

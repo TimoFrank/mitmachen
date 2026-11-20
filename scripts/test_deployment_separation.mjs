@@ -115,18 +115,18 @@ function assertMissing(directory, ...relativePaths) {
 }
 
 const compassBrandDirectories = [
-  "public/brand/versorgungs-kompass",
-  "public/brand/modules/stakeholder",
-  "public/brand/modules/hospitation",
-  "public/brand/modules/formate"
+  "versorgungs-kompass",
+  "modules/stakeholder",
+  "modules/hospitation",
+  "modules/formate"
 ];
 
-function assertCompassBrandAssets(directory, profile) {
+function assertCompassBrandAssets(directory, profile, brandSourceRoot) {
   for (const brandDirectory of compassBrandDirectories) {
-    for (const asset of ["mark.svg", "lockup-horizontal.svg"]) {
-      const relativePath = path.join(brandDirectory, asset);
+    for (const asset of ["mark.svg", "mark-on-dark.svg", "lockup-horizontal.svg"]) {
+      const relativePath = path.join("public/brand", brandDirectory, asset);
       const artifactPath = path.join(directory, relativePath);
-      const canonicalPath = path.join(root, relativePath);
+      const canonicalPath = path.join(brandSourceRoot, brandDirectory, asset);
       assert.equal(
         fs.existsSync(artifactPath),
         true,
@@ -147,7 +147,7 @@ try {
   build("--profile", "pages", "--output", pagesDir);
   execFileSync(process.execPath, [publicAudit, "--artifact-root", pagesDir], { cwd: root, stdio: "pipe" });
   const firstPagesFingerprint = fingerprint(pagesDir);
-  assertCompassBrandAssets(pagesDir, "Pages");
+  assertCompassBrandAssets(pagesDir, "Pages", path.join(root, "frontend/pages/brand"));
 
   assert.equal(fs.existsSync(path.join(pagesDir, "demo", "index.html")), true, "Pages muss die oeffentliche Demo enthalten");
   assert.equal(fs.existsSync(path.join(pagesDir, "politik-offline.html")), true, "Pages muss das eigenstaendige Politik-Offline-Modul enthalten");
@@ -199,7 +199,9 @@ try {
   assert.equal(pagesManifest.name, "#Mitmachen");
   for (const brand of ["Versorgungs-Kompass", "Stakeholder-Kompass", "Hospitations-Kompass", "Format-Kompass"]) {
     assert.match(pagesManifest.description, new RegExp(brand));
-    assert.match(pagesRootHtml, new RegExp(`<(h3|strong)\\b[^>]*class="home-destination-name"[^>]*>${brand}</\\1>`));
+  }
+  for (const name of ["Versorgung", "Stakeholder", "Hospitation", "Formate"]) {
+    assert.match(pagesRootHtml, new RegExp(`<(h3|strong)\\b[^>]*class="home-destination-name"[^>]*>${name}</\\1>`));
   }
   for (const mark of [
     "public/brand/versorgungs-kompass/mark.svg",
@@ -671,7 +673,7 @@ try {
     "--auth-mode", "oidc"
   );
   execFileSync(process.execPath, [targetAudit, "--artifact-root", targetDir], { cwd: root, stdio: "pipe" });
-  assertCompassBrandAssets(targetDir, "Target");
+  assertCompassBrandAssets(targetDir, "Target", path.join(root, "public/brand"));
   const firstTargetFingerprint = fingerprint(targetDir);
   build(
     "--profile", "target",

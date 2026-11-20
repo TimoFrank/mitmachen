@@ -10,7 +10,7 @@ async function openMenu(page) {
   }
 }
 
-test("Pages: #Mitmachen öffnet den Hospitationskompass mit eigener Sidebar", async ({ page }, testInfo) => {
+test("Pages: Der Versorgungs-Kompass öffnet den Hospitationskompass mit eigener Sidebar", async ({ page }, testInfo) => {
   const pageErrors = [];
   page.on("pageerror", (error) => pageErrors.push(error.stack));
   await page.goto("/dist/pages/index.html");
@@ -66,7 +66,7 @@ test("Pages: #Mitmachen öffnet den Hospitationskompass mit eigener Sidebar", as
   await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1)).toBe(true);
 
   await openMenu(page);
-  await page.getByRole("button", { name: "Alle Kompasse auf der #Mitmachen Startseite" }).click();
+  await page.getByRole("button", { name: "Alle Module", exact: true }).click();
   await expect(page.locator("#view-home")).toBeVisible();
   await expect(page.locator("#view-home [data-home-module]:visible")).toHaveCount(4);
   await expect(page.locator("[data-sidebar-group].workspace-compass-hidden")).toHaveCount(0);
@@ -78,7 +78,7 @@ for (const [group, destination, tab] of [
   ["stakeholders", "stakeholderOverview", "patients"],
   ["formats", "formats", null]
 ]) {
-  test(`Pages: eigener Modulbereich für ${group} mit Rückweg zur Startseite`, async ({ page }) => {
+  test(`Pages: eigener Modulbereich für ${group} mit Rückweg zur Startseite`, async ({ page, isMobile }) => {
     const shell = page.locator(".app-shell");
     const sections = page.locator(".sidebar-nav > [data-sidebar-group]");
     const home = page.locator('.sidebar-home-entry [data-view-tab="home"]');
@@ -90,7 +90,7 @@ for (const [group, destination, tab] of [
     const activeSection = sections.filter({ visible: true });
     await expect(activeSection).toHaveAttribute("data-sidebar-group", group);
     await expect(activeSection).toHaveClass(/is-expanded/);
-    await expect(home).toHaveAccessibleName("Alle Kompasse auf der #Mitmachen Startseite");
+    await expect(home).toHaveAccessibleName("Alle Module");
 
     if (tab) {
       if (group === "stakeholders") {
@@ -107,7 +107,7 @@ for (const [group, destination, tab] of [
 
     await home.click();
     await expect(page.locator("#view-home [data-home-module]:visible")).toHaveCount(4);
-    await expect(page.locator(".sidebar-nav")).toBeHidden();
+    await expect(page.locator(".sidebar-nav")).toBeVisible({ visible: !isMobile });
     await expect(sections.filter({ has: page.locator("[aria-current=page]") })).toHaveCount(0);
     await expect(page.locator("body")).not.toHaveAttribute("data-workspace-compass", /.+/);
 

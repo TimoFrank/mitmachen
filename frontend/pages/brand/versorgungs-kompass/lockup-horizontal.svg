@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="920" height="112" viewBox="0 0 920 112"><g transform="translate(16 24) scale(.64)"><circle cx="50" cy="50" r="46" fill="#10236E"/>
+<g transform="translate(50 50) scale(.74) translate(-50 -50)">
+<defs><mask id="lager" x="0" y="0" width="100" height="100" maskUnits="userSpaceOnUse"><rect width="100" height="100" fill="white"/><circle cx="50" cy="50" r="4" fill="black"/></mask></defs>
+<g mask="url(#lager)">
+  <path fill="#63ACF4" d="M39.1 39.1L60.9 60.9L13.8 87.7Q11.6 88.9 12.9 86.5Z"/>
+  <path fill="#FF7F3F" d="M39.1 39.1L86.3 12.4Q88.5 11.15 87.3 13.55L60.9 60.9Z"/>
+</g>
+</g></g><text x="112" y="73" fill="#10236e" font-family="Arial,Helvetica,sans-serif" font-size="52" font-weight="800">Versorgung</text></svg>

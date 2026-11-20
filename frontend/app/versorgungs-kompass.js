@@ -40060,7 +40060,11 @@
           workspaceBrandImage.alt = brand.name;
         }
         if (mainContent) mainContent.setAttribute("aria-label", view.title);
-        if (!isHospitationDocumentationStandalone) document.title = `${view.title} · ${isHospitationWorkspace ? "Hospitations-Kompass" : "#Mitmachen"}`;
+        if (!isHospitationDocumentationStandalone) {
+          document.title = IS_PUBLIC_DEMO_PROFILE && !isHospitationWorkspace
+            ? `${view.title} | Versorgungs-Kompass`
+            : `${view.title} · ${isHospitationWorkspace ? "Hospitations-Kompass" : "#Mitmachen"}`;
+        }
         const announcement = [view.title, view.subtitle].filter(Boolean).join(". ");
         if (routeAnnouncer && routeAnnouncer.dataset.currentAnnouncement !== announcement) {
           routeAnnouncer.dataset.currentAnnouncement = announcement;
@@ -40457,6 +40461,9 @@
           view = "profile";
         }
         if (isHospitationWorkspace && view === "home") view = "hospitationOverview";
+        if (IS_PUBLIC_DEMO_PROFILE && view === "home" && !isMobileLayout() && appShell?.classList.contains("is-sidebar-collapsed")) {
+          setSidebarCollapsed(false, { persist: false });
+        }
         if (USE_INTEGRATED_HOSPITATION && ["framework", "planning", "questionnaire"].includes(view)) {
           window.HospitationWorkspace?.showOverviewTab(view === "questionnaire" ? "questionnaire" : "framework");
           view = "hospitationOverview";
@@ -43637,7 +43644,7 @@
         syncSidebarCollapseButtonPlacement();
       });
       if (appShell) appShell.dataset.activeView = initialSidebarRouteView;
-      const transientInitialHomeSidebarCollapse = !isMobileLayout() && initialSidebarRouteView === "home";
+      const transientInitialHomeSidebarCollapse = !IS_PUBLIC_DEMO_PROFILE && !isMobileLayout() && initialSidebarRouteView === "home";
       if (transientInitialHomeSidebarCollapse) {
         restoreSidebarWidth();
         setSidebarCollapsed(true, { persist: false });

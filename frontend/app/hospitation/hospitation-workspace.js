@@ -58,6 +58,11 @@
     });
     const home = document.querySelector('.sidebar-home-entry [data-view-tab="home"]');
     const label = home?.querySelector("span");
+    if (home?.dataset.homeLabel) {
+      home.title = home.dataset.homeLabel;
+      if (label) label.textContent = home.dataset.homeLabel;
+      return;
+    }
     if (label) label.textContent = hasCompass ? "Alle Kompasse" : "Startseite";
     if (home) {
       home.title = hasCompass ? "Zur #Mitmachen Startseite" : "Startseite";

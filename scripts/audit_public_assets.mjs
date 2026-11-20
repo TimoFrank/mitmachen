@@ -666,8 +666,8 @@ if (existsSync(appHtmlPath)) {
   assert(!/data-target-session|id=["']profile-logout["']|IAP-Anmeldung|Angemeldete Sitzung/i.test(appHtml), `${artifactLabel}/versorgungs-kompass.html enthaelt eine irrefuehrende Target-Sitzung`);
   const homeNavigation = appHtml.match(/<nav\b[^>]*\bid="home-destinations"[^>]*>([\s\S]*?)<\/nav>/i)?.[1] || "";
   const homeBrands = Array.from(homeNavigation.matchAll(/<(h3|strong)\b[^>]*>([^<]+)<\/\1>/g), match => match[2].trim());
-  for (const brand of ["Versorgungs-Kompass", "Stakeholder-Kompass", "Hospitations-Kompass", "Format-Kompass"]) {
-    assert(homeBrands.includes(brand), `${artifactLabel}/versorgungs-kompass.html enthaelt die Marke ${brand} nicht auf der Startseite`);
+  for (const moduleName of ["Versorgung", "Stakeholder", "Hospitation", "Formate"]) {
+    assert(homeBrands.includes(moduleName), `${artifactLabel}/versorgungs-kompass.html enthaelt das Modul ${moduleName} nicht auf der Startseite`);
   }
   for (const mark of [
     "public/brand/versorgungs-kompass/mark.svg",
