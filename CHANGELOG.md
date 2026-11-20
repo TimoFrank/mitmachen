@@ -18,31 +18,16 @@ Start, Karte, Listen und Kontobereiche sind übersichtlicher aufgebaut. Der Eint
 
 20. November 2026
 
-Kontakte, Organisationen und ihr regionaler Kontext werden noch leichter sichtbar. Das hilft #Mitmachen, Verbindungen zu stärken und nächste Schritte gezielt zu planen.
+Auf der Startseite trägt jeder der vier Modulkreise ein eigenes Zeichen. Oben links steht der Versorgungs-Kompass.
+
+- Der Rundkompass führt zur Kartenübersicht. Zwei Menschen stehen für Stakeholder, Deutschland mit kurzer Kompassnadel für Hospitation und die Programmkarte für Formate.
+- Die Kontaktliste links neben der Karte lässt sich auch bei mittlerer Fensterbreite bis zum letzten Eintrag durchscrollen. Die Unterseiten beginnen mit der Suche oder den Werkzeugen für die jeweilige Aufgabe.
+- Die verstellbare Seitenleiste, persönliche Favoriten und die neue Anordnung von Profil und Teams kommen mit diesem Release auf GitHub Pages. In der selbst betriebenen Demo unter `versorgungs-kompass.de/demo` sind sie seit dem Novemberstand verfügbar.
+- Die gematik-Kurzanleitung für Versorgung und Hospitation liegt im Repository als PDF und als bearbeitbare Word-Datei vor.
 
 ### Hotfix v0.27.1
 
 Vier direkte Kompasseinstiege, Sektoren als erste Kartenansicht und grüne Pins nach Bundeslandwahl
-
-### Vier Modulzeichen und die volle Kontaktliste in der Pages-Demo zeigen (#308)
-
-Die Änderung macht den Bereich Kontakte klarer und leichter nutzbar. Die wichtigsten Schritte sind schneller nachvollziehbar. So bleibt mehr Zeit für die gemeinsame Arbeit im Versorgungsnetzwerk.
-
-### TYPO3-Konnektor aktualisieren und Pflichtprüfungen absichern (#307)
-
-Die Änderung macht den Bereich Versorgungs-Kompass klarer und leichter nutzbar. Die wichtigsten Schritte sind schneller nachvollziehbar. So bleibt mehr Zeit für die gemeinsame Arbeit im Versorgungsnetzwerk.
-
-### Kurzanleitung als PDF und Word verlinken (#306)
-
-Die Änderung macht den Bereich Versorgungs-Kompass klarer und leichter nutzbar. Die wichtigsten Schritte sind schneller nachvollziehbar. So bleibt mehr Zeit für die gemeinsame Arbeit im Versorgungsnetzwerk.
-
-### Demo-Änderungen im Changelog nachtragen (#304)
-
-Die Änderung macht den Bereich Versorgungs-Kompass klarer und leichter nutzbar. Die wichtigsten Schritte sind schneller nachvollziehbar. So bleibt mehr Zeit für die gemeinsame Arbeit im Versorgungsnetzwerk.
-
-### Demo-Navigation vereinfachen und Einstieg auf /demo umstellen (#303)
-
-Die Änderung macht den Bereich Versorgungs-Kompass klarer und leichter nutzbar. Die wichtigsten Schritte sind schneller nachvollziehbar. So bleibt mehr Zeit für die gemeinsame Arbeit im Versorgungsnetzwerk.
 
 ## Version 0.27 - Übersicht und Navigation für alle vier Kompasse
 
