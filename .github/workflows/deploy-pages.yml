@@ -560,20 +560,40 @@ jobs:
             throw new Error("GitHub Pages startet nicht direkt in der App-Startseite.");
           }
           const homeNavigation = rootHtml.match(/<nav\b[^>]*\bid="home-destinations"[^>]*>([\s\S]*?)<\/nav>/i)?.[1] || "";
-          const homeBrands = Array.from(homeNavigation.matchAll(/<(h3|strong)\b[^>]*>([^<]+)<\/\1>/g), match => match[2].trim());
-          for (const brand of ["Versorgungs-Kompass", "Stakeholder-Kompass", "Hospitations-Kompass", "Format-Kompass"]) {
-            if (!homeBrands.includes(brand)) {
-              throw new Error(`Die veröffentlichte Startseite enthält ${brand} nicht.`);
-            }
+          const homeLinks = [...homeNavigation.matchAll(/<a\b([^>]*)>([\s\S]*?)<\/a>/gu)];
+          const [major, minor] = process.env.RELEASE_TAG.slice(1).split(".").map(Number);
+          const useFullNames = major === 0 && minor < 28;
+          const homeModules = [
+            ["care", "map", "Versorgung", "Versorgungs-Kompass", "versorgungs-kompass"],
+            ["stakeholders", "stakeholders", "Stakeholder", "Stakeholder-Kompass", "modules/stakeholder"],
+            ["planning", "hospitation-overview", "Hospitation", "Hospitations-Kompass", "modules/hospitation"],
+            ["formats", "formats", "Formate", "Format-Kompass", "modules/formate"]
+          ];
+          const legacyNames = Array.from(homeNavigation.matchAll(/<(h3|strong)\b[^>]*>([^<]+)<\/\1>/g), match => match[2].trim());
+          if (!useFullNames && homeLinks.length !== homeModules.length) {
+            throw new Error("Die veröffentlichte Startseite muss genau vier Modulkreise enthalten.");
           }
-          for (const mark of [
-            "public/brand/versorgungs-kompass/mark.svg",
-            "public/brand/modules/stakeholder/mark.svg",
-            "public/brand/modules/hospitation/mark.svg",
-            "public/brand/modules/formate/mark.svg"
-          ]) {
-            if (!rootHtml.includes(mark)) {
-              throw new Error(`Die veröffentlichte Startseite referenziert ${mark} nicht.`);
+          function attribute(attributes, name) {
+            return attributes.match(new RegExp(`(?:^|\\s)${name}\\s*=\\s*(["'])(.*?)\\1`, "iu"))?.[2];
+          }
+          for (const [moduleId, route, shortName, fullName, kit] of homeModules) {
+            const markPath = `public/brand/${kit}/mark.svg`;
+            if (useFullNames) {
+              if (!legacyNames.includes(fullName) || !rootHtml.includes(markPath)) {
+                throw new Error(`Dem früheren Markenvertrag fehlt der Modulkreis „${fullName}“ oder das Zeichen ${markPath}.`);
+              }
+              continue;
+            }
+            const link = homeLinks.find(([, attributes]) => attribute(attributes, "data-home-module") === moduleId);
+            const [, attributes, body] = link || ["", "", ""];
+            const marks = [...body.matchAll(/<img\b([^>]*)>/gu)];
+            if (
+              attribute(attributes, "data-route-link") !== route
+              || attribute(attributes, "href") !== `#${route}`
+              || marks.length !== 1 || attribute(marks[0][1], "src") !== `./${markPath}`
+              || body.replace(/<[^>]+>/gu, "").trim() !== shortName
+            ) {
+              throw new Error(`Modulkreis ${moduleId} muss „${shortName}“, das zugehörige Zeichen und das Ziel #${route} enthalten.`);
             }
           }
           const manifest = JSON.parse(fs.readFileSync(process.argv[5], "utf8"));
