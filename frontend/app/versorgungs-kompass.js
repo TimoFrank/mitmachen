@@ -5825,6 +5825,20 @@
 
       const appVersionHistory = [
         {
+          version: "0.28.0",
+          date: "20. November 2026",
+          title: "Vier Modulzeichen und die neue Kartenübersicht",
+          icon: "start",
+          summary: "Vier animierte Kreise führen von der Startseite in die Module. Der Versorgungs-Kompass steht oben links.",
+          items: [
+            "Der Rundkompass öffnet die Kartenübersicht. Zwei Menschen stehen für Stakeholder, Deutschland mit kurzer Kompassnadel für Hospitation und die Programmkarte für Formate.",
+            "Neben der Deutschlandkarte lässt sich die Kontaktliste auch bei mittlerer Fensterbreite bis zum letzten Eintrag durchscrollen.",
+            "Auf den Unterseiten stehen die Suche und die Werkzeuge direkt am Anfang.",
+            "GitHub Pages übernimmt die verstellbare Seitenleiste, die Favoriten und die neue Anordnung von Profil und Teams aus der November-Demo.",
+            "Hotfix v0.27.1: Vier direkte Kompasseinstiege, Sektoren als erste Kartenansicht und grüne Pins nach Bundeslandwahl"
+          ]
+        },
+        {
           version: "0.27.0",
           date: "4. November 2026",
           title: "Übersicht und Navigation für alle vier Kompasse",

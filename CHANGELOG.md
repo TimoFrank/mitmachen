@@ -14,6 +14,21 @@ Start, Karte, Listen und Kontobereiche sind übersichtlicher aufgebaut. Der Eint
 - **Kontakte und Organisationen:** Persönliche Favoriten, 25 Einträge pro Seite und eine Fußzeile direkt unter der letzten Zeile. Ein Außenklick schließt geöffnete Details.
 - **App-Informationen und Demo-Adresse:** Changelog und Über die App öffnen als Overlay. Die aktuelle Adresse ist /demo. /Demo leitet weiter.
 
+## Version 0.28 - Vier Modulzeichen und die neue Kartenübersicht
+
+20. November 2026
+
+Auf der Startseite trägt jeder der vier Modulkreise ein eigenes Zeichen. Oben links steht der Versorgungs-Kompass.
+
+- Der Rundkompass führt zur Kartenübersicht. Zwei Menschen stehen für Stakeholder, Deutschland mit kurzer Kompassnadel für Hospitation und die Programmkarte für Formate.
+- Die Kontaktliste links neben der Karte lässt sich auch bei mittlerer Fensterbreite bis zum letzten Eintrag durchscrollen. Die Unterseiten beginnen mit der Suche oder den Werkzeugen für die jeweilige Aufgabe.
+- Die verstellbare Seitenleiste, persönliche Favoriten und die neue Anordnung von Profil und Teams kommen mit diesem Release auf GitHub Pages. In der selbst betriebenen Demo unter `versorgungs-kompass.de/demo` sind sie seit dem Novemberstand verfügbar.
+- Die gematik-Kurzanleitung für Versorgung und Hospitation liegt im Repository als PDF und als bearbeitbare Word-Datei vor.
+
+### Hotfix v0.27.1
+
+Vier direkte Kompasseinstiege, Sektoren als erste Kartenansicht und grüne Pins nach Bundeslandwahl
+
 ## Version 0.27 - Übersicht und Navigation für alle vier Kompasse
 
 4. November 2026
