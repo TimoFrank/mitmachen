@@ -1,0 +1,16 @@
+{
+  "id": "/demo",
+  "name": "Versorgungs-Kompass Demo",
+  "short_name": "Kompass",
+  "lang": "de",
+  "start_url": "/demo",
+  "scope": "/demo",
+  "display": "standalone",
+  "theme_color": "#10236e",
+  "background_color": "#e8f1ff",
+  "icons": [
+    { "src": "/demo/medien/rundkompass-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "/demo/medien/rundkompass-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "/demo/medien/rundkompass-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}
