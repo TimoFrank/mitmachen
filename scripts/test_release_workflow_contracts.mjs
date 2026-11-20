@@ -4,6 +4,7 @@ import { mkdtempSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "nod
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { Script } from "node:vm";
 
 const projectRoot = fileURLToPath(new URL("../", import.meta.url));
 const verifier = fileURLToPath(new URL("./verify_release_tag.mjs", import.meta.url));
@@ -37,6 +38,39 @@ const preGematik = read(".github/workflows/deploy-pre-gematik.yml");
 const targetReadinessWorkflow = read(".github/workflows/target-readiness.yml");
 const tagVerifier = read("scripts/verify_release_tag.mjs");
 const playwrightConfig = read("playwright.config.js");
+
+const checkHomeModules = new Script(section(pages, "const homeNavigation =", "const manifest ="));
+function verifyHomeModules(rootHtml, releaseTag) {
+  checkHomeModules.runInNewContext({ rootHtml, process: { env: { RELEASE_TAG: releaseTag } } });
+}
+
+const homeHtml = read("frontend/app/versorgungs-kompass.html");
+const legacyHome = section(homeHtml, '<nav class="home-destinations-section"', "</nav>")
+  .replaceAll("../../public/", "./public/") + "</nav>";
+const { brands } = JSON.parse(read("config/brand-architecture.json")).compassBrands;
+const currentHome = brands.reduce((html, { name, moduleLabel }) =>
+  html.replace(`>${name}</strong>`, `>${moduleLabel}</strong>`), legacyHome);
+verifyHomeModules(legacyHome, "v0.27.1");
+verifyHomeModules(currentHome, "v0.28.0");
+verifyHomeModules(currentHome.replaceAll("strong", "span"), "v0.28.0");
+verifyHomeModules(legacyHome.replaceAll("strong", "h3").replace('href="#map"', 'href="#care"'), "v0.26.1");
+assert.throws(() => verifyHomeModules(currentHome, "v0.27.1"), /Modulkreis/u);
+assert.throws(() => verifyHomeModules(legacyHome, "v0.28.0"), /Modulkreis/u);
+assert.throws(() => verifyHomeModules(legacyHome.replace("modules/formate/mark.svg", "unknown.svg"), "v0.27.1"), /Modulkreis/u);
+for (const [from, to] of [
+  [">Versorgung</strong>", ">Karte</strong>"],
+  [">Stakeholder</strong>", ">Stakeholder-Kompass</strong>"],
+  ['data-home-module="planning"', 'data-home-module="care"'],
+  ['data-route-link="map"', 'data-route-link="formats"'],
+  ['href="#map"', 'href="#formats"'],
+  ["modules/hospitation/mark.svg", "modules/stakeholder/mark.svg"],
+  ["</nav>", '<a href="#map">Weiter</a></nav>']
+]) {
+  assert.throws(() => verifyHomeModules(currentHome.replace(from, to), "v0.28.0"), /Modulkreis/u);
+}
+const swappedLabels = currentHome.replace(/>(Versorgung|Hospitation)<\/strong>/gu,
+  (_, name) => name === "Versorgung" ? ">Hospitation</strong>" : ">Versorgung</strong>");
+assert.throws(() => verifyHomeModules(swappedLabels, "v0.28.0"), /Modulkreis/u);
 
 for (const [workflow, label] of [[publish, "Publish"], [hotfix, "Hotfix"]]) {
   forbidPattern(workflow, /^    env:\n(?:^      .*\n)*^      GNUPGHOME:.*\$\{\{\s*runner\.temp\s*\}\}/gmu,
