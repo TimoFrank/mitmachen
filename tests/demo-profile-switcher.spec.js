@@ -59,14 +59,60 @@ test.describe("Pages-Profilwechsel", () => {
     )).toBe(false);
   });
 
+  test("Kontaktliste nutzt die Höhe der Kartenübersicht bis zum letzten Kontakt", async ({ page, isMobile }) => {
+    if (!isMobile) await page.setViewportSize({ width: 1100, height: 770 });
+    await page.goto(pagesUrl(PROFILE_ADMIN, "#map"));
+    const frame = page.frameLocator("#map-view-frame");
+    const list = frame.locator("#list");
+    await expect(list.locator(".item").first()).toBeVisible();
+
+    if (isMobile) {
+      const lastPage = frame.locator("#map-pagination [data-page]").last();
+      await lastPage.click();
+      await expect(lastPage).toHaveClass(/is-active/);
+    } else {
+      const mapBox = await frame.locator("#map").boundingBox();
+      const listBox = await list.boundingBox();
+      expect(Math.abs(listBox.y + listBox.height - mapBox.y - mapBox.height)).toBeLessThanOrEqual(2);
+      expect(mapBox.height).toBeLessThan(page.viewportSize().height);
+    }
+
+    const lastContact = list.locator(".item").last();
+    await lastContact.scrollIntoViewIfNeeded();
+    await expect(lastContact).toBeInViewport({ ratio: 0.95 });
+  });
+
+  test("Unterseiten beginnen mit ihren Werkzeugen und behalten ihren zugänglichen Titel", async ({ page }) => {
+    const routes = [
+      ["contacts", "Kontakte", "#new-contact-button"],
+      ["map", "Übersicht", "#map-view-frame"],
+      ["analytics", "Auswertung", "#analytics-mode-overview"],
+      ["formats", "Formate", "#formats-table-toolbar"]
+    ];
+
+    for (const [route, title, control] of routes) {
+      await page.goto(pagesUrl(PROFILE_ADMIN, `#${route}`));
+      await expect(page.getByRole("main", { name: title, exact: true })).toBeVisible();
+      await expect(page.getByRole("heading", { level: 1, name: title, exact: true })).toBeAttached();
+      await expect(page.locator(".workspace-copy")).toHaveCSS("clip-path", "inset(50%)");
+      await expect(page.locator(".workspace-heading-row")).toHaveCSS("display", "contents");
+      await expect(page.locator("[data-workspace-brand]")).toBeHidden();
+      await expect(page.locator(control)).toBeVisible();
+
+      if (route === "contacts" || route === "map") {
+        await expect(page.locator("#search")).toBeVisible();
+      }
+    }
+  });
+
   test("Onboarding-Vorschau startet nur mit dem frischen Viewer-Vertrag", async ({ page }) => {
     await page.goto(onboardingPreviewUrl());
 
     await expect(page.locator('[data-view-panel="onboarding"]')).toBeVisible();
     await expect(page.locator('[data-onboarding-step-panel="welcome"]')).toBeVisible();
     await expect(page.locator("#workspace-view-title")).toHaveText("Willkommen");
-    await expect(page.locator('[data-workspace-brand]')).toBeVisible();
-    await expect(page.locator("#workspace-brand-image")).toHaveAttribute("alt", "Versorgungs-Kompass");
+    await expect(page.getByRole("heading", { name: "Willkommen", level: 1, exact: true })).toBeAttached();
+    await expect(page.locator("[data-workspace-brand]")).toBeHidden();
     await expect(page.locator('[data-onboarding-step-dot]')).toHaveCount(7);
     expect(await page.evaluate(
       () => window.VERSORGUNGS_COMPASS_DEMO_RUNTIME.onboardingPreview

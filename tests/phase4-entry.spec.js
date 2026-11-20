@@ -127,15 +127,10 @@ test("Phase 4: #Mitmachen führt in vier Module und Pages über die gemeinsame S
   });
   await page.goto("/dist/pages/index.html");
   await expect(page).toHaveURL(/\/dist\/pages\/index\.html$/);
-  await expect(page).toHaveTitle("Startseite · #Mitmachen");
+  await expect(page).toHaveTitle("Startseite | Versorgungs-Kompass");
   await expect(page.locator(".app-sidebar")).toBeVisible();
   await expect(page.locator('[data-view-panel="home"]')).toBeVisible();
-  await expect(page.locator(".home-destination-name")).toHaveText([
-    "Versorgungs-Kompass",
-    "Stakeholder-Kompass",
-    "Hospitations-Kompass",
-    "Format-Kompass"
-  ]);
+  await expect(page.locator(".home-destination-name")).toHaveText(["Versorgung", "Stakeholder", "Hospitation", "Formate"]);
   await expect(page.locator(".home-destination-link__mark")).toHaveCount(4);
   await expect(page.locator('body[data-public-entry="home"], [data-public-entry-styles]')).toHaveCount(0);
   await expect(page.locator('meta[http-equiv="refresh"]')).toHaveCount(0);
@@ -192,13 +187,8 @@ test("Phase 4: die vier Module bleiben ohne JavaScript vollständig lesbar", asy
   await page.goto(`${baseURL}/dist/pages/index.html`);
   await expect(page.getByRole("heading", { level: 1 })).toHaveAccessibleName("Willkommen.");
   await expect(page.getByRole("navigation", { name: "Arbeitsbereiche" })).toBeInViewport();
-  await expect(page.locator(".home-destination-name")).toHaveText([
-    "Versorgungs-Kompass",
-    "Stakeholder-Kompass",
-    "Hospitations-Kompass",
-    "Format-Kompass"
-  ]);
-  await expect(page.getByRole("link", { name: "Versorgungs-Kompass", exact: true })).toBeInViewport();
+  await expect(page.locator(".home-destination-name")).toHaveText(["Versorgung", "Stakeholder", "Hospitation", "Formate"]);
+  await expect(page.getByRole("link", { name: "Versorgung", exact: true })).toBeInViewport();
   await expect(page.locator("#registration-form")).toHaveCount(0);
   await expectNoHorizontalOverflow(page);
   await context.close();

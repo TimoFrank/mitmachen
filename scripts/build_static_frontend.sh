@@ -330,11 +330,11 @@ EOF
   done
   for module in stakeholder hospitation formate; do
     for asset in mark.svg mark-on-dark.svg lockup-horizontal.svg; do
-      cp "$ROOT_DIR/public/brand/modules/$module/$asset" "$STAGE_DIR/public/brand/modules/$module/$asset"
+      cp "$FRONTEND_DIR/pages/brand/modules/$module/$asset" "$STAGE_DIR/public/brand/modules/$module/$asset"
     done
   done
   for asset in mark.svg mark-on-dark.svg lockup-horizontal.svg; do
-    cp "$ROOT_DIR/public/brand/versorgungs-kompass/$asset" "$STAGE_DIR/public/brand/versorgungs-kompass/$asset"
+    cp "$FRONTEND_DIR/pages/brand/versorgungs-kompass/$asset" "$STAGE_DIR/public/brand/versorgungs-kompass/$asset"
   done
   cp "$ROOT_DIR/public/media/demo/mitmachen/versorgungs-netzwerk-concept.svg" "$STAGE_DIR/public/media/demo/mitmachen/versorgungs-netzwerk-concept.svg"
   cp "$ROOT_DIR/public/media/social/mitmachen-share-v1.png" "$STAGE_DIR/public/media/social/mitmachen-share-v1.png"
@@ -448,6 +448,21 @@ for (const htmlPath of walk(root)) {
 
 const appPath = path.join(root, "versorgungs-kompass.html");
 let appHtml = fs.readFileSync(appPath, "utf8");
+const brandArchitecture = require(path.join(repositoryRoot, "config", "brand-architecture.json"));
+for (const { name, moduleLabel } of brandArchitecture.compassBrands.brands) {
+  appHtml = appHtml
+    .replace(`data-home-compass-name>${name}<`, `data-home-compass-name>${moduleLabel}<`)
+    .replace(`class="home-destination-name">${name}<`, `class="home-destination-name">${moduleLabel}<`)
+    .replace(`class="sidebar-section-title">${name.replace("-", "-<wbr />")}<`, `class="sidebar-section-title">${moduleLabel}<`);
+}
+appHtml = appHtml
+  .replace("<title>#Mitmachen</title>", "<title>Versorgungs-Kompass</title>")
+  .replace('aria-label="#Mitmachen – zur Startseite"', 'aria-label="Versorgungs-Kompass, zur Startseite"')
+  .replace('class="brand-mark" src="./public/brand/mitmachen/flechtwerk-mark-on-dark.svg"',
+    'class="brand-mark" src="./public/brand/versorgungs-kompass/mark-on-dark.svg"')
+  .replace('class="sidebar-brand-word">Mitmachen<', 'class="sidebar-brand-word">Versorgungs-Kompass<')
+  .replace('class="primary-tab sidebar-home-tab"', 'class="primary-tab sidebar-home-tab" data-home-label="Alle Module"');
+
 if (!/<meta\s+name=["']robots["']/i.test(appHtml)) {
   appHtml = appHtml.replace(
     /\s*<\/head>/,

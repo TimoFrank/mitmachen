@@ -42642,38 +42642,32 @@
         background-clip: padding-box;
       }
 
-      /* Match the public GKE entry rail while the full Pages app is on its home view. */
-      .app-shell.is-public-demo-profile[data-active-view="home"] :is(
-        .sidebar-collapse,
-        .sidebar-nav,
-        .sidebar-account-section,
-        .sidebar-brand-word
-      ) {
-        display: none !important;
+      .is-public-demo-profile .sidebar-brand-word {
+        font-size: 1rem;
+        letter-spacing: -0.025em;
+      }
+
+      .is-public-demo-profile .home-destinations {
+        max-width: 760px;
+        margin-inline: auto;
+      }
+
+      .is-public-demo-profile .home-destination-link__mark {
+        width: clamp(68px, 6vw, 84px);
+        height: auto;
+        aspect-ratio: 1;
+        padding: 12px;
+        background-color: color-mix(in srgb, var(--home-module-color, var(--module-care-strong)) 10%, white);
+      }
+
+      .is-public-demo-profile .home-destination-name {
+        font-size: 1rem;
       }
 
       @media (min-width: 761px) {
-        .app-shell.is-public-demo-profile[data-active-view="home"] {
-          grid-template-columns: 76px minmax(0, 1fr);
-        }
-
-        .app-shell.is-public-demo-profile[data-active-view="home"] .app-sidebar {
-          width: 76px;
-          padding: 22px 12px 18px;
-        }
-
-        .app-shell.is-public-demo-profile[data-active-view="home"] .sidebar-brand {
-          min-height: 58px;
-          align-items: flex-start;
-          justify-content: center;
-          padding: 7px 0 15px;
-        }
-
-        .app-shell.is-public-demo-profile[data-active-view="home"] .sidebar-brand .brand-mark {
-          width: 36px;
-          height: 36px;
-          flex: 0 0 36px;
-          margin: 0;
+        .is-public-demo-profile[data-active-view="home"] .sidebar-brand {
+          justify-content: flex-start;
+          gap: 8px;
         }
       }
 
@@ -42699,14 +42693,12 @@
 
         .app-shell.is-public-demo-profile[data-active-view="home"] .sidebar-brand {
           position: static;
-          inset: auto;
-          width: 48px;
+          width: fit-content;
           min-height: 48px;
           align-items: center;
-          justify-content: center;
-          gap: 0;
-          padding: 6px;
-          overflow: visible;
+          justify-content: flex-start;
+          gap: 9px;
+          padding: 4px 2px;
         }
 
         .app-shell.is-public-demo-profile[data-active-view="home"] .sidebar-brand .brand-mark {
@@ -42714,6 +42706,19 @@
           height: 34px;
           flex: 0 0 34px;
           margin: 0;
+        }
+
+        .app-shell.is-public-demo-profile[data-active-view="home"] :is(.sidebar-collapse, .sidebar-nav, .sidebar-account-section) {
+          display: none !important;
+        }
+
+        .is-public-demo-profile .home-destination-link__mark {
+          width: 64px;
+          padding: 9px;
+        }
+
+        .is-public-demo-profile .home-destination-name {
+          font-size: 0.9rem;
         }
       }
 
@@ -44316,13 +44321,17 @@
         }
       }
 
-      /* Im Versorgungs-Kompass steht die Marke direkt neben den Werkzeugen. */
-      .app-shell.is-care-toolbar-layout .workspace-header.workspace-header--unified,
-      .app-shell.is-care-toolbar-layout .workspace-heading-row {
+      /* Die Demo zeigt die Marke in der Navigation. Die Titel bleiben für Vorlesesoftware erreichbar. */
+      .app-shell.is-public-demo-profile [data-workspace-brand] {
+        display: none;
+      }
+
+      .app-shell:is(.is-care-toolbar-layout, .is-public-demo-profile:not([data-active-view="home"])) .workspace-header.workspace-header--unified,
+      .app-shell:is(.is-care-toolbar-layout, .is-public-demo-profile:not([data-active-view="home"])) .workspace-heading-row {
         display: contents;
       }
 
-      .app-shell.is-care-toolbar-layout .workspace-header .workspace-copy {
+      .app-shell:is(.is-care-toolbar-layout, .is-public-demo-profile) .workspace-header .workspace-copy {
         position: absolute;
         width: 1px;
         height: 1px;
@@ -44341,6 +44350,10 @@
         gap: 16px;
       }
 
+      .app-shell.is-public-demo-profile.is-care-toolbar-layout .crm-shell > .controls {
+        grid-template-columns: minmax(0, 1fr);
+      }
+
       .app-shell.is-care-toolbar-layout .crm-shell > .controls > .workspace-brand {
         grid-column: 2;
         grid-row: 1;
@@ -44352,7 +44365,7 @@
         height: 44px;
       }
 
-      .app-shell.is-care-toolbar-layout #analytics-view-mode-toolbar {
+      .app-shell.is-care-toolbar-layout:not(.is-public-demo-profile) #analytics-view-mode-toolbar {
         grid-template-columns: minmax(0, 1fr) auto auto;
         gap: 16px;
       }
@@ -44377,7 +44390,7 @@
           height: 40px;
         }
 
-        .app-shell.is-care-toolbar-layout #analytics-view-mode-toolbar {
+        .app-shell.is-care-toolbar-layout:not(.is-public-demo-profile) #analytics-view-mode-toolbar {
           grid-template-columns: minmax(0, 1fr) 40px;
           gap: 10px;
         }

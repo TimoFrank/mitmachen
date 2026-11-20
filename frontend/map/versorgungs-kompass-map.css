@@ -4156,6 +4156,22 @@
       box-shadow: 0 0 0 2px var(--gematik-navy), 0 0 0 4px var(--gematik-green) !important;
     }
 
+    /* Die eingebettete Übersicht behält bis zur mobilen Ansicht zwei Spalten. */
+    @media (min-width: 761px) and (max-width: 960px) {
+      body.embed-mode.contacts-map-context:not(.overview-preview-mode) .sidebar {
+        min-height: 0;
+        overflow: hidden;
+      }
+
+      body.embed-mode.contacts-map-context:not(.overview-preview-mode) .panel {
+        height: 100%;
+      }
+
+      body.embed-mode.contacts-map-context:not(.overview-preview-mode) .list {
+        max-height: none;
+      }
+    }
+
     @media (min-width: 961px) {
       body.contacts-map-context:not(.overview-preview-mode) .workspace:not(.map-list-collapsed):not(.has-map-detail) {
         grid-template-columns: clamp(380px, 36.5%, 438px) minmax(0, 1fr);
