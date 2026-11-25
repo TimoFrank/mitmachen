@@ -135,8 +135,7 @@ Der Quellcode und die technische Dokumentation stehen unter der [Apache License 
 
 ## Aktueller Release
 
-- Version: [v0.29.0](https://github.com/TimoFrank/mitmachen/releases/tag/v0.29.0)
+- Version: [v0.29.1](https://github.com/TimoFrank/mitmachen/releases/tag/v0.29.1)
 - Stand: 25. November 2026
-- Kurznotiz: Deutschlandatlas als öffentliche Startseite
+- Kurznotiz: Alle vier Arbeitsbereiche stehen am unteren linken Rand des Atlas. Die Startseite nutzt die verfügbare Bildschirmfläche. Die Flugsteuerung, der ausklappbare Quellennachweis und die Projektfußzeile entfallen.
 - Demo-Kanal: [GitHub Pages](https://timofrank.github.io/mitmachen/)
-- [Quellen des Deutschlandatlas](frontend/pages/atlas/kartennachweis.txt)

@@ -20,6 +20,8 @@ Start, Karte, Listen und Kontobereiche sind übersichtlicher aufgebaut. Der Eint
 
 Der Versorgungs-Kompass wird klarer, verlässlicher und leichter nutzbar. Die neuen Verbesserungen unterstützen das Netzwerk dabei, Wissen zu teilen und gemeinsam ins Handeln zu kommen.
 
+- **Hotfix v0.29.1:** Alle vier Arbeitsbereiche stehen am unteren linken Rand des Atlas. Die Startseite nutzt die verfügbare Bildschirmfläche. Die Flugsteuerung, der ausklappbare Quellennachweis und die Projektfußzeile entfallen.
+
 ### Atlasflug als Startseite der öffentlichen Pages-Demo einbinden (#313)
 
 Die Änderung macht den Bereich Versorgungs-Kompass klarer und leichter nutzbar. Die wichtigsten Schritte sind schneller nachvollziehbar. So bleibt mehr Zeit für die gemeinsame Arbeit im Versorgungsnetzwerk.
