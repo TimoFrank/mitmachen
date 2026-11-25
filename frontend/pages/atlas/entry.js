@@ -2,13 +2,6 @@ const hero = document.querySelector('[data-pages-atlas]');
 
 if (hero) {
   const home = hero.closest('[data-view-panel="home"]');
-  const destinations = home.querySelector('#home-destinations');
-  hero.querySelector('[data-atlas-modules]').addEventListener('click', (event) => {
-    event.preventDefault();
-    destinations.focus({ preventScroll: true });
-    destinations.scrollIntoView({ block: 'start' });
-  });
-
   let controller;
   let session;
   let visible = false;

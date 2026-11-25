@@ -1,72 +1,48 @@
 <section class="view-panel home-page" id="view-home" data-view-panel="home" aria-labelledby="home-welcome-title">
-  <div class="atlas-page" data-home-scroller tabindex="0" aria-label="Startseiteninhalt">
-    <div class="atlas-scene">
-      <div class="hero" data-pages-atlas>
-        <header class="atlas-mast">
-          <a class="atlas-brand" href="#home" data-route-link="home" aria-label="Versorgungs-Kompass, zur Startseite">
-            <img src="./public/brand/versorgungs-kompass/mark.svg" alt="" />Versorgungs-Kompass
-          </a>
-          <button type="button" data-atlas-playback aria-label="Flug anhalten">
-            <svg viewBox="0 0 24 24" width="15" height="15" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-              <path data-icon="pause" d="M8 5.5v13m8-13v13"></path>
-              <path data-icon="play" d="m7 5 11 7-11 7Z"></path>
-              <path data-icon="replay" d="M4 9a8 8 0 1 1 .2 6M4 4v5h5"></path>
-            </svg>
-            <span>Flug anhalten</span>
-          </button>
-        </header>
-        <div class="art-stage" tabindex="-1" role="group" aria-label="Interaktiver Deutschlandatlas" aria-describedby="atlas-guide">
-          <canvas aria-hidden="true"></canvas>
-        </div>
-        <div class="copy">
-          <h1 class="headline" id="home-welcome-title"><span>Wo Versorgung</span> <span>stattfindet.</span></h1>
-          <p class="atlas-intro">Hausarztpraxen, Kliniken, Apotheken und Pflegeheime prägen den Versorgungsalltag in Stadt und Land.</p>
-        </div>
-        <div class="visual">
-          <p class="visually-hidden" id="atlas-guide">Klicke oder tippe nach dem Flug auf ein Symbol, um die Einrichtungsart zu lesen. Ziehen oder die Pfeiltasten neigen die Karte leicht. Mit den Tasten 1 bis 6 wählst du die Arten und ihre Standorte aus. Escape schließt die Beschriftung und richtet die Karte wieder aus.</p>
-          <span class="site-tip" hidden aria-hidden="true"></span>
-          <div class="site-keys" role="group" aria-label="Einrichtungen ansehen"></div>
-          <div class="fallback">
-            <img src="./atlas/uebersicht.webp" loading="lazy" decoding="async" width="900" height="850" alt="Deutschlandkarte mit 15 beispielhaften Standorten aus sechs Versorgungsbereichen." />
-          </div>
-        </div>
-        <a class="atlas-jump" data-atlas-modules href="#home-destinations">Arbeitsbereiche
-          <svg viewBox="0 0 20 20" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10 3v12m-5-5 5 5 5-5"></path></svg>
+  <div class="atlas-page">
+    <div class="hero" data-pages-atlas>
+      <header class="atlas-mast">
+        <a class="atlas-brand" href="#home" data-route-link="home" aria-label="Versorgungs-Kompass, zur Startseite">
+          <img src="./public/brand/versorgungs-kompass/mark.svg" alt="" />Versorgungs-Kompass
         </a>
-        <span class="visually-hidden" data-atlas-status role="status" aria-live="polite"></span>
+      </header>
+      <div class="copy">
+        <h1 class="headline" id="home-welcome-title"><span>Wo Versorgung</span> <span>stattfindet.</span></h1>
+        <p class="atlas-intro">Hausarztpraxen, Kliniken, Apotheken und Pflegeheime prägen den Versorgungsalltag in Stadt und Land.</p>
       </div>
-    </div>
-    <nav class="home-destinations-section" id="home-destinations" tabindex="-1" aria-labelledby="home-destinations-title">
-      <h2 id="home-destinations-title">Arbeitsbereiche</h2>
-      <ul class="atlas-modules">
-        <li><a class="home-destination-link" data-home-module="care" data-route-link="map" href="#map">
-          <img class="home-destination-link__mark" src="./public/brand/versorgungs-kompass/mark.svg" alt="" />
-          <strong class="home-destination-name">Versorgung</strong>
-        </a></li>
-        <li><a class="home-destination-link" data-home-module="stakeholders" data-route-link="stakeholders" href="#stakeholders">
-          <img class="home-destination-link__mark" src="./public/brand/modules/stakeholder/mark.svg" alt="" />
-          <strong class="home-destination-name">Stakeholder</strong>
-        </a></li>
-        <li><a class="home-destination-link" data-home-module="planning" data-route-link="hospitation-overview" href="#hospitation-overview">
-          <img class="home-destination-link__mark" src="./public/brand/modules/hospitation/mark.svg" alt="" />
-          <strong class="home-destination-name">Hospitation</strong>
-        </a></li>
-        <li><a class="home-destination-link" data-home-module="formats" data-route-link="formats" href="#formats">
-          <img class="home-destination-link__mark" src="./public/brand/modules/formate/mark.svg" alt="" />
-          <strong class="home-destination-name">Formate</strong>
-        </a></li>
-      </ul>
-    </nav>
-    <div class="atlas-sources">
-      <details>
-        <summary>Kartengrundlagen</summary>
-        <div>
-          <p>Deutschlandkontur und Bundeslandgrenzen nach den Verwaltungsgebieten VG250. © BKG (2026) dl-de/by-2-0.</p>
-          <p><a href="https://sg.geodatenzentrum.de/web_public/gdz/datenquellen/datenquellen_vg_nuts.pdf">Datenquellen des BKG</a> · <a href="https://www.govdata.de/dl-de/by-2-0">Datenlizenz Deutschland Namensnennung 2.0</a></p>
-          <p>Geländehöhen aus Mapzen Terrain Tiles auf Grundlage von Copernicus EU-DEM, finanziert von der Europäischen Union. Gewässer aus Natural Earth. Die 15 Symbole stehen an beispielhaften Orten.</p>
+      <nav class="home-destinations-section" id="home-destinations" aria-labelledby="home-destinations-title">
+        <h2 id="home-destinations-title">Arbeitsbereiche</h2>
+        <ul class="atlas-modules">
+          <li><a class="home-destination-link" data-home-module="care" data-route-link="map" href="#map">
+            <img class="home-destination-link__mark" src="./public/brand/versorgungs-kompass/mark.svg" alt="" />
+            <strong class="home-destination-name">Versorgung</strong>
+          </a></li>
+          <li><a class="home-destination-link" data-home-module="stakeholders" data-route-link="stakeholders" href="#stakeholders">
+            <img class="home-destination-link__mark" src="./public/brand/modules/stakeholder/mark.svg" alt="" />
+            <strong class="home-destination-name">Stakeholder</strong>
+          </a></li>
+          <li><a class="home-destination-link" data-home-module="planning" data-route-link="hospitation-overview" href="#hospitation-overview">
+            <img class="home-destination-link__mark" src="./public/brand/modules/hospitation/mark.svg" alt="" />
+            <strong class="home-destination-name">Hospitation</strong>
+          </a></li>
+          <li><a class="home-destination-link" data-home-module="formats" data-route-link="formats" href="#formats">
+            <img class="home-destination-link__mark" src="./public/brand/modules/formate/mark.svg" alt="" />
+            <strong class="home-destination-name">Formate</strong>
+          </a></li>
+        </ul>
+      </nav>
+      <div class="art-stage" tabindex="-1" role="group" aria-label="Interaktiver Deutschlandatlas" aria-describedby="atlas-guide">
+        <canvas aria-hidden="true"></canvas>
+      </div>
+      <div class="visual">
+        <p class="visually-hidden" id="atlas-guide">Die Leertaste hält den Flug an oder setzt ihn fort. Klicke oder tippe nach dem Flug auf ein Symbol, um die Einrichtungsart zu lesen. Ziehen oder die Pfeiltasten neigen die Karte leicht. Mit den Tasten 1 bis 6 wählst du die Arten und ihre Standorte aus. Escape schließt die Beschriftung und richtet die Karte wieder aus.</p>
+        <span class="site-tip" hidden aria-hidden="true"></span>
+        <div class="site-keys" role="group" aria-label="Einrichtungen ansehen"></div>
+        <div class="fallback">
+          <img src="./atlas/uebersicht.webp" loading="lazy" decoding="async" width="900" height="850" alt="Deutschlandkarte mit 15 beispielhaften Standorten aus sechs Versorgungsbereichen." />
         </div>
-      </details>
+      </div>
+      <span class="visually-hidden" data-atlas-status role="status" aria-live="polite"></span>
     </div>
-    <!-- atlas-footer -->
   </div>
 </section>

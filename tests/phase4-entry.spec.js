@@ -190,8 +190,9 @@ test("Phase 4: die vier Module bleiben ohne JavaScript vollständig lesbar", asy
   await expect(poster).toBeVisible();
   await expect.poll(() => poster.evaluate((image) => image.complete && image.naturalWidth > 0)).toBe(true);
   const navigation = page.getByRole("navigation", { name: "Arbeitsbereiche" });
-  await navigation.scrollIntoViewIfNeeded();
-  await expect(navigation).toBeInViewport();
+  for (const link of await navigation.getByRole("link").all()) {
+    await expect(link).toBeInViewport({ ratio: 1 });
+  }
   await expect(page.locator(".home-destination-name")).toHaveText(["Versorgung", "Stakeholder", "Hospitation", "Formate"]);
   await expect(page.getByRole("link", { name: "Versorgung", exact: true })).toBeInViewport();
   await expect(page.locator("#registration-form")).toHaveCount(0);
