@@ -7,7 +7,6 @@ export function mountAtlas(hero, signal, showFinalPose, showFallback) {
   const visual = hero.querySelector('.visual');
   const tip = visual.querySelector('.site-tip');
   const keys = visual.querySelector('.site-keys');
-  const playback = hero.querySelector('[data-atlas-playback]');
   const status = hero.querySelector('[data-atlas-status]');
   const buttons = new Map();
   const names = {};
@@ -91,18 +90,10 @@ export function mountAtlas(hero, signal, showFinalPose, showFallback) {
     scene.render(state);
     const exposure = clamp((state.time - 4.35) / 1.7, 0, 1);
     stage.style.setProperty('--map-opacity', (exposure * exposure * (3 - 2 * exposure)).toFixed(5));
-    stage.dataset.unlocked = String(unlocked());
-    updateTip();
-  }
-
-  function label() {
     const locked = !unlocked();
+    stage.dataset.unlocked = String(!locked);
     if (keys.inert !== locked) keys.inert = locked;
-    const action = running ? 'pause' : state.time < duration ? 'play' : 'replay';
-    const text = { pause: 'Flug anhalten', play: 'Weiterfliegen', replay: 'Flug wiederholen' }[action];
-    playback.dataset.action = action;
-    playback.setAttribute('aria-label', text);
-    playback.querySelector('span').textContent = text;
+    updateTip();
   }
 
   function clearGesture() {
@@ -122,10 +113,7 @@ export function mountAtlas(hero, signal, showFinalPose, showFallback) {
     frame = 0;
     if (!ready || !running || !visible) return;
     state.time = clamp((now - origin) / 1000, 0, duration);
-    if (state.time >= duration) {
-      running = false;
-      label();
-    }
+    if (state.time >= duration) running = false;
     paint();
     request();
   }
@@ -149,7 +137,6 @@ export function mountAtlas(hero, signal, showFinalPose, showFallback) {
     running = true;
     origin = performance.now() - state.time * 1000;
     paint();
-    label();
     request();
   }
 
@@ -164,7 +151,6 @@ export function mountAtlas(hero, signal, showFinalPose, showFallback) {
     cancelAnimationFrame(frame);
     frame = 0;
     paint();
-    label();
   }
 
   listen(stage, 'pointerdown', (e) => {
@@ -246,7 +232,6 @@ export function mountAtlas(hero, signal, showFinalPose, showFallback) {
     e.preventDefault();
   });
 
-  listen(playback, 'click', activatePlayback);
   for (const button of buttons.values())
     listen(button, 'click', () => {
       pointer = null;
@@ -259,7 +244,6 @@ export function mountAtlas(hero, signal, showFinalPose, showFallback) {
     frame = 0;
     state.time = duration;
     paint();
-    label();
   }
   listen(motion, 'change', () => {
     if (ready && motion.matches) finalPose();

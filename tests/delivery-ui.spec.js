@@ -36,11 +36,8 @@ test("Pages startet direkt in der App-Startseite", async ({ page }, testInfo) =>
   ))).toBe(true);
   const navigation = page.getByRole("navigation", { name: "Arbeitsbereiche" });
   await expect(navigation.getByRole("link")).toHaveCount(4);
-  const footer = page.locator(".versorgungs-app-footer");
-  await expect(footer).toBeVisible();
-  await expect(footer.getByRole("link", { name: "#Mitmachen", exact: true })).toHaveAttribute("href", "https://www.gematik.de/mitmachen");
-  await expect(footer.getByRole("link")).toHaveCount(1);
-  await expect(footer.locator("span")).toHaveText("- ein Angebot der gematik");
+  await expect(page.locator(".versorgungs-app-footer, [data-atlas-playback], [data-atlas-modules]")).toHaveCount(0);
+  await expect(page.locator('#view-home summary').filter({ hasText: "Kartengrundlagen" })).toHaveCount(0);
   await expect(page.locator("#home-tour-button")).toHaveCount(0);
   await expect(await destinations.evaluateAll((links) => links.map((link) => link.getAttribute("href")))).toEqual([
     "#map",
@@ -49,14 +46,6 @@ test("Pages startet direkt in der App-Startseite", async ({ page }, testInfo) =>
     "#formats"
   ]);
 
-  const jump = page.locator("[data-atlas-modules]");
-  if (await jump.isVisible()) {
-    await jump.focus();
-    await page.keyboard.press("Enter");
-    await expect(navigation).toBeFocused();
-  } else {
-    await navigation.scrollIntoViewIfNeeded();
-  }
   for (const link of await destinations.all()) {
     await expect(link).toBeInViewport({ ratio: 1 });
     expect(await link.evaluate((node) => node.scrollWidth - node.clientWidth)).toBeLessThanOrEqual(1);
@@ -73,7 +62,6 @@ test("Arbeitsbereiche sind auch bei reduzierter Bewegung direkt erreichbar", asy
   if (await atlas.getAttribute("data-renderer") === "webgl") {
     const stage = atlas.locator(".art-stage");
     await expect(stage).toHaveAttribute("data-unlocked", "true");
-    await expect(atlas.locator("[data-atlas-playback]")).toHaveAccessibleName("Flug wiederholen");
     await expect(atlas.locator(".site-keys [data-site]")).toHaveCount(15);
     await stage.focus();
     await page.keyboard.press("1");
@@ -151,7 +139,6 @@ test("Mobile-Auslieferung: Startklar-Hinweis erscheint erst im Versorgungs-Kompa
   await page.goto("/dist/pages/index.html");
 
   const status = page.locator("#global-status");
-  const footer = page.locator(".versorgungs-app-footer");
   await expect(status).toBeHidden();
 
   await page.locator('.home-destination-link[data-home-module="care"]').click();
@@ -166,7 +153,6 @@ test("Mobile-Auslieferung: Startklar-Hinweis erscheint erst im Versorgungs-Kompa
   await expect(status).toHaveAttribute("role", "status");
   await expect(status).toHaveAttribute("aria-live", "polite");
 
-  await expect(footer).toBeHidden();
   const statusBox = await status.boundingBox();
   expect(statusBox).not.toBeNull();
   expect(statusBox.y + statusBox.height).toBeLessThanOrEqual(844);
@@ -184,6 +170,7 @@ test("Geschützte Auslieferung: Kontakte werden erst im Versorgungs-Kompass als 
   const shell = page.locator(".app-shell");
   await expect(shell).not.toHaveClass(/is-public-demo-profile/);
   await expect(page.locator("[data-pages-atlas]")).toHaveCount(0);
+  await expect(page.locator(".versorgungs-app-footer")).toBeVisible();
   await expect(page.locator("#sidebar-resize-handle")).toBeHidden();
   await expect(page.locator(".sidebar-brand-word")).toBeVisible();
   if ((page.viewportSize()?.width || 0) <= 760) {
@@ -226,27 +213,38 @@ test("Pages-Karte: Sektorpunkte stehen an den erfassten Positionen", async ({ pa
   })).toBe(true);
 });
 
-test("Startseiten-Fußzeile bleibt mobil einzeilig und fließt bei großer Schrift um", async ({ page }) => {
+test("Die Arbeitsbereiche bleiben beim Drehen und Scrollen vollständig im Bild", async ({ page }) => {
   await page.setViewportSize({ width: 320, height: 568 });
   await page.emulateMedia({ reducedMotion: "reduce" });
   await page.goto("/dist/pages/index.html");
-  const footer = page.locator(".versorgungs-app-footer");
-  await expect(footer).toBeVisible();
-  const defaultLayout = await footer.evaluate((root) => {
-    const link = root.querySelector("a").getBoundingClientRect();
-    const text = root.querySelector("span").getBoundingClientRect();
-    return { rowDelta: Math.abs(link.top - text.top), overflow: root.scrollWidth - root.clientWidth };
-  });
-  expect(defaultLayout.rowDelta).toBeLessThanOrEqual(1);
-  expect(defaultLayout.overflow).toBeLessThanOrEqual(1);
-  await page.addStyleTag({ content: "html { font-size: 200%; }" });
-  const largeLayout = await footer.evaluate((root) => ({
-    overflow: root.scrollWidth - root.clientWidth,
-    childrenFit: [...root.children].every((child) => {
-      const rect = child.getBoundingClientRect();
-      return rect.left >= 0 && rect.right <= innerWidth;
-    })
-  }));
-  expect(largeLayout.overflow).toBeLessThanOrEqual(1);
-  expect(largeLayout.childrenFit).toBe(true);
+  await expectPagesAtlasHome(page);
+
+  const links = page.getByRole("navigation", { name: "Arbeitsbereiche" }).getByRole("link");
+  await expect(links).toHaveCount(4);
+  for (const [width, height] of [[320, 568], [568, 320], [1024, 768]]) {
+    await page.setViewportSize({ width, height });
+    for (const link of await links.all()) {
+      await expect(link).toBeInViewport({ ratio: 1 });
+      const isClickable = await link.evaluate((anchor) => {
+        const rect = anchor.getBoundingClientRect();
+        return anchor.contains(document.elementFromPoint(rect.x + rect.width / 2, rect.y + rect.height / 2));
+      });
+      expect(isClickable).toBe(true);
+    }
+    const first = await links.first().boundingBox();
+    expect(first.x).toBeLessThan(width / 4);
+    expect(first.y).toBeGreaterThan(height / 2);
+
+    await page.mouse.move(8, height / 2);
+    await page.mouse.wheel(0, height);
+    await page.keyboard.press("PageDown");
+    await page.evaluate(() => new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve))));
+    const offset = await links.first().evaluate((anchor) => {
+      let top = 0;
+      for (let el = anchor; el; el = el.parentElement) top += Math.abs(el.scrollTop);
+      return top;
+    });
+    expect(offset).toBe(0);
+    await expect(links.first()).toBeInViewport({ ratio: 1 });
+  }
 });

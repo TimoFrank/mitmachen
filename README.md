@@ -139,3 +139,4 @@ Der Quellcode und die technische Dokumentation stehen unter der [Apache License 
 - Stand: 25. November 2026
 - Kurznotiz: Deutschlandatlas als öffentliche Startseite
 - Demo-Kanal: [GitHub Pages](https://timofrank.github.io/mitmachen/)
+- [Quellen des Deutschlandatlas](frontend/pages/atlas/kartennachweis.txt)

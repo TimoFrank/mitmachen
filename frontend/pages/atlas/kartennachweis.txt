@@ -1,0 +1,7 @@
+Deutschlandatlas des Versorgungs-Kompasses
+
+Deutschlandkontur und Bundeslandgrenzen wurden für die Darstellung aus den Verwaltungsgebieten VG250 abgeleitet. © BKG (2026), dl-de/by-2-0.
+Datenquellen des BKG: https://sg.geodatenzentrum.de/web_public/gdz/datenquellen/datenquellen_vg_nuts.pdf
+Datenlizenz Deutschland, Namensnennung 2.0: https://www.govdata.de/dl-de/by-2-0
+
+Die Geländehöhen stammen aus Mapzen Terrain Tiles auf Grundlage des Copernicus EU-DEM, finanziert von der Europäischen Union. Gewässer stammen aus Natural Earth. Die 15 Symbole stehen für beispielhafte Versorgungsorte.

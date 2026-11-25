@@ -200,6 +200,7 @@ const requiredFiles = new Set([
   ".nojekyll",
   "build-manifest.json",
   "atlas/atlas.css",
+  "atlas/kartennachweis.txt",
   "atlas/atlas.js",
   "atlas/scene.js",
   "atlas/relief.webp",

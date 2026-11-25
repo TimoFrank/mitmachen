@@ -243,7 +243,7 @@ build_pages() {
     "$STAGE_DIR/vendor"
 
   node "$ROOT_DIR/scripts/build_pages_atlas.mjs" "$STAGE_DIR/atlas"
-  for asset in atlas.css inter.woff2 inter-license.txt; do
+  for asset in atlas.css inter.woff2 inter-license.txt kartennachweis.txt; do
     cp "$FRONTEND_DIR/pages/atlas/$asset" "$STAGE_DIR/atlas/$asset"
   done
   touch "$STAGE_DIR/.nojekyll"
@@ -463,12 +463,12 @@ let appHtml = fs.readFileSync(appPath, "utf8");
 const atlasHome = fs.readFileSync(path.join(repositoryRoot, "frontend/pages/atlas/home.html"), "utf8").trim();
 const homePanel = /<section class="view-panel home-page" id="view-home"[\s\S]*?<\/section>(?=\s*<section class="view-panel" id="view-contacts")/u;
 if (!homePanel.test(appHtml)) throw new Error("Pages-Build konnte die Startseite für den Atlas nicht finden.");
-const footer = appHtml.match(/<footer class="versorgungs-app-footer">[\s\S]*?<\/footer>/u)?.[0];
-if (!footer || !atlasHome.includes("<!-- atlas-footer -->")) throw new Error("Der gemeinsame Projektfuß fehlt auf der Pages-Startseite.");
-appHtml = appHtml.replace(footer, "")
-  .replace(homePanel, () => atlasHome.replace("<!-- atlas-footer -->", () => footer))
+appHtml = appHtml
+  .replace(/<footer class="versorgungs-app-footer">[\s\S]*?<\/footer>/u, "")
+  .replace(homePanel, () => atlasHome)
   .replace("</head>",
   '  <link rel="stylesheet" href="./atlas/atlas.css" />\n'
+  + '    <link rel="describedby" type="text/plain" href="./atlas/kartennachweis.txt" title="Quellen des Deutschlandatlas" />\n'
   + '    <script type="module" src="./atlas/atlas.js"></script>\n  </head>');
 const brandArchitecture = require(path.join(repositoryRoot, "config", "brand-architecture.json"));
 for (const { name, moduleLabel } of brandArchitecture.compassBrands.brands) {
