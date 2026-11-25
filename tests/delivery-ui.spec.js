@@ -82,6 +82,70 @@ test("Arbeitsbereiche sind auch bei reduzierter Bewegung direkt erreichbar", asy
   await expect(map.getByRole("button", { name: "Sektoren", exact: true })).toHaveAttribute("aria-pressed", "true");
 });
 
+test("Versorgung wartet auf die gezeichnete Karte und lässt sich beim Laden verlassen", async ({ page }) => {
+  // The iframe may already be loaded while its contacts are still in transit.
+  await page.addInitScript(() => {
+    function holdContacts(event) {
+      if (event.data?.type !== "versorgungs-kompass-map-data" || event.data.channel !== "contacts") return;
+      event.stopImmediatePropagation();
+      window.deliverPendingMapContacts = () => {
+        window.removeEventListener("message", holdContacts, true);
+        window.dispatchEvent(new MessageEvent("message", {
+          data: event.data, origin: event.origin, source: event.source
+        }));
+      };
+    }
+    window.addEventListener("message", holdContacts, true);
+  });
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  await page.goto("/dist/pages/index.html", { waitUntil: "domcontentloaded" });
+  const loader = page.locator("#module-entry-loader");
+  const care = page.getByRole("link", { name: "Versorgung", exact: true });
+  await care.click();
+  await expect(loader).toBeVisible();
+  const map = page.frameLocator("#map-view-frame");
+  const mapDocument = map.locator("html");
+  await expect.poll(() => mapDocument.evaluate(() =>
+    document.readyState === "complete" && typeof window.deliverPendingMapContacts === "function"
+  )).toBe(true);
+  await expect(loader).toBeVisible();
+  await page.keyboard.press("Escape");
+  await expect(page).toHaveURL(/\/dist\/pages\/index\.html$/);
+  await expectPagesAtlasHome(page);
+  await expect(care).toBeFocused();
+  await page.goForward({ waitUntil: "commit" });
+  await expect(page).toHaveURL(/#map$/);
+  await expect(loader).toBeHidden();
+  await page.goBack({ waitUntil: "commit" });
+  await expectPagesAtlasHome(page);
+  await expect(loader).toBeHidden();
+  await care.click();
+  await expect(loader).toBeVisible();
+  await mapDocument.evaluate(() => window.deliverPendingMapContacts());
+  await expect(loader).toBeHidden();
+  await expect(map.locator(".cat-marker").first()).toBeVisible();
+  await expect(map.getByRole("button", { name: "Sektoren", exact: true })).toHaveAttribute("aria-pressed", "true");
+});
+
+test("Ein fehlgeschlagener Kartenstart lässt sich direkt erneut versuchen", async ({ page }) => {
+  let failedOnce = false;
+  await page.route("**/versorgungs-kompass-map.js*", (route) => {
+    if (!failedOnce && new URL(route.request().frame().url()).searchParams.get("channel") === "contacts") {
+      failedOnce = true;
+      return route.abort();
+    }
+    return route.continue();
+  });
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  await page.goto("/dist/pages/index.html");
+  await page.getByRole("link", { name: "Versorgung", exact: true }).click();
+  const loader = page.locator("#module-entry-loader");
+  await expect(loader).toContainText("Die Karte konnte nicht geladen werden.");
+  await loader.locator("#module-entry-retry").click();
+  await expect(loader).toBeHidden();
+  await expect(page.frameLocator("#map-view-frame").locator(".cat-marker").first()).toBeVisible();
+});
+
 test("Startseiteneinstieg öffnet den passenden Navigationsbereich auf Desktop", async ({ page }, testInfo) => {
   test.skip(testInfo.project.name.includes("mobile"), "Der Desktop-Zustand wird im Desktop-Projekt geprüft.");
   await page.goto("/dist/pages/index.html");
@@ -107,6 +171,7 @@ test("Startseiteneinstieg öffnet den passenden Navigationsbereich auf Desktop",
 });
 
 test("Startseiteneinstiege lassen die mobile Navigation eingeklappt", async ({ page }) => {
+  test.slow(); // Four complete module entries and returns to the WebGL atlas.
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto("/dist/pages/index.html");
 
@@ -121,6 +186,7 @@ test("Startseiteneinstiege lassen die mobile Navigation eingeklappt", async ({ p
   for (const item of modules) {
     await page.locator(`.home-destination-link[data-home-module="${item.module}"]`).click();
     await expect(page).toHaveURL(item.url);
+    await expect(page.locator("#module-entry-loader")).toBeHidden();
     await expect(shell).not.toHaveClass(/is-mobile-sidebar-expanded/);
     await expect(page.locator("#sidebar-collapse-button")).toHaveAttribute("aria-expanded", "false");
     await expect(page.locator(".sidebar-nav")).toBeHidden();
