@@ -5825,6 +5825,19 @@
 
       const appVersionHistory = [
         {
+          version: "0.29.0",
+          date: "25. November 2026",
+          title: "Deutschlandatlas als öffentliche Startseite",
+          icon: "start",
+          summary: "Der Versorgungs-Kompass wird klarer, verlässlicher und leichter nutzbar. Die neuen Verbesserungen unterstützen das Netzwerk dabei, Wissen zu teilen und gemeinsam ins Handeln zu kommen.",
+          items: [
+            "Atlasflug als Startseite der öffentlichen Pages-Demo einbinden (#313): Die Änderung macht den Bereich Versorgungs-Kompass klarer und leichter nutzbar. Die wichtigsten Schritte sind schneller nachvollziehbar. So bleibt mehr Zeit für die gemeinsame Arbeit im Versorgungsnetzwerk.",
+            "Gemeinsame Linkvorschau für Hauptseite und Demo veröffentlichen (#311): Die Änderung macht den Bereich Versorgungs-Kompass klarer und leichter nutzbar. Die wichtigsten Schritte sind schneller nachvollziehbar. So bleibt mehr Zeit für die gemeinsame Arbeit im Versorgungsnetzwerk.",
+            "Demo-Link mit Teilen-Banner und Rundkompass ausstatten (#310): Die Änderung macht den Bereich Versorgungs-Kompass klarer und leichter nutzbar. Die wichtigsten Schritte sind schneller nachvollziehbar. So bleibt mehr Zeit für die gemeinsame Arbeit im Versorgungsnetzwerk.",
+            "Modulkreise der veröffentlichten Pages-Demo passend zur Version prüfen (#309): Die Änderung macht den Bereich Versorgungs-Kompass klarer und leichter nutzbar. Die wichtigsten Schritte sind schneller nachvollziehbar. So bleibt mehr Zeit für die gemeinsame Arbeit im Versorgungsnetzwerk."
+          ]
+        },
+        {
           version: "0.28.0",
           date: "20. November 2026",
           title: "Vier Modulzeichen und die neue Kartenübersicht",

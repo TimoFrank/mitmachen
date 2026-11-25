@@ -135,7 +135,7 @@ Der Quellcode und die technische Dokumentation stehen unter der [Apache License 
 
 ## Aktueller Release
 
-- Version: [v0.28.0](https://github.com/TimoFrank/mitmachen/releases/tag/v0.28.0)
-- Stand: 20. November 2026
-- Kurznotiz: Vier Modulzeichen und die neue Kartenübersicht
+- Version: [v0.29.0](https://github.com/TimoFrank/mitmachen/releases/tag/v0.29.0)
+- Stand: 25. November 2026
+- Kurznotiz: Deutschlandatlas als öffentliche Startseite
 - Demo-Kanal: [GitHub Pages](https://timofrank.github.io/mitmachen/)
