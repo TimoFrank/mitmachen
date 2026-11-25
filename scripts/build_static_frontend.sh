@@ -242,6 +242,10 @@ build_pages() {
     "$STAGE_DIR/hospitation" \
     "$STAGE_DIR/vendor"
 
+  node "$ROOT_DIR/scripts/build_pages_atlas.mjs" "$STAGE_DIR/atlas"
+  for asset in atlas.css inter.woff2 inter-license.txt; do
+    cp "$FRONTEND_DIR/pages/atlas/$asset" "$STAGE_DIR/atlas/$asset"
+  done
   touch "$STAGE_DIR/.nojekyll"
   cp "$ROOT_DIR/public/pages-demo/politik-offline.html" "$STAGE_DIR/politik-offline.html"
   cp "$FRONTEND_DIR/app/versorgungs-kompass.html" "$STAGE_DIR/versorgungs-kompass.html"
@@ -456,6 +460,16 @@ for (const htmlPath of walk(root)) {
 
 const appPath = path.join(root, "versorgungs-kompass.html");
 let appHtml = fs.readFileSync(appPath, "utf8");
+const atlasHome = fs.readFileSync(path.join(repositoryRoot, "frontend/pages/atlas/home.html"), "utf8").trim();
+const homePanel = /<section class="view-panel home-page" id="view-home"[\s\S]*?<\/section>(?=\s*<section class="view-panel" id="view-contacts")/u;
+if (!homePanel.test(appHtml)) throw new Error("Pages-Build konnte die Startseite für den Atlas nicht finden.");
+const footer = appHtml.match(/<footer class="versorgungs-app-footer">[\s\S]*?<\/footer>/u)?.[0];
+if (!footer || !atlasHome.includes("<!-- atlas-footer -->")) throw new Error("Der gemeinsame Projektfuß fehlt auf der Pages-Startseite.");
+appHtml = appHtml.replace(footer, "")
+  .replace(homePanel, () => atlasHome.replace("<!-- atlas-footer -->", () => footer))
+  .replace("</head>",
+  '  <link rel="stylesheet" href="./atlas/atlas.css" />\n'
+  + '    <script type="module" src="./atlas/atlas.js"></script>\n  </head>');
 const brandArchitecture = require(path.join(repositoryRoot, "config", "brand-architecture.json"));
 for (const { name, moduleLabel } of brandArchitecture.compassBrands.brands) {
   appHtml = appHtml

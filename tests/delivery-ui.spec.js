@@ -3,25 +3,14 @@ import { gotoAuthenticated } from "./helpers/app-test-session.js";
 
 const PAGES_APP = "/dist/pages/versorgungs-kompass.html";
 
-async function expectPagesHomeSidebar(page) {
-  await expect(page.locator(".app-shell")).toHaveClass(/is-public-demo-profile/);
-  const sidebar = page.locator(".app-sidebar");
-  await expect(page.locator(".app-shell")).toHaveAttribute("data-active-view", "home");
-  await expect(sidebar.locator(".sidebar-brand")).toBeVisible();
-  await expect(sidebar.locator(".sidebar-brand .brand-mark")).toBeVisible();
-  const wordmark = sidebar.locator(".sidebar-brand-word");
-  await expect(wordmark).toHaveText("Versorgungs-Kompass");
-  await expect(wordmark).toBeInViewport({ ratio: 1 });
-  await expect(sidebar.locator(".brand-mark")).toHaveAttribute("src", /versorgungs-kompass\/mark-on-dark\.svg$/);
-  if (page.viewportSize().width <= 760) {
-    await expect(sidebar.locator(".sidebar-nav")).toBeHidden();
-    await expect(sidebar.locator(".sidebar-account-section")).toBeHidden();
-    await expect(sidebar).toHaveCSS("width", `${page.viewportSize().width}px`);
-  } else {
-    await expect(page.locator(".app-shell")).not.toHaveClass(/is-sidebar-collapsed/);
-    await expect(sidebar.locator(".sidebar-nav")).toBeVisible();
-    await expect(sidebar.locator(".sidebar-section-title:visible")).toHaveText(["Versorgung", "Stakeholder", "Hospitation", "Formate"]);
-  }
+async function expectPagesAtlasHome(page) {
+  const shell = page.locator(".app-shell");
+  await expect(shell).toHaveClass(/is-public-demo-profile/);
+  await expect(shell).toHaveAttribute("data-active-view", "home");
+  await expect(page.locator(".app-sidebar")).toBeHidden();
+  const atlas = page.locator("#view-home [data-pages-atlas]");
+  await expect(atlas.getByRole("heading", { name: "Wo Versorgung stattfindet.", level: 1 })).toBeVisible();
+  await expect(atlas.locator(".atlas-brand")).toContainText("Versorgungs-Kompass");
 }
 
 test("Pages startet direkt in der App-Startseite", async ({ page }, testInfo) => {
@@ -34,9 +23,8 @@ test("Pages startet direkt in der App-Startseite", async ({ page }, testInfo) =>
   await expect(page).toHaveURL(/\/dist\/pages\/index\.html$/);
   await expect(page).toHaveTitle("Startseite | Versorgungs-Kompass");
   await expect(page.locator('body[data-public-entry="home"], [data-public-entry-styles]')).toHaveCount(0);
-  await expect(page.locator(".app-sidebar")).toBeVisible();
   await expect(page.locator('[data-view-panel="home"]')).toBeVisible();
-  await expectPagesHomeSidebar(page);
+  await expectPagesAtlasHome(page);
   await expect(page.locator("#global-status")).toBeHidden();
   const destinations = page.locator(".home-destination-link");
   await expect(destinations).toHaveCount(4);
@@ -44,19 +32,16 @@ test("Pages startet direkt in der App-Startseite", async ({ page }, testInfo) =>
   const marks = destinations.locator(".home-destination-link__mark");
   await expect(marks).toHaveCount(4);
   await expect.poll(() => marks.evaluateAll((images) => images.every((img) =>
-    img.complete && img.naturalWidth > 0 && getComputedStyle(img).borderRadius === "50%"
+    img.complete && img.naturalWidth > 0
   ))).toBe(true);
-  await expect(page.getByRole("heading", { name: "Willkommen.", level: 1 })).toBeVisible();
-  await expect(page.getByRole("navigation", { name: "Arbeitsbereiche" }).getByRole("link")).toHaveCount(4);
+  const navigation = page.getByRole("navigation", { name: "Arbeitsbereiche" });
+  await expect(navigation.getByRole("link")).toHaveCount(4);
   const footer = page.locator(".versorgungs-app-footer");
   await expect(footer).toBeVisible();
   await expect(footer.getByRole("link", { name: "#Mitmachen", exact: true })).toHaveAttribute("href", "https://www.gematik.de/mitmachen");
   await expect(footer.getByRole("link")).toHaveCount(1);
   await expect(footer.locator("span")).toHaveText("- ein Angebot der gematik");
   await expect(page.locator("#home-tour-button")).toHaveCount(0);
-  await expect(page.locator("[data-home-compass-name]")).toHaveText(await page.locator(".home-destination-name").allTextContents());
-  await expect(page.locator("[data-home-compass-name]").first()).toHaveCSS("animation-name", "homeCompassRotate");
-  await expect(page.locator(".home-hero__brand, [data-home-scroll-cue]")).toHaveCount(0);
   await expect(await destinations.evaluateAll((links) => links.map((link) => link.getAttribute("href")))).toEqual([
     "#map",
     "#stakeholders",
@@ -64,22 +49,45 @@ test("Pages startet direkt in der App-Startseite", async ({ page }, testInfo) =>
     "#formats"
   ]);
 
+  const jump = page.locator("[data-atlas-modules]");
+  if (await jump.isVisible()) {
+    await jump.focus();
+    await page.keyboard.press("Enter");
+    await expect(navigation).toBeFocused();
+  } else {
+    await navigation.scrollIntoViewIfNeeded();
+  }
   for (const link of await destinations.all()) {
     await expect(link).toBeInViewport({ ratio: 1 });
     expect(await link.evaluate((node) => node.scrollWidth - node.clientWidth)).toBeLessThanOrEqual(1);
   }
-  await expect(page.locator("[data-home-compass-rotation]")).toBeHidden({ timeout: 9_000 });
-  await expect(page.getByRole("heading", { name: "Willkommen.", level: 1 })).toBeVisible();
+  await expect(page.locator(".app-shell")).toHaveAttribute("data-active-view", "home");
 });
 
 test("Arbeitsbereiche sind auch bei reduzierter Bewegung direkt erreichbar", async ({ page }) => {
   await page.emulateMedia({ reducedMotion: "reduce" });
   await page.goto("/dist/pages/index.html");
 
-  await expect(page.locator("[data-home-compass-rotation]")).toBeHidden();
+  const atlas = page.locator("[data-pages-atlas]");
+  await expect(atlas).toHaveAttribute("data-renderer", /^(webgl|fallback)$/);
+  if (await atlas.getAttribute("data-renderer") === "webgl") {
+    const stage = atlas.locator(".art-stage");
+    await expect(stage).toHaveAttribute("data-unlocked", "true");
+    await expect(atlas.locator("[data-atlas-playback]")).toHaveAccessibleName("Flug wiederholen");
+    await expect(atlas.locator(".site-keys [data-site]")).toHaveCount(15);
+    await stage.focus();
+    await page.keyboard.press("1");
+    const selected = atlas.locator('.site-keys [data-site][aria-pressed="true"]');
+    await expect(selected).toHaveCount(1);
+    await page.keyboard.press("Escape");
+    await expect(selected).toHaveCount(0);
+  } else {
+    await expect(atlas.locator(".fallback img")).toBeVisible();
+  }
   const care = page.getByRole("link", { name: "Versorgung", exact: true });
-  await expect(care).toBeInViewport();
   await care.focus();
+  await expect(care).toBeFocused();
+  await expect(care).toBeInViewport();
   await page.keyboard.press("Enter");
   await expect(page).toHaveURL(/#map$/);
   const map = page.frameLocator("#map-view-frame");
@@ -91,7 +99,7 @@ test("Startseiteneinstieg öffnet den passenden Navigationsbereich auf Desktop",
   await page.goto("/dist/pages/index.html");
 
   const shell = page.locator(".app-shell");
-  await expectPagesHomeSidebar(page);
+  await expectPagesAtlasHome(page);
   await page.locator('.home-destination-link[data-home-module="planning"]').click();
 
   await expect(page).toHaveURL(/#hospitation-overview$/);
@@ -107,7 +115,7 @@ test("Startseiteneinstieg öffnet den passenden Navigationsbereich auf Desktop",
 
   await page.goBack();
   await expect(page).toHaveURL(/\/dist\/pages\/index\.html$/);
-  await expectPagesHomeSidebar(page);
+  await expectPagesAtlasHome(page);
 });
 
 test("Startseiteneinstiege lassen die mobile Navigation eingeklappt", async ({ page }) => {
@@ -134,7 +142,7 @@ test("Startseiteneinstiege lassen die mobile Navigation eingeklappt", async ({ p
 
     await page.locator("#brand-home-link").click();
     await expect(page).toHaveURL(/#home$/);
-    await expectPagesHomeSidebar(page);
+    await expectPagesAtlasHome(page);
   }
 });
 
@@ -175,6 +183,7 @@ test("Geschützte Auslieferung: Kontakte werden erst im Versorgungs-Kompass als 
 
   const shell = page.locator(".app-shell");
   await expect(shell).not.toHaveClass(/is-public-demo-profile/);
+  await expect(page.locator("[data-pages-atlas]")).toHaveCount(0);
   await expect(page.locator("#sidebar-resize-handle")).toBeHidden();
   await expect(page.locator(".sidebar-brand-word")).toBeVisible();
   if ((page.viewportSize()?.width || 0) <= 760) {

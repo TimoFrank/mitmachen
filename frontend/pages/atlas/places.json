@@ -1,0 +1,17 @@
+[
+  {"id":"praxis-west","kind":"praxis","label":"Hausarztpraxis","region":"Rhein-Sieg-Kreis","lon":7.23,"lat":50.91,"at":-1.0},
+  {"id":"klinik-west","kind":"klinik","label":"Krankenhaus","region":"Sauerland","lon":7.98,"lat":51.24,"at":1.70},
+  {"id":"apotheke-niederrhein","kind":"apotheke","label":"Apotheke","region":"Niederrhein","lon":6.55,"lat":51.50,"at":2.33},
+  {"id":"pflege-muensterland","kind":"pflege","label":"Pflegeheim","region":"Münsterland","lon":7.52,"lat":51.82,"at":2.91},
+  {"id":"klinik-rhein-main","kind":"klinik","label":"Krankenhaus","region":"Rhein-Main","lon":8.62,"lat":50.12,"at":3.37},
+  {"id":"zahn-rheinhessen","kind":"zahn","label":"Zahnarztpraxis","region":"Rheinhessen","lon":8.17,"lat":49.65,"at":3.98},
+  {"id":"apotheke-leipzig","kind":"apotheke","label":"Apotheke","region":"Leipzig","lon":12.35,"lat":51.34,"at":4.44},
+  {"id":"praxis-schwarzwald","kind":"praxis","label":"Hausarztpraxis","region":"Südschwarzwald","lon":8.09,"lat":47.91,"at":4.94},
+  {"id":"praxis-oberpfalz","kind":"praxis","label":"Hausarztpraxis","region":"Oberpfalz","lon":12.34,"lat":49.43,"at":5.41},
+  {"id":"rettung-hamburg","kind":"rettung","label":"Rettungsstelle","region":"Hamburg","lon":10.13,"lat":53.54,"at":5.87},
+  {"id":"klinik-berlin","kind":"klinik","label":"Krankenhaus","region":"Berlin","lon":13.39,"lat":52.52,"at":6.18},
+  {"id":"apotheke-oderspree","kind":"apotheke","label":"Apotheke","region":"Oder-Spree","lon":14.08,"lat":52.23,"at":6.53},
+  {"id":"pflege-seenplatte","kind":"pflege","label":"Pflegeheim","region":"Mecklenburgische Seenplatte","lon":12.68,"lat":53.49,"at":6.94},
+  {"id":"klinik-augsburg","kind":"klinik","label":"Krankenhaus","region":"Region Augsburg","lon":10.89,"lat":48.39,"at":7.37},
+  {"id":"praxis-muenchen","kind":"praxis","label":"Hausarztpraxis","region":"Raum München","lon":11.55,"lat":48.12,"at":7.64}
+]

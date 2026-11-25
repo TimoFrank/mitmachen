@@ -9,6 +9,11 @@ const publicBaseUrl = String(process.env.PUBLIC_BASE_URL || defaultBaseUrl).repl
 const defaultAssets = [
   "index.html",
   "build-manifest.json",
+  "atlas/atlas.css",
+  "atlas/atlas.js",
+  "atlas/scene.js",
+  "atlas/relief.webp",
+  "atlas/uebersicht.webp",
   "demo/index.html",
   "politik-offline.html",
   "versorgungs-kompass.html",
@@ -66,7 +71,7 @@ function sha256(content) {
 }
 
 function readPagesAsset(assetPath) {
-  return readFileSync(join(root, "dist", "pages", assetPath), "utf8");
+  return readFileSync(join(root, "dist", "pages", assetPath));
 }
 
 async function fetchPublicAsset(assetPath) {
@@ -82,7 +87,7 @@ for (const asset of publicationAssets) {
     const localContent = readPagesAsset(asset);
     const response = await fetchPublicAsset(asset);
     if (!response.ok) throw new Error(`${response.status} ${response.statusText}`.trim());
-    const publicContent = await response.text();
+    const publicContent = Buffer.from(await response.arrayBuffer());
     const localHash = sha256(localContent);
     const publicHash = sha256(publicContent);
     if (localHash !== publicHash) {

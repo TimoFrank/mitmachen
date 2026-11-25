@@ -78,7 +78,7 @@ for (const [group, destination, tab] of [
   ["stakeholders", "stakeholderOverview", "patients"],
   ["formats", "formats", null]
 ]) {
-  test(`Pages: eigener Modulbereich für ${group} mit Rückweg zur Startseite`, async ({ page, isMobile }) => {
+  test(`Pages: eigener Modulbereich für ${group} mit Rückweg zur Startseite`, async ({ page }) => {
     const shell = page.locator(".app-shell");
     const sections = page.locator(".sidebar-nav > [data-sidebar-group]");
     const home = page.locator('.sidebar-home-entry [data-view-tab="home"]');
@@ -107,7 +107,7 @@ for (const [group, destination, tab] of [
 
     await home.click();
     await expect(page.locator("#view-home [data-home-module]:visible")).toHaveCount(4);
-    await expect(page.locator(".sidebar-nav")).toBeVisible({ visible: !isMobile });
+    await expect(page.locator(".app-sidebar")).toBeHidden();
     await expect(sections.filter({ has: page.locator("[aria-current=page]") })).toHaveCount(0);
     await expect(page.locator("body")).not.toHaveAttribute("data-workspace-compass", /.+/);
 
