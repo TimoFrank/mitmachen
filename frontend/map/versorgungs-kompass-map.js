@@ -1554,6 +1554,8 @@
     const currentOwner = isPlainRecord(data.currentOwner) ? sanitizeOwnerSummary(data.currentOwner) : null;
     return {
       context: expectedContext,
+      entryRequestId: IS_PUBLIC_DEMO && expectedContext === "contacts" && Number.isSafeInteger(data.entryRequestId) && data.entryRequestId > 0
+        ? data.entryRequestId : null,
       labels,
       currentOwner,
       showOwnerFilter: data.showOwnerFilter !== false,
@@ -1566,6 +1568,7 @@
     if (!ALLOWED_MAP_MESSAGE_CHANNELS.has(MAP_MESSAGE_CHANNEL)) return;
     if (parentMapReadyNotified) return;
     parentMapReadyNotified = true;
+    if (IS_PUBLIC_DEMO && MAP_MESSAGE_CHANNEL === "contacts") document.documentElement.dataset.mapReady = "true";
     window.parent.postMessage({
       type: "versorgungs-kompass-map-ready",
       version: MAP_MESSAGE_VERSION,
@@ -1665,10 +1668,10 @@
     else map.scrollWheelZoom.enable();
   }
 
-  function fitMapToGermany(){
+  function fitMapToGermany(options){
     const bounds = L.geoJSON(DE_GEOJSON).getBounds();
     map.setMinZoom(currentMapMinZoom());
-    map.fitBounds(bounds.pad(germanyFitPaddingRatio()), germanyFitOptions());
+    map.fitBounds(bounds.pad(germanyFitPaddingRatio()), germanyFitOptions(options));
   }
 
   function passes(d){
@@ -3585,7 +3588,21 @@
     renderStateFilterMenu();
     render();
     map.invalidateSize();
-    if (!preserveSelection && !selectedState && !activeMapContactId) requestAnimationFrame(() => fitMapToGermany());
+    if (message.entryRequestId) {
+      // Leaflet's vector layers, points and side list are now built from this exact payload.
+      // Fit the visible frame, then acknowledge after its first paint.
+      requestAnimationFrame(() => {
+        if (!selectedState && !activeMapContactId) fitMapToGermany({ animate: false });
+        requestAnimationFrame(() => window.parent.postMessage({
+          type: "versorgungs-kompass-map-rendered",
+          version: MAP_MESSAGE_VERSION,
+          channel: MAP_MESSAGE_CHANNEL,
+          entryRequestId: message.entryRequestId
+        }, window.location.origin));
+      });
+    } else if (!preserveSelection && !selectedState && !activeMapContactId) {
+      requestAnimationFrame(() => fitMapToGermany());
+    }
   });
   notifyParentMapReady();
   window.addEventListener('load', () => {

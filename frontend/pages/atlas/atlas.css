@@ -30,7 +30,6 @@
 .atlas-page {
   --atlas-ink: #122550;
   --atlas-body: #455266;
-  --atlas-rule: #d2d6c8;
   --atlas-paper: #fbfaf5;
   --atlas-pad: clamp(20px, 4.7vw, 95px);
   --atlas-left: max(var(--atlas-pad), env(safe-area-inset-left, 0px));
@@ -176,7 +175,8 @@
   grid-area: 3/1;
   align-self: end;
   z-index: 2;
-  width: min(100%, 26rem);
+  width: min(100%, 29rem);
+  container-type: inline-size;
   margin: 0;
   padding: 0 0 max(clamp(16px, 4vh, 44px), env(safe-area-inset-bottom, 0px));
 }
@@ -191,21 +191,36 @@
 .atlas-modules {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  column-gap: clamp(9px, 1.4vw, 22px);
+  gap: clamp(6px, 1vh, 10px) clamp(8px, .8vw, 13px);
   margin: 0;
   padding: 0;
   list-style: none;
 }
-.atlas-modules li { min-width: 0; border-top: 1px solid var(--atlas-rule); }
+.atlas-modules li { min-width: 0; }
 .atlas-page .home-destination-link {
+  --tile-accent: var(--home-module-color, var(--module-care-strong));
   flex-direction: row;
   align-items: center;
   gap: clamp(6px, .66vw, 11px);
-  min-height: clamp(43px, 6vh, 59px);
-  padding: 2px 0;
+  min-height: clamp(44px, 6.5vh, 63px);
+  padding: 4px clamp(9px, .95vw, 16px);
+  border: 1px solid color-mix(in srgb, var(--tile-accent) 24%, var(--atlas-paper));
+  border-radius: 12px;
+  background-color: color-mix(in srgb, var(--tile-accent) 5%, var(--atlas-paper));
+  box-shadow: 0 2px 4px #12255008;
   color: var(--atlas-ink);
   text-align: start;
   animation: none;
+}
+.atlas-page .home-destination-link::after {
+  content: "";
+  flex: none;
+  width: .42em;
+  height: .42em;
+  margin-inline-start: auto;
+  border: solid var(--tile-accent);
+  border-width: 1.65px 1.65px 0 0;
+  transform: rotate(45deg);
 }
 .atlas-page .home-destination-link .home-destination-link__mark {
   flex: none;
@@ -221,6 +236,25 @@
   font-size: clamp(.875rem, 1.12vw, 1.125rem);
   font-weight: 565;
   letter-spacing: -.035em;
+}
+.atlas-page .home-destination-link:is(:focus-visible, :active) {
+  border-color: var(--tile-accent);
+  background-color: color-mix(in srgb, var(--tile-accent) 15%, var(--atlas-paper));
+}
+@media (hover: hover) and (pointer: fine) {
+  .atlas-page .home-destination-link:hover {
+    border-color: var(--tile-accent);
+    background-color: color-mix(in srgb, var(--tile-accent) 15%, var(--atlas-paper));
+    box-shadow: 0 4px 12px color-mix(in srgb, var(--tile-accent) 13%, transparent);
+  }
+  .atlas-page .home-destination-link:hover .home-destination-name { text-decoration: none; }
+}
+@media (hover: hover) and (pointer: fine) and (prefers-reduced-motion: no-preference) {
+  .atlas-page .home-destination-link {
+    transition: transform .18s ease-out, background-color .18s ease-out, border-color .18s ease-out, box-shadow .18s ease-out;
+  }
+  .atlas-page .home-destination-link:hover { transform: translateY(-2px) scale(1.018); }
+  .atlas-page .home-destination-link:active { transform: scale(.99); }
 }
 
 /* Narrow portrait screens share their remaining height with the map. */
@@ -259,7 +293,7 @@
     padding-bottom: max(clamp(8px, 1.7vh, 23px), env(safe-area-inset-bottom, 0px));
   }
   .atlas-page #home-destinations-title { margin-bottom: 4px; }
-  .atlas-page .home-destination-link { min-height: clamp(37px, 5.5vh, 49px); gap: 7px; }
+  .atlas-page .home-destination-link { min-height: clamp(44px, 5.7vh, 52px); gap: 7px; }
   .atlas-page .home-destination-link .home-destination-link__mark { width: 27px; }
   .atlas-page .home-destination-name { font-size: .9375rem; }
 }
@@ -280,6 +314,16 @@
   .atlas-mast { padding-top: max(7px, env(safe-area-inset-top, 0px)); }
   .atlas-page #home-destinations { padding-bottom: max(6px, env(safe-area-inset-bottom, 0px)); }
   .atlas-page #home-destinations-title { margin-bottom: 2px; font-size: .75rem; }
-  .atlas-page .home-destination-link { min-height: 31px; gap: 5px; }
+  .atlas-page .home-destination-link { min-height: 36px; gap: 5px; }
   .atlas-page .home-destination-link .home-destination-link__mark { width: 21px; }
+}
+
+@container (max-width: 18rem) {
+  .atlas-page .home-destination-link { padding-inline: 7px; gap: 5px; }
+  .atlas-page .home-destination-link .home-destination-link__mark { width: 22px; }
+}
+@container (max-width: 15.5rem) {
+  .atlas-page .home-destination-link { padding-inline: 5px; gap: 4px; }
+  .atlas-page .home-destination-link .home-destination-link__mark { width: 18px; }
+  .atlas-page .home-destination-link::after { display: none; }
 }

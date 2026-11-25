@@ -1327,6 +1327,11 @@
       const routeAnnouncer = document.getElementById("route-announcer");
       const globalStatus = document.getElementById("global-status");
       const globalStatusMessage = document.getElementById("global-status-message");
+      const moduleEntryLoader = document.getElementById("module-entry-loader");
+      let moduleEntry = null;
+      let moduleEntrySequence = 0;
+      let initialOrganizationsSettled = false;
+      let mapFrameFailed = false;
       const initialLoadingSkeleton = document.getElementById("app-initial-skeleton");
       const standaloneModule = new URLSearchParams(window.location.search).get("standalone") || "";
       const isHospitationDocumentationStandalone =
@@ -40253,7 +40258,7 @@
         else homeScroller.style.removeProperty("scroll-behavior");
       }
 
-      function resetWorkspaceNavigationPosition({ focus = true } = {}) {
+      function resetWorkspaceNavigationPosition({ focus = true, focusTarget = mainContent } = {}) {
         const resetDocumentScroll = () => {
           const scrollingElement = document.scrollingElement || document.documentElement;
           const documentScrollBehavior = document.documentElement.style.scrollBehavior;
@@ -40277,7 +40282,7 @@
           activePanel?.querySelectorAll(".table-wrap").forEach((tableWrap) => {
             tableWrap.scrollLeft = 0;
           });
-          if (focus) mainContent?.focus({ preventScroll: true });
+          if (focus) focusTarget?.focus({ preventScroll: true });
         });
       }
 
@@ -40406,6 +40411,107 @@
         setSidebarCollapsed(false, { persist: false });
       }
 
+      function closeModuleEntry(focusWorkspace = false) {
+        if (!moduleEntry) return;
+        window.clearTimeout(moduleEntry.slowTimer);
+        window.clearTimeout(moduleEntry.revealTimer);
+        moduleEntry.fade?.cancel();
+        moduleEntry = null;
+        moduleEntryLoader.close();
+        if (focusWorkspace) mainContent?.focus({ preventScroll: true });
+      }
+
+      function beginModuleEntry(view, trigger) {
+        const recovery = moduleEntryLoader.querySelector(".module-entry-loader__recovery");
+        recovery.hidden = true;
+        moduleEntryLoader.querySelector("#module-entry-title").textContent = "Versorgungs-Kompass wird geladen";
+        moduleEntryLoader.querySelector(".module-entry-loader__bar").hidden = false;
+        recovery.querySelector("p").textContent = "Der Aufbau dauert länger.";
+        document.getElementById("module-entry-continue").textContent = "Ansicht bereits öffnen";
+        document.getElementById("module-entry-retry").hidden = true;
+        const entry = {
+          view,
+          trigger,
+          id: ++moduleEntrySequence,
+          startedAt: performance.now(),
+          slowTimer: window.setTimeout(() => { recovery.hidden = false; }, 8000)
+        };
+        moduleEntry = entry;
+        moduleEntryLoader.showModal();
+        if (view === "map" && mapFrameFailed) showMapEntryError();
+      }
+
+      function showMapEntryError() {
+        if (moduleEntry?.view !== "map") return;
+        window.clearTimeout(moduleEntry.slowTimer);
+        const recovery = moduleEntryLoader.querySelector(".module-entry-loader__recovery");
+        moduleEntryLoader.querySelector("#module-entry-title").textContent = "Versorgung";
+        moduleEntryLoader.querySelector(".module-entry-loader__bar").hidden = true;
+        recovery.hidden = false;
+        recovery.querySelector("p").textContent = "Die Karte konnte nicht geladen werden.";
+        document.getElementById("module-entry-continue").textContent = "Kontaktliste öffnen";
+        document.getElementById("module-entry-retry").hidden = false;
+      }
+
+      function revealModuleEntry() {
+        const entry = moduleEntry;
+        if (!entry || entry.revealTimer) return;
+        if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+          closeModuleEntry(true);
+          return;
+        }
+        window.clearTimeout(entry.slowTimer);
+        // A cached view still gets one short, legible beat. Slow loads open immediately when ready.
+        entry.revealTimer = window.setTimeout(() => {
+          if (!isMobileLayout()) {
+            appSidebar.animate(
+              [{ transform: "translateX(-100%)" }, { transform: "translateX(0)" }],
+              { duration: 430, delay: 60, fill: "backwards", easing: "cubic-bezier(.22, 1, .36, 1)", id: "module-sidebar-enter" }
+            );
+          }
+          entry.fade = moduleEntryLoader.animate([{ opacity: 1 }, { opacity: 0 }], {
+            duration: 180, easing: "ease-out"
+          });
+          const finish = () => { if (moduleEntry === entry) closeModuleEntry(true); };
+          entry.fade.finished.then(finish, finish);
+        }, Math.max(0, 320 - (performance.now() - entry.startedAt)));
+      }
+
+      function checkModuleEntry() {
+        if (!moduleEntry || moduleEntry.view !== activeView) return;
+        if (activeView === "map" && !moduleEntry.mapRendered) return;
+        if (initialCareDataState !== "error") {
+          if (activeView === "formats" && formatDataState === "loading") return;
+          if (activeView === "hospitationOverview" && hospitationDataState === "loading") return;
+        }
+        revealModuleEntry();
+      }
+
+      moduleEntryLoader?.addEventListener("cancel", (event) => {
+        event.preventDefault();
+        if (!moduleEntry) return;
+        setActiveView("home");
+        updateView();
+        window.history.back();
+      });
+      document.getElementById("module-entry-continue")?.addEventListener("click", () => {
+        const openContacts = moduleEntry?.view === "map" && mapFrameFailed;
+        closeModuleEntry(true);
+        if (openContacts) {
+          setActiveView("contacts");
+          updateRouteHash("contacts");
+          updateView();
+        }
+      });
+      document.getElementById("module-entry-retry")?.addEventListener("click", () => {
+        const trigger = moduleEntry.trigger;
+        closeModuleEntry();
+        mapFrameFailed = false;
+        beginModuleEntry("map", trigger);
+        mapViewFrame.contentWindow.location.replace(mapViewFrame.src);
+      });
+      if (moduleEntryLoader) window.addEventListener("pagehide", () => closeModuleEntry());
+
       function routeTokenForView(view) {
         const routeView = onboardingActive && view !== "onboarding" ? "onboarding" : view || activeView || "home";
         if (routeView === "personProfile") return personProfileRoute();
@@ -40482,7 +40588,7 @@
         return hadValue;
       }
 
-      function setActiveView(view) {
+      function setActiveView(view, moduleTrigger = null) {
         if (view === "team") {
           setProfileTab("team");
           view = "profile";
@@ -40548,6 +40654,13 @@
         if (viewChanged && searchContextForView(previousView) !== searchContextForView(view)) {
           clearSearchInput({ update: false });
           if (view === "patients") restorePatientModeState(activePatientMode);
+        }
+        const returnFocus = view === "home" ? moduleEntry?.trigger : null;
+        if (moduleEntryLoader && viewChanged) {
+          closeModuleEntry();
+          if (previousView === "home" && moduleTrigger) {
+            beginModuleEntry(view, moduleTrigger);
+          }
         }
         activeView = view;
         showPendingInitialDataReadyStatus(activeView);
@@ -40650,7 +40763,10 @@
         if (view === "map") {
           syncMapFrame(mapContacts());
         }
-        if (viewChanged) resetWorkspaceNavigationPosition({ focus: !(isAnalyticsView(previousView) && isAnalyticsView(view)) });
+        if (viewChanged) resetWorkspaceNavigationPosition({
+          focus: !(isAnalyticsView(previousView) && isAnalyticsView(view)),
+          focusTarget: returnFocus || mainContent
+        });
         return true;
       }
 
@@ -40678,6 +40794,8 @@
             version: MAP_MESSAGE_VERSION,
             channel: "contacts",
             context: "contacts",
+            ...(moduleEntry?.view === "map" && !moduleEntry.mapRendered && (initialOrganizationsSettled || initialCareDataState === "error")
+              ? { entryRequestId: moduleEntry.id } : {}),
             labels: {
               searchPlaceholder: "Name, Organisation, Ort oder Thema suchen"
             },
@@ -43023,6 +43141,7 @@
         if (isPressView && activeStakeholderPersonId && !items.some((item) => item.id === activeStakeholderPersonId)) {
           closeDetail();
         }
+        checkModuleEntry();
       }
 
       editorForm.elements.category.innerHTML = buildCategorySelectOptions("");
@@ -43388,6 +43507,15 @@
       });
       bindDirectoryFilterPanels();
       mapViewFrame.addEventListener("load", () => {
+        if (moduleEntryLoader) {
+          const frameDocument = mapViewFrame.contentDocument;
+          if (frameDocument?.URL === "about:blank") return;
+          mapFrameFailed = frameDocument?.documentElement.dataset.mapReady !== "true";
+          if (mapFrameFailed) {
+            showMapEntryError();
+            return;
+          }
+        }
         syncMapFrame(mapContacts());
       });
       stakeholderMapFrame?.addEventListener("load", () => {
@@ -43555,7 +43683,7 @@
           event.preventDefault();
           const targetView = routeViewFromToken(routeToken) || "home";
           closeMobileSidebar();
-          setActiveView(targetView);
+          setActiveView(targetView, opensSidebarForOrientation ? link : null);
           updateRouteHash(targetView === "stakeholderOverview" ? targetView : routeToken);
           updateView();
           if (opensSidebarForOrientation) openSidebarForHomeDestination();
@@ -44455,6 +44583,13 @@
             ? "politics"
             : "stakeholders";
         const message = event.data;
+        if (message.type === "versorgungs-kompass-map-rendered" && sourceFrame === mapViewFrame
+            && message.version === MAP_MESSAGE_VERSION && message.channel === "contacts"
+            && moduleEntry?.view === "map" && message.entryRequestId === moduleEntry.id) {
+          moduleEntry.mapRendered = true;
+          checkModuleEntry();
+          return;
+        }
         const messageId = typeof message.id === "string" ? message.id.trim() : "";
         if (
           message.type !== "versorgungs-kompass-open-detail" ||
@@ -45464,6 +45599,8 @@
           console.warn("Organisationen konnten nicht aus dem Backend geladen werden. Kontaktbasierter Fallback aktiv.", organizationError);
           organizations = deriveOrganizationsFromContacts(contacts);
           organizationDataState = "fallback";
+        } finally {
+          initialOrganizationsSettled = true;
         }
       }
 
