@@ -135,7 +135,7 @@ Der Quellcode und die technische Dokumentation stehen unter der [Apache License 
 
 ## Aktueller Release
 
-- Version: [v0.29.1](https://github.com/TimoFrank/mitmachen/releases/tag/v0.29.1)
+- Version: [v0.29.2](https://github.com/TimoFrank/mitmachen/releases/tag/v0.29.2)
 - Stand: 25. November 2026
-- Kurznotiz: Alle vier Arbeitsbereiche stehen am unteren linken Rand des Atlas. Die Startseite nutzt die verfügbare Bildschirmfläche. Die Flugsteuerung, der ausklappbare Quellennachweis und die Projektfußzeile entfallen.
+- Kurznotiz: Vier farblich abgestimmte Kacheln zeigen die Arbeitsbereiche. Beim Öffnen eines Moduls begleitet eine Ladeansicht den Übergang. In der Versorgung wartet sie auf die Karte. Die Seitenleiste gleitet am Desktop von links ins Bild.
 - Demo-Kanal: [GitHub Pages](https://timofrank.github.io/mitmachen/)
